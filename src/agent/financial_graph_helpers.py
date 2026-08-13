@@ -69,7 +69,6 @@ from src.agent.financial_surface_contracts import (
     _operand_needles,
     _operand_segment_label,
     _operand_surface_contract,
-    _text_has_contract_term,
     _text_has_negative_surface,
     _text_has_positive_surface,
     binding_policy_allows_candidate_shape,
@@ -123,7 +122,10 @@ from src.agent.financial_operation_policies import (
 )
 from src.agent.financial_operand_resolution import (
     candidate_row_block_signature,
-    lookup_hints_for_concept_key,
+    lookup_canonical_statement_preferences,
+    lookup_prefers_canonical_statement_rows,
+    lookup_query_surface_preferences,
+    operand_lookup_surface_match,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
 from src.routing import default_format_preference
@@ -722,11 +724,11 @@ def _candidate_is_canonical_statement_winner(
     operand: Dict[str, Any],
     query_years: List[int],
 ) -> bool:
-    if not _lookup_prefers_canonical_statement_rows(operand):
+    if not lookup_prefers_canonical_statement_rows(operand):
         return False
     metadata = dict(candidate.get("metadata") or {})
     statement_type = str(metadata.get("statement_type") or "").strip()
-    canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+    canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
     if canonical_types and statement_type not in canonical_types:
         return False
     canonical_statement_type_hit = bool(canonical_types) and statement_type in canonical_types and statement_type not in {"notes", "unknown"}
@@ -1358,7 +1360,7 @@ def _build_generic_retrieval_queries(
         surfaces.extend(_surface_query_variants(label))
         for alias in list(operand.get("aliases") or [])[:3]:
             surfaces.extend(_surface_query_variants(str(alias).strip()))
-        for surface in _lookup_query_surface_preferences(operand):
+        for surface in lookup_query_surface_preferences(operand):
             surfaces.extend(_surface_query_variants(surface))
         return list(dict.fromkeys(surface for surface in surfaces if surface))
 
@@ -2593,45 +2595,6 @@ def _lookup_constraint_from_binding(binding: Dict[str, Any], base_constraints: D
     return constraints
 
 
-def _lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool:
-    if _operand_segment_label(operand):
-        return False
-    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
-    return bool(lookup_hints.get("prefer_canonical_statement_rows"))
-
-
-def _lookup_canonical_statement_preferences(operand: Dict[str, Any]) -> tuple[List[str], List[str]]:
-    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
-    return (
-        [
-            str(item).strip()
-            for item in (lookup_hints.get("canonical_statement_types") or [])
-            if str(item).strip()
-        ],
-        [
-            str(item).strip()
-            for item in (lookup_hints.get("canonical_sections") or [])
-            if str(item).strip()
-        ],
-    )
-
-
-def _lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
-    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
-    return [
-        str(item).strip()
-        for item in (lookup_hints.get("aggregate_query_surfaces") or [])
-        if str(item).strip()
-    ]
-
-
-def _operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
-    surfaces = _lookup_query_surface_preferences(operand)
-    if not surfaces:
-        return False
-    return _text_has_contract_term(text, surfaces)
-
-
 def _candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     metadata = dict(candidate.get("metadata") or {})
     context_text = " ".join(
@@ -3061,7 +3024,7 @@ def _build_lookup_producer_task_from_binding(
     binding_policy = dict(operand.get("binding_policy") or {})
     if explicit_binding_policy:
         binding_policy.update(explicit_binding_policy)
-    elif _lookup_prefers_canonical_statement_rows(operand):
+    elif lookup_prefers_canonical_statement_rows(operand):
         # Canonical statement-row lookups should be free to bind to the statement
         # row itself when only concept-default aggregate preferences are present.
         binding_policy.pop("prefer_value_roles", None)
@@ -3070,7 +3033,7 @@ def _build_lookup_producer_task_from_binding(
     if binding_segment:
         binding_policy["segment_label"] = binding_segment
     operand["binding_policy"] = binding_policy
-    lookup_query_surfaces = _lookup_query_surface_preferences(operand)
+    lookup_query_surfaces = lookup_query_surface_preferences(operand)
     if lookup_query_surfaces:
         existing_aliases = [str(item).strip() for item in (operand.get("aliases") or []) if str(item).strip()]
         operand["aliases"] = list(dict.fromkeys([*lookup_query_surfaces, *existing_aliases]))
@@ -3095,8 +3058,8 @@ def _build_lookup_producer_task_from_binding(
             ]
         )
     )
-    if _lookup_prefers_canonical_statement_rows(operand):
-        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+    if lookup_prefers_canonical_statement_rows(operand):
+        canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
         # For producer lookup tasks that explicitly prefer canonical statement
         # rows, keep retrieval focused on those statement types/sections instead
         # of widening back out to note sections from downstream consumers.
@@ -4568,7 +4531,7 @@ def _candidate_is_direct_grounding_candidate(
     ):
         return False
 
-    if _lookup_prefers_canonical_statement_rows(operand) and candidate_kind == "table_row":
+    if lookup_prefers_canonical_statement_rows(operand) and candidate_kind == "table_row":
         if statement_type not in {"income_statement", "summary_financials", "notes"}:
             return False
 
@@ -4728,8 +4691,8 @@ def _candidate_satisfies_direct_acceptance_contract(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
-    if operation_family in {"lookup", "single_value"} and _lookup_prefers_canonical_statement_rows(operand):
-        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+    if operation_family in {"lookup", "single_value"} and lookup_prefers_canonical_statement_rows(operand):
+        canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
         scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
         note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
         note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
@@ -5063,7 +5026,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
         best = max(best, 2.25)
     if (
         aggregate_signal
-        and _operand_lookup_surface_match(aggregate_signal, operand)
+        and operand_lookup_surface_match(aggregate_signal, operand)
         and _candidate_has_operand_context_surface(candidate, operand)
         and _candidate_value_role(candidate) == "aggregate"
         and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
@@ -5275,9 +5238,9 @@ def _score_operand_candidate(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
     section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
-    if _lookup_prefers_canonical_statement_rows(operand):
+    if lookup_prefers_canonical_statement_rows(operand):
         scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-        canonical_types, canonical_sections = _lookup_canonical_statement_preferences(operand)
+        canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
         canonical_section_hit = bool(canonical_sections) and any(
             _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
             for section_term in canonical_sections
@@ -5500,7 +5463,7 @@ def _build_reconciliation_retry_queries(
             *aliases,
             *[
                 str(item).strip()
-                for item in _lookup_query_surface_preferences(spec)
+                for item in lookup_query_surface_preferences(spec)
                 if str(item).strip()
             ],
         ]
@@ -5512,8 +5475,8 @@ def _build_reconciliation_retry_queries(
             )
             if str(item).strip()
         ]
-        if _lookup_prefers_canonical_statement_rows(spec):
-            canonical_types, canonical_sections = _lookup_canonical_statement_preferences(spec)
+        if lookup_prefers_canonical_statement_rows(spec):
+            canonical_types, canonical_sections = lookup_canonical_statement_preferences(spec)
             del canonical_types  # section-only use here
             preferred_sections = list(dict.fromkeys([*canonical_sections, *preferred_sections]))
         binding_policy = dict(spec.get("binding_policy") or {})

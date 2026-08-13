@@ -33,6 +33,7 @@ from src.agent.financial_surface_contracts import (
     _operand_needles,
     _operand_segment_label,
     _operand_surface_contract,
+    _text_has_contract_term,
     _text_has_negative_surface,
     _text_has_positive_surface,
 )
@@ -3477,6 +3478,45 @@ def lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
         if _normalise_spaces(str(spec.get("concept") or "")) == normalized_key:
             return dict(spec.get("lookup_hints") or {})
     return {}
+
+
+def lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool:
+    if _operand_segment_label(operand):
+        return False
+    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return bool(lookup_hints.get("prefer_canonical_statement_rows"))
+
+
+def lookup_canonical_statement_preferences(operand: Dict[str, Any]) -> tuple[List[str], List[str]]:
+    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return (
+        [
+            str(item).strip()
+            for item in (lookup_hints.get("canonical_statement_types") or [])
+            if str(item).strip()
+        ],
+        [
+            str(item).strip()
+            for item in (lookup_hints.get("canonical_sections") or [])
+            if str(item).strip()
+        ],
+    )
+
+
+def lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
+    lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
+    return [
+        str(item).strip()
+        for item in (lookup_hints.get("aggregate_query_surfaces") or [])
+        if str(item).strip()
+    ]
+
+
+def operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
+    surfaces = lookup_query_surface_preferences(operand)
+    if not surfaces:
+        return False
+    return _text_has_contract_term(text, surfaces)
 
 
 def coerce_lookup_magnitude_value(

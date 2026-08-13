@@ -6480,7 +6480,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         source_lines, start_line = inspect.getsourcelines(
             operand_resolution.repair_krw_operand_units_from_table_metadata
         )
-        self.assertEqual((start_line, len(source_lines)), (787, 165))
+        self.assertEqual((start_line, len(source_lines)), (788, 165))
         tree = ast.parse(inspect.getsource(graph_calculation))
         graph_definitions = [
             node
@@ -6918,9 +6918,9 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             sorted(
                 [
                     ("lookup_hints_for_concept_key", "financial_operand_resolution", "coerce_lookup_magnitude_value", "Name", 1, (), 0),
-                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_prefers_canonical_statement_rows", "Name", 1, (), 0),
-                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_canonical_statement_preferences", "Name", 1, (), 0),
-                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_query_surface_preferences", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_operand_resolution", "lookup_prefers_canonical_statement_rows", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_operand_resolution", "lookup_canonical_statement_preferences", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_operand_resolution", "lookup_query_surface_preferences", "Name", 1, (), 0),
                     ("coerce_lookup_magnitude_value", "financial_lookup_recovery", "coerce_lookup_magnitude_record", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
                     ("coerce_lookup_magnitude_value", "financial_reconciliation_candidates", "build_operand_row_from_candidate_cell", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
                     ("coerce_lookup_magnitude_value", "financial_operand_resolution", "repair_note_operand_units_from_same_block", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
@@ -6944,7 +6944,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertNotIn("src.agent.financial_graph_helpers", imported_modules(modules["financial_operand_resolution"]))
         self.assertNotIn("src.agent.financial_graph_reconciliation", imported_modules(modules["financial_operand_resolution"]))
         owner_calls = [row for row in call_rows if row[1] == "financial_operand_resolution"]
-        self.assertEqual((len(call_rows), len(call_rows) - len(owner_calls), len(owner_calls)), (7, 5, 2))
+        self.assertEqual((len(call_rows), len(call_rows) - len(owner_calls), len(owner_calls)), (7, 2, 5))
 
     def test_current_source_lookup_magnitude_callers_adopt_exact_results_and_stop_on_exception(self) -> None:
         from src.agent import financial_graph_reconciliation
@@ -7337,8 +7337,8 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "src/agent/financial_graph_helpers.py": {},
                 "src/agent/financial_graph_reconciliation.py": {},
                 "src/agent/financial_operand_resolution.py": {
-                    "candidate_row_block_signature": (3516, 3544, 29, ["candidate"]),
-                    "repair_note_operand_units_from_same_block": (3547, 3603, 57, ["operand_rows", "candidate_map"]),
+                    "candidate_row_block_signature": (3556, 3584, 29, ["candidate"]),
+                    "repair_note_operand_units_from_same_block": (3587, 3643, 57, ["operand_rows", "candidate_map"]),
                 },
             },
         )

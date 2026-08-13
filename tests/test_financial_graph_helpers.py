@@ -13,6 +13,7 @@ import src.agent.financial_graph_planning as financial_graph_planning
 import src.agent.financial_graph_reconciliation as financial_graph_reconciliation
 import src.agent.financial_dependency_projection as financial_dependency_projection
 import src.agent.financial_lookup_recovery as financial_lookup_recovery
+import src.agent.financial_operand_resolution as financial_operand_resolution
 import src.agent.financial_reconciliation_candidates as financial_reconciliation_candidates
 import src.agent.financial_row_surfaces as financial_row_surfaces
 import src.agent.financial_scope_policies as financial_scope_policies
@@ -471,7 +472,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 108),
+            (9, 104),
         )
         self.assertEqual(
             (
@@ -1332,7 +1333,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "_candidate_value_role": "aggregate",
             "_candidate_aggregation_stage": "final",
             "binding_policy_allows_candidate_shape": True,
-            "_lookup_prefers_canonical_statement_rows": False,
+            "lookup_prefers_canonical_statement_rows": False,
             "candidate_consolidation_scope": "unknown",
             "operand_period_focus": "unknown",
             "_is_delta_like_row_label": False,
@@ -1386,7 +1387,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
             patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
-            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
             patch.object(financial_graph_helpers, "_is_delta_like_row_label", return_value=False),
@@ -1872,7 +1873,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 108),
+            (9, 104),
         )
         self.assertEqual(
             (
@@ -2123,6 +2124,1658 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "stage failed"):
                 financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand)
         stopped_positive.assert_not_called()
+
+    def test_current_source_lookup_preference_projection_pins_segment_short_circuit_coercion_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        segment_operand = {"concept": object(), "nested": nested}
+        stopped_lookup = Mock(side_effect=AssertionError("segment hit must stop hint lookup"))
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value=" Segment ",
+            ) as segment_owner,
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                stopped_lookup,
+            ),
+        ):
+            self.assertFalse(
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    segment_operand
+                )
+            )
+        segment_owner.assert_called_once_with(segment_operand)
+        stopped_lookup.assert_not_called()
+
+        events = []
+
+        class ConceptProbe:
+            def __str__(self):
+                events.append("concept")
+                return " concept "
+
+        class PreferenceProbe:
+            def __bool__(self):
+                events.append("preference-bool")
+                return True
+
+        class HintMap:
+            def get(self, key):
+                events.append(("hint-get", key))
+                return PreferenceProbe()
+
+        concept = ConceptProbe()
+        operand = {"concept": concept, "nested": nested}
+        before_operand = dict(operand)
+
+        def segment_projection(current_operand):
+            events.append(("segment", current_operand is operand))
+            return ""
+
+        def hint_lookup(concept_key):
+            events.append(("lookup", concept_key))
+            return HintMap()
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                side_effect=segment_projection,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                side_effect=hint_lookup,
+            ) as hint_owner,
+        ):
+            self.assertTrue(
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    operand
+                )
+            )
+        hint_owner.assert_called_once_with(" concept ")
+        self.assertEqual(
+            events,
+            [
+                ("segment", True),
+                "concept",
+                ("lookup", " concept "),
+                ("hint-get", "prefer_canonical_statement_rows"),
+                "preference-bool",
+            ],
+        )
+        self.assertEqual(operand, before_operand)
+        self.assertIs(operand["concept"], concept)
+        self.assertIs(operand["nested"], nested)
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                return_value={},
+            ) as empty_hint_owner,
+        ):
+            self.assertFalse(
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    {"concept": 0}
+                )
+            )
+        empty_hint_owner.assert_called_once_with("")
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                side_effect=RuntimeError("segment failed"),
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+            ) as stopped_after_segment,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment failed"):
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    operand
+                )
+        stopped_after_segment.assert_not_called()
+
+        class ConceptBomb:
+            def __str__(self):
+                raise RuntimeError("concept failed")
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+            ) as stopped_after_concept,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "concept failed"):
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    {"concept": ConceptBomb()}
+                )
+        stopped_after_concept.assert_not_called()
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                side_effect=RuntimeError("lookup failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "lookup failed"):
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    {}
+                )
+
+        class HintGetBomb:
+            def get(self, key):
+                raise RuntimeError(f"hint get failed: {key}")
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                return_value=HintGetBomb(),
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "hint get failed: prefer_canonical_statement_rows",
+            ):
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    {}
+                )
+
+        class PreferenceBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("preference bool failed")
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                return_value={
+                    "prefer_canonical_statement_rows": PreferenceBoolBomb()
+                },
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "preference bool failed"):
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    {}
+                )
+
+    def test_current_source_lookup_surface_projections_pin_filtering_identity_laziness_and_exceptions(self) -> None:
+        events = []
+
+        class ConceptProbe:
+            def __str__(self):
+                events.append("concept")
+                return " concept "
+
+        class TextProbe:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(self.name)
+                return self.value
+
+        type_a = TextProbe("type-a", " A ")
+        type_blank = TextProbe("type-blank", "   ")
+        section_b = TextProbe("section-b", " B ")
+        raw_types = [type_a, type_blank, type_a]
+        raw_sections = [section_b]
+
+        class HintMap:
+            def get(self, key):
+                events.append(("hint-get", key))
+                return {
+                    "canonical_statement_types": raw_types,
+                    "canonical_sections": raw_sections,
+                }.get(key)
+
+        operand = {"concept": ConceptProbe(), "nested": {"preserve": True}}
+
+        def canonical_hint_lookup(concept_key):
+            events.append(("lookup", concept_key))
+            return HintMap()
+
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            side_effect=canonical_hint_lookup,
+        ) as hint_owner:
+            canonical_types, canonical_sections = (
+                financial_operand_resolution.lookup_canonical_statement_preferences(
+                    operand
+                )
+            )
+        hint_owner.assert_called_once_with(" concept ")
+        self.assertEqual(canonical_types, ["A", "A"])
+        self.assertEqual(canonical_sections, ["B"])
+        self.assertIsNot(canonical_types, raw_types)
+        self.assertIsNot(canonical_sections, raw_sections)
+        self.assertEqual(
+            events,
+            [
+                "concept",
+                ("lookup", " concept "),
+                ("hint-get", "canonical_statement_types"),
+                "type-a",
+                "type-a",
+                "type-blank",
+                "type-a",
+                "type-a",
+                ("hint-get", "canonical_sections"),
+                "section-b",
+                "section-b",
+            ],
+        )
+
+        events.clear()
+        surface_c = TextProbe("surface-c", " C ")
+        surface_blank = TextProbe("surface-blank", "")
+        raw_surfaces = [surface_c, surface_blank, surface_c]
+
+        class SurfaceHintMap:
+            def get(self, key):
+                events.append(("hint-get", key))
+                return raw_surfaces
+
+        def surface_hint_lookup(concept_key):
+            events.append(("lookup", concept_key))
+            return SurfaceHintMap()
+
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            side_effect=surface_hint_lookup,
+        ) as hint_owner:
+            projected_surfaces = (
+                financial_operand_resolution.lookup_query_surface_preferences(
+                    operand
+                )
+            )
+        hint_owner.assert_called_once_with(" concept ")
+        self.assertEqual(projected_surfaces, ["C", "C"])
+        self.assertIsNot(projected_surfaces, raw_surfaces)
+        self.assertEqual(
+            events,
+            [
+                "concept",
+                ("lookup", " concept "),
+                ("hint-get", "aggregate_query_surfaces"),
+                "surface-c",
+                "surface-c",
+                "surface-blank",
+                "surface-c",
+                "surface-c",
+            ],
+        )
+
+        class FalsyCollection:
+            def __bool__(self):
+                events.append("collection-bool")
+                return False
+
+            def __iter__(self):
+                raise AssertionError("falsy collection must not be iterated")
+
+        events.clear()
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            return_value={"aggregate_query_surfaces": FalsyCollection()},
+        ):
+            self.assertEqual(
+                financial_operand_resolution.lookup_query_surface_preferences({}),
+                [],
+            )
+        self.assertEqual(events, ["collection-bool"])
+
+        class IterationBomb:
+            def __iter__(self):
+                raise RuntimeError("type iteration failed")
+
+        class OrderedHintMap:
+            def get(self, key):
+                events.append(key)
+                if key == "canonical_statement_types":
+                    return IterationBomb()
+                raise AssertionError("type failure must stop section access")
+
+        events.clear()
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            return_value=OrderedHintMap(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "type iteration failed"):
+                financial_operand_resolution.lookup_canonical_statement_preferences(
+                    {}
+                )
+        self.assertEqual(events, ["canonical_statement_types"])
+
+        class CollectionBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("collection bool failed")
+
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            return_value={
+                "aggregate_query_surfaces": CollectionBoolBomb()
+            },
+        ):
+            with self.assertRaisesRegex(RuntimeError, "collection bool failed"):
+                financial_operand_resolution.lookup_query_surface_preferences({})
+
+        class ItemStringBomb:
+            def __str__(self):
+                raise RuntimeError("item string failed")
+
+        with patch.object(
+            financial_operand_resolution,
+            "lookup_hints_for_concept_key",
+            return_value={"aggregate_query_surfaces": [ItemStringBomb()]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "item string failed"):
+                financial_operand_resolution.lookup_query_surface_preferences({})
+
+        text = object()
+        projected = ["surface"]
+        matcher_result = object()
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=projected,
+            ) as projection_owner,
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_contract_term",
+                return_value=matcher_result,
+            ) as matcher_owner,
+        ):
+            self.assertIs(
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text,
+                    operand,
+                ),
+                matcher_result,
+            )
+        projection_owner.assert_called_once_with(operand)
+        matcher_owner.assert_called_once_with(text, projected)
+        self.assertIs(matcher_owner.call_args.args[0], text)
+        self.assertIs(matcher_owner.call_args.args[1], projected)
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ) as projection_owner,
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_contract_term",
+                side_effect=AssertionError("empty projection must stop matcher"),
+            ) as stopped_matcher,
+        ):
+            self.assertFalse(
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text,
+                    operand,
+                )
+            )
+        projection_owner.assert_called_once_with(operand)
+        stopped_matcher.assert_not_called()
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                side_effect=RuntimeError("projection failed"),
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_contract_term",
+            ) as stopped_matcher,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "projection failed"):
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text,
+                    operand,
+                )
+        stopped_matcher.assert_not_called()
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=projected,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_contract_term",
+                side_effect=RuntimeError("matcher failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "matcher failed"):
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text,
+                    operand,
+                )
+
+    def test_current_source_lookup_hint_bindings_pin_defs_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "lookup_prefers_canonical_statement_rows",
+            "lookup_canonical_statement_preferences",
+            "lookup_query_surface_preferences",
+            "operand_lookup_surface_match",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+        dependency_loads = {
+            "_operand_segment_label": [],
+            "lookup_hints_for_concept_key": [],
+            "_text_has_contract_term": [],
+        }
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if (
+                    isinstance(node.ctx, ast.Load)
+                    and node.id in dependency_loads
+                    and self.function_stack
+                    and self.function_stack[-1] in target_names
+                ):
+                    dependency_loads[node.id].append(
+                        (self.module_name, self.function_stack[-1])
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        preference_name = "lookup_prefers_canonical_statement_rows"
+        canonical_name = "lookup_canonical_statement_preferences"
+        query_name = "lookup_query_surface_preferences"
+        match_name = "operand_lookup_surface_match"
+        expected_owner = "financial_operand_resolution"
+        expected_spans = {
+            preference_name: 5,
+            canonical_name: 14,
+            query_name: 7,
+            match_name: 5,
+        }
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in definitions[name]
+                ]
+                for name in target_names
+            },
+            {
+                name: [(expected_owner, expected_spans[name])]
+                for name in target_names
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in definitions[name][0][1].args.args],
+                    [arg.arg for arg in definitions[name][0][1].args.kwonlyargs],
+                    ast.unparse(definitions[name][0][1].returns),
+                )
+                for name in target_names
+            },
+            {
+                preference_name: (["operand"], [], "bool"),
+                canonical_name: (
+                    ["operand"],
+                    [],
+                    "tuple[List[str], List[str]]",
+                ),
+                query_name: (["operand"], [], "List[str]"),
+                match_name: (["text", "operand"], [], "bool"),
+            },
+        )
+        self.assertTrue(
+            all(
+                not any(isinstance(item, ast.Try) for item in ast.walk(node))
+                for entries in definitions.values()
+                for _module_name, node in entries
+            )
+        )
+
+        expected_callers = {
+            preference_name: [
+                ("financial_graph_helpers", "_candidate_is_canonical_statement_winner"),
+                ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
+                ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
+                ("financial_graph_helpers", "_candidate_is_direct_grounding_candidate"),
+                (
+                    "financial_graph_helpers",
+                    "_candidate_satisfies_direct_acceptance_contract",
+                ),
+                ("financial_graph_helpers", "_score_operand_candidate"),
+                ("financial_graph_helpers", "_build_reconciliation_retry_queries"),
+            ],
+            canonical_name: [
+                ("financial_graph_helpers", "_candidate_is_canonical_statement_winner"),
+                ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
+                (
+                    "financial_graph_helpers",
+                    "_candidate_satisfies_direct_acceptance_contract",
+                ),
+                ("financial_graph_helpers", "_score_operand_candidate"),
+                ("financial_graph_helpers", "_build_reconciliation_retry_queries"),
+            ],
+            query_name: [
+                ("financial_graph_helpers", "_query_surfaces_for_operand"),
+                (expected_owner, match_name),
+                ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
+                ("financial_graph_helpers", "_build_reconciliation_retry_queries"),
+            ],
+            match_name: [
+                ("financial_graph_helpers", "_candidate_direct_match_strength"),
+            ],
+        }
+        self.assertEqual(
+            {
+                name: sorted(entry[:2] for entry in calls[name])
+                for name in target_names
+            },
+            {
+                name: sorted(expected_callers[name])
+                for name in target_names
+            },
+        )
+        self.assertEqual(
+            {name: len(calls[name]) for name in target_names},
+            {
+                preference_name: 7,
+                canonical_name: 5,
+                query_name: 4,
+                match_name: 1,
+            },
+        )
+        self.assertTrue(
+            all(
+                entry[2] == "Name"
+                and entry[4] == ()
+                and entry[5] == 0
+                for entries in calls.values()
+                for entry in entries
+            )
+        )
+        self.assertEqual(
+            sorted(
+                (name, entry[3])
+                for name in target_names
+                for entry in calls[name]
+            ),
+            sorted(
+                [
+                    *[(preference_name, ("operand",)) for _ in range(6)],
+                    (preference_name, ("spec",)),
+                    *[(canonical_name, ("operand",)) for _ in range(4)],
+                    (canonical_name, ("spec",)),
+                    *[(query_name, ("operand",)) for _ in range(3)],
+                    (query_name, ("spec",)),
+                    (match_name, ("aggregate_signal", "operand")),
+                ]
+            ),
+        )
+        self.assertEqual(
+            {
+                name: sorted(entries)
+                for name, entries in dependency_loads.items()
+            },
+            {
+                "_operand_segment_label": [
+                    (expected_owner, preference_name)
+                ],
+                "lookup_hints_for_concept_key": sorted(
+                    [
+                        (expected_owner, preference_name),
+                        (expected_owner, canonical_name),
+                        (expected_owner, query_name),
+                    ]
+                ),
+                "_text_has_contract_term": [
+                    (expected_owner, match_name)
+                ],
+            },
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        operand_defs = [
+            node
+            for node in module_trees["financial_operand_resolution"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in graph_defs),
+                sum(node.name.startswith("_") for node in graph_defs),
+            ),
+            (9, 104),
+        )
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in operand_defs),
+                sum(node.name.startswith("_") for node in operand_defs),
+            ),
+            (41, 37),
+        )
+
+        def imported_names(module_name, imported_module):
+            return {
+                alias.name
+                for node in module_trees[module_name].body
+                if isinstance(node, ast.ImportFrom)
+                and node.module == imported_module
+                for alias in node.names
+            }
+
+        graph_operand_imports = imported_names(
+            "financial_graph_helpers",
+            "src.agent.financial_operand_resolution",
+        )
+        graph_surface_imports = imported_names(
+            "financial_graph_helpers",
+            "src.agent.financial_surface_contracts",
+        )
+        operand_surface_imports = imported_names(
+            "financial_operand_resolution",
+            "src.agent.financial_surface_contracts",
+        )
+        self.assertNotIn("lookup_hints_for_concept_key", graph_operand_imports)
+        self.assertTrue(target_names <= graph_operand_imports)
+        self.assertNotIn("_text_has_contract_term", graph_surface_imports)
+        self.assertIn("_operand_segment_label", operand_surface_imports)
+        self.assertIn("_text_has_contract_term", operand_surface_imports)
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(
+            reaches(
+                "financial_graph_helpers",
+                "financial_operand_resolution",
+            )
+        )
+        self.assertTrue(
+            reaches(
+                "financial_operand_resolution",
+                "financial_surface_contracts",
+            )
+        )
+        self.assertFalse(
+            reaches(
+                "financial_operand_resolution",
+                "financial_graph_helpers",
+            )
+        )
+        self.assertFalse(
+            reaches(
+                "financial_surface_contracts",
+                "financial_operand_resolution",
+            )
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for record in baseline["records"]:
+            if record.get("path") != f"src/agent/{expected_owner}.py":
+                continue
+            for name in target_names:
+                node = definitions[name][0][1]
+                if any(
+                    node.lineno <= line <= node.end_lineno
+                    for line in record.get("first_lines") or []
+                ):
+                    selected_hits.append((name, record))
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_lookup_hint_callers_pin_args_adoption_order_and_stop(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        graph_source = (
+            repo_root / "src" / "agent" / "financial_graph_helpers.py"
+        ).read_text(encoding="utf-8-sig")
+        graph_tree = ast.parse(graph_source)
+        function_nodes = {
+            node.name: node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef)
+        }
+
+        def function_source(name):
+            return ast.get_source_segment(graph_source, function_nodes[name]) or ""
+
+        preference_name = "lookup_prefers_canonical_statement_rows"
+        canonical_name = "lookup_canonical_statement_preferences"
+        query_name = "lookup_query_surface_preferences"
+        match_name = "operand_lookup_surface_match"
+
+        winner_source = function_source(
+            "_candidate_is_canonical_statement_winner"
+        )
+        self.assertLess(
+            winner_source.index(preference_name),
+            winner_source.index("metadata ="),
+        )
+        self.assertLess(
+            winner_source.index(preference_name),
+            winner_source.index(canonical_name),
+        )
+        self.assertLess(
+            winner_source.index(canonical_name),
+            winner_source.index("_candidate_direct_match_strength"),
+        )
+
+        generic_source = function_source("_build_generic_retrieval_queries")
+        self.assertLess(generic_source.index("label ="), generic_source.index("for alias in"))
+        self.assertLess(generic_source.index("for alias in"), generic_source.index(query_name))
+
+        producer_source = function_source(
+            "_build_lookup_producer_task_from_binding"
+        )
+        first_preference = producer_source.index(preference_name)
+        second_preference = producer_source.index(
+            preference_name,
+            first_preference + len(preference_name),
+        )
+        self.assertLess(
+            producer_source.index("explicit_binding_policy"),
+            first_preference,
+        )
+        self.assertLess(first_preference, producer_source.index("binding_segment"))
+        self.assertLess(producer_source.index("binding_segment"), producer_source.index(query_name))
+        self.assertLess(producer_source.index(query_name), second_preference)
+        self.assertLess(second_preference, producer_source.index(canonical_name))
+        self.assertLess(
+            producer_source.index(canonical_name),
+            producer_source.index("_build_generic_retrieval_queries"),
+        )
+
+        grounding_source = function_source(
+            "_candidate_is_direct_grounding_candidate"
+        )
+        grounding_preference = grounding_source.index(preference_name)
+        self.assertLess(
+            grounding_source.index("direct_match_strength"),
+            grounding_preference,
+        )
+        self.assertLess(
+            grounding_source.index("binding_policy_allows_candidate_shape"),
+            grounding_preference,
+        )
+        self.assertLess(
+            grounding_preference,
+            grounding_source.index("candidate_kind == \"table_row\""),
+        )
+
+        acceptance_source = function_source(
+            "_candidate_satisfies_direct_acceptance_contract"
+        )
+        acceptance_preference = acceptance_source.index(preference_name)
+        self.assertLess(
+            acceptance_source.rfind(
+                "operation_family in",
+                0,
+                acceptance_preference,
+            ),
+            acceptance_preference,
+        )
+        self.assertLess(
+            acceptance_preference,
+            acceptance_source.index(canonical_name),
+        )
+        self.assertLess(
+            acceptance_source.index(canonical_name),
+            acceptance_source.index("_is_balance_sheet_aggregate_operand"),
+        )
+
+        strength_source = function_source("_candidate_direct_match_strength")
+        strength_match = strength_source.index(match_name)
+        self.assertLess(strength_source.index("aggregate_signal ="), strength_match)
+        self.assertLess(
+            strength_match,
+            strength_source.index("_candidate_has_operand_context_surface"),
+        )
+        self.assertLess(
+            strength_source.index("_candidate_has_operand_context_surface"),
+            strength_source.index("_candidate_value_role", strength_match),
+        )
+        self.assertLess(
+            strength_source.index("_candidate_value_role", strength_match),
+            strength_source.index("_candidate_aggregation_stage", strength_match),
+        )
+
+        score_source = function_source("_score_operand_candidate")
+        score_preference = score_source.index(preference_name)
+        self.assertLess(
+            score_source.rfind("statement_type =", 0, score_preference),
+            score_preference,
+        )
+        self.assertLess(score_preference, score_source.index(canonical_name))
+        self.assertLess(
+            score_source.index(canonical_name),
+            score_source.index("candidate_consolidation_scope"),
+        )
+
+        retry_source = function_source("_build_reconciliation_retry_queries")
+        self.assertLess(retry_source.index(query_name), retry_source.index(preference_name))
+        self.assertLess(retry_source.index(preference_name), retry_source.index(canonical_name))
+        self.assertLess(
+            retry_source.index(canonical_name),
+            retry_source.index("binding_policy ="),
+        )
+
+        candidate = object()
+        operand = object()
+        stopped_canonical = Mock(
+            side_effect=AssertionError("preference miss must stop canonical lists")
+        )
+        stopped_strength = Mock(
+            side_effect=AssertionError("preference miss must stop direct strength")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                return_value=False,
+            ) as winner_preference,
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                stopped_canonical,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_direct_match_strength",
+                stopped_strength,
+            ),
+        ):
+            self.assertFalse(
+                financial_graph_helpers._candidate_is_canonical_statement_winner(
+                    candidate,
+                    operand=operand,
+                    query_years=[],
+                )
+            )
+        winner_preference.assert_called_once_with(operand)
+        stopped_canonical.assert_not_called()
+        stopped_strength.assert_not_called()
+
+        query_operand = {
+            "label": "Label",
+            "aliases": [
+                "Alias One",
+                "Alias Two",
+                "Alias Three",
+                "Never Fourth Alias",
+            ],
+        }
+        with patch.object(
+            financial_graph_helpers,
+            query_name,
+            return_value=["Hint Surface"],
+        ) as generic_query_owner:
+            retrieval_queries = (
+                financial_graph_helpers._build_generic_retrieval_queries(
+                    "Base Query",
+                    "Metric",
+                    [query_operand],
+                    [],
+                    {},
+                    {},
+                )
+            )
+        generic_query_owner.assert_called_once_with(query_operand)
+        self.assertTrue(
+            any("Hint Surface" in query for query in retrieval_queries)
+        )
+        self.assertFalse(
+            any("Never Fourth Alias" in query for query in retrieval_queries)
+        )
+
+        producer_events = []
+        source_operand = {
+            "role": "current_period",
+            "concept": "",
+            "aliases": ["Existing Alias"],
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final"],
+            },
+        }
+        consumer_task = {
+            "query": "Consumer Query",
+            "required_operands": [source_operand],
+            "preferred_statement_types": ["consumer-type"],
+            "preferred_sections": ["consumer-section"],
+            "constraints": {},
+        }
+        binding = {
+            "role": "current_period",
+            "concept": "",
+            "binding_policy": {"explicit": True},
+        }
+        producer_operands = []
+
+        def producer_query_preferences(current_operand):
+            producer_events.append("query")
+            producer_operands.append(current_operand)
+            return ["Hint Alias"]
+
+        def producer_preference(current_operand):
+            producer_events.append("preference")
+            producer_operands.append(current_operand)
+            return True
+
+        def producer_canonical(current_operand):
+            producer_events.append("canonical")
+            producer_operands.append(current_operand)
+            return (["canonical-type"], ["canonical-section"])
+
+        def producer_retrieval(**kwargs):
+            producer_events.append("retrieval")
+            producer_operands.append(kwargs["operand_specs"][0])
+            return ["retrieval-query"]
+
+        def producer_task_query(**kwargs):
+            producer_events.append("task-query")
+            producer_operands.append(kwargs["operand_specs"][0])
+            return "task-query"
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_dependency_metric_label",
+                return_value="Metric",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_lookup_constraint_from_binding",
+                return_value={},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=producer_query_preferences,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                side_effect=producer_preference,
+            ) as producer_preference_owner,
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                side_effect=producer_canonical,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_generic_retrieval_queries",
+                side_effect=producer_retrieval,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_metric_task_query",
+                side_effect=producer_task_query,
+            ),
+        ):
+            producer_task = (
+                financial_graph_helpers._build_lookup_producer_task_from_binding(
+                    binding=binding,
+                    consumer_task=consumer_task,
+                    next_task_id="task-1",
+                    report_scope={},
+                )
+            )
+        producer_preference_owner.assert_called_once()
+        self.assertEqual(
+            producer_events,
+            ["query", "preference", "canonical", "retrieval", "task-query"],
+        )
+        projected_operand = producer_task["required_operands"][0]
+        self.assertTrue(
+            all(current_operand is projected_operand for current_operand in producer_operands)
+        )
+        self.assertIsNot(projected_operand, source_operand)
+        self.assertEqual(
+            projected_operand["aliases"],
+            ["Hint Alias", "Existing Alias"],
+        )
+        self.assertEqual(
+            producer_task["preferred_statement_types"],
+            ["canonical-type"],
+        )
+        self.assertEqual(
+            producer_task["preferred_sections"],
+            ["canonical-section"],
+        )
+
+        fallback_events = []
+        fallback_operands = []
+
+        def fallback_preference(current_operand):
+            fallback_events.append("preference")
+            fallback_operands.append(current_operand)
+            return len(fallback_operands) == 1
+
+        def fallback_query(current_operand):
+            fallback_events.append("query")
+            fallback_operands.append(current_operand)
+            return []
+
+        stopped_fallback_canonical = Mock(
+            side_effect=AssertionError("second preference miss must stop canonical lists")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_dependency_metric_label",
+                return_value="Metric",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_lookup_constraint_from_binding",
+                return_value={},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                side_effect=fallback_preference,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=fallback_query,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                stopped_fallback_canonical,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_generic_retrieval_queries",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_metric_task_query",
+                return_value="task-query",
+            ),
+        ):
+            fallback_task = (
+                financial_graph_helpers._build_lookup_producer_task_from_binding(
+                    binding={"role": "current_period", "concept": ""},
+                    consumer_task=consumer_task,
+                    next_task_id="task-2",
+                    report_scope={},
+                )
+            )
+        self.assertEqual(
+            fallback_events,
+            ["preference", "query", "preference"],
+        )
+        self.assertIs(
+            fallback_operands[0],
+            fallback_operands[1],
+        )
+        self.assertIs(
+            fallback_operands[1],
+            fallback_operands[2],
+        )
+        stopped_fallback_canonical.assert_not_called()
+        fallback_binding_policy = fallback_task["required_operands"][0][
+            "binding_policy"
+        ]
+        self.assertNotIn("prefer_value_roles", fallback_binding_policy)
+        self.assertNotIn("prefer_aggregation_stages", fallback_binding_policy)
+
+        grounding_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {},
+        }
+        grounding_operand = {"binding_policy": {}}
+        stopped_consolidation = Mock(
+            side_effect=AssertionError("preference exception must stop consolidation")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "candidate_is_descriptor_row",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_has_numeric_value_signal",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_direct_match_strength",
+                return_value=1.0,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_value_role",
+                return_value="aggregate",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_aggregation_stage",
+                return_value="final",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "binding_policy_allows_candidate_shape",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                side_effect=RuntimeError("grounding preference failed"),
+            ) as grounding_preference,
+            patch.object(
+                financial_graph_helpers,
+                "candidate_consolidation_scope",
+                stopped_consolidation,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "grounding preference failed",
+            ):
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    grounding_candidate,
+                    operand=grounding_operand,
+                    constraints={},
+                    query_years=[],
+                )
+        grounding_preference.assert_called_once_with(grounding_operand)
+        stopped_consolidation.assert_not_called()
+
+        acceptance_candidate = {"metadata": {}}
+        acceptance_operand = {"binding_policy": {}}
+        stopped_ratio_preference = Mock(
+            side_effect=AssertionError("non-lookup family must stop preference")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_direct_grounding_candidate",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "operand_period_focus",
+                return_value="unknown",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_value_role",
+                return_value="detail",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_aggregation_stage",
+                return_value="none",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                stopped_ratio_preference,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_is_balance_sheet_aggregate_operand",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_is_capex_total_operand",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "operand_target_years",
+                return_value=[],
+            ),
+        ):
+            self.assertTrue(
+                financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                    acceptance_candidate,
+                    operand=acceptance_operand,
+                    constraints={},
+                    query_years=[],
+                    operation_family="ratio",
+                )
+            )
+        stopped_ratio_preference.assert_not_called()
+
+        stopped_balance = Mock(
+            side_effect=AssertionError("canonical exception must stop aggregate policy")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_direct_grounding_candidate",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "operand_period_focus",
+                return_value="unknown",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_selected_unit_family",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_direct_match_strength",
+                return_value=2.0,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_value_role",
+                return_value="aggregate",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_aggregation_stage",
+                return_value="final",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                return_value=True,
+            ) as acceptance_preference,
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                side_effect=RuntimeError("canonical failed"),
+            ) as acceptance_canonical,
+            patch.object(
+                financial_graph_helpers,
+                "_is_balance_sheet_aggregate_operand",
+                stopped_balance,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "canonical failed"):
+                financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                    acceptance_candidate,
+                    operand=acceptance_operand,
+                    constraints={},
+                    query_years=[],
+                    operation_family="lookup",
+                )
+        acceptance_preference.assert_called_once_with(acceptance_operand)
+        acceptance_canonical.assert_called_once_with(acceptance_operand)
+        stopped_balance.assert_not_called()
+
+        strength_candidate = {
+            "metadata": {"aggregate_label": " Aggregate Signal "}
+        }
+        strength_operand = {}
+        stopped_context = Mock(
+            side_effect=AssertionError("surface miss must stop context")
+        )
+        stopped_role = Mock(side_effect=AssertionError("surface miss must stop role"))
+        stopped_stage = Mock(side_effect=AssertionError("surface miss must stop stage"))
+        common_strength_patches = (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_needles",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_text_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_is_capex_total_operand",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_prefers_contextual_aggregate_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_supports_segment_metric_combo",
+                return_value=False,
+            ),
+        )
+        with ExitStack() as stack:
+            for current_patch in common_strength_patches:
+                stack.enter_context(current_patch)
+            surface_match = stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    match_name,
+                    return_value=False,
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_has_operand_context_surface",
+                    stopped_context,
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_value_role",
+                    stopped_role,
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_aggregation_stage",
+                    stopped_stage,
+                )
+            )
+            self.assertEqual(
+                financial_graph_helpers._candidate_direct_match_strength(
+                    strength_candidate,
+                    strength_operand,
+                ),
+                0.0,
+            )
+        surface_match.assert_called_once_with("Aggregate Signal", strength_operand)
+        stopped_context.assert_not_called()
+        stopped_role.assert_not_called()
+        stopped_stage.assert_not_called()
+
+        score_candidate = {"metadata": {}}
+        score_operand = {"binding_policy": {}}
+        stopped_score_scope = Mock(
+            side_effect=AssertionError("preference exception must stop score scope")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_direct_match_strength",
+                return_value=0.0,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_value_role",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_aggregation_stage",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_has_numeric_value_signal",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_location_entity_subject_score",
+                return_value=0.0,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_is_descriptor_row",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                side_effect=RuntimeError("score preference failed"),
+            ) as score_preference,
+            patch.object(
+                financial_graph_helpers,
+                "candidate_consolidation_scope",
+                stopped_score_scope,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "score preference failed"):
+                financial_graph_helpers._score_operand_candidate(
+                    score_candidate,
+                    operand=score_operand,
+                    preferred_statement_types=[],
+                    constraints={},
+                    query_years=[],
+                )
+        score_preference.assert_called_once_with(score_operand)
+        stopped_score_scope.assert_not_called()
+
+        retry_nested = {"preserve": True}
+        retry_spec = {
+            "label": "Operand",
+            "aliases": ["Alias"],
+            "preferred_sections": ["operand-section"],
+            "binding_policy": {},
+            "nested": retry_nested,
+        }
+        retry_task = {
+            "metric_label": "Metric",
+            "constraints": {},
+            "required_operands": [retry_spec],
+            "preferred_sections": ["task-section"],
+        }
+        retry_events = []
+        retry_operands = []
+
+        def retry_query_preferences(current_operand):
+            retry_events.append("query")
+            retry_operands.append(current_operand)
+            return ["Hint"]
+
+        def retry_preference(current_operand):
+            retry_events.append("preference")
+            retry_operands.append(current_operand)
+            return True
+
+        def retry_canonical(current_operand):
+            retry_events.append("canonical")
+            retry_operands.append(current_operand)
+            return (["ignored-type"], ["canonical-section"])
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=retry_query_preferences,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                side_effect=retry_preference,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                side_effect=retry_canonical,
+            ),
+        ):
+            retry_queries = (
+                financial_graph_helpers._build_reconciliation_retry_queries(
+                    active_subtask=retry_task,
+                    missing_operands=["Operand"],
+                    years=[],
+                )
+            )
+        self.assertEqual(retry_events, ["query", "preference", "canonical"])
+        self.assertTrue(
+            all(current_operand is retry_operands[0] for current_operand in retry_operands)
+        )
+        self.assertIsNot(retry_operands[0], retry_spec)
+        self.assertIs(retry_operands[0]["nested"], retry_nested)
+        self.assertTrue(
+            any("canonical-section" in query for query in retry_queries)
+        )
+        self.assertFalse(any("ignored-type" in query for query in retry_queries))
+
+        stopped_retry_preference = Mock(
+            side_effect=AssertionError("query exception must stop retry preference")
+        )
+        stopped_retry_canonical = Mock(
+            side_effect=AssertionError("query exception must stop canonical lists")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=RuntimeError("retry query failed"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                preference_name,
+                stopped_retry_preference,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                canonical_name,
+                stopped_retry_canonical,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "retry query failed"):
+                financial_graph_helpers._build_reconciliation_retry_queries(
+                    active_subtask=retry_task,
+                    missing_operands=["Operand"],
+                    years=[],
+                )
+        stopped_retry_preference.assert_not_called()
+        stopped_retry_canonical.assert_not_called()
 
 
     def test_current_source_plan_shape_predicates_pin_roles_laziness_copy_and_exceptions(self) -> None:
@@ -4245,7 +5898,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 108),
+            (9, 104),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -7925,8 +9578,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return False
 
         with (
-            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=True),
-            patch.object(financial_graph_helpers, "_lookup_canonical_statement_preferences", return_value=([], [])),
+            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=True),
+            patch.object(financial_graph_helpers, "lookup_canonical_statement_preferences", return_value=([], [])),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=3.0),
             patch.object(
                 financial_graph_helpers,
@@ -7999,7 +9652,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
                 patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
                 patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
-                patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
                 patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
                 patch.object(financial_graph_helpers, "_is_delta_like_row_label", return_value=False),
@@ -8832,7 +10485,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 108),
+            (9, 104),
         )
         self.assertEqual(
             (
@@ -9027,7 +10680,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
             patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
             patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
-            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
             patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
@@ -9105,7 +10758,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", side_effect=direct_strength),
             patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
             patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
-            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "_is_balance_sheet_aggregate_operand", return_value=False),
             patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
@@ -9257,7 +10910,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
                 patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-                patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value=scope) as scope_owner,
                 patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
                 patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
@@ -9290,7 +10943,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
             patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
             patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(
                 financial_graph_helpers,
                 "candidate_consolidation_scope",
