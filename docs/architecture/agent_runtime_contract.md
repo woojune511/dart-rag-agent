@@ -3809,15 +3809,55 @@ Focused 4/4, owner 51/51, semantic 861/861, import 19/19, audit 218, and full
 1,903/1,903 passed in the project `.venv`, with pycompile/fresh import and diff
 check. Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
-Aggregate row/value role-stage inference, concept-conflict policy, direct and
-ratio acceptance, broad scoring/reconciliation, candidate/evidence construction
-and adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
-work, and final sequencing remain graph-owned. No wrapper, alias, compatibility
-bridge, reconciliation-candidate reverse import, structured-row/precision
-reverse-cycle, concept-specific semantic expansion, or evidence/state expansion
-is authorized. The next production boundary is unselected; only the
-characterize-only inventory in
-[Project Status Next Work](../overview/project_status.md#next-work) is active.
+The next characterized boundary is narrower than aggregate row/value role-stage
+inference as a whole. Only the exact current 10-line
+`_aggregate_like_row_stage(label: str) -> str` and two-line
+`_aggregate_like_row_role(label: str) -> str` definitions may move to public
+`aggregate_like_row_stage(...)` and `aggregate_like_row_role(...)` in
+`financial_row_surfaces.py`. Their inputs and outputs are label projections, not
+candidate admission decisions.
+
+Stage projection must preserve `str(label or "")`, space normalization, and
+whitespace removal in that order; empty compact input returns `"none"` before
+policy access. It shallow-copies `STRUCTURED_CELL_AFFINITY_POLICY` and then the
+`aggregate_stage_tokens` mapping, visits stages in insertion order, eagerly
+normalizes the current stage's complete token collection into a set, and accepts
+exact compact equality only. The first match returns `str(stage)` and exhaustion
+returns `"none"`. All conversion, mapping, iteration, normalization, regex, and
+stringification errors remain uncaught. Role projection calls stage exactly once
+and maps only `"none"` to `"detail"`; every other result maps to `"aggregate"`.
+
+The projected calls are stage graph-external three/owner-local one and role
+graph-external two, all direct `ast.Name` calls outside `try`. Table-row
+reconciliation still calls stage and then role on the exact extracted label,
+which intentionally evaluates stage twice before candidate construction.
+Existing value-role/aggregation-stage metadata retains adoption precedence, but
+stage still controls aggregate-label/aggregate-role projection. Candidate role/
+stage fallback remains lazy behind explicit metadata and exact aggregate-role
+mappings. Contextual operand matching reaches raw row-stage inference only after
+the preceding candidate role/stage `or` branches miss; its positive-surface and
+structured-candidate stops do not move.
+
+The row owner already holds `re`, normalization, and the retrieval-policy module;
+graph and structured cells already depend on row surfaces. The move therefore
+adds no module edge. Structured-cell ownership was rejected because this is raw
+row-label classification. Surface-contract ownership would create a row/surface
+reverse edge if candidate fallback were split there. Reconciliation candidates
+already import graph helpers. Moving all four helpers to row surfaces would
+expand its public API into broad candidate acceptance/scoring metadata merely to
+reduce graph lines.
+
+The exact four CURRENT-SOURCE methods and projected validation counts are in
+[Project Status Next Work](../overview/project_status.md#next-work). Before the
+move they must pin normalization and copy order, empty-input policy laziness,
+mapping/token iteration, exact matching and fallbacks, exceptions, exact 10/2
+spans/signatures, external five/local one calls, DAG/baseline, caller arguments,
+adoption, and stops. Candidate value-role/stage interpretation, concept-conflict
+policy, direct/ratio acceptance, broad scoring/reconciliation, candidate/evidence
+construction and adoption, mutable state/evidence, callbacks, carriers, trace/
+artifact/ledger work, and final sequencing remain graph-owned. No wrapper,
+alias, compatibility bridge, concept-specific semantic expansion, or evidence/
+state expansion is authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

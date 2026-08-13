@@ -620,10 +620,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,903/1,903과 pycompile/fresh import, AST/caller/DAG parity가 통과했다.
   Aggregate row/value role-stage, direct/ratio acceptance, broad scoring/
   reconciliation, state/evidence/ledger와 final sequencing은 graph에 남는다.
-- 다음 작업은 aggregate row/value role-stage 10/2/16/18줄 경계의
-  characterize-only inventory다. Production 이동은
-  [Project Status의 Next Work](project_status.md#next-work)가 owner/cycle/
-  behavior/caller/stop-line/projected gate를 확정하기 전까지 선택하지 않는다.
+- 완료된 characterize-only inventory는 aggregate-like row stage/role의 정확한
+  10/2줄 pair만 `financial_row_surfaces.py`의 public 두 함수로 옮기는 다음
+  production 작업을 선택했다. Projected call은 external 5/local 1이고 owner
+  public/private는 4/15, graph helper는 9/108이다. Candidate value-role/stage
+  16/18줄과 각 11 call, direct/ratio acceptance, matching/scoring은 graph에
+  남는다. 아직 source/test 이동은 없으며 exact behavior/caller/DAG와 네
+  CURRENT-SOURCE method, projected gate는
+  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

@@ -500,45 +500,96 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-No production owner move is selected immediately after `d1305f8`. The sole next
-work is a characterize-only inventory of the aggregate row/value role-stage
-boundary currently in `financial_graph_helpers.py`:
+The characterize-only inventory selected exactly one production follow-on. Move
+the exact current 10-line `_aggregate_like_row_stage(label: str) -> str` and
+two-line `_aggregate_like_row_role(label: str) -> str` definitions from
+`financial_graph_helpers.py` to public
+`aggregate_like_row_stage(label: str) -> str` and
+`aggregate_like_row_role(label: str) -> str` in
+`financial_row_surfaces.py`. No production source or test has moved at this
+checkpoint.
 
-- `_aggregate_like_row_stage(label: str) -> str`, lines 3793-3802, 10 lines,
-  four direct calls;
-- `_aggregate_like_row_role(label: str) -> str`, lines 3805-3806, two lines,
-  two direct calls;
-- `_candidate_value_role(candidate: Dict[str, Any]) -> str`, lines 4304-4319,
-  16 lines, 11 direct calls;
-- `_candidate_aggregation_stage(candidate: Dict[str, Any]) -> str`, lines
-  4322-4339, 18 lines, 11 direct calls.
+The selected pair is label-only, state-free row-surface projection. It contains
+no `try`, mutation, callback, state, candidate, evidence, or model access. The
+row owner already imports `re`, `_normalise_spaces`, and the same retrieval-
+policy module; adding `STRUCTURED_CELL_AFFINITY_POLICY` changes no module edge.
+Graph helpers already import row surfaces, and structured cells already import
+row surfaces, so the move adds no reverse edge. The projected function counts
+are graph helpers public/private 9/108 and row surfaces 4/15.
 
-All 28 calls are direct `ast.Name` calls at caller `try` depth zero; all four
-bodies contain no `try`. Stage inference loads
-`STRUCTURED_CELL_AFFINITY_POLICY`; role/value/stage composition otherwise uses
-normalization and shallow candidate metadata. Current test-method references are
-1/0/3/3 and do not yet form direct behavior plus ownership/DAG contracts.
+The stage contract must preserve this exact order and behavior:
 
-The inventory must compare `financial_row_surfaces.py`,
-`financial_structured_cells.py`, another existing owner, and remaining graph-
-owned. It must enumerate exact call sites, signatures, policy/import edges,
-copied-mapping behavior, explicit metadata precedence, normalization/token
-order, fallback results, laziness, exceptions, and downstream acceptance/
-scoring stops. `financial_structured_cells.py` already imports row surfaces, so
-no proposal may add a row-to-structured reverse edge. Do not make four low-level
-helpers public merely to reduce graph line count.
+- coerce `label or ""` with `str`, normalize spaces, then remove all whitespace;
+- return `"none"` for an empty compact label without reading the policy;
+- shallow-copy `STRUCTURED_CELL_AFFINITY_POLICY`, then shallow-copy its
+  `aggregate_stage_tokens` mapping;
+- inspect stages in mapping insertion order and eagerly normalize the complete
+  token collection for the current stage into a set before exact compact
+  equality testing;
+- return `str(stage)` for the first exact match, otherwise `"none"`; do not add
+  substring matching, case folding, token filtering, or fallback vocabulary;
+- propagate policy conversion, mapping access, token iteration, normalization,
+  regex, and `str` exceptions unchanged.
 
-The characterization must either identify one bounded state-free group with a
-single semantic owner and no reverse cycle, or record that no safe move exists.
-It must publish exact CURRENT-SOURCE methods and projected focused/owner/
-semantic/import/audit/full gates here before source movement. Keep direct/ratio
-acceptance, operand matching, broad scoring/reconciliation, candidate/evidence
-construction and adoption, graph-state lookup, mutable state/evidence, LLM
-reranking, artifact/ledger mutation, and final sequencing graph-owned. Do not
-add wrappers, aliases, callbacks, carriers, flags, trace fields, compatibility
-bridges, or a new owner module. No behavior, accuracy, ranking, performance,
-benchmark, schedule, or Phase 3 completion claim follows from `d1305f8` or the
-next inventory.
+The role contract calls the stage projection exactly once and returns
+`"aggregate"` for every result other than `"none"`, otherwise `"detail"`; it
+does not catch stage exceptions. Neither helper mutates its input or the nested
+policy values.
+
+Current calls are stage four and role two, all direct `ast.Name` calls at caller
+`try` depth zero. After the rename and move, stage calls must be graph-external
+three plus owner-local one, and role calls graph-external two, for external
+five/local one. Caller behavior is frozen as follows:
+
+- `_build_table_row_reconciliation_candidates(...)` passes the exact extracted
+  `row_label`, calls stage before role, and therefore performs stage projection
+  twice. Inference remains eager before candidate construction. Existing
+  `value_role` and `aggregation_stage` metadata still override adoption, while
+  inferred stage still controls aggregate-label/aggregate-role projection.
+- `_candidate_value_role(...)` and `_candidate_aggregation_stage(...)` remain
+  graph-owned. Explicit normalized metadata returns first; exact aggregate-role
+  mappings return next; only the final row-label/semantic-label fallback calls
+  the moved role or stage helper. Their 16/18-line bodies and 11 calls each do
+  not move.
+- `_candidate_matches_operand(...)` calls the raw stage projection only after
+  contextual-aggregate preference is active and the preceding value-role and
+  aggregation-stage `or` branches miss. Positive-surface admission, structured-
+  candidate rejection, and final text matching remain graph-owned and ordered.
+
+Alternatives are rejected deliberately. `financial_structured_cells.py` already
+has the policy and an acyclic edge to row surfaces, but a raw row-label classifier
+is not a cell-selection owner. `financial_surface_contracts.py` is already below
+row surfaces; splitting the candidate pair there would require a surface-to-row
+reverse edge, while moving all four there would misplace row parsing. Moving all
+four into row surfaces would publicize broad candidate acceptance/scoring
+metadata projection merely to reduce graph lines. `financial_reconciliation_candidates.py`
+already imports graph helpers and cannot become a graph-helper dependency.
+
+Before production movement, add exactly these four CURRENT-SOURCE methods to
+`FinancialGraphHelperTests`:
+
+- `test_current_source_aggregate_like_row_stage_pins_normalization_copies_order_laziness_and_exceptions`;
+- `test_current_source_aggregate_like_row_role_pins_projection_and_exception_stop`;
+- `test_current_source_aggregate_row_role_bindings_pin_defs_calls_dag_imports_and_baseline`;
+- `test_current_source_aggregate_row_role_callers_pin_args_adoption_order_and_stop`.
+
+They must pin exact 10/2 spans and signatures, current and projected call
+matrices, direct-name/try-depth placement, dependency and import DAG, zero
+selected-body runtime-domain records, all stage/role behavior above, builder
+adoption, candidate fallback laziness, contextual-match short-circuiting, and
+exception stops. Projected post-move gates are focused 4/4, graph-helper/surface-
+contract owner 55/55, affected nine-module semantic 865/865, import-side-effects
+19/19, audit 218, and full discovery 1,907/1,907, plus pycompile/fresh import,
+selected body parity 2/2, all 117 retained graph functions, full caller/DAG
+parity, retired private source/test refs zero, and `git diff --check`.
+
+Keep candidate role/stage interpretation, direct/ratio acceptance, operand
+matching, broad scoring/reconciliation, candidate/evidence construction and
+adoption, graph-state lookup, mutable state/evidence, LLM reranking, artifact/
+ledger mutation, and final sequencing graph-owned. Do not add wrappers, aliases,
+callbacks, carriers, flags, trace fields, compatibility bridges, or a new owner
+module. The inventory and future relocation establish no behavior, accuracy,
+ranking, performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Reviewer Evidence Surface
 

@@ -3989,3 +3989,44 @@ is the characterize-only aggregate row/value role-stage inventory in
 [Project Status Next Work](../overview/project_status.md#next-work), which must
 resolve the owner, public surface, import cycles, behavior, caller/stop contract,
 and projected gates before any source movement.
+
+### Aggregate-like row role-stage characterization checkpoint
+
+- A docs-only inventory resolves the exact 10/2/16/18-line aggregate row/value
+  role-stage boundary and all 28 direct `ast.Name` calls. Every caller and all
+  four bodies are outside `try`. Current test-method references are 1/0/3/3.
+  No production source or test file moves in this checkpoint.
+- The selected follow-on is only the 10-line aggregate-like row-stage and
+  two-line row-role pair, renamed public in `financial_row_surfaces.py`. Current
+  stage/role calls are 4/2; projected calls are graph-external 3/2 and owner-
+  local 1/0, for external five/local one. Graph helpers already import row
+  surfaces, structured cells already import row surfaces, and the row owner
+  already has regex, normalization, and the same config-module edge. Selected
+  spans contain zero of the 218 reviewed runtime-domain records.
+- Stage behavior preserves normalization then whitespace removal, empty-input
+  policy laziness, shallow outer/nested mapping copies, insertion-ordered stage
+  search, eager per-stage token-set normalization, exact compact equality, first-
+  match stringification, `"none"` fallback, and uncaught errors. Role calls stage
+  once and maps only `"none"` to `"detail"`. Caller contracts preserve builder
+  stage-then-role repetition, explicit metadata adoption precedence, lazy
+  candidate fallback, contextual-match `or` short-circuiting, and downstream
+  acceptance stops.
+- Structured cells are rejected as the semantic owner of a raw row-label
+  classifier. Surface contracts cannot receive a split candidate fallback
+  without reversing the existing row-to-surface edge. Reconciliation candidates
+  already import graph helpers. Moving all four helpers to row surfaces would
+  publicize broad candidate metadata projection merely to reduce graph lines.
+  The 16/18-line candidate pair and its 11 calls each therefore remain graph-
+  owned across priority, direct grounding, direct/ratio acceptance, matching,
+  direct strength, and scoring.
+- Four named CURRENT-SOURCE methods must pass before and after the future move.
+  Projected gates are focused 4/4, owner 55/55, affected semantic 865/865,
+  import 19/19, audit 218, full 1,907/1,907, pycompile/fresh import, selected body
+  parity 2/2, all 117 retained graph functions, full caller/DAG parity, retired-
+  ref zero, and diff check. Exact names and contracts are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
+selected-body baseline, and isolated behavior probes passed; benchmark refresh
+and remote CI were **NOT RUN**.

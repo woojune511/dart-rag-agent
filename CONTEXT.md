@@ -60,9 +60,11 @@ Last updated: 2026-08-14
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
 `d1305f8`에서 정확한 7/15줄 segment-local/segment-metric pair는
-`financial_row_surfaces.py`로 이동했다. 다음 production owner 이동은 아직
-선택하지 않았다. 다음 작업은 aggregate row/value role-stage 10/2/16/18줄
-경계의 characterize-only inventory이며 exact caller/dependency/owner/stop-line은
+`financial_row_surfaces.py`로 이동했다. 후속 characterize-only inventory는
+aggregate row-stage/role의 정확한 10/2줄 pair만 같은 owner의 public API로
+옮기는 것을 다음 production 작업으로 선택했다. Candidate value-role/stage
+16/18줄과 direct/ratio acceptance, matching/scoring은 graph에 남는다. 아직
+production source/test 이동은 없으며 exact behavior/caller/DAG/test/gate 계약은
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

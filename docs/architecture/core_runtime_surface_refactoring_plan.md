@@ -704,12 +704,21 @@ full 1,903/1,903, pycompile/fresh import, body/retained/caller/DAG parity, and
 retired-ref zero passed. The source diff SHA-256 is
 `6e02e16ff3f7ee300c880b74ae8a413eae7cc343ed86e4a0a8165d5f8942278d`.
 
-The sole next priority is the characterize-only aggregate row/value role-stage
-inventory defined in
-[project_status.md#next-work](../overview/project_status.md#next-work). No next
-production move is selected until that inventory resolves the semantic owner,
-public surface, import cycles, behavior, callers, stops, and projected gates.
-This plan does not maintain a competing queue.
+The completed characterize-only aggregate row/value role-stage inventory selects
+one production follow-on: move only the exact 10/2-line aggregate-like row stage/
+role pair to public `financial_row_surfaces.py` ownership. The 16/18-line
+candidate value-role/stage pair remains graph-owned with its 11 calls each across
+priority, direct grounding, direct/ratio acceptance, operand matching, direct-
+strength, and broad scoring. The selected row pair projects labels only; it does
+not own candidate metadata or admission.
+
+The exact behavior, external five/local one projected calls, one-way graph-to-row
+and structured-to-row DAG, four required CURRENT-SOURCE methods, and projected
+focused 4/4, owner 55/55, semantic 865/865, import 19/19, audit 218, and full
+1,907/1,907 gates are defined in
+[project_status.md#next-work](../overview/project_status.md#next-work). No source
+or test movement has occurred at this characterization checkpoint. This selected
+move is the sole next priority; this plan does not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
