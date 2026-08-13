@@ -16,10 +16,10 @@ Last updated: 2026-08-14
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `2eec794` moved the exact 5/14/7/5-line lookup-hint projection/match group from graph helpers to public operand-resolution ownership |
-| What passed? | Focused 4/4, owner modules 127/127, affected ten-module semantic set 938/938, import-side-effect 19/19, runtime audit 218, full unittest 1,911/1,911 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest lookup-hint ownership change |
-| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 26/22-line direct logical/family candidate-signature pair to operand-resolution ownership |
+| What just changed? | `8cdcc94` moved the exact 26/22-line direct logical/family candidate-signature pair from graph helpers to public operand-resolution ownership |
+| What passed? | Focused 4/4, owner modules 131/131, affected ten-module semantic set 942/942, import-side-effect 19/19, runtime audit 218, full unittest 1,915/1,915 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest direct candidate-signature ownership change |
+| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 30-line sibling-surface hit-count projection to row-surface ownership |
 
 ## Product Boundary
 
@@ -434,13 +434,31 @@ or an unconfigured `FinancialAgent` invocation.
   task construction, candidate admission/scoring, retry assembly, state/
   evidence, and final sequencing remain graph-owned. This is ownership
   relocation, not a behavior claim.
+- Commit `8cdcc94` moved the exact 26-line direct logical candidate-signature
+  and 22-line direct family candidate-signature definitions from
+  `financial_graph_helpers.py` to public
+  `candidate_direct_logical_signature(...)` and
+  `candidate_direct_family_signature(...)` in
+  `financial_operand_resolution.py`. Their two calls remain graph-external and
+  owner-local zero; the shared block-signature calls finish external four/local
+  three. Source is `+56/-55`, net `+1`; tests are `+1,428/-10`, net `+1,418`;
+  and the whole commit is `+1,484/-65`, net `+1,419`. Graph helpers moved from
+  5,861 to 5,810 lines, operand resolution from 3,643 to 3,695, and four methods
+  moved discovery from 1,911 to 1,915. The source diff SHA-256 is
+  `d22527be5fbcc25f8ab381134312fcb030f74d52c2e9c6b9a682060f0cbed68e`.
+  Focused 4/4, owner 131/131, affected semantic 942/942, import 19/19, audit
+  218, and full 1,915/1,915 passed with pycompile/fresh import/public identity,
+  selected-body 2/2, retained graph 111/111, full caller/DAG parity, retired-ref
+  zero, and diff check. Selected-cell construction, direct acceptance, entry
+  collapse and sibling/canonical/semantic/score policy remain graph-owned. This
+  is ownership relocation, not a behavior or benchmark claim.
 - Current physical sizes are: calculation graph 13,467 lines, calculation
   execution 1,074, main graph 938,
   graph evidence 4,229, retrieval hints 294,
-  graph helpers 5,861, scope policy 457, structured cells 335, surface contracts
+  graph helpers 5,810, scope policy 457, structured cells 335, surface contracts
   334, row surfaces 357,
   planning 1,240, calculation rendering 708, answer slots 734, numeric surface
-  670, answer projection 625, text surface 642, operand resolution 3,643,
+  670, answer projection 625, text surface 642, operand resolution 3,695,
   dependency projection 3,419, reconciliation 1,466, reconciliation candidates
   532, aggregate projection 3,946, runtime trace 1,412, lookup recovery 1,154,
   task artifacts 1,460, reflection projection
@@ -462,7 +480,7 @@ Commit-level diffs and validation are kept in
 | Semantic planning normalization | `financial_graph_helpers.py`; state-free scope normalization, plan-shape predicates, segment-label projection, planner-task validation, and narrative-task policy projection, excluding model invocation and plan/state adoption |
 | Scope and structured-cell policy | `financial_scope_policies.py` owns report/consolidation scope, public operand target-year/period-focus projection, and candidate report/year matching and binding bonuses; `financial_structured_cells.py` owns fiscal rank/period text, ordinary/aggregate selection, public scoring, and owner-private operand affinity |
 | Candidate and row surface contracts | `financial_surface_contracts.py` owns operand needles/segment labels, positive/negative term matching, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection; `financial_row_surfaces.py` owns row text matching/parsing, aggregate-like row stage/role projection, segment-local binding, and segment-metric composition |
-| Operand policy and resolution | `financial_operand_resolution.py`, including lookup-hint projection/matching, ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
+| Operand policy and resolution | `financial_operand_resolution.py`, including lookup-hint projection/matching, direct candidate logical/family signature projection, ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py`, including base/runtime deterministic operation planning, ontology planning, plan guarding, execution, and value freshness |
 | Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, direct structured lookup-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over already supplied evidence |
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match, candidate-ID, and structured period-pair projection over already prepared mappings |
@@ -493,12 +511,12 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, lookup-hint projection/match characterization 4 / 4; owner modules 127 / 127 |
-| Latest semantic regression set | PASS, affected ten-module set 938 / 938 |
+| Latest focused owner checkpoint | PASS, direct candidate-signature ownership 4 / 4; owner modules 131 / 131 |
+| Latest semantic regression set | PASS, affected ten-module set 942 / 942 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 218 reviewed records |
-| Full unittest discovery | PASS, 1,911 / 1,911 |
-| Benchmark refresh after latest lookup-hint ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 1,915 / 1,915 |
+| Benchmark refresh after latest direct candidate-signature ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -541,124 +559,115 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The characterize-only inventory selects exactly one production follow-on. Move
-the exact current 26/22-line definitions from
-`financial_graph_helpers.py` to public functions in the existing
-`financial_operand_resolution.py` owner:
+the exact current 30-line definition from `financial_graph_helpers.py` to one
+public function in the existing `financial_row_surfaces.py` owner:
 
-- `_candidate_direct_logical_signature(candidate: Dict[str, Any], *,
-  selected_cell: Optional[Dict[str, Any]] = None) ->
-  tuple[str, str, str, str]` becomes
-  `candidate_direct_logical_signature(...)`;
-- `_candidate_direct_family_signature(candidate: Dict[str, Any], *,
-  selected_cell: Optional[Dict[str, Any]] = None) ->
-  tuple[str, str, str, str]` becomes
-  `candidate_direct_family_signature(...)`.
+- `_candidate_sibling_surface_hit_count(candidate: Dict[str, Any],
+  sibling_surfaces: List[str]) -> int` becomes
+  `candidate_sibling_surface_hit_count(...)`.
 
-No production source or test has moved for this pair at this checkpoint. These
-functions project stable identity keys over an already prepared direct candidate
-and optional selected cell. They do not decide candidate admission, rank,
-canonical preference, sibling preference, or final reconciliation. The operand
-owner already defines `candidate_row_block_signature(...)` and imports
-`_normalise_spaces`, `Any`, `Dict`, and `Optional`; graph helpers already import
-the owner, while the owner does not reach graph helpers. Current top-level
-function counts are graph helpers public/private 9/104 and operand resolution
-41/37; the projected counts are 9/102 and 43/37.
+No production source or test has moved for this function at this checkpoint. It
+projects an integer row/table-surface hit count over an already prepared
+candidate and sibling-surface list. It does not construct sibling surfaces,
+sort or filter entries, choose a canonical winner, apply semantic priority, or
+adopt reconciliation state. The row owner already owns
+`_strip_leading_period_qualifiers(...)`, imports `re`, `_normalise_spaces`,
+`Any`, `Dict`, and `List`, and does not reach graph helpers. Graph helpers
+already import the row owner. Current top-level function counts are graph
+helpers public/private 9/102 and row surfaces 4/15; projected counts are 9/101
+and 5/15.
 
-Both signatures must preserve this common prefix and scope contract:
+The projection must preserve this exact behavior:
 
-- shallow-copy `candidate.get("metadata") or {}` with `dict(...)` before calling
-  `candidate_row_block_signature(...)` exactly once with the original candidate;
-- normalize `table_source_id` through `str(...)` then `_normalise_spaces(...)`;
-- choose row label lazily in `row_label`, `semantic_label`, `aggregate_label`,
-  empty-string order, then stringify and normalize only the selected value;
-- choose scope as the uncoerced block signature, then normalized table source,
-  then lazily stringified/normalized `section_path`; the section value is not
-  read when either earlier scope component is truthy;
-- leave the candidate, selected cell, metadata source, and nested objects
-  unchanged, preserve nested identities in the shallow metadata copy, and let
-  mapping, truth-value, copy, lookup, normalization, and stringification errors
-  propagate unchanged.
+- test `not sibling_surfaces` first and return zero without touching candidate;
+- shallow-copy `candidate.get("metadata") or {}` with `dict(...)`, preserving
+  nested identities and leaving candidate, metadata source, and surface list
+  unchanged;
+- stringify the six candidate surfaces in table-row-labels, table-value-labels,
+  table-summary, row-context, row-text, candidate-text order, retain truthy
+  string results, join with one space, and call `_normalise_spaces(...)` once;
+- return zero on an empty normalized haystack before regex compaction or sibling
+  iteration; otherwise remove whitespace once with `re.sub(r"\s+", "", ...)`;
+- dedupe the raw sibling list with `list(dict.fromkeys(...))` before any
+  coercion, preserving first occurrence order. Exact raw duplicates count once,
+  while distinct raw values that later normalize identically remain distinct;
+- for each retained raw surface, evaluate `surface or ""`, stringify,
+  normalize, strip leading period qualifiers, skip an empty result, and compare
+  the normalized substring first, then its whitespace-compacted substring.
+  Matching is case-sensitive and each retained raw surface increments at most
+  once.
 
-Logical signature returns `(scope_key, row_label, value_text, period_marker)`.
-It normalizes `(selected_cell or {}).get("value_text") or ""` first. Only an
-empty normalized value falls back to normalized metadata `row_text`, then lazily
-to `str(candidate.get("text") or "")`. It builds the period marker from selected
-cell `column_headers` in source order with a single space join and final
-normalization. Blank header items are stringified once and retained items twice;
-duplicates remain. Only an empty normalized header marker falls back to
-normalized metadata `period_focus`. The two `(selected_cell or {})` expressions
-remain separate, so their truth-value/access order must not be collapsed.
+Mapping, truth-value, copy, hashing, iteration, lookup, normalization,
+stringification, period-strip, and regex errors remain uncaught. In particular,
+an unhashable sibling item fails during raw dedupe; no new coercion, catch,
+reason, flag, trace, or mutation is allowed.
 
-Family signature returns `(scope_key, row_label, period_marker,
-statement_type)`. It builds the selected-cell header marker with the same
-filter/order/stringification behavior, then normalizes metadata `statement_type`.
-It intentionally does **not** fall back to metadata `period_focus`; absent or
-blank selected-cell headers leave an empty family period marker. This asymmetry
-with logical signature is current behavior and must remain explicit.
+The selected function has three direct `ast.Name` calls from
+`_deterministic_reconcile_task(...)`: sorted-key, top-hit recomputation, and
+top-hit filtering. Every call has two positional arguments, no keyword, and
+caller `try` depth zero. Each call passes a fresh
+`dict(entry.get("candidate") or {})`-style shallow copy and the same prepared
+`sibling_surfaces` list; nested candidate and metadata identities remain
+shared. Calls remain graph-external three/owner-local zero after relocation.
+The sole current test-method reference is a stopped-call patch. Graph replaces
+its private period-strip import with the new public function import, so no
+module edge is added or reversed. The selected span contains zero of the 218
+reviewed runtime-domain records.
 
-Each selected function has one direct `ast.Name` call from
-`_deterministic_reconcile_task(...)`, with one positional candidate, one
-`selected_cell` keyword, and caller `try` depth zero. Both current test-method
-reference counts are one. Their public calls remain graph-external one each and
-owner-local zero. The underlying `candidate_row_block_signature(...)` matrix
-changes from external six/local one to external four/local three, still seven
-total, and graph helpers no longer need to import that primitive. No module edge
-is added or reversed.
+Caller policy remains graph-owned and unchanged. It prepares sibling surfaces
+in source order with stripped strings, stringifying a blank item once and a
+retained item twice. The helper stays lazy unless more than one logically
+collapsed entry and at least one prepared sibling surface exist. Sorting calls
+the helper once per entry using `(hit_count, score)` with `reverse=True`, then
+recomputes the top candidate once. A positive top count triggers one helper
+call per sibling-ranked entry and retains only equal-top hits in that ranked
+order; a zero top count skips filtering and leaves the original collapsed order
+unadopted from the temporary sort. The characterized three-candidate call order
+is input `a,b,c`, top `a`, then ranked filter `a,c,b`. A helper exception at any
+stage propagates before semantic-priority ranking and final candidate adoption.
+Canonical, semantic-priority, and score-gap behavior do not move. When later
+policy leaves one direct candidate, review `candidate_ids` starts with that
+winner, then appends the original ranked candidates except the duplicate winner
+and caps at three; the characterized scenario therefore emits `a,b,c` even
+though the positive sibling filter visited `a,c,b`.
 
-The caller reaches the pair only for a ranked lookup/single-value candidate after
-selected-cell projection and direct-acceptance success. Rejection continues
-before either signature. Direct-entry value evaluation stays candidate,
-logical signature, family signature, normalized selected value, score, then
-canonical-winner in that order, forwarding the exact candidate and selected-cell
-objects to both signatures. A logical-signature exception stops family, entry
-rescore, and winner evaluation; a family-signature exception stops selected-
-value projection, entry rescore, and winner evaluation. The entry is appended
-only after every field is built, so no partial entry is adopted.
-
-Collapse semantics also remain graph-owned and unchanged. Family signatures are
-collected before distinct selected values. Exactly one nonempty family with at
-most one nonempty distinct value takes the existing canonical/score top-one
-path without logical grouping. Otherwise logical signatures remain the
-best-by-signature keys before sibling-surface, canonical-winner, semantic-
-priority, and score tie-breaking. The move must not absorb or reorder any of
-those policies.
-
-Moving the 30-line sibling-surface hit counter, canonical-winner predicate, or
-semantic-priority tuple with this pair is rejected because those functions own
-ranking/tie-break policy rather than identity projection. The 16/18-line
-candidate value-role/stage pair remains graph-owned across admission and broad
-scoring and still lacks one unambiguous cycle-safe owner. Reconciliation-
-candidate and graph-reconciliation destinations already reach graph helpers;
-row/surface/structured-cell owners do not own the shared block signature. A new
-module, wrapper, alias, callback, carrier, or compatibility bridge adds surface
-without resolving a boundary.
+Moving sibling-list construction or the sorted/top/filter block would move
+ranking policy rather than surface projection and is rejected. Moving canonical-
+winner or semantic-priority functions would also pull direct-strength,
+role/stage, scope, and ontology policy into the row owner. Surface-contract
+ownership would reverse the existing row-to-surface edge; reconciliation-
+candidate and graph-reconciliation owners already reach graph helpers. The
+16/18-line candidate value-role/stage pair still spans admission and broad
+scoring without one unambiguous owner. A new module, wrapper, alias, callback,
+carrier, or compatibility bridge adds surface without resolving a boundary.
 
 Before production movement, add exactly these four CURRENT-SOURCE methods to
 `FinancialGraphHelperTests`:
 
-- `test_current_source_direct_candidate_signature_projection_pins_metadata_value_period_scope_and_identity`;
-- `test_current_source_direct_candidate_signature_projection_pins_laziness_stringification_and_exceptions`;
-- `test_current_source_direct_candidate_signature_bindings_pin_defs_calls_dag_and_baseline`;
-- `test_current_source_direct_candidate_signature_caller_pins_args_adoption_collapse_order_and_stop`.
+- `test_current_source_candidate_sibling_surface_hit_count_pins_projection_dedupe_compaction_and_identity`;
+- `test_current_source_candidate_sibling_surface_hit_count_pins_laziness_stringification_and_exceptions`;
+- `test_current_source_candidate_sibling_surface_hit_count_bindings_pin_def_calls_dag_and_baseline`;
+- `test_current_source_candidate_sibling_surface_hit_count_caller_pins_copy_rank_filter_adoption_and_stop`.
 
-They must pin the exact 26/22 spans and signatures, metadata/candidate/selected-
-cell identities, common prefix and scope fallbacks, logical value and period
-fallbacks, the family no-period-fallback asymmetry, stringification/truth-value
-counts, uncaught exceptions, current/projected selected and block-signature call
-matrices, direct-name/try-depth placement, import DAG, zero selected-body runtime-
-domain records, and caller argument/order/adoption/collapse/stop behavior.
-Projected post-move gates are focused 4/4, graph-helper/operand-resolution owner
-131/131, affected ten-module semantic 942/942, import-side-effects 19/19, audit
-218, and full discovery 1,915/1,915, plus pycompile/fresh import and public
-identity, selected body parity 2/2, all 111 retained graph functions, full
-caller/DAG parity, retired private source/test refs zero, and `git diff --check`.
+They must pin the exact 30-line span and signature, empty-input stop, six-surface
+order, shallow-copy identity, raw dedupe, normalization/period-strip/compaction,
+case-sensitive hit counting, input immutability, uncaught exceptions, all three
+call expressions/contexts, direct-name/try-depth placement, current/projected
+function counts, import DAG, zero selected-body runtime-domain records, sibling-
+surface construction, candidate-copy identity, sort/top/filter call order, zero-
+top behavior, downstream adoption, and exception stops. Projected post-move
+gates are focused 4/4, graph-helper/surface-contract owner 67/67, affected ten-
+module semantic 946/946, import-side-effects 19/19, audit 218, and full discovery
+1,919/1,919, plus pycompile/fresh import and public identity, selected-body
+parity 1/1, all 110 retained graph functions, full caller/DAG parity, retired
+private source/test refs zero, and `git diff --check`.
 
-Keep selected-cell construction, direct acceptance, direct-entry collapse,
-sibling/canonical/semantic/score policy, candidate/evidence construction and
-adoption, state/evidence, model invocation, artifact/ledger mutation, and final
-sequencing graph-owned. The inventory and future relocation establish no
-behavior, accuracy, ranking, performance, benchmark, schedule, ledger, or Phase
-3 completion claim. Static AST/DAG, selected-body baseline, isolated projection
+Keep sibling-list preparation, direct-entry collapse, sorted/top/filter ranking,
+canonical/semantic/score policy, candidate/evidence construction and adoption,
+state/evidence, model invocation, artifact/ledger mutation, and final sequencing
+graph-owned. The inventory and future relocation establish no behavior,
+accuracy, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim. Static AST/DAG, selected-body baseline, isolated projection
 and caller probes, and the 218-record audit passed for this inventory; benchmark
 refresh and remote CI were **NOT RUN**.
 

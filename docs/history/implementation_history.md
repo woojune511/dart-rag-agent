@@ -4229,3 +4229,103 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
 selected-body baseline, isolated projection/caller probes, and audit 218 passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Direct candidate-signature ownership milestone
+
+- `8cdcc94` moves the exact 26-line
+  `_candidate_direct_logical_signature(...)` and 22-line
+  `_candidate_direct_family_signature(...)` definitions from
+  `financial_graph_helpers.py` into `financial_operand_resolution.py` as public
+  `candidate_direct_logical_signature(...)` and
+  `candidate_direct_family_signature(...)`. Calls finish graph-external two/
+  owner-local zero, direct `ast.Name`, one positional candidate plus one
+  `selected_cell` keyword, and caller `try` depth zero. The shared
+  `candidate_row_block_signature(...)` calls finish external four/local three.
+- Source is `+56/-55`, net `+1`: graph helpers are `+4/-55` and move from 5,861
+  to 5,810 physical lines; operand resolution is `+52/-0` and moves from 3,643
+  to 3,695. Tests are `+1,428/-10`, net `+1,418`, moving graph-helper tests from
+  10,976 to 12,394 lines while operand-resolution tests remain 7,535 lines. The
+  whole commit is `+1,484/-65`, net `+1,419`, and four new methods move discovery
+  from 1,911 to 1,915. The source diff SHA-256 is
+  `d22527be5fbcc25f8ab381134312fcb030f74d52c2e9c6b9a682060f0cbed68e`.
+- The operand owner already held the block-signature primitive and all selected
+  dependencies. Graph already reached the owner and the owner did not reach
+  graph; the move removes the graph block-primitive import and adds no edge.
+  Graph helpers finish public/private 9/102 and operand resolution 43/37. The
+  selected spans contain zero reviewed domain record and the baseline remains
+  218.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  metadata shallow-copy order, label/scope/value/period fallback, family no-
+  period-fallback asymmetry, truth/stringification counts, exceptions, exact
+  definitions/calls/imports/DAG/baseline, direct-entry construction order,
+  collapse behavior, candidate/selected-cell identity, and stops. Selected-body
+  parity 2/2, all 111 retained graph functions, full caller/DAG parity, retired
+  private source/test refs zero, and public import identity 2/2 passed.
+- Validation passed focused 4/4, graph-helper/operand-resolution owner 131/131,
+  affected ten-module semantic 942/942, import-side-effects 19/19, runtime audit
+  218, full discovery 1,915/1,915, pycompile/fresh import, and diff check in the
+  project `.venv`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only direct candidate identity-projection ownership.
+Selected-cell construction, direct acceptance, family/value and logical
+collapse, sibling/canonical/semantic/score ranking, candidate/evidence
+construction/adoption, mutable state/evidence, callbacks, carriers, trace/
+artifact/ledger work, and final sequencing remain graph-owned. It proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, no next production owner move was selected without a new source
+inventory. The sole characterization target became the sibling-surface hit-count
+projection in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+### Sibling-surface hit-count characterization checkpoint
+
+- A docs-only inventory resolves the exact 30-line
+  `_candidate_sibling_surface_hit_count(candidate, sibling_surfaces) -> int`
+  definition in `financial_graph_helpers.py`. It has three direct `ast.Name`
+  calls from `_deterministic_reconcile_task(...)`: sorted-key, top-hit
+  recomputation, and ranked filtering. Each has two positional arguments, no
+  keyword, caller/body `try` depth zero, and the current test-method reference
+  count is one. No production source or test moves in this checkpoint.
+- The selected follow-on moves the definition as public
+  `candidate_sibling_surface_hit_count(...)` in
+  `financial_row_surfaces.py`. Calls remain graph-external three/owner-local
+  zero. Projected function counts are graph helpers public/private 9/101 and row
+  surfaces 5/15. The selected span contains zero of the 218 reviewed runtime-
+  domain records.
+- Projection behavior preserves sibling-list-first early return, metadata
+  shallow-copy identity, six candidate-surface order, one haystack normalization,
+  empty-haystack regex/iteration stop, whitespace compaction, raw ordered dedupe
+  before coercion, period-prefix stripping, case-sensitive normalized/compact
+  substring matching, input immutability, and uncaught mapping/truth/copy/hash/
+  iteration/string/normalization/regex errors. Exact raw duplicates count once;
+  raw-distinct normalized equivalents may each count.
+- The caller prepares stripped nonempty sibling strings, then reaches the helper
+  only with more than one collapsed entry. It forwards a fresh shallow candidate
+  copy and the same sibling-list identity at every call. Sorting uses hit then
+  score in reverse order, recomputes the top hit, and only a positive top hit
+  filters equal-top entries. Characterized calls for input `a,b,c` run `a,b,c`,
+  top `a`, then ranked filter `a,c,b`; helper exceptions stop semantic priority
+  and final adoption. Once later policy leaves winner `a`, review candidate IDs
+  remain `a,b,c` because original ranked alternatives are appended up to three.
+- The row owner already owns period-prefix stripping, regex, normalization, and
+  required types. Graph already reaches it and it does not reach graph, so the
+  move replaces one import and adds no edge. Moving sibling preparation or rank/
+  filter adoption is rejected; canonical/semantic, role/stage, direct acceptance,
+  collapse, state/evidence, and sequencing stay graph-owned. Surface-contract
+  ownership would reverse the row-to-surface edge, and reconciliation owners
+  already reach graph.
+- Four named CURRENT-SOURCE methods must pass before and after the future move.
+  Projected gates are focused 4/4, graph-helper/surface-contract owner 67/67,
+  affected ten-module semantic 946/946, import 19/19, audit 218, full
+  1,919/1,919, pycompile/fresh import and public identity, selected-body parity
+  1/1, all 110 retained graph functions, full caller/DAG parity, retired-ref
+  zero, and diff check. Exact names and contracts are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
+selected-body baseline, isolated projection/caller probes, and audit 218 passed;
+benchmark refresh and remote CI were **NOT RUN**.

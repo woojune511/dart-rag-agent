@@ -287,7 +287,7 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate match/merge/adoption, lookup-hint projection/matching, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
+| `financial_operand_resolution.py` | candidate match/merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature projection, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
@@ -299,6 +299,7 @@ State-free owner topology:
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, public generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection |
+| `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role projection, segment-local binding, and segment-metric composition |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
@@ -635,15 +636,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   pycompile/fresh import/public identity, AST/caller/DAG parity가 통과했다.
   Lookup task construction, candidate admission/scoring, retry assembly,
   state/evidence/ledger와 final sequencing은 graph에 남는다.
-- 완료된 characterize-only inventory는 direct logical/family candidate-
-  signature의 정확한 26/22줄 pair를 `financial_operand_resolution.py`의
-  public API로 옮기는 다음 production 작업을 선택했다. 두 selected call은
-  external 2/local 0을 유지하고 block-signature call은 external 6/local 1에서
-  external 4/local 3으로 수렴한다. Projected graph helper public/private는
-  9/102, operand resolution은 43/37이다. 아직 이 pair의 source/test 이동은
-  없으며 exact behavior/caller/collapse/DAG와 네 CURRENT-SOURCE method,
-  projected gate는 [Project Status의 Next Work](project_status.md#next-work)가
-  단일 기준이다.
+- 완료된 direct candidate-signature batch는 graph helper의 정확한 26/22줄
+  pair를 `financial_operand_resolution.py`의 public API로 옮겼다. Call은
+  graph-external 2/owner-local 0이고 block-signature call은 external 4/local
+  3이다. Graph helper public/private는 9/102, operand resolution은 43/37이다.
+  Focused 4/4, owner 131/131, semantic 942/942, import 19/19, audit 218, full
+  1,915/1,915와 pycompile/fresh import/public identity, AST/caller/DAG parity가
+  통과했다. Direct acceptance, collapse, sibling/canonical/semantic/score,
+  state/evidence/ledger와 final sequencing은 graph에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 30줄 sibling-
+  surface hit-count projection 하나를 `financial_row_surfaces.py`의 public
+  API로 옮기는 다음 production 작업으로 선택했다. 세 call은 sorted-key,
+  top-hit, positive-top filter 위치에서 external 3/local 0을 유지한다.
+  Projected graph helper public/private는 9/101, row surfaces는 5/15다. 아직
+  source/test 이동은 없으며 exact projection/copy/dedupe/compaction, caller
+  rank/filter stop, 네 CURRENT-SOURCE method와 projected gate는
+  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

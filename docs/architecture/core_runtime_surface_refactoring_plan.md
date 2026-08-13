@@ -730,29 +730,44 @@ passed. The source diff SHA-256 is
 Lookup task construction, candidate admission/scoring, retry assembly, state/
 evidence, artifacts/ledger, and final sequencing remain hard stops.
 
-The completed characterize-only inventory selects one follow-on: move only the
-exact current 26/22-line direct logical/family candidate-signature pair from
-graph helpers to public `candidate_direct_logical_signature(...)` and
-`candidate_direct_family_signature(...)` in the operand owner. Each public call
-remains graph-external one/local zero, while the underlying seven-call
-`candidate_row_block_signature(...)` matrix changes from external six/local one
-to external four/local three. The owner already defines that block primitive and
-all other selected dependencies; the move removes its graph import and adds no
-module edge. Projected function counts are graph helpers 9/102 and operand
-resolution 43/37.
+The completed `8cdcc94` follow-on moved the exact 26/22-line direct logical/
+family candidate-signature pair from graph helpers to public
+`candidate_direct_logical_signature(...)` and
+`candidate_direct_family_signature(...)` in the operand owner. Calls finish
+graph-external two/local zero and the seven block-signature calls finish external
+four/local three. Source is `+56/-55`, tests `+1,428/-10`, and the whole commit
+`+1,484/-65`; graph helpers moved from 5,861 to 5,810 lines and operand
+resolution from 3,643 to 3,695. Focused 4/4, owner 131/131, affected semantic
+942/942, import 19/19, audit 218, full 1,915/1,915, pycompile/fresh import/public
+identity, body/retained/caller/DAG parity, retired-ref zero, and diff check
+passed. The source diff SHA-256 is
+`d22527be5fbcc25f8ab381134312fcb030f74d52c2e9c6b9a682060f0cbed68e`.
+Selected-cell construction, direct acceptance, collapse, sibling/canonical/
+semantic/score policy, state/evidence, artifacts/ledger, and final sequencing
+remain hard stops.
 
-Sibling-surface, canonical-winner, semantic-priority, candidate role/stage,
-direct acceptance, and collapse policy are rejected expansions because they own
-ranking or admission rather than direct identity projection. Reconciliation
-owners already reach graph helpers, and row/surface/structured-cell owners do
-not own the block signature. Exact projection asymmetries, caller/collapse
-stops, four required CURRENT-SOURCE methods, and projected focused 4/4, owner
-131/131, affected semantic 942/942, import 19/19, audit 218, and full
-1,915/1,915 gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this pair at the characterization checkpoint;
-the selected two-function move is the sole next priority, and this plan does not
-maintain a competing queue.
+The completed characterize-only inventory selects one follow-on: move only the
+exact current 30-line sibling-surface hit-count projection from graph helpers to
+public `candidate_sibling_surface_hit_count(...)` in
+`financial_row_surfaces.py`. Its three direct calls remain graph-external/local
+3/0 in sorted-key, top-hit, and positive-top filter positions. The row owner
+already defines period-prefix stripping and imports regex/normalization/types;
+graph already reaches it, the owner does not reach graph, and the graph's private
+period-strip import is replaced rather than adding an edge. Projected function
+counts are graph helpers 9/101 and row surfaces 5/15.
+
+Moving sibling-list construction or the sorted/top/filter block is rejected
+because those own ranking and adoption. Canonical-winner, semantic-priority,
+candidate role/stage, direct acceptance, and collapse are also rejected
+expansions. Reconciliation owners already reach graph, while surface-contract
+ownership would reverse the existing row-to-surface edge. Exact projection,
+copy/dedupe/compaction/exception, caller rank/filter stop behavior, four required
+CURRENT-SOURCE methods, and projected focused 4/4, owner 67/67, affected
+semantic 946/946, import 19/19, audit 218, and full 1,919/1,919 gates are defined
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+No source or test movement has occurred for this function at the characterization
+checkpoint; the selected one-function move is the sole next priority, and this
+plan does not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
