@@ -7,7 +7,10 @@ from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_surface_contracts import _operand_needles, _operand_segment_label, candidate_matches_segment_binding
-from src.config.retrieval_policy import HELPER_RUNTIME_POLICY
+from src.config.retrieval_policy import (
+    HELPER_RUNTIME_POLICY,
+    STRUCTURED_CELL_AFFINITY_POLICY,
+)
 
 
 def _strip_financial_label_annotations(text: str) -> str:
@@ -310,6 +313,22 @@ def _format_structured_candidate_row_text(
 
 def _generic_column_headers() -> set[str]:
     return set(str(item) for item in (HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()) if str(item))
+
+
+def aggregate_like_row_stage(label: str) -> str:
+    compact = re.sub(r"\s+", "", _normalise_spaces(str(label or "")))
+    if not compact:
+        return "none"
+    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+    aggregate_stage_tokens = dict(affinity_policy.get("aggregate_stage_tokens") or {})
+    for stage, tokens in aggregate_stage_tokens.items():
+        if compact in {re.sub(r"\s+", "", _normalise_spaces(str(token))) for token in tokens}:
+            return str(stage)
+    return "none"
+
+
+def aggregate_like_row_role(label: str) -> str:
+    return "aggregate" if aggregate_like_row_stage(label) != "none" else "detail"
 
 
 def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:

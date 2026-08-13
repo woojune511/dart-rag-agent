@@ -91,6 +91,8 @@ from src.agent.financial_row_surfaces import (
     _strip_financial_label_annotations,
     _strip_leading_period_qualifiers,
     _surface_match_variants,
+    aggregate_like_row_role,
+    aggregate_like_row_stage,
     candidate_has_segment_local_binding,
     candidate_supports_segment_metric_combo,
 )
@@ -3790,22 +3792,6 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
     return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
 
 
-def _aggregate_like_row_stage(label: str) -> str:
-    compact = re.sub(r"\s+", "", _normalise_spaces(str(label or "")))
-    if not compact:
-        return "none"
-    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
-    aggregate_stage_tokens = dict(affinity_policy.get("aggregate_stage_tokens") or {})
-    for stage, tokens in aggregate_stage_tokens.items():
-        if compact in {re.sub(r"\s+", "", _normalise_spaces(str(token))) for token in tokens}:
-            return str(stage)
-    return "none"
-
-
-def _aggregate_like_row_role(label: str) -> str:
-    return "aggregate" if _aggregate_like_row_stage(label) != "none" else "detail"
-
-
 def _build_table_value_reconciliation_candidates(
     *,
     candidate_id_prefix: str,
@@ -4178,8 +4164,8 @@ def _build_table_row_reconciliation_candidates(
         if row_text in seen_row_texts:
             continue
         row_label = _extract_table_row_label(row_text)
-        inferred_stage = _aggregate_like_row_stage(row_label)
-        inferred_role = _aggregate_like_row_role(row_label)
+        inferred_stage = aggregate_like_row_stage(row_label)
+        inferred_role = aggregate_like_row_role(row_label)
         composite_text = " ".join(
             part
             for part in (
@@ -4311,7 +4297,7 @@ def _candidate_value_role(candidate: Dict[str, Any]) -> str:
         return "adjustment"
     if aggregate_role in {"direct_total", "subtotal", "final_total"}:
         return "aggregate"
-    inferred_role = _aggregate_like_row_role(
+    inferred_role = aggregate_like_row_role(
         str(metadata.get("row_label") or metadata.get("semantic_label") or "")
     )
     if inferred_role == "aggregate":
@@ -4331,7 +4317,7 @@ def _candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
         return "subtotal"
     if aggregate_role == "final_total":
         return "final"
-    inferred_stage = _aggregate_like_row_stage(
+    inferred_stage = aggregate_like_row_stage(
         str(metadata.get("row_label") or metadata.get("semantic_label") or "")
     )
     if inferred_stage != "none":
@@ -4943,7 +4929,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
         aggregate_like = (
             _candidate_value_role(candidate) == "aggregate"
             or _candidate_aggregation_stage(candidate) in {"final", "subtotal"}
-            or _aggregate_like_row_stage(aggregate_surface) != "none"
+            or aggregate_like_row_stage(aggregate_surface) != "none"
         )
         if (
             _text_has_positive_surface(section_context, operand)

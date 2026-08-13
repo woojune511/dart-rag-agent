@@ -471,14 +471,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 110),
+            (9, 108),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (2, 15),
+            (4, 15),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1544,6 +1544,585 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     report_scope=ScopeGetBomb(),
                 )
         receipt_owner.assert_not_called()
+
+    def test_current_source_aggregate_like_row_stage_pins_normalization_copies_order_laziness_and_exceptions(self) -> None:
+        events = []
+
+        class LabelProbe:
+            def __str__(self):
+                events.append("label")
+                return " A   B "
+
+        class TokenProbe:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(self.name)
+                return self.value
+
+        class TrackingTokens:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __iter__(self):
+                events.append(("iterate", self.name))
+                return iter(self.values)
+
+        first_tokens = TrackingTokens(
+            "first",
+            [TokenProbe("token-a", "A B"), TokenProbe("token-b", "C")],
+        )
+        stopped_tokens = TrackingTokens(
+            "stopped",
+            [TokenProbe("token-stopped", "AB")],
+        )
+        nested = {"preserve": True}
+        policy = {
+            "aggregate_stage_tokens": {
+                "first": first_tokens,
+                "stopped": stopped_tokens,
+            },
+            "nested": nested,
+        }
+        before_policy = dict(policy)
+        before_stage_tokens = dict(policy["aggregate_stage_tokens"])
+        with patch.object(
+            financial_row_surfaces,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            policy,
+        ):
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_stage(LabelProbe()),
+                "first",
+            )
+
+        self.assertEqual(
+            events,
+            ["label", ("iterate", "first"), "token-a", "token-b"],
+        )
+        self.assertEqual(policy, before_policy)
+        self.assertEqual(policy["aggregate_stage_tokens"], before_stage_tokens)
+        self.assertIs(policy["nested"], nested)
+        self.assertIs(policy["aggregate_stage_tokens"]["first"], first_tokens)
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("blank label must stop policy copy")
+
+        with patch.object(
+            financial_row_surfaces,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            PolicyBomb(),
+        ):
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_stage("   "),
+                "none",
+            )
+
+        with patch.object(
+            financial_row_surfaces,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            {"aggregate_stage_tokens": {"first": ("AB",)}},
+        ):
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_stage("XAB"),
+                "none",
+            )
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_stage("ab"),
+                "none",
+            )
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_stage("A B"),
+                "first",
+            )
+
+        class CopyBomb:
+            def keys(self):
+                raise RuntimeError("policy copy failed")
+
+        with patch.object(
+            financial_row_surfaces,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            CopyBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy copy failed"):
+                financial_row_surfaces.aggregate_like_row_stage("AB")
+
+        with patch.object(
+            financial_row_surfaces,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            {"aggregate_stage_tokens": {"broken": None}},
+        ):
+            with self.assertRaises(TypeError):
+                financial_row_surfaces.aggregate_like_row_stage("AB")
+
+    def test_current_source_aggregate_like_row_role_pins_projection_and_exception_stop(self) -> None:
+        label = object()
+        stage = Mock(side_effect=["none", "final", "custom"])
+        with patch.object(
+            financial_row_surfaces,
+            "aggregate_like_row_stage",
+            stage,
+        ):
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_role(label),
+                "detail",
+            )
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_role(label),
+                "aggregate",
+            )
+            self.assertEqual(
+                financial_row_surfaces.aggregate_like_row_role(label),
+                "aggregate",
+            )
+        self.assertEqual(stage.call_count, 3)
+        self.assertTrue(all(call.args == (label,) for call in stage.call_args_list))
+
+        with patch.object(
+            financial_row_surfaces,
+            "aggregate_like_row_stage",
+            side_effect=RuntimeError("stage failed"),
+        ) as stopped_stage:
+            with self.assertRaisesRegex(RuntimeError, "stage failed"):
+                financial_row_surfaces.aggregate_like_row_role(label)
+        stopped_stage.assert_called_once_with(label)
+
+    def test_current_source_aggregate_row_role_bindings_pin_defs_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "aggregate_like_row_stage",
+            "aggregate_like_row_role",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+        dependency_loads = {
+            "STRUCTURED_CELL_AFFINITY_POLICY": [],
+            "_normalise_spaces": [],
+            "re": [],
+        }
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if (
+                    isinstance(node.ctx, ast.Load)
+                    and node.id in dependency_loads
+                    and self.function_stack
+                    and self.function_stack[-1] in target_names
+                ):
+                    dependency_loads[node.id].append(
+                        (self.module_name, self.function_stack[-1])
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        stage_name = "aggregate_like_row_stage"
+        role_name = "aggregate_like_row_role"
+        expected_owner = "financial_row_surfaces"
+        self.assertEqual(
+            {
+                stage_name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in definitions[stage_name]
+                ],
+                role_name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in definitions[role_name]
+                ],
+            },
+            {
+                stage_name: [(expected_owner, 10)],
+                role_name: [(expected_owner, 2)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in definitions[name][0][1].args.args],
+                    [arg.arg for arg in definitions[name][0][1].args.kwonlyargs],
+                )
+                for name in (stage_name, role_name)
+            },
+            {
+                stage_name: (["label"], []),
+                role_name: (["label"], []),
+            },
+        )
+        self.assertEqual(
+            {stage_name: len(calls[stage_name]), role_name: len(calls[role_name])},
+            {stage_name: 4, role_name: 2},
+        )
+        self.assertEqual(
+            sorted(entry[:2] for entry in calls[stage_name]),
+            sorted(
+                [
+                    ("financial_graph_helpers", "_build_table_row_reconciliation_candidates"),
+                    ("financial_graph_helpers", "_candidate_aggregation_stage"),
+                    ("financial_graph_helpers", "_candidate_matches_operand"),
+                    (expected_owner, role_name),
+                ]
+            ),
+        )
+        self.assertEqual(
+            sorted(entry[:2] for entry in calls[role_name]),
+            sorted(
+                [
+                    ("financial_graph_helpers", "_build_table_row_reconciliation_candidates"),
+                    ("financial_graph_helpers", "_candidate_value_role"),
+                ]
+            ),
+        )
+        self.assertTrue(
+            all(entry[2] == "Name" for name in (stage_name, role_name) for entry in calls[name])
+        )
+        self.assertTrue(
+            all(entry[4] == () for name in (stage_name, role_name) for entry in calls[name])
+        )
+        self.assertTrue(
+            all(entry[5] == 0 for name in (stage_name, role_name) for entry in calls[name])
+        )
+        self.assertEqual(
+            sorted((name, entry[3]) for name in (stage_name, role_name) for entry in calls[name]),
+            sorted(
+                [
+                    (stage_name, ("label",)),
+                    (stage_name, ("row_label",)),
+                    (
+                        stage_name,
+                        ("str(metadata.get('row_label') or metadata.get('semantic_label') or '')",),
+                    ),
+                    (stage_name, ("aggregate_surface",)),
+                    (role_name, ("row_label",)),
+                    (
+                        role_name,
+                        ("str(metadata.get('row_label') or metadata.get('semantic_label') or '')",),
+                    ),
+                ]
+            ),
+        )
+        self.assertEqual(
+            {name: len(entries) for name, entries in dependency_loads.items()},
+            {
+                "STRUCTURED_CELL_AFFINITY_POLICY": 1,
+                "_normalise_spaces": 2,
+                "re": 2,
+            },
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        row_defs = [
+            node
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in graph_defs),
+                sum(node.name.startswith("_") for node in graph_defs),
+            ),
+            (9, 108),
+        )
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in row_defs),
+                sum(node.name.startswith("_") for node in row_defs),
+            ),
+            (4, 15),
+        )
+
+        graph_row_imports = {
+            alias.name
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_row_surfaces"
+            for alias in node.names
+        }
+        self.assertTrue(target_names <= graph_row_imports)
+
+        row_policy_imports = {
+            alias.name
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.config.retrieval_policy"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {"HELPER_RUNTIME_POLICY", "STRUCTURED_CELL_AFFINITY_POLICY"}
+            <= row_policy_imports
+        )
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(reaches("financial_graph_helpers", "financial_row_surfaces"))
+        self.assertTrue(reaches("financial_structured_cells", "financial_row_surfaces"))
+        self.assertFalse(reaches("financial_row_surfaces", "financial_graph_helpers"))
+        self.assertFalse(reaches("financial_row_surfaces", "financial_structured_cells"))
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for record in baseline["records"]:
+            if record.get("path") != f"src/agent/{expected_owner}.py":
+                continue
+            for name in (stage_name, role_name):
+                node = definitions[name][0][1]
+                if any(
+                    node.lineno <= line <= node.end_lineno
+                    for line in record.get("first_lines") or []
+                ):
+                    selected_hits.append((name, record))
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_aggregate_row_role_callers_pin_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        metadata = {
+            "value_role": " explicit-role ",
+            "aggregation_stage": " explicit-stage ",
+            "aggregate_role": "existing-role",
+            "aggregate_label": "existing-label",
+            "nested": nested,
+        }
+        before_metadata = dict(metadata)
+        events = []
+
+        def extract_label(row_text):
+            events.append(("extract", row_text))
+            return "Exact Label"
+
+        def infer_stage(label):
+            events.append(("stage", label))
+            return "final"
+
+        def infer_role(label):
+            events.append(("role", label))
+            return "aggregate"
+
+        with (
+            patch.object(financial_graph_helpers, "_extract_table_row_label", side_effect=extract_label),
+            patch.object(financial_graph_helpers, "aggregate_like_row_stage", side_effect=infer_stage),
+            patch.object(financial_graph_helpers, "aggregate_like_row_role", side_effect=infer_role),
+            patch.object(financial_graph_helpers, "_parse_unstructured_table_row_cells", return_value=[]),
+        ):
+            candidates = financial_graph_helpers._build_table_row_reconciliation_candidates(
+                candidate_id_prefix="candidate",
+                anchor="anchor",
+                table_text="raw | 1",
+                metadata=metadata,
+            )
+
+        self.assertEqual(
+            events,
+            [
+                ("extract", "raw | 1"),
+                ("stage", "Exact Label"),
+                ("role", "Exact Label"),
+            ],
+        )
+        self.assertEqual(len(candidates), 1)
+        candidate_metadata = candidates[0]["metadata"]
+        self.assertEqual(candidate_metadata["row_label"], "Exact Label")
+        self.assertEqual(candidate_metadata["aggregate_label"], "Exact Label")
+        self.assertEqual(candidate_metadata["aggregate_role"], "final_total")
+        self.assertEqual(candidate_metadata["value_role"], "explicit-role")
+        self.assertEqual(candidate_metadata["aggregation_stage"], "explicit-stage")
+        self.assertEqual(metadata, before_metadata)
+        self.assertIs(metadata["nested"], nested)
+        self.assertIs(candidate_metadata["nested"], nested)
+
+        stopped_stage = Mock(side_effect=AssertionError("explicit value role must stop row inference"))
+        with patch.object(financial_graph_helpers, "aggregate_like_row_role", stopped_stage):
+            self.assertEqual(
+                financial_graph_helpers._candidate_value_role(
+                    {"metadata": {"value_role": " custom ", "row_label": "ignored"}}
+                ),
+                "custom",
+            )
+        stopped_stage.assert_not_called()
+
+        stopped_stage = Mock(side_effect=AssertionError("aggregate role must stop row inference"))
+        with patch.object(financial_graph_helpers, "aggregate_like_row_role", stopped_stage):
+            self.assertEqual(
+                financial_graph_helpers._candidate_value_role(
+                    {"metadata": {"aggregate_role": "subtotal", "row_label": "ignored"}}
+                ),
+                "aggregate",
+            )
+        stopped_stage.assert_not_called()
+
+        role_fallback = Mock(return_value="aggregate")
+        with patch.object(financial_graph_helpers, "aggregate_like_row_role", role_fallback):
+            self.assertEqual(
+                financial_graph_helpers._candidate_value_role(
+                    {"metadata": {"semantic_label": "Semantic Label"}}
+                ),
+                "aggregate",
+            )
+        role_fallback.assert_called_once_with("Semantic Label")
+
+        stopped_stage = Mock(side_effect=AssertionError("explicit stage must stop row inference"))
+        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage):
+            self.assertEqual(
+                financial_graph_helpers._candidate_aggregation_stage(
+                    {"metadata": {"aggregation_stage": " custom ", "row_label": "ignored"}}
+                ),
+                "custom",
+            )
+        stopped_stage.assert_not_called()
+
+        stopped_stage = Mock(side_effect=AssertionError("aggregate role must stop row inference"))
+        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage):
+            self.assertEqual(
+                financial_graph_helpers._candidate_aggregation_stage(
+                    {"metadata": {"aggregate_role": "direct_total", "row_label": "ignored"}}
+                ),
+                "direct",
+            )
+        stopped_stage.assert_not_called()
+
+        stage_fallback = Mock(return_value="subtotal")
+        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stage_fallback):
+            self.assertEqual(
+                financial_graph_helpers._candidate_aggregation_stage(
+                    {"metadata": {"semantic_label": "Semantic Label"}}
+                ),
+                "subtotal",
+            )
+        stage_fallback.assert_called_once_with("Semantic Label")
+
+        contextual_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "aggregate_label": "Aggregate",
+                "row_label": "Row",
+                "semantic_label": "Semantic",
+            },
+        }
+        operand = {"binding_policy": {"prefer_value_roles": ["aggregate"]}}
+        common_patches = (
+            patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_prefers_contextual_aggregate_match", return_value=True),
+            patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
+            patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
+        )
+
+        stopped_stage = Mock(side_effect=AssertionError("value role hit must short-circuit stage inference"))
+        with ExitStack() as stack:
+            for current_patch in common_patches:
+                stack.enter_context(current_patch)
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"))
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage))
+            self.assertTrue(financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand))
+        stopped_stage.assert_not_called()
+
+        raw_stage = Mock(return_value="final")
+        with ExitStack() as stack:
+            for current_patch in common_patches:
+                stack.enter_context(current_patch)
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="detail"))
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "aggregate_like_row_stage", raw_stage))
+            self.assertTrue(financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand))
+        raw_stage.assert_called_once_with("Aggregate Row Semantic")
+
+        stopped_positive = Mock(side_effect=AssertionError("stage exception must stop positive-surface admission"))
+        with ExitStack() as stack:
+            for current_patch in common_patches[:-1]:
+                stack.enter_context(current_patch)
+            stack.enter_context(patch.object(financial_graph_helpers, "_text_has_positive_surface", stopped_positive))
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="detail"))
+            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "aggregate_like_row_stage",
+                    side_effect=RuntimeError("stage failed"),
+                )
+            )
+            with self.assertRaisesRegex(RuntimeError, "stage failed"):
+                financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand)
+        stopped_positive.assert_not_called()
 
 
     def test_current_source_plan_shape_predicates_pin_roles_laziness_copy_and_exceptions(self) -> None:
@@ -3666,7 +4245,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 110),
+            (9, 108),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -8253,7 +8832,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 110),
+            (9, 108),
         )
         self.assertEqual(
             (
@@ -8646,7 +9225,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with ExitStack() as stack:
             for current_patch in common_context_patches:
                 stack.enter_context(current_patch)
-            stack.enter_context(patch.object(financial_graph_helpers, "_aggregate_like_row_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "aggregate_like_row_stage", return_value="none"))
             self.assertTrue(
                 financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand)
             )
