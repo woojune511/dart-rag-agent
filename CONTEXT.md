@@ -21,11 +21,11 @@ Last updated: 2026-08-14
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `d1305f8` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `80a37f8` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner scope/shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, candidate surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text와 segment-local/segment-metric composition은 `financial_row_surfaces.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression hint projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
-| Phase 3 | OPEN; generic operand-period/structured-cell, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy와 segment-local/segment-metric ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner scope/shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, candidate surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·aggregate-like row stage/role·segment-local/segment-metric composition은 `financial_row_surfaces.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression hint projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; generic operand-period/structured-cell, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric과 aggregate-like row stage/role ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -51,7 +51,8 @@ Last updated: 2026-08-14
    planner scope/shape/segment/task validation, narrative-task policy와
    lookup answer-slot/support projection, generic operand-period, structured-cell
    selection/scoring, candidate report/period-scope, candidate surface-contract/
-   segment-binding, candidate metadata-policy와 segment-local/segment-metric ownership은 이동했고 graph-state lookup,
+   segment-binding, candidate metadata-policy, segment-local/segment-metric과
+   aggregate-like row stage/role ownership은 이동했고 graph-state lookup,
    broader evidence orchestration과 주변 sequencing은 제외
 3. bounded read-only reconciliation artifact-reference projection까지만 진행된 broader
    task/artifact ledger synchronization; artifact mutation과 whole-ledger sync는 제외
@@ -59,13 +60,13 @@ Last updated: 2026-08-14
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-`d1305f8`에서 정확한 7/15줄 segment-local/segment-metric pair는
-`financial_row_surfaces.py`로 이동했다. 후속 characterize-only inventory는
-aggregate row-stage/role의 정확한 10/2줄 pair만 같은 owner의 public API로
-옮기는 것을 다음 production 작업으로 선택했다. Candidate value-role/stage
-16/18줄과 direct/ratio acceptance, matching/scoring은 graph에 남는다. 아직
-production source/test 이동은 없으며 exact behavior/caller/DAG/test/gate 계약은
-[Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
+`d1305f8`의 7/15줄 segment-local/segment-metric pair에 이어 `80a37f8`에서
+정확한 10/2줄 aggregate-like row stage/role pair도
+`financial_row_surfaces.py`로 이동했다. Candidate value-role/stage 16/18줄과
+direct/ratio acceptance, matching/scoring은 graph에 남는다. 다음 production
+이동은 아직 선택하지 않았으며 lookup-hint projection 5/14/7/5줄 경계의
+characterize-only inventory가 [Next Work](docs/overview/project_status.md#next-work)의
+단일 우선순위다.
 
 ## 구현 원칙
 

@@ -260,7 +260,7 @@ For each P0 record, classify it as one of:
   build current/prior operands, derive year-aware query surfaces, and assemble
   retry queries from missing operands.
 - `infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
-  `_operand_period_focus()`, `_aggregate_like_row_stage()`,
+  `_operand_period_focus()`, `aggregate_like_row_stage()`,
   `_candidate_explicit_years()`, `_is_capex_total_operand()`,
   `_candidate_consolidation_scope()`, `_candidate_source_priority_bonus()`,
   and `_is_delta_like_row_label()` now read ratio-result units, task query

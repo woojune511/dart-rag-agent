@@ -4030,3 +4030,51 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
 selected-body baseline, and isolated behavior probes passed; benchmark refresh
 and remote CI were **NOT RUN**.
+
+### Aggregate-like row role-stage ownership milestone
+
+- `80a37f8` moves the exact 10-line `_aggregate_like_row_stage(...)` and two-line
+  `_aggregate_like_row_role(...)` definitions from
+  `financial_graph_helpers.py` into `financial_row_surfaces.py` as public
+  `aggregate_like_row_stage(...)` and `aggregate_like_row_role(...)`. Stage
+  calls finish graph-external three/owner-local one and role calls graph-external
+  two, for external five/local one, direct `ast.Name`, caller `try` depth zero.
+- Source is `+27/-22`, net `+5`: graph helpers are `+7/-21` and move from 5,912
+  to 5,898 physical lines; row surfaces are `+20/-1` and move from 338 to 357.
+  Tests are `+584/-5`, net `+579`, moving graph-helper tests from 8,744 to 9,323
+  lines. The whole commit is `+611/-27`, net `+584`, and four new methods move
+  discovery from 1,903 to 1,907. The source diff SHA-256 is
+  `075e776a65b50061c7751b2340b7eb256ad8d8f0cfbc85887a3f42867f2ae55a`.
+- The row owner already held regex/normalization and its retrieval-policy module
+  edge; adding `STRUCTURED_CELL_AFFINITY_POLICY` introduces no new module edge.
+  Graph and structured cells already reach row surfaces, while row surfaces do
+  not reach either. Graph helpers finish public/private 9/108 and row surfaces
+  4/15. Selected spans contain no reviewed domain record and the baseline
+  remains 218.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  normalization/copy order, empty-input policy laziness, ordered eager token-set
+  construction, exact matching/fallbacks, role projection, uncaught exceptions,
+  exact definitions/calls/DAG/baseline, builder adoption, candidate fallback
+  laziness, contextual short-circuiting, and exception stops. Selected body
+  parity 2/2, all 117 retained graph functions, full caller/DAG parity, and
+  retired private source/test refs zero passed.
+- Validation passed focused 4/4, graph-helper/surface-contract owner 55/55,
+  affected nine-module semantic 865/865, import-side-effects 19/19, runtime audit
+  218, full discovery 1,907/1,907, pycompile/fresh import, and diff check in the
+  project `.venv`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only aggregate-like row label projection ownership.
+Candidate value-role/stage interpretation, direct/ratio acceptance, operand
+matching, broad scoring/reconciliation, candidate/evidence construction/
+adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
+work, and final sequencing remain graph-owned. It proves no behavior, accuracy,
+ranking, performance, total-code or executed-path reduction, benchmark
+improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, no next production owner move is selected. The sole next work
+is the characterize-only lookup-hint projection inventory in
+[Project Status Next Work](../overview/project_status.md#next-work). It must
+compare the three pure hint projections with the four-function lookup-surface
+group, freeze exact owner/DAG/behavior/callers/stops/projected gates, and select
+one bounded move or record that the helpers remain graph-owned.
