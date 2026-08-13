@@ -3552,26 +3552,49 @@ and the two newly dead planning imports are removed. LLM/model invocation,
 query routing, entity/state projection, task/artifact/ledger writes, plan
 adoption, and final sequencing remain graph-owned.
 
-The next narrative-task policy batch is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). It moves
-six state-free definitions totaling 143 lines from
-`financial_graph_planning.py` into `financial_graph_helpers.py`: owner-private
+The narrative-task policy boundary completed in `f9244d6`. Owner-private
 narrative-summary and hybrid-need predicates plus public hybrid-task builder,
 hybrid-task append, numeric-before-narrative ordering, and exclusive-policy
-gate. All 13 selected calls remain direct and outside `try`; six stay graph-
-external and seven become owner-local.
+gate now live in `financial_graph_helpers.py`. The 143 old definition lines
+remain 143 owner lines. All 13 selected calls remain direct and outside `try`;
+six are graph-external and seven owner-local. The old private definitions and
+executable refs are zero, and ten newly dead planning imports are removed.
 
-The public contracts must preserve intent/context gates, consolidation and
-period focus, active-policy and slot-group order, configured format preference,
-stable retrieval-query dedupe, preferred sections, copied task projection,
-task-ID increment, narrative detection, numeric dependency append order,
-numeric-before-narrative ordering, input immutability, access laziness, and
-uncaught exceptions. `_plan_exclusive_narrative_task(...)` and
+These contracts preserve intent/context gates, consolidation and period focus,
+active-policy and slot-group order, configured format preference, stable
+retrieval-query dedupe, preferred sections, copied task projection, task-ID
+increment, narrative detection, numeric dependency append order, numeric-
+before-narrative ordering, input immutability, access laziness, and uncaught
+exceptions. `_plan_exclusive_narrative_task(...)` and
 `_plan_semantic_numeric_tasks(...)` retain the exact caller arguments, branch
 order, result adoption, and exception boundary. Model invocation, logical/
 execution task projection, query routing, mutable task/state/artifact/ledger
 work, retrieval/evidence work, plan adoption, and final sequencing remain
-graph-owned. No callback, carrier, wrapper, alias, or compatibility bridge is
+graph-owned.
+
+The next lookup answer-slot/support projection boundary is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). It moves
+ten state-free definitions totaling 342 definition-span lines plus three
+compiled policy regex bindings from `financial_graph_planning.py` into
+`financial_lookup_recovery.py`. Public active-task matching, evidence-unit
+refinement, prose answer-slot synthesis, and supporting-document evidence
+projection are accompanied by six owner-private money/unit, answer-text, and
+document-surface helpers. All 15 selected calls remain direct and outside
+`try`; six stay external and nine become owner-local.
+
+The contracts must preserve config-backed regex construction, money sign/unit
+normalization, allowed-unit matching, year/label compatibility, evidence text
+and metadata precedence, unit aliases and inline/parenthetical/hint recovery,
+stable surface/money proximity, claim-ID projection, validated answer-slot
+construction, source-anchor precedence, stable first supporting-document
+selection, identity-on-no-change, shallow-copy-on-change and nested-alias
+behavior, input immutability, access laziness, and uncaught exceptions. The
+graph capture caller and the calculation and dependency callers retain exact
+arguments, order, adoption, and exception
+boundaries. Retrieval/prepared-document pool construction, active result/
+evidence/state mutation, nested-result promotion, trace/artifact/ledger work,
+calculation and dependency orchestration, and final sequencing remain graph-
+owned. No callback, carrier, wrapper, alias, or compatibility bridge is
 authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

@@ -578,18 +578,38 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified. Model invocation,
 query routing, plan adoption, mutable task/state/artifact/ledger work, and final
 sequencing remain graph-owned.
 
-The selected follow-on is one 143-line narrative-task policy batch from
-`financial_graph_planning.py` into `financial_graph_helpers.py`. Six old
-definitions become four public and two owner-private definitions with no line-
-count projection change. Thirteen selected direct calls finish graph-external
-six and owner-local seven; all remain outside `try`. The move adds one reviewed,
-acyclic routing edge, moves no runtime-domain baseline record, and retires ten
-planning imports that become dead only after the literal move. LLM/model
+The completed `f9244d6` follow-on moved six narrative-task policy definitions
+totaling 143 lines from `financial_graph_planning.py` into
+`financial_graph_helpers.py` as four public and two owner-private functions.
+Thirteen selected calls finish graph-external six and owner-local seven, all
+outside `try`. Source is `+173/-173`, tests are `+1,245/-15`, and the whole
+commit is `+1,418/-188`. Planning moved from 1,765 to 1,602 physical lines,
+graph helpers from 6,559 to 6,722, and six new tests moved discovery from 1,847
+to 1,853. Final gates passed focused 6/6, helper owner 18/18, affected semantic
+440/440, import 19/19, audit 218, full discovery 1,853/1,853,
+pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and diff
+check. Its source diff SHA-256 is
+`da20f913c7205a1e0694ce655b91b8dad0b1d43437a6099626881716ded176b0`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. LLM/model
 invocation, logical/execution task projection, query routing, plan adoption,
 task/state/artifact/ledger mutation, retrieval/evidence work, and final
-sequencing remain hard stops. Exact APIs, behavior, the six-method CURRENT-
-SOURCE gate, projected validation counts, DAG/dead-import consequences, and
-rejected evidence/cycle/carrier/state expansions live only in
+sequencing remain graph-owned.
+
+The selected follow-on is one lookup answer-slot/support projection batch from
+`financial_graph_planning.py` into `financial_lookup_recovery.py`. Ten
+definitions total 342 definition-span lines, accompanied by three compiled
+policy regex bindings. The final target surface is public four plus owner-
+private six for this batch; 15 selected direct calls finish graph-external six
+and owner-local nine, all outside `try`. The owner adds only acyclic answer-
+slot, model-loader, retrieval-policy, and already-existing surface-contract
+dependencies, moves no runtime-domain baseline record, and permits three dead
+planning imports to be removed. `_capture_current_subtask_result(...)`, the
+calculation and dependency callers, retrieval/prepared-document pool
+construction, mutable result/evidence/state, nested-result promotion,
+trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
+behavior, the eight-
+method CURRENT-SOURCE gate, projected validation counts, DAG/dead-import
+consequences, and rejected carrier/callback/state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

@@ -3462,3 +3462,52 @@ evidence/cycle/carrier/state expansions are maintained only in
 invocation, logical/execution task projection, plan adoption, mutable task/
 state/artifact/ledger work, retrieval/evidence work, and final sequencing
 remain graph-owned.
+
+### Narrative-task policy ownership milestone
+
+- `f9244d6` moves six definitions totaling 143 definition-span lines from
+  `financial_graph_planning.py` into `financial_graph_helpers.py`. Public
+  `build_hybrid_narrative_subtask(...)`,
+  `append_hybrid_narrative_task(...)`,
+  `push_narrative_tasks_after_numeric(...)`, and
+  `exclusive_narrative_task_policy_active(...)` plus two owner-private
+  predicates retain the exact 143-line total. Thirteen selected calls finish
+  graph-external six and owner-local seven; all remain direct and outside
+  `try`. Literal body and full retained-caller parity passed after normalizing
+  only the selected call targets; retired private definitions and executable
+  source/test refs are zero.
+- Source is `+173/-173`, net `0`; tests are `+1,245/-15`, net `+1,230`; and the
+  whole commit is `+1,418/-188`, net `+1,230`. Planning moved from 1,765 to
+  1,602 physical lines, graph helpers from 6,559 to 6,722, and the changed test
+  files grew by 1,230 physical lines. Six new unittest methods moved full
+  discovery from 1,847 to 1,853. The source diff SHA-256 is
+  `da20f913c7205a1e0694ce655b91b8dad0b1d43437a6099626881716ded176b0`.
+- The helper owner is public/private 9/134. Its retrieval-policy, operation-
+  policy, and routing dependencies are acyclic; the planning module's ten newly
+  dead imports are removed. The selected spans move no reviewed runtime-domain
+  record, so the audit remains 218 without a baseline change.
+- Final validation passed focused 6/6, helper owner 18/18, affected eight-module
+  semantic 440/440, import-side-effects 19/19, runtime audit 218, full discovery
+  1,853/1,853, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+  zero, and `git diff --check`. Benchmark refresh was **NOT RUN** and no remote
+  CI run is claimed for this local commit.
+
+This milestone changes only narrative-task policy ownership. Model invocation,
+logical/execution task projection, query routing, plan adoption, mutable task/
+state/artifact/ledger work, retrieval/evidence work, and final sequencing remain
+graph-owned. It proves no behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first lookup
+answer-slot/support projection batch from `financial_graph_planning.py` into
+`financial_lookup_recovery.py`. Ten definitions total 342 definition-span lines
+and move with three compiled policy regex bindings. Four functions become
+public and six owner-private; 15 direct calls finish external six/local nine,
+and the owner projects from public/private 11/7 to 15/13. The exact eight-method
+CURRENT-SOURCE gate, projected validations, behavior contracts, import cleanup,
+and rejected compatibility/callback/carrier/state expansions are maintained
+only in [Project Status Next Work](../overview/project_status.md#next-work).
+`_capture_current_subtask_result(...)`, calculation/dependency orchestration,
+retrieval/prepared-document pool construction, mutable result/evidence/state,
+trace/artifact/ledger work, and final sequencing remain graph-owned.

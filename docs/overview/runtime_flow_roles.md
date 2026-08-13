@@ -287,7 +287,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
-| `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and direct structured-row/value projection |
+| `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and direct structured-row/value projection; lookup answer-slot/support projection is the selected next boundary, not current ownership |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
@@ -544,9 +544,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Focused 7/7, helper owner 12/12, semantic 434/434, import 19/19, audit 218과
   full 1,847/1,847이 통과했다. LLM/model invocation, plan adoption,
   task/state/artifact/ledger와 final sequencing은 graph에 남는다.
-- 다음 선택은 planning의 narrative-task policy 정의 143줄을 같은 owner의
-  public 4/owner-private 2로 이동하는 한 batch다. 열세 call은 external
-  6/local 7이 되며 exact boundary와 hard stop은
+- 완료된 narrative-task policy batch는 planning의 정의 143줄을
+  `financial_graph_helpers.py`의 public 4/owner-private 2로 옮겼다. 열세
+  call은 external 6/local 7이고 helper owner 함수 수는 9/134다. Focused
+  6/6, helper owner 18/18, semantic 440/440, import 19/19, audit 218과 full
+  1,853/1,853이 통과했다. Model invocation, plan adoption, task/state/
+  artifact/ledger와 final sequencing은 graph에 남는다.
+- 다음 선택은 planning의 lookup answer-slot/support 정의 342줄과 policy
+  regex binding 3개를 `financial_lookup_recovery.py`의 public 4/owner-private
+  6으로 이동하는 한 batch다. 열다섯 call은 external 6/local 9가 되며
+  exact boundary와 hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -562,9 +569,9 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - retrieval hint / operand matching helpers
 - semantic planner scope normalization, plan-shape validation, segment-label
   projection, and planner-task contract helpers
-- selected next boundary: narrative-task predicate, construction, append,
-  dependency-order, and exclusive-policy projection; model invocation and
-  state/task adoption remain outside
+- narrative-task predicate, construction, append, dependency-order, and
+  exclusive-policy projection; model invocation and state/task adoption remain
+  outside
 
 `_preferred_complete_aggregate_subtask_answer`는 compatibility를 위해 여기서
 re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
