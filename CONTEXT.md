@@ -52,7 +52,8 @@ Last updated: 2026-08-14
    lookup answer-slot/support projection, generic operand-period와 query/task
    period-focus, structured-cell selection/scoring과 candidate selected-cell
    preparation, candidate report/period-scope, candidate surface-contract/
-   segment-binding, candidate metadata-policy, segment-local/segment-metric과
+   segment-binding/scoped surface-affinity, candidate metadata-policy,
+   segment-local/segment-metric과
    aggregate-like row stage/role와 candidate value-role/stage 및 operand-
    context/structured-sibling, lookup-hint
    projection/match, direct candidate
@@ -79,11 +80,12 @@ API로 이동했다. `9092f5e`는 정확한 16/18줄 candidate value-role/stage 
 candidate operand-context/table-row structured-sibling pair를 같은 owner로
 이동했다. `0bfa1f0`은 정확한 21줄 candidate selected-cell projection을
 `financial_structured_cells.py`의 public API로 이동했다. Direct/ratio
-acceptance, broader matching/scoring은 graph에 남는다. 새 characterize-only
-inventory는 정확한 56줄 scoped surface-affinity projection만
-`financial_surface_contracts.py`의 다음 public owner 이동으로 선택했으며
-segment/metric gates, surface order, dual weights, 두 caller의 gate/order/stop,
-DAG와 projected gate는
+acceptance, broader matching/scoring은 graph에 남는다. `2b0e9c1`은 정확한
+56줄 scoped surface-affinity projection을 `financial_surface_contracts.py`의
+public API로 이동했다. 새 characterize-only inventory는 정확한 30줄
+candidate period/table coherence projection만 `financial_scope_policies.py`의
+다음 public owner 이동으로 선택했으며 metadata/year gate, target membership,
+role/unit/table score와 sole caller의 order/stop, DAG와 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

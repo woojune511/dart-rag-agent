@@ -4846,3 +4846,85 @@ benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
 call, DAG, function-count, and selected-body baseline inspection, direct
 behavior probes 5/5, and four existing caller/ratio probes passed; benchmark
 refresh and remote CI were **NOT RUN**.
+
+### Scoped surface-affinity ownership milestone
+
+- Commit `2b0e9c1` moved the exact former 56-line
+  `_scoped_surface_affinity_priority(...)` graph-helper definition to public
+  `financial_surface_contracts.scoped_surface_affinity_priority(...)`. Both
+  direct `AugAssign` calls remain owner-external at caller `try` depth zero in
+  evidence prioritization and coherent ratio-context scoring; their caller
+  gates, argument identities, weights, score adoption, and exception stops are
+  unchanged. The selected `_operand_segment_label(...)` call is owner-local.
+- Segment-gate disabled laziness, enabled eager operand-list copy and first-hit
+  order, policy copy, repeated term/part/marker stringification, exact query/
+  topic formatting, metric miss stop, fixed eleven-part surface order, metadata
+  shallow copies, joined normalization, direct-before-adjustment membership,
+  dual raw weights, nested identity, input immutability, and every uncaught
+  error remain pinned by four CURRENT-SOURCE methods.
+- Source is `+67/-64`, net `+3`; tests are `+851/-15`, net `+836`; and the
+  whole commit is `+918/-79`, net `+839`. Graph helpers moved from 5,623 to
+  5,564 lines, surface contracts from 334 to 396, graph-helper tests from
+  19,190 to 20,026, and discovery from 1,939 to 1,943. Graph-helper public/
+  private counts finish 9/91 and surface-contract counts finish 10/7. The
+  source diff SHA-256 is
+  `a9d2c5aad44530e9cbcc9d6c27e9644109251adfcc3f17ae705c6936f2015377`.
+- Focused 4/4, graph-helper owner 90/90, affected semantic 1,050/1,050,
+  import-side-effects 19/19, runtime-domain audit 218, and full discovery
+  1,943/1,943 passed. Pycompile/fresh import and public identity 2/2, selected-
+  body parity 1/1, retained graph 100/100, retained surface owner 16/16, both
+  caller expressions and bodies, full 48-module DAG parity, zero selected-body
+  audit hits, zero retired executable private refs, and diff check also passed.
+  Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes ownership only. It establishes no behavior, accuracy,
+ranking, performance, total-code or executed-path reduction, benchmark,
+schedule, ledger, or Phase 3 completion claim. Caller eligibility/schema
+scoring, evidence and operand-row construction, direct/ratio acceptance,
+broader ranking, result adoption, and graph/artifact/ledger state remain
+outside the moved owner.
+
+### Candidate period/table coherence characterization checkpoint
+
+- A docs-only inventory selects the exact current 30-line
+  `_candidate_period_table_coherence_bonus(candidate, *, operand,
+  query_years) -> float` definition in `financial_graph_helpers.py`. Its sole
+  direct call is an `AugAssign` inside `_score_operand_candidate(...)` at
+  caller `try` depth zero. No production source or test moves for this
+  projection at this checkpoint.
+- The selected follow-on moves it as public
+  `candidate_period_table_coherence_bonus(...)` in
+  `financial_scope_policies.py`. Current/projected public/private counts are
+  graph helpers 9/91 to 9/90 and scope policy 9/9 to 10/9. Graph already reaches
+  the scope owner, the owner does not reach graph, and both selected
+  dependencies are already owner-held, so the agent import DAG is unchanged.
+- The projection preserves metadata shallow copy before the explicit-year
+  dependency, falsey-year return before operand/query-year access, original
+  candidate/operand/query-year identities, raw year and target-year truth/
+  iteration/membership/length behavior, first target hit short circuit, exact
+  `+1.0/-1.0` target score, exact period roles and `+0.75`, lazy table-source
+  access and `+0.35`, unit strip/uppercase and percent-only `+0.5`, separate
+  duplicate-sensitive length calls, score order, nested identity, immutability,
+  and every current uncaught error. Full match and miss examples score `2.6`
+  and `0.6` respectively.
+- The sole caller remains after source priority and metadata-period scoring and
+  before report-scope binding, the final table-source `0.25`, and return.
+  Success adds the result directly; failure stops the remaining scorer and all
+  enclosing ranking/adoption. Moving candidate/year extraction, target-year
+  policy, other score contributions, matching/admission/acceptance, broader
+  ranking, candidate/evidence adoption, or graph/artifact/ledger state is
+  rejected.
+- `candidate_explicit_years(...)` calls project from external/local 1/4 to 0/5.
+  `operand_target_years(...)` calls project from 9/5 to 8/6; its other callers
+  remain in place. The selected span contains zero of the 218 reviewed runtime-
+  domain records.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 94/94,
+  affected semantic 1,054/1,054, import 19/19, audit 218, full 1,947/1,947,
+  public identity 1/1, selected body 1/1, retained graph 99/99, retained scope
+  owner 18/18, caller/DAG parity, retired-ref zero, and diff check are maintained
+  only in [Project Status Next Work](../overview/project_status.md#next-work).
+
+The characterization establishes no implementation or quality improvement.
+Static definition/call/DAG/function/dependency inventory and selected-body
+baseline inspection, direct behavior probes 5/5, and four existing report/
+period caller probes passed; benchmark refresh and remote CI were **NOT RUN**.

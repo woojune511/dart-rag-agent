@@ -837,29 +837,46 @@ refs zero, and diff check passed. The source diff SHA-256 is
 Direct acceptance, signatures, matching/scoring, candidate/evidence adoption,
 retry assembly, and graph/artifact/ledger state remain hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 56-line `_scoped_surface_affinity_priority(...)` definition from graph
-helpers to public `scoped_surface_affinity_priority(...)` in
-`financial_surface_contracts.py`. Its two direct `AugAssign` calls remain in
-evidence prioritization and coherent ratio-context selection at caller `try`
-depth zero. Both callers already import the surface owner, which already owns
-operand segment-label projection and does not reach graph helpers, so the
-agent-module DAG is unchanged. Projected function counts are graph helpers
-9/91 and surface contracts 10/7. Both calls finish owner-external/local 2/0,
-the selected segment-label dependency becomes owner-local, and the selected
-span contains zero of 218 reviewed domain records.
+The completed `2b0e9c1` follow-on moved the exact former 56-line scoped
+surface-affinity projection from graph helpers to public
+`scoped_surface_affinity_priority(...)` in
+`financial_surface_contracts.py`. Its two direct `AugAssign` calls finish
+owner-external/local 2/0 in evidence prioritization and coherent ratio-context
+scoring; the selected segment-label dependency is owner-local and the full
+agent-module DAG is unchanged. Source is `+67/-64`, tests `+851/-15`, and the
+whole commit `+918/-79`; graph helpers moved from 5,623 to 5,564 lines and
+surface contracts from 334 to 396. Focused 4/4, owner 90/90, affected semantic
+1,050/1,050, import 19/19, audit 218, full 1,943/1,943, pycompile/fresh import/
+public identity, body/retained/caller/DAG parity, retired executable private
+refs zero, and diff check passed. The source diff SHA-256 is
+`a9d2c5aad44530e9cbcc9d6c27e9644109251adfcc3f17ae705c6936f2015377`.
+Eligibility/schema scoring, evidence/operand-row construction, direct/ratio
+acceptance, broader ranking, result adoption, and graph/artifact/ledger state
+remain hard stops.
 
-Moving item/group eligibility, statement/consolidation/period or schema
-scoring, evidence or operand-row construction/filtering, direct/ratio
-acceptance, broader ranking, best-row/result adoption, retrieval, or plan/state/
-artifact/ledger mutation is rejected. Exact segment and metric gate laziness,
-policy copy, repeated term/part/marker stringification, fixed surface order,
-metadata/operand copies, joined-surface normalization, dual raw weights, caller
-gates/order/stops, four required CURRENT-SOURCE methods, and projected focused
-4/4, owner 90/90, affected semantic 1,050/1,050, import 19/19, audit 218, and
-full 1,943/1,943 gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 30-line `_candidate_period_table_coherence_bonus(...)` definition from
+graph helpers to public `candidate_period_table_coherence_bonus(...)` in
+`financial_scope_policies.py`. Its sole direct `AugAssign` call remains in
+`_score_operand_candidate(...)` at caller `try` depth zero, after source and
+metadata-period scoring and before report-scope/final-table scoring and return.
+The scope owner already owns both explicit-year and target-year dependencies,
+graph reaches it, and it does not reach graph helpers, so the agent-module DAG
+is unchanged. Projected function counts are graph helpers 9/90 and scope policy
+10/9; the call finishes owner-external/local 1/0, explicit-year calls project
+1/4 to 0/5, target-year calls project 9/5 to 8/6, and the selected span contains
+zero of 218 reviewed domain records.
+
+Moving candidate/year extraction, target-year policy, source/metadata-period/
+report-scope or other scoring, matching/admission/acceptance, broader ranking,
+candidate/evidence adoption, retrieval, or plan/state/artifact/ledger mutation
+is rejected. Exact metadata copy/year gate, target truth/iteration/membership,
+hit/miss score, role/unit/table/length laziness, identities, exception stops,
+four required CURRENT-SOURCE methods, and projected focused 4/4, owner 94/94,
+affected semantic 1,054/1,054, import 19/19, audit 218, and full 1,947/1,947
+gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this surface-affinity projection at the
+or test movement has occurred for this candidate period/table projection at the
 characterization checkpoint; it is the sole next priority, and this plan
 maintains no competing queue.
 

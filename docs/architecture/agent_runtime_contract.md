@@ -4287,15 +4287,14 @@ retained graph 101/101, retained structured owner 7/7, sole-caller and DAG
 parity, retired-ref zero, and diff check passed. Benchmark refresh was **NOT
 RUN** and remote CI remains unverified.
 
-The new characterize-only scoped surface-affinity inventory selects the current
-56-line `_scoped_surface_affinity_priority(items, *, query, topic,
+The scoped surface-affinity ownership boundary completed in `2b0e9c1`. The
+exact former 56-line graph definition now lives in
+`financial_surface_contracts.py` as public
+`scoped_surface_affinity_priority(items, *, query, topic,
 required_operands=None, require_segment_operand=False, direct_weight=0.0,
-adjustment_weight=0.0) -> float` graph definition for a future public move to
-`financial_surface_contracts.py` as
-`scoped_surface_affinity_priority(...)`. No production source or test has moved
-for this projection at this checkpoint. It scores only already supplied
-surfaces with declarative policy and caller-owned weights; it does not retrieve,
-select, build, rank, or adopt evidence or graph state.
+adjustment_weight=0.0) -> float`. It scores only already supplied surfaces with
+declarative policy and caller-owned weights; it does not retrieve, select,
+build, rank, or adopt evidence or graph state.
 
 The segment gate is fully lazy when disabled. When enabled it preserves
 `required_operands or []`, eager `list(...)`, ordered `operand or {}` shallow
@@ -4316,30 +4315,100 @@ short-circuits, both categories may add, and raw caller weights are not coerced.
 All existing formatting, mapping, truth, iteration, copy, string, strip, join,
 normalization, membership, and addition errors remain uncaught.
 
-The two direct calls are `AugAssign` expressions at caller `try` depth zero.
+The two direct calls remain `AugAssign` expressions at caller `try` depth zero.
 Evidence prioritization calls after its exact segment-note/metric gate with a
 new list containing the original item, original query/topic, and weights
 `2.5/-1.5`; coherent ratio-context selection calls after row/missing/collapse,
 unit-count, and schema-score work with the current group, original query/topic/
 required operands, segment-required true, and weights `12.0/-8.0`. Failures
-stop later ranking or best-row adoption. Current/projected counts are graph
-helpers 9/92 to 9/91 and surface contracts 9/7 to 10/7. Both calls finish
-owner-external/local 2/0, the selected segment-label dependency becomes local,
+stop later ranking or best-row adoption. Final counts are graph helpers 9/91
+and surface contracts 10/7. Both calls finish owner-external/local 2/0, the
+selected segment-label dependency is owner-local,
 the selected span has zero reviewed runtime-domain records, and the agent DAG
 is unchanged.
 
 Moving caller eligibility/schema scoring, item/group or operand-row
 construction, direct/ratio acceptance, broader ranking, result adoption,
 retrieval, or graph/artifact/ledger state is rejected. Four named CURRENT-
-SOURCE methods and exact contracts remain solely in
+SOURCE methods passed before and after the move. Source moved `+67/-64`, tests
+`+851/-15`, and the whole commit `+918/-79`; graph helpers finish at 5,564
+lines and surface contracts at 396. The source diff SHA-256 is
+`a9d2c5aad44530e9cbcc9d6c27e9644109251adfcc3f17ae705c6936f2015377`.
+Focused 4/4, owner 90/90, affected semantic 1,050/1,050, import 19/19, audit
+218, full 1,943/1,943, pycompile/fresh import/public identity 2/2, selected-body
+1/1, retained graph 100/100, retained surface owner 16/16, both caller
+expressions/bodies, full 48-module DAG parity, retired executable graph-private
+refs zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote
+CI remains unverified.
+
+The new characterize-only candidate period/table coherence inventory selects
+the current 30-line `_candidate_period_table_coherence_bonus(candidate, *,
+operand, query_years) -> float` graph definition for a future public move to
+`financial_scope_policies.py` as
+`candidate_period_table_coherence_bonus(...)`. No production source or test
+has moved for this projection at this checkpoint. It contributes only a
+bounded score over an already supplied candidate, operand, and query-year
+collection; candidate/year extraction, target-year policy, broader scoring,
+ranking, and adoption remain outside.
+
+The projection first evaluates `candidate.get("metadata") or {}` and shallow-
+copies it. Only then does it call `candidate_explicit_years(candidate)` with
+the original candidate. The returned years object is neither copied nor
+coerced; a falsey result returns `0.0` before operand or query-year access.
+Metadata access/truth/copy order, nested identity, and all errors remain exact.
+
+After initializing `score = 0.0`, it calls
+`operand_target_years(operand, query_years)` with both original objects. A
+truthy result is iterated in order through `any(year in years ...)`, with a
+first-hit short circuit, `+1.0` on a hit, and `-1.0` only after a full miss.
+A falsey target-years result skips membership and contributes nothing. Raw
+target iteration and years membership behavior remain unchanged.
+
+Role projection occurs only after target scoring and remains
+`str(operand.get("role") or "").strip()`. Exact `current_period` or
+`prior_period` then evaluates `len(years) >= 2`, adds `0.75`, and only on that
+path evaluates the copied metadata's stripped `table_source_id`, adding `0.35`
+when nonblank. Other roles do not evaluate that length gate or table source.
+Unit projection follows as
+`str(operand.get("unit_family") or "").strip().upper()`; only exact `PERCENT`
+evaluates its separate `len(years) >= 2` and adds `0.5`. The separate length
+calls intentionally preserve raw and duplicate-sensitive container semantics.
+The full matching surface scores `2.6`; a target miss with the same remaining
+surface scores `0.6`.
+
+All current mapping access, `or` truth, shallow-copy, dependency call/result,
+iteration, membership, first-hit, length, string/strip/upper, exact comparison,
+score-addition, return, identity, immutability, and exception behavior must be
+preserved. No catch, wrapper, alias, callback, flag, trace, coercion, or
+fallback is allowed.
+
+The sole direct call is an `AugAssign` in `_score_operand_candidate(...)` at
+caller `try` depth zero, with candidate positional and original operand/query-
+years objects as keywords. It remains after source-priority and metadata-period
+scoring and before report-scope binding, final table-source scoring, and
+return. Success adds the result; failure stops every later scorer and enclosing
+ranking/adoption step.
+
+The scope owner already owns `candidate_explicit_years(...)` and
+`operand_target_years(...)`; graph reaches it and it does not reach graph.
+Projected counts are graph helpers 9/90 and scope policy 10/9. The selected
+call finishes external/local 1/0; explicit-year calls change 1/4 to 0/5 and
+target-year calls change 9/5 to 8/6. The selected span has zero reviewed
+runtime-domain records and the agent DAG is unchanged.
+
+Moving candidate/year extraction, target-year policy, source or metadata-
+period scoring, report-scope or final table-source scoring, other matching/
+admission/acceptance/ranking, candidate/evidence adoption, retrieval, or graph/
+artifact/ledger state is rejected. Four named CURRENT-SOURCE methods and exact
+contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 90/90, affected semantic 1,050/1,050, import 19/19,
-audit 218, full 1,943/1,943, pycompile/fresh import/public identity 2/2,
-selected-body 1/1, retained graph 100/100, retained surface owner 16/16, both
-callers, full DAG parity, retired executable graph-private refs zero, and diff
-check. Static AST/call/DAG and selected-body baseline inventory, direct behavior
-probes 5/5, and four existing caller/ratio probes passed; benchmark refresh and
-remote CI were **NOT RUN**.
+gates are focused 4/4, owner 94/94, affected semantic 1,054/1,054, import
+19/19, audit 218, full 1,947/1,947, pycompile/fresh import/public identity 1/1,
+selected-body 1/1, retained graph 99/99, retained scope owner 18/18, sole
+caller, full DAG parity, retired executable graph-private refs zero, and diff
+check. Static AST/call/DAG/function/dependency and selected-body baseline
+inventory, direct behavior probes 5/5, and four existing report/period caller
+probes passed; benchmark refresh and remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
