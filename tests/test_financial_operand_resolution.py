@@ -7338,7 +7338,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "src/agent/financial_graph_reconciliation.py": {},
                 "src/agent/financial_operand_resolution.py": {
                     "candidate_row_block_signature": (3556, 3584, 29, ["candidate"]),
-                    "repair_note_operand_units_from_same_block": (3587, 3643, 57, ["operand_rows", "candidate_map"]),
+                    "repair_note_operand_units_from_same_block": (3639, 3695, 57, ["operand_rows", "candidate_map"]),
                 },
             },
         )
@@ -7381,8 +7381,8 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             signature_callers,
             sorted(
                 [
-                    "_candidate_direct_logical_signature",
-                    "_candidate_direct_family_signature",
+                    "candidate_direct_logical_signature",
+                    "candidate_direct_family_signature",
                     "repair_note_operand_units_from_same_block",
                     "_extract_structured_operands_from_reconciliation",
                     "_extract_structured_operands_from_reconciliation",
@@ -7410,7 +7410,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertEqual((len(signature_calls), len(repair_calls)), (7, 1))
         owner_path = "src/agent/financial_operand_resolution.py"
         owner_local_calls = [row for row in call_rows if row[1] == owner_path]
-        self.assertEqual((len(call_rows) - len(owner_local_calls), len(owner_local_calls)), (7, 1))
+        self.assertEqual((len(call_rows) - len(owner_local_calls), len(owner_local_calls)), (5, 3))
         self.assertEqual(len(call_rows), 8)
         self.assertTrue(all(row[-1] == 0 for row in call_rows))
 

@@ -472,7 +472,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 104),
+            (9, 102),
         )
         self.assertEqual(
             (
@@ -1873,7 +1873,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 104),
+            (9, 102),
         )
         self.assertEqual(
             (
@@ -2839,14 +2839,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 104),
+            (9, 102),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in operand_defs),
                 sum(node.name.startswith("_") for node in operand_defs),
             ),
-            (41, 37),
+            (43, 37),
         )
 
         def imported_names(module_name, imported_module):
@@ -3776,6 +3776,1424 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
         stopped_retry_preference.assert_not_called()
         stopped_retry_canonical.assert_not_called()
+
+    def test_current_source_direct_candidate_signature_projection_pins_metadata_value_period_scope_and_identity(self) -> None:
+        nested = {"preserve": True}
+
+        class TextBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise AssertionError(self.message)
+
+        semantic_bomb = TextBomb("row hit must stop semantic label")
+        aggregate_bomb = TextBomb("row hit must stop aggregate label")
+        row_text_bomb = TextBomb("selected value must stop row fallback")
+        period_bomb = TextBomb("selected headers must stop period fallback")
+        section_bomb = TextBomb("block scope must stop section fallback")
+        candidate_text_bomb = TextBomb("selected value must stop candidate text")
+        metadata = {
+            "table_source_id": " table-1 ",
+            "row_label": " row-1 ",
+            "semantic_label": semantic_bomb,
+            "aggregate_label": aggregate_bomb,
+            "row_text": row_text_bomb,
+            "period_focus": period_bomb,
+            "section_path": section_bomb,
+            "statement_type": " notes ",
+            "nested": nested,
+        }
+        candidate = {
+            "candidate_id": "candidate-1",
+            "metadata": metadata,
+            "text": candidate_text_bomb,
+            "nested": nested,
+        }
+        headers = [" 2024 ", "", " annual "]
+        selected_cell = {
+            "value_text": " 100 ",
+            "column_headers": headers,
+            "nested": nested,
+        }
+        before_candidate = dict(candidate)
+        before_metadata = dict(metadata)
+        before_cell = dict(selected_cell)
+        before_headers = list(headers)
+        block_key = object()
+        block_candidates = []
+
+        def block_signature(current_candidate):
+            block_candidates.append(current_candidate)
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_candidate["metadata"], metadata)
+            self.assertIs(current_candidate["metadata"]["nested"], nested)
+            return block_key
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            side_effect=block_signature,
+        ) as block_owner:
+            logical = financial_operand_resolution.candidate_direct_logical_signature(
+                candidate,
+                selected_cell=selected_cell,
+            )
+            family = financial_operand_resolution.candidate_direct_family_signature(
+                candidate,
+                selected_cell=selected_cell,
+            )
+
+        self.assertIs(logical[0], block_key)
+        self.assertEqual(logical[1:], ("row-1", "100", "2024 annual"))
+        self.assertIs(family[0], block_key)
+        self.assertEqual(family[1:], ("row-1", "2024 annual", "notes"))
+        self.assertEqual(block_candidates, [candidate, candidate])
+        self.assertEqual(block_owner.call_count, 2)
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(metadata, before_metadata)
+        self.assertEqual(selected_cell, before_cell)
+        self.assertEqual(headers, before_headers)
+        self.assertIs(candidate["metadata"], metadata)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(metadata["nested"], nested)
+        self.assertIs(selected_cell["nested"], nested)
+        self.assertIs(selected_cell["column_headers"], headers)
+
+        table_section_bomb = TextBomb("table scope must stop section fallback")
+        table_candidate_text_bomb = TextBomb("row text must stop candidate text")
+        table_candidate = {
+            "metadata": {
+                "table_source_id": " table-2 ",
+                "row_label": "",
+                "semantic_label": " semantic-row ",
+                "aggregate_label": TextBomb("semantic hit must stop aggregate label"),
+                "row_text": " row fallback ",
+                "period_focus": " prior ",
+                "section_path": table_section_bomb,
+                "statement_type": " summary_financials ",
+                "nested": nested,
+            },
+            "text": table_candidate_text_bomb,
+            "nested": nested,
+        }
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="",
+        ) as empty_block_owner:
+            table_logical = (
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    table_candidate,
+                    selected_cell={},
+                )
+            )
+            table_family = (
+                financial_operand_resolution.candidate_direct_family_signature(
+                    table_candidate,
+                    selected_cell={},
+                )
+            )
+        self.assertEqual(
+            table_logical,
+            ("table-2", "semantic-row", "row fallback", "prior"),
+        )
+        self.assertEqual(
+            table_family,
+            ("table-2", "semantic-row", "", "summary_financials"),
+        )
+        self.assertEqual(empty_block_owner.call_args_list[0].args, (table_candidate,))
+        self.assertEqual(empty_block_owner.call_args_list[1].args, (table_candidate,))
+        self.assertIs(table_candidate["metadata"]["nested"], nested)
+        self.assertIs(table_candidate["nested"], nested)
+
+        section_candidate = {
+            "metadata": {
+                "table_source_id": "",
+                "row_label": "",
+                "semantic_label": "",
+                "aggregate_label": " aggregate-row ",
+                "row_text": "",
+                "period_focus": " current ",
+                "section_path": " section-scope ",
+                "statement_type": " income_statement ",
+                "nested": nested,
+            },
+            "text": " candidate fallback ",
+            "nested": nested,
+        }
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="",
+        ):
+            self.assertEqual(
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    section_candidate,
+                    selected_cell=None,
+                ),
+                (
+                    "section-scope",
+                    "aggregate-row",
+                    "candidate fallback",
+                    "current",
+                ),
+            )
+            self.assertEqual(
+                financial_operand_resolution.candidate_direct_family_signature(
+                    section_candidate,
+                    selected_cell=None,
+                ),
+                ("section-scope", "aggregate-row", "", "income_statement"),
+            )
+        self.assertIs(section_candidate["metadata"]["nested"], nested)
+        self.assertIs(section_candidate["nested"], nested)
+
+    def test_current_source_direct_candidate_signature_projection_pins_laziness_stringification_and_exceptions(self) -> None:
+        copy_events = []
+        metadata_values = {
+            "table_source_id": "table",
+            "row_label": "row",
+            "row_text": "row text",
+            "period_focus": "current",
+            "section_path": "section",
+            "statement_type": "notes",
+        }
+
+        class MetadataMapping:
+            def keys(self):
+                copy_events.append("metadata-keys")
+                return list(metadata_values)
+
+            def __getitem__(self, key):
+                copy_events.append(("metadata-item", key))
+                return metadata_values[key]
+
+        class CandidateMapping:
+            def get(self, key, default=None):
+                copy_events.append(("candidate-get", key))
+                if key == "metadata":
+                    return MetadataMapping()
+                return default
+
+        candidate_mapping = CandidateMapping()
+
+        def block_after_copy(current_candidate):
+            copy_events.append(("block", current_candidate is candidate_mapping))
+            return "block"
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            side_effect=block_after_copy,
+        ):
+            self.assertEqual(
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    candidate_mapping,
+                    selected_cell={
+                        "value_text": "1",
+                        "column_headers": ["2024"],
+                    },
+                ),
+                ("block", "row", "1", "2024"),
+            )
+        self.assertEqual(copy_events[0], ("candidate-get", "metadata"))
+        self.assertEqual(copy_events[1], "metadata-keys")
+        block_index = copy_events.index(("block", True))
+        metadata_item_indexes = [
+            index
+            for index, event in enumerate(copy_events)
+            if isinstance(event, tuple) and event[0] == "metadata-item"
+        ]
+        self.assertEqual(len(metadata_item_indexes), len(metadata_values))
+        self.assertTrue(all(index < block_index for index in metadata_item_indexes))
+
+        class TextProbe:
+            def __init__(self, name, value, events):
+                self.name = name
+                self.value = value
+                self.events = events
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                self.events.append(self.name)
+                return self.value
+
+        class BoolCell(dict):
+            def __init__(self, *args, events, name, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.events = events
+                self.name = name
+                self.bool_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                self.events.append(f"{self.name}-bool")
+                return True
+
+        logical_events = []
+        logical_value = TextProbe("value", " value ", logical_events)
+        logical_header = TextProbe("header", " header ", logical_events)
+        logical_blank = TextProbe("blank", "   ", logical_events)
+        logical_cell = BoolCell(
+            {
+                "value_text": logical_value,
+                "column_headers": [
+                    logical_header,
+                    logical_blank,
+                    logical_header,
+                ],
+            },
+            events=logical_events,
+            name="logical-cell",
+        )
+        logical_candidate = {
+            "metadata": {
+                "row_label": "row",
+                "period_focus": TextProbe(
+                    "stopped-period",
+                    "period",
+                    logical_events,
+                ),
+                "statement_type": "notes",
+            }
+        }
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            self.assertEqual(
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    logical_candidate,
+                    selected_cell=logical_cell,
+                ),
+                ("block", "row", "value", "header header"),
+            )
+        self.assertEqual(logical_cell.bool_calls, 2)
+        self.assertEqual(logical_value.calls, 1)
+        self.assertEqual(logical_header.calls, 4)
+        self.assertEqual(logical_blank.calls, 1)
+        self.assertNotIn("stopped-period", logical_events)
+
+        family_events = []
+        family_header = TextProbe("family-header", " header ", family_events)
+        family_blank = TextProbe("family-blank", "   ", family_events)
+        family_cell = BoolCell(
+            {
+                "value_text": TextProbe(
+                    "stopped-family-value",
+                    "value",
+                    family_events,
+                ),
+                "column_headers": [family_header, family_blank],
+            },
+            events=family_events,
+            name="family-cell",
+        )
+        family_candidate = {
+            "metadata": {
+                "row_label": "row",
+                "period_focus": TextProbe(
+                    "stopped-family-period",
+                    "period",
+                    family_events,
+                ),
+                "statement_type": " statement ",
+            }
+        }
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            self.assertEqual(
+                financial_operand_resolution.candidate_direct_family_signature(
+                    family_candidate,
+                    selected_cell=family_cell,
+                ),
+                ("block", "row", "header", "statement"),
+            )
+        self.assertEqual(family_cell.bool_calls, 1)
+        self.assertEqual(family_header.calls, 2)
+        self.assertEqual(family_blank.calls, 1)
+        self.assertNotIn("stopped-family-value", family_events)
+        self.assertNotIn("stopped-family-period", family_events)
+
+        class StringFailure:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        class TruthFailure:
+            def __init__(self, message):
+                self.message = message
+
+            def __bool__(self):
+                raise RuntimeError(self.message)
+
+        class CandidateGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError(f"candidate get failed: {key}")
+
+        stopped_block = Mock(side_effect=AssertionError("metadata failure must stop block"))
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            stopped_block,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "candidate get failed: metadata",
+            ):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    CandidateGetFailure()
+                )
+        stopped_block.assert_not_called()
+
+        class MetadataCopyFailure:
+            def keys(self):
+                raise RuntimeError("metadata copy failed")
+
+        stopped_after_copy = Mock(
+            side_effect=AssertionError("metadata copy failure must stop block")
+        )
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            stopped_after_copy,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                financial_operand_resolution.candidate_direct_family_signature(
+                    {"metadata": MetadataCopyFailure()}
+                )
+        stopped_after_copy.assert_not_called()
+
+        block_stopped_candidate = {
+            "metadata": {
+                "table_source_id": StringFailure("table source accessed"),
+                "row_label": StringFailure("row label accessed"),
+            }
+        }
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            side_effect=RuntimeError("block failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "block failed"):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    block_stopped_candidate
+                )
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row truth failed"):
+                financial_operand_resolution.candidate_direct_family_signature(
+                    {
+                        "metadata": {
+                            "row_label": TruthFailure("row truth failed"),
+                            "semantic_label": StringFailure(
+                                "semantic label accessed"
+                            ),
+                        }
+                    }
+                )
+
+        class CellTruthFailure(dict):
+            def __bool__(self):
+                raise RuntimeError("cell truth failed")
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cell truth failed"):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    {"metadata": {"row_label": "row"}},
+                    selected_cell=CellTruthFailure(),
+                )
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "value failed"):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    {"metadata": {"row_label": "row"}},
+                    selected_cell={
+                        "value_text": StringFailure("value failed"),
+                        "column_headers": [
+                            StringFailure("headers accessed after value failure")
+                        ],
+                    },
+                )
+
+        class HeaderTruthFailure:
+            def __bool__(self):
+                raise RuntimeError("header collection truth failed")
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "header collection truth failed",
+            ):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    {
+                        "metadata": {
+                            "row_label": "row",
+                            "period_focus": StringFailure(
+                                "period accessed after header truth failure"
+                            ),
+                        }
+                    },
+                    selected_cell={
+                        "value_text": "1",
+                        "column_headers": HeaderTruthFailure(),
+                    },
+                )
+
+        class HeaderIterationFailure:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("header iteration failed")
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="block",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "header iteration failed"):
+                financial_operand_resolution.candidate_direct_family_signature(
+                    {"metadata": {"row_label": "row"}},
+                    selected_cell={
+                        "column_headers": HeaderIterationFailure(),
+                    },
+                )
+
+        period_stop_section = StringFailure("section accessed after period failure")
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period failed"):
+                financial_operand_resolution.candidate_direct_logical_signature(
+                    {
+                        "metadata": {
+                            "row_label": "row",
+                            "period_focus": StringFailure("period failed"),
+                            "section_path": period_stop_section,
+                        }
+                    },
+                    selected_cell={"value_text": "1", "column_headers": []},
+                )
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "statement failed"):
+                financial_operand_resolution.candidate_direct_family_signature(
+                    {
+                        "metadata": {
+                            "row_label": "row",
+                            "statement_type": StringFailure("statement failed"),
+                            "section_path": StringFailure(
+                                "section accessed after statement failure"
+                            ),
+                        }
+                    },
+                    selected_cell={"column_headers": []},
+                )
+
+        with patch.object(
+            financial_operand_resolution,
+            "candidate_row_block_signature",
+            return_value="",
+        ):
+            with self.assertRaisesRegex(RuntimeError, "section failed"):
+                financial_operand_resolution.candidate_direct_family_signature(
+                    {
+                        "metadata": {
+                            "row_label": "row",
+                            "statement_type": "notes",
+                            "section_path": StringFailure("section failed"),
+                        }
+                    },
+                    selected_cell={"column_headers": ["2024"]},
+                )
+
+    def test_current_source_direct_candidate_signature_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "candidate_direct_logical_signature",
+            "candidate_direct_family_signature",
+        }
+        block_name = "candidate_row_block_signature"
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {name: [] for name in target_names}
+        selected_calls = {name: [] for name in target_names}
+        block_calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in target_names:
+                    selected_calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                        )
+                    )
+                if called_name == block_name:
+                    block_calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(keyword.arg for keyword in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        logical_name = "candidate_direct_logical_signature"
+        family_name = "candidate_direct_family_signature"
+        expected_owner = "financial_operand_resolution"
+        expected_spans = {logical_name: 26, family_name: 22}
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in definitions[name]
+                ]
+                for name in target_names
+            },
+            {
+                logical_name: [(expected_owner, 26)],
+                family_name: [(expected_owner, 22)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in definitions[name][0][1].args.args],
+                    [arg.arg for arg in definitions[name][0][1].args.kwonlyargs],
+                    [
+                        ast.unparse(default) if default is not None else None
+                        for default in definitions[name][0][1].args.kw_defaults
+                    ],
+                    ast.unparse(definitions[name][0][1].returns),
+                )
+                for name in target_names
+            },
+            {
+                logical_name: (
+                    ["candidate"],
+                    ["selected_cell"],
+                    ["None"],
+                    "tuple[str, str, str, str]",
+                ),
+                family_name: (
+                    ["candidate"],
+                    ["selected_cell"],
+                    ["None"],
+                    "tuple[str, str, str, str]",
+                ),
+            },
+        )
+        self.assertTrue(
+            all(
+                node.args.defaults == []
+                and node.decorator_list == []
+                and not any(
+                    isinstance(item, (ast.Try, ast.TryStar))
+                    for item in ast.walk(node)
+                )
+                for entries in definitions.values()
+                for _module_name, node in entries
+            )
+        )
+
+        expected_selected_calls = {
+            logical_name: [
+                (
+                    "financial_graph_helpers",
+                    "_deterministic_reconcile_task",
+                    "Name",
+                    ("candidate",),
+                    (("selected_cell", "selected_cell"),),
+                    0,
+                )
+            ],
+            family_name: [
+                (
+                    "financial_graph_helpers",
+                    "_deterministic_reconcile_task",
+                    "Name",
+                    ("candidate",),
+                    (("selected_cell", "selected_cell"),),
+                    0,
+                )
+            ],
+        }
+        self.assertEqual(selected_calls, expected_selected_calls)
+        self.assertEqual(
+            (
+                sum(len(entries) for entries in selected_calls.values()),
+                sum(
+                    entry[0] == "financial_operand_resolution"
+                    for entries in selected_calls.values()
+                    for entry in entries
+                ),
+            ),
+            (2, 0),
+        )
+
+        self.assertEqual(len(block_calls), 7)
+        self.assertTrue(
+            all(
+                entry[2] == "Name"
+                and len(entry[3]) == 1
+                and entry[4] == ()
+                and entry[5] == 0
+                for entry in block_calls
+            )
+        )
+        self.assertEqual(
+            sorted((entry[0], entry[1]) for entry in block_calls),
+            sorted(
+                [
+                    ("financial_operand_resolution", logical_name),
+                    ("financial_operand_resolution", family_name),
+                    (
+                        "financial_operand_resolution",
+                        "repair_note_operand_units_from_same_block",
+                    ),
+                    *[
+                        (
+                            "financial_graph_reconciliation",
+                            "_extract_structured_operands_from_reconciliation",
+                        )
+                        for _ in range(4)
+                    ],
+                ]
+            ),
+        )
+        current_owner_local = sum(
+            entry[0] == "financial_operand_resolution" for entry in block_calls
+        )
+        self.assertEqual(
+            (len(block_calls) - current_owner_local, current_owner_local),
+            (4, 3),
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        operand_defs = [
+            node
+            for node in module_trees["financial_operand_resolution"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        current_graph_counts = (
+            sum(not node.name.startswith("_") for node in graph_defs),
+            sum(node.name.startswith("_") for node in graph_defs),
+        )
+        current_operand_counts = (
+            sum(not node.name.startswith("_") for node in operand_defs),
+            sum(node.name.startswith("_") for node in operand_defs),
+        )
+        self.assertEqual(current_graph_counts, (9, 102))
+        self.assertEqual(current_operand_counts, (43, 37))
+
+        def imported_names(module_name, imported_module):
+            return {
+                alias.name
+                for node in module_trees[module_name].body
+                if isinstance(node, ast.ImportFrom)
+                and node.module == imported_module
+                for alias in node.names
+            }
+
+        owner_module = "src.agent.financial_operand_resolution"
+        graph_owner_imports = imported_names(
+            "financial_graph_helpers",
+            owner_module,
+        )
+        self.assertNotIn(block_name, graph_owner_imports)
+        self.assertTrue(target_names.issubset(graph_owner_imports))
+        self.assertIn(
+            block_name,
+            imported_names("financial_graph_reconciliation", owner_module),
+        )
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(
+            reaches("financial_graph_helpers", "financial_operand_resolution")
+        )
+        self.assertTrue(
+            reaches("financial_graph_reconciliation", "financial_graph_helpers")
+        )
+        self.assertTrue(
+            reaches(
+                "financial_graph_reconciliation",
+                "financial_operand_resolution",
+            )
+        )
+        self.assertFalse(
+            reaches("financial_operand_resolution", "financial_graph_helpers")
+        )
+        self.assertFalse(
+            reaches(
+                "financial_operand_resolution",
+                "financial_graph_reconciliation",
+            )
+        )
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        current_source_methods = {
+            node.name
+            for node in ast.walk(current_test_tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name.startswith(
+                "test_current_source_direct_candidate_signature"
+            )
+        }
+        self.assertEqual(
+            current_source_methods,
+            {
+                "test_current_source_direct_candidate_signature_projection_pins_metadata_value_period_scope_and_identity",
+                "test_current_source_direct_candidate_signature_projection_pins_laziness_stringification_and_exceptions",
+                "test_current_source_direct_candidate_signature_bindings_pin_defs_calls_dag_and_baseline",
+                "test_current_source_direct_candidate_signature_caller_pins_args_adoption_collapse_order_and_stop",
+            },
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for record in baseline["records"]:
+            if record.get("path") != "src/agent/financial_operand_resolution.py":
+                continue
+            for name in target_names:
+                node = definitions[name][0][1]
+                if any(
+                    node.lineno <= line <= node.end_lineno
+                    for line in record.get("first_lines") or []
+                ):
+                    selected_hits.append((name, record))
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_direct_candidate_signature_caller_pins_args_adoption_collapse_order_and_stop(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        graph_source = (
+            repo_root / "src" / "agent" / "financial_graph_helpers.py"
+        ).read_text(encoding="utf-8-sig")
+        graph_tree = ast.parse(graph_source)
+        reconcile_node = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_deterministic_reconcile_task"
+        )
+        reconcile_source = ast.get_source_segment(graph_source, reconcile_node) or ""
+        logical_name = "candidate_direct_logical_signature"
+        family_name = "candidate_direct_family_signature"
+        entry_start = reconcile_source.index("direct_entries.append")
+        entry_end = reconcile_source.index("collapsed_entries:", entry_start)
+        entry_source = reconcile_source[entry_start:entry_end]
+        entry_tokens = [
+            '"candidate": candidate',
+            f'"logical_signature": {logical_name}',
+            f'"family_signature": {family_name}',
+            '"selected_value_text": _normalise_spaces',
+            '"score": _score_operand_candidate',
+            '"canonical_winner": _candidate_is_canonical_statement_winner',
+        ]
+        entry_indexes = [entry_source.index(token) for token in entry_tokens]
+        self.assertEqual(entry_indexes, sorted(entry_indexes))
+
+        collapse_start = reconcile_source.index("collapsed_entries:", entry_start)
+        collapse_end = reconcile_source.index(
+            "direct_candidates =",
+            collapse_start,
+        )
+        collapse_source = reconcile_source[collapse_start:collapse_end]
+        collapse_tokens = [
+            "family_signatures =",
+            "distinct_values =",
+            "if len(family_signatures) == 1 and len(distinct_values) <= 1",
+            "best_by_signature",
+            "sibling_surfaces =",
+            "canonical_entries =",
+            "ranked_by_priority =",
+            "_direct_candidate_semantic_priority",
+        ]
+        collapse_indexes = [collapse_source.index(token) for token in collapse_tokens]
+        self.assertEqual(collapse_indexes, sorted(collapse_indexes))
+
+        nested = {"preserve": True}
+        required_operand = {
+            "label": "Metric",
+            "required": True,
+            "nested": nested,
+        }
+
+        class ValueProbe:
+            def __init__(self, candidate_id, value, events):
+                self.candidate_id = candidate_id
+                self.value = value
+                self.events = events
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                self.events.append(("value", self.candidate_id))
+                return self.value
+
+        def run_scenario(candidate_specs):
+            events = []
+            operand_refs = []
+            signature_cells = []
+            candidates = []
+            cells = {}
+            value_probes = {}
+            for spec in candidate_specs:
+                candidate = {
+                    "candidate_id": spec["candidate_id"],
+                    "metadata": {"nested": nested},
+                    "score": spec["score"],
+                    "canonical": spec["canonical"],
+                    "logical": spec["logical"],
+                    "family": spec["family"],
+                    "nested": nested,
+                }
+                candidates.append(candidate)
+                value_probe = ValueProbe(
+                    spec["candidate_id"],
+                    spec["value"],
+                    events,
+                )
+                value_probes[spec["candidate_id"]] = value_probe
+                cells[spec["candidate_id"]] = {
+                    "value_text": value_probe,
+                    "column_headers": ["2024"],
+                    "nested": nested,
+                }
+
+            def candidate_match(candidate, operand):
+                events.append(("match", candidate["candidate_id"]))
+                operand_refs.append(operand)
+                return True
+
+            def score_candidate(candidate, **kwargs):
+                events.append(("score", candidate["candidate_id"]))
+                operand_refs.append(kwargs["operand"])
+                return candidate["score"]
+
+            def period_focus(operand, default_value="unknown"):
+                events.append(("period", default_value))
+                operand_refs.append(operand)
+                return "current"
+
+            def select_cell(candidate, **kwargs):
+                events.append(("select", candidate["candidate_id"]))
+                operand_refs.append(kwargs["operand"])
+                return cells[candidate["candidate_id"]]
+
+            def accept_candidate(candidate, **kwargs):
+                events.append(("accept", candidate["candidate_id"]))
+                operand_refs.append(kwargs["operand"])
+                self.assertIs(
+                    kwargs["selected_cell"],
+                    cells[candidate["candidate_id"]],
+                )
+                return True
+
+            def logical_signature(candidate, **kwargs):
+                events.append(("logical", candidate["candidate_id"]))
+                signature_cells.append(
+                    (
+                        "logical",
+                        candidate,
+                        kwargs["selected_cell"],
+                    )
+                )
+                return candidate["logical"]
+
+            def family_signature(candidate, **kwargs):
+                events.append(("family", candidate["candidate_id"]))
+                signature_cells.append(
+                    (
+                        "family",
+                        candidate,
+                        kwargs["selected_cell"],
+                    )
+                )
+                return candidate["family"]
+
+            def canonical_winner(candidate, **kwargs):
+                events.append(("winner", candidate["candidate_id"]))
+                operand_refs.append(kwargs["operand"])
+                return candidate["canonical"]
+
+            stopped_sibling = Mock(
+                side_effect=AssertionError(
+                    "selected collapse must stop sibling reranking"
+                )
+            )
+            stopped_priority = Mock(
+                side_effect=AssertionError(
+                    "selected collapse must stop semantic priority"
+                )
+            )
+            with (
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_matches_operand",
+                    side_effect=candidate_match,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_operand_segment_label",
+                    return_value="",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_score_operand_candidate",
+                    side_effect=score_candidate,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "operand_period_focus",
+                    side_effect=period_focus,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_selected_cell_for_operand",
+                    side_effect=select_cell,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_satisfies_direct_acceptance_contract",
+                    side_effect=accept_candidate,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    logical_name,
+                    side_effect=logical_signature,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    family_name,
+                    side_effect=family_signature,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_is_canonical_statement_winner",
+                    side_effect=canonical_winner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_sibling_surface_hit_count",
+                    stopped_sibling,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_direct_candidate_semantic_priority",
+                    stopped_priority,
+                ),
+            ):
+                result = financial_graph_helpers._deterministic_reconcile_task(
+                    active_subtask={
+                        "task_id": "task-1",
+                        "operation_family": "lookup",
+                        "required_operands": [required_operand],
+                    },
+                    candidates=candidates,
+                    years=[2024],
+                    reconciliation_retry_count=1,
+                )
+            stopped_sibling.assert_not_called()
+            stopped_priority.assert_not_called()
+            projected_operand = operand_refs[0]
+            self.assertIsNot(projected_operand, required_operand)
+            self.assertIs(projected_operand["nested"], nested)
+            self.assertTrue(
+                all(current_operand is projected_operand for current_operand in operand_refs)
+            )
+            self.assertTrue(
+                all(candidate["nested"] is nested for candidate in candidates)
+            )
+            self.assertTrue(
+                all(cell["nested"] is nested for cell in cells.values())
+            )
+            for kind, candidate, current_cell in signature_cells:
+                self.assertIn(kind, {"logical", "family"})
+                self.assertIs(
+                    current_cell,
+                    cells[candidate["candidate_id"]],
+                )
+            return result, events, candidates, cells, value_probes
+
+        fast_specs = [
+            {
+                "candidate_id": "candidate-a",
+                "score": 10.0,
+                "canonical": False,
+                "logical": ("scope-a", "row", "100", "2024"),
+                "family": ("scope", "row", "2024", "type"),
+                "value": "100",
+            },
+            {
+                "candidate_id": "candidate-b",
+                "score": 5.0,
+                "canonical": True,
+                "logical": ("scope-b", "row", "100", "2024"),
+                "family": ("scope", "row", "2024", "type"),
+                "value": "100",
+            },
+        ]
+        fast_result, fast_events, _fast_candidates, _fast_cells, fast_values = (
+            run_scenario(fast_specs)
+        )
+        self.assertEqual(fast_result["status"], "ready")
+        self.assertEqual(
+            fast_result["matched_operands"][0]["candidate_ids"],
+            ["candidate-b", "candidate-a"],
+        )
+        self.assertEqual(
+            fast_events,
+            [
+                ("match", "candidate-a"),
+                ("match", "candidate-b"),
+                ("score", "candidate-a"),
+                ("score", "candidate-b"),
+                ("period", "unknown"),
+                ("select", "candidate-a"),
+                ("accept", "candidate-a"),
+                ("logical", "candidate-a"),
+                ("family", "candidate-a"),
+                ("value", "candidate-a"),
+                ("score", "candidate-a"),
+                ("winner", "candidate-a"),
+                ("select", "candidate-b"),
+                ("accept", "candidate-b"),
+                ("logical", "candidate-b"),
+                ("family", "candidate-b"),
+                ("value", "candidate-b"),
+                ("score", "candidate-b"),
+                ("winner", "candidate-b"),
+            ],
+        )
+        self.assertEqual(
+            {candidate_id: probe.calls for candidate_id, probe in fast_values.items()},
+            {"candidate-a": 1, "candidate-b": 1},
+        )
+
+        logical_specs = [
+            {
+                "candidate_id": "candidate-a",
+                "score": 10.0,
+                "canonical": False,
+                "logical": ("same", "row", "value", "period"),
+                "family": ("family-a", "row", "2024", "type"),
+                "value": "100",
+            },
+            {
+                "candidate_id": "candidate-b",
+                "score": 5.0,
+                "canonical": True,
+                "logical": ("same", "row", "value", "period"),
+                "family": ("family-b", "row", "2024", "type"),
+                "value": "200",
+            },
+        ]
+        logical_result, logical_events, _logical_candidates, _logical_cells, _ = (
+            run_scenario(logical_specs)
+        )
+        self.assertEqual(logical_result["status"], "ready")
+        self.assertEqual(
+            logical_result["matched_operands"][0]["candidate_ids"],
+            ["candidate-b", "candidate-a"],
+        )
+        self.assertEqual(
+            [event for event in logical_events if event[0] in {"logical", "family"}],
+            [
+                ("logical", "candidate-a"),
+                ("family", "candidate-a"),
+                ("logical", "candidate-b"),
+                ("family", "candidate-b"),
+            ],
+        )
+
+        rejected_candidate = {
+            "candidate_id": "rejected",
+            "metadata": {},
+        }
+        rejected_cell = {"value_text": "100", "column_headers": ["2024"]}
+        stopped_rejected_logical = Mock(
+            side_effect=AssertionError("acceptance miss must stop logical signature")
+        )
+        stopped_rejected_family = Mock(
+            side_effect=AssertionError("acceptance miss must stop family signature")
+        )
+        stopped_rejected_winner = Mock(
+            side_effect=AssertionError("acceptance miss must stop winner")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_matches_operand",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_segment_label",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_score_operand_candidate",
+                return_value=1.0,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "operand_period_focus",
+                return_value="current",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_selected_cell_for_operand",
+                return_value=rejected_cell,
+            ) as rejected_selector,
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_satisfies_direct_acceptance_contract",
+                return_value=False,
+            ) as rejected_acceptance,
+            patch.object(
+                financial_graph_helpers,
+                logical_name,
+                stopped_rejected_logical,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                family_name,
+                stopped_rejected_family,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_canonical_statement_winner",
+                stopped_rejected_winner,
+            ),
+        ):
+            rejected_result = financial_graph_helpers._deterministic_reconcile_task(
+                active_subtask={
+                    "task_id": "task-rejected",
+                    "operation_family": "lookup",
+                    "required_operands": [required_operand],
+                },
+                candidates=[rejected_candidate],
+                years=[2024],
+                reconciliation_retry_count=1,
+            )
+        self.assertEqual(rejected_result["status"], "insufficient_operands")
+        rejected_selector.assert_called_once()
+        rejected_acceptance.assert_called_once()
+        self.assertIs(rejected_selector.call_args.args[0], rejected_candidate)
+        self.assertIs(rejected_acceptance.call_args.args[0], rejected_candidate)
+        self.assertIs(rejected_acceptance.call_args.kwargs["selected_cell"], rejected_cell)
+        stopped_rejected_logical.assert_not_called()
+        stopped_rejected_family.assert_not_called()
+        stopped_rejected_winner.assert_not_called()
+
+        class ValueFailure:
+            def __str__(self):
+                raise RuntimeError("selected value failed")
+
+        def assert_entry_failure(stage):
+            candidate = {"candidate_id": "failed", "metadata": {}}
+            cell = {
+                "value_text": ValueFailure(),
+                "column_headers": ["2024"],
+            }
+            score_owner = Mock(return_value=1.0)
+            logical_owner = Mock(
+                return_value=("scope", "row", "value", "period")
+            )
+            family_owner = Mock(
+                return_value=("scope", "row", "period", "type")
+            )
+            if stage == "logical":
+                logical_owner.side_effect = RuntimeError("logical failed")
+            elif stage == "family":
+                family_owner.side_effect = RuntimeError("family failed")
+            winner_owner = Mock(
+                side_effect=AssertionError("entry failure must stop winner")
+            )
+            with (
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_matches_operand",
+                    return_value=True,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_operand_segment_label",
+                    return_value="",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_score_operand_candidate",
+                    score_owner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "operand_period_focus",
+                    return_value="current",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_selected_cell_for_operand",
+                    return_value=cell,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_satisfies_direct_acceptance_contract",
+                    return_value=True,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    logical_name,
+                    logical_owner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    family_name,
+                    family_owner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_is_canonical_statement_winner",
+                    winner_owner,
+                ),
+            ):
+                expected_message = {
+                    "logical": "logical failed",
+                    "family": "family failed",
+                    "value": "selected value failed",
+                }[stage]
+                with self.assertRaisesRegex(RuntimeError, expected_message):
+                    financial_graph_helpers._deterministic_reconcile_task(
+                        active_subtask={
+                            "task_id": "task-failed",
+                            "operation_family": "lookup",
+                            "required_operands": [required_operand],
+                        },
+                        candidates=[candidate],
+                        years=[2024],
+                        reconciliation_retry_count=1,
+                    )
+            self.assertEqual(score_owner.call_count, 1)
+            logical_owner.assert_called_once_with(candidate, selected_cell=cell)
+            if stage == "logical":
+                family_owner.assert_not_called()
+            else:
+                family_owner.assert_called_once_with(candidate, selected_cell=cell)
+            winner_owner.assert_not_called()
+
+        for failure_stage in ("logical", "family", "value"):
+            with self.subTest(failure_stage=failure_stage):
+                assert_entry_failure(failure_stage)
 
 
     def test_current_source_plan_shape_predicates_pin_roles_laziness_copy_and_exceptions(self) -> None:
@@ -5898,7 +7316,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 104),
+            (9, 102),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -10485,7 +11903,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 104),
+            (9, 102),
         )
         self.assertEqual(
             (

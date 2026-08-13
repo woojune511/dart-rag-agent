@@ -121,7 +121,8 @@ from src.agent.financial_operation_policies import (
     _query_requests_narrative_context,
 )
 from src.agent.financial_operand_resolution import (
-    candidate_row_block_signature,
+    candidate_direct_family_signature,
+    candidate_direct_logical_signature,
     lookup_canonical_statement_preferences,
     lookup_prefers_canonical_statement_rows,
     lookup_query_surface_preferences,
@@ -664,58 +665,6 @@ def _candidate_selected_cell_for_operand(
         query_years=query_years,
         period_focus=period_focus,
     )
-
-
-def _candidate_direct_logical_signature(
-    candidate: Dict[str, Any],
-    *,
-    selected_cell: Optional[Dict[str, Any]] = None,
-) -> tuple[str, str, str, str]:
-    metadata = dict(candidate.get("metadata") or {})
-    block_key = candidate_row_block_signature(candidate)
-    table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
-    row_label = _normalise_spaces(
-        str(
-            metadata.get("row_label")
-            or metadata.get("semantic_label")
-            or metadata.get("aggregate_label")
-            or ""
-        )
-    )
-    value_text = _normalise_spaces(str((selected_cell or {}).get("value_text") or ""))
-    if not value_text:
-        value_text = _normalise_spaces(str(metadata.get("row_text") or str(candidate.get("text") or "")))
-    period_marker = _normalise_spaces(
-        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip())
-    )
-    if not period_marker:
-        period_marker = _normalise_spaces(str(metadata.get("period_focus") or ""))
-    scope_key = block_key or table_source_id or _normalise_spaces(str(metadata.get("section_path") or ""))
-    return (scope_key, row_label, value_text, period_marker)
-
-
-def _candidate_direct_family_signature(
-    candidate: Dict[str, Any],
-    *,
-    selected_cell: Optional[Dict[str, Any]] = None,
-) -> tuple[str, str, str, str]:
-    metadata = dict(candidate.get("metadata") or {})
-    block_key = candidate_row_block_signature(candidate)
-    table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
-    row_label = _normalise_spaces(
-        str(
-            metadata.get("row_label")
-            or metadata.get("semantic_label")
-            or metadata.get("aggregate_label")
-            or ""
-        )
-    )
-    period_marker = _normalise_spaces(
-        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip())
-    )
-    statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
-    scope_key = block_key or table_source_id or _normalise_spaces(str(metadata.get("section_path") or ""))
-    return (scope_key, row_label, period_marker, statement_type)
 
 
 def _candidate_is_canonical_statement_winner(
@@ -5600,11 +5549,11 @@ def _deterministic_reconcile_task(
                     direct_entries.append(
                         {
                             "candidate": candidate,
-                            "logical_signature": _candidate_direct_logical_signature(
+                            "logical_signature": candidate_direct_logical_signature(
                                 candidate,
                                 selected_cell=selected_cell,
                             ),
-                            "family_signature": _candidate_direct_family_signature(
+                            "family_signature": candidate_direct_family_signature(
                                 candidate,
                                 selected_cell=selected_cell,
                             ),
