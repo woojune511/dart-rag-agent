@@ -15,6 +15,7 @@ import src.agent.financial_dependency_projection as financial_dependency_project
 import src.agent.financial_lookup_recovery as financial_lookup_recovery
 import src.agent.financial_operand_resolution as financial_operand_resolution
 import src.agent.financial_reconciliation_candidates as financial_reconciliation_candidates
+import src.agent.financial_retrieval_hints as financial_retrieval_hints
 import src.agent.financial_row_surfaces as financial_row_surfaces
 import src.agent.financial_scope_policies as financial_scope_policies
 import src.agent.financial_structured_cells as financial_structured_cells
@@ -472,7 +473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 101),
+            (9, 99),
         )
         self.assertEqual(
             (
@@ -1873,7 +1874,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 101),
+            (9, 99),
         )
         self.assertEqual(
             (
@@ -2839,7 +2840,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 101),
+            (9, 99),
         )
         self.assertEqual(
             (
@@ -4558,7 +4559,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 101))
+        self.assertEqual(current_graph_counts, (9, 99))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -5195,6 +5196,1318 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with self.subTest(failure_stage=failure_stage):
                 assert_entry_failure(failure_stage)
 
+    def test_current_source_query_mentions_metric_pins_collection_matching_laziness_and_exceptions(self) -> None:
+        public_name = "query_mentions_metric"
+        target_name = public_name
+        target = getattr(financial_retrieval_hints, target_name)
+        events = []
+        normalization_inputs = []
+        query = object()
+
+        class ValueProbe:
+            def __init__(self, name, value, *, truth=True):
+                self.name = name
+                self.value = value
+                self.truth = truth
+                self.bool_calls = 0
+                self.str_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append((self.name, "bool"))
+                return self.truth
+
+            def __str__(self):
+                self.str_calls += 1
+                events.append((self.name, "str"))
+                return self.value
+
+        class IterableProbe:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = list(values)
+                self.bool_calls = 0
+                self.iter_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append((self.name, "bool"))
+                return True
+
+            def __iter__(self):
+                self.iter_calls += 1
+                events.append((self.name, "iter"))
+                for item in self.values:
+                    events.append((self.name, "yield", getattr(item, "name", item)))
+                    yield item
+
+        class MetricProbe:
+            def __init__(self, values):
+                self.values = values
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("metric", "get", key))
+                return self.values.get(key, default)
+
+        display = ValueProbe("display", "  Unmatched Display  ")
+        case_miss = ValueProbe("case-miss", "alpha beta")
+        matched = ValueProbe("matched", "Alpha   Beta")
+        stopped_alias = ValueProbe("stopped-alias", "Alpha Beta")
+        stopped_keyword = ValueProbe("stopped-keyword", "Alpha Beta")
+        aliases = IterableProbe(
+            "aliases",
+            [case_miss, case_miss, matched, stopped_alias],
+        )
+        keywords = IterableProbe("keywords", [stopped_keyword])
+        metric = MetricProbe(
+            {
+                "display_name": display,
+                "aliases": aliases,
+                "intent_keywords": keywords,
+            }
+        )
+        real_normalize = financial_retrieval_hints._normalise_spaces
+
+        def normalize(value):
+            normalization_inputs.append(value)
+            events.append(
+                (
+                    "normalize",
+                    "query"
+                    if value is query
+                    else getattr(value, "name", value),
+                )
+            )
+            if value is query:
+                return "Alpha Beta Query"
+            if isinstance(value, ValueProbe):
+                return real_normalize(value.value)
+            return real_normalize(value)
+
+        original_values = dict(metric.values)
+        original_alias_values = list(aliases.values)
+        original_keyword_values = list(keywords.values)
+        with patch.object(
+            financial_retrieval_hints,
+            "_normalise_spaces",
+            side_effect=normalize,
+        ):
+            self.assertTrue(target(query, metric))
+
+        self.assertEqual(
+            metric.get_calls,
+            [
+                ("display_name", None),
+                ("aliases", []),
+                ("intent_keywords", []),
+            ],
+        )
+        self.assertEqual(display.bool_calls, 1)
+        self.assertEqual(display.str_calls, 1)
+        self.assertEqual(aliases.bool_calls, 1)
+        self.assertEqual(aliases.iter_calls, 1)
+        self.assertEqual(keywords.bool_calls, 1)
+        self.assertEqual(keywords.iter_calls, 1)
+        self.assertEqual(case_miss.str_calls, 2)
+        self.assertEqual(matched.str_calls, 1)
+        self.assertEqual(stopped_alias.str_calls, 0)
+        self.assertEqual(stopped_keyword.str_calls, 0)
+        self.assertEqual(
+            normalization_inputs,
+            [
+                query,
+                "Unmatched Display",
+                case_miss,
+                case_miss,
+                matched,
+            ],
+        )
+        self.assertLess(
+            events.index(("keywords", "yield", "stopped-keyword")),
+            events.index(("normalize", "Unmatched Display")),
+        )
+        self.assertEqual(metric.values, original_values)
+        self.assertEqual(aliases.values, original_alias_values)
+        self.assertEqual(keywords.values, original_keyword_values)
+        self.assertIs(metric.values["display_name"], display)
+        self.assertIs(metric.values["aliases"], aliases)
+        self.assertIs(metric.values["intent_keywords"], keywords)
+
+        self.assertFalse(
+            target(
+                "Alpha Beta",
+                {
+                    "display_name": "",
+                    "aliases": ["alpha beta"],
+                    "intent_keywords": [],
+                },
+            )
+        )
+
+        class MetricBomb:
+            def get(self, key, default=None):
+                raise AssertionError(f"query normalization must stop metric access: {key}")
+
+        with patch.object(
+            financial_retrieval_hints,
+            "_normalise_spaces",
+            side_effect=RuntimeError("query normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "query normalization failed"):
+                target(object(), MetricBomb())
+
+        class OrderedMetricFailure:
+            def __init__(self, failure_key, failure_value):
+                self.failure_key = failure_key
+                self.failure_value = failure_value
+                self.keys = []
+
+            def get(self, key, default=None):
+                self.keys.append(key)
+                if key == self.failure_key:
+                    return self.failure_value
+                return []
+
+        class StringFailure:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        display_failure = OrderedMetricFailure(
+            "display_name",
+            StringFailure("display string failed"),
+        )
+        with self.assertRaisesRegex(RuntimeError, "display string failed"):
+            target("query", display_failure)
+        self.assertEqual(display_failure.keys, ["display_name"])
+
+        class IterationFailure:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("alias iteration failed")
+
+        alias_failure = OrderedMetricFailure("aliases", IterationFailure())
+        with self.assertRaisesRegex(RuntimeError, "alias iteration failed"):
+            target("query", alias_failure)
+        self.assertEqual(alias_failure.keys, ["display_name", "aliases"])
+
+        filter_failure_normalization_inputs = []
+
+        def filter_failure_normalize(value):
+            filter_failure_normalization_inputs.append(value)
+            if value == "query":
+                return "query"
+            raise AssertionError("filter string failure must stop normalization")
+
+        with patch.object(
+            financial_retrieval_hints,
+            "_normalise_spaces",
+            side_effect=filter_failure_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "alias string failed"):
+                target(
+                    "query",
+                    {
+                        "display_name": "",
+                        "aliases": [StringFailure("alias string failed")],
+                        "intent_keywords": [],
+                    },
+                )
+        self.assertEqual(filter_failure_normalization_inputs, ["query"])
+
+        later_string = ValueProbe("later-string", "later")
+
+        def failed_alias_normalize(value):
+            if value == "query":
+                return "query"
+            if value == "":
+                return ""
+            raise RuntimeError("alias normalization failed")
+
+        with patch.object(
+            financial_retrieval_hints,
+            "_normalise_spaces",
+            side_effect=failed_alias_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "alias normalization failed"):
+                target(
+                    "query",
+                    {
+                        "display_name": "",
+                        "aliases": [ValueProbe("failed-alias", "failed"), later_string],
+                        "intent_keywords": [],
+                    },
+                )
+        self.assertEqual(later_string.str_calls, 0)
+
+        with self.assertRaises(TypeError):
+            target(
+                "query",
+                {
+                    "display_name": "",
+                    "aliases": [ValueProbe("raw-alias", "query")],
+                    "intent_keywords": [],
+                },
+            )
+
+    def test_current_source_query_component_match_count_pins_identity_dedupe_laziness_and_exceptions(self) -> None:
+        public_name = "query_component_match_count"
+        target_name = public_name
+        target = getattr(financial_retrieval_hints, target_name)
+        events = []
+        normalization_inputs = []
+        query = object()
+
+        class ValueProbe:
+            def __init__(self, name, value, *, truth=True):
+                self.name = name
+                self.value = value
+                self.truth = truth
+                self.bool_calls = 0
+                self.str_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append((self.name, "bool"))
+                return self.truth
+
+            def __str__(self):
+                self.str_calls += 1
+                events.append((self.name, "str"))
+                return self.value
+
+        class IterableProbe:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = list(values)
+                self.iter_calls = 0
+
+            def __bool__(self):
+                events.append((self.name, "bool"))
+                return True
+
+            def __iter__(self):
+                self.iter_calls += 1
+                events.append((self.name, "iter"))
+                for item in self.values:
+                    events.append((self.name, "yield", getattr(item, "name", item)))
+                    yield item
+
+        class SpecProbe:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append((self.name, "get", key))
+                return self.values.get(key, default)
+
+        class OperandSpecsProbe:
+            def __init__(self, values):
+                self.values = list(values)
+                self.iter_calls = 0
+
+            def __iter__(self):
+                self.iter_calls += 1
+                events.append(("operand-specs", "iter"))
+                yield from self.values
+
+        first_label = ValueProbe("label-one", "  One  ")
+        first_alias_miss = ValueProbe("first-alias-miss", "TARGET")
+        first_keyword_match = ValueProbe("first-keyword-match", " target ")
+        first_keyword_stopped = ValueProbe("first-keyword-stopped", "target")
+        first_aliases = IterableProbe("first-aliases", [first_alias_miss])
+        first_keywords = IterableProbe(
+            "first-keywords",
+            [first_keyword_match, first_keyword_stopped],
+        )
+        first = SpecProbe(
+            "first",
+            {
+                "label": first_label,
+                "aliases": first_aliases,
+                "keywords": first_keywords,
+                "concept": ValueProbe("first-concept-stopped", "Stopped"),
+            },
+        )
+
+        duplicate_alias_match = ValueProbe("duplicate-alias-match", "target")
+        duplicate_keyword_stopped = ValueProbe("duplicate-keyword-stopped", "target")
+        duplicate_keywords = IterableProbe(
+            "duplicate-keywords",
+            [duplicate_keyword_stopped],
+        )
+        duplicate = SpecProbe(
+            "duplicate",
+            {
+                "label": "One",
+                "aliases": [duplicate_alias_match],
+                "keywords": duplicate_keywords,
+            },
+        )
+
+        blank_label = ValueProbe("blank-label", "ignored", truth=False)
+        blank_alias_match = ValueProbe("blank-alias-match", "target")
+        concept = ValueProbe("concept", " Concept ")
+        fallback = SpecProbe(
+            "fallback",
+            {
+                "label": blank_label,
+                "aliases": [blank_alias_match],
+                "keywords": [],
+                "concept": concept,
+            },
+        )
+
+        distinct_alias_match = ValueProbe("distinct-alias-match", "target")
+        distinct = SpecProbe(
+            "distinct",
+            {
+                "label": "Three",
+                "aliases": [distinct_alias_match],
+                "keywords": [],
+            },
+        )
+
+        unmatched_alias = ValueProbe("unmatched-alias", "missing")
+        unmatched_concept = ValueProbe("unmatched-concept-stopped", "Stopped")
+        unmatched = SpecProbe(
+            "unmatched",
+            {
+                "label": "Two",
+                "aliases": [unmatched_alias],
+                "keywords": [],
+                "concept": unmatched_concept,
+            },
+        )
+        operand_specs = OperandSpecsProbe(
+            [first, duplicate, fallback, distinct, unmatched]
+        )
+        dedupe_inputs = []
+        dedupe_iterables = []
+        real_normalize = financial_retrieval_hints._normalise_spaces
+
+        class DictOwner:
+            def fromkeys(self, values):
+                dedupe_iterables.append(values)
+                retained = list(values)
+                dedupe_inputs.append(retained)
+                return dict.fromkeys(retained)
+
+        def normalize(value):
+            normalization_inputs.append(value)
+            events.append(
+                (
+                    "normalize",
+                    "query"
+                    if value is query
+                    else getattr(value, "name", value),
+                )
+            )
+            if value is query:
+                return "target query"
+            if isinstance(value, ValueProbe):
+                return real_normalize(value.value)
+            return real_normalize(value)
+
+        original_specs = list(operand_specs.values)
+        original_values = [dict(spec.values) for spec in original_specs]
+        with (
+            patch.object(
+                financial_retrieval_hints,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_retrieval_hints,
+                "dict",
+                DictOwner(),
+                create=True,
+            ),
+        ):
+            self.assertEqual(target(query, operand_specs), 3)
+
+        self.assertEqual(operand_specs.iter_calls, 1)
+        self.assertEqual(
+            [call[0] for call in first.get_calls],
+            ["label", "aliases", "keywords"],
+        )
+        self.assertEqual(
+            [call[0] for call in duplicate.get_calls],
+            ["label", "aliases", "keywords"],
+        )
+        self.assertEqual(
+            [call[0] for call in fallback.get_calls],
+            ["label", "aliases", "keywords", "concept"],
+        )
+        self.assertEqual(
+            [call[0] for call in distinct.get_calls],
+            ["label", "aliases", "keywords"],
+        )
+        self.assertEqual(
+            [call[0] for call in unmatched.get_calls],
+            ["label", "aliases", "keywords"],
+        )
+        self.assertEqual(first_label.bool_calls, 1)
+        self.assertEqual(first_label.str_calls, 1)
+        self.assertEqual(blank_label.bool_calls, 1)
+        self.assertEqual(blank_label.str_calls, 0)
+        self.assertEqual(concept.bool_calls, 1)
+        self.assertEqual(concept.str_calls, 1)
+        self.assertEqual(first_alias_miss.str_calls, 1)
+        self.assertEqual(first_keyword_match.str_calls, 1)
+        self.assertEqual(first_keyword_stopped.str_calls, 0)
+        self.assertEqual(duplicate_alias_match.str_calls, 1)
+        self.assertEqual(duplicate_keyword_stopped.str_calls, 0)
+        self.assertEqual(unmatched_concept.str_calls, 0)
+        self.assertEqual(first_aliases.iter_calls, 1)
+        self.assertEqual(first_keywords.iter_calls, 1)
+        self.assertEqual(duplicate_keywords.iter_calls, 1)
+        self.assertLess(
+            events.index(("first-keywords", "yield", "first-keyword-stopped")),
+            events.index(("normalize", "One")),
+        )
+        self.assertEqual(
+            normalization_inputs,
+            [
+                query,
+                "One",
+                first_alias_miss,
+                first_keyword_match,
+                "One",
+                duplicate_alias_match,
+                blank_alias_match,
+                "Three",
+                distinct_alias_match,
+                "Two",
+                unmatched_alias,
+            ],
+        )
+        self.assertEqual(len(dedupe_inputs), 1)
+        self.assertTrue(inspect.isgenerator(dedupe_iterables[0]))
+        self.assertEqual(dedupe_inputs[0], ["One", "One", "Concept", "Three"])
+        self.assertEqual(operand_specs.values, original_specs)
+        for spec, values in zip(original_specs, original_values):
+            self.assertEqual(spec.values, values)
+
+        class OperandIterationBomb:
+            def __iter__(self):
+                raise AssertionError("query normalization must stop spec iteration")
+
+        with patch.object(
+            financial_retrieval_hints,
+            "_normalise_spaces",
+            side_effect=RuntimeError("component query normalization failed"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "component query normalization failed",
+            ):
+                target(object(), OperandIterationBomb())
+
+        class SpecIterationFailure:
+            def __iter__(self):
+                raise RuntimeError("spec iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "spec iteration failed"):
+            target("query", SpecIterationFailure())
+
+        class StringFailure:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        label_failure = SpecProbe(
+            "label-failure",
+            {
+                "label": StringFailure("label string failed"),
+                "aliases": [],
+                "keywords": [],
+            },
+        )
+        with self.assertRaisesRegex(RuntimeError, "label string failed"):
+            target("query", [label_failure])
+        self.assertEqual([call[0] for call in label_failure.get_calls], ["label"])
+
+        class IterationFailure:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("component alias iteration failed")
+
+        alias_failure = SpecProbe(
+            "alias-failure",
+            {
+                "label": "Label",
+                "aliases": IterationFailure(),
+                "keywords": [],
+            },
+        )
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "component alias iteration failed",
+        ):
+            target("query", [alias_failure])
+        self.assertEqual(
+            [call[0] for call in alias_failure.get_calls],
+            ["label", "aliases"],
+        )
+
+        concept_failure = SpecProbe(
+            "concept-failure",
+            {
+                "label": "",
+                "aliases": ["query"],
+                "keywords": [],
+                "concept": StringFailure("concept string failed"),
+            },
+        )
+        with self.assertRaisesRegex(RuntimeError, "concept string failed"):
+            target("query", [concept_failure])
+        self.assertEqual(
+            [call[0] for call in concept_failure.get_calls],
+            ["label", "aliases", "keywords", "concept"],
+        )
+
+        class ConceptBomb:
+            def get(self, key, default=None):
+                if key == "concept":
+                    raise AssertionError("unmatched spec must not read concept")
+                return {
+                    "label": "",
+                    "aliases": ["missing"],
+                    "keywords": [],
+                }.get(key, default)
+
+        self.assertEqual(target("query", [ConceptBomb()]), 0)
+
+        class DedupeFailure:
+            def fromkeys(self, values):
+                self.iterable = values
+                self.values = list(values)
+                raise RuntimeError("component dedupe failed")
+
+        dedupe_failure = DedupeFailure()
+        with patch.object(
+            financial_retrieval_hints,
+            "dict",
+            dedupe_failure,
+            create=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "component dedupe failed"):
+                target(
+                    "query",
+                    [{"label": "Label", "aliases": ["query"], "keywords": []}],
+                )
+        self.assertTrue(inspect.isgenerator(dedupe_failure.iterable))
+        self.assertEqual(dedupe_failure.values, ["Label"])
+
+        with self.assertRaises(TypeError):
+            target(
+                "query",
+                [
+                    {
+                        "label": "",
+                        "aliases": [ValueProbe("raw-component-alias", "query")],
+                        "keywords": [],
+                    }
+                ],
+            )
+
+    def test_current_source_query_metric_match_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        public_names = {
+            "query_mentions_metric",
+            "query_component_match_count",
+        }
+        private_names = {"_" + name for name in public_names}
+        current_names = set(public_names)
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {}
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.ancestor_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in current_names:
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def generic_visit(self, node):
+                if isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.Try, ast.TryStar),
+                ):
+                    return super().generic_visit(node)
+                self.ancestor_stack.append(node)
+                super().generic_visit(node)
+                self.ancestor_stack.pop()
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in current_names:
+                    if any(
+                        isinstance(item, ast.ListComp)
+                        for item in self.ancestor_stack
+                    ):
+                        context = "listcomp"
+                    else:
+                        context = "expression"
+                        for item in reversed(self.ancestor_stack):
+                            if isinstance(item, ast.Assign):
+                                context = "Assign"
+                                break
+                            if isinstance(item, ast.If):
+                                context = "If"
+                                break
+                    calls.append(
+                        (
+                            node.lineno,
+                            called_name,
+                            self.module_name,
+                            self.function_stack[-1]
+                            if self.function_stack
+                            else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                            context,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        mention_name = "query_mentions_metric"
+        component_name = "query_component_match_count"
+        self.assertEqual(set(definitions), {mention_name, component_name})
+        self.assertEqual(
+            {
+                name: (
+                    module_name,
+                    node.end_lineno - node.lineno + 1,
+                    [argument.arg for argument in node.args.args],
+                    ast.unparse(node.returns),
+                )
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                mention_name: (
+                    "financial_retrieval_hints",
+                    6,
+                    ["query", "metric"],
+                    "bool",
+                ),
+                component_name: (
+                    "financial_retrieval_hints",
+                    14,
+                    ["query", "operand_specs"],
+                    "int",
+                ),
+            },
+        )
+        for _module_name, definition in definitions.values():
+            self.assertEqual(definition.args.defaults, [])
+            self.assertEqual(definition.args.kwonlyargs, [])
+            self.assertEqual(definition.decorator_list, [])
+            self.assertFalse(
+                any(
+                    isinstance(node, (ast.Try, ast.TryStar))
+                    for node in ast.walk(definition)
+                )
+            )
+
+        calls = sorted(calls)
+        self.assertEqual(
+            [row[1:] for row in calls],
+            [
+                (
+                    mention_name,
+                    "financial_graph_helpers",
+                    "_build_semantic_numeric_plan",
+                    "Name",
+                    ("query", "item"),
+                    (),
+                    0,
+                    "listcomp",
+                ),
+                (
+                    component_name,
+                    "financial_graph_helpers",
+                    "_build_semantic_numeric_plan",
+                    "Name",
+                    ("query", "target_operand_specs"),
+                    (),
+                    0,
+                    "Assign",
+                ),
+                (
+                    mention_name,
+                    "financial_graph_helpers",
+                    "_build_semantic_numeric_plan",
+                    "Name",
+                    ("query", "target_metric"),
+                    (),
+                    0,
+                    "If",
+                ),
+                (
+                    mention_name,
+                    "financial_graph_helpers",
+                    "_build_semantic_numeric_plan",
+                    "Name",
+                    ("query", "metric"),
+                    (),
+                    0,
+                    "If",
+                ),
+            ],
+        )
+        self.assertEqual(
+            (
+                len(calls),
+                sum(row[2] == "financial_retrieval_hints" for row in calls),
+            ),
+            (4, 0),
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        owner_defs = [
+            node
+            for node in module_trees["financial_retrieval_hints"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        graph_counts = (
+            sum(not node.name.startswith("_") for node in graph_defs),
+            sum(node.name.startswith("_") for node in graph_defs),
+        )
+        owner_counts = (
+            sum(not node.name.startswith("_") for node in owner_defs),
+            sum(node.name.startswith("_") for node in owner_defs),
+        )
+        self.assertEqual(graph_counts, (9, 99))
+        self.assertEqual(owner_counts, (5, 9))
+
+        def imported_names(module_name, imported_module):
+            return {
+                alias.name
+                for node in module_trees[module_name].body
+                if isinstance(node, ast.ImportFrom)
+                and node.module == imported_module
+                for alias in node.names
+            }
+
+        owner_module = "src.agent.financial_retrieval_hints"
+        graph_owner_imports = imported_names(
+            "financial_graph_helpers",
+            owner_module,
+        )
+        self.assertTrue(
+            {
+                "_infer_statement_and_section_hints",
+                "_matched_ontology_concept_specs",
+            }.issubset(graph_owner_imports)
+        )
+        self.assertTrue(public_names.issubset(graph_owner_imports))
+        self.assertFalse(private_names & graph_owner_imports)
+        self.assertNotIn(
+            "src.agent.financial_graph_helpers",
+            {
+                node.module
+                for node in module_trees["financial_retrieval_hints"].body
+                if isinstance(node, ast.ImportFrom) and node.module
+            },
+        )
+        self.assertTrue(
+            {"Any", "Dict", "List"}.issubset(
+                imported_names("financial_retrieval_hints", "typing")
+            )
+        )
+        self.assertIn(
+            "_normalise_spaces",
+            imported_names(
+                "financial_retrieval_hints",
+                "src.agent.financial_runtime_normalization",
+            ),
+        )
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(
+            reaches("financial_graph_helpers", "financial_retrieval_hints")
+        )
+        self.assertFalse(
+            reaches("financial_retrieval_hints", "financial_graph_helpers")
+        )
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        current_source_methods = {
+            node.name
+            for node in ast.walk(current_test_tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name.startswith("test_current_source_query_")
+            and (
+                "mentions_metric" in node.name
+                or "component_match_count" in node.name
+                or "metric_match" in node.name
+            )
+        }
+        self.assertEqual(
+            current_source_methods,
+            {
+                "test_current_source_query_mentions_metric_pins_collection_matching_laziness_and_exceptions",
+                "test_current_source_query_component_match_count_pins_identity_dedupe_laziness_and_exceptions",
+                "test_current_source_query_metric_match_bindings_pin_defs_calls_dag_and_baseline",
+                "test_current_source_query_metric_match_caller_pins_order_admission_and_stops",
+            },
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for _name, (module_name, definition) in definitions.items():
+            selected_hits.extend(
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == f"src/agent/{module_name}.py"
+                and any(
+                    definition.lineno <= line <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+            )
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_query_metric_match_caller_pins_order_admission_and_stops(self) -> None:
+        mention_public_name = "query_mentions_metric"
+        component_public_name = "query_component_match_count"
+        mention_name = mention_public_name
+        component_name = component_public_name
+        query = "query"
+        metrics = {
+            "target": {
+                "key": "target",
+                "display_name": "Target",
+                "formula_family": "lookup",
+            },
+            "alpha": {
+                "key": "alpha",
+                "display_name": "Alpha",
+                "formula_family": "lookup",
+            },
+            "weak": {
+                "key": "weak",
+                "display_name": "Weak",
+                "formula_family": "lookup",
+            },
+        }
+        operand_specs = {
+            key: [
+                {
+                    "label": f"{key}-operand",
+                    "required": True,
+                    "nested": {"owner": key},
+                }
+            ]
+            for key in metrics
+        }
+
+        class Ontology:
+            def __init__(self):
+                self.calls = []
+
+            def match_metric_families(self, actual_query, topic, intent):
+                self.calls.append(
+                    ("match_metric_families", actual_query, topic, intent)
+                )
+                return [metrics["target"], metrics["alpha"], metrics["weak"]]
+
+            def concept_specs(self, actual_query, topic, intent):
+                self.calls.append(("concept_specs", actual_query, topic, intent))
+                return []
+
+            def metric_family(self, key):
+                self.calls.append(("metric_family", key))
+                return metrics.get(key) or {}
+
+            def build_operand_spec(self, key):
+                self.calls.append(("build_operand_spec", key))
+                return operand_specs[key]
+
+            def statement_type_hints_for_metric(self, key):
+                self.calls.append(("statement_type_hints", key))
+                return []
+
+        def run_plan(component_result):
+            ontology = Ontology()
+            helper_events = []
+            construction_events = []
+
+            def mention(actual_query, metric):
+                self.assertEqual(actual_query, query)
+                key = metric["key"]
+                helper_events.append(("mention", key, metric))
+                return key == "alpha"
+
+            def component(actual_query, specs):
+                self.assertEqual(actual_query, query)
+                helper_events.append(("component", specs))
+                return component_result
+
+            mention_owner = Mock(side_effect=mention)
+            component_owner = Mock(side_effect=component)
+
+            def build_constraints(actual_query, report_scope, actual_ontology, key):
+                self.assertEqual(actual_query, query)
+                self.assertIs(actual_ontology, ontology)
+                construction_events.append(("constraints", key, report_scope))
+                return {"period_focus": "current"}
+
+            def build_queries(actual_query, topic, key, actual_ontology):
+                self.assertEqual((actual_query, topic), (query, "topic"))
+                self.assertIs(actual_ontology, ontology)
+                construction_events.append(("retrieval", key))
+                return [f"retrieve:{key}"]
+
+            def build_task_query(**kwargs):
+                construction_events.append(
+                    ("task-query", kwargs["metric_label"])
+                )
+                return f"task:{kwargs['metric_label']}"
+
+            metric_snapshot = deepcopy(metrics)
+            operand_snapshot = deepcopy(operand_specs)
+            with (
+                patch.object(
+                    financial_graph_helpers,
+                    "get_financial_ontology",
+                    return_value=ontology,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_infer_operation_family_from_query",
+                    return_value="lookup",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_build_entity_scoped_concept_specs",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    mention_name,
+                    mention_owner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    component_name,
+                    component_owner,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_build_task_constraints",
+                    side_effect=build_constraints,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_build_retrieval_query_bundle",
+                    side_effect=build_queries,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_build_metric_task_query",
+                    side_effect=build_task_query,
+                ),
+            ):
+                plan = financial_graph_helpers._build_semantic_numeric_plan(
+                    query,
+                    "topic",
+                    "qa",
+                    {},
+                    "target",
+                )
+            self.assertEqual(metrics, metric_snapshot)
+            self.assertEqual(operand_specs, operand_snapshot)
+            return (
+                plan,
+                ontology,
+                helper_events,
+                construction_events,
+                mention_owner,
+                component_owner,
+            )
+
+        (
+            admitted_plan,
+            _admitted_ontology,
+            admitted_events,
+            admitted_construction,
+            admitted_mention,
+            admitted_component,
+        ) = run_plan(2)
+        self.assertEqual(
+            [
+                (event[0], event[1] if event[0] == "mention" else "target")
+                for event in admitted_events
+            ],
+            [
+                ("mention", "target"),
+                ("mention", "alpha"),
+                ("mention", "weak"),
+                ("component", "target"),
+                ("mention", "target"),
+                ("mention", "target"),
+                ("mention", "alpha"),
+            ],
+        )
+        self.assertIs(admitted_events[0][2], metrics["target"])
+        self.assertIs(admitted_events[1][2], metrics["alpha"])
+        self.assertIs(admitted_events[2][2], metrics["weak"])
+        self.assertIs(admitted_events[3][1], operand_specs["target"])
+        self.assertIs(admitted_events[4][2], metrics["target"])
+        self.assertIs(admitted_events[5][2], metrics["target"])
+        self.assertIs(admitted_events[6][2], metrics["alpha"])
+        self.assertEqual(admitted_mention.call_count, 6)
+        admitted_component.assert_called_once_with(query, operand_specs["target"])
+        self.assertEqual(admitted_plan["status"], "ok")
+        self.assertFalse(admitted_plan["fallback_to_general_search"])
+        self.assertEqual(
+            admitted_plan["planned_metric_families"],
+            ["target", "alpha"],
+        )
+        self.assertEqual(
+            [task["metric_family"] for task in admitted_plan["tasks"]],
+            ["target", "alpha"],
+        )
+        self.assertEqual(
+            [task["query"] for task in admitted_plan["tasks"]],
+            ["task:Target", "task:Alpha"],
+        )
+        self.assertEqual(
+            admitted_construction,
+            [
+                ("constraints", "target", {}),
+                ("retrieval", "target"),
+                ("task-query", "Target"),
+                ("constraints", "alpha", {}),
+                ("retrieval", "alpha"),
+                ("task-query", "Alpha"),
+            ],
+        )
+        self.assertNotIn("drop_weak_target:target", admitted_plan["planner_notes"])
+
+        (
+            rejected_plan,
+            _rejected_ontology,
+            rejected_events,
+            rejected_construction,
+            _rejected_mention,
+            rejected_component,
+        ) = run_plan(1)
+        self.assertEqual(
+            [
+                (event[0], event[1] if event[0] == "mention" else "target")
+                for event in rejected_events
+            ],
+            [
+                ("mention", "target"),
+                ("mention", "alpha"),
+                ("mention", "weak"),
+                ("component", "target"),
+                ("mention", "target"),
+                ("mention", "alpha"),
+            ],
+        )
+        rejected_component.assert_called_once_with(query, operand_specs["target"])
+        self.assertEqual(rejected_plan["planned_metric_families"], ["alpha"])
+        self.assertEqual(
+            [task["metric_family"] for task in rejected_plan["tasks"]],
+            ["alpha"],
+        )
+        self.assertIn("drop_weak_target:target", rejected_plan["planner_notes"])
+        self.assertEqual(
+            rejected_construction,
+            [
+                ("constraints", "alpha", {}),
+                ("retrieval", "alpha"),
+                ("task-query", "Alpha"),
+            ],
+        )
+
+        failure_cases = {
+            "strong": (
+                [RuntimeError("strong mention failed")],
+                None,
+                1,
+                0,
+            ),
+            "component": (
+                [False, True, False],
+                RuntimeError("component match failed"),
+                3,
+                1,
+            ),
+            "target": (
+                [False, True, False, RuntimeError("target mention failed")],
+                2,
+                4,
+                1,
+            ),
+            "task-loop": (
+                [
+                    False,
+                    True,
+                    False,
+                    False,
+                    RuntimeError("task-loop mention failed"),
+                ],
+                2,
+                5,
+                1,
+            ),
+        }
+        for (
+            stage,
+            (
+                mention_side_effect,
+                component_side_effect,
+                expected_mentions,
+                expected_components,
+            ),
+        ) in failure_cases.items():
+            with self.subTest(stage=stage):
+                ontology = Ontology()
+                mention_owner = Mock(side_effect=mention_side_effect)
+                if isinstance(component_side_effect, BaseException):
+                    component_owner = Mock(side_effect=component_side_effect)
+                else:
+                    component_owner = Mock(return_value=component_side_effect)
+                stopped_constraints = Mock(
+                    side_effect=AssertionError(
+                        f"{stage} matching failure must stop task construction"
+                    )
+                )
+                with (
+                    patch.object(
+                        financial_graph_helpers,
+                        "get_financial_ontology",
+                        return_value=ontology,
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        "_infer_operation_family_from_query",
+                        return_value="lookup",
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        "_build_entity_scoped_concept_specs",
+                        return_value=[],
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        mention_name,
+                        mention_owner,
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        component_name,
+                        component_owner,
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        "_build_task_constraints",
+                        stopped_constraints,
+                    ),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, stage):
+                        financial_graph_helpers._build_semantic_numeric_plan(
+                            query,
+                            "topic",
+                            "qa",
+                            {},
+                            "target",
+                        )
+                self.assertEqual(mention_owner.call_count, expected_mentions)
+                self.assertEqual(component_owner.call_count, expected_components)
+                stopped_constraints.assert_not_called()
+
     def test_current_source_candidate_sibling_surface_hit_count_pins_projection_dedupe_compaction_and_identity(self) -> None:
         target_name = "candidate_sibling_surface_hit_count"
         target = getattr(financial_row_surfaces, target_name)
@@ -5717,7 +7030,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 101))
+        self.assertEqual(graph_counts, (9, 99))
         self.assertEqual(row_counts, (5, 15))
 
         def imported_names(module_name, imported_module):
@@ -8275,7 +9588,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 101),
+            (9, 99),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -12862,7 +14175,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 101),
+            (9, 99),
         )
         self.assertEqual(
             (

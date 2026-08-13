@@ -292,3 +292,27 @@ def compression_guidance(query_type: str, query: str, coverage: str) -> Dict[str
         "output_style": str(output_styles.get(query_type) or output_styles.get("qa") or ""),
         "coverage_note": str(coverage_notes.get(coverage) or ""),
     }
+
+
+def query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
+    combined = _normalise_spaces(query)
+    aliases = [str(metric.get("display_name") or "").strip()]
+    aliases.extend(metric.get("aliases", []) or [])
+    aliases.extend(metric.get("intent_keywords", []) or [])
+    return any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip())
+
+
+def query_component_match_count(
+    query: str,
+    operand_specs: List[Dict[str, Any]],
+) -> int:
+    combined = _normalise_spaces(query)
+    matched_labels: List[str] = []
+    for spec in operand_specs:
+        label = str(spec.get("label") or "").strip()
+        aliases = [label]
+        aliases.extend(spec.get("aliases", []) or [])
+        aliases.extend(spec.get("keywords", []) or [])
+        if any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip()):
+            matched_labels.append(label or str(spec.get("concept") or "").strip())
+    return len(dict.fromkeys(item for item in matched_labels if item))

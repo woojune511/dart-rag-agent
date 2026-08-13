@@ -374,7 +374,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
         for node in owner_tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 (owner_private if node.name.startswith("_") else owner_public).append(node.name)
-        self.assertEqual((len(owner_public), len(owner_private)), (3, 9))
+        self.assertEqual((len(owner_public), len(owner_private)), (5, 9))
 
         class BindingVisitor(ast.NodeVisitor):
             def __init__(self, relative_path):

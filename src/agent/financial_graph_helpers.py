@@ -64,6 +64,8 @@ from src.agent.financial_runtime_normalization import (
 from src.agent.financial_retrieval_hints import (
     _infer_statement_and_section_hints,
     _matched_ontology_concept_specs,
+    query_component_match_count,
+    query_mentions_metric,
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
@@ -764,30 +766,6 @@ def _direct_candidate_semantic_priority(
         target_year_match,
         structured_value_rank + int(direct_match_strength * 10),
     )
-
-
-def _query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool:
-    combined = _normalise_spaces(query)
-    aliases = [str(metric.get("display_name") or "").strip()]
-    aliases.extend(metric.get("aliases", []) or [])
-    aliases.extend(metric.get("intent_keywords", []) or [])
-    return any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip())
-
-
-def _query_component_match_count(
-    query: str,
-    operand_specs: List[Dict[str, Any]],
-) -> int:
-    combined = _normalise_spaces(query)
-    matched_labels: List[str] = []
-    for spec in operand_specs:
-        label = str(spec.get("label") or "").strip()
-        aliases = [label]
-        aliases.extend(spec.get("aliases", []) or [])
-        aliases.extend(spec.get("keywords", []) or [])
-        if any(_normalise_spaces(alias) in combined for alias in aliases if str(alias).strip()):
-            matched_labels.append(label or str(spec.get("concept") or "").strip())
-    return len(dict.fromkeys(item for item in matched_labels if item))
 
 
 _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
@@ -3329,7 +3307,7 @@ def _build_semantic_numeric_plan(
         str(item.get("key") or "").strip()
         for item in matches
         if str(item.get("key") or "").strip()
-        and _query_mentions_metric(query, item)
+        and query_mentions_metric(query, item)
         and (
             str(item.get("formula_family") or "").strip().lower() == operation_family
             or (
@@ -3435,9 +3413,9 @@ def _build_semantic_numeric_plan(
         planner_notes.append(f"planner_target_metric:{target_metric_family}")
         target_metric = ontology.metric_family(target_metric_family) or {}
         target_operand_specs = ontology.build_operand_spec(target_metric_family) if target_metric else []
-        component_match_count = _query_component_match_count(query, target_operand_specs)
+        component_match_count = query_component_match_count(query, target_operand_specs)
         if target_metric and (
-            _query_mentions_metric(query, target_metric)
+            query_mentions_metric(query, target_metric)
             or (
                 target_metric_family in matched_metric_keys
                 and component_match_count >= 2
@@ -3504,7 +3482,7 @@ def _build_semantic_numeric_plan(
         if not metric:
             continue
         display_name = str(metric.get("display_name") or metric_key).strip()
-        if matches and not _query_mentions_metric(query, metric) and metric_key != target_metric_family:
+        if matches and not query_mentions_metric(query, metric) and metric_key != target_metric_family:
             # Avoid over-expanding to weak secondary matches unless explicitly targeted.
             planner_notes.append(f"skip_weak_match:{metric_key}")
             continue
