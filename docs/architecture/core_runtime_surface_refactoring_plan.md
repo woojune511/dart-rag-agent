@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-10
+Last revised: 2026-08-14
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -694,11 +694,16 @@ Direct/ratio acceptance, broad scoring/reconciliation, candidate/evidence
 construction/adoption, mutable state/evidence, callback, carrier,
 trace/artifact/ledger work, and final sequencing remain hard stops.
 
-The sole next priority is the characterize-only residual inventory defined in
-[project_status.md#next-work](../overview/project_status.md#next-work). No next
-production owner move is selected until that inventory freezes callers,
-dependencies, stop lines, and projected validation. This plan does not maintain
-a competing queue.
+The characterize-only residual inventory is complete and changed no production
+source. It selects only the exact 7/15-line segment-local binding and segment-
+metric composition pair for a future ownership move from graph helpers to
+`financial_row_surfaces.py`. The row owner already depends one-way on surface
+contracts and graph helpers already depend on the row owner, so co-moving the
+pair adds no module edge or reverse cycle. The exact APIs, external 2/local 1
+call matrix, access/laziness/exception contract, four-method CURRENT-SOURCE
+prerequisite, projected 4/51/861/19/218/1,903 gates, and hard stops are defined
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+This plan does not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

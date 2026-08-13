@@ -16,10 +16,10 @@ Last updated: 2026-08-14
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | Candidate local context, consolidation scope, binding-shape admission, and selected-unit projection moved from graph helpers to `financial_surface_contracts.py` in `a904f28` |
+| What just changed? | Latest source change remains candidate metadata-policy ownership in `a904f28`; a characterize-only residual inventory selected the next bounded segment-local/segment-metric batch without changing production source |
 | What passed? | Focused 6/6, owner modules 47/47, affected nine-module semantic set 857/857, import-side-effect 19/19, runtime audit 218, full unittest 1,899/1,899 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest candidate metadata-policy ownership change |
-| What is next? | Characterize-only residual inventory of the graph-owned dependency/ratio candidate boundary; no production owner move is selected until caller, dependency, and stop-line contracts are frozen |
+| What is next? | Freeze four CURRENT-SOURCE contracts, then move only the exact 7/15-line segment-local/segment-metric pair from graph helpers to `financial_row_surfaces.py`; no broader candidate cluster is authorized |
 
 ## Product Boundary
 
@@ -486,36 +486,70 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-No production owner move is selected immediately after `a904f28`. The sole next
-work is a characterize-only residual inventory of the graph-owned dependency/
-ratio candidate boundary. Enumerate exact definitions, direct calls, try depth,
-signatures, dependency edges, loaded policy symbols, and current tests for:
+The characterize-only residual inventory is complete; it changed no production
+source. The current graph-owned inventory is:
 
-- segment-local binding and segment-metric composition;
-- aggregate row-role/stage and candidate value-role/stage inference;
-- direct-grounding, direct-acceptance, and ratio-component acceptance;
-- operand matching, direct-match strength, and the broad candidate scorer.
+| Group | Exact current definitions and signatures | Direct source calls / `try` | Direct policy loads and current test-method references | Disposition |
+| --- | --- | --- | --- | --- |
+| Segment-local binding / segment-metric composition | `_candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool` at 4419-4425, 7 lines; `_candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool` at 4428-4442, 15 lines | 1 / 2 calls, all caller `try` depth 0; bodies contain 0 / 0 `try` nodes | no direct policy global; 1 / 2 current test-method references, but no direct-contract or definition/DAG/baseline method | **Selected together** for the next bounded batch |
+| Aggregate row/stage and candidate value/stage inference | `_aggregate_like_row_stage(label: str) -> str` at 3791-3800, 10 lines; `_aggregate_like_row_role(label: str) -> str` at 3803-3804, 2 lines; `_candidate_value_role(candidate: Dict[str, Any]) -> str` at 4302-4317, 16 lines; `_candidate_aggregation_stage(candidate: Dict[str, Any]) -> str` at 4320-4337, 18 lines | 4 / 2 / 11 / 11 calls, all caller `try` depth 0; bodies contain no `try` | `STRUCTURED_CELL_AFFINITY_POLICY` through stage inference; 1 / 0 / 3 / 3 test-method references | defer: larger fan-out and no reviewed co-moving public owner contract |
+| Direct grounding / direct acceptance / ratio-component acceptance | `_candidate_is_direct_grounding_candidate(candidate: Dict[str, Any], *, operand: Dict[str, Any], constraints: Dict[str, Any], query_years: List[int], operation_family: str = "", report_scope: Optional[Dict[str, Any]] = None) -> bool` at 4576-4661, 86 lines; `_candidate_satisfies_direct_acceptance_contract(candidate: Dict[str, Any], *, operand: Dict[str, Any], constraints: Dict[str, Any], query_years: List[int], operation_family: str = "", selected_cell: Optional[Dict[str, Any]] = None, report_scope: Optional[Dict[str, Any]] = None) -> bool` at 4664-4824, 161 lines; `_candidate_satisfies_ratio_component_acceptance_contract(candidate: Dict[str, Any], *, operand: Dict[str, Any], constraints: Dict[str, Any], query_years: List[int], selected_cell: Optional[Dict[str, Any]] = None, report_scope: Optional[Dict[str, Any]] = None) -> bool` at 4827-4894, 68 lines | 3 / 5 / 3 calls, all caller `try` depth 0; bodies contain 0 / 1 / 0 `try` nodes | none / `OPERAND_CANDIDATE_SCORING_POLICY` plus `PERIOD_FOCUS_POLICY` / none; 6 / 10 / 6 test-method references | defer: selected-cell, report-scope, row-role, and cross-module reconciliation gates form a broader acceptance boundary |
+| Operand matching / direct strength / broad scoring | `_candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool` at 4897-4979, 83 lines; `_candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float` at 4991-5112, 122 lines; `_score_operand_candidate(candidate: Dict[str, Any], *, operand: Dict[str, Any], preferred_statement_types: List[str], constraints: Dict[str, Any], query_years: List[int], report_scope: Optional[Dict[str, Any]] = None) -> float` at 5170-5484, 315 lines | 3 / 8 / 7 calls, all caller `try` depth 0; bodies contain 0 / 0 / 2 `try` nodes | none / none / `CONSOLIDATION_SCOPE_POLICY` plus `OPERAND_CANDIDATE_SCORING_POLICY`; 3 / 4 / 11 test-method references | defer: broad ranking, reconciliation, and ops callers are not one bounded row-surface contract |
 
-This inventory is not authorization to move the whole cluster. It must identify
-one bounded state-free group with a single owner and no reverse cycle, or record
-that no safe owner move is currently available. Freeze caller placement,
-argument identity, copied-mapping behavior, access order/laziness, exceptions,
-and downstream stops before proposing production movement. Do not add wrappers,
-aliases, callbacks, carriers, flags, trace fields, or compatibility bridges to
-manufacture a seam.
+The sole selected follow-on is the exact 22-line pair. Rename it to public
+`candidate_has_segment_local_binding(...)` and
+`candidate_supports_segment_metric_combo(...)` in
+`financial_row_surfaces.py`, replace every selected caller, and delete both old
+graph definitions in the same source change. The first function keeps one
+graph-external call in `_deterministic_reconcile_task`; the second keeps one
+graph-external call in `_candidate_direct_match_strength` and becomes one
+owner-local call from the first function. The projected call matrix is therefore
+external 2 / local 1, all direct `ast.Name` calls at `try` depth 0.
 
-Keep candidate/evidence construction and adoption, graph-state lookup, mutable
-state/evidence, LLM reranking, broad reconciliation, artifact/ledger mutation,
-and final sequencing graph-owned. `financial_row_surfaces.py` already imports
-the surface owner, so segment-metric work must not introduce the reverse edge.
-Row-role/stage helpers must not become low-level public APIs without a bounded
-co-moving owner contract. Reject reconciliation-candidate, structured-row/
-precision, ontology-compatibility, state, callback, and ledger expansions.
+This owner is cycle-safe: graph helpers already import row surfaces, row surfaces
+already import surface contracts, neither row surfaces nor surface contracts can
+reach graph helpers, and surface contracts cannot reach row surfaces. Add only
+`_operand_segment_label` and `candidate_matches_segment_binding` to the existing
+row-to-surface import; do not add a surface-to-row or row-to-graph edge. The pair
+loads no policy global directly and its current spans contain zero of the 218
+reviewed runtime-domain records. The projected top-level counts are graph helpers
+public/private 9/110 and row surfaces 2/15.
 
-The characterization result must update this section with an exact selected
-batch and projected focused/semantic/full gates before any further source move.
-No behavior, accuracy, ranking, performance, benchmark, schedule, or Phase 3
-completion claim follows from `a904f28` or from the inventory.
+Before relocation, add four CURRENT-SOURCE methods in graph-helper tests: one
+direct contract per function, one exact definitions/signatures/spans/calls/DAG/
+baseline inventory, and one caller-placement/argument/adoption/stop matrix. They
+must pin the following behavior without optimizing it:
+
+- the segment label is read first; an empty label returns `True` from local
+  binding but `False` from metric composition;
+- local binding tests strict segment matching before delegating, preserving the
+  second segment-label lookup in the delegated function;
+- metric composition rejects a strict segment mismatch before shallow-copying
+  `metadata`, then builds `table_row_labels_text`, `table_context`,
+  `table_summary_text`, and joined `column_headers_chain` surfaces in that order;
+- blank surfaces are skipped and `_operand_text_match` remains lazy through
+  `any`; original candidate/operand identities, shallow nested identities,
+  input immutability, and uncaught exceptions are preserved;
+- a failed local-binding gate removes the candidate before scoring, while a
+  successful metric-combination gate only raises direct-match strength to at
+  least `2.25`; no downstream scorer, ranking, or adoption behavior moves.
+
+Projected gates after those four methods and the exact move are focused 4/4,
+graph-helper/surface-contract owner set 51/51, affected nine-module semantic set
+861/861, import-side-effect 19/19, runtime audit 218 with no baseline change,
+and full discovery 1,903/1,903, plus pycompile/fresh import, selected-body and all
+retained-graph AST parity, full caller/DAG checks, retired private-ref zero, and
+`git diff --check`.
+
+Keep aggregate row-role/stage inference, direct/ratio acceptance, operand
+matching and broad scoring/reconciliation, candidate/evidence construction and
+adoption, graph-state lookup, mutable state/evidence, LLM reranking, artifact/
+ledger mutation, and final sequencing graph-owned. Do not add wrappers, aliases,
+callbacks, carriers, flags, trace fields, compatibility bridges, or a new owner
+module. Reject reconciliation-candidate, structured-row/precision, ontology-
+compatibility, state, callback, and ledger expansions. No behavior, accuracy,
+ranking, performance, benchmark, schedule, or Phase 3 completion claim follows
+from `a904f28`, this inventory, or the future ownership-only move.
 
 ## Reviewer Evidence Surface
 

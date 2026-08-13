@@ -59,9 +59,12 @@ Last updated: 2026-08-14
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-다음 작업은 남은 dependency/ratio candidate 경계의 characterize-only inventory다.
-새 production owner 이동은 [Next Work](docs/overview/project_status.md#next-work)의
-caller/dependency/stop-line freeze가 끝나기 전에는 선택하지 않는다.
+남은 dependency/ratio candidate 경계의 characterize-only inventory는 완료됐다.
+다음 production 후보는 graph의 정확한 7줄 segment-local binding과 15줄
+segment-metric composition을 `financial_row_surfaces.py`의 public 두 함수로 함께
+옮기는 bounded batch다. Inventory 자체는 production source를 바꾸지 않았고,
+이동 전 CURRENT-SOURCE 계약과 projected gate는
+[Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
 

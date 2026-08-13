@@ -3901,3 +3901,39 @@ is the characterize-only residual dependency/ratio candidate inventory in
 freeze exact callers, dependencies, cycle boundaries, behavior, and projected
 gates before proposing one bounded state-free move or recording that no safe
 move is currently available.
+
+### Residual dependency/ratio candidate characterization checkpoint
+
+- A docs-only inventory classified the remaining graph-owned candidate seam.
+  Exact definition spans are segment local/metric 7/15 lines, aggregate row-
+  stage/role and candidate value-role/stage 10/2/16/18, direct grounding/direct
+  acceptance/ratio acceptance 86/161/68, and operand matching/direct strength/
+  broad scoring 83/122/315. Their direct source-call counts are respectively
+  1/2, 4/2/11/11, 3/5/3, and 3/8/7; every caller is outside `try`. Body `try`
+  counts are zero except direct acceptance one and broad scoring two.
+- Direct policy loads are absent for the selected pair. The aggregate group
+  reaches `STRUCTURED_CELL_AFFINITY_POLICY`; direct acceptance reaches
+  `OPERAND_CANDIDATE_SCORING_POLICY` and `PERIOD_FOCUS_POLICY`; broad scoring
+  reaches `CONSOLIDATION_SCOPE_POLICY` and
+  `OPERAND_CANDIDATE_SCORING_POLICY`. Current test-method reference counts and
+  exact signatures are recorded in Project Status Next Work.
+- The selected follow-on is only the 22-line segment pair, renamed public in
+  `financial_row_surfaces.py`. Its projected calls are external 2/local 1. The
+  destination already imports `financial_surface_contracts.py`, graph helpers
+  already import the destination, neither row nor surface owners reach graph
+  helpers, the surface owner cannot reach the row owner, and the selected spans
+  contain zero of 218 reviewed runtime-domain records. No source or test file
+  moved in this characterization.
+- Before the future move, four CURRENT-SOURCE methods must pin both direct
+  contracts, exact definitions/signatures/spans/calls/DAG/baseline, and caller
+  arguments/adoption/stops. Projected post-move gates are focused 4/4, owner
+  51/51, affected semantic 861/861, import 19/19, audit 218, full 1,903/1,903,
+  pycompile/fresh import, AST body/retained/caller parity, retired-ref zero, and
+  diff check. Aggregate inference, direct/ratio acceptance, matching/scoring,
+  reconciliation, state/evidence, callbacks/carriers, artifacts/ledger, and
+  final sequencing remain hard stops.
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Current-source audit
+218 and the two existing caller-contract tests passed during the inventory;
+benchmark refresh and remote CI were **NOT RUN**.

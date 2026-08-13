@@ -3774,24 +3774,42 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
 no behavior, accuracy, ranking, performance, total-code, executed-path,
 schedule, ledger, or Phase 3 completion.
 
-`_candidate_has_segment_local_binding(...)` and
-`_candidate_supports_segment_metric_combo(...)` remain graph-owned because the
-latter depends on row-surface matching and moving that dependency into the
-surface owner would create a reverse cycle. Aggregate row-role/stage inference
-remains graph-owned to avoid low-level public sprawl outside this metadata-
-policy boundary. Concept-conflict policy, direct and ratio acceptance, broad
-scoring/reconciliation, candidate/evidence construction and adoption, mutable
-state/evidence, callbacks, carriers, trace/artifact/ledger work, and final
-sequencing also remain graph-owned. No wrapper, alias, compatibility bridge,
-reconciliation-candidate reverse import, structured-row/precision reverse-
-cycle, concept-specific semantic expansion, or evidence/state expansion is
-authorized.
+The completed characterize-only residual inventory changes no production
+source. It selects the exact current 7-line
+`_candidate_has_segment_local_binding(...)` and 15-line
+`_candidate_supports_segment_metric_combo(...)` definitions as one future
+row-surface ownership boundary. They are to become public
+`candidate_has_segment_local_binding(...)` and
+`candidate_supports_segment_metric_combo(...)` in
+`financial_row_surfaces.py`, not in `financial_surface_contracts.py`. Graph
+helpers already import the row owner, the row owner already imports surface
+contracts, and neither owner reaches graph helpers, so this placement introduces
+no new module edge or reverse cycle.
 
-The next production ownership boundary is intentionally unselected. The
-characterize-only residual inventory and its hard stops are defined only by
-[Project Status Next Work](../overview/project_status.md#next-work); source must
-not move again until that inventory publishes one exact cycle-safe batch and
-projected gates.
+The planned contract preserves the segment-label lookup first, asymmetric empty-
+label results (`True` for local binding, `False` for metric composition), strict
+segment matching before fallback, and the repeated segment-label lookup on the
+fallback path. Metric composition preserves a shallow metadata copy, ordered
+row-label/context/summary/column-chain surface construction, blank filtering,
+lazy operand-text matching, original candidate/operand identity, nested identity,
+input immutability, and uncaught exceptions. The only future caller changes are
+one graph-external local-binding call in deterministic reconciliation, one graph-
+external metric-combination call in direct-match strength, and one owner-local
+metric-combination call; all remain direct `ast.Name` calls outside `try`.
+
+Four CURRENT-SOURCE methods must freeze those direct contracts, exact spans,
+signatures, call matrix, DAG/baseline, caller arguments, adoption order, and
+downstream stops before relocation. The precise projected gates and rejected
+expansions are maintained only by
+[Project Status Next Work](../overview/project_status.md#next-work). Aggregate
+row-role/stage inference, concept-conflict policy, direct and ratio acceptance,
+broad scoring/reconciliation, candidate/evidence construction and adoption,
+mutable state/evidence, callbacks, carriers, trace/artifact/ledger work, and
+final sequencing remain graph-owned. No wrapper, alias, compatibility bridge,
+reconciliation-candidate reverse import, structured-row/precision reverse-cycle,
+concept-specific semantic expansion, or evidence/state expansion is authorized.
+The selected pair must not move until the four CURRENT-SOURCE methods pass and
+the exact cycle and projected-gate assumptions remain valid.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
