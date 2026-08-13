@@ -3864,9 +3864,66 @@ ratio acceptance, broad scoring/reconciliation, candidate/evidence construction
 and adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
 work, and final sequencing remain graph-owned. No wrapper, alias, compatibility
 bridge, concept-specific semantic expansion, or evidence/state expansion is
-authorized. The next production boundary is unselected; only the characterize-
-only lookup-hint inventory in
-[Project Status Next Work](../overview/project_status.md#next-work) is active.
+authorized.
+
+The completed characterize-only lookup-hint inventory selects the exact current
+5/14/7/5-line private group in `financial_graph_helpers.py` for a future public
+move to `financial_operand_resolution.py`:
+`lookup_prefers_canonical_statement_rows(...)`,
+`lookup_canonical_statement_preferences(...)`,
+`lookup_query_surface_preferences(...)`, and
+`operand_lookup_surface_match(...)`. No production source or test has moved at
+this checkpoint. These functions project ontology lookup hints and perform one
+operand-surface match; they do not own task construction, candidate admission,
+scoring, retry assembly, or graph state.
+
+Canonical-row preference calls `_operand_segment_label(...)` first with the
+original operand. A truthy segment returns `False` before concept or hint access.
+Otherwise it converts `operand.get("concept") or ""` with `str` exactly once at
+this layer, performs one `lookup_hints_for_concept_key(...)` call, and bool-
+projects `prefer_canonical_statement_rows`. No extra normalization, copy, catch,
+or mutation is allowed.
+
+Canonical statement preferences and query-surface preferences each perform the
+same one concept coercion and one hint lookup. The canonical helper fully emits
+statement types before reading sections and returns two new lists; the query
+helper returns one new list. Current `or []` fallbacks, collection order,
+duplicates, stripped output, one rejected-blank stringification, two retained-
+item stringifications, and uncaught mapping/truth-value/iteration/string errors
+must remain exact. Surface matching calls query projection once, stops on a
+falsy collection, and otherwise forwards the exact text and collection identity
+to `_text_has_contract_term(...)`, returning its result without added coercion.
+
+The 17 direct calls finish graph-external 7/5/3/1 and owner-local 0/0/1/0 after
+the future move, with every call outside `try`. Winner selection retains its
+preference-first stop. Generic retrieval retains label, first-three-alias, hint-
+surface order, variant expansion, and stable dedupe. Producer-task construction
+retains two distinct preference checks, explicit-policy laziness, role/stage
+removal, hint-alias prepend, and nonempty canonical replacement. Direct grounding
+retains all preceding admission gates and preference-before-`table_row` boolean
+order. Direct acceptance retains operation-family laziness and canonical filters.
+Direct strength retains aggregate-signal then surface/context/role/stage order.
+Scoring and retry assembly retain their existing projection positions; retry
+surface projection remains earlier than canonical section prepend.
+
+`financial_operand_resolution.py` already defines the hint owner and imports
+`_operand_segment_label(...)` from surface contracts. Adding
+`_text_has_contract_term(...)` changes no module edge; graph already reaches the
+operand owner, and the owner does not reach graph. Moving only the first three
+would leave a one-call graph composer and split the semantic boundary. Moving
+the group to surface contracts would reverse the existing operand-to-surface
+edge. The selected four-function move instead projects graph helpers from
+public/private 9/108 to 9/104 and operand resolution from 37/37 to 41/37.
+
+Four named CURRENT-SOURCE methods and the exact pre/post call, import, behavior,
+caller, stop, baseline, and gate contracts are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 127/127, affected semantic 938/938, import 19/19,
+audit 218, full 1,911/1,911, pycompile/fresh import and public identity, selected
+body parity 4/4, all 113 retained graph functions, caller/DAG parity, retired-ref
+zero, and diff check. Static AST/DAG, selected-body baseline, and isolated
+behavior probes passed for this inventory; benchmark refresh and remote CI were
+**NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

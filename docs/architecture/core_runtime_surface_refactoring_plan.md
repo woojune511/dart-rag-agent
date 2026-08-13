@@ -717,13 +717,25 @@ body/retained/caller/DAG parity, and retired-ref zero passed. The source diff
 SHA-256 is
 `075e776a65b50061c7751b2340b7eb256ad8d8f0cfbc85887a3f42867f2ae55a`.
 
-No next production move is selected. The sole next priority is the characterize-
-only 5/14/7/5-line lookup-hint projection inventory defined in
-[project_status.md#next-work](../overview/project_status.md#next-work). It must
-compare the three pure hint projections with the four-function lookup-surface
-group, prove the operand-owner/DAG boundary, behavior/callers/stops and projected
-gates, or record that the helpers should remain graph-owned. This plan does not
-maintain a competing queue.
+The completed characterize-only inventory selects one follow-on: move the exact
+5/14/7/5-line lookup-hint projection/match group from graph helpers to four
+public functions in `financial_operand_resolution.py`. Its 17 calls finish
+external 16/local one. The owner already defines the hint lookup, imports the
+segment projection and surface-contract module, and is already below graph
+helpers; the move adds no module edge. Projected function counts are graph
+helpers 9/104 and operand resolution 41/37.
+
+Moving only the first three projections is rejected because it leaves a one-
+call graph matcher that only composes query hints with the existing contract-
+term primitive. Surface-contract ownership would reverse the current operand-
+to-surface edge, and leaving all four in graph has no state, caller, or DAG
+justification. Exact behavior, eight caller contexts, four required CURRENT-
+SOURCE methods, stops, and projected focused 4/4, owner 127/127, affected
+semantic 938/938, import 19/19, audit 218, and full 1,911/1,911 gates are defined
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+No source or test movement has occurred at this characterization checkpoint;
+the selected four-function move is the sole next priority, and this plan does
+not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

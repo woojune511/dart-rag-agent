@@ -19,7 +19,7 @@ Last updated: 2026-08-14
 | What just changed? | `80a37f8` moved the exact 10/2-line aggregate-like row stage/role pair from graph helpers to public row-surface ownership |
 | What passed? | Focused 4/4, owner modules 55/55, affected nine-module semantic set 865/865, import-side-effect 19/19, runtime audit 218, full unittest 1,907/1,907 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest aggregate-like row ownership change |
-| What is next? | Characterize only the 5/14/7/5-line lookup-hint projection boundary; no production owner move is selected |
+| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 5/14/7/5-line lookup-hint projection/match group to operand-resolution ownership |
 
 ## Product Boundary
 
@@ -516,47 +516,127 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-No production owner move is selected immediately after `80a37f8`. The sole next
-work is a characterize-only inventory of the lookup-hint projection boundary in
-`financial_graph_helpers.py`:
+The characterize-only inventory selects exactly one production follow-on. Move
+the exact current 5/14/7/5-line definitions from
+`financial_graph_helpers.py` to public functions in the existing
+`financial_operand_resolution.py` owner:
 
-- `_lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool`,
-  lines 2596-2600, five lines, seven direct calls;
+- `_lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool`
+  becomes `lookup_prefers_canonical_statement_rows(...)`;
 - `_lookup_canonical_statement_preferences(operand: Dict[str, Any]) ->
-  tuple[List[str], List[str]]`, lines 2603-2616, 14 lines, five direct calls;
-- `_lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]`,
-  lines 2619-2625, seven lines, four direct calls;
-- `_operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool`,
-  lines 2628-2632, five lines, one direct call.
+  tuple[List[str], List[str]]` becomes
+  `lookup_canonical_statement_preferences(...)`;
+- `_lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]`
+  becomes `lookup_query_surface_preferences(...)`;
+- `_operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool`
+  becomes `operand_lookup_surface_match(...)`.
 
-All 17 calls are direct `ast.Name` calls at caller `try` depth zero and all four
-bodies contain no `try`. Current test-method references are 4/2/1/0. The first
-three helpers project declarative data from
-`lookup_hints_for_concept_key(...)`; the first also short-circuits segmented
-operands through `_operand_segment_label(...)`, while the fourth composes query
-surfaces with `_text_has_contract_term(...)`.
+No production source or test has moved at this checkpoint. The selected 31-line
+group is state-free lookup-hint projection and operand-surface matching, not
+lookup task construction, candidate admission, or scoring. The owner already
+defines `lookup_hints_for_concept_key(...)` and imports
+`_operand_segment_label(...)` from `financial_surface_contracts.py`; adding
+`_text_has_contract_term(...)` uses that same existing module edge. Graph helpers
+already import operand resolution, while operand resolution does not reach graph
+helpers. The projected top-level function counts are graph helpers public/private
+9/104 and operand resolution 41/37.
 
-The inventory must compare moving only the three hint projections, moving all
-four lookup-surface helpers, and leaving them graph-owned. The primary existing
-owner candidate is `financial_operand_resolution.py`: it already defines
-`lookup_hints_for_concept_key(...)`, imports `_operand_segment_label(...)` on an
-existing surface-contract edge, is imported by graph helpers, and does not reach
-graph helpers. The inventory must still prove exact signatures/spans/calls,
-one-way DAG, public-surface cost, segment short-circuiting, concept coercion,
-hint lookup count, ordered list filtering, repeated `str` calls, copy/identity
-behavior, empty fallbacks, laziness, uncaught exceptions, and each caller's
-adoption/stop behavior.
+The canonical-row preference contract must preserve this exact order:
 
-Characterization must publish exact CURRENT-SOURCE methods and projected
-focused/owner/semantic/import/audit/full gates here before any source movement.
+- call `_operand_segment_label(...)` first with the original operand;
+- return `False` for a truthy segment without reading `concept` or calling the
+  hint owner;
+- otherwise evaluate `str(operand.get("concept") or "")` without extra strip or
+  normalization, call `lookup_hints_for_concept_key(...)` exactly once, and
+  return `bool(lookup_hints.get("prefer_canonical_statement_rows"))`;
+- preserve the input and nested identities and propagate operand, segment,
+  stringification, hint-lookup, mapping-access, and truth-value errors unchanged.
+
+Both list projections call the hint owner exactly once with the same concept
+coercion. Canonical preferences fully build statement types before reading
+sections and return a new two-list tuple; query preferences return one new list.
+Each collection uses its current `or []` fallback, preserves source order and
+duplicates, strips every emitted string, evaluates `str(item).strip()` once for
+a rejected blank and twice for a retained item, and performs no dedupe, case
+folding, or source mutation. Mapping, collection truth-value, iteration, and
+stringification errors remain uncaught.
+
+Surface matching calls query-surface projection exactly once. A falsy projection
+returns `False` without calling `_text_has_contract_term(...)`; a truthy result
+forwards the original `text` and the exact projected collection object, then
+returns the matcher result without another coercion. Projection, truth-value,
+matcher, normalization, regex, iteration, and stringification errors remain
+uncaught.
+
+Current calls are 7/5/4/1, all direct `ast.Name` calls at caller `try` depth zero;
+current test-method references are 4/2/1/0. After the public rename and move they
+must finish as graph-external 7/5/3/1 and owner-local 0/0/1/0, totaling 16
+external calls and one owner-local call. Caller behavior is frozen as follows:
+
+- `_candidate_is_canonical_statement_winner(...)` checks preference first and
+  stops before metadata, canonical lists, direct strength, and year matching on
+  `False`; a true result loads canonical lists before its existing filters.
+- `_build_generic_retrieval_queries(...)` appends lookup surfaces after the
+  label and first three aliases, passes each through the existing variant
+  expansion, and performs the same stable final dedupe.
+- `_build_lookup_producer_task_from_binding(...)` retains its two separate
+  preference checks: the first is lazy behind an explicit binding policy and may
+  remove default role/stage preferences; query surfaces remain prepended to
+  existing aliases; the second gates canonical type/section replacement and
+  keeps nonempty-only replacement plus copied list adoption.
+- `_candidate_is_direct_grounding_candidate(...)` reaches preference only after
+  kind/descriptor/numeric/direct-strength/shape gates and evaluates preference
+  before the `table_row` check in the same `and`; only a true table-row path
+  applies the existing statement-type stop.
+- `_candidate_satisfies_direct_acceptance_contract(...)` checks operation family
+  before preference, loads canonical lists only on a true lookup/single-value
+  path, and keeps all canonical filters before the later aggregate-specific
+  stops. `_candidate_direct_match_strength(...)` calls surface matching only
+  after a truthy aggregate signal and before context/value-role/stage checks.
+- `_score_operand_candidate(...)` keeps canonical preference/list projection in
+  its existing scoring position. `_build_reconciliation_retry_queries(...)`
+  projects query surfaces before canonical preference per missing operand, uses
+  only canonical sections there, and retains stable prepend/dedupe and later
+  binding-policy expansion.
+
+Moving only the first three functions is rejected. It would leave a one-call,
+five-line graph matcher whose only work is composing the selected query
+projection with an existing surface-contract primitive; its matrix would be
+external 16/local zero with graph 9/105 and operand resolution 40/37, splitting
+one semantic boundary to avoid one reviewed public API. Moving all four gives
+one owner-local call without a new edge. Leaving all four graph-owned rejects the
+existing lookup-hint owner without a state, caller, or cycle reason. Surface-
+contract ownership would require a reverse import to operand resolution, which
+already imports surface contracts. Retrieval-hint, row-surface, and new-module
+alternatives do not own ontology operand hints or improve the DAG.
+
+Before production movement, add exactly these four CURRENT-SOURCE methods to
+`FinancialGraphHelperTests`:
+
+- `test_current_source_lookup_preference_projection_pins_segment_short_circuit_coercion_and_exceptions`;
+- `test_current_source_lookup_surface_projections_pin_filtering_identity_laziness_and_exceptions`;
+- `test_current_source_lookup_hint_bindings_pin_defs_calls_dag_imports_and_baseline`;
+- `test_current_source_lookup_hint_callers_pin_args_adoption_order_and_stop`.
+
+They must pin exact 5/14/7/5 spans and signatures, current and projected call
+matrices, direct-name/try-depth placement, dependency/import DAG, zero selected-
+body runtime-domain records, all projection/matching behavior above, the eight
+graph caller contexts, their argument identities, adoption order, laziness, and
+exception stops. Projected post-move gates are focused 4/4, graph-helper/operand-
+resolution owner 127/127, affected ten-module semantic 938/938, import-side-
+effects 19/19, audit 218, and full discovery 1,911/1,911, plus pycompile/fresh
+import and public identity, selected body parity 4/4, all 113 retained graph
+functions, full caller/DAG parity, retired private source/test refs zero, and
+`git diff --check`.
+
 Keep lookup producer-task construction, direct grounding/acceptance, candidate
-winner selection, query assembly, operand direct-match strength, broad scoring,
-retry-query construction, state/evidence, model invocation, artifact/ledger
-mutation, and final sequencing graph-owned. Do not move the 16/18-line candidate
-value-role/stage pair, add wrappers/aliases/callbacks/carriers/flags/trace fields,
-or create a new owner module. No behavior, accuracy, ranking, performance,
-benchmark, schedule, ledger, or Phase 3 completion claim follows from
-`80a37f8` or the next inventory.
+winner selection, generic/retry query assembly, operand direct-match strength,
+broad scoring, candidate/evidence construction and adoption, state/evidence,
+model invocation, artifact/ledger mutation, and final sequencing graph-owned.
+Do not move the 16/18-line candidate value-role/stage pair, add wrappers, aliases,
+callbacks, carriers, flags, trace fields, or create a new owner module. The
+inventory and future relocation establish no behavior, accuracy, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Reviewer Evidence Surface
 

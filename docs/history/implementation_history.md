@@ -4030,7 +4030,6 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
 selected-body baseline, and isolated behavior probes passed; benchmark refresh
 and remote CI were **NOT RUN**.
-
 ### Aggregate-like row role-stage ownership milestone
 
 - `80a37f8` moves the exact 10-line `_aggregate_like_row_stage(...)` and two-line
@@ -4078,3 +4077,50 @@ is the characterize-only lookup-hint projection inventory in
 compare the three pure hint projections with the four-function lookup-surface
 group, freeze exact owner/DAG/behavior/callers/stops/projected gates, and select
 one bounded move or record that the helpers remain graph-owned.
+
+### Lookup-hint projection characterization checkpoint
+
+- A docs-only inventory resolves the exact 5/14/7/5-line lookup-hint projection/
+  match group and all 17 direct `ast.Name` calls in
+  `financial_graph_helpers.py`. Every call has caller `try` depth zero and all
+  four bodies contain no `try`. Current test-method references are 4/2/1/0. No
+  production source or test file moves in this checkpoint.
+- The selected follow-on moves all four definitions as public
+  `lookup_prefers_canonical_statement_rows(...)`,
+  `lookup_canonical_statement_preferences(...)`,
+  `lookup_query_surface_preferences(...)`, and
+  `operand_lookup_surface_match(...)` in `financial_operand_resolution.py`.
+  Calls finish graph-external 7/5/3/1 and owner-local 0/0/1/0, for external 16/
+  local one. Projected function counts are graph helpers public/private 9/104
+  and operand resolution 41/37. Selected spans contain zero of the 218 reviewed
+  runtime-domain records.
+- Preference behavior preserves segment-first short-circuiting, exact concept
+  coercion, one hint lookup, bool projection, identity, and uncaught errors.
+  Canonical/query lists preserve ordered non-deduped filtering, blank/retained
+  stringification counts, new list identity, and type-before-section evaluation.
+  Surface matching preserves one projection call, falsy matcher laziness, exact
+  text/list forwarding, uncoerced return, and uncaught errors.
+- Eight graph caller contexts retain winner-first stopping, generic query label/
+  alias/hint order, producer dual preference checks and adoption, direct-
+  grounding and direct-acceptance boolean order, direct-strength short-circuiting,
+  scoring position, and retry query/canonical-section order. Task construction,
+  candidate admission/scoring, retry assembly, state/evidence, model, artifact/
+  ledger work, and final sequencing remain graph-owned.
+- The operand owner already defines `lookup_hints_for_concept_key(...)`, imports
+  the segment helper and surface-contract module, and does not reach graph.
+  Moving all four adds no edge. Moving only the first three would leave a one-
+  call graph surface composer and split one semantic boundary; surface-contract
+  ownership would reverse the existing operand-to-surface edge. Remaining graph-
+  owned has no state, caller, or DAG justification.
+- Four named CURRENT-SOURCE methods must pass before and after the future move.
+  Projected gates are focused 4/4, graph-helper/operand-resolution owner 127/127,
+  affected ten-module semantic 938/938, import 19/19, audit 218, full 1,911/1,911,
+  pycompile/fresh import and public identity, selected body parity 4/4, all 113
+  retained graph functions, full caller/DAG parity, retired-ref zero, and diff
+  check. Exact names and contracts are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
+selected-body baseline, and isolated behavior probes passed; benchmark refresh
+and remote CI were **NOT RUN**.

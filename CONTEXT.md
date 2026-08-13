@@ -63,10 +63,12 @@ behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는�
 `d1305f8`의 7/15줄 segment-local/segment-metric pair에 이어 `80a37f8`에서
 정확한 10/2줄 aggregate-like row stage/role pair도
 `financial_row_surfaces.py`로 이동했다. Candidate value-role/stage 16/18줄과
-direct/ratio acceptance, matching/scoring은 graph에 남는다. 다음 production
-이동은 아직 선택하지 않았으며 lookup-hint projection 5/14/7/5줄 경계의
-characterize-only inventory가 [Next Work](docs/overview/project_status.md#next-work)의
-단일 우선순위다.
+direct/ratio acceptance, matching/scoring은 graph에 남는다. 완료된
+characterize-only inventory는 lookup-hint projection/match 5/14/7/5줄 네
+함수를 `financial_operand_resolution.py`의 public API로 옮기는 다음
+production 작업을 선택했다. 아직 source/test 이동은 없으며 exact behavior,
+caller/stop, DAG와 projected gate는
+[Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
 
