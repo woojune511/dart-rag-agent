@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
+from src.agent.financial_operation_policies import _query_requests_narrative_context
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
+    EVIDENCE_COMPRESSION_GUIDANCE_POLICY,
+    EVIDENCE_EXTRACTION_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
     FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
@@ -18,6 +21,8 @@ from src.config.retrieval_policy import (
     numeric_section_policy_preferred_sections,
     numeric_section_policy_statement_types,
 )
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState
 
 
 def _section_hint_alias(section: str) -> str:
@@ -165,3 +170,125 @@ def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
     if intent in {"comparison", "trend"}:
         hints.extend(get_financial_ontology().query_hints(query, topic, intent))
     return " ".join(dict.fromkeys(hints))
+
+
+def evidence_extraction_focus_terms(query: str) -> List[str]:
+    extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
+    stopwords = {
+        _normalise_spaces(str(item))
+        for item in (extraction_policy.get("focus_term_stopwords") or ())
+        if _normalise_spaces(str(item))
+    }
+    max_terms = int(extraction_policy.get("max_focus_terms") or 12)
+    token_pattern = str(extraction_policy.get("focus_term_token_pattern") or r"\S+")
+    particle_suffix_pattern = str(extraction_policy.get("focus_term_particle_suffix_pattern") or r"$^")
+    terms: List[str] = []
+
+    def _add(term: str) -> None:
+        cleaned = _normalise_spaces(str(term or "")).strip()
+        if not cleaned:
+            return
+        variants = [cleaned]
+        variants.extend(
+            _normalise_spaces(match)
+            for match in re.findall(r"\(([^)]+)\)", cleaned)
+            if _normalise_spaces(match)
+        )
+        outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+        if outside_parentheses and outside_parentheses != cleaned:
+            variants.append(outside_parentheses)
+        for variant in variants:
+            normalized = _normalise_spaces(variant).strip()
+            normalized = re.sub(particle_suffix_pattern, "", normalized)
+            if len(normalized) < 2 or normalized in stopwords:
+                continue
+            if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
+                continue
+            if normalized not in terms:
+                terms.append(normalized)
+
+    for token in re.findall(token_pattern, _normalise_spaces(str(query or ""))):
+        _add(token)
+        if len(terms) >= max_terms:
+            break
+    return terms[:max_terms]
+
+
+def preferred_section_evidence_subset(
+    evidence_items: List[Dict[str, Any]],
+    state: FinancialAgentState,
+) -> List[Dict[str, Any]]:
+    """Prefer section-aligned narrative evidence when it is already sufficient."""
+    if not evidence_items:
+        return []
+    active_subtask = dict(state.get("active_subtask") or {})
+    operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+    query_type = str(state.get("query_type") or "").strip().lower()
+    format_preference = str(
+        active_subtask.get("format_preference_override")
+        or state.get("format_preference")
+        or ""
+    ).strip().lower()
+    narrative_like = operation_family == "narrative_summary" or query_type in {
+        "qa",
+        "business_overview",
+        "risk",
+    }
+    if not narrative_like or format_preference == "table":
+        return []
+    query = str(state.get("query") or "")
+    preferred_sections = _active_preferred_sections(
+        state,
+        query,
+        str(state.get("topic") or query),
+        str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type") or "qa"),
+    )
+    preferred_markers = [str(item).strip().lower() for item in preferred_sections if str(item).strip()]
+    if not preferred_markers:
+        return []
+
+    def _section_surface(item: Dict[str, Any]) -> str:
+        metadata = dict(item.get("metadata") or {})
+        return _normalise_spaces(
+            " ".join(
+                part
+                for part in (
+                    str(metadata.get("section_path") or ""),
+                    str(metadata.get("section") or ""),
+                    str(item.get("source_anchor") or ""),
+                )
+                if part
+            )
+        ).lower()
+
+    for marker in preferred_markers:
+        marker_items = [item for item in evidence_items if marker in _section_surface(item)]
+        direct_high_preferred = [
+            item
+            for item in marker_items
+            if str(item.get("question_relevance") or "").strip().lower() == "high"
+            and str(item.get("support_level") or "").strip().lower() == "direct"
+        ]
+        if len(direct_high_preferred) >= 2:
+            return marker_items
+    return []
+
+
+def compression_guidance(query_type: str, query: str, coverage: str) -> Dict[str, str]:
+    policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
+    trend_instruction = str(policy.get("trend_instruction") or "")
+    trend_output_style = str(policy.get("trend_output_style") or "")
+    if _query_requests_narrative_context(query):
+        trend_instruction = str(policy.get("trend_context_instruction") or trend_instruction)
+        trend_output_style = str(policy.get("trend_context_output_style") or trend_output_style)
+    instructions = dict(policy.get("instructions") or {})
+    instructions["trend"] = trend_instruction
+    output_styles = dict(policy.get("output_styles") or {})
+    output_styles["trend"] = trend_output_style
+    coverage_notes = dict(policy.get("coverage_notes") or {})
+
+    return {
+        "instruction": str(instructions.get(query_type) or instructions.get("qa") or ""),
+        "output_style": str(output_styles.get(query_type) or output_styles.get("qa") or ""),
+        "coverage_note": str(coverage_notes.get(coverage) or ""),
+    }

@@ -47,8 +47,10 @@ from src.agent.financial_retrieval_pipeline import (
     _sentence_matches_operand_context,
 )
 from src.agent.financial_retrieval_hints import (
-    _active_preferred_sections,
     _desired_statement_types,
+    compression_guidance,
+    evidence_extraction_focus_terms,
+    preferred_section_evidence_subset,
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
@@ -536,47 +538,6 @@ class FinancialAgentEvidenceMixin:
             "anchor_lookup": anchor_lookup,
             "available_anchors": list(anchor_lookup.keys()),
         }
-
-    def _evidence_extraction_focus_terms(self, query: str) -> List[str]:
-        extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
-        stopwords = {
-            _normalise_spaces(str(item))
-            for item in (extraction_policy.get("focus_term_stopwords") or ())
-            if _normalise_spaces(str(item))
-        }
-        max_terms = int(extraction_policy.get("max_focus_terms") or 12)
-        token_pattern = str(extraction_policy.get("focus_term_token_pattern") or r"\S+")
-        particle_suffix_pattern = str(extraction_policy.get("focus_term_particle_suffix_pattern") or r"$^")
-        terms: List[str] = []
-
-        def _add(term: str) -> None:
-            cleaned = _normalise_spaces(str(term or "")).strip()
-            if not cleaned:
-                return
-            variants = [cleaned]
-            variants.extend(
-                _normalise_spaces(match)
-                for match in re.findall(r"\(([^)]+)\)", cleaned)
-                if _normalise_spaces(match)
-            )
-            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
-            if outside_parentheses and outside_parentheses != cleaned:
-                variants.append(outside_parentheses)
-            for variant in variants:
-                normalized = _normalise_spaces(variant).strip()
-                normalized = re.sub(particle_suffix_pattern, "", normalized)
-                if len(normalized) < 2 or normalized in stopwords:
-                    continue
-                if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
-                    continue
-                if normalized not in terms:
-                    terms.append(normalized)
-
-        for token in re.findall(token_pattern, _normalise_spaces(str(query or ""))):
-            _add(token)
-            if len(terms) >= max_terms:
-                break
-        return terms[:max_terms]
 
     def _resolve_anchor_metadata(
         self,
@@ -1726,7 +1687,7 @@ class FinancialAgentEvidenceMixin:
         limit = self._EVIDENCE_CAP_BY_QUERY_TYPE.get(query_type, 6)
         ranked = self._sort_evidence_items(evidence_items)
         if state:
-            preferred_ranked = self._preferred_section_evidence_subset(ranked, state)
+            preferred_ranked = preferred_section_evidence_subset(ranked, state)
             if preferred_ranked:
                 ranked = preferred_ranked
         high_priority = [item for item in ranked if item.get("question_relevance") == "high"]
@@ -1740,66 +1701,6 @@ class FinancialAgentEvidenceMixin:
                 if len(selected) >= limit:
                     return selected
         return selected[:limit]
-
-    def _preferred_section_evidence_subset(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        state: FinancialAgentState,
-    ) -> List[Dict[str, Any]]:
-        """Prefer section-aligned narrative evidence when it is already sufficient."""
-        if not evidence_items:
-            return []
-        active_subtask = dict(state.get("active_subtask") or {})
-        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
-        query_type = str(state.get("query_type") or "").strip().lower()
-        format_preference = str(
-            active_subtask.get("format_preference_override")
-            or state.get("format_preference")
-            or ""
-        ).strip().lower()
-        narrative_like = operation_family == "narrative_summary" or query_type in {
-            "qa",
-            "business_overview",
-            "risk",
-        }
-        if not narrative_like or format_preference == "table":
-            return []
-        query = str(state.get("query") or "")
-        preferred_sections = _active_preferred_sections(
-            state,
-            query,
-            str(state.get("topic") or query),
-            str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type") or "qa"),
-        )
-        preferred_markers = [str(item).strip().lower() for item in preferred_sections if str(item).strip()]
-        if not preferred_markers:
-            return []
-
-        def _section_surface(item: Dict[str, Any]) -> str:
-            metadata = dict(item.get("metadata") or {})
-            return _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(metadata.get("section_path") or ""),
-                        str(metadata.get("section") or ""),
-                        str(item.get("source_anchor") or ""),
-                    )
-                    if part
-                )
-            ).lower()
-
-        for marker in preferred_markers:
-            marker_items = [item for item in evidence_items if marker in _section_surface(item)]
-            direct_high_preferred = [
-                item
-                for item in marker_items
-                if str(item.get("question_relevance") or "").strip().lower() == "high"
-                and str(item.get("support_level") or "").strip().lower() == "direct"
-            ]
-            if len(direct_high_preferred) >= 2:
-                return marker_items
-        return []
 
     def _narrative_driver_groups(self, query: str) -> List[Dict[str, Any]]:
         groups: List[Dict[str, Any]] = narrative_policy_driver_groups(
@@ -3538,25 +3439,6 @@ class FinancialAgentEvidenceMixin:
             "answer": final_answer,
         }
 
-    def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
-        policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
-        trend_instruction = str(policy.get("trend_instruction") or "")
-        trend_output_style = str(policy.get("trend_output_style") or "")
-        if _query_requests_narrative_context(query):
-            trend_instruction = str(policy.get("trend_context_instruction") or trend_instruction)
-            trend_output_style = str(policy.get("trend_context_output_style") or trend_output_style)
-        instructions = dict(policy.get("instructions") or {})
-        instructions["trend"] = trend_instruction
-        output_styles = dict(policy.get("output_styles") or {})
-        output_styles["trend"] = trend_output_style
-        coverage_notes = dict(policy.get("coverage_notes") or {})
-
-        return {
-            "instruction": str(instructions.get(query_type) or instructions.get("qa") or ""),
-            "output_style": str(output_styles.get(query_type) or output_styles.get("qa") or ""),
-            "coverage_note": str(coverage_notes.get(coverage) or ""),
-        }
-
     def _extract_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Convert retrieved docs into claim-level evidence items."""
         docs = state.get("retrieved_docs", [])
@@ -3573,7 +3455,7 @@ class FinancialAgentEvidenceMixin:
         EvidenceExtraction = _evidence_extraction_model()
         structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
-        focus_terms = self._evidence_extraction_focus_terms(str(state.get("query") or ""))
+        focus_terms = evidence_extraction_focus_terms(str(state.get("query") or ""))
         evidence_context = self._build_evidence_context(docs[: min(8, len(docs))], focus_terms=focus_terms)
         anchor_lookup = evidence_context["anchor_lookup"]
         extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
@@ -3686,7 +3568,7 @@ class FinancialAgentEvidenceMixin:
             return entity_table_answer
         selected_evidence = self._select_evidence_for_compression(evidence_items, query_type, state)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
-        guidance = self._compression_guidance(query_type, query, coverage)
+        guidance = compression_guidance(query_type, query, coverage)
 
         compression_llm = self._llm_for_phase("compression")
         CompressionOutput = _compression_output_model()
