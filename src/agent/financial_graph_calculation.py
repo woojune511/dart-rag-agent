@@ -231,7 +231,6 @@ from src.agent import financial_graph_calculation_rendering as calculation_rende
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
     _resolve_candidate_local_unit_hint,
-    _scoped_surface_affinity_priority,
 )
 from src.agent.financial_structured_cells import (
     select_aggregate_structured_cell,
@@ -285,6 +284,7 @@ from src.agent.financial_surface_contracts import (
     _operand_segment_label,
     _text_has_negative_surface,
     _text_has_positive_surface,
+    scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
@@ -7731,7 +7731,7 @@ class FinancialAgentCalculationMixin:
                     schema_score += 4
                     if matched_role.startswith("denominator") and statement_type == "income_statement":
                         schema_score += 6
-            schema_score += _scoped_surface_affinity_priority(
+            schema_score += scoped_surface_affinity_priority(
                 group_items,
                 query=query,
                 topic=topic,

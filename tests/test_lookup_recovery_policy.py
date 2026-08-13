@@ -1570,7 +1570,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "_filter_operand_rows_by_required_surface_contract",
                 side_effect=lambda rows, *_args, **_kwargs: rows,
             ),
-            patch.object(financial_graph_calculation, "_scoped_surface_affinity_priority", return_value=0.0),
+            patch.object(financial_graph_calculation, "scoped_surface_affinity_priority", return_value=0.0),
         ):
             built = agent._build_complete_ratio_operands_from_coherent_context(
                 evidence_items,

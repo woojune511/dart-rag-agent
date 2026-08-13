@@ -9,6 +9,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 import src.agent.financial_graph_helpers as financial_graph_helpers
+import src.agent.financial_graph_calculation as financial_graph_calculation
+import src.agent.financial_graph_evidence as financial_graph_evidence
 import src.agent.financial_graph_planning as financial_graph_planning
 import src.agent.financial_graph_reconciliation as financial_graph_reconciliation
 import src.agent.financial_dependency_projection as financial_dependency_projection
@@ -473,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             (
@@ -1202,7 +1204,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
         self.assertEqual(
             (sum(not node.name.startswith("_") for node in owner_defs), sum(node.name.startswith("_") for node in owner_defs)),
-            (9, 7),
+            (10, 7),
         )
         self.assertEqual(
             {
@@ -1874,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             (
@@ -2828,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 92))
+        self.assertEqual(graph_counts, (9, 91))
         self.assertEqual(row_counts, (9, 15))
 
         graph_row_imports = {
@@ -3870,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             (
@@ -4907,7 +4909,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             (
@@ -6626,7 +6628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 92))
+        self.assertEqual(current_graph_counts, (9, 91))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -8097,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 92))
+        self.assertEqual(graph_counts, (9, 91))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9277,7 +9279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 92))
+        self.assertEqual(graph_counts, (9, 91))
         self.assertEqual(owner_counts, (9, 9))
 
         def imported_names(module_name, imported_module):
@@ -10317,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 92))
+        self.assertEqual(graph_counts, (9, 91))
         self.assertEqual(row_counts, (9, 15))
 
         def imported_names(module_name, imported_module):
@@ -12875,7 +12877,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15744,7 +15746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 92),
+                "financial_graph_helpers": (9, 91),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -18699,14 +18701,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 92),
+            (9, 91),
         )
         self.assertEqual(
             (
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (9, 7),
+            (10, 7),
         )
 
         def imported_modules(tree):
@@ -19184,6 +19186,840 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(operand["nested"], nested)
         self.assertIs(constraints["nested"], nested)
         self.assertIs(report_scope["nested"], nested)
+
+    def test_current_source_scoped_surface_affinity_pins_segment_gate_policy_surface_order_and_scores(self) -> None:
+        owner = financial_surface_contracts
+        affinity = owner.scoped_surface_affinity_priority
+        nested = {"preserve": True}
+        operand = {
+            "binding_policy": {"segment_label": "North", "nested": nested},
+            "nested": nested,
+        }
+        metadata = {
+            "row_label": "row",
+            "semantic_label": "semantic",
+            "table_header_context": "header",
+            "table_row_labels_text": "rows",
+            "table_value_labels_text": "values",
+            "table_summary_text": "adjust",
+            "nested": nested,
+        }
+        item = {
+            "claim": "direct",
+            "raw_row_text": "raw",
+            "quote_span": "quote",
+            "text": "text",
+            "source_context": "source",
+            "metadata": metadata,
+            "nested": nested,
+        }
+        before_operand = deepcopy(operand)
+        before_item = deepcopy(item)
+        events = []
+
+        def segment_label(current_operand):
+            events.append(("segment", current_operand))
+            self.assertIsNot(current_operand, operand)
+            self.assertIs(current_operand["nested"], nested)
+            return "North"
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(value.split())
+
+        policy = {
+            "metric_terms": ["metric"],
+            "scoped_direct_row_markers": ["direct"],
+            "scoped_adjustment_row_markers": ["adjust"],
+            "nested": nested,
+        }
+        with (
+            patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", policy),
+            patch.object(owner, "_operand_segment_label", side_effect=segment_label),
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+        ):
+            score = affinity(
+                [item],
+                query="metric query",
+                topic="topic",
+                required_operands=[operand],
+                require_segment_operand=True,
+                direct_weight=5.0,
+                adjustment_weight=-1.0,
+            )
+
+        self.assertEqual(score, 4.0)
+        self.assertEqual(
+            events,
+            [
+                ("segment", events[0][1]),
+                ("normalize", "metric query topic"),
+                (
+                    "normalize",
+                    "direct raw quote text source row semantic header rows values adjust",
+                ),
+            ],
+        )
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(item, before_item)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(item["nested"], nested)
+        self.assertIs(item["metadata"]["nested"], nested)
+        self.assertIs(policy["nested"], nested)
+
+        class UnusedOperands:
+            def __bool__(self):
+                raise AssertionError("disabled segment gate must not inspect operands")
+
+            def __iter__(self):
+                raise AssertionError("disabled segment gate must not iterate operands")
+
+        with patch.object(
+            owner,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            {
+                "metric_terms": (),
+                "scoped_direct_row_markers": ("direct",),
+                "scoped_adjustment_row_markers": (),
+            },
+        ):
+            self.assertEqual(
+                affinity(
+                    [{"claim": "direct"}],
+                    query="",
+                    topic="",
+                    required_operands=UnusedOperands(),
+                    direct_weight=2.0,
+                ),
+                2.0,
+            )
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("segment miss must stop policy access")
+
+        class FormatBomb:
+            def __format__(self, _format_spec):
+                raise AssertionError("segment miss must stop query formatting")
+
+        class IterBomb:
+            def __iter__(self):
+                raise AssertionError("early gate must stop item iteration")
+
+        with (
+            patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", PolicyBomb()),
+            patch.object(owner, "_operand_segment_label", return_value=""),
+        ):
+            self.assertEqual(
+                affinity(
+                    IterBomb(),
+                    query=FormatBomb(),
+                    topic=FormatBomb(),
+                    required_operands=[operand],
+                    require_segment_operand=True,
+                ),
+                0.0,
+            )
+
+        with patch.object(
+            owner,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            {"metric_terms": ("required",)},
+        ):
+            self.assertEqual(
+                affinity(IterBomb(), query="miss", topic="topic"),
+                0.0,
+            )
+
+        eager_events = []
+        first_operand = {"binding_policy": {"segment_label": "first"}}
+        second_operand = {"binding_policy": {"segment_label": "second"}}
+
+        def operands():
+            eager_events.append("yield-first")
+            yield first_operand
+            eager_events.append("yield-second")
+            yield second_operand
+
+        def first_segment_only(current_operand):
+            eager_events.append("segment")
+            self.assertEqual(current_operand, first_operand)
+            return "first"
+
+        with (
+            patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}),
+            patch.object(owner, "_operand_segment_label", side_effect=first_segment_only),
+        ):
+            self.assertEqual(
+                affinity(
+                    [],
+                    query="",
+                    topic="",
+                    required_operands=operands(),
+                    require_segment_operand=True,
+                ),
+                0.0,
+            )
+        self.assertEqual(eager_events, ["yield-first", "yield-second", "segment"])
+
+    def test_current_source_scoped_surface_affinity_pins_copy_string_truth_weight_and_exceptions(self) -> None:
+        owner = financial_surface_contracts
+        affinity = owner.scoped_surface_affinity_priority
+        events = []
+        nested = {"preserve": True}
+
+        class SurfaceProbe:
+            def __init__(self, label, value):
+                self.label = label
+                self.value = value
+
+            def __bool__(self):
+                events.append(("bool", self.label))
+                return True
+
+            def __str__(self):
+                events.append(("str", self.label))
+                return self.value
+
+        class Accumulator:
+            def __init__(self, weights):
+                self.weights = list(weights)
+
+            def __add__(self, weight):
+                events.append(("add", weight.label))
+                return Accumulator([*self.weights, weight])
+
+        class Weight:
+            def __init__(self, label):
+                self.label = label
+
+            def __radd__(self, value):
+                events.append(("radd", value, self.label))
+                return Accumulator([self])
+
+        term = SurfaceProbe("term", "metric")
+        part = SurfaceProbe("part", "direct")
+        summary = SurfaceProbe("summary", "adjust")
+        direct_marker = SurfaceProbe("direct-marker", "direct")
+        adjustment_marker = SurfaceProbe("adjustment-marker", "adjust")
+        direct_weight = Weight("direct-weight")
+        adjustment_weight = Weight("adjustment-weight")
+        policy = {
+            "metric_terms": [term],
+            "scoped_direct_row_markers": [direct_marker],
+            "scoped_adjustment_row_markers": [adjustment_marker],
+            "nested": nested,
+        }
+        item = {
+            "claim": part,
+            "metadata": {"table_summary_text": summary, "nested": nested},
+            "nested": nested,
+        }
+        before_item = dict(item)
+        with patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", policy):
+            result = affinity(
+                [item],
+                query="metric",
+                topic="",
+                direct_weight=direct_weight,
+                adjustment_weight=adjustment_weight,
+            )
+
+        self.assertIsInstance(result, Accumulator)
+        self.assertEqual(result.weights, [direct_weight, adjustment_weight])
+        self.assertEqual(
+            [event for event in events if event[0] == "str"],
+            [
+                ("str", "term"),
+                ("str", "term"),
+                ("str", "part"),
+                ("str", "part"),
+                ("str", "summary"),
+                ("str", "summary"),
+                ("str", "direct-marker"),
+                ("str", "direct-marker"),
+                ("str", "adjustment-marker"),
+                ("str", "adjustment-marker"),
+            ],
+        )
+        self.assertEqual(
+            [event for event in events if event[0] == "bool"],
+            [
+                ("bool", "part"),
+                ("bool", "part"),
+                ("bool", "summary"),
+                ("bool", "summary"),
+            ],
+        )
+        self.assertEqual(
+            [event for event in events if event[0] in {"radd", "add"}],
+            [("radd", 0.0, "direct-weight"), ("add", "adjustment-weight")],
+        )
+        self.assertEqual(item, before_item)
+        self.assertIs(item["nested"], nested)
+        self.assertIs(item["metadata"]["nested"], nested)
+        self.assertIs(policy["nested"], nested)
+
+        class ItemIterBomb:
+            def __iter__(self):
+                raise AssertionError("query failure must stop item iteration")
+
+        with (
+            patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}),
+            patch.object(owner, "_normalise_spaces", side_effect=RuntimeError("query normalize failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "query normalize failed"):
+                affinity(ItemIterBomb(), query="query", topic="topic")
+
+        class ItemGetBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("item get failed")
+
+        with patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}):
+            with self.assertRaisesRegex(RuntimeError, "item get failed"):
+                affinity([ItemGetBomb()], query="", topic="")
+
+        with (
+            patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}),
+            patch.object(owner, "_operand_segment_label", side_effect=RuntimeError("segment failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment failed"):
+                affinity(
+                    [],
+                    query="",
+                    topic="",
+                    required_operands=[{}],
+                    require_segment_operand=True,
+                )
+
+        class AddBomb:
+            def __radd__(self, _value):
+                raise RuntimeError("weight add failed")
+
+        with patch.object(
+            owner,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            {
+                "metric_terms": (),
+                "scoped_direct_row_markers": ("direct",),
+                "scoped_adjustment_row_markers": (),
+            },
+        ):
+            with self.assertRaisesRegex(RuntimeError, "weight add failed"):
+                affinity(
+                    [{"claim": "direct"}],
+                    query="",
+                    topic="",
+                    direct_weight=AddBomb(),
+                )
+
+    def test_current_source_scoped_surface_affinity_bindings_pin_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_surface_contracts": repo_root / "src" / "agent" / "financial_surface_contracts.py",
+            "financial_graph_calculation": repo_root / "src" / "agent" / "financial_graph_calculation.py",
+            "financial_graph_evidence": repo_root / "src" / "agent" / "financial_graph_evidence.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "scoped_surface_affinity_priority"
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.augassign_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_AugAssign(self, node):
+                self.augassign_depth += 1
+                self.generic_visit(node)
+                self.augassign_depth -= 1
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            called_name,
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                            self.augassign_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(
+            (owner_name, definition.name),
+            ("financial_surface_contracts", "scoped_surface_affinity_priority"),
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 56)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["items"])
+        self.assertEqual(
+            [arg.arg for arg in definition.args.kwonlyargs],
+            [
+                "query",
+                "topic",
+                "required_operands",
+                "require_segment_operand",
+                "direct_weight",
+                "adjustment_weight",
+            ],
+        )
+        self.assertEqual(
+            [None if default is None else ast.unparse(default) for default in definition.args.kw_defaults],
+            [None, None, "None", "False", "0.0", "0.0"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "float")
+        self.assertFalse(any(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)))
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "_normalise_spaces": 2,
+                "_operand_segment_label": 1,
+                "any": 4,
+                "dict": 3,
+                "get": 15,
+                "join": 1,
+                "list": 1,
+                "str": 8,
+                "strip": 1,
+                "tuple": 3,
+            },
+        )
+        self.assertEqual(
+            sorted(calls),
+            sorted(
+                [
+                    (
+                        "financial_graph_calculation",
+                        "_build_complete_ratio_operands_from_coherent_context",
+                        target_name,
+                        "Name",
+                        ("group_items",),
+                        (
+                            ("query", "query"),
+                            ("topic", "topic"),
+                            ("required_operands", "required_operands"),
+                            ("require_segment_operand", "True"),
+                            ("direct_weight", "12.0"),
+                            ("adjustment_weight", "-8.0"),
+                        ),
+                        0,
+                        1,
+                    ),
+                    (
+                        "financial_graph_evidence",
+                        "score",
+                        target_name,
+                        "Name",
+                        ("[item]",),
+                        (
+                            ("query", "query"),
+                            ("topic", "topic"),
+                            ("direct_weight", "2.5"),
+                            ("adjustment_weight", "-1.5"),
+                        ),
+                        0,
+                        1,
+                    ),
+                ]
+            ),
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+                if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
+            },
+            {
+                "financial_graph_helpers": (9, 91),
+                "financial_surface_contracts": (10, 7),
+            },
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_surface_contracts",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        import_owner = "src.agent.financial_surface_contracts"
+        self.assertIn(
+            target_name,
+            imported_names(module_trees["financial_graph_calculation"], import_owner),
+        )
+        self.assertIn(
+            target_name,
+            imported_names(module_trees["financial_graph_evidence"], import_owner),
+        )
+        graph_policy_imports = imported_names(
+            module_trees["financial_graph_helpers"],
+            "src.config.retrieval_policy",
+        )
+        surface_policy_imports = imported_names(
+            module_trees["financial_surface_contracts"],
+            "src.config.retrieval_policy",
+        )
+        self.assertNotIn("STRUCTURED_CELL_AFFINITY_POLICY", graph_policy_imports)
+        self.assertIn("STRUCTURED_CELL_AFFINITY_POLICY", surface_policy_imports)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_path = f"src/agent/{module_paths[owner_name].name}"
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == selected_path
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_scoped_surface_affinity_pins_segment_gate_policy_surface_order_and_scores",
+            "test_current_source_scoped_surface_affinity_pins_copy_string_truth_weight_and_exceptions",
+            "test_current_source_scoped_surface_affinity_bindings_pin_def_calls_dag_imports_and_baseline",
+            "test_current_source_scoped_surface_affinity_callers_pin_gates_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_scoped_surface_affinity_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        target_name = "scoped_surface_affinity_priority"
+        nested = {"preserve": True}
+        evidence_item = {
+            "claim": "direct",
+            "metadata": {
+                "statement_type": "segment_note",
+                "period_labels": [],
+                "table_source_id": "table-1",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        query = "metric query"
+        topic = "topic"
+        evidence_calls = []
+
+        def evidence_affinity(items, **kwargs):
+            evidence_calls.append((items, kwargs))
+            self.assertIsNot(items, evidence_items)
+            self.assertEqual(len(items), 1)
+            self.assertIs(items[0], evidence_item)
+            self.assertIs(kwargs["query"], query)
+            self.assertIs(kwargs["topic"], topic)
+            self.assertEqual(kwargs["direct_weight"], 2.5)
+            self.assertEqual(kwargs["adjustment_weight"], -1.5)
+            return 3.0
+
+        evidence_items = [evidence_item]
+        common_evidence_patches = (
+            patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
+            patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+            patch.object(
+                financial_graph_evidence,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": ("metric",)},
+            ),
+        )
+        with ExitStack() as stack:
+            for current_patch in common_evidence_patches:
+                stack.enter_context(current_patch)
+            stack.enter_context(
+                patch.object(financial_graph_evidence, target_name, side_effect=evidence_affinity)
+            )
+            prioritized = financial_graph_evidence._prioritize_candidate_items(
+                evidence_items,
+                query,
+                topic,
+                report_scope={},
+                query_years=[],
+            )
+        self.assertEqual(prioritized, evidence_items)
+        self.assertIs(prioritized[0], evidence_item)
+        self.assertEqual(len(evidence_calls), 1)
+
+        for statement_type, metric_terms, current_query in (
+            ("income_statement", ("metric",), query),
+            ("segment_note", ("required",), query),
+        ):
+            gated_item = {
+                **evidence_item,
+                "metadata": {**evidence_item["metadata"], "statement_type": statement_type},
+            }
+            stopped_affinity = Mock(
+                side_effect=AssertionError("caller eligibility gate must stop affinity")
+            )
+            with (
+                patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
+                patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+                patch.object(
+                    financial_graph_evidence,
+                    "STRUCTURED_CELL_AFFINITY_POLICY",
+                    {"metric_terms": metric_terms},
+                ),
+                patch.object(financial_graph_evidence, target_name, stopped_affinity),
+            ):
+                self.assertEqual(
+                    financial_graph_evidence._prioritize_candidate_items(
+                        [gated_item],
+                        current_query,
+                        topic,
+                        report_scope={},
+                        query_years=[],
+                    ),
+                    [gated_item],
+                )
+            stopped_affinity.assert_not_called()
+
+        with (
+            patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
+            patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+            patch.object(
+                financial_graph_evidence,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": ("metric",)},
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence affinity failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence affinity failed"):
+                financial_graph_evidence._prioritize_candidate_items(
+                    evidence_items,
+                    query,
+                    topic,
+                    report_scope={},
+                    query_years=[],
+                )
+
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        required_operands = [
+            {
+                "label": "segment",
+                "role": "numerator_1",
+                "required": True,
+                "binding_policy": {"segment_label": "North"},
+                "nested": nested,
+            },
+            {
+                "label": "total",
+                "role": "denominator_1",
+                "required": True,
+                "nested": nested,
+            },
+        ]
+        calculation_items = [
+            {
+                "source_anchor": "anchor-1",
+                "metadata": {"table_source_id": "table-1", "nested": nested},
+                "nested": nested,
+            },
+            {
+                "source_anchor": "anchor-2",
+                "metadata": {"table_source_id": "table-1", "nested": nested},
+                "nested": nested,
+            },
+        ]
+        rows = [
+            {
+                "raw_unit": "KRW",
+                "statement_type": "segment_note",
+                "consolidation_scope": "consolidated",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "raw_unit": "KRW",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        agent._required_operand_rows_from_candidates = Mock(return_value=rows)
+        calculation_calls = []
+
+        def calculation_affinity(items, **kwargs):
+            calculation_calls.append((items, kwargs))
+            self.assertIsNot(items, calculation_items)
+            self.assertEqual(items, calculation_items)
+            self.assertIs(items[0]["nested"], nested)
+            self.assertIs(kwargs["query"], query)
+            self.assertIs(kwargs["topic"], topic)
+            self.assertIs(kwargs["required_operands"], required_operands)
+            self.assertTrue(kwargs["require_segment_operand"])
+            self.assertEqual(kwargs["direct_weight"], 12.0)
+            self.assertEqual(kwargs["adjustment_weight"], -8.0)
+            return 7.0
+
+        with (
+            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "_ratio_operand_rows_collapse_to_same_slot", return_value=False),
+            patch.object(financial_graph_calculation, target_name, side_effect=calculation_affinity),
+        ):
+            adopted = agent._build_complete_ratio_operands_from_coherent_context(
+                calculation_items,
+                required_operands=required_operands,
+                query=query,
+                topic=topic,
+                report_scope={},
+            )
+        self.assertIs(adopted, rows)
+        self.assertEqual(len(calculation_calls), 1)
+
+        for missing, collapsed in ((True, False), (False, True)):
+            stopped_affinity = Mock(
+                side_effect=AssertionError("row gate must stop affinity")
+            )
+            with (
+                patch.object(financial_graph_calculation, "_missing_required_operands", return_value=missing),
+                patch.object(
+                    financial_graph_calculation,
+                    "_ratio_operand_rows_collapse_to_same_slot",
+                    return_value=collapsed,
+                ),
+                patch.object(financial_graph_calculation, target_name, stopped_affinity),
+            ):
+                self.assertEqual(
+                    agent._build_complete_ratio_operands_from_coherent_context(
+                        calculation_items,
+                        required_operands=required_operands,
+                        query=query,
+                        topic=topic,
+                        report_scope={},
+                    ),
+                    [],
+                )
+            stopped_affinity.assert_not_called()
+
+        with (
+            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "_ratio_operand_rows_collapse_to_same_slot", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                target_name,
+                side_effect=RuntimeError("calculation affinity failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "calculation affinity failed"):
+                agent._build_complete_ratio_operands_from_coherent_context(
+                    calculation_items,
+                    required_operands=required_operands,
+                    query=query,
+                    topic=topic,
+                    report_scope={},
+                )
 
 
 if __name__ == "__main__":

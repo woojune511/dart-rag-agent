@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_helpers import (
     _build_generic_metric_aliases,
     _extract_generic_operand_labels,
-    _scoped_surface_affinity_priority,
 )
 from src.agent.financial_aggregate_projection import compose_supported_quantitative_impact_answer
 from src.agent.financial_graph_model_loaders import (
@@ -56,6 +55,7 @@ from src.agent.financial_surface_contracts import (
     _operand_needles,
     _text_has_negative_surface,
     _text_has_positive_surface,
+    scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
@@ -161,7 +161,7 @@ def _prioritize_candidate_items(
         metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
         query_surface = _normalise_spaces(f"{query} {topic}")
         if statement_type == "segment_note" and any(term in query_surface for term in metric_terms):
-            points += _scoped_surface_affinity_priority(
+            points += scoped_surface_affinity_priority(
                 [item],
                 query=query,
                 topic=topic,

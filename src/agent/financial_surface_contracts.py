@@ -7,7 +7,11 @@ from typing import Any, Dict, List, Optional
 
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
-from src.config.retrieval_policy import CONSOLIDATION_SCOPE_POLICY, HELPER_RUNTIME_POLICY
+from src.config.retrieval_policy import (
+    CONSOLIDATION_SCOPE_POLICY,
+    HELPER_RUNTIME_POLICY,
+    STRUCTURED_CELL_AFFINITY_POLICY,
+)
 
 
 def _operand_needles(operand: Dict[str, Any]) -> List[str]:
@@ -19,6 +23,64 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
 def _operand_segment_label(operand: Dict[str, Any]) -> str:
     binding_policy = dict(operand.get("binding_policy") or {})
     return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
+
+
+def scoped_surface_affinity_priority(
+    items: List[Dict[str, Any]],
+    *,
+    query: str,
+    topic: str,
+    required_operands: Optional[List[Dict[str, Any]]] = None,
+    require_segment_operand: bool = False,
+    direct_weight: float = 0.0,
+    adjustment_weight: float = 0.0,
+) -> float:
+    if require_segment_operand and not any(
+        _operand_segment_label(dict(operand or {})) for operand in list(required_operands or [])
+    ):
+        return 0.0
+    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+    metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
+    query_surface = _normalise_spaces(f"{query} {topic}")
+    if metric_terms and not any(term in query_surface for term in metric_terms):
+        return 0.0
+    surface = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for item in items
+            for metadata in [dict(item.get("metadata") or {})]
+            for part in (
+                item.get("claim"),
+                item.get("raw_row_text"),
+                item.get("quote_span"),
+                item.get("text"),
+                item.get("source_context"),
+                metadata.get("row_label"),
+                metadata.get("semantic_label"),
+                metadata.get("table_header_context"),
+                metadata.get("table_row_labels_text"),
+                metadata.get("table_value_labels_text"),
+                metadata.get("table_summary_text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    direct_markers = tuple(
+        str(marker)
+        for marker in (affinity_policy.get("scoped_direct_row_markers") or ())
+        if str(marker)
+    )
+    adjustment_markers = tuple(
+        str(marker)
+        for marker in (affinity_policy.get("scoped_adjustment_row_markers") or ())
+        if str(marker)
+    )
+    score = 0.0
+    if direct_markers and any(marker in surface for marker in direct_markers):
+        score += direct_weight
+    if adjustment_markers and any(marker in surface for marker in adjustment_markers):
+        score += adjustment_weight
+    return score
 
 
 def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
