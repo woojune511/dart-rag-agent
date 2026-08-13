@@ -16,10 +16,10 @@ Last updated: 2026-08-13
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | Three query-focus/source-visible text functions totaling 220 old definition lines moved to `financial_text_surface.py` in `6d54b2f` |
-| What passed? | Focused 10/10, text owner 30/30, affected seven-module semantic set 808/808, import-side-effect 19/19, runtime audit 218, full unittest 1,834/1,834 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest text-ownership changes |
-| What is next? | One characterize-first 202-line structured period-pair projection into `financial_reconciliation_candidates.py`; candidate collection, full operand extraction, state/artifact work, LLM reranking, and final sequencing remain hard stops |
+| What just changed? | The 202-line structured period-pair projection moved to `financial_reconciliation_candidates.py` as a 201-line public owner function in `79a460a` |
+| What passed? | Focused 6/6, candidate owner 14/14, affected seven-module semantic set 787/787, import-side-effect 19/19, runtime audit 218, full unittest 1,840/1,840 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest reconciliation-ownership change |
+| What is next? | One characterize-first 273-line semantic-planner normalization/validation batch into `financial_graph_helpers.py`; LLM invocation, task/state/artifact adoption, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -184,13 +184,30 @@ or an unconfigured `FinancialAgent` invocation.
   Retrieval/reranking, evidence construction, aggregate orchestration, mutable
   state/evidence, artifact/ledger work, and final sequencing remain graph-owned.
   This is ownership relocation, not a behavior claim.
+- Commit `79a460a` moved the former 202-line
+  `_extract_structured_period_pair_rows(...)` body from the reconciliation mixin
+  to public 201-line `extract_structured_period_pair_rows(...)` in
+  `financial_reconciliation_candidates.py`. Its sole exact nine-keyword call
+  remains direct, graph-external, and outside `try`; the old mixin definition
+  and executable private refs are zero. Source is `+207/-204`, net `+3`; tests
+  are `+763/-29`, net `+734`; and the whole commit is `+970/-233`, net `+737`.
+  Reconciliation moved from 1,667 to 1,465 physical lines and the candidate
+  owner from 329 to 534. Six new test methods moved discovery from 1,834 to
+  1,840. The source diff SHA-256 is
+  `8bd82f6adb5e9722771953888dbeef6e129332ae4b749b6483ba46017db7cf3e`.
+  The candidate owner is public/private 8/4, its new graph-helper and row-surface
+  imports are acyclic, and the reviewed runtime-domain baseline remains 218
+  records without a record move. Full operand extraction, candidate collection
+  and selection, LLM reranking, evidence construction, artifact/retry/state
+  mutation, ledger work, and final sequencing remain graph-owned. This is
+  ownership relocation, not a behavior claim.
 - Current physical sizes are: calculation graph 13,464 lines, calculation
   execution 1,074, main graph 938,
   graph helpers 6,269,
   planning 2,048, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 642, operand resolution 3,603,
-  dependency projection 3,417, reconciliation 1,667, reconciliation candidates
-  329, aggregate projection 3,714, runtime trace 1,412, lookup recovery 788,
+  dependency projection 3,417, reconciliation 1,465, reconciliation candidates
+  534, aggregate projection 3,714, runtime trace 1,412, lookup recovery 788,
   task artifacts 1,460, reflection projection
   374, and run projection 302.
 
@@ -210,7 +227,7 @@ Commit-level diffs and validation are kept in
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py`, including base/runtime deterministic operation planning, ontology planning, plan guarding, execution, and value freshness |
 | Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, and direct structured lookup-row/value projection over already supplied evidence |
-| Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
+| Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match, candidate-ID, and structured period-pair projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, shared sentence/token surfaces, query-focus marker projection, and source-visible term preservation |
 | Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
@@ -238,19 +255,19 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, query-focus Seam A 5 / 5; source-visible Seam B 5 / 5; combined 10 / 10; text owner 30 / 30 |
-| Latest semantic regression set | PASS, affected seven-module set 808 / 808 |
+| Latest focused owner checkpoint | PASS, structured period-pair 6 / 6; candidate owner 14 / 14 |
+| Latest semantic regression set | PASS, affected seven-module set 787 / 787 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 218 reviewed records |
-| Full unittest discovery | PASS, 1,834 / 1,834 |
-| Benchmark refresh after latest text-ownership changes | **NOT RUN** |
+| Full unittest discovery | PASS, 1,840 / 1,840 |
+| Benchmark refresh after latest reconciliation-ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_text_surface`,
-`tests.test_financial_retrieval_pipeline`, `tests.test_operation_contracts`,
-`tests.test_financial_aggregate_rank_dedupe`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and
-`tests.test_aggregate_subtask_projection`. `tests.test_import_side_effects`
+The semantic set is `tests.test_financial_reconciliation_candidates`,
+`tests.test_financial_operand_resolution`, `tests.test_financial_task_artifacts`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
+`tests.test_import_side_effects`
 passed separately at 19 / 19; no combined-union run is claimed for this commit.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
@@ -282,70 +299,71 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture work is one characterize-first prepared
-structured period-pair projection into the existing
-`financial_reconciliation_candidates.py` owner. Move reconciliation-private
-`_extract_structured_period_pair_rows(...)` (202 definition-span lines) as
-projected public 201-line `extract_structured_period_pair_rows(...)`. Its sole
-caller remains a direct imported-name call in
-`_extract_structured_operands_from_reconciliation(...)`, graph-external and
-outside `try`, with the exact nine keywords `required_operands`,
-`reconciliation_result`, `candidate_map`, `preferred_statement_types`,
-`constraints`, `query_years`, `start_index`, `operation_family`, and
-`report_scope`. The candidate owner projects from public/private 7/4 to 8/4.
+The sole selected architecture work is one characterize-first semantic-planner
+normalization and validation batch from `financial_graph_planning.py` into its
+existing cross-cutting semantic-planning owner, `financial_graph_helpers.py`.
+Move eight definitions totaling 273 old definition-span lines:
+`_has_single_report_scope(...)` 8, `_llm_plan_preserves_segment_sum_shape(...)`
+25, `_task_concept_role_families(...)` 12,
+`_llm_plan_preserves_analysis_shape(...)` 24,
+`_attach_segment_label_to_resolved_spec(...)` 10,
+`_apply_segment_labels_to_llm_resolved_specs(...)` 80,
+`_align_scope_hints(...)` 41, and `_validate_concept_planner_task(...)` 73.
+Publish the two plan-shape predicates, segment-label projection, scope alignment,
+and planner-task validator without leading underscores; retain the other three
+helpers owner-private. Removing only the two mixin `self` parameters projects
+271 owner lines, public/private 5/3 for this batch and 5/132 for the target.
 
-The function receives prepared operand, match, candidate, constraint, scope,
-and year mappings only. Preserve current-period/prior-period grouping by concept
-then label; first-seen candidate-ID dedupe and structured-ID expansion;
-candidate-kind and direct-acceptance gates; copied metadata/cell/sibling
-surfaces; same-candidate and same-table cross-candidate pair scoring; strict
-first-max tie retention; cell identity and equal-period rejection; table-source
-bonuses; current/prior unit-hint propagation; stable row order and start-index
-increments; handled `(label, role)` pairs; fresh row/set outputs; nested alias
-behavior; caller-input immutability; access laziness; and uncaught exceptions.
+All 16 selected references are direct calls outside `try` blocks. After the
+move, nine remain graph-external and seven become owner-local: segment-sum shape
+1/0, concept-role families 0/2, analysis shape 1/0, segment attachment 0/4,
+segment-label projection 1/0, single-report scope 0/1, scope alignment 5/0, and
+planner-task validation 1/0. Preserve scope-company/year normalization and
+precedence, soft year coercion, receipt-count fallback, plan-shape role checks,
+stable copied task/spec projection, operation-family-specific segment binding,
+ontology and available-concept membership, surface-contract validation, ratio/
+sum/difference/growth role constraints, access laziness, caller-input
+immutability, exact return reasons, and uncaught exceptions.
 
-The target already imports `financial_graph_helpers`; add only
-`_candidate_satisfies_direct_acceptance_contract` on that existing edge and
-`_parse_unstructured_table_row_cells` from `financial_row_surfaces`. Neither
-dependency reaches back to the candidate owner, and the owner does not reach
-`financial_graph_reconciliation`, so the import DAG remains acyclic. The
-selected span has zero reviewed runtime-domain baseline records; audit total
-must remain 218. The graph's two dependency symbols remain live in other
-reconciliation paths, so no projected dead import is claimed.
+The target already owns `_extract_segment_labels_from_query`, normalization,
+typing, and the semantic planning surface. Add only `PLANNING_POLICY` on its
+existing retrieval-policy import and `_report_scope_source_receipts` on its
+existing `financial_scope_policies` edge; no module edge is added and neither
+dependency reaches back to `financial_graph_helpers`. Retire the planning
+module's now-dead `_extract_segment_labels_from_query` and
+`_report_scope_source_receipts` imports. The selected spans contain zero
+reviewed runtime-domain records, so audit total must remain 218.
 
-Before production movement, add exactly six CURRENT-SOURCE methods to
-`tests.test_financial_reconciliation_candidates`: four direct matrices for
-grouping/candidate gates, same-candidate pairing, same-table cross-candidate
-fallback, and
-unit/row/handled/copy/exception behavior; one exact 202-line/one-call/signature/
-keyword/try-depth/DAG/baseline/retired-ref inventory; and one executable
-`_extract_structured_operands_from_reconciliation(...)` caller contract for
-exact arguments, result adoption, row ordering, handled-row skip, input
-identity/no-mutation, and exception stop. Freeze source before public-retarget;
-compatibility wrappers, aliases, and executable retired private refs are
-forbidden.
+Before production movement, add exactly seven CURRENT-SOURCE methods to
+`tests.test_financial_graph_helpers`: direct matrices for scope alignment,
+plan-shape preservation, segment-label projection, and planner-task validation;
+one exact eight-definition/273-line/16-call/signature/try-depth/DAG/dead-import/
+baseline inventory; one executable `_build_llm_concept_numeric_plan(...)`
+validator/segment/scope caller contract; and one executable contract covering
+the remaining scope and plan-shape call placements. Pin exact arguments,
+identity/copy/no-mutation, ordering, adoption, laziness, and exception stop.
+Freeze source before public retarget; wrappers, aliases, callback bridges, and
+executable retired private refs are forbidden.
 
-Projected gates after the six methods are focused 6/6, candidate owner 14/14,
-affected seven-module semantic 787/787, import-side-effect 19/19, runtime audit
-218, full discovery 1,840/1,840, pycompile/fresh import, DAG/body/full-caller
-parity, retired-ref zero, and diff check. The semantic set is
-`tests.test_financial_reconciliation_candidates`,
-`tests.test_financial_operand_resolution`, `tests.test_financial_task_artifacts`,
-`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and
-`tests.test_operation_contracts`.
+Projected gates are focused 7/7, helper owner 12/12, affected eight-module
+semantic 434/434, import-side-effect 19/19, runtime audit 218, full discovery
+1,847/1,847, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+zero, and diff check. The semantic set is `tests.test_financial_graph_helpers`,
+`tests.test_semantic_numeric_plan`, `tests.test_semantic_numeric_planner`,
+`tests.test_reconciliation_plan`, `tests.test_operation_contracts`,
+`tests.test_part_whole_ratio_contract`, `tests.test_concept_runtime_contracts`,
+and `tests.test_structured_operand_extraction`.
 
-This narrowly supersedes the former conservative stop on structured-pair
-projection; full `_extract_structured_operands_from_reconciliation(...)`,
-candidate collection/selection, LLM reranking, evidence construction,
-artifact/retry/state mutation, ledger work, and final sequencing remain graph-
-owned. Continue to reject precision and direct-structured carrier expansions
-that create `financial_graph_helpers` reverse cycles, reconciliation seed
-supplementation that owns vector-store state, compact-ratio/state carriers,
-ontology completion with guarded compatibility placements, bound callbacks,
-and broader state/ledger extraction. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, schedule, or
-Phase 3 completion claim follows.
+LLM/model invocation, query routing, entity/state projection,
+`_build_llm_concept_numeric_plan(...)`, `_plan_exclusive_narrative_task(...)`,
+`_plan_semantic_numeric_tasks(...)`, plan adoption, task/artifact/ledger writes,
+and final sequencing remain graph-owned. Continue to reject evidence-building
+and narrative-evidence mutation, ratio operand assembly that would introduce a
+graph-helper/operand reverse cycle, precision/custom-carrier moves, compact-
+ratio state, ontology compatibility gates, vector-store callbacks, and broader
+state/ledger extraction. No behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark, schedule, or Phase 3
+completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

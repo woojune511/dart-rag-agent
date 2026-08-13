@@ -281,7 +281,7 @@ State-free owner topology:
 | --- | --- |
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
-| `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, and candidate-ID projection; the next selected seam adds only prepared structured period-pair projection, while full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
+| `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
@@ -531,11 +531,18 @@ Aggregate/narrative row의 state-free answer policy owner다.
   열두 call은 external 10/local 2이고 owner public/private 함수 수는 15/4다.
   Focused 10/10, text owner 30/30, semantic 808/808, import 19/19, audit 218과
   full 1,834/1,834가 통과했다.
-- 다음 선택은 reconciliation mixin의 202줄 structured period-pair projection을
-  reconciliation-candidate owner의 projected public 201줄로 이동하는 한 seam이다.
-  유일한 call은 graph external이고, full operand extraction, candidate collection,
-  LLM rerank, evidence/state/artifact/ledger와 final sequencing hard stop은
-  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
+- 완료된 structured period-pair batch는 reconciliation mixin의 202줄을
+  reconciliation-candidate owner의 public 201줄로 옮겼다. 유일한 call은 graph
+  external이고 owner public/private 함수 수는 8/4다. Focused 6/6, candidate
+  owner 14/14, semantic 787/787, import 19/19, audit 218과 full 1,840/1,840가
+  통과했다. Full operand extraction, candidate collection/selection, LLM
+  rerank, evidence/state/artifact/ledger와 final sequencing은 graph에 남는다.
+- 다음 선택은 planning의 scope, plan-shape, segment-label, task-validation
+  정의 273줄을 `financial_graph_helpers.py`의 public 5/owner-private 3, projected
+  271줄로 이동하는 한 batch다. 열여섯 call은 external 9/local 7이 되며
+  LLM/model invocation, plan adoption, task/state/artifact/ledger와 final
+  sequencing hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
+  기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 
@@ -548,6 +555,9 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - source row/evidence id cleanup
 - numeric parsing and unit normalization helpers
 - retrieval hint / operand matching helpers
+- semantic planner scope normalization, plan-shape validation, segment-label
+  projection, and planner-task contract helpers are the sole selected next
+  ownership boundary; model invocation and state/task adoption remain outside
 
 `_preferred_complete_aggregate_subtask_answer`는 compatibility를 위해 여기서
 re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.

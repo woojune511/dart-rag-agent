@@ -3514,25 +3514,45 @@ text owner. The retired stopword alias is zero, the reviewed config constant is
 canonical, and one path-qualified regex record split raises the audit record
 total from 217 to 218 without changing literal/category or occurrence count.
 
-The next structured period-pair projection is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). Projected
-public `extract_structured_period_pair_rows(...)` receives prepared operand,
+The structured period-pair boundary completed in `79a460a`. Public 201-line
+`extract_structured_period_pair_rows(...)` in
+`financial_reconciliation_candidates.py` receives prepared operand,
 reconciliation-result, candidate, preferred-statement, constraint, query-year,
-start-index, operation-family, and optional report-scope values. It must
-preserve role grouping, candidate-ID expansion/dedupe, candidate-kind and
-direct-acceptance gates, copied cell/metadata views, same-candidate then
-same-table cross-candidate pair selection, strict first-max tie behavior,
-identity/period rejection, scoring bonuses, unit-hint propagation, stable row
-and handled-pair order, start-index increments, fresh outputs, nested aliases,
-caller immutability, access laziness, and uncaught exceptions.
+start-index, operation-family, and optional report-scope values. It preserves
+role grouping, candidate-ID expansion/dedupe, candidate-kind and direct-
+acceptance gates, copied cell/metadata views, same-candidate then same-table
+cross-candidate pair selection, strict first-max tie behavior, identity/period
+rejection, scoring bonuses, unit-hint propagation, stable row and handled-pair
+order, start-index increments, fresh outputs, nested aliases, caller
+immutability, access laziness, and uncaught exceptions.
 
-Its sole caller remains `_extract_structured_operands_from_reconciliation(...)`
-and must pass the exact nine keywords outside `try`, adopt paired rows before
-the ordinary operand loop, and skip handled `(label, role)` rows. The move may
-add only the existing-direction direct-acceptance and row-surface dependencies;
-it may not move full operand extraction, candidate collection/selection, LLM
-rerank, evidence construction, artifact/retry/state mutation, ledger work, or
-final sequencing. Compatibility wrappers and aliases are forbidden.
+Its sole `_extract_structured_operands_from_reconciliation(...)` caller passes
+the exact nine keywords outside `try`, adopts paired rows before the ordinary
+operand loop, and skips handled `(label, role)` rows. The old private definition
+and executable source/test refs are zero. Full operand extraction, candidate
+collection/selection, LLM rerank, evidence construction, artifact/retry/state
+mutation, ledger work, and final sequencing remain graph-owned. Compatibility
+wrappers and aliases remain forbidden.
+
+The next semantic-planner normalization and validation batch is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). It moves
+eight state-free definitions from `financial_graph_planning.py` into the
+existing semantic-planning owner `financial_graph_helpers.py`: owner-private
+single-report-scope, concept-role-family, and segment-attachment helpers plus
+public segment-sum/analysis-shape predicates, segment-label projection, scope
+alignment, and planner-task validation. The 273 old definition lines project to
+271 owner lines after removing only two mixin `self` parameters.
+
+The public contracts must preserve company/year normalization and scope
+precedence, receipt-count fallback and soft year coercion, deterministic plan-
+shape and role-family checks, copied segment-label projection with stable
+family-specific assignment, ontology/available-concept/surface validation,
+exact rejection reasons, input immutability, access laziness, and uncaught
+exceptions. All 16 selected calls remain direct and outside `try`; nine stay
+graph-external and seven become owner-local. LLM/model invocation, query
+routing, entity/state projection, task/artifact/ledger writes, plan adoption,
+and final sequencing remain graph-owned. No callback, carrier, wrapper, alias,
+or compatibility bridge is authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

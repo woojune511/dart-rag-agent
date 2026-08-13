@@ -544,19 +544,36 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified. Retrieval/
 reranking, evidence construction, aggregate orchestration, mutable state/
 evidence, artifact/ledger work, and final sequencing remain graph-owned.
 
-The selected follow-on is one 202-line prepared structured period-pair
-projection from `financial_graph_reconciliation.py` into the existing
-`financial_reconciliation_candidates.py` owner as projected public 201-line
+The completed `79a460a` follow-on moved the former 202-line prepared structured
+period-pair projection from `financial_graph_reconciliation.py` into
+`financial_reconciliation_candidates.py` as public 201-line
 `extract_structured_period_pair_rows(...)`. Its sole nine-keyword call remains
-direct, graph-external, and outside `try`; the owner projects from
-public/private 7/4 to 8/4. The target already depends on graph helpers and adds
-only the direct-acceptance symbol plus a cycle-free row-surface import. The
-selected span has no reviewed runtime-domain record, so audit remains 218.
-Full operand extraction, candidate collection/selection, LLM reranking,
-evidence construction, artifact/retry/state mutation, ledger work, and final
-sequencing remain hard stops. Exact behavior, the six-method CURRENT-SOURCE
-gate, projected validation counts, DAG, and rejected cycle/state/callback
-expansions live only in
+direct, graph-external, and outside `try`; the candidate owner is now
+public/private 8/4. Source is `+207/-204`, tests are `+763/-29`, and the whole
+commit is `+970/-233`. Reconciliation moved from 1,667 to 1,465 physical lines,
+the candidate owner from 329 to 534, and six new test methods moved full
+discovery from 1,834 to 1,840. Final gates passed focused 6/6, candidate owner
+14/14, affected semantic 787/787, import 19/19, audit 218, full discovery
+1,840/1,840, pycompile/fresh import, DAG/body/caller parity, retired-ref zero,
+and diff check. Its source diff SHA-256 is
+`8bd82f6adb5e9722771953888dbeef6e129332ae4b749b6483ba46017db7cf3e`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Full operand
+extraction, candidate collection/selection, LLM reranking, evidence
+construction, artifact/retry/state mutation, ledger work, and final sequencing
+remain graph-owned.
+
+The selected follow-on is one 273-line semantic-planner normalization and
+validation batch from `financial_graph_planning.py` into the existing
+cross-cutting semantic-planning owner `financial_graph_helpers.py`. Eight old
+definitions become five public and three owner-private definitions totaling a
+projected 271 lines. Sixteen selected direct calls finish graph-external nine
+and owner-local seven; all remain outside `try`. The move adds no module edge,
+moves no reviewed runtime-domain record, and retires only the planning module's
+now-dead segment-label and report-receipt imports. LLM/model invocation, query
+routing, plan adoption, task/state/artifact/ledger mutation, and final
+sequencing remain hard stops. Exact APIs, behavior, the seven-method
+CURRENT-SOURCE gate, projected validation counts, DAG/dead-import consequences,
+and rejected evidence/cycle/carrier/state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

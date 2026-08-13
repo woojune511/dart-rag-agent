@@ -3367,3 +3367,48 @@ Do not restart broad helper extraction, all-at-once test splitting, MAS feature
 growth, cache serving, or fresh benchmark ingest solely to make the repository
 look more active. Improve the reviewer path and representative demo before
 adding scope.
+
+### Structured period-pair ownership milestone
+
+- `79a460a` moves the former 202-line
+  `_extract_structured_period_pair_rows(...)` definition from
+  `FinancialAgentReconciliationMixin` to public 201-line
+  `extract_structured_period_pair_rows(...)` in
+  `financial_reconciliation_candidates.py`. The sole caller remains a direct
+  imported-name call outside `try` with the exact nine keywords. Literal body
+  and full-caller parity passed after normalizing only the selected call target;
+  the retired private definition and executable source/test refs are zero.
+- Source is `+207/-204`, net `+3`; tests are `+763/-29`, net `+734`; and the
+  whole commit is `+970/-233`, net `+737`. Reconciliation moved from 1,667 to
+  1,465 physical lines, the candidate owner from 329 to 534, and the changed
+  test files grew by 734 physical lines. Six new unittest methods moved full
+  discovery from 1,834 to 1,840. The source diff SHA-256 is
+  `8bd82f6adb5e9722771953888dbeef6e129332ae4b749b6483ba46017db7cf3e`.
+- The candidate owner is public/private 8/4. Its direct-acceptance and row-
+  surface dependencies are existing-direction and acyclic; graph-side imports
+  remain live. The selected span contains no reviewed runtime-domain record, so
+  the audit remains 218 without a baseline change.
+- Final validation passed focused 6/6, candidate owner 14/14, affected seven-
+  module semantic 787/787, import-side-effects 19/19, runtime audit 218, full
+  discovery 1,840/1,840, pycompile/fresh import, DAG/body/full-caller parity,
+  retired-ref zero, and `git diff --check`. No semantic/import union, benchmark
+  refresh, or remote CI run is claimed for this commit.
+
+This milestone changes only prepared structured period-pair ownership. Full
+operand extraction, candidate collection/selection, LLM reranking, evidence
+construction, artifact/retry/state mutation, ledger work, and final sequencing
+remain graph-owned. It proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 273-line
+semantic-planner normalization and validation batch from
+`financial_graph_planning.py` into `financial_graph_helpers.py`. Eight old
+definitions become projected public five plus owner-private three totaling 271
+lines. Sixteen direct calls finish external nine/local seven, no new module edge
+is added, and no reviewed runtime-domain record moves. The exact seven-method
+CURRENT-SOURCE gate, projected validations, behavior contracts, import cleanup,
+and rejected evidence/cycle/carrier/state expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work). LLM/model
+invocation, query routing, plan adoption, task/state/artifact/ledger mutation,
+and final sequencing remain graph-owned.
