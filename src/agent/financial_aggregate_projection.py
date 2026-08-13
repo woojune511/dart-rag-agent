@@ -75,6 +75,8 @@ from src.config.retrieval_policy import (
     CALCULATION_NARRATIVE_POLICY,
     CALCULATION_RENDER_POLICY,
     CALCULATION_SLOT_POLICY,
+    QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
+    QUANTITATIVE_IMPACT_QUERY_TERMS,
 )
 
 if TYPE_CHECKING:
@@ -87,6 +89,236 @@ AggregateStaleRepairTargetResolution = Literal[
     "ambiguous_target",
     "no_target",
 ]
+
+
+def _parse_labeled_numeric_lines(item: Dict[str, Any]) -> List[Dict[str, Any]]:
+    metadata = dict(item.get("metadata") or {})
+    text = str(metadata.get("table_value_labels_text") or "")
+    rows: List[Dict[str, Any]] = []
+    for line_index, line in enumerate(text.splitlines()):
+        cleaned = _normalise_spaces(line)
+        match = re.match(r"^(.+?)\s+(\(?-?\d[\d,]*(?:\.\d+)?\)?%?)$", cleaned)
+        if not match:
+            continue
+        label = _normalise_spaces(match.group(1))
+        raw_value = match.group(2).strip()
+        numeric_text = raw_value.replace(",", "").replace("%", "")
+        negative = numeric_text.startswith("(") and numeric_text.endswith(")")
+        numeric_text = numeric_text.strip("()")
+        try:
+            numeric_value = float(numeric_text)
+        except ValueError:
+            continue
+        if negative:
+            numeric_value *= -1
+        rows.append(
+            {
+                "label": label,
+                "raw_value": raw_value,
+                "value": numeric_value,
+                "unit": str(metadata.get("unit_hint") or "").strip(),
+                "evidence_id": str(item.get("evidence_id") or "").strip(),
+                "metadata": metadata,
+                "claim": str(item.get("claim") or ""),
+                "line_index": line_index,
+            }
+        )
+    return rows
+
+def compose_supported_quantitative_impact_answer(
+    *,
+    query: str,
+    evidence_items: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    query_text = _normalise_spaces(query)
+    if not any(marker in query_text for marker in QUANTITATIVE_IMPACT_QUERY_TERMS):
+        return None
+    policy = dict(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY)
+
+    rows: List[Dict[str, Any]] = []
+    for item in evidence_items:
+        rows.extend(_parse_labeled_numeric_lines(item))
+    if len(rows) < 2:
+        return None
+
+    query_compact = re.sub(r"\s+", "", query_text)
+    quoted_terms = [
+        re.sub(r"\s+", "", term)
+        for term in re.findall(r"[\"'“”‘’](.+?)[\"'“”‘’]", query_text)
+        if str(term).strip()
+    ]
+    primary_denominator_markers = tuple(str(marker) for marker in (policy.get("primary_denominator_markers") or ()))
+    denominator_markers = primary_denominator_markers + tuple(
+        str(marker) for marker in (policy.get("denominator_markers") or ())
+    )
+
+    def label_matches_query(label: str) -> bool:
+        compact = re.sub(r"\s+", "", label)
+        base_compact = re.sub(r"\([^)]*\)", "", compact)
+        for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
+            base_compact = base_compact.replace(drop_term, "")
+        if base_compact and base_compact in query_compact:
+            return True
+        if any(term and (term in compact or compact in term) for term in quoted_terms):
+            return True
+        label_terms = [term for term in _tokenize_terms(label) if len(term) >= 3]
+        return any(term in query_text for term in label_terms)
+
+    current_rows = [
+        row
+        for row in rows
+        if label_matches_query(str(row.get("label") or ""))
+        and str(row.get("metadata", {}).get("period_focus") or "") != "prior"
+    ]
+    if len(current_rows) < 2:
+        return None
+
+    numerator_candidates = [
+        row
+        for row in current_rows
+        if not any(marker in str(row.get("label") or "") for marker in primary_denominator_markers)
+    ]
+    if not numerator_candidates:
+        return None
+    numerator_candidates.sort(
+        key=lambda row: (
+            str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
+            str(row.get("metadata", {}).get("statement_type") or "") == "notes",
+            -int(row.get("line_index") or 0),
+        ),
+        reverse=True,
+    )
+    numerator = numerator_candidates[0]
+
+    denominator_candidates = [
+        row
+        for row in current_rows
+        if row is not numerator
+        and any(marker in str(row.get("label") or "") for marker in denominator_markers)
+        and float(row.get("value") or 0.0) != 0.0
+    ]
+    if not denominator_candidates:
+        return None
+    denominator_candidates.sort(
+        key=lambda row: (
+            str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
+            str(row.get("metadata", {}).get("statement_type") or "") in {"income_statement", "summary_financials"},
+            -int(row.get("line_index") or 0),
+        ),
+        reverse=True,
+    )
+    denominator = denominator_candidates[0]
+
+    numerator_value = abs(float(numerator.get("value") or 0.0))
+    denominator_value = abs(float(denominator.get("value") or 0.0))
+    if denominator_value <= 0:
+        return None
+    ratio = numerator_value / denominator_value * 100.0
+    unit = str(numerator.get("unit") or denominator.get("unit") or "").strip()
+    unit_suffix = unit if unit else ""
+    scope_prefix = (
+        str(policy.get("consolidated_scope_prefix") or "")
+        if str(numerator.get("metadata", {}).get("consolidation_scope") or "") == "consolidated"
+        else ""
+    )
+    numerator_label = str(numerator.get("label") or "").strip()
+    denominator_label = str(denominator.get("label") or "").strip()
+    numerator_raw = str(numerator.get("raw_value") or "").strip()
+    denominator_raw = str(denominator.get("raw_value") or "").strip()
+
+    def _claim_links_labels(claim: str, left_label: str, right_label: str) -> bool:
+        claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
+        left_compact = re.sub(r"\s+", "", _normalise_spaces(left_label))
+        right_compact = re.sub(r"\s+", "", _normalise_spaces(right_label))
+        return bool(claim_compact and left_compact and right_compact and left_compact in claim_compact and right_compact in claim_compact)
+
+    def _label_base(label: str) -> str:
+        compact = re.sub(r"\s+", "", _normalise_spaces(label))
+        compact = re.sub(r"\([^)]*\)", "", compact)
+        for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
+            compact = compact.replace(re.sub(r"\s+", "", drop_term), "")
+        return compact
+
+    relation_markers = tuple(str(marker) for marker in (policy.get("relation_markers") or ()) if str(marker))
+    relation_context_markers = tuple(
+        str(marker)
+        for marker in (
+            tuple(policy.get("primary_denominator_markers") or ())
+            + tuple(policy.get("denominator_markers") or ())
+            + tuple(policy.get("cost_relation_context_markers") or ())
+        )
+        if str(marker)
+    )
+
+    def _claim_has_policy_relation(claim: str, left_label: str) -> bool:
+        claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
+        left_compact = _label_base(left_label)
+        if not (claim_compact and left_compact and left_compact in claim_compact):
+            return False
+        if relation_markers and not any(marker in claim_compact for marker in relation_markers):
+            return False
+        return not relation_context_markers or any(marker in claim_compact for marker in relation_context_markers)
+
+    relation_visible = any(
+        _claim_links_labels(
+            str(row.get("claim") or ""),
+            numerator_label,
+            denominator_label,
+        )
+        for row in (numerator, denominator)
+    ) or any(
+        _claim_has_policy_relation(str(item.get("claim") or item.get("quote_span") or ""), numerator_label)
+        for item in evidence_items
+    )
+    cost_denominator_markers = tuple(str(marker) for marker in (policy.get("cost_denominator_markers") or ()))
+    loss_markers = tuple(str(marker) for marker in (policy.get("loss_markers") or ()))
+    impact_sentence = str(
+        policy.get("scale_only_impact_template")
+        or policy.get("default_impact_sentence")
+        or "{denominator_label}"
+    ).format(denominator_label=denominator_label)
+    if (
+        relation_visible
+        and
+        any(marker in denominator_label for marker in cost_denominator_markers)
+        and any(marker in numerator_label for marker in loss_markers)
+        and numerator_value > 0
+    ):
+        impact_sentence = str(policy.get("cost_loss_impact_template") or "{denominator_label}").format(
+            denominator_label=denominator_label
+        )
+    elif relation_visible and any(marker in denominator_label for marker in cost_denominator_markers):
+        impact_sentence = str(policy.get("cost_impact_template") or "{denominator_label}").format(
+            denominator_label=denominator_label
+        )
+
+    caveat = ""
+    caveat_trigger_terms = tuple(str(marker) for marker in (policy.get("caveat_trigger_terms") or ()))
+    caveat_exception_terms = tuple(str(marker) for marker in (policy.get("caveat_exception_terms") or ()))
+    if any(marker in numerator_label for marker in caveat_trigger_terms) and not any(
+        marker in query_text for marker in caveat_exception_terms
+    ):
+        caveat = str(policy.get("caveat_sentence") or "")
+
+    answer = str(policy.get("answer_template") or "").format(
+        scope_prefix=scope_prefix,
+        numerator_label=numerator_label,
+        numerator_raw=numerator_raw,
+        unit_suffix=unit_suffix,
+        impact_sentence=impact_sentence,
+        denominator_label=denominator_label,
+        denominator_raw=denominator_raw,
+        ratio=ratio,
+        caveat=caveat,
+    )
+    supporting_claim_ids = sorted(
+        {
+            str(numerator.get("evidence_id") or ""),
+            str(denominator.get("evidence_id") or ""),
+        }
+        - {""}
+    )
+    return {"answer": answer, "supporting_claim_ids": supporting_claim_ids}
 
 
 def build_aggregate_calculation_projection(

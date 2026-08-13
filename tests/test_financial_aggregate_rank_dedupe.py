@@ -5,12 +5,1112 @@ from collections import Counter
 from copy import deepcopy
 from unittest.mock import Mock, patch
 
-from src.agent import financial_aggregate_projection, financial_graph, financial_graph_calculation
+from src.agent import (
+    financial_aggregate_projection,
+    financial_graph,
+    financial_graph_calculation,
+    financial_graph_evidence,
+)
 
 
 class FinancialAggregateRankDedupeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+
+    def test_current_source_labeled_numeric_line_parser_pins_rows_copies_and_exceptions(self) -> None:
+        owner = financial_aggregate_projection._parse_labeled_numeric_lines
+        nested = {"preserve": True}
+        item = {
+            "evidence_id": " ev-main ",
+            "claim": "source claim",
+            "metadata": {
+                "table_value_labels_text": (
+                    " Revenue 1,234\n"
+                    "Loss (50)\n"
+                    "Margin 12.5%\n"
+                    "Soft 10\n"
+                    "not numeric"
+                ),
+                "unit_hint": " USD ",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        before = deepcopy(item)
+        events = []
+        real_match = financial_aggregate_projection.re.match
+
+        class SoftFloatMatch:
+            def group(self, index):
+                return "Soft" if index == 1 else "not-a-number"
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def match(pattern, value):
+            events.append(("match", value))
+            if value == "Soft 10":
+                return SoftFloatMatch()
+            return real_match(pattern, value)
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection.re, "match", side_effect=match),
+        ):
+            rows = owner(item)
+
+        self.assertEqual(
+            [(row["label"], row["raw_value"], row["value"], row["line_index"]) for row in rows],
+            [
+                ("Revenue", "1,234", 1234.0, 0),
+                ("Loss", "(50)", -50.0, 1),
+                ("Margin", "12.5%", 12.5, 2),
+            ],
+        )
+        self.assertEqual([row["unit"] for row in rows], ["USD", "USD", "USD"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["ev-main"] * 3)
+        self.assertEqual([row["claim"] for row in rows], ["source claim"] * 3)
+        for row in rows:
+            self.assertIsNot(row["metadata"], item["metadata"])
+            self.assertIs(row["metadata"]["nested"], nested)
+        self.assertEqual(item, before)
+        self.assertIs(item["nested"], nested)
+        self.assertIs(item["metadata"]["nested"], nested)
+        self.assertEqual(
+            [event for event in events if event[0] == "match"],
+            [
+                ("match", "Revenue 1,234"),
+                ("match", "Loss (50)"),
+                ("match", "Margin 12.5%"),
+                ("match", "Soft 10"),
+                ("match", "not numeric"),
+            ],
+        )
+        self.assertEqual(owner({}), [])
+
+        downstream_match = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("line normalization failed"),
+            ),
+            patch.object(financial_aggregate_projection.re, "match", downstream_match),
+            self.assertRaisesRegex(RuntimeError, "line normalization failed"),
+        ):
+            owner({"metadata": {"table_value_labels_text": "Metric 10"}})
+        downstream_match.assert_not_called()
+
+        class MetadataCopyBomb:
+            def keys(self):
+                raise RuntimeError("metadata copy failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+            owner({"metadata": MetadataCopyBomb()})
+
+    def test_current_source_quantitative_impact_composer_pins_gates_selection_and_matching(self) -> None:
+        from collections.abc import Mapping
+
+        owner = financial_aggregate_projection.compose_supported_quantitative_impact_answer
+        nested = {"preserve": True}
+
+        def row(
+            label,
+            value,
+            *,
+            evidence_id,
+            raw_value=None,
+            unit="USD",
+            scope="separate",
+            statement="other",
+            period="current",
+            line_index=0,
+            claim="",
+        ):
+            return {
+                "label": label,
+                "value": value,
+                "raw_value": str(value) if raw_value is None else raw_value,
+                "unit": unit,
+                "evidence_id": evidence_id,
+                "metadata": {
+                    "consolidation_scope": scope,
+                    "statement_type": statement,
+                    "period_focus": period,
+                    "nested": nested,
+                },
+                "claim": claim,
+                "line_index": line_index,
+                "nested": nested,
+            }
+
+        policy = {
+            "primary_denominator_markers": ("Total",),
+            "denominator_markers": ("Cost", "Denom"),
+            "label_drop_terms": ("Drop",),
+            "consolidated_scope_prefix": "C:",
+            "scale_only_impact_template": "scale:{denominator_label}",
+            "default_impact_sentence": "default:{denominator_label}",
+            "cost_denominator_markers": (),
+            "loss_markers": (),
+            "relation_markers": (),
+            "cost_relation_context_markers": (),
+            "caveat_trigger_terms": (),
+            "caveat_exception_terms": (),
+            "caveat_sentence": "",
+            "answer_template": (
+                "{scope_prefix}|{numerator_label}|{numerator_raw}|{unit_suffix}|"
+                "{impact_sentence}|{denominator_label}|{denominator_raw}|{ratio:.2f}|{caveat}"
+            ),
+        }
+        policy_events = []
+
+        class CopyOnlyPolicy(Mapping):
+            def __iter__(self):
+                policy_events.append("iter")
+                return iter(policy)
+
+            def __len__(self):
+                return len(policy)
+
+            def __getitem__(self, key):
+                policy_events.append(("getitem", key))
+                return policy[key]
+
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("policy must be copied before field access")
+
+        numerator_separate = row(
+            "Revenue Drop",
+            99,
+            evidence_id="ev-separate",
+            scope="separate",
+            statement="notes",
+            line_index=0,
+        )
+        numerator_selected = row(
+            "Revenue (current) Drop",
+            -30,
+            raw_value="(30)",
+            evidence_id="ev-num",
+            scope="consolidated",
+            statement="notes",
+            line_index=5,
+        )
+        prior_numerator = row(
+            "Revenue Drop",
+            1000,
+            evidence_id="ev-prior",
+            scope="consolidated",
+            statement="notes",
+            period="prior",
+        )
+        denominator_separate = row(
+            "Total Cost",
+            50,
+            evidence_id="ev-den-separate",
+            scope="separate",
+            statement="summary_financials",
+        )
+        denominator_selected = row(
+            "Total Cost",
+            200,
+            evidence_id="ev-den",
+            unit="KRW",
+            scope="consolidated",
+            statement="income_statement",
+            line_index=7,
+        )
+        evidence_items = [
+            {"evidence_id": "source-a", "nested": nested},
+            {"evidence_id": "source-b", "nested": nested},
+        ]
+        before_evidence = deepcopy(evidence_items)
+        parsed_rows = [
+            [numerator_separate, numerator_selected, prior_numerator],
+            [denominator_separate, denominator_selected],
+        ]
+        before_rows = deepcopy(parsed_rows)
+        parser = Mock(side_effect=parsed_rows)
+
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", parser),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(
+                financial_aggregate_projection,
+                "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY",
+                CopyOnlyPolicy(),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=lambda value: " ".join(str(value).split()),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_tokenize_terms",
+                side_effect=lambda value: str(value).split(),
+            ),
+        ):
+            result = owner(
+                query="impact Revenue TotalCost",
+                evidence_items=evidence_items,
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "answer": "C:|Revenue (current) Drop|(30)|USD|scale:Total Cost|Total Cost|200|15.00|",
+                "supporting_claim_ids": ["ev-den", "ev-num"],
+            },
+        )
+        self.assertEqual(parser.call_count, 2)
+        self.assertTrue(policy_events)
+        self.assertIs(parser.call_args_list[0].args[0], evidence_items[0])
+        self.assertIs(parser.call_args_list[1].args[0], evidence_items[1])
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertEqual(parsed_rows, before_rows)
+        self.assertIs(numerator_selected["nested"], nested)
+        self.assertIs(denominator_selected["metadata"]["nested"], nested)
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("policy must stay lazy")
+
+        lazy_parser = Mock(side_effect=AssertionError("parser must stay lazy"))
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", lazy_parser),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", PolicyBomb()),
+        ):
+            self.assertIsNone(
+                owner(
+                    query="unrelated query",
+                    evidence_items=evidence_items,
+                )
+            )
+        lazy_parser.assert_not_called()
+
+        one_row_parser = Mock(return_value=[numerator_selected])
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", one_row_parser),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", policy),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
+            patch.object(financial_aggregate_projection.re, "sub", side_effect=AssertionError("matching must stay lazy")),
+        ):
+            self.assertIsNone(
+                owner(
+                    query="impact Revenue",
+                    evidence_items=[evidence_items[0]],
+                )
+            )
+
+        token_rows = [
+            row("Token Metric", 10, evidence_id="token"),
+            row("Base Denom", 100, evidence_id="denom"),
+        ]
+        token_calls = []
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", return_value=token_rows),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", policy),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
+            patch.object(
+                financial_aggregate_projection,
+                "_tokenize_terms",
+                side_effect=lambda value: token_calls.append(value) or str(value).split(),
+            ),
+        ):
+            token_result = owner(
+                query="impact Token Denom",
+                evidence_items=[evidence_items[0]],
+            )
+        self.assertIsNotNone(token_result)
+        self.assertEqual(token_calls, ["Token Metric", "Base Denom"])
+
+        quoted_rows = [
+            row("Quoted Metric", 10, evidence_id="quoted"),
+            row("Quoted Denom", 100, evidence_id="quoted-denom"),
+        ]
+        quoted_tokenizer = Mock(side_effect=AssertionError("quoted match must precede tokenization"))
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", return_value=quoted_rows),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", policy),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
+            patch.object(financial_aggregate_projection, "_tokenize_terms", quoted_tokenizer),
+        ):
+            quoted_result = owner(
+                query='impact "Quoted"',
+                evidence_items=[evidence_items[0]],
+            )
+        self.assertIsNotNone(quoted_result)
+        quoted_tokenizer.assert_not_called()
+
+        gate_cases = [
+            (
+                [
+                    row("Total Cost", 10, evidence_id="primary-a"),
+                    row("Total Denom", 20, evidence_id="primary-b"),
+                ],
+                "impact TotalCost TotalDenom",
+            ),
+            (
+                [
+                    row("Metric One", 10, evidence_id="metric-a"),
+                    row("Metric Two", 20, evidence_id="metric-b"),
+                ],
+                "impact MetricOne MetricTwo",
+            ),
+            (
+                [
+                    row("Metric", 10, evidence_id="metric"),
+                    row("Base Denom", 0, evidence_id="zero"),
+                ],
+                "impact Metric BaseDenom",
+            ),
+            (
+                [
+                    row("Metric", 10, evidence_id="metric"),
+                    row("Base Denom", 100, evidence_id="prior", period="prior"),
+                ],
+                "impact Metric BaseDenom",
+            ),
+        ]
+        for gate_rows, gate_query in gate_cases:
+            with self.subTest(gate_query=gate_query, evidence_ids=[row["evidence_id"] for row in gate_rows]):
+                with (
+                    patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", return_value=gate_rows),
+                    patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+                    patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", policy),
+                    patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_tokenize_terms",
+                        side_effect=lambda value: str(value).split(),
+                    ),
+                ):
+                    self.assertIsNone(
+                        owner(
+                            query=gate_query,
+                            evidence_items=[evidence_items[0]],
+                        )
+                    )
+
+    def test_current_source_quantitative_impact_composer_pins_relation_templates_caveat_and_exceptions(self) -> None:
+        owner = financial_aggregate_projection.compose_supported_quantitative_impact_answer
+        nested = {"preserve": True}
+
+        def make_rows(numerator_label="Special Loss", *, claim="", denominator_value=200):
+            return [
+                {
+                    "label": numerator_label,
+                    "value": 20,
+                    "raw_value": "20",
+                    "unit": "",
+                    "evidence_id": "z-numerator",
+                    "metadata": {
+                        "consolidation_scope": "consolidated",
+                        "statement_type": "notes",
+                        "period_focus": "current",
+                        "nested": nested,
+                    },
+                    "claim": claim,
+                    "line_index": 0,
+                },
+                {
+                    "label": "Base Cost",
+                    "value": denominator_value,
+                    "raw_value": "200",
+                    "unit": "USD",
+                    "evidence_id": "a-denominator",
+                    "metadata": {
+                        "consolidation_scope": "consolidated",
+                        "statement_type": "income_statement",
+                        "period_focus": "current",
+                        "nested": nested,
+                    },
+                    "claim": "",
+                    "line_index": 1,
+                },
+            ]
+
+        base_policy = {
+            "primary_denominator_markers": ("Base",),
+            "denominator_markers": ("Cost",),
+            "label_drop_terms": (),
+            "consolidated_scope_prefix": "C:",
+            "scale_only_impact_template": "scale:{denominator_label}",
+            "default_impact_sentence": "default:{denominator_label}",
+            "cost_denominator_markers": ("Cost",),
+            "loss_markers": ("Loss",),
+            "relation_markers": ("causes",),
+            "cost_relation_context_markers": ("Cost",),
+            "cost_loss_impact_template": "cost-loss:{denominator_label}",
+            "cost_impact_template": "cost:{denominator_label}",
+            "caveat_trigger_terms": ("Special",),
+            "caveat_exception_terms": ("except",),
+            "caveat_sentence": " caveat",
+            "answer_template": (
+                "{scope_prefix}{numerator_label}:{numerator_raw}{unit_suffix};"
+                "{impact_sentence};{denominator_label}:{denominator_raw};{ratio:.1f}{caveat}"
+            ),
+        }
+
+        def compose(*, rows, query, evidence_items, policy=None):
+            parser = Mock(return_value=rows)
+            with (
+                patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", parser),
+                patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+                patch.object(
+                    financial_aggregate_projection,
+                    "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY",
+                    base_policy if policy is None else policy,
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "_normalise_spaces",
+                    side_effect=lambda value: " ".join(str(value).split()),
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "_tokenize_terms",
+                    side_effect=lambda value: str(value).split(),
+                ),
+            ):
+                return owner(
+                    query=query,
+                    evidence_items=evidence_items,
+                )
+
+        rows = make_rows()
+        evidence = [{"evidence_id": "relation", "quote_span": "Special Loss causes Base Cost", "nested": nested}]
+        before_rows = deepcopy(rows)
+        before_evidence = deepcopy(evidence)
+        related = compose(
+            rows=rows,
+            query="impact SpecialLoss BaseCost",
+            evidence_items=evidence,
+        )
+        self.assertEqual(
+            related,
+            {
+                "answer": "C:Special Loss:20USD;cost-loss:Base Cost;Base Cost:200;10.0 caveat",
+                "supporting_claim_ids": ["a-denominator", "z-numerator"],
+            },
+        )
+        self.assertEqual(rows, before_rows)
+        self.assertEqual(evidence, before_evidence)
+        self.assertIs(rows[0]["metadata"]["nested"], nested)
+        self.assertIs(evidence[0]["nested"], nested)
+
+        scale_only = compose(
+            rows=make_rows(),
+            query="impact SpecialLoss BaseCost except",
+            evidence_items=[{"claim": "unrelated"}],
+        )
+        self.assertEqual(
+            scale_only["answer"],
+            "C:Special Loss:20USD;scale:Base Cost;Base Cost:200;10.0",
+        )
+
+        linked_rows = make_rows(claim="Special Loss and Base Cost")
+        linked = compose(
+            rows=linked_rows,
+            query="impact SpecialLoss BaseCost",
+            evidence_items=[{"claim": "unrelated"}],
+        )
+        self.assertIn("cost-loss:Base Cost", linked["answer"])
+
+        cost_rows = make_rows("Special Gain", claim="Special Gain and Base Cost")
+        cost = compose(
+            rows=cost_rows,
+            query="impact SpecialGain BaseCost",
+            evidence_items=[{"claim": "unrelated"}],
+        )
+        self.assertIn(";cost:Base Cost;", cost["answer"])
+
+        with (
+            patch.object(financial_aggregate_projection, "_parse_labeled_numeric_lines", return_value=make_rows("Hidden Metric")),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
+            patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", base_policy),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
+            patch.object(
+                financial_aggregate_projection,
+                "_tokenize_terms",
+                side_effect=RuntimeError("tokenization failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "tokenization failed"),
+        ):
+            owner(
+                query="impact unrelated",
+                evidence_items=[{}],
+            )
+
+        with self.assertRaises(ValueError):
+            compose(
+                rows=make_rows(denominator_value="not-numeric"),
+                query="impact SpecialLoss BaseCost",
+                evidence_items=[{}],
+            )
+
+    def test_current_source_quantitative_impact_bindings_pin_defs_calls_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        paths = {
+            "evidence": Path("src/agent/financial_graph_evidence.py"),
+            "calculation": Path("src/agent/financial_graph_calculation.py"),
+            "owner": Path("src/agent/financial_aggregate_projection.py"),
+        }
+        trees = {name: ast.parse(path.read_text(encoding="utf-8-sig")) for name, path in paths.items()}
+        evidence_class = next(
+            node
+            for node in trees["evidence"].body
+            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgentEvidenceMixin"
+        )
+        retired_compose_name = "_" + "compose_supported_quantitative_impact_answer"
+        retired_definitions = {
+            node.name
+            for node in evidence_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in {
+                "_parse_labeled_numeric_lines",
+                retired_compose_name,
+            }
+        }
+        self.assertEqual(retired_definitions, set())
+        definitions = {
+            node.name: node
+            for node in trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in {
+                "_parse_labeled_numeric_lines",
+                "compose_supported_quantitative_impact_answer",
+            }
+        }
+        self.assertEqual(set(definitions), {
+            "_parse_labeled_numeric_lines",
+            "compose_supported_quantitative_impact_answer",
+        })
+        self.assertEqual(
+            definitions["_parse_labeled_numeric_lines"].end_lineno
+            - definitions["_parse_labeled_numeric_lines"].lineno
+            + 1,
+            33,
+        )
+        self.assertEqual(
+            definitions["compose_supported_quantitative_impact_answer"].end_lineno
+            - definitions["compose_supported_quantitative_impact_answer"].lineno
+            + 1,
+            194,
+        )
+        self.assertEqual(
+            [ast.unparse(item) for item in definitions["_parse_labeled_numeric_lines"].decorator_list],
+            [],
+        )
+        self.assertEqual(
+            [arg.arg for arg in definitions["_parse_labeled_numeric_lines"].args.args],
+            ["item"],
+        )
+        compose_args = definitions["compose_supported_quantitative_impact_answer"].args
+        self.assertEqual([arg.arg for arg in compose_args.args], [])
+        self.assertEqual([arg.arg for arg in compose_args.kwonlyargs], ["query", "evidence_items"])
+
+        owner_functions = [node for node in trees["owner"].body if isinstance(node, ast.FunctionDef)]
+        self.assertEqual(sum(not node.name.startswith("_") for node in owner_functions), 76)
+        self.assertEqual(sum(node.name.startswith("_") for node in owner_functions), 12)
+
+        target_names = {
+            "_parse_labeled_numeric_lines",
+            "compose_supported_quantitative_impact_answer",
+        }
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.functions = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.functions.append(node.name)
+                self.generic_visit(node)
+                self.functions.pop()
+
+            def visit_AsyncFunctionDef(self, node):
+                self.visit_FunctionDef(node)
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Attribute):
+                    target = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    target = node.func.id
+                    receiver = None
+                else:
+                    target = ""
+                    receiver = None
+                if target in target_names:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.functions[-1] if self.functions else "<module>",
+                            target,
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((item.arg, ast.unparse(item.value)) for item in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in trees.items():
+            BindingVisitor(module_name).visit(tree)
+        self.assertEqual(
+            sorted(calls),
+            sorted(
+                [
+                    (
+                        "owner",
+                        "compose_supported_quantitative_impact_answer",
+                        "_parse_labeled_numeric_lines",
+                        None,
+                        ("item",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "evidence",
+                        "_validate_answer",
+                        "compose_supported_quantitative_impact_answer",
+                        None,
+                        (),
+                        (("query", "str(state.get('query') or '')"), ("evidence_items", "combined_evidence")),
+                        1,
+                    ),
+                    (
+                        "evidence",
+                        "_validate_answer",
+                        "compose_supported_quantitative_impact_answer",
+                        None,
+                        (),
+                        (
+                            ("query", "str(state.get('query') or '')"),
+                            ("evidence_items", "list(selected_evidence) or list(evidence_items)"),
+                        ),
+                        1,
+                    ),
+                    (
+                        "calculation",
+                        "_apply_initial_aggregate_answer_composition",
+                        "compose_supported_quantitative_impact_answer",
+                        None,
+                        (),
+                        (
+                            ("query", "str(state.get('query') or '')"),
+                            ("evidence_items", "aggregate_evidence_items"),
+                        ),
+                        0,
+                    ),
+                ]
+            ),
+        )
+        self.assertEqual(len(calls), 4)
+        planned_external_calls = [
+            call
+            for call in calls
+            if call[2] == "compose_supported_quantitative_impact_answer"
+            and call[1] != "compose_supported_quantitative_impact_answer"
+        ]
+        planned_owner_local_calls = [
+            call
+            for call in calls
+            if call[2] == "_parse_labeled_numeric_lines"
+            and call[1] == "compose_supported_quantitative_impact_answer"
+        ]
+        self.assertEqual(len(planned_external_calls), 3)
+        self.assertEqual(len(planned_owner_local_calls), 1)
+        self.assertEqual(
+            (
+                definitions["_parse_labeled_numeric_lines"].end_lineno
+                - definitions["_parse_labeled_numeric_lines"].lineno,
+                definitions["compose_supported_quantitative_impact_answer"].end_lineno
+                - definitions["compose_supported_quantitative_impact_answer"].lineno,
+            ),
+            (32, 193),
+        )
+
+        def imported_names(tree, module_name):
+            return {
+                alias.asname or alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        evidence_policy_names = imported_names(trees["evidence"], "src.config.retrieval_policy")
+        owner_policy_names = imported_names(trees["owner"], "src.config.retrieval_policy")
+        self.assertFalse(
+            {"QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", "QUANTITATIVE_IMPACT_QUERY_TERMS"}
+            & evidence_policy_names
+        )
+        self.assertTrue(
+            {"QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", "QUANTITATIVE_IMPACT_QUERY_TERMS"}
+            <= owner_policy_names
+        )
+        self.assertIn("_tokenize_terms", imported_names(trees["owner"], "src.agent.financial_text_surface"))
+
+        module_paths = list(Path("src/agent").glob("*.py"))
+        edges = {}
+        for path in module_paths:
+            module = path.stem
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            edges[module] = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    if node.module.startswith("src.agent."):
+                        edges[module].add(node.module.rsplit(".", 1)[-1])
+                    elif node.module == "src.agent":
+                        edges[module].update(alias.name for alias in node.names)
+
+        def reachable(start, target):
+            pending = [start]
+            visited = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in visited:
+                    continue
+                visited.add(current)
+                pending.extend(edges.get(current, set()) - visited)
+            return False
+
+        self.assertFalse(reachable("financial_aggregate_projection", "financial_graph_evidence"))
+        self.assertIn("financial_aggregate_projection", edges["financial_graph_evidence"])
+        self.assertIn("financial_aggregate_projection", edges["financial_graph_calculation"])
+
+        baseline = json.loads(
+            Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        from src.ops.audit_runtime_domain_terms import collect_runtime_domain_term_occurrences
+
+        selected_hits = [
+            record
+            for record in collect_runtime_domain_term_occurrences()
+            if str(record.get("path") or "").endswith("financial_aggregate_projection.py")
+            and str(record.get("symbol") or "").rsplit(".", 1)[-1]
+            in {
+                "_parse_labeled_numeric_lines",
+                "compose_supported_quantitative_impact_answer",
+            }
+        ]
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_quantitative_impact_callers_pin_args_adoption_retry_and_stop(self) -> None:
+        from types import SimpleNamespace
+
+        nested = {"preserve": True}
+        selected = {"evidence_id": "selected", "claim": "selected claim", "nested": nested}
+        additional = {"evidence_id": "additional", "claim": "additional claim", "nested": nested}
+        state = {
+            "query": "impact query",
+            "query_type": "qa",
+            "compressed_answer": "draft answer",
+            "evidence_items": [selected, additional],
+            "evidence_bullets": ["bullet"],
+            "selected_claim_ids": ["selected"],
+            "nested": nested,
+        }
+        before_state = deepcopy(state)
+
+        class Pipeline:
+            def __init__(self, outputs, events):
+                self.outputs = list(outputs)
+                self.events = events
+
+            def __or__(self, _other):
+                self.events.append("pipe")
+                return self
+
+            def invoke(self, payload):
+                self.events.append(("invoke", payload))
+                return self.outputs.pop(0)
+
+        class ValidationLLM:
+            def __init__(self, pipeline, events):
+                self.pipeline = pipeline
+                self.events = events
+
+            def with_structured_output(self, output_model):
+                self.events.append(("structured", output_model))
+                return self.pipeline
+
+        def build_validation_agent():
+            events = []
+            pipeline = Pipeline(
+                [SimpleNamespace(final_answer="validated answer", sentence_checks=[]), "fallback answer"],
+                events,
+            )
+            validation_llm = ValidationLLM(pipeline, events)
+            select_fallback = Mock(side_effect=AssertionError("selected evidence fallback must stay lazy"))
+            augment = Mock(side_effect=AssertionError("augmentation must stop after quantitative adoption"))
+            agent = SimpleNamespace(
+                _filter_evidence_by_ids=Mock(return_value=[selected]),
+                _select_evidence_for_compression=select_fallback,
+                _format_evidence_for_prompt=Mock(return_value="evidence text"),
+                _llm_for_phase=Mock(return_value=validation_llm),
+                _normalise_sentence_checks=Mock(
+                    return_value={
+                        "kept_claim_ids": ["selected"],
+                        "dropped_claim_ids": ["additional"],
+                        "unsupported_sentences": [],
+                        "sentence_checks": [],
+                        "answer": "validated answer",
+                    }
+                ),
+                _compose_dividend_policy_hybrid_answer=Mock(return_value=None),
+                _augment_narrative_answer_with_supported_drivers=augment,
+            )
+            return agent, pipeline, events, select_fallback, augment
+
+        primary_calls = []
+
+        def primary_target(*, query, evidence_items):
+            primary_calls.append((query, evidence_items))
+            return {"answer": "primary quantitative", "supporting_claim_ids": ["additional", "selected"]}
+
+        primary_agent, primary_pipeline, _events, select_fallback, augment = build_validation_agent()
+        with (
+            patch.object(financial_graph_evidence, "_validation_output_model", return_value=object),
+            patch.object(
+                financial_graph_evidence,
+                "_chat_prompt_template_from_template",
+                return_value=primary_pipeline,
+            ),
+            patch.object(financial_graph_evidence, "_str_output_parser", return_value=object()),
+            patch.object(
+                financial_graph_evidence,
+                "compose_supported_quantitative_impact_answer",
+                side_effect=primary_target,
+            ),
+        ):
+            primary = financial_graph_evidence.FinancialAgentEvidenceMixin._validate_answer(primary_agent, state)
+        self.assertEqual(primary["answer"], "primary quantitative")
+        self.assertEqual(primary["kept_claim_ids"], ["additional", "selected"])
+        self.assertEqual(primary["dropped_claim_ids"], [])
+        self.assertEqual(len(primary_calls), 1)
+        primary_query, combined = primary_calls[0]
+        self.assertEqual(primary_query, "impact query")
+        self.assertEqual([item["evidence_id"] for item in combined], ["selected", "additional"])
+        self.assertIsNot(combined, state["evidence_items"])
+        self.assertIsNot(combined[0], selected)
+        self.assertIsNot(combined[1], additional)
+        self.assertIs(combined[0]["nested"], nested)
+        self.assertIs(combined[1]["nested"], nested)
+        select_fallback.assert_not_called()
+        augment.assert_not_called()
+        self.assertEqual(state, before_state)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(state["evidence_items"][0], selected)
+
+        retry_calls = []
+
+        def retry_target(*, query, evidence_items):
+            retry_calls.append((query, evidence_items))
+            if len(retry_calls) == 1:
+                raise RuntimeError("primary quantitative failed")
+            return {"answer": "fallback quantitative", "supporting_claim_ids": ["selected"]}
+
+        retry_agent, retry_pipeline, _events, _select_fallback, retry_augment = build_validation_agent()
+        with (
+            patch.object(financial_graph_evidence, "_validation_output_model", return_value=object),
+            patch.object(
+                financial_graph_evidence,
+                "_chat_prompt_template_from_template",
+                return_value=retry_pipeline,
+            ),
+            patch.object(financial_graph_evidence, "_str_output_parser", return_value=object()),
+            patch.object(
+                financial_graph_evidence,
+                "compose_supported_quantitative_impact_answer",
+                side_effect=retry_target,
+            ),
+        ):
+            fallback = financial_graph_evidence.FinancialAgentEvidenceMixin._validate_answer(retry_agent, state)
+        self.assertEqual(fallback["answer"], "fallback quantitative")
+        self.assertEqual(len(retry_calls), 2)
+        self.assertEqual([item["evidence_id"] for item in retry_calls[0][1]], ["selected", "additional"])
+        self.assertIsNot(retry_calls[0][1][0], selected)
+        self.assertEqual([item["evidence_id"] for item in retry_calls[1][1]], ["selected"])
+        self.assertIsNot(retry_calls[1][1], state["evidence_items"])
+        self.assertIs(retry_calls[1][1][0], selected)
+        retry_augment.assert_not_called()
+        self.assertEqual(state, before_state)
+        self.assertIs(state["evidence_items"][0], selected)
+
+        events = []
+        target_calls = []
+        evidence_items = [selected, additional]
+        ordered_results = [{"task_id": "task", "nested": nested}]
+        preliminary_projection = {"calculation_result": {"nested": nested}}
+        narrative_docs = [{"page_content": "doc", "nested": nested}]
+        composition_state = {"query": "impact query", "report_scope": {}, "nested": nested}
+        before_inputs = deepcopy(
+            (composition_state, evidence_items, ordered_results, preliminary_projection, narrative_docs)
+        )
+
+        def record(name, result=None):
+            def run(*args, **kwargs):
+                events.append((name, args, kwargs))
+                return result
+
+            return run
+
+        def quantitative_target(*, query, evidence_items):
+            events.append(("quantitative", (), {"query": query, "evidence_items": evidence_items}))
+            target_calls.append((query, evidence_items))
+            return {"answer": "quantitative answer", "supporting_claim_ids": ["selected"]}
+
+        composition_agent = SimpleNamespace(
+            _unresolved_structured_numeric_gap=record("gap", False),
+            _answer_matches_supported_aggregate_subtask=record("matches", False),
+            _compose_growth_narrative_answer=record("growth", None),
+            _compose_entity_table_summary_answer=record("entity", None),
+            _compose_business_technology_focus_answer=record("business", None),
+            _compose_dividend_policy_hybrid_answer=record("dividend", None),
+            _augment_narrative_answer_with_supported_drivers=record("augment", "quantitative answer"),
+            _answer_satisfies_growth_narrative_intent=record("satisfies", True),
+        )
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "coerce_sign_aware_subtraction_answer",
+                side_effect=lambda answer, **_kwargs: events.append(("coerce", (), {})) or answer,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                side_effect=lambda **_kwargs: events.append(("slot", (), {})) or "",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "include_narrative_context_if_needed",
+                side_effect=lambda answer, **_kwargs: events.append(("include", (), {})) or answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "compose_supported_quantitative_impact_answer",
+                side_effect=quantitative_target,
+            ),
+        ):
+            composed, complete_numeric = (
+                financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                    composition_agent,
+                    composition_state,
+                    ordered_results=ordered_results,
+                    preliminary_projection=preliminary_projection,
+                    aggregate_evidence_items=evidence_items,
+                    narrative_docs=narrative_docs,
+                    narrative_context="context",
+                    final_answer="initial answer",
+                    supported_aggregate_answer="",
+                    complete_numeric_answer="numeric answer",
+                    has_narrative_summary=False,
+                    has_growth_rate_result=False,
+                    numeric_answer_locked=False,
+                    planner_feedback="",
+                    deterministic_feedback="",
+                )
+            )
+        self.assertEqual(composed.final_answer, "quantitative answer")
+        self.assertEqual(composed.selected_claim_ids, ["selected"])
+        self.assertTrue(composed.narrative_answer_locked)
+        self.assertEqual(complete_numeric, "numeric answer")
+        self.assertEqual(
+            [event[0] for event in events],
+            ["coerce", "slot", "include", "growth", "entity", "business", "dividend", "quantitative", "augment", "satisfies"],
+        )
+        self.assertEqual(target_calls[0][0], "impact query")
+        self.assertIs(target_calls[0][1], evidence_items)
+        self.assertEqual(
+            (composition_state, evidence_items, ordered_results, preliminary_projection, narrative_docs),
+            before_inputs,
+        )
+        self.assertIs(composition_state["nested"], nested)
+        self.assertIs(evidence_items[0], selected)
+
+        downstream_augment = Mock()
+        downstream_satisfies = Mock()
+        failure_target = Mock(side_effect=RuntimeError("quantitative caller failed"))
+        failure_agent = SimpleNamespace(
+            _unresolved_structured_numeric_gap=Mock(return_value=False),
+            _answer_matches_supported_aggregate_subtask=Mock(return_value=False),
+            _compose_growth_narrative_answer=Mock(return_value=None),
+            _compose_entity_table_summary_answer=Mock(return_value=None),
+            _compose_business_technology_focus_answer=Mock(return_value=None),
+            _compose_dividend_policy_hybrid_answer=Mock(return_value=None),
+            _augment_narrative_answer_with_supported_drivers=downstream_augment,
+            _answer_satisfies_growth_narrative_intent=downstream_satisfies,
+        )
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "coerce_sign_aware_subtraction_answer",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "include_narrative_context_if_needed",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "compose_supported_quantitative_impact_answer",
+                failure_target,
+            ),
+            self.assertRaisesRegex(RuntimeError, "quantitative caller failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                failure_agent,
+                composition_state,
+                ordered_results=ordered_results,
+                preliminary_projection=preliminary_projection,
+                aggregate_evidence_items=evidence_items,
+                narrative_docs=narrative_docs,
+                narrative_context="context",
+                final_answer="initial answer",
+                supported_aggregate_answer="",
+                complete_numeric_answer="numeric answer",
+                has_narrative_summary=False,
+                has_growth_rate_result=False,
+                numeric_answer_locked=False,
+                planner_feedback="",
+                deterministic_feedback="",
+            )
+        downstream_augment.assert_not_called()
+        downstream_satisfies.assert_not_called()
+        failure_target.assert_called_once()
+        self.assertEqual(failure_target.call_args.kwargs["query"], "impact query")
+        self.assertIs(failure_target.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual(
+            (composition_state, evidence_items, ordered_results, preliminary_projection, narrative_docs),
+            before_inputs,
+        )
 
     def test_aggregate_result_rank_preserves_tuple_access_order_and_exceptions(self) -> None:
         rank = financial_aggregate_projection._aggregate_result_rank
@@ -11752,7 +12852,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (75, 11),
+            (76, 12),
         )
         self.assertEqual(len(calls), 3)
         self.assertEqual(noncall_refs, [])
@@ -12600,7 +13700,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (75, 11),
+            (76, 12),
         )
         self.assertEqual(len(calls), 4)
         self.assertEqual(noncall_refs, [])
@@ -13770,7 +14870,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (75, 11),
+            (76, 12),
         )
         owner_symbols = {
             node.name
@@ -14580,7 +15680,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             for node in owner_tree.body
             if isinstance(node, ast.FunctionDef) and node.name.startswith("_")
         ]
-        self.assertEqual((len(owner_public), len(owner_private)), (75, 11))
+        self.assertEqual((len(owner_public), len(owner_private)), (76, 12))
 
         modules = {
             f"src.agent.{path.stem}": path

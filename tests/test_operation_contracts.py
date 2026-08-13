@@ -1161,8 +1161,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_quantitative_impact_answer_uses_retrieved_labeled_values(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._compose_supported_quantitative_impact_answer(
+        result = financial_aggregate_projection.compose_supported_quantitative_impact_answer(
             query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
             evidence_items=[
                 {
@@ -1197,8 +1196,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["supporting_claim_ids"], ["ev_001", "ev_002"])
 
     def test_quantitative_impact_answer_uses_supported_cost_loss_relation(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._compose_supported_quantitative_impact_answer(
+        result = financial_aggregate_projection.compose_supported_quantitative_impact_answer(
             query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
             evidence_items=[
                 {

@@ -81,6 +81,7 @@ from src.agent.financial_aggregate_projection import (
     component_slot_from_dependency_source,
     compose_complete_growth_numeric_answer,
     compose_lookup_list_numeric_answer,
+    compose_supported_quantitative_impact_answer,
     dedupe_aggregate_subtask_results,
     dependency_source_slot_match_score,
     ensure_complete_growth_numeric_answer,
@@ -3784,7 +3785,7 @@ class FinancialAgentCalculationMixin:
                 selected_claim_ids=(dividend_policy_answer or {}).get("supporting_claim_ids") or [],
                 reset_projection_override=True,
             )
-        quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
+        quantitative_impact_answer = compose_supported_quantitative_impact_answer(
             query=str(state.get("query") or ""),
             evidence_items=aggregate_evidence_items,
         )

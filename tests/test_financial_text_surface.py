@@ -2015,7 +2015,6 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             _compose_entity_table_summary_answer=entity,
             _compose_business_technology_focus_answer=business,
             _compose_dividend_policy_hybrid_answer=dividend,
-            _compose_supported_quantitative_impact_answer=quantitative,
             _augment_narrative_answer_with_supported_drivers=augment,
             _answer_satisfies_growth_narrative_intent=satisfies,
         )
@@ -2055,6 +2054,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 financial_graph_calculation.calculation_rendering,
                 "compose_slot_based_difference_answer",
                 slot_compose,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "compose_supported_quantitative_impact_answer",
+                quantitative,
             ),
         ):
             composition_state, complete_numeric_answer = (

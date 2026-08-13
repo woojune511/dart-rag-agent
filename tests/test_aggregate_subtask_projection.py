@@ -5167,7 +5167,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     _compose_entity_table_summary_answer=compose("entity", entity),
                     _compose_business_technology_focus_answer=compose("business", business),
                     _compose_dividend_policy_hybrid_answer=compose("dividend", dividend),
-                    _compose_supported_quantitative_impact_answer=compose("quantitative", quantitative),
+                    quantitative_impact_owner=compose("quantitative", quantitative),
                     _augment_narrative_answer_with_supported_drivers=lambda answer, *_args, **_kwargs: answer,
                     _answer_satisfies_growth_narrative_intent=lambda **_kwargs: True,
                 ),
@@ -5186,6 +5186,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     financial_graph_calculation.calculation_rendering,
                     "compose_slot_based_difference_answer",
                     return_value="",
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "compose_supported_quantitative_impact_answer",
+                    side_effect=agent.quantitative_impact_owner,
                 ),
             ):
                 return financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
@@ -13983,7 +13988,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_defs),
                 sum(name.startswith("_") for name in owner_defs),
             ),
-            (75, 11),
+            (76, 12),
         )
         self.assertEqual(sum(retired_spans.values()), 156)
         self.assertEqual(sum(expected_owner_spans.values()), 153)
