@@ -4674,3 +4674,87 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
 call, DAG, function-count, and selected-body baseline inspection passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Candidate row-context surface ownership milestone
+
+- `78e3508` moves the exact 15-line
+  `_candidate_has_operand_context_surface(...)` and 19-line
+  `_table_row_has_matching_structured_sibling(...)` definitions from
+  `financial_graph_helpers.py` to public
+  `candidate_has_operand_context_surface(...)` and
+  `table_row_has_matching_structured_sibling(...)` in
+  `financial_row_surfaces.py`. Their two calls remain graph-external/owner-local
+  2/0 in direct-match strength and direct grounding; retired executable graph-
+  private source/test refs are zero.
+- Source is `+49/-41`, net `+8`: graph helpers are `+4/-40` and move from 5,682
+  to 5,646 physical lines; row surfaces are `+45/-1` and move from 427 to 471.
+  Tests are `+986/-17`, net `+969`, moving graph-helper tests from 16,984 to
+  17,953. The whole commit is `+1,035/-58`, net `+977`, and four new methods
+  move discovery from 1,931 to 1,935. The source diff SHA-256 is
+  `228c458d7909609f45806214d1d0dcb4f0a0969648582552ba03b93d1e0b1966`.
+- Graph helpers finish public/private 9/93 and row surfaces 9/15. The existing
+  graph-to-row and row-to-surface edges remain acyclic. Both selected bodies
+  preserve literal parity after only public-name changes; all 102 retained graph
+  and 22 retained row-owner functions, both caller expressions, the full agent
+  dependency DAG, public identity 2/2, selected-body parity 2/2, and the 218-
+  record baseline passed without a baseline change.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  metadata copy/no-copy behavior, surface and payload/record order, repeated
+  stringification/strip sites, positive-before-fallback matching,
+  `JSONDecodeError`-only continuation, identities, immutability, uncaught errors,
+  and both callers' gates, short circuits, and exception stops.
+- Validation passed focused 4/4, graph-helper/row-surface owner 82/82, affected
+  eleven-module semantic 1,042/1,042, import-side-effects 19/19, runtime audit
+  218, full discovery 1,935/1,935, pycompile/fresh import, AST body/caller/DAG
+  parity, retired-ref zero, and `git diff --check`. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only candidate row-context ownership. Direct grounding/
+acceptance, candidate matching, direct-match strength, scoring/ranking,
+candidate/evidence adoption, mutable state/evidence, artifacts/ledger, and final
+sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+### Candidate selected-cell projection characterization checkpoint
+
+- A docs-only inventory selects the exact current 21-line
+  `_candidate_selected_cell_for_operand(candidate, *, operand, query_years,
+  period_focus) -> Optional[Dict[str, Any]]` definition in
+  `financial_graph_helpers.py`. It has one direct graph call from deterministic
+  reconciliation with candidate positional, three ordered named arguments, and
+  caller `try` depth zero. No production source or test moves for this
+  projection at this checkpoint.
+- The selected follow-on moves it as public
+  `candidate_selected_cell_for_operand(...)` in
+  `financial_structured_cells.py`. The call projects graph-external one/owner-
+  local zero; the existing seven direct `select_structured_cell(...)` calls
+  project external six/local one. Current function counts are graph helpers
+  9/93 and structured cells 3/4; projected counts are 9/92 and 4/4. The selected
+  span contains zero of the 218 reviewed runtime-domain records.
+- The projection preserves metadata copy before candidate-kind projection,
+  repeated structured-cell `dict(...)` filter/expression calls, input order,
+  structured-before-parser precedence, exact table/evidence-row parser gates,
+  row-text/metadata parser arguments, empty `None`, per-cell `_report_year`
+  overwrite and year-get count, selector argument and return identities,
+  immutability, and every current uncaught error.
+- Caller placement remains graph-owned. Selection occurs only for ranked lookup/
+  single-value direct grounding after period focus and before acceptance.
+  Selection failure stops all later work; acceptance rejection stops signatures
+  and entry fields; acceptance success forwards the identical selected cell to
+  acceptance, both signatures, and selected-value extraction before score and
+  canonical policy.
+- Moving acceptance, signatures, matching/scoring, row/record construction,
+  candidate/evidence adoption, retry assembly, mutable state, artifacts/ledger,
+  or final sequencing is rejected. Four named CURRENT-SOURCE methods and
+  projected focused 4/4, owner 86/86, affected semantic 1,046/1,046, import
+  19/19, audit 218, full 1,939/1,939, public identity/body parity 1/1, retained
+  graph 101/101, retained structured owner 7/7, caller/DAG parity, retired-ref
+  zero, and diff check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
+call, DAG, function-count, and selected-body baseline inspection plus five
+existing structured-cell/direct-acceptance probes passed; benchmark refresh and
+remote CI were **NOT RUN**.

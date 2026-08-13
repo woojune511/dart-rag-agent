@@ -807,30 +807,45 @@ Direct/ratio acceptance, matching, match strength, semantic priority, scoring/
 ranking, candidate/evidence adoption, and graph/artifact/ledger state remain
 hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 15/19-line `_candidate_has_operand_context_surface(...)` and
-`_table_row_has_matching_structured_sibling(...)` pair from graph helpers to
-public `candidate_has_operand_context_surface(...)` and
+The completed `78e3508` follow-on moved the exact current 15/19-line candidate
+operand-context/structured-sibling pair from graph helpers to public
+`candidate_has_operand_context_surface(...)` and
 `table_row_has_matching_structured_sibling(...)` in
 `financial_row_surfaces.py`. Their two direct calls finish graph-external/local
-2/0 in direct-match strength and direct grounding. The row owner already owns
-operand text matching and has a one-way surface-contract edge; adding positive-
-surface matching on that edge plus standard-library `json` introduces no reverse
-dependency. Projected function counts are graph helpers 9/93 and row surfaces
-9/15, and both selected spans contain zero of 218 reviewed domain records.
+2/0 in direct-match strength and direct grounding. Source is `+49/-41`, tests
+`+986/-17`, and the whole commit `+1,035/-58`; graph helpers moved from 5,682
+to 5,646 lines and row surfaces from 427 to 471. Focused 4/4, owner 82/82,
+affected semantic 1,042/1,042, import 19/19, audit 218, full 1,935/1,935,
+pycompile/fresh import/public identity, body/retained/caller/DAG parity, retired
+executable private refs zero, and diff check passed. The source diff SHA-256 is
+`228c458d7909609f45806214d1d0dcb4f0a0969648582552ba03b93d1e0b1966`.
+Direct grounding/acceptance, matching, match strength, scoring/ranking,
+candidate/evidence adoption, and graph/artifact/ledger state remain hard stops.
 
-Moving direct grounding/acceptance, matching or strength policy, semantic
-priority, scoring/ranking, row/record construction, candidate/evidence adoption,
-or plan/state/artifact/ledger mutation is rejected. Exact metadata copy versus
-no-copy behavior, context-part and payload/record/surface order, repeated string/
-strip evaluation, positive-before-fallback matching, `JSONDecodeError`-only soft
-continuation, both caller short-circuits/stops, four required CURRENT-SOURCE
-methods, and projected focused 4/4, owner 82/82, affected semantic 1,042/1,042,
-import 19/19, audit 218, and full 1,935/1,935 gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 21-line `_candidate_selected_cell_for_operand(...)` definition from
+graph helpers to public `candidate_selected_cell_for_operand(...)` in
+`financial_structured_cells.py`. Its sole direct call remains in deterministic
+reconciliation after period-focus resolution and before direct acceptance. The
+structured owner already owns `select_structured_cell(...)` and reaches row
+parsing through an existing one-way edge; graph already reaches both owners, so
+no reverse dependency is introduced. Projected function counts are graph
+helpers 9/92 and structured cells 4/4. The moved call finishes graph-external/
+local 1/0, the seven selector calls finish external/local 6/1, and the selected
+span contains zero of 218 reviewed domain records.
+
+Moving direct acceptance, logical/family signatures, matching/scoring, row/
+record construction, candidate/evidence adoption, retry assembly, or plan/
+state/artifact/ledger mutation is rejected. Exact metadata and candidate access,
+repeated structured-cell copies, structured-before-parser precedence, parser
+kind gates, empty return, per-cell report-year overwrite, selector argument/
+return identity, sole-caller gates/order/stops, four required CURRENT-SOURCE
+methods, and projected focused 4/4, owner 86/86, affected semantic 1,046/1,046,
+import 19/19, audit 218, and full 1,939/1,939 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this row-context pair at the characterization
-checkpoint; it is the sole next priority, and this plan maintains no competing
-queue.
+or test movement has occurred for this selected-cell projection at the
+characterization checkpoint; it is the sole next priority, and this plan
+maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

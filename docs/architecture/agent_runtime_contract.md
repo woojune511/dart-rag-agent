@@ -4228,66 +4228,88 @@ retained graph 104/104, retained row 20/20, all 22 callers, DAG parity, retired-
 ref zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote CI
 remains unverified.
 
-The new characterize-only candidate row-context inventory selects the current
-15-line `_candidate_has_operand_context_surface(candidate, operand) -> bool`
-and 19-line `_table_row_has_matching_structured_sibling(metadata, operand) ->
-bool` graph definitions for a future public move to `financial_row_surfaces.py`
-as `candidate_has_operand_context_surface(...)` and
-`table_row_has_matching_structured_sibling(...)`. No production source or test
-has moved for this pair at this checkpoint. They project already supplied text/
-serialized row surfaces and do not own direct admission, match strength,
-scoring/ranking, candidate/evidence adoption, or graph state.
+The candidate row-context ownership boundary completed in `78e3508`. The exact
+current 15/19-line graph-helper definitions now live in
+`financial_row_surfaces.py` as public
+`candidate_has_operand_context_surface(...)` and
+`table_row_has_matching_structured_sibling(...)`. Their two direct `ast.Name`
+calls remain graph-external in direct-match strength and direct grounding with
+two positional arguments, no keywords, and caller `try` depth zero; owner-local
+calls and retired executable graph-private refs are zero.
 
-Candidate operand-context projection first shallow-copies
-`candidate.get("metadata") or {}`. It assembles semantic aliases, column-header
-chain, table-row labels, table summary, row text, and candidate text in that
-order. Iterable members and then assembled parts retain their current repeated
-`str(...).strip()` evaluation, blank filtering, and one-space join. The positive
-surface contract is evaluated first; operand text matching is reached only
-after a false positive-contract result. The exact `context_text` value and the
-original operand object pass to both owners.
+The operand-context projection preserves metadata shallow copy, semantic-alias/
+column-header/table-row/table-summary/row/candidate-text order, repeated member
+and assembled-part stringification/strip behavior, blank filtering, one-space
+join, positive-before-fallback matching, operand identity, and all uncaught
+errors. Structured-sibling projection preserves no-copy metadata access,
+row-record-before-value-record payload order, blank skipping,
+`JSONDecodeError`-only continuation, record/surface order, first-hit short
+circuit, operand identity, and all other uncaught JSON-shape/mapping/iteration/
+string/matcher errors. Both callers preserve their gates, order, and exception
+stops. Source moved `+49/-41`, tests `+986/-17`, and the whole commit
+`+1,035/-58`; graph helpers finish at 5,646 lines and public/private 9/93, while
+row surfaces finish at 471 and 9/15. The source diff SHA-256 is
+`228c458d7909609f45806214d1d0dcb4f0a0969648582552ba03b93d1e0b1966`.
+Focused 4/4, owner 82/82, affected semantic 1,042/1,042, import 19/19, audit 218,
+full 1,935/1,935, pycompile/fresh import/public identity 2/2, selected-body 2/2,
+retained graph 102/102, retained row 22/22, both callers, DAG parity, retired-ref
+zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote CI
+remains unverified.
 
-Structured-sibling projection does not copy metadata. It checks
-`table_row_records_json` before `table_value_records_json`, applies the current
-`str(metadata.get(key) or "").strip()` access, and skips blank payloads. Only
-`json.JSONDecodeError` is soft and continues to the next payload. Parsed records
-retain input order, and each record's surfaces remain row label, semantic label,
-joined row headers, then joined semantic aliases. Blank surfaces are skipped;
-operand matching short-circuits the first surface, record, or payload hit and
-false is returned only after both positions are exhausted.
+The new characterize-only candidate selected-cell inventory selects the current
+21-line `_candidate_selected_cell_for_operand(candidate, *, operand,
+query_years, period_focus) -> Optional[Dict[str, Any]]` graph definition for a
+future public move to `financial_structured_cells.py` as
+`candidate_selected_cell_for_operand(...)`. No production source or test has
+moved for this projection at this checkpoint. It prepares cells from an already
+supplied candidate and delegates selection; it does not own candidate matching,
+direct acceptance, scoring/ranking, evidence adoption, retry sequencing, or
+graph state.
 
-Both projections preserve raw mapping and iterable behavior, `or` truth-value
-semantics, repeated stringification/stripping, shallow-copy and nested identity
-where applicable, input immutability, and every current uncaught mapping,
-iteration, truth-value, stringification, join, JSON-shape, surface-contract, and
-matcher error. The existing `JSONDecodeError` catch may not be broadened.
+The projection shallow-copies `candidate.get("metadata") or {}` before
+stringifying and stripping `candidate_kind`. Its structured-cell comprehension
+retains input order and deliberately evaluates `dict(cell)` in both the filter
+and expression for each retained cell, but only in the filter for a false copy.
+Only when no structured cell survives and kind is exactly `table_row` or
+`evidence_row` does it call `_parse_unstructured_table_row_cells(...)` with
+stringified row text and the metadata copy. Other kinds skip the parser, and an
+empty structured/parser result returns `None`.
 
-Each helper has one direct graph call with two positional arguments, no
-keywords, and caller `try` depth zero. Direct grounding reaches the sibling
-projection only for lookup/single-value table rows after report/year gates and
-before the row-text delta gate; a hit rejects immediately, a miss reaches the
-delta gate, and an exception stops the caller. Direct strength reaches the
-context projection only after a truthy aggregate signal and successful lookup-
-surface match, before that clause's value-role/stage checks. A miss skips those
-checks but still reaches the later segment-combination path; a hit reaches them;
-an exception stops the caller.
+Each retained or parsed cell is then copied by mapping unpack in order and its
+`_report_year` is overwritten by `metadata.get("year")`, evaluated once per
+cell. `select_structured_cell(...)` receives the prepared list as its only
+positional argument and the original operand, query-year list, and period-focus
+objects as ordered keyword arguments; its result returns by identity. Raw
+mapping, iteration, unpack, `or`/container truth-value behavior, repeated copies,
+stringification/strip, shallow nested identity, immutability, and every current
+uncaught access/copy/parser/year/selector error remain part of the contract.
 
-The row owner already owns operand text matching and reaches surface contracts
-on an existing one-way edge; it adds only standard-library `json` and positive-
-surface matching on that edge. Graph reaches row surfaces and row surfaces do
-not reach graph. Projected counts are graph helpers 9/93 and row surfaces 9/15,
-calls external two/local zero, and both selected spans have zero reviewed
-runtime-domain records. Moving caller bodies, direct grounding/acceptance,
-matching or strength policy, semantic priority, scoring/ranking, row/record
-construction, candidate/evidence adoption, or graph/artifact/ledger state is
-rejected. Four named CURRENT-SOURCE methods and exact contracts remain solely
-in [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 82/82, affected semantic 1,042/1,042, import 19/19,
-audit 218, full 1,935/1,935, pycompile/fresh import/public identity 2/2,
-selected-body 2/2, retained graph 102/102, retained row 22/22, full caller/DAG
-parity, retired executable graph-private refs zero, and diff check. Static AST/
-call/DAG and selected-body baseline inventory passed; benchmark refresh and
-remote CI were **NOT RUN**.
+The sole direct call is in `_deterministic_reconcile_task(...)`, with one
+positional candidate, three named selection arguments, and caller `try` depth
+zero. It is reached only for a nonempty ranked set in lookup/single-value direct
+grounding, after period-focus resolution and before direct acceptance. Selector
+failure stops acceptance and entry construction; acceptance rejection stops
+logical/family signatures and all later entry fields. Acceptance success passes
+the identical selected cell to acceptance, both signatures, and value
+extraction before scoring and canonical-winner policy. Current/projected counts
+are graph helpers 9/93 to 9/92 and structured cells 3/4 to 4/4. The moved call
+finishes graph-external one/local zero, while the seven existing direct
+`select_structured_cell(...)` calls finish external six/local one. The selected
+span has zero reviewed runtime-domain records, and the existing graph-to-
+structured and structured-to-row edges remain acyclic.
+
+Moving direct acceptance, signature construction, matching/scoring, row/record
+construction, evidence adoption, retry assembly, or graph/artifact/ledger state
+is rejected. Four named CURRENT-SOURCE methods and exact contracts remain
+solely in
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 86/86, affected semantic 1,046/1,046, import 19/19,
+audit 218, full 1,939/1,939, pycompile/fresh import/public identity 1/1,
+selected-body 1/1, retained graph 101/101, retained structured owner 7/7, full
+caller/DAG parity, retired executable graph-private refs zero, and diff check.
+Static AST/call/DAG and selected-body baseline inventory plus five existing
+structured-cell/direct-acceptance probes passed; benchmark refresh and remote
+CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
