@@ -7498,7 +7498,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(financial_graph_reconciliation, "active_subtask_with_sibling_lookup_surfaces", side_effect=active_owner),
             patch.object(financial_graph_reconciliation, "_query_years_from_state", side_effect=years_owner),
             patch.object(agent, "_build_reconciliation_candidates", side_effect=candidate_owner),
-            patch.object(agent, "_extract_structured_period_pair_rows", side_effect=pair_owner),
+            patch.object(financial_graph_reconciliation, "extract_structured_period_pair_rows", side_effect=pair_owner),
             patch.object(financial_graph_reconciliation, "expand_structured_candidate_ids", side_effect=expand_owner),
             patch.object(financial_graph_reconciliation, "repair_note_operand_units_from_same_block", side_effect=repair_owner),
         ):
@@ -7514,7 +7514,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(financial_graph_reconciliation, "active_subtask_with_sibling_lookup_surfaces", return_value=active_subtask),
             patch.object(financial_graph_reconciliation, "_query_years_from_state", return_value=[]),
             patch.object(agent, "_build_reconciliation_candidates", return_value=[]),
-            patch.object(agent, "_extract_structured_period_pair_rows", return_value=([], set())),
+            patch.object(financial_graph_reconciliation, "extract_structured_period_pair_rows", return_value=([], set())),
             patch.object(financial_graph_reconciliation, "expand_structured_candidate_ids", return_value=[]),
             patch.object(
                 financial_graph_reconciliation,

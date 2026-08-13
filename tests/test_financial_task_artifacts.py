@@ -1375,8 +1375,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_build_reconciliation_candidates",
             side_effect=candidates_owner,
         ), patch.object(
-            agent,
-            "_extract_structured_period_pair_rows",
+            financial_graph_reconciliation,
+            "extract_structured_period_pair_rows",
             side_effect=pair_owner,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1449,8 +1449,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_build_reconciliation_candidates",
             return_value=[],
         ), patch.object(
-            agent,
-            "_extract_structured_period_pair_rows",
+            financial_graph_reconciliation,
+            "extract_structured_period_pair_rows",
             return_value=([], set()),
         ), patch.object(
             financial_graph_reconciliation,
@@ -1491,8 +1491,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_build_reconciliation_candidates",
             return_value=[],
         ), patch.object(
-            agent,
-            "_extract_structured_period_pair_rows",
+            financial_graph_reconciliation,
+            "extract_structured_period_pair_rows",
             return_value=([], set()),
         ), patch.object(
             financial_graph_reconciliation,
@@ -1532,8 +1532,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_build_reconciliation_candidates",
             return_value=[],
         ), patch.object(
-            agent,
-            "_extract_structured_period_pair_rows",
+            financial_graph_reconciliation,
+            "extract_structured_period_pair_rows",
             return_value=([], set()),
         ), patch.object(
             financial_graph_reconciliation,
