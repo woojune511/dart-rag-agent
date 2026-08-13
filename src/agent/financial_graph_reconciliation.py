@@ -24,12 +24,12 @@ from src.agent.financial_graph_helpers import (
     _candidate_satisfies_ratio_component_acceptance_contract,
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
-    _operand_period_focus,
     _query_years_from_state,
     _score_operand_candidate,
     _select_aggregate_structured_cell,
     _select_structured_cell,
 )
+from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_operand_resolution import (
     candidate_row_block_signature,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
@@ -457,7 +457,7 @@ class FinancialAgentReconciliationMixin:
                     [enriched_cell],
                     operand=operand,
                     query_years=query_years,
-                    period_focus=_operand_period_focus(operand, period_focus),
+                    period_focus=operand_period_focus(operand, period_focus),
                 )
                 if not selected_cell:
                     continue
@@ -680,14 +680,14 @@ class FinancialAgentReconciliationMixin:
                             cells,
                             operand=operand,
                             query_years=query_years,
-                            period_focus=_operand_period_focus(operand, period_focus),
+                            period_focus=operand_period_focus(operand, period_focus),
                         )
                     if not current_cell:
                         current_cell = _select_structured_cell(
                             cells,
                             operand=operand,
                             query_years=query_years,
-                            period_focus=_operand_period_focus(operand, period_focus),
+                            period_focus=operand_period_focus(operand, period_focus),
                         )
                     if not current_cell:
                         continue
@@ -798,14 +798,14 @@ class FinancialAgentReconciliationMixin:
                                 cells,
                                 operand=operand,
                                 query_years=query_years,
-                                period_focus=_operand_period_focus(operand, period_focus),
+                                period_focus=operand_period_focus(operand, period_focus),
                             )
                         if not current_cell:
                             current_cell = _select_structured_cell(
                                 cells,
                                 operand=operand,
                                 query_years=query_years,
-                                period_focus=_operand_period_focus(operand, period_focus),
+                                period_focus=operand_period_focus(operand, period_focus),
                             )
                         if not current_cell:
                             continue

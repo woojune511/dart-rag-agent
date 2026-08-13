@@ -6,7 +6,10 @@ import re
 from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import CONSOLIDATION_SCOPE_POLICY
+from src.config.retrieval_policy import (
+    CONSOLIDATION_SCOPE_POLICY,
+    GENERIC_PERIOD_OPERAND_POLICY,
+)
 
 
 def _desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> str:
@@ -58,6 +61,50 @@ def known_consolidation_scope_value(*values: Any) -> str:
         if marker_matches:
             return max(marker_matches)[1]
     return ""
+
+
+def operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> List[int]:
+    hint = str(operand.get("period_hint") or "").strip()
+    years: List[int] = []
+    for token in re.findall(r"20\d{2}", f"{hint} {operand.get('label') or ''}"):
+        year = int(token)
+        if year not in years:
+            years.append(year)
+    if years:
+        return years
+    ordered_years: List[int] = []
+    for raw_year in list(query_years or []):
+        try:
+            year = int(raw_year)
+        except (TypeError, ValueError):
+            continue
+        if year not in ordered_years:
+            ordered_years.append(year)
+    if not ordered_years:
+        return []
+
+    period_focus = operand_period_focus(operand, "unknown")
+    if period_focus == "current":
+        return [max(ordered_years)]
+    if period_focus == "prior":
+        ranked_years = sorted(ordered_years, reverse=True)
+        if len(ranked_years) >= 2:
+            return [ranked_years[1]]
+        return [ranked_years[0] - 1]
+    return ordered_years
+
+
+def operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> str:
+    hint = str(operand.get("period_hint") or "").strip()
+    role = str(operand.get("role") or "").strip()
+    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
+    current_hints = set(str(item) for item in (period_policy.get("current_period_hints") or ()) if str(item))
+    prior_hints = set(str(item) for item in (period_policy.get("prior_period_hints") or ()) if str(item))
+    if hint in current_hints or role == "current_period":
+        return "current"
+    if hint in prior_hints or role == "prior_period":
+        return "prior"
+    return default_period_focus
 
 
 def _report_scope_source_reports(report_scope: Dict[str, Any]) -> List[Dict[str, Any]]:

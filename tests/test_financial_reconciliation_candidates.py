@@ -131,10 +131,10 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         events = []
         with (
-            patch.object(candidates, "_operand_period_focus", side_effect=lambda operand, focus: events.append("focus") or "prior"),
+            patch.object(candidates, "operand_period_focus", side_effect=lambda operand, focus: events.append("focus") or "prior"),
             patch.object(candidates, "_structured_cell_period_text", side_effect=lambda cell, years, focus: events.append("period") or "unknown"),
             patch.object(candidates, "RECONCILIATION_POLICY", {"period_presence_pattern": r"\d{4}"}),
-            patch.object(candidates, "_operand_target_years", side_effect=lambda operand, years: events.append("targets") or [2023]),
+            patch.object(candidates, "operand_target_years", side_effect=lambda operand, years: events.append("targets") or [2023]),
             patch.object(candidates, "_fallback_period_text_for_operand", side_effect=lambda operand, years: events.append("fallback") or "2022") as fallback,
         ):
             period = candidates._resolved_period_text_for_operand(
@@ -148,10 +148,10 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         fallback.assert_not_called()
 
         with (
-            patch.object(candidates, "_operand_period_focus", return_value="current"),
+            patch.object(candidates, "operand_period_focus", return_value="current"),
             patch.object(candidates, "_structured_cell_period_text", return_value="not-present"),
             patch.object(candidates, "RECONCILIATION_POLICY", {"period_presence_pattern": r"\d{4}"}),
-            patch.object(candidates, "_operand_target_years", return_value=[2024]),
+            patch.object(candidates, "operand_target_years", return_value=[2024]),
             patch.object(candidates, "_fallback_period_text_for_operand", return_value="2024") as fallback,
         ):
             self.assertEqual(
@@ -176,7 +176,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         )
 
         with (
-            patch.object(candidates, "_operand_period_focus", side_effect=RuntimeError("focus failed")),
+            patch.object(candidates, "operand_period_focus", side_effect=RuntimeError("focus failed")),
             patch.object(candidates, "_structured_cell_period_text") as stopped_period,
             self.assertRaisesRegex(RuntimeError, "focus failed"),
         ):
@@ -196,8 +196,8 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         with (
             patch.object(candidates, "_score_operand_candidate", side_effect=lambda *args, **kwargs: events.append(("candidate", args, kwargs)) or 2.5),
-            patch.object(candidates, "_operand_target_years", side_effect=lambda op, ys: events.append(("years", op, ys)) or [2024]),
-            patch.object(candidates, "_operand_period_focus", side_effect=lambda op, focus: events.append(("focus", op, focus)) or "current"),
+            patch.object(candidates, "operand_target_years", side_effect=lambda op, ys: events.append(("years", op, ys)) or [2024]),
+            patch.object(candidates, "operand_period_focus", side_effect=lambda op, focus: events.append(("focus", op, focus)) or "current"),
             patch.object(candidates, "_score_structured_cell", side_effect=lambda *args, **kwargs: events.append(("cell", args, kwargs)) or 1.25),
             patch.object(candidates, "_resolved_period_text_for_operand", side_effect=lambda **kwargs: events.append(("period", kwargs)) or "2024") as period,
         ):

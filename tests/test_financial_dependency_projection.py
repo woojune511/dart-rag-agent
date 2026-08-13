@@ -4036,7 +4036,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             focus_events.append((dict(row), default))
             return "current"
 
-        with patch.object(dependency_projection, "_operand_period_focus", side_effect=focus_side_effect):
+        with patch.object(dependency_projection, "operand_period_focus", side_effect=focus_side_effect):
             self.assertTrue(
                 matches(
                     binding(period="binding period", segment_label=""),
@@ -4057,7 +4057,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             def __int__(self) -> int:
                 raise TypeError("unsupported year")
 
-        with patch.object(dependency_projection, "_operand_period_focus", side_effect=focus_side_effect):
+        with patch.object(dependency_projection, "operand_period_focus", side_effect=focus_side_effect):
             focus_events.clear()
             self.assertTrue(
                 matches(
@@ -4073,7 +4073,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             def __int__(self) -> int:
                 raise RuntimeError("year conversion escaped")
 
-        with patch.object(dependency_projection, "_operand_period_focus", return_value="current") as focus:
+        with patch.object(dependency_projection, "operand_period_focus", return_value="current") as focus:
             with self.assertRaisesRegex(RuntimeError, "year conversion escaped"):
                 matches(
                     binding(period="binding period", segment_label=""),
@@ -4510,7 +4510,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         )
         self.assertEqual(reconciliation_bindings, [("task_prefers_sibling_output_synthesis", None)])
 
-        dependency_names = {"re", "_normalise_spaces", "_operand_period_focus", "FinancialAgentState"}
+        dependency_names = {"re", "_normalise_spaces", "operand_period_focus", "FinancialAgentState"}
         graph_loads = {
             name: sum(
                 isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id == name

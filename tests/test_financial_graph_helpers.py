@@ -9,6 +9,10 @@ from unittest.mock import Mock, patch
 
 import src.agent.financial_graph_helpers as financial_graph_helpers
 import src.agent.financial_graph_planning as financial_graph_planning
+import src.agent.financial_dependency_projection as financial_dependency_projection
+import src.agent.financial_lookup_recovery as financial_lookup_recovery
+import src.agent.financial_reconciliation_candidates as financial_reconciliation_candidates
+import src.agent.financial_scope_policies as financial_scope_policies
 
 from src.agent.financial_runtime_normalization import _display_operand_label
 from src.agent.financial_retrieval_hints import (
@@ -2287,7 +2291,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 134),
+            (9, 132),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -2824,6 +2828,695 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(replan_result["semantic_plan"]["tasks"], [replan_projected])
         self.assertEqual(replan_state, before_replan)
         self.assertIs(replan_state["nested"], nested)
+
+    def test_scope_owner_period_focus_pins_precedence_access_policy_and_exceptions(self) -> None:
+        events = []
+
+        class RecordingOperand(dict):
+            def get(self, key, default=None):
+                events.append(("operand", key))
+                return super().get(key, default)
+
+        class RecordingPolicy:
+            def __init__(self, values):
+                self.values = values
+
+            def keys(self):
+                events.append(("policy", "keys"))
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                events.append(("policy", key))
+                return self.values[key]
+
+        policy = RecordingPolicy(
+            {
+                "current_period_hints": ("current", "now"),
+                "prior_period_hints": ("prior", "before"),
+            }
+        )
+        nested = {"preserve": True}
+        operand = RecordingOperand(
+            period_hint=" prior ",
+            role="current_period",
+            nested=nested,
+        )
+        before = deepcopy(operand)
+        with patch.object(financial_scope_policies, "GENERIC_PERIOD_OPERAND_POLICY", policy):
+            self.assertEqual(
+                financial_scope_policies.operand_period_focus(operand, "fallback"),
+                "current",
+            )
+        self.assertEqual(
+            events,
+            [
+                ("operand", "period_hint"),
+                ("operand", "role"),
+                ("policy", "keys"),
+                ("policy", "current_period_hints"),
+                ("policy", "prior_period_hints"),
+            ],
+        )
+        self.assertEqual(operand, before)
+        self.assertIs(operand["nested"], nested)
+
+        cases = [
+            ({"period_hint": "current", "role": "prior_period"}, "current"),
+            ({"period_hint": "prior", "role": ""}, "prior"),
+            ({"period_hint": "unknown", "role": "prior_period"}, "prior"),
+            ({"period_hint": " CURRENT ", "role": ""}, "fallback"),
+            ({"period_hint": "", "role": ""}, "fallback"),
+        ]
+        plain_policy = {
+            "current_period_hints": ("current",),
+            "prior_period_hints": ("prior",),
+        }
+        with patch.object(
+            financial_scope_policies,
+            "GENERIC_PERIOD_OPERAND_POLICY",
+            plain_policy,
+        ):
+            for current_operand, expected in cases:
+                with self.subTest(operand=current_operand):
+                    self.assertEqual(
+                        financial_scope_policies.operand_period_focus(
+                            current_operand,
+                            "fallback",
+                        ),
+                        expected,
+                    )
+
+        stop_events = []
+
+        class HintBomb:
+            def __str__(self):
+                stop_events.append("hint-str")
+                raise RuntimeError("hint str failed")
+
+        class RoleBomb:
+            def __str__(self):
+                stop_events.append("role-str")
+                raise AssertionError("role should not be accessed")
+
+        with self.assertRaisesRegex(RuntimeError, "hint str failed"):
+            financial_scope_policies.operand_period_focus(
+                {"period_hint": HintBomb(), "role": RoleBomb()},
+                "fallback",
+            )
+        self.assertEqual(stop_events, ["hint-str"])
+
+        class PolicyBomb:
+            def keys(self):
+                raise RuntimeError("policy copy failed")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        with patch.object(
+            financial_scope_policies,
+            "GENERIC_PERIOD_OPERAND_POLICY",
+            PolicyBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy copy failed"):
+                financial_scope_policies.operand_period_focus(
+                    {"period_hint": "", "role": ""},
+                    "fallback",
+                )
+
+    def test_scope_owner_target_years_pins_order_fallback_soft_conversion_and_stop(self) -> None:
+        nested = {"preserve": True}
+        target_accesses = []
+
+        class RecordingOperand(dict):
+            def get(self, key, default=None):
+                target_accesses.append(key)
+                return super().get(key, default)
+
+        operand = RecordingOperand({
+            "period_hint": "2022 2022",
+            "label": "2023 2022",
+            "nested": nested,
+        })
+        before_operand = deepcopy(operand)
+        target_accesses.clear()
+
+        class QueryYearsBomb:
+            def __iter__(self):
+                raise AssertionError("explicit years must skip query years")
+
+        skipped_focus = Mock(side_effect=AssertionError("explicit years must skip focus"))
+        with patch.object(
+            financial_scope_policies,
+            "operand_period_focus",
+            skipped_focus,
+        ):
+            self.assertEqual(
+                financial_scope_policies.operand_target_years(
+                    operand,
+                    QueryYearsBomb(),
+                ),
+                [2022, 2023],
+            )
+        skipped_focus.assert_not_called()
+        self.assertEqual(target_accesses, ["period_hint", "label"])
+        self.assertEqual(operand, before_operand)
+        self.assertIs(operand["nested"], nested)
+
+        query_years = ["2022", "bad", None, 2024, 2022, 2023]
+        before_years = list(query_years)
+        focus_calls = []
+
+        def focus_owner(current_operand, default_focus):
+            focus_calls.append((current_operand, default_focus))
+            return "current"
+
+        clean_operand = {"period_hint": "", "label": "metric", "nested": nested}
+        with patch.object(
+            financial_scope_policies,
+            "operand_period_focus",
+            side_effect=focus_owner,
+        ):
+            self.assertEqual(
+                financial_scope_policies.operand_target_years(clean_operand, query_years),
+                [2024],
+            )
+        self.assertEqual(focus_calls, [(clean_operand, "unknown")])
+        self.assertIs(focus_calls[0][0], clean_operand)
+        self.assertEqual(query_years, before_years)
+
+        for focus, years, expected in [
+            ("prior", [2024, 2022, 2023], [2023]),
+            ("prior", [2024], [2023]),
+            ("unknown", [2024, 2022, 2024, 2023], [2024, 2022, 2023]),
+        ]:
+            with self.subTest(focus=focus, years=years), patch.object(
+                financial_scope_policies,
+                "operand_period_focus",
+                return_value=focus,
+            ) as focus_mock:
+                self.assertEqual(
+                    financial_scope_policies.operand_target_years(clean_operand, years),
+                    expected,
+                )
+                focus_mock.assert_called_once_with(clean_operand, "unknown")
+
+        skipped_empty_focus = Mock(side_effect=AssertionError("empty years skip focus"))
+        with patch.object(
+            financial_scope_policies,
+            "operand_period_focus",
+            skipped_empty_focus,
+        ):
+            self.assertEqual(
+                financial_scope_policies.operand_target_years(clean_operand, []),
+                [],
+            )
+        skipped_empty_focus.assert_not_called()
+
+        class RuntimeIntBomb:
+            def __int__(self):
+                raise RuntimeError("year conversion failed")
+
+        with self.assertRaisesRegex(RuntimeError, "year conversion failed"):
+            financial_scope_policies.operand_target_years(
+                clean_operand,
+                [RuntimeIntBomb()],
+            )
+
+        with patch.object(
+            financial_scope_policies,
+            "operand_period_focus",
+            side_effect=RuntimeError("focus failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "focus failed"):
+                financial_scope_policies.operand_target_years(clean_operand, [2024])
+
+    def test_current_source_operand_period_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {"operand_target_years", "operand_period_focus"}
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in entries
+                ]
+                for name, entries in definitions.items()
+            },
+            {
+                "operand_target_years": [("financial_scope_policies", 29)],
+                "operand_period_focus": [("financial_scope_policies", 11)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: [arg.arg for arg in entries[0][1].args.args]
+                for name, entries in definitions.items()
+            },
+            {
+                "operand_target_years": ["operand", "query_years"],
+                "operand_period_focus": ["operand", "default_period_focus"],
+            },
+        )
+        self.assertEqual(
+            {name: len(entries) for name, entries in calls.items()},
+            {"operand_target_years": 14, "operand_period_focus": 24},
+        )
+        self.assertTrue(
+            all(entry[2] == "Name" for entries in calls.values() for entry in entries)
+        )
+        self.assertTrue(
+            all(not entry[4] for entries in calls.values() for entry in entries)
+        )
+        self.assertTrue(
+            all(len(entry[3]) == 2 for entries in calls.values() for entry in entries)
+        )
+        self.assertTrue(
+            all(entry[5] == 0 for entries in calls.values() for entry in entries)
+        )
+        self.assertEqual(
+            {
+                name: {
+                    module: sum(1 for entry in entries if entry[0] == module)
+                    for module in sorted({entry[0] for entry in entries})
+                }
+                for name, entries in calls.items()
+            },
+            {
+                "operand_target_years": {
+                    "financial_graph_helpers": 12,
+                    "financial_reconciliation_candidates": 2,
+                },
+                "operand_period_focus": {
+                    "financial_dependency_projection": 2,
+                    "financial_graph_calculation": 3,
+                    "financial_graph_helpers": 6,
+                    "financial_graph_reconciliation": 5,
+                    "financial_lookup_recovery": 5,
+                    "financial_reconciliation_candidates": 2,
+                    "financial_scope_policies": 1,
+                },
+            },
+        )
+        self.assertEqual(
+            [entry[1] for entry in calls["operand_period_focus"]].count(
+                "operand_target_years"
+            ),
+            1,
+        )
+        self.assertEqual((14 + 23, 1), (37, 1))
+
+        scope_tree = module_trees["financial_scope_policies"]
+        scope_functions = [
+            node.name
+            for node in scope_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in scope_functions),
+                sum(name.startswith("_") for name in scope_functions),
+            ),
+            (3, 7),
+        )
+        self.assertIn("operand_target_years", scope_functions)
+        self.assertIn("operand_period_focus", scope_functions)
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        helper_imports = imported_modules(module_trees["financial_graph_helpers"])
+        self.assertIn("src.agent.financial_scope_policies", helper_imports)
+        self.assertIn("src.config.retrieval_policy", helper_imports)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_source = "\n".join(
+            ast.get_source_segment(
+                module_paths[module_name].read_text(encoding="utf-8-sig"),
+                node,
+            )
+            or ""
+            for entries in definitions.values()
+            for module_name, node in entries
+        )
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_scope_policies.py"
+                and str(record.get("text") or "") in selected_source
+            ],
+            [],
+        )
+
+    def test_current_source_operand_period_callers_pin_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        operand = {"period_hint": "current", "role": "current_period", "nested": nested}
+        query_years = [2024]
+        report_scope = {
+            "source_reports": [
+                {"rcept_no": "r-2024", "year": 2024},
+                {"rcept_no": "r-2023", "year": 2023},
+            ],
+            "nested": nested,
+        }
+        before_operand = deepcopy(operand)
+        before_scope = deepcopy(report_scope)
+        graph_calls = []
+
+        def target_years_owner(current_operand, current_query_years):
+            graph_calls.append((current_operand, current_query_years))
+            return [2024]
+
+        with patch.object(
+            financial_graph_helpers,
+            "operand_target_years",
+            side_effect=target_years_owner,
+        ):
+            self.assertEqual(
+                financial_graph_helpers._operand_target_receipts(
+                    operand,
+                    query_years,
+                    report_scope,
+                ),
+                ["r-2024"],
+            )
+        self.assertEqual(graph_calls, [(operand, query_years)])
+        self.assertIs(graph_calls[0][0], operand)
+        self.assertIs(graph_calls[0][1], query_years)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(report_scope, before_scope)
+        with patch.object(
+            financial_graph_helpers,
+            "operand_target_years",
+            side_effect=RuntimeError("target years failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "target years failed"):
+                financial_graph_helpers._operand_target_receipts(
+                    operand,
+                    query_years,
+                    report_scope,
+                )
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(report_scope, before_scope)
+
+        binding = {"concept": "revenue", "period": "current", "role": "current_period"}
+        slot = {"concept": "revenue", "period": "2024", "label": "Revenue"}
+        sibling = {"metric_label": "Revenue", "nested": nested}
+        state = {"report_scope": {"year": 2024}, "nested": nested}
+        before_binding = deepcopy(binding)
+        before_slot = deepcopy(slot)
+        before_sibling = deepcopy(sibling)
+        before_state = deepcopy(state)
+        dependency_calls = []
+
+        def dependency_focus(current_operand, default_focus):
+            dependency_calls.append((current_operand, default_focus))
+            return "current"
+
+        with patch.object(
+            financial_dependency_projection,
+            "operand_period_focus",
+            side_effect=dependency_focus,
+        ):
+            self.assertTrue(
+                financial_dependency_projection.dependency_slot_matches_input(
+                    binding,
+                    slot,
+                    sibling_row=sibling,
+                    state=state,
+                )
+            )
+        self.assertEqual(
+            dependency_calls,
+            [({"period_hint": "current", "role": "current_period"}, "unknown")],
+        )
+        self.assertEqual(binding, before_binding)
+        self.assertEqual(slot, before_slot)
+        self.assertEqual(sibling, before_sibling)
+        self.assertEqual(state, before_state)
+        with patch.object(
+            financial_dependency_projection,
+            "operand_period_focus",
+            side_effect=RuntimeError("dependency focus failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency focus failed"):
+                financial_dependency_projection.dependency_slot_matches_input(
+                    binding,
+                    slot,
+                    sibling_row=sibling,
+                    state=state,
+                )
+
+        cell = {"column_headers": ["not-a-year"], "report_year": 2024, "nested": nested}
+        before_cell = deepcopy(cell)
+        reconciliation_events = []
+
+        def reconciliation_focus(current_operand, default_focus):
+            reconciliation_events.append("focus")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(default_focus, "unknown")
+            return "current"
+
+        def period_text_owner(current_cell, current_years, current_focus):
+            reconciliation_events.append("period-text")
+            self.assertIs(current_cell, cell)
+            self.assertIs(current_years, query_years)
+            self.assertEqual(current_focus, "current")
+            return "not-a-year"
+
+        def reconciliation_target_years(current_operand, current_years):
+            reconciliation_events.append("target-years")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return [2024]
+
+        with (
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_period_focus",
+                side_effect=reconciliation_focus,
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                "_structured_cell_period_text",
+                side_effect=period_text_owner,
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_target_years",
+                side_effect=reconciliation_target_years,
+            ),
+        ):
+            self.assertEqual(
+                financial_reconciliation_candidates._resolved_period_text_for_operand(
+                    operand=operand,
+                    cell=cell,
+                    query_years=query_years,
+                    period_focus="unknown",
+                ),
+                "2024",
+            )
+        self.assertEqual(
+            reconciliation_events,
+            ["focus", "period-text", "target-years"],
+        )
+        self.assertEqual(cell, before_cell)
+        self.assertEqual(query_years, [2024])
+
+        stopped_period_text = Mock(side_effect=AssertionError("period text must stop"))
+        stopped_target_years = Mock(side_effect=AssertionError("target years must stop"))
+        with (
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_period_focus",
+                side_effect=RuntimeError("reconciliation focus failed"),
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                "_structured_cell_period_text",
+                stopped_period_text,
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_target_years",
+                stopped_target_years,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reconciliation focus failed"):
+                financial_reconciliation_candidates._resolved_period_text_for_operand(
+                    operand=operand,
+                    cell=cell,
+                    query_years=query_years,
+                    period_focus="unknown",
+                )
+        stopped_period_text.assert_not_called()
+        stopped_target_years.assert_not_called()
+        self.assertEqual(cell, before_cell)
+
+        evidence_item = {
+            "evidence_id": "ev-1",
+            "metadata": {
+                "year": 2024,
+                "structured_cells": [{"value_text": "10", "nested": nested}],
+            },
+            "nested": nested,
+        }
+        before_evidence = deepcopy(evidence_item)
+        lookup_events = []
+
+        def lookup_focus(current_operand, default_focus):
+            lookup_events.append("focus")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(default_focus, "current")
+            return "current"
+
+        def empty_selector(cells, **kwargs):
+            lookup_events.append("selector")
+            self.assertIs(kwargs["operand"], operand)
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "current")
+            self.assertIsNot(cells[0], evidence_item["metadata"]["structured_cells"][0])
+            self.assertIs(cells[0]["nested"], nested)
+            return {}
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "operand_period_focus",
+                side_effect=lookup_focus,
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                side_effect=empty_selector,
+            ),
+        ):
+            self.assertEqual(
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence_item,
+                    index=1,
+                ),
+                {},
+            )
+        self.assertEqual(lookup_events, ["focus", "selector"])
+        self.assertEqual(evidence_item, before_evidence)
+        self.assertIs(evidence_item["nested"], nested)
+
+        stopped_selector = Mock(side_effect=AssertionError("selector must stop"))
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "operand_period_focus",
+                side_effect=RuntimeError("period focus failed"),
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                stopped_selector,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period focus failed"):
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence_item,
+                    index=1,
+                )
+        stopped_selector.assert_not_called()
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(evidence_item, before_evidence)
+
 
 if __name__ == "__main__":
     unittest.main()

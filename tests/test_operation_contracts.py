@@ -47,10 +47,10 @@ from src.agent.financial_graph_helpers import (
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
-    _operand_target_years,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
+from src.agent.financial_scope_policies import operand_target_years
 from src.agent.financial_graph_evidence import _prioritize_candidate_items
 from src.agent.financial_operand_resolution import (
     _evidence_item_for_operand_row,
@@ -2822,15 +2822,15 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(period, "2023")
 
-    def test_operand_target_years_prefers_latest_year_for_current_period_role(self) -> None:
-        years = _operand_target_years(
+    def test_scope_target_years_prefers_latest_year_for_current_period_role(self) -> None:
+        years = operand_target_years(
             {"label": "시설투자(CAPEX)", "role": "current_period"},
             [2023, 2022],
         )
         self.assertEqual(years, [2023])
 
-    def test_operand_target_years_prefers_second_latest_year_for_prior_period_role(self) -> None:
-        years = _operand_target_years(
+    def test_scope_target_years_prefers_second_latest_year_for_prior_period_role(self) -> None:
+        years = operand_target_years(
             {"label": "시설투자(CAPEX)", "role": "prior_period"},
             [2023, 2022],
         )

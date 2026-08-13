@@ -1119,7 +1119,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         globals_operand = operand
         with (
-            patch.object(financial_lookup_recovery, "_operand_period_focus", side_effect=period_focus),
+            patch.object(financial_lookup_recovery, "operand_period_focus", side_effect=period_focus),
             patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary_selector),
             patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell") as aggregate_selector,
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
@@ -1257,7 +1257,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "operand_prefers_aggregate_value_role",
                 side_effect=AssertionError("metadata aggregate role must short-circuit operand preference"),
             ),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
             patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
             patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", side_effect=magnitude),
         ):
@@ -1287,7 +1287,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
             patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", return_value=aggregate),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=True),
             patch.object(
                 financial_lookup_recovery,
@@ -1303,7 +1303,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
             patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(10.0, "KRW")),
             patch.object(
                 financial_lookup_recovery,
@@ -1746,7 +1746,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             ),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "_structured_cell_period_text", return_value=""),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=select),
         ):
             self.assertIs(
@@ -1842,7 +1842,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "_structured_cell_period_text", side_effect=period_text),
             patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary),
             patch.object(
@@ -1896,7 +1896,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "operand_prefers_aggregate_value_role",
                 side_effect=AssertionError("row aggregate role must short-circuit operand preference"),
             ),
-            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", side_effect=aggregate_selector),
             patch.object(
                 financial_lookup_recovery,

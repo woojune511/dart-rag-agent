@@ -7,7 +7,6 @@ import re
 from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from src.agent import financial_answer_slots
-from src.agent.financial_graph_helpers import _operand_period_focus
 from src.agent.financial_lookup_recovery import synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
@@ -32,7 +31,10 @@ from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
 )
-from src.agent.financial_scope_policies import known_consolidation_scope_value
+from src.agent.financial_scope_policies import (
+    known_consolidation_scope_value,
+    operand_period_focus,
+)
 from src.config.retrieval_policy import (
     CALCULATION_RENDER_POLICY,
     OPERAND_CANDIDATE_SCORING_POLICY,
@@ -357,7 +359,7 @@ def dependency_slot_matches_input(
     binding_period = _normalise_spaces(str(binding.get("period") or ""))
     slot_period = _normalise_spaces(str(slot.get("period") or ""))
     if binding_period and slot_period and binding_period != slot_period:
-        binding_focus = _operand_period_focus(
+        binding_focus = operand_period_focus(
             {
                 "period_hint": binding_period,
                 "role": binding.get("role") or "",
@@ -379,7 +381,7 @@ def dependency_slot_matches_input(
                 return False
             if binding_focus == "prior" and (report_year - 1) not in slot_years:
                 return False
-        elif _operand_period_focus({"period_hint": slot_period}, "unknown") != binding_focus:
+        elif operand_period_focus({"period_hint": slot_period}, "unknown") != binding_focus:
             return False
 
     binding_label = _normalise_spaces(str(binding.get("label") or ""))

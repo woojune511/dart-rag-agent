@@ -94,6 +94,8 @@ from src.agent.financial_scope_policies import (
     _metadata_period_match_strength,
     _report_scope_source_receipts,
     _report_scope_source_reports,
+    operand_period_focus,
+    operand_target_years,
 )
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
@@ -631,7 +633,7 @@ def _operand_target_receipts(
     if not source_rows:
         return []
 
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     receipts: List[str] = []
     if target_years:
         for year in target_years:
@@ -666,7 +668,7 @@ def _candidate_allows_comparative_report_scope_fallback(
     if len(source_rows) < 2:
         return False
 
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     explicit_years = _candidate_explicit_years(candidate)
     if not target_years or not explicit_years or not any(year in explicit_years for year in target_years):
         return False
@@ -717,7 +719,7 @@ def _candidate_matches_target_report_scope(
     except (TypeError, ValueError):
         candidate_year = None
     explicit_years = _candidate_explicit_years(candidate)
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     target_receipts = _operand_target_receipts(operand, query_years, report_scope)
 
     if target_receipts:
@@ -766,7 +768,7 @@ def _candidate_report_scope_binding_bonus(
     except (TypeError, ValueError):
         candidate_year = None
 
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     target_receipts = _operand_target_receipts(operand, query_years, report_scope)
 
     if target_receipts:
@@ -800,7 +802,7 @@ def _candidate_matches_operand_target_year(
     operand: Dict[str, Any],
     query_years: List[int],
 ) -> bool:
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     if not target_years:
         return False
 
@@ -937,7 +939,7 @@ def _candidate_is_canonical_statement_winner(
         return False
     if not _candidate_matches_operand_target_year(candidate, operand, query_years):
         candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
-        desired_period_focus = _operand_period_focus(operand, "unknown")
+        desired_period_focus = operand_period_focus(operand, "unknown")
         if desired_period_focus in {"current", "prior"} and candidate_period_focus != desired_period_focus:
             return False
     return True
@@ -2679,7 +2681,7 @@ def _task_binding_period_hint(
     report_scope: Dict[str, Any],
 ) -> str:
     query_years = _task_dependency_query_years(task, report_scope)
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     if target_years:
         return str(target_years[0])
     period_hint = _normalise_spaces(str(operand.get("period_hint") or ""))
@@ -3981,7 +3983,7 @@ def _select_structured_cell(
         enriched_cells,
         key=lambda cell: _score_structured_cell(
             cell,
-            query_years=_operand_target_years(operand, query_years),
+            query_years=operand_target_years(operand, query_years),
             period_focus=period_focus,
             operand=operand,
         ),
@@ -4036,7 +4038,7 @@ def _select_aggregate_structured_cell(
 
         score = _score_structured_cell(
             cell,
-            query_years=_operand_target_years(operand, query_years),
+            query_years=operand_target_years(operand, query_years),
             period_focus=period_focus,
             operand=operand,
         )
@@ -4074,50 +4076,6 @@ def _select_aggregate_structured_cell(
         return None
     ranked_cells.sort(key=lambda item: item[0], reverse=True)
     return ranked_cells[0][1]
-
-
-def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> List[int]:
-    hint = str(operand.get("period_hint") or "").strip()
-    years: List[int] = []
-    for token in re.findall(r"20\d{2}", f"{hint} {operand.get('label') or ''}"):
-        year = int(token)
-        if year not in years:
-            years.append(year)
-    if years:
-        return years
-    ordered_years: List[int] = []
-    for raw_year in list(query_years or []):
-        try:
-            year = int(raw_year)
-        except (TypeError, ValueError):
-            continue
-        if year not in ordered_years:
-            ordered_years.append(year)
-    if not ordered_years:
-        return []
-
-    period_focus = _operand_period_focus(operand, "unknown")
-    if period_focus == "current":
-        return [max(ordered_years)]
-    if period_focus == "prior":
-        ranked_years = sorted(ordered_years, reverse=True)
-        if len(ranked_years) >= 2:
-            return [ranked_years[1]]
-        return [ranked_years[0] - 1]
-    return ordered_years
-
-
-def _operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> str:
-    hint = str(operand.get("period_hint") or "").strip()
-    role = str(operand.get("role") or "").strip()
-    period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
-    current_hints = set(str(item) for item in (period_policy.get("current_period_hints") or ()) if str(item))
-    prior_hints = set(str(item) for item in (period_policy.get("prior_period_hints") or ()) if str(item))
-    if hint in current_hints or role == "current_period":
-        return "current"
-    if hint in prior_hints or role == "prior_period":
-        return "prior"
-    return default_period_focus
 
 
 def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, Any]) -> float:
@@ -5236,7 +5194,7 @@ def _candidate_period_table_coherence_bonus(
         return 0.0
 
     score = 0.0
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     if target_years:
         if any(year in years for year in target_years):
             score += 1.0
@@ -5365,7 +5323,7 @@ def _candidate_is_direct_grounding_candidate(
     ):
         return False
 
-    desired_period_focus = _operand_period_focus(
+    desired_period_focus = operand_period_focus(
         operand,
         str((constraints or {}).get("period_focus") or "unknown").strip(),
     )
@@ -5426,7 +5384,7 @@ def _candidate_satisfies_direct_acceptance_contract(
         return False
 
     metadata = dict(candidate.get("metadata") or {})
-    desired_period_focus = _operand_period_focus(
+    desired_period_focus = operand_period_focus(
         operand,
         str((constraints or {}).get("period_focus") or "unknown").strip(),
     )
@@ -5460,7 +5418,7 @@ def _candidate_satisfies_direct_acceptance_contract(
                 except (TypeError, ValueError):
                     continue
             if report_year is not None:
-                target_years = _operand_target_years(operand, query_years)
+                target_years = operand_target_years(operand, query_years)
                 if target_years and report_year in target_years:
                     period_text = str(report_year)
                 else:
@@ -5474,7 +5432,7 @@ def _candidate_satisfies_direct_acceptance_contract(
             token in normalized_period for token in current_markers
         ):
             return False
-        target_years = _operand_target_years(operand, query_years)
+        target_years = operand_target_years(operand, query_years)
         explicit_years = [int(token) for token in re.findall(explicit_year_pattern, period_text or "")]
         if target_years and explicit_years and not any(year in explicit_years for year in target_years):
             return False
@@ -5558,7 +5516,7 @@ def _candidate_satisfies_direct_acceptance_contract(
                 return False
 
     metadata_periods = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
-    target_years = _operand_target_years(operand, query_years)
+    target_years = operand_target_years(operand, query_years)
     if desired_period_focus == "prior" and target_years and metadata_periods:
         flattened = " ".join(metadata_periods)
         explicit_years = [int(token) for token in re.findall(r"20\d{2}", flattened)]
@@ -5625,7 +5583,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     elif _candidate_direct_match_strength(candidate, operand) < 1.0:
         return False
 
-    desired_period_focus = _operand_period_focus(
+    desired_period_focus = operand_period_focus(
         operand,
         str((constraints or {}).get("period_focus") or "unknown").strip(),
     )
@@ -6148,7 +6106,7 @@ def _score_operand_candidate(
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     candidate_consolidation = _candidate_consolidation_scope(metadata)
-    desired_period_focus = _operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
+    desired_period_focus = operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
     if desired_consolidation == "unknown":
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
     if desired_period_focus == "unknown":
@@ -6436,7 +6394,7 @@ def _deterministic_reconcile_task(
         if ranked:
             direct_candidates: List[Dict[str, Any]] = []
             if requires_direct_grounding:
-                period_focus = _operand_period_focus(
+                period_focus = operand_period_focus(
                     operand,
                     str((constraints or {}).get("period_focus") or "unknown").strip(),
                 )

@@ -230,7 +230,6 @@ from src.agent.financial_operand_resolution import (
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
-    _operand_period_focus,
     _resolve_candidate_local_unit_hint,
     _scoped_surface_affinity_priority,
     _select_aggregate_structured_cell,
@@ -263,6 +262,7 @@ from src.agent.financial_scope_policies import (
     _desired_consolidation_scope,
     _extract_period_sort_key,
     known_consolidation_scope_value,
+    operand_period_focus,
 )
 from src.agent.financial_text_surface import _strip_rerank_metadata, _tokenize_terms
 from src.agent.financial_runtime_trace import (
@@ -1303,7 +1303,7 @@ class FinancialAgentCalculationMixin:
             break
 
         role = str(operand.get("role") or "").strip()
-        period_focus = _operand_period_focus(operand, "unknown")
+        period_focus = operand_period_focus(operand, "unknown")
         krw_matches = [
             match
             for match in matches
@@ -6907,7 +6907,7 @@ class FinancialAgentCalculationMixin:
                     cells,
                     operand=period_operand,
                     query_years=query_years,
-                    period_focus=_operand_period_focus(period_operand, "unknown"),
+                    period_focus=operand_period_focus(period_operand, "unknown"),
                 )
                 if aggregate_selected:
                     return dict(aggregate_selected)
@@ -6915,7 +6915,7 @@ class FinancialAgentCalculationMixin:
                 cells,
                 operand=period_operand,
                 query_years=query_years,
-                period_focus=_operand_period_focus(period_operand, "unknown"),
+                period_focus=operand_period_focus(period_operand, "unknown"),
             )
             return dict(selected) if selected else None
 

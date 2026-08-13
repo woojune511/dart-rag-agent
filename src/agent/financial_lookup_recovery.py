@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_graph_helpers import (
-    _operand_period_focus,
     _select_aggregate_structured_cell,
     _select_structured_cell,
 )
@@ -20,6 +19,7 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent.financial_row_surfaces import _operand_text_match
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
+from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_structured_cells import _structured_cell_period_text
 from src.agent.financial_surface_contracts import _operand_needles, _text_has_positive_surface
 from src.config.retrieval_policy import NUMERIC_UNIT_NORMALIZATION_POLICY, PLANNING_POLICY
@@ -488,7 +488,7 @@ def lookup_row_from_direct_structured_evidence(
         [{**cell, "_report_year": metadata.get("year")} for cell in cells],
         operand=operand,
         query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
-        period_focus=_operand_period_focus(operand, "current"),
+        period_focus=operand_period_focus(operand, "current"),
     )
     metadata_value_role = _normalise_spaces(str(metadata.get("value_role") or "")).lower()
     metadata_aggregation_stage = _normalise_spaces(str(metadata.get("aggregation_stage") or "")).lower()
@@ -508,7 +508,7 @@ def lookup_row_from_direct_structured_evidence(
             [{**cell, "_report_year": metadata.get("year")} for cell in aggregate_cells],
             operand=operand,
             query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
-            period_focus=_operand_period_focus(operand, "current"),
+            period_focus=operand_period_focus(operand, "current"),
         )
         if aggregate_selected_cell:
             selected_cell = aggregate_selected_cell
@@ -639,7 +639,7 @@ def coerce_operand_value_from_direct_structured_evidence(
                 _structured_cell_period_text(
                     cell,
                     query_years,
-                    _operand_period_focus(operand_spec, "unknown"),
+                    operand_period_focus(operand_spec, "unknown"),
                 ),
                 flags=re.IGNORECASE,
             )
@@ -663,14 +663,14 @@ def coerce_operand_value_from_direct_structured_evidence(
             enriched_cells,
             operand=operand_spec,
             query_years=query_years,
-            period_focus=_operand_period_focus(operand_spec, "unknown"),
+            period_focus=operand_period_focus(operand_spec, "unknown"),
         )
     if not selected_cell:
         selected_cell = _select_structured_cell(
             enriched_cells,
             operand=operand_spec,
             query_years=query_years,
-            period_focus=_operand_period_focus(operand_spec, "unknown"),
+            period_focus=operand_period_focus(operand_spec, "unknown"),
         )
     if not selected_cell:
         return row

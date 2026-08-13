@@ -7,8 +7,6 @@ from typing import Any, Dict, List, Optional
 
 from src.agent.financial_graph_helpers import (
     _candidate_satisfies_direct_acceptance_contract,
-    _operand_period_focus,
-    _operand_target_years,
     _resolve_candidate_local_unit_hint,
     _score_operand_candidate,
     _score_structured_cell,
@@ -17,6 +15,7 @@ from src.agent.financial_operand_resolution import coerce_lookup_magnitude_value
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_row_surfaces import _parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
+from src.agent.financial_scope_policies import operand_period_focus, operand_target_years
 from src.agent.financial_structured_cells import _structured_cell_period_text
 from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
@@ -133,7 +132,7 @@ def _resolved_period_text_for_operand(
     query_years: List[int],
     period_focus: str,
 ) -> str:
-    effective_period_focus = _operand_period_focus(operand, period_focus)
+    effective_period_focus = operand_period_focus(operand, period_focus)
     operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
     period = _structured_cell_period_text(cell, query_years, effective_period_focus)
     period_presence_pattern = str(RECONCILIATION_POLICY.get("period_presence_pattern") or "")
@@ -146,7 +145,7 @@ def _resolved_period_text_for_operand(
                     break
             except (TypeError, ValueError):
                 continue
-        target_years = _operand_target_years(operand, query_years)
+        target_years = operand_target_years(operand, query_years)
         if report_year is not None and target_years and report_year in target_years:
             period = str(report_year)
         elif report_year is not None:
@@ -177,8 +176,8 @@ def pair_candidate_period_score(
     )
     cell_score = _score_structured_cell(
         cell,
-        query_years=_operand_target_years(operand, query_years),
-        period_focus=_operand_period_focus(operand, period_focus),
+        query_years=operand_target_years(operand, query_years),
+        period_focus=operand_period_focus(operand, period_focus),
         operand=operand,
     )
     period = _resolved_period_text_for_operand(
