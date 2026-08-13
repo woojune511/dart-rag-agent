@@ -3850,3 +3850,54 @@ work, and final sequencing remain hard stops. Exact APIs, behavior, the six-
 method CURRENT-SOURCE gate, dependencies, projected validation, and rejected
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Candidate metadata-policy ownership milestone
+
+- `a904f28` moves the former 12-line
+  `_candidate_local_aggregate_context(...)`, 26-line
+  `_candidate_consolidation_scope(...)`, 38-line
+  `_binding_policy_allows_candidate_shape(...)`, and 40-line
+  `_candidate_selected_unit_family(...)` definitions from
+  `financial_graph_helpers.py` into `financial_surface_contracts.py` as public
+  `candidate_local_aggregate_context(...)`,
+  `candidate_consolidation_scope(...)`,
+  `binding_policy_allows_candidate_shape(...)`, and
+  `candidate_selected_unit_family(...)`. The exact 116-line definition-span
+  total is preserved. Their eight direct `ast.Name` calls remain graph-external
+  3/2/2/1 and owner-local zero, all outside `try`; retired graph-private source/
+  test refs are zero.
+- Exactly three source/test files changed. Source is `+139/-134`, net `+5`:
+  graph helpers are `+12/-132` and move from 6,056 to 5,936 physical lines;
+  surface contracts are `+127/-2` and move from 209 to 334. Tests are
+  `+1,116/-9`, net `+1,107`, all in graph-helper tests. The whole commit is
+  `+1,255/-143`, net `+1,112`; changed source moves from 6,265 to 6,270 physical
+  lines and the changed test from 7,038 to 8,145. Six AST-counted methods move
+  discovery from 1,893 to 1,899. The source diff SHA-256 is
+  `0e62e924b473c256d505164160b8e00419a8be0c022c7b3d036da0465bafcae7`.
+- Literal body parity passes for all four moved definitions and all 121 retained
+  graph-helper functions pass full AST parity after normalizing only selected
+  call targets. The surface owner finishes public/private 9/7 and graph helpers
+  9/112. The destination adds the existing consolidation-policy, operand-value-
+  normalization, and percent-label-inference dependencies on one-way acyclic
+  edges. The moved spans contain no reviewed runtime-domain occurrence, so the
+  audit remains 218 without a baseline change.
+- Validation passes focused 6/6, graph-helper and surface-owner 47/47, affected
+  nine-module semantic 857/857, import-side-effects 19/19, runtime audit 218,
+  full discovery 1,899/1,899, pycompile/fresh import, DAG/body/full-caller
+  parity, retired-ref zero, and `git diff --check`. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only candidate metadata-policy ownership. Candidate/
+evidence construction and adoption, direct/ratio acceptance, broad scoring/
+reconciliation, mutable state/evidence, callbacks, carriers, trace/artifact/
+ledger work, and final sequencing remain graph-owned. It proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, no next production owner move is selected. The sole next work
+is the characterize-only residual dependency/ratio candidate inventory in
+[Project Status Next Work](../overview/project_status.md#next-work). It must
+freeze exact callers, dependencies, cycle boundaries, behavior, and projected
+gates before proposing one bounded state-free move or recording that no safe
+move is currently available.

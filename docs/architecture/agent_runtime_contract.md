@@ -3740,9 +3740,8 @@ Retired private source/test refs are zero. Benchmark refresh was **NOT RUN**,
 remote CI is unverified, and the move proves no behavior, accuracy, ranking,
 performance, total-code, executed-path, schedule, ledger, or Phase 3 completion.
 
-The next candidate metadata-policy projection boundary is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). The exact
-12/26/38/40-line graph-helper definitions move to
+The candidate metadata-policy projection boundary completed in `a904f28`. The
+exact 12/26/38/40-line graph-helper definitions now live in
 `financial_surface_contracts.py` as public
 `candidate_local_aggregate_context(...)`,
 `candidate_consolidation_scope(...)`,
@@ -3763,11 +3762,17 @@ exceptions.
 
 The destination adds consolidation policy, operand-value normalization, and
 percent-label inference on existing or one-way edges. Six CURRENT-SOURCE
-methods must pin four direct contracts, exact 12/26/38/40 spans and 3/2/2/1
+methods pin the four direct contracts, exact 12/26/38/40 spans and 3/2/2/1
 calls, signatures/try depth/public-private counts/DAG/baseline, and a caller
 matrix spanning source priority, direct grounding, direct/ratio acceptance,
-operand matching, direct-match strength, and scoring before any body moves.
-Retired private refs must be zero after retargeting.
+operand matching, direct-match strength, and scoring. Retired private refs are
+zero. Focused 6/6, owner 47/47, affected semantic 857/857, import 19/19, audit
+218, and full 1,899/1,899 passed. Source moved `+139/-134`, tests
+`+1,116/-9`, and the source diff SHA-256 is
+`0e62e924b473c256d505164160b8e00419a8be0c022c7b3d036da0465bafcae7`.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
+no behavior, accuracy, ranking, performance, total-code, executed-path,
+schedule, ledger, or Phase 3 completion.
 
 `_candidate_has_segment_local_binding(...)` and
 `_candidate_supports_segment_metric_combo(...)` remain graph-owned because the
@@ -3781,6 +3786,12 @@ sequencing also remain graph-owned. No wrapper, alias, compatibility bridge,
 reconciliation-candidate reverse import, structured-row/precision reverse-
 cycle, concept-specific semantic expansion, or evidence/state expansion is
 authorized.
+
+The next production ownership boundary is intentionally unselected. The
+characterize-only residual inventory and its hard stops are defined only by
+[Project Status Next Work](../overview/project_status.md#next-work); source must
+not move again until that inventory publishes one exact cycle-safe batch and
+projected gates.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

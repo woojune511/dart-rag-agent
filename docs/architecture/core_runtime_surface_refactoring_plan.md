@@ -212,7 +212,10 @@ stable dedupe, narrative intent/surface/trace validation, bounded aggregate row/
 gap/lookup-answer policy, narrative term/variant/context presentation, prepared
 KRW raw-unit/growth alignment/period-conflict policy, dependency-task KRW
 consistency, table-metadata KRW repair, and final-answer evidence filtering/
-operand append and surface-operand projection. Current
+operand append and surface-operand projection. Candidate report/period scope,
+surface/segment contracts, local aggregate context, consolidation scope,
+binding-shape admission, and selected-unit-family projection are also owner-held.
+Current
 validation and benchmark
 status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
@@ -675,27 +678,27 @@ Candidate/evidence construction/adoption, direct/ratio acceptance, broad
 scoring/reconciliation, mutable state/evidence, callback, carrier,
 trace/artifact/ledger work, and final sequencing remain hard stops.
 
-The selected follow-on is one 116-line candidate metadata-policy projection
-batch from `financial_graph_helpers.py` into
-`financial_surface_contracts.py`. Move exact 12/26/38/40-line local aggregate-
-context, consolidation-scope, binding-policy shape, and selected-unit-family
-definitions as public four. Their eight direct calls remain external eight and
-owner-local zero. The destination adds consolidation policy, operand-value
-normalization, and percent-label inference on existing or one-way dependency
-edges; the selected spans contain zero reviewed domain-language occurrences.
-Row-role/stage inference remains graph-owned to avoid widening a bounded policy
-projection into low-level public sprawl. Segment metric-combination support
-remains graph-owned because co-moving its row-surface dependency would create a
-reverse cycle. Direct/ratio acceptance, broad scoring/reconciliation,
-candidate/evidence construction/adoption, mutable state/evidence, callback,
-carrier, trace/artifact/ledger work, and final sequencing remain hard stops.
-Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
-DAG/import consequences, and rejected row-role/segment-support/reconciliation-
-candidate/structured-row/precision/state expansions live only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
-The sole selected implementation priority remains
-[project_status.md#next-work](../overview/project_status.md#next-work); this plan
-does not maintain a competing queue.
+The completed `a904f28` follow-on moved exact 12/26/38/40-line candidate local-
+aggregate-context, consolidation-scope, binding-policy-shape, and selected-unit-
+family definitions from `financial_graph_helpers.py` into
+`financial_surface_contracts.py` as public four. Their eight direct calls remain
+graph-external 3/2/2/1 and owner-local zero. Source is `+139/-134`, tests are
+`+1,116/-9`, and the whole commit is `+1,255/-143`. Graph helpers moved from
+6,056 to 5,936 physical lines and surface contracts from 209 to 334. Final gates
+passed focused 6/6, owner 47/47, affected semantic 857/857, import 19/19, audit
+218, full 1,899/1,899, pycompile/fresh import, DAG/body/full-caller parity over
+121 retained graph functions, retired-ref zero, and diff check. The source diff
+SHA-256 is
+`0e62e924b473c256d505164160b8e00419a8be0c022c7b3d036da0465bafcae7`.
+Direct/ratio acceptance, broad scoring/reconciliation, candidate/evidence
+construction/adoption, mutable state/evidence, callback, carrier,
+trace/artifact/ledger work, and final sequencing remain hard stops.
+
+The sole next priority is the characterize-only residual inventory defined in
+[project_status.md#next-work](../overview/project_status.md#next-work). No next
+production owner move is selected until that inventory freezes callers,
+dependencies, stop lines, and projected validation. This plan does not maintain
+a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
