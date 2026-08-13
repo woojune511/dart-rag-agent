@@ -16,10 +16,10 @@ Last updated: 2026-08-13
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | The 202-line structured period-pair projection moved to `financial_reconciliation_candidates.py` as a 201-line public owner function in `79a460a` |
-| What passed? | Focused 6/6, candidate owner 14/14, affected seven-module semantic set 787/787, import-side-effect 19/19, runtime audit 218, full unittest 1,840/1,840 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest reconciliation-ownership change |
-| What is next? | One characterize-first 273-line semantic-planner normalization/validation batch into `financial_graph_helpers.py`; LLM invocation, task/state/artifact adoption, and final sequencing remain hard stops |
+| What just changed? | Eight semantic-planner normalization/validation definitions totaling 273 old lines moved to `financial_graph_helpers.py` as five public and three owner-private functions totaling 271 lines in `fb970a5` |
+| What passed? | Focused 7/7, helper owner 12/12, affected eight-module semantic set 434/434, import-side-effect 19/19, runtime audit 218, full unittest 1,847/1,847 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest semantic-planner ownership change |
+| What is next? | One characterize-first 143-line narrative-task policy batch into `financial_graph_helpers.py`; model invocation, graph plan adoption, state/artifact mutation, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -201,10 +201,28 @@ or an unconfigured `FinancialAgent` invocation.
   and selection, LLM reranking, evidence construction, artifact/retry/state
   mutation, ledger work, and final sequencing remain graph-owned. This is
   ownership relocation, not a behavior claim.
+- Commit `fb970a5` moved eight semantic-planner normalization and validation
+  definitions totaling 273 old definition-span lines from
+  `financial_graph_planning.py` into `financial_graph_helpers.py`. Public
+  segment-sum/analysis-shape predicates, segment-label projection, scope
+  alignment, and planner-task validation plus three owner-private helpers now
+  total 271 owner lines. Sixteen selected calls finish graph-external nine and
+  owner-local seven; all remain direct and outside `try`. Source is
+  `+303/-296`, net `+7`; tests are `+1,557/-9`, net `+1,548`; and the whole
+  commit is `+1,860/-305`, net `+1,555`. Planning moved from 2,048 to 1,765
+  physical lines and graph helpers from 6,269 to 6,559. Seven new unittest
+  methods moved full discovery from 1,840 to 1,847. The source diff SHA-256 is
+  `9e0310f17edd4ea004425957e8044fc6ae0f79538ab140bd4a9e8007aa4d63cc`.
+  The helper owner is public/private 5/132, its dependency changes are acyclic,
+  the two now-dead planning imports were removed, and the reviewed runtime-
+  domain baseline remains 218 without a record move. Model invocation, query
+  routing, plan adoption, mutable task/state/artifact/ledger work, and final
+  sequencing remain graph-owned. This is ownership relocation, not a behavior
+  claim.
 - Current physical sizes are: calculation graph 13,464 lines, calculation
   execution 1,074, main graph 938,
-  graph helpers 6,269,
-  planning 2,048, calculation rendering 708, answer slots 734, numeric surface
+  graph helpers 6,559,
+  planning 1,765, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 642, operand resolution 3,603,
   dependency projection 3,417, reconciliation 1,465, reconciliation candidates
   534, aggregate projection 3,714, runtime trace 1,412, lookup recovery 788,
@@ -224,6 +242,7 @@ Commit-level diffs and validation are kept in
 | DART ingest | parser modules plus canonical profile in `src/config/runtime_contract.py` |
 | Retrieval | `financial_retrieval_pipeline.py`; graph evidence owns structure expansion and evidence construction |
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
+| Semantic planning normalization | `financial_graph_helpers.py`; state-free scope normalization, plan-shape predicates, segment-label projection, and planner-task validation, excluding model invocation and plan/state adoption |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py`, including base/runtime deterministic operation planning, ontology planning, plan guarding, execution, and value freshness |
 | Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, and direct structured lookup-row/value projection over already supplied evidence |
@@ -255,18 +274,19 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, structured period-pair 6 / 6; candidate owner 14 / 14 |
-| Latest semantic regression set | PASS, affected seven-module set 787 / 787 |
+| Latest focused owner checkpoint | PASS, semantic-planner batch 7 / 7; graph-helper owner 12 / 12 |
+| Latest semantic regression set | PASS, affected eight-module set 434 / 434 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 218 reviewed records |
-| Full unittest discovery | PASS, 1,840 / 1,840 |
-| Benchmark refresh after latest reconciliation-ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 1,847 / 1,847 |
+| Benchmark refresh after latest semantic-planner ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_reconciliation_candidates`,
-`tests.test_financial_operand_resolution`, `tests.test_financial_task_artifacts`,
-`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
+The semantic set is `tests.test_financial_graph_helpers`,
+`tests.test_semantic_numeric_plan`, `tests.test_semantic_numeric_planner`,
+`tests.test_reconciliation_plan`, `tests.test_operation_contracts`,
+`tests.test_part_whole_ratio_contract`, `tests.test_concept_runtime_contracts`,
+and `tests.test_structured_operand_extraction`.
 `tests.test_import_side_effects`
 passed separately at 19 / 19; no combined-union run is claimed for this commit.
 
@@ -292,76 +312,81 @@ The durable Phase 3 debt is:
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, and growth-answer completion/sanitization; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, direct structured lookup-row/value projection, dependency input matching/binding, and deterministic runtime/ontology planning; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
-| Private API mesh and test co-location | Partially advanced as public contracts move |
+| Private API mesh and test co-location | Partially advanced as public contracts and semantic-planner normalization/validation move; narrative-task policy and broader orchestration remain |
 
 These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture work is one characterize-first semantic-planner
-normalization and validation batch from `financial_graph_planning.py` into its
-existing cross-cutting semantic-planning owner, `financial_graph_helpers.py`.
-Move eight definitions totaling 273 old definition-span lines:
-`_has_single_report_scope(...)` 8, `_llm_plan_preserves_segment_sum_shape(...)`
-25, `_task_concept_role_families(...)` 12,
-`_llm_plan_preserves_analysis_shape(...)` 24,
-`_attach_segment_label_to_resolved_spec(...)` 10,
-`_apply_segment_labels_to_llm_resolved_specs(...)` 80,
-`_align_scope_hints(...)` 41, and `_validate_concept_planner_task(...)` 73.
-Publish the two plan-shape predicates, segment-label projection, scope alignment,
-and planner-task validator without leading underscores; retain the other three
-helpers owner-private. Removing only the two mixin `self` parameters projects
-271 owner lines, public/private 5/3 for this batch and 5/132 for the target.
+The sole selected architecture work is one characterize-first narrative-task
+policy batch from `financial_graph_planning.py` into its existing semantic-
+planning owner, `financial_graph_helpers.py`. Move six definitions totaling 143
+old definition-span lines: owner-private `_is_narrative_summary_task(...)` 4
+and `_needs_hybrid_narrative_subtask(...)` 2; public
+`build_hybrid_narrative_subtask(...)` 63,
+`append_hybrid_narrative_task(...)` 38,
+`push_narrative_tasks_after_numeric(...)` 31, and
+`exclusive_narrative_task_policy_active(...)` 5. The target projects from
+public/private 5/132 to 9/134; no compatibility wrapper or alias is allowed.
 
-All 16 selected references are direct calls outside `try` blocks. After the
-move, nine remain graph-external and seven become owner-local: segment-sum shape
-1/0, concept-role families 0/2, analysis shape 1/0, segment attachment 0/4,
-segment-label projection 1/0, single-report scope 0/1, scope alignment 5/0, and
-planner-task validation 1/0. Preserve scope-company/year normalization and
-precedence, soft year coercion, receipt-count fallback, plan-shape role checks,
-stable copied task/spec projection, operation-family-specific segment binding,
-ontology and available-concept membership, surface-contract validation, ratio/
-sum/difference/growth role constraints, access laziness, caller-input
-immutability, exact return reasons, and uncaught exceptions.
+All 13 selected references are direct calls outside `try` blocks. After the
+move, six remain graph-external and seven become owner-local: narrative-summary
+predicate 0/5, hybrid-need predicate 0/1, hybrid-task builder 1/1, hybrid append
+2/0, numeric-before-narrative ordering 2/0, and exclusive-policy gate 1/0.
+Preserve intent and narrative-context gating, consolidation and period focus,
+active-policy and slot-group order, format preference precedence, stable
+retrieval-query dedupe, preferred sections, copied input tasks, task-ID
+increment rules, narrative-task detection, numeric dependency append order,
+numeric-before-narrative ordering, input immutability, access laziness, and
+uncaught exceptions.
 
-The target already owns `_extract_segment_labels_from_query`, normalization,
-typing, and the semantic planning surface. Add only `PLANNING_POLICY` on its
-existing retrieval-policy import and `_report_scope_source_receipts` on its
-existing `financial_scope_policies` edge; no module edge is added and neither
-dependency reaches back to `financial_graph_helpers`. Retire the planning
-module's now-dead `_extract_segment_labels_from_query` and
-`_report_scope_source_receipts` imports. The selected spans contain zero
-reviewed runtime-domain records, so audit total must remain 218.
+The target already owns `PLANNING_POLICY`, normalization, `_infer_period_focus`,
+`_desired_consolidation_scope`, typing, and regex support. Add the active-
+narrative-policy, slot, section, suffix, and term helpers on its existing
+retrieval-policy edge, `_query_requests_narrative_context` on its existing
+operation-policy edge, and `default_format_preference` through one reviewed,
+acyclic routing edge. No routing module imports the helper owner. Retire the
+planning module's ten newly dead imports: `_infer_period_focus`,
+`_query_requests_narrative_context`, `_desired_consolidation_scope`,
+`NARRATIVE_BASE_RETRIEVAL_SUFFIXES`, `active_narrative_policies`,
+`narrative_policy_preferred_sections`, `narrative_policy_query_suffixes`,
+`narrative_policy_slot_groups`, `narrative_policy_terms`, and
+`default_format_preference`. The selected spans contain zero reviewed runtime-
+domain records, so audit total must remain 218.
 
-Before production movement, add exactly seven CURRENT-SOURCE methods to
-`tests.test_financial_graph_helpers`: direct matrices for scope alignment,
-plan-shape preservation, segment-label projection, and planner-task validation;
-one exact eight-definition/273-line/16-call/signature/try-depth/DAG/dead-import/
-baseline inventory; one executable `_build_llm_concept_numeric_plan(...)`
-validator/segment/scope caller contract; and one executable contract covering
-the remaining scope and plan-shape call placements. Pin exact arguments,
-identity/copy/no-mutation, ordering, adoption, laziness, and exception stop.
-Freeze source before public retarget; wrappers, aliases, callback bridges, and
-executable retired private refs are forbidden.
+Before production movement, add exactly six CURRENT-SOURCE methods to
+`tests.test_financial_graph_helpers`: one direct predicate/gate matrix; direct
+builder, append, and numeric-before-narrative ordering matrices; one exact six-
+definition/143-line/13-call/signature/try-depth/DAG/dead-import/baseline
+inventory; and one executable contract covering
+`_plan_exclusive_narrative_task(...)` plus both replan and initial paths in
+`_plan_semantic_numeric_tasks(...)`. Pin exact arguments, identity/copy/no-
+mutation, ordering, adoption, laziness, and exception stop. Freeze source before
+public retarget; wrappers, aliases, callback bridges, and executable retired
+private refs are forbidden.
 
-Projected gates are focused 7/7, helper owner 12/12, affected eight-module
-semantic 434/434, import-side-effect 19/19, runtime audit 218, full discovery
-1,847/1,847, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
-zero, and diff check. The semantic set is `tests.test_financial_graph_helpers`,
-`tests.test_semantic_numeric_plan`, `tests.test_semantic_numeric_planner`,
-`tests.test_reconciliation_plan`, `tests.test_operation_contracts`,
-`tests.test_part_whole_ratio_contract`, `tests.test_concept_runtime_contracts`,
-and `tests.test_structured_operand_extraction`.
+Projected gates are focused 6/6, helper owner 18/18, affected eight-module
+semantic 440/440, import-side-effect 19/19, runtime audit 218, full discovery
+1,853/1,853, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+zero, and diff check. The semantic set remains
+`tests.test_financial_graph_helpers`, `tests.test_semantic_numeric_plan`,
+`tests.test_semantic_numeric_planner`, `tests.test_reconciliation_plan`,
+`tests.test_operation_contracts`, `tests.test_part_whole_ratio_contract`,
+`tests.test_concept_runtime_contracts`, and
+`tests.test_structured_operand_extraction`.
 
-LLM/model invocation, query routing, entity/state projection,
-`_build_llm_concept_numeric_plan(...)`, `_plan_exclusive_narrative_task(...)`,
-`_plan_semantic_numeric_tasks(...)`, plan adoption, task/artifact/ledger writes,
-and final sequencing remain graph-owned. Continue to reject evidence-building
-and narrative-evidence mutation, ratio operand assembly that would introduce a
-graph-helper/operand reverse cycle, precision/custom-carrier moves, compact-
-ratio state, ontology compatibility gates, vector-store callbacks, and broader
-state/ledger extraction. No behavior, accuracy, ranking, performance,
+Keep `_project_logical_tasks_from_execution_tasks(...)`,
+`_dependency_closure_task_ids(...)`,
+`_non_numeric_operation_intent_override(...)`,
+`_plan_exclusive_narrative_task(...)`, and
+`_plan_semantic_numeric_tasks(...)` graph-owned. LLM/model invocation, query
+routing, task/state/artifact/ledger mutation, plan adoption, retrieval/evidence
+work, and final sequencing remain hard stops. Continue to reject evidence-
+building and narrative-evidence mutation, ratio operand assembly that would
+introduce a graph-helper/operand reverse cycle, precision/custom-carrier moves,
+compact-ratio state, ontology compatibility gates, vector-store callbacks, and
+broader state/ledger extraction. No behavior, accuracy, ranking, performance,
 total-code or executed-path reduction, benchmark, schedule, or Phase 3
 completion claim follows.
 

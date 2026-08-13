@@ -562,18 +562,34 @@ extraction, candidate collection/selection, LLM reranking, evidence
 construction, artifact/retry/state mutation, ledger work, and final sequencing
 remain graph-owned.
 
-The selected follow-on is one 273-line semantic-planner normalization and
-validation batch from `financial_graph_planning.py` into the existing
-cross-cutting semantic-planning owner `financial_graph_helpers.py`. Eight old
-definitions become five public and three owner-private definitions totaling a
-projected 271 lines. Sixteen selected direct calls finish graph-external nine
-and owner-local seven; all remain outside `try`. The move adds no module edge,
-moves no reviewed runtime-domain record, and retires only the planning module's
-now-dead segment-label and report-receipt imports. LLM/model invocation, query
-routing, plan adoption, task/state/artifact/ledger mutation, and final
-sequencing remain hard stops. Exact APIs, behavior, the seven-method
-CURRENT-SOURCE gate, projected validation counts, DAG/dead-import consequences,
-and rejected evidence/cycle/carrier/state expansions live only in
+The completed `fb970a5` follow-on moved eight semantic-planner normalization
+and validation definitions totaling 273 old lines from
+`financial_graph_planning.py` into `financial_graph_helpers.py` as five public
+and three owner-private functions totaling 271 lines. Sixteen selected calls
+finish graph-external nine and owner-local seven, all outside `try`. Source is
+`+303/-296`, tests are `+1,557/-9`, and the whole commit is `+1,860/-305`.
+Planning moved from 2,048 to 1,765 physical lines, graph helpers from 6,269 to
+6,559, and seven new tests moved discovery from 1,840 to 1,847. Final gates
+passed focused 7/7, helper owner 12/12, affected semantic 434/434, import 19/19,
+audit 218, full discovery 1,847/1,847, pycompile/fresh import, DAG/body/caller
+parity, retired-ref zero, and diff check. Its source diff SHA-256 is
+`9e0310f17edd4ea004425957e8044fc6ae0f79538ab140bd4a9e8007aa4d63cc`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Model invocation,
+query routing, plan adoption, mutable task/state/artifact/ledger work, and final
+sequencing remain graph-owned.
+
+The selected follow-on is one 143-line narrative-task policy batch from
+`financial_graph_planning.py` into `financial_graph_helpers.py`. Six old
+definitions become four public and two owner-private definitions with no line-
+count projection change. Thirteen selected direct calls finish graph-external
+six and owner-local seven; all remain outside `try`. The move adds one reviewed,
+acyclic routing edge, moves no runtime-domain baseline record, and retires ten
+planning imports that become dead only after the literal move. LLM/model
+invocation, logical/execution task projection, query routing, plan adoption,
+task/state/artifact/ledger mutation, retrieval/evidence work, and final
+sequencing remain hard stops. Exact APIs, behavior, the six-method CURRENT-
+SOURCE gate, projected validation counts, DAG/dead-import consequences, and
+rejected evidence/cycle/carrier/state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

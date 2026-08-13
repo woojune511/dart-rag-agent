@@ -3412,3 +3412,53 @@ and rejected evidence/cycle/carrier/state expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work). LLM/model
 invocation, query routing, plan adoption, task/state/artifact/ledger mutation,
 and final sequencing remain graph-owned.
+
+### Semantic planner normalization and validation ownership milestone
+
+- `fb970a5` moves eight definitions totaling 273 old definition-span lines from
+  `financial_graph_planning.py` into `financial_graph_helpers.py`. Public
+  `llm_plan_preserves_segment_sum_shape(...)`,
+  `llm_plan_preserves_analysis_shape(...)`,
+  `apply_segment_labels_to_llm_resolved_specs(...)`,
+  `align_scope_hints(...)`, and `validate_concept_planner_task(...)` plus three
+  owner-private helpers total 271 owner lines. Sixteen selected calls finish
+  graph-external nine and owner-local seven; all remain direct and outside
+  `try`. Literal body and full retained-caller parity passed after normalizing
+  only the selected call targets; retired private definitions and executable
+  source/test refs are zero.
+- Source is `+303/-296`, net `+7`; tests are `+1,557/-9`, net `+1,548`; and the
+  whole commit is `+1,860/-305`, net `+1,555`. Planning moved from 2,048 to
+  1,765 physical lines, graph helpers from 6,269 to 6,559, and the changed test
+  files grew by 1,548 physical lines. Seven new unittest methods moved full
+  discovery from 1,840 to 1,847. The source diff SHA-256 is
+  `9e0310f17edd4ea004425957e8044fc6ae0f79538ab140bd4a9e8007aa4d63cc`.
+- The helper owner is public/private 5/132. Its planning-policy and report-scope
+  dependencies use existing acyclic edges; the planning module's newly dead
+  segment-label and report-receipt imports are removed. The selected spans move
+  no reviewed runtime-domain record, so the audit remains 218 without a
+  baseline change.
+- Final validation passed focused 7/7, helper owner 12/12, affected eight-module
+  semantic 434/434, import-side-effects 19/19, runtime audit 218, full discovery
+  1,847/1,847, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+  zero, and `git diff --check`. Benchmark refresh was **NOT RUN** and no remote
+  CI run is claimed for this local commit.
+
+This milestone changes only semantic-planner normalization and validation
+ownership. Model invocation, query routing, plan adoption, mutable task/state/
+artifact/ledger work, retrieval/evidence work, and final sequencing remain
+graph-owned. It proves no behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 143-line
+narrative-task policy batch from `financial_graph_planning.py` into
+`financial_graph_helpers.py`. Six old definitions become public four plus
+owner-private two. Thirteen direct calls finish external six/local seven; the
+move adds one reviewed acyclic routing edge, moves no runtime-domain baseline
+record, and retires ten planning imports. The exact six-method CURRENT-SOURCE
+gate, projected validations, behavior contracts, import cleanup, and rejected
+evidence/cycle/carrier/state expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work). Model
+invocation, logical/execution task projection, plan adoption, mutable task/
+state/artifact/ledger work, retrieval/evidence work, and final sequencing
+remain graph-owned.

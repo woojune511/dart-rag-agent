@@ -537,12 +537,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   owner 14/14, semantic 787/787, import 19/19, audit 218과 full 1,840/1,840가
   통과했다. Full operand extraction, candidate collection/selection, LLM
   rerank, evidence/state/artifact/ledger와 final sequencing은 graph에 남는다.
-- 다음 선택은 planning의 scope, plan-shape, segment-label, task-validation
-  정의 273줄을 `financial_graph_helpers.py`의 public 5/owner-private 3, projected
-  271줄로 이동하는 한 batch다. 열여섯 call은 external 9/local 7이 되며
-  LLM/model invocation, plan adoption, task/state/artifact/ledger와 final
-  sequencing hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
-  기준으로 삼는다.
+- 완료된 semantic-planner normalization/validation batch는 planning의 scope,
+  plan-shape, segment-label, task-validation 정의 273줄을
+  `financial_graph_helpers.py`의 public 5/owner-private 3, 271줄로 옮겼다.
+  열여섯 call은 external 9/local 7이고 helper owner 함수 수는 5/132다.
+  Focused 7/7, helper owner 12/12, semantic 434/434, import 19/19, audit 218과
+  full 1,847/1,847이 통과했다. LLM/model invocation, plan adoption,
+  task/state/artifact/ledger와 final sequencing은 graph에 남는다.
+- 다음 선택은 planning의 narrative-task policy 정의 143줄을 같은 owner의
+  public 4/owner-private 2로 이동하는 한 batch다. 열세 call은 external
+  6/local 7이 되며 exact boundary와 hard stop은
+  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 
@@ -556,8 +561,10 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - numeric parsing and unit normalization helpers
 - retrieval hint / operand matching helpers
 - semantic planner scope normalization, plan-shape validation, segment-label
-  projection, and planner-task contract helpers are the sole selected next
-  ownership boundary; model invocation and state/task adoption remain outside
+  projection, and planner-task contract helpers
+- selected next boundary: narrative-task predicate, construction, append,
+  dependency-order, and exclusive-policy projection; model invocation and
+  state/task adoption remain outside
 
 `_preferred_complete_aggregate_subtask_answer`는 compatibility를 위해 여기서
 re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.

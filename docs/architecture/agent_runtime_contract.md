@@ -3534,25 +3534,45 @@ collection/selection, LLM rerank, evidence construction, artifact/retry/state
 mutation, ledger work, and final sequencing remain graph-owned. Compatibility
 wrappers and aliases remain forbidden.
 
-The next semantic-planner normalization and validation batch is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). It moves
-eight state-free definitions from `financial_graph_planning.py` into the
-existing semantic-planning owner `financial_graph_helpers.py`: owner-private
-single-report-scope, concept-role-family, and segment-attachment helpers plus
-public segment-sum/analysis-shape predicates, segment-label projection, scope
-alignment, and planner-task validation. The 273 old definition lines project to
-271 owner lines after removing only two mixin `self` parameters.
+The semantic-planner normalization and validation boundary completed in
+`fb970a5`. Owner-private single-report-scope, concept-role-family, and segment-
+attachment helpers plus public segment-sum/analysis-shape predicates, segment-
+label projection, scope alignment, and planner-task validation now live in
+`financial_graph_helpers.py`. The 273 old definition lines became 271 owner
+lines after removing only two mixin `self` parameters.
 
-The public contracts must preserve company/year normalization and scope
-precedence, receipt-count fallback and soft year coercion, deterministic plan-
-shape and role-family checks, copied segment-label projection with stable
-family-specific assignment, ontology/available-concept/surface validation,
-exact rejection reasons, input immutability, access laziness, and uncaught
-exceptions. All 16 selected calls remain direct and outside `try`; nine stay
-graph-external and seven become owner-local. LLM/model invocation, query
-routing, entity/state projection, task/artifact/ledger writes, plan adoption,
-and final sequencing remain graph-owned. No callback, carrier, wrapper, alias,
-or compatibility bridge is authorized.
+These contracts preserve company/year normalization and scope precedence,
+receipt-count fallback and soft year coercion, deterministic plan-shape and
+role-family checks, copied segment-label projection with stable family-specific
+assignment, ontology/available-concept/surface validation, exact rejection
+reasons, input immutability, access laziness, and uncaught exceptions. All 16
+selected calls remain direct and outside `try`; nine are graph-external and
+seven owner-local. The old private definitions and executable refs are zero,
+and the two newly dead planning imports are removed. LLM/model invocation,
+query routing, entity/state projection, task/artifact/ledger writes, plan
+adoption, and final sequencing remain graph-owned.
+
+The next narrative-task policy batch is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). It moves
+six state-free definitions totaling 143 lines from
+`financial_graph_planning.py` into `financial_graph_helpers.py`: owner-private
+narrative-summary and hybrid-need predicates plus public hybrid-task builder,
+hybrid-task append, numeric-before-narrative ordering, and exclusive-policy
+gate. All 13 selected calls remain direct and outside `try`; six stay graph-
+external and seven become owner-local.
+
+The public contracts must preserve intent/context gates, consolidation and
+period focus, active-policy and slot-group order, configured format preference,
+stable retrieval-query dedupe, preferred sections, copied task projection,
+task-ID increment, narrative detection, numeric dependency append order,
+numeric-before-narrative ordering, input immutability, access laziness, and
+uncaught exceptions. `_plan_exclusive_narrative_task(...)` and
+`_plan_semantic_numeric_tasks(...)` retain the exact caller arguments, branch
+order, result adoption, and exception boundary. Model invocation, logical/
+execution task projection, query routing, mutable task/state/artifact/ledger
+work, retrieval/evidence work, plan adoption, and final sequencing remain
+graph-owned. No callback, carrier, wrapper, alias, or compatibility bridge is
+authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
