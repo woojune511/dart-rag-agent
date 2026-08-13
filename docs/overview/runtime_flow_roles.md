@@ -298,7 +298,7 @@ State-free owner topology:
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
-| `financial_scope_policies.py` | report/consolidation scope, public generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
+| `financial_scope_policies.py` | report/consolidation scope, public query/task and generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection |
 | `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, public scoring, and owner-private operand affinity |
@@ -663,15 +663,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   AST/caller/DAG parity가 통과했다. Ontology/formula policy, metric admission,
   task/query construction, state/evidence/ledger와 final sequencing은 graph에
   남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 11/25줄 query/task
-  period-focus pair를 `financial_scope_policies.py`의 public API로 옮기는
-  다음 production 작업으로 선택했다. 여섯 call은 hybrid, concept,
-  heuristic, metric-task constraint builder에서 external 6/local 0을
-  유지한다. Projected graph helper public/private는 9/97, scope policy는
-  9/9다. 아직 source/test 이동은 없으며 marker precedence/year dedupe,
-  role collection/refinement, 네 caller의 order/adoption/stop, 네 CURRENT-
-  SOURCE method와 projected gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `55bc286` period-focus batch는 graph helper의 정확한 11/25줄
+  query/task pair를 `financial_scope_policies.py`의 public API로 옮겼다.
+  여섯 call은 hybrid, concept, heuristic, metric-task constraint builder에서
+  external 6/local 0을 유지한다. Graph helper public/private는 9/97, scope
+  policy는 9/9다. Focused 4/4, owner 74/74, semantic 1,034/1,034, import
+  19/19, audit 218, full 1,927/1,927과 pycompile/fresh import/public identity,
+  AST/caller/DAG parity가 통과했다. Consolidation/default, operation/operand/
+  task/query construction, candidate ranking/admission, state/evidence/ledger와
+  final sequencing은 graph에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 16/18줄 candidate
+  value-role/aggregation-stage pair를 `financial_row_surfaces.py`의 public API로
+  옮기는 다음 production 작업으로 선택했다. 각 함수의 11개 call, 총 22개
+  call은 semantic priority, direct grounding/acceptance, ratio acceptance,
+  matching, direct strength, scoring 위치에서 external 22/local 0을 유지해야
+  한다. Projected graph helper public/private는 9/95, row surfaces는 7/15다.
+  아직 source/test 이동은 없으며 metadata precedence, row fallback laziness,
+  일곱 caller의 order/short-circuit/stop, 네 CURRENT-SOURCE method와 projected
+  gate는 [Project Status의 Next Work](project_status.md#next-work)가 단일
+  기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

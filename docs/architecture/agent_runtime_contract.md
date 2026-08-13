@@ -4095,16 +4095,15 @@ selected graph-private refs zero, and diff check passed. The earlier 958
 semantic projection was a counting error; current module discovery is 955.
 Benchmark refresh was **NOT RUN** and remote CI remains unverified.
 
-The new characterize-only period-focus inventory selects the adjacent current
-11-line `_infer_period_focus(query, default_value="unknown") -> str` and
+The pre-move characterize-only period-focus inventory selected the adjacent
+current 11-line `_infer_period_focus(query, default_value="unknown") -> str` and
 25-line `_task_period_focus_from_operands(operation_family, operand_specs,
-default_value) -> str` graph definitions for a future public move to
-`financial_scope_policies.py` as `query_period_focus(...)` and
-`task_period_focus_from_operands(...)`. No production source or test has moved
-for this pair at this checkpoint. They project a period-focus label from an
-already supplied query or prepared operand roles; they do not resolve ontology
-defaults or consolidation, infer an operation, construct operands/tasks/queries,
-rank candidates, or adopt plan/state.
+default_value) -> str` graph definitions. Commit `55bc286` completes their
+public move to `financial_scope_policies.py` as `query_period_focus(...)` and
+`task_period_focus_from_operands(...)`. They project a period-focus label from
+an already supplied query or prepared operand roles; they do not resolve
+ontology defaults or consolidation, infer an operation, construct operands/
+tasks/queries, rank candidates, or adopt plan/state.
 
 `query_period_focus(...)` normalizes the raw query before shallow-copying
 `PERIOD_FOCUS_POLICY`. It lazily checks raw configured prior markers first and
@@ -4141,19 +4140,68 @@ consolidation overwrite, then query period. Each result is adopted directly;
 exceptions stop the remaining caller work.
 
 The scope owner already imports all selected dependencies; graph reaches it and
-it does not reach graph. Projected counts are graph helpers 9/97 and scope policy
+it does not reach graph. Final counts are graph helpers 9/97 and scope policy
 9/9, calls external six/local zero, and both selected spans have zero reviewed
 runtime-domain records. Moving caller bodies, consolidation/default resolution,
 operation/operand/task/query construction, candidate report/year matching,
 ranking/admission, or state adoption is rejected. Four named CURRENT-SOURCE
-methods and exact contracts remain solely in
-[Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 74/74, affected semantic 1,034/1,034, import 19/19,
-audit 218, full 1,927/1,927, pycompile/fresh import/public identity 2/2,
+methods passed before and after the move. Source moved `+48/-46`, tests
+`+1,238/-18`, and the whole commit `+1,286/-64`; graph helpers finish at 5,718
+lines and scope policy at 497. The source diff SHA-256 is
+`aa560ff1fd01dca72fe55120b8dc8fbd67e95d27d6f3ebc87e863012a7054da9`.
+Focused 4/4, owner 74/74, affected semantic 1,034/1,034, import 19/19, audit
+218, full 1,927/1,927, pycompile/fresh import/public identity 2/2,
 selected-body parity 2/2, all 106 retained graph functions, full caller/DAG
-parity, and retired selected graph-private refs zero. Static AST/DAG and baseline,
-isolated period-focus/caller probes, current graph-helper/direct-consumer tests
-150/150, and audit 218 passed; benchmark refresh and remote CI were **NOT RUN**.
+parity, retired executable graph-private refs zero, and diff check passed.
+Benchmark refresh was **NOT RUN** and remote CI remains unverified.
+
+The new characterize-only candidate value/stage inventory selects the adjacent
+current 16-line `_candidate_value_role(candidate) -> str` and 18-line
+`_candidate_aggregation_stage(candidate) -> str` graph definitions for a future
+public move to `financial_row_surfaces.py` as `candidate_value_role(...)` and
+`candidate_aggregation_stage(...)`. No production source or test has moved for
+this pair at this checkpoint. They project labels from supplied candidate
+metadata and do not own admission, matching, match strength, semantic priority,
+scoring/ranking, candidate/evidence adoption, or state.
+
+Both helpers shallow-copy `candidate.get("metadata") or {}`. Value role first
+normalizes stringified `value_role`; a truthy result returns immediately. It
+then normalizes `aggregate_role`, mapping `adjustment` to `adjustment` and
+`direct_total`/`subtotal`/`final_total` to `aggregate`. Only after those paths
+miss does it choose raw `row_label` before `semantic_label`, call
+`aggregate_like_row_role(...)`, return exactly `aggregate` when inferred, and
+otherwise return `detail`.
+
+Aggregation stage uses the same copy, explicit-field precedence, and fallback
+selection. Its aggregate-role map is `direct_total -> direct`, `subtotal ->
+subtotal`, and `final_total -> final`; otherwise it calls
+`aggregate_like_row_stage(...)`, returning that result when it is not `none`
+and `none` otherwise. Mapping access, `or` truth-value behavior,
+stringification, normalization, exact comparisons, shallow-copy/nested
+identity, immutability, and all current uncaught errors must remain unchanged.
+
+Each helper has 11 direct graph calls, for 22 total, with one positional
+candidate argument, no keywords, and caller `try` depth zero. Calls occur in
+direct semantic priority, direct grounding, direct acceptance, ratio-component
+acceptance, candidate matching, direct-match strength, and operand scoring.
+Their existing order and short-circuit placement are caller policy: moving or
+eagerly precomputing them would change behavior and is rejected.
+
+The row owner already owns the fallback aggregate-like projections and required
+types/normalization; graph reaches it and it does not reach graph. Projected
+counts are graph helpers 9/95 and row surfaces 7/15, calls external 22/local
+zero, and both selected spans have zero reviewed runtime-domain records. Moving
+caller bodies, binding policy, acceptance, matching, match strength, semantic
+priority, scoring/ranking, candidate/evidence adoption, or graph/artifact/
+ledger state is rejected. Four named CURRENT-SOURCE methods and exact contracts
+remain solely in
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 78/78, affected semantic 1,038/1,038, import 19/19,
+audit 218, full 1,931/1,931, pycompile/fresh import/public identity 2/2,
+selected-body parity 2/2, all 104 retained graph functions, full caller/DAG
+parity, and retired executable graph-private refs zero. Static AST/DAG and
+selected-body baseline plus two existing role/stage caller probes passed;
+benchmark refresh and remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

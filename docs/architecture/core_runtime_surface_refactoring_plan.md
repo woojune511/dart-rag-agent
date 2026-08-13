@@ -775,27 +775,43 @@ retired-ref zero, and diff check passed. The source diff SHA-256 is
 Ontology lookup, operation/formula policy, metric admission, task/query
 construction, and plan/state adoption remain hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 11/25-line `_infer_period_focus(...)` and
-`_task_period_focus_from_operands(...)` pair from graph helpers to public
-`query_period_focus(...)` and `task_period_focus_from_operands(...)` in
-`financial_scope_policies.py`. Their six direct calls remain graph-external/
-local 6/0 across hybrid, concept, heuristic, and metric-task constraint builders.
-The scope owner already imports normalization, regex, period policy, and required
-types; graph reaches it and it does not reach graph. Projected function counts
-are graph helpers 9/97 and scope policy 9/9.
+The completed `55bc286` follow-on moved the exact current 11/25-line query/task
+period-focus pair from graph helpers to public `query_period_focus(...)` and
+`task_period_focus_from_operands(...)` in `financial_scope_policies.py`. Their
+six direct calls finish graph-external/local 6/0 across hybrid, concept,
+heuristic, and metric-task constraint builders. Source is `+48/-46`, tests
+`+1,238/-18`, and the whole commit `+1,286/-64`; graph helpers moved from 5,756
+to 5,718 lines and scope policy from 457 to 497. Focused 4/4, owner 74/74,
+affected semantic 1,034/1,034, import 19/19, audit 218, full 1,927/1,927,
+pycompile/fresh import/public identity, body/retained/caller/DAG parity,
+retired executable private refs zero, and diff check passed. The source diff
+SHA-256 is
+`aa560ff1fd01dca72fe55120b8dc8fbd67e95d27d6f3ebc87e863012a7054da9`.
+Consolidation/default resolution, operation inference, operand/task/query
+construction, caller policy, candidate ranking/admission, and plan/state
+adoption remain hard stops.
 
-Moving consolidation/default resolution, operation inference, operand/task/
-retrieval-query construction, any caller body, candidate report/year matching,
-ranking/admission, or plan/state adoption is rejected. Exact marker precedence,
-explicit-year dedupe, role collection/refinement, caller order/adoption/stops,
-four required CURRENT-SOURCE methods, and projected focused 4/4, owner 74/74,
-affected semantic 1,034/1,034, import 19/19, audit 218, and full 1,927/1,927
-gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 16/18-line `_candidate_value_role(...)` and
+`_candidate_aggregation_stage(...)` pair from graph helpers to public
+`candidate_value_role(...)` and `candidate_aggregation_stage(...)` in
+`financial_row_surfaces.py`. Each function has 11 direct calls, for 22 total,
+across semantic priority, direct grounding/acceptance, ratio acceptance,
+matching, direct strength, and scoring. The row owner already owns the fallback
+aggregate-like role/stage projections; graph reaches it and it does not reach
+graph. Projected function counts are graph helpers 9/95 and row surfaces 7/15.
+
+Moving caller bodies, candidate construction, binding policy, direct/ratio
+acceptance, matching, match strength, semantic priority, scoring/ranking,
+candidate/evidence adoption, or plan/state/artifact/ledger mutation is rejected.
+Exact metadata-copy/field precedence, role/stage maps, row-label-before-semantic
+fallback, per-caller order/short-circuits/stops, four required CURRENT-SOURCE
+methods, and projected focused 4/4, owner 78/78, affected semantic 1,038/1,038,
+import 19/19, audit 218, and full 1,931/1,931 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this period-focus pair at the characterization
-checkpoint; it is the sole next priority, and this plan maintains no competing
-queue.
+or test movement has occurred for this value-role/stage pair at the
+characterization checkpoint; it is the sole next priority, and this plan
+maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

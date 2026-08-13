@@ -4515,3 +4515,81 @@ benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG and
 selected-body baseline, isolated period-focus/caller probes, current graph-
 helper/direct-consumer tests 150/150, and audit 218 passed; benchmark refresh
 and remote CI were **NOT RUN**.
+
+### Query/task period-focus ownership milestone
+
+- `55bc286` moves the exact 11-line `_infer_period_focus(...)` and 25-line
+  `_task_period_focus_from_operands(...)` definitions from
+  `financial_graph_helpers.py` to public `query_period_focus(...)` and
+  `task_period_focus_from_operands(...)` in `financial_scope_policies.py`.
+  Calls finish graph-external six/owner-local zero across hybrid, concept,
+  heuristic, and metric-task constraint builders. Each remains a direct
+  `ast.Name` call with positional arguments only, no keywords, and caller
+  `try` depth zero.
+- Source is `+48/-46`, net `+2`: graph helpers are `+8/-46` and move from 5,756
+  to 5,718 physical lines; scope policy is `+40/-0` and moves from 457 to 497.
+  Tests are `+1,238/-18`, net `+1,220`, moving graph-helper tests from 14,666
+  to 15,886 lines while semantic-plan tests remain 2,949. The whole commit is
+  `+1,286/-64`, net `+1,222`, and four new methods move discovery from 1,923 to
+  1,927. The source diff SHA-256 is
+  `aa560ff1fd01dca72fe55120b8dc8fbd67e95d27d6f3ebc87e863012a7054da9`.
+- Graph helpers finish public/private 9/97 and scope policy 9/9. The existing
+  graph-to-scope edge remains one-way, selected dependencies remain acyclic,
+  both selected spans contain zero reviewed domain records, and the baseline
+  remains 218. Retired executable graph-private refs are zero and public import
+  identity is 2/2.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  query-first normalization, policy shallow copy, marker precedence/laziness,
+  exact-year dedupe, fallback truth semantics, full operand-spec consumption,
+  role get/string/strip counts, operation-role matrix, immutability, exceptions,
+  exact definitions/calls/DAG/baseline, four caller orders/adoptions, and stop
+  behavior. Selected-body parity 2/2, all 106 retained graph functions, full
+  caller/DAG parity, and diff check passed.
+- Validation passed focused 4/4, graph-helper/scope owner 74/74, affected
+  eleven-module semantic 1,034/1,034, import-side-effects 19/19, runtime audit
+  218, full discovery 1,927/1,927, and pycompile/fresh import in the project
+  `.venv`. Benchmark refresh was **NOT RUN**, and no remote CI run is claimed or
+  verified for this local branch.
+
+This milestone changes only query/task period-focus ownership. Consolidation/
+default resolution, operation inference, operand/task/retrieval-query
+construction, caller policy, candidate ranking/admission, plan/state adoption,
+artifacts/ledger, and final sequencing remain graph-owned. It proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+### Candidate value-role/stage characterization checkpoint
+
+- A docs-only inventory resolves the adjacent exact 16-line
+  `_candidate_value_role(candidate) -> str` and 18-line
+  `_candidate_aggregation_stage(candidate) -> str` definitions in
+  `financial_graph_helpers.py`. Each has 11 direct calls, 22 total, across
+  semantic priority, direct grounding/acceptance, ratio acceptance, matching,
+  direct strength, and scoring. All use one positional candidate argument, no
+  keywords, and caller/body `try` depth zero. No production source or test moves
+  in this checkpoint.
+- The selected follow-on moves the pair as public `candidate_value_role(...)`
+  and `candidate_aggregation_stage(...)` in `financial_row_surfaces.py`. Calls
+  remain graph-external 22/owner-local zero. Projected function counts are graph
+  helpers public/private 9/95 and row surfaces 7/15. Both selected spans contain
+  zero of the 218 reviewed runtime-domain records.
+- Both projections preserve metadata shallow copy, immediate explicit-field
+  normalization, exact aggregate-role mappings, row-label-before-semantic
+  fallback, nested identity, input immutability, and uncaught errors. Value role
+  defaults to detail unless the row fallback is exactly aggregate; aggregation
+  stage defaults to none unless the row fallback differs from none.
+- Caller order and short circuits remain graph-owned. Role precedes stage at
+  direct semantic priority, grounding/acceptance, ratio acceptance, and scoring;
+  matching and direct-strength paths retain their conditional repeated calls.
+  Moving acceptance, matching, strength, semantic priority, scoring/ranking, or
+  candidate/evidence/state adoption is rejected. Four named CURRENT-SOURCE
+  methods and projected focused 4/4, owner 78/78, affected semantic
+  1,038/1,038, import 19/19, audit 218, full 1,931/1,931, pycompile/fresh import/
+  public identity, selected body 2/2, retained graph 104/104, caller/DAG parity,
+  retired executable private-ref zero, and diff check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG and
+selected-body baseline plus two existing role/stage caller probes passed;
+benchmark refresh and remote CI were **NOT RUN**.
