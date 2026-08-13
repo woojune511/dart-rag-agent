@@ -299,7 +299,7 @@ State-free owner topology:
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, public generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection |
-| `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role projection, segment-local binding, and segment-metric composition |
+| `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
@@ -644,13 +644,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,915/1,915와 pycompile/fresh import/public identity, AST/caller/DAG parity가
   통과했다. Direct acceptance, collapse, sibling/canonical/semantic/score,
   state/evidence/ledger와 final sequencing은 graph에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 30줄 sibling-
-  surface hit-count projection 하나를 `financial_row_surfaces.py`의 public
-  API로 옮기는 다음 production 작업으로 선택했다. 세 call은 sorted-key,
-  top-hit, positive-top filter 위치에서 external 3/local 0을 유지한다.
-  Projected graph helper public/private는 9/101, row surfaces는 5/15다. 아직
-  source/test 이동은 없으며 exact projection/copy/dedupe/compaction, caller
-  rank/filter stop, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `a530033` sibling-surface hit-count batch는 graph helper의 정확한 30줄
+  projection을 `financial_row_surfaces.py`의 public API로 옮겼다. 세 call은
+  sorted-key, top-hit, positive-top filter 위치에서 external 3/local 0을
+  유지한다. Graph helper public/private는 9/101, row surfaces는 5/15다.
+  Focused 4/4, owner 67/67, semantic 946/946, import 19/19, audit 218, full
+  1,919/1,919과 pycompile/fresh import/public identity, AST/caller/DAG parity가
+  통과했다. Sibling-list preparation, rank/filter adoption, canonical/
+  semantic/score policy, state/evidence/ledger와 final sequencing은 graph에
+  남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 6/14줄 query-to-
+  metric/operand match pair를 `financial_retrieval_hints.py`의 public API로
+  옮기는 다음 production 작업으로 선택했다. 네 call은 strong-metric,
+  target component/mention, task-loop weak-match 위치에서 external 4/local
+  0을 유지한다. Projected graph helper public/private는 9/99, retrieval
+  hints는 5/9다. 아직 source/test 이동은 없으며 exact collection/matching/
+  identity dedupe, semantic-plan caller order/admission/stop, 네 CURRENT-SOURCE
+  method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

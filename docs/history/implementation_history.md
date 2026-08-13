@@ -4329,3 +4329,91 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
 selected-body baseline, isolated projection/caller probes, and audit 218 passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Sibling-surface hit-count ownership milestone
+
+- `a530033` moves the exact 30-line
+  `_candidate_sibling_surface_hit_count(...)` definition from
+  `financial_graph_helpers.py` into `financial_row_surfaces.py` as public
+  `candidate_sibling_surface_hit_count(...)`. Calls finish graph-external three/
+  owner-local zero in sorted-key, top-hit recomputation, and positive-top filter
+  positions. Each remains a direct `ast.Name` call with two positional arguments,
+  no keywords, and caller `try` depth zero.
+- Source is `+36/-36`, net zero: graph helpers are `+4/-36` and move from 5,810
+  to 5,778 physical lines; row surfaces are `+32/-0` and move from 357 to 389.
+  Tests are `+968/-9`, net `+959`, moving graph-helper tests from 12,394 to
+  13,353 lines. The whole commit is `+1,004/-45`, net `+959`, and four new
+  methods move discovery from 1,915 to 1,919. The source diff SHA-256 is
+  `0c369d873a91d678a19d9a766a41152afaa8c97aca83cd7270ca2d81ea9d7466`.
+- Graph helpers finish public/private 9/101 and row surfaces 5/15. The existing
+  graph-to-row edge remains one-way, selected dependencies remain acyclic, the
+  selected span contains zero reviewed domain records, and the baseline remains
+  218. The retired graph-private name has zero source/test refs and public import
+  identity is one.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin the
+  empty-list stop, metadata shallow-copy/nested identity, six-surface order,
+  normalization, period stripping, raw ordered dedupe, compaction, exact match
+  count and errors, definition/calls/import/DAG/baseline, sibling preparation,
+  candidate-copy identity, sorted/top/filter order, zero-top behavior, final
+  candidate review order, and exception stops. Selected-body parity 1/1, all
+  110 retained graph functions, full caller/DAG parity, and diff check passed.
+- Validation passed focused 4/4, graph-helper/surface-contract owner 67/67,
+  affected ten-module semantic 946/946, import-side-effects 19/19, runtime audit
+  218, full discovery 1,919/1,919, and pycompile/fresh import in the project
+  `.venv`. Benchmark refresh was **NOT RUN**, and no remote CI run is claimed or
+  verified for this local branch.
+
+This milestone changes only sibling-surface hit-count ownership. Sibling-list
+preparation, direct-entry collapse, sorted/top/filter ranking, canonical/
+semantic/score policy, candidate/evidence construction/adoption, mutable state/
+evidence, callbacks, carriers, trace/artifact/ledger work, and final sequencing
+remain graph-owned. It proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+### Query-to-metric/operand match characterization checkpoint
+
+- A docs-only inventory resolves the adjacent exact 6-line
+  `_query_mentions_metric(query, metric) -> bool` and 14-line
+  `_query_component_match_count(query, operand_specs) -> int` definitions in
+  `financial_graph_helpers.py`. The mention helper has three direct calls and
+  the component helper one, all from `_build_semantic_numeric_plan(...)`, with
+  two positional arguments, no keywords, and caller/body `try` depth zero. No
+  production source or test moves in this checkpoint.
+- The selected follow-on moves the pair as public `query_mentions_metric(...)`
+  and `query_component_match_count(...)` in
+  `financial_retrieval_hints.py`. Calls remain graph-external four/owner-local
+  zero. Projected function counts are graph helpers public/private 9/99 and
+  retrieval hints 5/9. Both selected spans contain zero of the 218 reviewed
+  runtime-domain records and current tests contain zero selected-name refs.
+- Mention behavior preserves query-first normalization, eager ordered reads of
+  display/aliases/intent keywords and full iterable extension, display-only
+  immediate string coercion, ordered lazy alias filtering/normalization,
+  case-sensitive substring matching, first-match stop, input immutability, and
+  uncaught errors. Component behavior preserves per-spec label/aliases/keywords
+  collection, the same ordered matching, lazy matched-blank-label concept
+  fallback, unmatched concept stop, and final nonempty label/concept identity
+  dedupe with `dict.fromkeys(...)`.
+- Caller order remains graph-owned: strong-metric mention tests precede formula-
+  family admission; component count precedes target mention; a false mention may
+  fall through to matched-key plus count-at-least-two admission; and a truthy
+  matches collection tests mention before the task-loop target exemption. The
+  characterized sequence is mention `target,alpha,weak`, component, target
+  mention, then task-loop mention `target,alpha`, producing target and alpha
+  tasks. Strong, component, and target-mention exceptions stop before task
+  construction at mention/component call counts 1/0, 3/1, and 4/1.
+- The retrieval-hint owner already imports normalization and required types.
+  Graph already reaches it and it does not reach graph, so only public names are
+  added to an existing import edge. Moving ontology lookup, operation/formula
+  policy, metric admission, planner notes, task/retrieval-query construction, or
+  state adoption is rejected. Four named CURRENT-SOURCE methods and projected
+  focused 4/4, owner 75/75, affected semantic 958/958, import 19/19, audit 218,
+  full 1,923/1,923, pycompile/fresh import/public identity, selected body 2/2,
+  retained graph 108/108, caller/DAG parity, retired-ref zero, and diff check are
+  maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
+selected-body baseline, isolated matching/caller probes, current owner 71/71,
+and audit 218 passed; benchmark refresh and remote CI were **NOT RUN**.

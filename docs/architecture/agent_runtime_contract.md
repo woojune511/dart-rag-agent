@@ -3986,13 +3986,12 @@ full 1,915/1,915, pycompile/fresh import/public identity, selected-body parity
 source/test refs zero, and diff check passed. Benchmark refresh was **NOT RUN**
 and remote CI remains unverified.
 
-The completed characterize-only sibling-surface inventory selects the exact
-current 30-line `_candidate_sibling_surface_hit_count(candidate,
-sibling_surfaces) -> int` graph definition for a future public move to
-`financial_row_surfaces.py` as `candidate_sibling_surface_hit_count(...)`. No
-production source or test has moved for this function at this checkpoint. It
-projects a surface hit count and does not own sibling-list construction,
-sorting, filtering, canonical/semantic/score decisions, or state adoption.
+Commit `a530033` moves the exact 30-line
+`_candidate_sibling_surface_hit_count(candidate, sibling_surfaces) -> int`
+graph definition to public `candidate_sibling_surface_hit_count(...)` in
+`financial_row_surfaces.py`. It projects a surface hit count and does not own
+sibling-list construction, sorting, filtering, canonical/semantic/score
+decisions, or state adoption.
 
 The helper returns zero on a falsy sibling list before candidate access. It
 shallow-copies metadata, stringifies six candidate surfaces in table-row,
@@ -4022,19 +4021,78 @@ original ranked alternatives up to three; the characterized scenario emits
 `a,b,c`.
 
 The row owner already owns period-prefix stripping, regex, and normalization;
-graph already reaches it and it does not reach graph. Projected counts are graph
+graph already reaches it and it does not reach graph. Final counts are graph
 helpers 9/101 and row surfaces 5/15, calls external three/local zero, and the
 selected span has zero reviewed runtime-domain records. Moving the surrounding
 rank/filter block, canonical/semantic functions, or candidate role/stage would
 move ranking/admission policy and is rejected. Four named CURRENT-SOURCE methods
-and exact contracts remain solely in
+passed before and after relocation. Source moved `+36/-36`, tests `+968/-9`,
+and the whole commit `+1,004/-45`; graph helpers finish at 5,778 lines and row
+surfaces at 389. The source diff SHA-256 is
+`0c369d873a91d678a19d9a766a41152afaa8c97aca83cd7270ca2d81ea9d7466`.
+Focused 4/4, owner 67/67, affected semantic 946/946, import 19/19, audit 218,
+full 1,919/1,919, pycompile/fresh import/public identity, selected-body parity
+1/1, all 110 retained graph functions, full caller/DAG parity, retired private
+source/test refs zero, and diff check passed. Benchmark refresh was **NOT RUN**
+and remote CI remains unverified.
+
+The completed characterize-only query-metric inventory selects the adjacent
+current 6-line `_query_mentions_metric(query, metric) -> bool` and 14-line
+`_query_component_match_count(query, operand_specs) -> int` graph definitions
+for a future public move to `financial_retrieval_hints.py` as
+`query_mentions_metric(...)` and `query_component_match_count(...)`. No
+production source or test has moved for this pair at this checkpoint. They
+project query-to-prepared-metric/spec matches and do not own ontology lookup,
+operation inference, metric admission, task construction, retrieval-query
+construction, or plan/state adoption.
+
+The mention helper normalizes query before metric access, then reads
+`display_name`, `aliases`, and `intent_keywords` in order. Display is converted
+with `str(...).strip()` immediately; both other iterables are eagerly extended
+into the local list before matching. Ordered `any(...)` matching filters each
+reached value with `str(alias).strip()`, passes the original retained value to
+`_normalise_spaces(...)`, and uses a case-sensitive substring test. The first
+match stops later filtering and normalization but does not undo eager mapping
+reads or iterable consumption. There is no lowercasing, compaction, exact-match
+gate, dedupe, mutation, or fallback.
+
+The component helper also normalizes query first. It walks operand specs in
+source order and reads `label`, `aliases`, and `keywords` for each reached spec;
+the stringified/stripped label and raw extended aliases/keywords use the same
+filtered, case-sensitive `any(...)` contract. A match appends the nonempty
+label, otherwise lazily reads `concept` only for a matched blank-label spec.
+Unmatched specs do not read concept. Final nonempty identities are order-deduped
+with `dict.fromkeys(...)`, and the helper returns their count. Multiple aliases
+for one spec count once, duplicate identities across specs count once, and a
+shared matching alias on distinct labels counts each label. Mapping, `or`
+truth-value, stringification, iterable extension, spec iteration,
+normalization, membership, concept lookup, hashing, and dedupe errors remain
+uncaught; raw non-string aliases are not newly coerced before normalization.
+
+All four calls remain direct names in `_build_semantic_numeric_plan(...)`, with
+two positional arguments, no keywords, and caller `try` depth zero. Mention is
+called in the strong-metric comprehension, target admission, and task-loop weak-
+match guard; component count is assigned before the target mention test. The
+characterized target/alpha/weak sequence is mention `target,alpha,weak`, then
+component count, target mention, and task-loop mention `target,alpha`, producing
+target and alpha tasks. A first strong-mention exception stops at mention/
+component calls 1/0, a component exception at 3/1, and a target-mention exception
+at 4/1, all before task construction.
+
+The retrieval-hint owner already owns normalization and required types; graph
+already reaches it and it does not reach graph. Projected counts are graph
+helpers 9/99 and retrieval hints 5/9, calls external four/local zero, and both
+selected spans have zero reviewed runtime-domain records and zero current test-
+text refs. Moving caller admission, ontology/formula policy, plan notes, key
+ordering, task/query construction, or state adoption is rejected. Four named
+CURRENT-SOURCE methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 67/67, affected semantic 946/946, import 19/19,
-audit 218, full 1,919/1,919, pycompile/fresh import/public identity, selected-body
-parity 1/1, all 110 retained graph functions, full caller/DAG parity, retired-ref
-zero, and diff check. Static AST/DAG, selected-body baseline, isolated
-projection/caller probes, and audit 218 passed; benchmark refresh and remote CI
-were **NOT RUN**.
+gates are focused 4/4, owner 75/75, affected semantic 958/958, import 19/19,
+audit 218, full 1,923/1,923, pycompile/fresh import/public identity 2/2,
+selected-body parity 2/2, all 108 retained graph functions, full caller/DAG
+parity, retired-ref zero, and diff check. Static AST/DAG, selected-body baseline,
+isolated matching/caller probes, current owner 71/71, and audit 218 passed;
+benchmark refresh and remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

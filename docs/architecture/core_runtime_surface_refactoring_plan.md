@@ -746,28 +746,45 @@ Selected-cell construction, direct acceptance, collapse, sibling/canonical/
 semantic/score policy, state/evidence, artifacts/ledger, and final sequencing
 remain hard stops.
 
-The completed characterize-only inventory selects one follow-on: move only the
-exact current 30-line sibling-surface hit-count projection from graph helpers to
-public `candidate_sibling_surface_hit_count(...)` in
-`financial_row_surfaces.py`. Its three direct calls remain graph-external/local
-3/0 in sorted-key, top-hit, and positive-top filter positions. The row owner
-already defines period-prefix stripping and imports regex/normalization/types;
-graph already reaches it, the owner does not reach graph, and the graph's private
-period-strip import is replaced rather than adding an edge. Projected function
-counts are graph helpers 9/101 and row surfaces 5/15.
+The completed `a530033` follow-on moved the exact current 30-line sibling-
+surface hit-count projection from graph helpers to public
+`candidate_sibling_surface_hit_count(...)` in `financial_row_surfaces.py`. Its
+three direct calls remain graph-external/local 3/0 in sorted-key, top-hit, and
+positive-top filter positions. Source is `+36/-36`, tests `+968/-9`, and the
+whole commit `+1,004/-45`; graph helpers moved from 5,810 to 5,778 lines and row
+surfaces from 357 to 389. Focused 4/4, owner 67/67, affected semantic 946/946,
+import 19/19, audit 218, full 1,919/1,919, pycompile/fresh import/public identity,
+body/retained/caller/DAG parity, retired-ref zero, and diff check passed. The
+source diff SHA-256 is
+`0c369d873a91d678a19d9a766a41152afaa8c97aca83cd7270ca2d81ea9d7466`.
+Sibling-list preparation, sorted/top/filter ranking, canonical/semantic/score
+policy, candidate/evidence adoption, state/evidence, artifacts/ledger, and final
+sequencing remain hard stops.
 
-Moving sibling-list construction or the sorted/top/filter block is rejected
-because those own ranking and adoption. Canonical-winner, semantic-priority,
-candidate role/stage, direct acceptance, and collapse are also rejected
-expansions. Reconciliation owners already reach graph, while surface-contract
-ownership would reverse the existing row-to-surface edge. Exact projection,
-copy/dedupe/compaction/exception, caller rank/filter stop behavior, four required
-CURRENT-SOURCE methods, and projected focused 4/4, owner 67/67, affected
-semantic 946/946, import 19/19, audit 218, and full 1,919/1,919 gates are defined
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
-No source or test movement has occurred for this function at the characterization
-checkpoint; the selected one-function move is the sole next priority, and this
-plan does not maintain a competing queue.
+The new characterize-only inventory selects one follow-on: move only the exact
+current 6/14-line `_query_mentions_metric(...)` and
+`_query_component_match_count(...)` pair from graph helpers to public
+`query_mentions_metric(...)` and `query_component_match_count(...)` in
+`financial_retrieval_hints.py`. Their four direct calls remain graph-external/
+local 4/0 inside `_build_semantic_numeric_plan(...)`: strong-metric filtering,
+target component assignment, target mention admission, and task-loop weak-match
+guard. The retrieval-hint owner already imports normalization and the required
+types; graph already reaches it and it does not reach graph. Projected function
+counts are graph helpers 9/99 and retrieval hints 5/9.
+
+Moving ontology lookup, operation/formula-family policy, matched-key or threshold
+admission, planner notes, metric/task/retrieval-query construction, or any other
+part of `_build_semantic_numeric_plan(...)` is rejected because those own plan
+policy and adoption. Canonical/semantic candidate ranking, direct acceptance,
+and candidate role/stage are separate seams. Exact field collection, lazy
+matching, label/concept identity dedupe, caller order/admission/stops, four
+required CURRENT-SOURCE methods, and projected focused 4/4, owner 75/75,
+affected semantic 958/958, import 19/19, audit 218, and full 1,923/1,923 gates
+are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No source
+or test movement has occurred for this pair at the characterization checkpoint;
+the selected pair is the sole next priority, and this plan does not maintain a
+competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
