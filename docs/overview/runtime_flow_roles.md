@@ -297,8 +297,8 @@ State-free owner topology:
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
-| `financial_scope_policies.py` | report/consolidation scope policy; generic operand target-year and period-focus policy is the selected next Seam A boundary |
-| `financial_structured_cells.py` | fiscal ordinal/rank and period-text projection; generic structured-cell selection/scoring is the selected next Seam B boundary |
+| `financial_scope_policies.py` | report/consolidation scope plus public generic operand target-year and period-focus policy; candidate report/period-scope matching and scoring is the selected next boundary |
+| `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
@@ -581,13 +581,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   812/812, import 19/19, audit 218과 full 1,871/1,871이 통과했다.
   Validation/model fallback, evidence selection, mutable composition state와
   final sequencing은 graph에 남는다.
-- 다음 선택은 `financial_graph_helpers.py`의 generic operand-period 40줄을
-  scope-policy owner의 public 2로, structured-cell selection/scoring 245줄을
-  structured-cell owner의 public 3/owner-private 1로 이동하는 순차 batch다.
-  총 57개 call은 external 53/local 4가 되며 candidate/evidence construction,
-  direct structured lookup/value projection, reconciliation orchestration,
-  state/callback/carrier/ledger와 final sequencing은 기존 owner에 남는다.
-  Exact boundary와 hard stop은
+- 완료된 generic operand-period/structured-cell ownership batch는 정확한
+  285줄 graph-helper surface를 scope/structured-cell owner의 public 5와
+  owner-private 1로 옮겼다. 선택된 57개 call은 external 53/local 4이며
+  combined focused 10/10, semantic 838/838, import 19/19, audit 218, full
+  1,881/1,881이 통과했다. Candidate/evidence construction, direct structured
+  lookup/value projection, reconciliation orchestration, state/callback/carrier/
+  ledger와 final sequencing은 graph owner에 남는다.
+- 다음 단일 경계는 `financial_graph_helpers.py`의 candidate report/period-
+  scope policy 228줄을 `financial_scope_policies.py`의 public 4와 owner-
+  private 2로 옮기는 batch다. 18개 call은 external 10/local 8이 된다.
+  Broad operand scoring/reconciliation, candidate/evidence construction과
+  adoption, mutable state, callback, carrier, ledger, final sequencing은 graph
+  owner에 남는다. Exact behavior와 hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

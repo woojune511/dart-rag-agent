@@ -3659,35 +3659,60 @@ zero, and diff check passed. Benchmark refresh was **NOT RUN**, remote CI is
 unverified, and the move proves no behavior, accuracy, ranking, performance,
 total-code, executed-path, benchmark, schedule, ledger, or Phase 3 completion.
 
-The next generic operand-period and structured-cell ownership boundary is
-defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). Seam A
-publishes `operand_target_years(...)` and `operand_period_focus(...)` from the
-current 29/11-line graph-helper definitions into
-`financial_scope_policies.py`. Their 14/24 calls finish external 37/local one.
-Explicit-year extraction, stable dedupe, current/prior/unknown fallback, soft
-supplied-year conversion failures, input immutability, access laziness, and
-uncaught exceptions are contract behavior.
+The generic operand-period and structured-cell ownership boundary completed in
+`4cdbf93` and `6d6ce2a`. Public `operand_target_years(...)` and
+`operand_period_focus(...)` now live in `financial_scope_policies.py`; public
+`select_structured_cell(...)`, `select_aggregate_structured_cell(...)`, and
+`score_structured_cell(...)` plus owner-private
+`_structured_cell_operand_affinity(...)` live in
+`financial_structured_cells.py`. Literal body parity and every retained caller
+passed after normalizing only selected call targets. The exact 285 old lines and
+57 calls finish at external 53/local four; retired private refs are zero.
 
-Seam B publishes `select_structured_cell(...)`,
-`select_aggregate_structured_cell(...)`, and `score_structured_cell(...)` and
-keeps `_structured_cell_operand_affinity(...)` owner-private in
-`financial_structured_cells.py`. The current 42/84/53/66-line definitions and
-7/5/1/6 calls retain empty and fiscal-period gates, shallow cell/sibling copies,
-stable ties, aggregate eligibility/ranking, normalized value/unit checks,
-period/year/binding bonuses, header/needle/entity affinity, blank penalties,
-input immutability, access order/laziness, soft numeric conversions, and all
-other uncaught exceptions. Seam B finishes external 16/local three; the full
-285-line batch finishes 57 calls at external 53/local four.
+The period contract preserves explicit-year extraction, stable dedupe,
+current/prior/unknown projection, one-year prior fallback, soft supplied-year
+conversion failures, policy access, input immutability, laziness, and uncaught
+exceptions. The structured-cell contract preserves empty and fiscal-period
+gates, shallow cell/sibling copies and nested aliases, stable ties, aggregate
+eligibility/ranking, normalized value/unit checks, period/year/binding bonuses,
+header/needle/entity affinity, blank penalties, soft column conversion versus
+uncaught failures, exact caller arguments, adoption, and no input mutation.
+Combined focused 10/10, affected semantic 838/838, import 19/19, audit 218, and
+full 1,881/1,881 passed. Benchmark refresh was **NOT RUN**, remote CI is
+unverified, and the move proves no behavior, accuracy, ranking, performance,
+total-code, executed-path, schedule, ledger, or Phase 3 completion.
 
-`_candidate_selected_cell_for_operand(...)`,
-`_build_required_operands_from_candidates(...)`,
-`_select_period_aware_cell(...)`, direct structured lookup-row/value callers,
-reconciliation extraction and candidate support, candidate/evidence
-construction and adoption, mutable state/evidence, callbacks, custom carriers,
-trace/artifact/ledger work, and final sequencing remain in their current
-owners. No wrapper, alias, compatibility bridge, or broader ratio/precision/
-ontology/evidence/state expansion is authorized.
+The next candidate report/period-scope ownership boundary is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). The exact
+31/39/46/49/27/36-line graph-helper definitions move to
+`financial_scope_policies.py` as public
+`candidate_matches_target_report_scope(...)`,
+`candidate_report_scope_binding_bonus(...)`,
+`candidate_matches_operand_target_year(...)`, and
+`candidate_explicit_years(...)` plus owner-private receipt and comparative-
+fallback helpers. The 18 direct `ast.Name` calls, all outside `try`, finish
+external 10/local eight.
+
+That contract preserves report-source order; target-year/receipt precedence and
+stable dedupe; current/prior receipt fallback; comparative latest-receipt,
+explicit-year, candidate-year and period-focus gates; soft
+`TypeError`/`ValueError` conversion handling; exact positive/negative binding
+bonuses; sorted explicit years; input immutability; access order/laziness; and
+all other uncaught exceptions. The destination adds only two policy constants
+on its existing config edge and `Optional` typing. The graph removes only the
+newly dead report-source and structured-period-scoring imports; its period-focus
+policy import remains live. Six CURRENT-SOURCE methods must pin direct behavior,
+exact spans/calls/signatures/try depth/DAG/baseline, and representative caller
+adoption/exception-stop before any body moves.
+
+`_candidate_is_canonical_statement_winner(...)`, direct semantic priority,
+period-table coherence, direct/ratio acceptance, `_score_operand_candidate(...)`,
+`_deterministic_reconcile_task(...)`, all candidate/evidence construction and
+adoption, direct structured lookup-row/value callers, mutable state/evidence,
+callbacks, custom carriers, trace/artifact/ledger work, and final sequencing
+remain in graph owners. No wrapper, alias, compatibility bridge, broad scorer/
+reconcile move, or ratio/precision/ontology/evidence/state expansion is
+authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

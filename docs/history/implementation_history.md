@@ -3666,3 +3666,60 @@ trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
 dependencies, sequential four- and six-method characterization gates, and
 rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Operand-period and structured-cell ownership milestone
+
+- `4cdbf93` moves the former 29-line `_operand_target_years(...)` and 11-line
+  `_operand_period_focus(...)` graph-helper definitions into
+  `financial_scope_policies.py` as public `operand_target_years(...)` and
+  `operand_period_focus(...)`. Their 38 calls finish external 37/owner-local
+  one. Source is `+95/-89`, tests `+717/-24`, and the whole commit `+812/-113`.
+- `6d6ce2a` moves the former 42-line `_select_structured_cell(...)`, 84-line
+  `_select_aggregate_structured_cell(...)`, 53-line
+  `_structured_cell_operand_affinity(...)`, and 66-line
+  `_score_structured_cell(...)` definitions into
+  `financial_structured_cells.py` as public `select_structured_cell(...)`,
+  `select_aggregate_structured_cell(...)`, and `score_structured_cell(...)`
+  plus owner-private affinity. Its 19 calls finish external 16/owner-local
+  three. Source is `+297/-284`, tests `+1,373/-29`, and the whole commit is
+  `+1,670/-313`.
+- The authoritative `9fe1a45..6d6ce2a` range, after later test/import rewrites
+  cancel, changes source `+390/-371`, tests `+2,086/-49`, and the whole range
+  `+2,476/-420`. Physical changed-source lines move from 31,228 to 31,247:
+  graph helpers 6,722 to 6,429, scope policy 168 to 215, and structured cells
+  73 to 335. Changed tests move from 25,434 to 27,471. Ten AST-counted methods
+  move discovery from 1,871 to 1,881. The range source diff SHA-256 is
+  `a8d384543529aa1c3ac9b976c0a46cbde23792fb245e2f9993a51d69e51524d7`.
+- Literal body parity passed for all six moved definitions after normalizing
+  selected public names. All 191 retained source callers/classes across graph
+  helpers, calculation, evidence, reconciliation, lookup recovery, and
+  reconciliation candidates are AST-identical after the same normalization.
+  The final public/private destination surfaces are scope 3/7 and structured
+  cells 3/4. The 57 selected calls finish external 53/local four, retired
+  private source/test refs are zero, dependency edges are acyclic, the graph's
+  dead fiscal-ordinal import is removed, and runtime-domain records remain 218.
+- Validation passed Seam A focused 4/4 and affected 385/385, Seam B focused
+  6/6, combined focused 10/10, affected eight-module semantic 838/838,
+  import-side-effects 19/19, runtime audit 218, full discovery 1,881/1,881,
+  pycompile/fresh import, DAG/body/full-caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN** and no remote CI run is
+  claimed or verified for these local commits.
+
+This milestone changes only ownership. Candidate/evidence construction and
+adoption, direct structured lookup/value projection, reconciliation
+orchestration, mutable state/evidence, callbacks, carriers, trace/artifact/
+ledger work, and final sequencing remain graph-owned. It proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is a characterize-first 228-line
+candidate report/period-scope batch from `financial_graph_helpers.py` into
+`financial_scope_policies.py`. Exact 31/39/46/49/27/36-line definitions become
+public four plus owner-private two; their 18 calls finish external 10/local
+eight. The destination adds no module edge and only two constants on its
+existing config edge. Broad operand scoring, deterministic reconciliation,
+candidate/evidence construction/adoption, mutable state, callbacks, carriers,
+trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
+behavior, six-method CURRENT-SOURCE gate, dependencies, dead imports, projected
+validation, and rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).

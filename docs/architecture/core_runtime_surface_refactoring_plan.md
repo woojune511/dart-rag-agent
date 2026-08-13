@@ -626,36 +626,37 @@ ref zero, and diff check. Its source diff SHA-256 is
 Context/model construction, evidence construction/ranking/mutation, mutable
 state, trace/artifact/ledger work, and final sequencing remain graph-owned.
 
-The completed `7aba7f2` follow-on moved deterministic quantitative-impact
-projection from `financial_graph_evidence.py` into
-`financial_aggregate_projection.py`. The former static 33-line parser and
-195-line composer are an owner-private 33-line parser and public 194-line
-composer. Three calls remain graph-external and the parser call is owner-local.
-Source is `+237/-235`, tests are `+1,119/-12`, and the whole commit is
-`+1,356/-247`. Graph evidence moved from 4,461 to 4,230 physical lines,
-calculation from 13,464 to 13,465, aggregate projection from 3,714 to 3,946,
-and five new tests moved discovery from 1,866 to 1,871. Final gates passed
-focused 5/5, owner 93/93, affected semantic 812/812, import 19/19, audit 218,
-full 1,871/1,871, pycompile/fresh import, DAG/body/caller parity, retired-ref
-zero, and diff check. Validation/model fallback, evidence selection, mutable
-composition state, trace/artifact/ledger work, and final sequencing remain
+The completed `4cdbf93` and `6d6ce2a` follow-on moved generic operand-period
+policy and structured-cell selection/scoring from `financial_graph_helpers.py`
+into `financial_scope_policies.py` and `financial_structured_cells.py`. The old
+29/11/42/84/53/66-line definitions total 285 lines; five are public and affinity
+remains owner-private. The 57 selected calls finish external 53/owner-local
+four, and retired graph-private source/test refs are zero. Across
+`9fe1a45..6d6ce2a`, source is `+390/-371`, tests `+2,086/-49`, and the whole
+range `+2,476/-420`. Graph helpers moved from 6,722 to 6,429 physical lines,
+scope policy 168 to 215, structured cells 73 to 335, and ten new tests moved
+discovery from 1,871 to 1,881. Final gates passed combined focused 10/10,
+affected semantic 838/838, import 19/19, audit 218, full 1,881/1,881,
+pycompile/fresh import, DAG/body/full-caller parity, retired-ref zero, and diff
+check. Candidate/evidence construction and adoption, direct structured lookup/
+value projection, reconciliation orchestration, mutable state/evidence,
+callbacks, carriers, trace/artifact/ledger work, and final sequencing remain
 graph-owned.
 
-The selected follow-on is a two-seam 285-line ownership batch from
-`financial_graph_helpers.py`. Seam A moves 29-line target-year and 11-line
-period-focus policy to public functions in `financial_scope_policies.py`; its
-38 calls finish external 37/local one. Seam B moves 42-line ordinary and
-84-line aggregate structured-cell selectors, a 53-line owner-private affinity
-helper, and a 66-line public score helper to `financial_structured_cells.py`;
-its 19 calls finish external 16/local three. Combined, five public functions
-and one owner-private helper finish 57 calls at external 53/local four. The
-selected definitions contain zero reviewed domain-language occurrences.
-Candidate/evidence construction and adoption, direct structured lookup/value
-projection, reconciliation orchestration, mutable state/evidence, callback,
-carrier, trace/artifact/ledger work, and final sequencing remain hard stops.
-Exact behavior, the sequential four- and six-method CURRENT-SOURCE gates,
-projected validations, DAG/dead-import consequences, and rejected ratio/
-precision/evidence/state/carrier expansions live only in
+The selected follow-on is one 228-line candidate report/period-scope ownership
+batch from `financial_graph_helpers.py` into `financial_scope_policies.py`.
+Move exact 31/39/46/49/27/36-line receipt, comparative-fallback, target-report,
+binding-bonus, target-year, and explicit-year definitions as public four plus
+owner-private two. Their 18 current direct calls finish external 10/local eight.
+The destination needs no new module edge; add only two policy constants on its
+existing config edge and `Optional` typing, then remove graph's dead source-
+report and structured-period-scoring imports. The selected spans contain zero
+reviewed domain-language occurrences. Broad operand scoring, reconciliation
+orchestration, candidate/evidence construction/adoption, mutable state/evidence,
+callback, carrier, trace/artifact/ledger work, and final sequencing remain hard
+stops. Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
+DAG/dead-import consequences, and rejected scorer/reconcile/ratio/precision/
+state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
