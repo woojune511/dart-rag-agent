@@ -3511,3 +3511,55 @@ only in [Project Status Next Work](../overview/project_status.md#next-work).
 `_capture_current_subtask_result(...)`, calculation/dependency orchestration,
 retrieval/prepared-document pool construction, mutable result/evidence/state,
 trace/artifact/ledger work, and final sequencing remain graph-owned.
+
+### Lookup answer-slot/support projection ownership milestone
+
+- `ae1f599` moves ten definitions totaling 342 definition-span lines plus three
+  compiled policy regex bindings from `financial_graph_planning.py` into
+  `financial_lookup_recovery.py`. Public
+  `lookup_operand_matches_active_task(...)`,
+  `refine_lookup_slot_unit_from_evidence(...)`,
+  `synthesize_lookup_answer_slot_from_prose(...)`, and
+  `lookup_slot_supporting_doc_evidence(...)` plus six owner-private money/unit,
+  answer-text, and document-surface helpers retain the exact 342-line total.
+  Fifteen selected calls finish graph-external six and owner-local nine; all
+  remain direct and outside `try`. Literal body and full retained-caller parity
+  passed after normalizing only the selected public call targets. Retired graph-
+  private definitions and executable source/test refs are zero.
+- Source is `+383/-379`, net `+4`; tests are `+1,133/-12`, net `+1,121`; and the
+  whole commit is `+1,516/-391`, net `+1,125`. Planning moved from 1,602 to
+  1,240 physical lines, lookup recovery from 788 to 1,154, and the changed test
+  files grew by 1,121 physical lines. Eight new unittest methods moved full
+  discovery from 1,853 to 1,861. The source diff SHA-256 is
+  `1556379052fd83f517ac559a7ff0e8fb6908ab675032faede3cb94287c56f397`.
+- The lookup owner is public/private 15/13. Its answer-slot, model-loader,
+  retrieval-policy, graph-helper, operand, and surface dependencies are
+  acyclic; the planning module's three newly dead imports are removed. The
+  selected bodies move no reviewed runtime-domain record, so the audit remains
+  218 without a baseline change.
+- Final validation passed focused 8/8, lookup owner 32/32, affected eight-module
+  semantic 864/864, import-side-effects 19/19, runtime audit 218, full discovery
+  1,861/1,861, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+  zero, and `git diff --check`. Benchmark refresh was **NOT RUN** and no remote
+  CI run is claimed for this local commit.
+
+This milestone changes only lookup projection ownership. Retrieval and prepared-
+document pool construction, active task/result/evidence mutation, nested-result
+promotion, calculation/dependency orchestration, trace/artifact/ledger work,
+and final sequencing remain graph-owned. It proves no behavior, accuracy,
+ranking, performance, total-code or executed-path reduction, benchmark
+improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 117-line
+read-only evidence-hint projection batch from `financial_graph_evidence.py`
+into `financial_retrieval_hints.py`. Three old private definitions become
+public focus-term, preferred-section subset, and compression-guidance functions
+totaling 114 owner lines. Their three direct calls remain external; one existing
+active-section helper call becomes owner-local. The move adds only acyclic
+graph-state/operation-policy symbols, retires one graph import, and moves no
+reviewed domain-language occurrence. The exact five-method CURRENT-SOURCE gate,
+projected validations, behavior contracts, import cleanup, and rejected prompt-
+diagnostic/evidence/state/carrier expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work). Model
+invocation, evidence construction/ranking/mutation, state, trace/artifact/
+ledger work, and final sequencing remain graph-owned.

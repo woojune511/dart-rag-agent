@@ -229,8 +229,9 @@ Phase 3 remains open for four durable debt groups:
    and final sequencing remain graph-owned;
 2. partially advanced: ratio presentation/readiness/scale, bounded operand-
    preparation, and unit/table-repair seams are owned; isolate remaining dependency
-   and ratio/absolute seams that do not require graph-state lookup, broader evidence
-   orchestration, or surrounding sequencing;
+   and ratio/absolute seams that do not require graph-state lookup; lookup answer-
+   slot/support projection is now owner-held, while broader evidence orchestration
+   and surrounding sequencing remain graph-owned;
 3. essentially untouched: specify broader task/artifact ledger synchronization
    as a separate behavior contract before attempting ownership convergence;
 4. partially advanced: reduce the private-API mesh and co-locate tests only as
@@ -244,7 +245,9 @@ Selected ratio presentation/readiness/scale, narrative intent/surface/trace,
 aggregate row/gap/lookup-answer, narrative term/variant/context presentation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW
 consistency, and table-metadata KRW repair boundaries are complete in their
-state-free owners. Aggregate dependency-source seed/scoring/selection/component
+state-free owners. Lookup active-task matching, prose answer-slot synthesis,
+evidence-unit refinement, and supporting-document projection are also owner-
+resident. Aggregate dependency-source seed/scoring/selection/component
 preparation, narrative row-focus selection, and aggregate growth display/material
 projection, result support/reuse predicates, prepared growth/ratio material
 inspection, prepared growth-numeric rendering, and growth trace inspection are
@@ -595,21 +598,33 @@ invocation, logical/execution task projection, query routing, plan adoption,
 task/state/artifact/ledger mutation, retrieval/evidence work, and final
 sequencing remain graph-owned.
 
-The selected follow-on is one lookup answer-slot/support projection batch from
-`financial_graph_planning.py` into `financial_lookup_recovery.py`. Ten
-definitions total 342 definition-span lines, accompanied by three compiled
-policy regex bindings. The final target surface is public four plus owner-
-private six for this batch; 15 selected direct calls finish graph-external six
-and owner-local nine, all outside `try`. The owner adds only acyclic answer-
-slot, model-loader, retrieval-policy, and already-existing surface-contract
-dependencies, moves no runtime-domain baseline record, and permits three dead
-planning imports to be removed. `_capture_current_subtask_result(...)`, the
-calculation and dependency callers, retrieval/prepared-document pool
-construction, mutable result/evidence/state, nested-result promotion,
-trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
-behavior, the eight-
-method CURRENT-SOURCE gate, projected validation counts, DAG/dead-import
-consequences, and rejected carrier/callback/state expansions live only in
+The completed `ae1f599` follow-on moved ten lookup answer-slot/support
+definitions totaling 342 lines plus three policy regex bindings from planning
+into `financial_lookup_recovery.py` as public four plus owner-private six.
+Fifteen calls finish graph-external six and owner-local nine. Source is
+`+383/-379`, tests are `+1,133/-12`, and the whole commit is `+1,516/-391`.
+Planning moved from 1,602 to 1,240 physical lines, lookup recovery from 788 to
+1,154, and eight new tests moved discovery from 1,853 to 1,861. Final gates
+passed focused 8/8, owner 32/32, affected semantic 864/864, import 19/19, audit
+218, full 1,861/1,861, pycompile/fresh import, DAG/body/caller parity, retired-
+ref zero, and diff check. Retrieval/prepared-document pool construction,
+mutable result/evidence/state, nested-result promotion, calculation/dependency
+orchestration, trace/artifact/ledger work, and final sequencing remain hard
+stops.
+
+The selected follow-on is one 117-line read-only evidence-hint projection batch
+from `financial_graph_evidence.py` into `financial_retrieval_hints.py`. Public
+focus-term, preferred-section subset, and compression-guidance functions become
+114 owner lines; their three calls remain graph-external, while one existing
+`_active_preferred_sections(...)` use becomes owner-local. The new graph-state
+and operation-policy edges are acyclic, the graph's newly dead active-section
+import retires, and the selected definitions contain zero reviewed domain-
+language occurrences. `_select_evidence_for_compression(...)`,
+`_extract_evidence(...)`, `_compress_answer(...)`, model invocation, evidence
+construction/mutation, state, trace/artifact/ledger work, and final sequencing
+remain hard stops. Exact behavior, the five-method CURRENT-SOURCE gate,
+projected validations, DAG/dead-import consequences, and rejected state/
+carrier/evidence expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

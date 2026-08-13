@@ -3572,15 +3572,15 @@ execution task projection, query routing, mutable task/state/artifact/ledger
 work, retrieval/evidence work, plan adoption, and final sequencing remain
 graph-owned.
 
-The next lookup answer-slot/support projection boundary is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). It moves
-ten state-free definitions totaling 342 definition-span lines plus three
-compiled policy regex bindings from `financial_graph_planning.py` into
-`financial_lookup_recovery.py`. Public active-task matching, evidence-unit
-refinement, prose answer-slot synthesis, and supporting-document evidence
-projection are accompanied by six owner-private money/unit, answer-text, and
-document-surface helpers. All 15 selected calls remain direct and outside
-`try`; six stay external and nine become owner-local.
+The lookup answer-slot/support projection boundary completed in `ae1f599`.
+Ten state-free definitions totaling 342 definition-span lines plus three
+compiled policy regex bindings now live in `financial_lookup_recovery.py`.
+Public active-task matching, evidence-unit refinement, prose answer-slot
+synthesis, and supporting-document evidence projection are accompanied by six
+owner-private money/unit, answer-text, and document-surface helpers. All 15
+selected calls remain direct and outside `try`; six are graph-external and nine
+are owner-local. The retired graph-private definitions and executable refs are
+zero, and the lookup owner is public/private 15/13.
 
 The contracts must preserve config-backed regex construction, money sign/unit
 normalization, allowed-unit matching, year/label compatibility, evidence text
@@ -3596,6 +3596,33 @@ evidence/state mutation, nested-result promotion, trace/artifact/ledger work,
 calculation and dependency orchestration, and final sequencing remain graph-
 owned. No callback, carrier, wrapper, alias, or compatibility bridge is
 authorized.
+
+The next read-only evidence-hint projection boundary is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). Public
+`evidence_extraction_focus_terms(...)`,
+`preferred_section_evidence_subset(...)`, and
+`compression_guidance(...)` will move the current private 40/59/18-line
+definitions from `financial_graph_evidence.py` into
+`financial_retrieval_hints.py` as 39/58/17 owner lines. Their three exact calls
+remain graph-external and outside `try`; the preferred-subset body's existing
+`_active_preferred_sections(...)` call becomes owner-local.
+
+The focus-term contract preserves copied policy access, token and particle
+regex order, parenthetical and outside-parenthesis variants, stopword/length/
+numeric rejection, stable dedupe, and configured slicing. The preferred-subset
+contract preserves empty and narrative/table/format gates, copied active-task
+access, query/topic/intent fallback, preferred-marker order, normalized section
+surfaces, the two-direct-high threshold, original row identities, and stable
+order. The compression-guidance contract preserves policy-map copies,
+narrative-context overrides, query-type and `qa` fallback, coverage lookup,
+input immutability, access laziness, and uncaught exceptions.
+
+`_select_evidence_for_compression(...)`, `_extract_evidence(...)`,
+`_compress_answer(...)`, context construction, prompt/model invocation,
+document/evidence construction and ranking, anchor resolution, mutable state/
+evidence, trace/artifact/ledger work, and final sequencing remain graph-owned.
+The move authorizes no prompt-diagnostic, callback, state, carrier, evidence-
+construction, wrapper, or compatibility expansion.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
