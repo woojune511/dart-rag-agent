@@ -3785,3 +3785,68 @@ carriers, trace/artifact/ledger work, and final sequencing remain hard stops.
 Exact APIs, behavior, the six-method CURRENT-SOURCE gate, dependencies,
 projected validation, and rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Candidate surface-contract/segment-binding ownership milestone
+
+- `3ca0144` moves the former 25-line
+  `_candidate_has_required_surface_contract(...)`, 15-line
+  `_candidate_has_numeric_value_signal(...)`, 20-line
+  `_candidate_is_descriptor_row(...)`, 23-line
+  `_candidate_segment_surfaces(...)`, 12-line
+  `_candidate_matches_segment_binding(...)`, and 33-line
+  `_candidate_segment_binding_bonus(...)` definitions from
+  `financial_graph_helpers.py` into `financial_surface_contracts.py`. Public
+  `candidate_has_required_surface_contract(...)`,
+  `candidate_has_numeric_value_signal(...)`, `candidate_is_descriptor_row(...)`,
+  `candidate_matches_segment_binding(...)`, and
+  `candidate_segment_binding_bonus(...)` plus owner-private segment-surface
+  assembly preserve the exact 128-line total. The 17 direct calls finish graph/
+  reconciliation-external 15 and owner-local two; retired graph-private source/
+  test refs are zero.
+- Exactly four source/test files changed. Source is `+162/-158`, net `+4`:
+  graph helpers are `+19/-154` and move from 6,191 to 6,056 physical lines;
+  reconciliation is `+2/-3` and moves from 1,467 to 1,466; surface contracts
+  are `+141/-1` and move from 69 to 209. Tests are `+781/-7`, net `+774`, all
+  in graph-helper tests. The whole commit is `+943/-165`, net `+778`; changed
+  source moves from 7,727 to 7,731 physical lines and the changed test from
+  6,264 to 7,038. Six AST-counted methods move discovery from 1,887 to 1,893.
+  The source diff SHA-256 is
+  `cdd2ced140b9add6bd549e839514038dacede28700ebd25854b7fb6c3e9e1702`.
+- Literal body parity passes for all six moved definitions, all 125 retained
+  graph-helper functions pass full AST parity after normalizing only selected
+  call targets, and the reconciliation class is likewise unchanged modulo the
+  descriptor call target. The surface owner finishes public/private 5/7 and
+  graph helpers 9/116. Dependency edges remain acyclic, selected spans contain
+  no reviewed runtime-domain occurrence, and the audit remains 218 without a
+  baseline change.
+- Validation passes focused 6/6, graph-helper and surface-owner 41/41, affected
+  nine-module semantic 851/851, import-side-effects 19/19, runtime audit 218,
+  full discovery 1,893/1,893, pycompile/fresh import, DAG/body/full-caller
+  parity, retired-ref zero, and `git diff --check`. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only candidate surface-contract and segment-binding
+ownership. Candidate/evidence construction/adoption, direct/ratio acceptance,
+broad scoring/reconciliation, mutable state/evidence, callbacks, carriers,
+trace/artifact/ledger work, and final sequencing remain graph-owned. It proves
+no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, ledger completion, or Phase 3
+completion.
+
+At this handoff, the sole selected follow-on is a characterize-first 116-line
+candidate metadata-policy projection batch from `financial_graph_helpers.py`
+into `financial_surface_contracts.py`. Exact 12/26/38/40-line local aggregate-
+context, consolidation-scope, binding-policy shape, and selected-unit-family
+definitions become public four. Their eight calls remain external eight/local
+zero. The destination adds consolidation policy, operand-value normalization,
+and percent-label inference on existing or one-way edges; selected spans contain
+no baseline record. Aggregate row-role/stage inference remains graph-owned to
+avoid low-level public sprawl, and segment metric-combination remains graph-
+owned because its row-surface dependency would form a reverse cycle. Direct/
+ratio acceptance, broad scoring/reconciliation, candidate/evidence construction
+and adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
+work, and final sequencing remain hard stops. Exact APIs, behavior, the six-
+method CURRENT-SOURCE gate, dependencies, projected validation, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).

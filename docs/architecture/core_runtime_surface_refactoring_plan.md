@@ -659,22 +659,39 @@ Candidate/evidence construction/adoption, broad scoring/reconciliation, mutable
 state/evidence, callback, carrier, trace/artifact/ledger work, and final
 sequencing remain hard stops.
 
-The selected follow-on is one 128-line candidate surface-contract/segment-
-binding ownership batch from `financial_graph_helpers.py` into
-`financial_surface_contracts.py`. Move exact 25/15/20/23/12/33-line required-
-surface, numeric-signal, descriptor-row, segment-surface, segment-match, and
-segment-bonus definitions as public five plus one owner-private helper. The 17
-current calls finish external 15/local two, including reconciliation's existing
-cross-module descriptor call. The destination adds only `Optional` typing and
-no module edge; the selected spans contain zero reviewed domain-language
-occurrences. Segment metric-combination support remains graph-owned because
-co-moving its row-surface dependency would create a reverse cycle. Concept-
-conflict policy, direct/ratio acceptance, broad scoring/reconciliation,
+The completed `3ca0144` follow-on moved 128 candidate surface-contract/segment-
+binding definition-span lines from `financial_graph_helpers.py` into
+`financial_surface_contracts.py` as public five plus owner-private segment-
+surface assembly. Its 17 calls finish external 15/local two. Source is
+`+162/-158`, tests are `+781/-7`, and the whole commit is `+943/-165`. Graph
+helpers moved from 6,191 to 6,056 physical lines, reconciliation from 1,467 to
+1,466, surface contracts from 69 to 209, and six new methods moved discovery
+from 1,887 to 1,893. Final gates passed focused 6/6, owner modules 41/41,
+affected semantic 851/851, import 19/19, audit 218, full 1,893/1,893,
+pycompile/fresh import, DAG/body/full-caller parity, retired-ref zero, and diff
+check. The source diff SHA-256 is
+`cdd2ced140b9add6bd549e839514038dacede28700ebd25854b7fb6c3e9e1702`.
+Candidate/evidence construction/adoption, direct/ratio acceptance, broad
+scoring/reconciliation, mutable state/evidence, callback, carrier,
+trace/artifact/ledger work, and final sequencing remain hard stops.
+
+The selected follow-on is one 116-line candidate metadata-policy projection
+batch from `financial_graph_helpers.py` into
+`financial_surface_contracts.py`. Move exact 12/26/38/40-line local aggregate-
+context, consolidation-scope, binding-policy shape, and selected-unit-family
+definitions as public four. Their eight direct calls remain external eight and
+owner-local zero. The destination adds consolidation policy, operand-value
+normalization, and percent-label inference on existing or one-way dependency
+edges; the selected spans contain zero reviewed domain-language occurrences.
+Row-role/stage inference remains graph-owned to avoid widening a bounded policy
+projection into low-level public sprawl. Segment metric-combination support
+remains graph-owned because co-moving its row-surface dependency would create a
+reverse cycle. Direct/ratio acceptance, broad scoring/reconciliation,
 candidate/evidence construction/adoption, mutable state/evidence, callback,
 carrier, trace/artifact/ledger work, and final sequencing remain hard stops.
 Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
-DAG/import consequences, and rejected segment-support/concept/structured-row/
-precision/state expansions live only in
+DAG/import consequences, and rejected row-role/segment-support/reconciliation-
+candidate/structured-row/precision/state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
