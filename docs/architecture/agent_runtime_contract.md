@@ -3682,9 +3682,8 @@ full 1,881/1,881 passed. Benchmark refresh was **NOT RUN**, remote CI is
 unverified, and the move proves no behavior, accuracy, ranking, performance,
 total-code, executed-path, schedule, ledger, or Phase 3 completion.
 
-The next candidate report/period-scope ownership boundary is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). The exact
-31/39/46/49/27/36-line graph-helper definitions move to
+The candidate report/period-scope ownership boundary completed in `ba35519`.
+The exact 31/39/46/49/27/36-line graph-helper definitions now live in
 `financial_scope_policies.py` as public
 `candidate_matches_target_report_scope(...)`,
 `candidate_report_scope_binding_bonus(...)`,
@@ -3701,18 +3700,55 @@ bonuses; sorted explicit years; input immutability; access order/laziness; and
 all other uncaught exceptions. The destination adds only two policy constants
 on its existing config edge and `Optional` typing. The graph removes only the
 newly dead report-source and structured-period-scoring imports; its period-focus
-policy import remains live. Six CURRENT-SOURCE methods must pin direct behavior,
-exact spans/calls/signatures/try depth/DAG/baseline, and representative caller
-adoption/exception-stop before any body moves.
+policy import remains live. Focused 6/6, affected semantic 844/844, import
+19/19, audit 218, and full 1,887/1,887 passed. Source moved `+257/-253`, tests
+`+1,416/-16`, and the source diff SHA-256 is
+`853f3a95a4ef0bf8aa5e4900b62d04deef48b1dd6fb58278d75a7b550c61dc01`.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
+no behavior, accuracy, ranking, performance, total-code, executed-path,
+schedule, ledger, or Phase 3 completion.
 
-`_candidate_is_canonical_statement_winner(...)`, direct semantic priority,
-period-table coherence, direct/ratio acceptance, `_score_operand_candidate(...)`,
-`_deterministic_reconcile_task(...)`, all candidate/evidence construction and
-adoption, direct structured lookup-row/value callers, mutable state/evidence,
-callbacks, custom carriers, trace/artifact/ledger work, and final sequencing
-remain in graph owners. No wrapper, alias, compatibility bridge, broad scorer/
-reconcile move, or ratio/precision/ontology/evidence/state expansion is
-authorized.
+The next candidate surface-contract/segment-binding ownership boundary is
+defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). The exact
+25/15/20/23/12/33-line graph-helper definitions move to
+`financial_surface_contracts.py` as public
+`candidate_has_required_surface_contract(...)`,
+`candidate_has_numeric_value_signal(...)`,
+`candidate_is_descriptor_row(...)`,
+`candidate_matches_segment_binding(...)`, and
+`candidate_segment_binding_bonus(...)` plus owner-private segment-surface
+assembly. The 17 direct `ast.Name` calls across graph helpers and reconciliation,
+all outside `try`, finish external 15/local two.
+
+The required-surface contract preserves an empty positive-contract pass; exact
+metadata, selected-cell, and candidate-text surface order; normalized term
+matching; shallow metadata access; and input immutability. Numeric-signal
+projection preserves structured-cell precedence, row-pipe parsing, free-text
+fallback, and digit checks. Descriptor projection preserves configured row-
+label gates, structured-cell nonnumeric detection, row-pipe fallback, access
+laziness, and uncaught exceptions. Segment projection preserves strict versus
+expanded surface lists, normalization, stable order, empty-label behavior,
+whitespace-compacted matching, and exact positive/context/statement and
+negative/scope bonus branches.
+
+The destination already owns all selected runtime dependencies and adds only
+`Optional` typing; graph helpers and reconciliation already depend on it. Six
+CURRENT-SOURCE methods must pin direct behavior, exact 25/15/20/23/12/33 spans,
+3/3/4/1/5/1 calls, signatures/try depth/public-private counts/DAG/baseline, and
+representative direct-grounding/ratio/scoring/reconciliation caller adoption and
+exception-stop before any body moves. Retired private refs must be zero after
+retargeting.
+
+`_candidate_has_segment_local_binding(...)` and
+`_candidate_supports_segment_metric_combo(...)` remain graph-owned because the
+latter depends on row-surface matching and moving that dependency into the
+surface owner would create a reverse cycle. Concept-conflict policy, direct and
+ratio acceptance, broad scoring/reconciliation, candidate/evidence construction
+and adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
+work, and final sequencing also remain graph-owned. No wrapper, alias,
+compatibility bridge, structured-row/precision reverse-cycle, concept-specific
+semantic expansion, or evidence/state expansion is authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

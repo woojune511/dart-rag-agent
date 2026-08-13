@@ -3723,3 +3723,65 @@ trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
 behavior, six-method CURRENT-SOURCE gate, dependencies, dead imports, projected
 validation, and rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Candidate report/period-scope policy ownership milestone
+
+- `ba35519` moves the former 31-line `_operand_target_receipts(...)`, 39-line
+  `_candidate_allows_comparative_report_scope_fallback(...)`, 46-line
+  `_candidate_matches_target_report_scope(...)`, 49-line
+  `_candidate_report_scope_binding_bonus(...)`, 27-line
+  `_candidate_matches_operand_target_year(...)`, and 36-line
+  `_candidate_explicit_years(...)` definitions from
+  `financial_graph_helpers.py` into `financial_scope_policies.py`. Public
+  `candidate_matches_target_report_scope(...)`,
+  `candidate_report_scope_binding_bonus(...)`,
+  `candidate_matches_operand_target_year(...)`, and
+  `candidate_explicit_years(...)` plus owner-private receipt and comparative-
+  fallback helpers preserve the exact 228-line total. The 18 direct calls finish
+  graph-external 10/owner-local eight; retired graph-private source/test refs are
+  zero.
+- Exactly four source/test files changed. Source is `+257/-253`, net `+4`:
+  graph helpers are `+14/-252` and move from 6,429 to 6,191 physical lines;
+  scope policy is `+243/-1` and moves from 215 to 457. Tests are `+1,416/-16`,
+  net `+1,400`: graph-helper tests are `+1,406/-8` and operation contracts
+  `+10/-8`. The whole commit is `+1,673/-269`, net `+1,404`; changed source
+  moves from 6,644 to 6,648 physical lines and changed tests from 16,422 to
+  17,822. Six AST-counted methods move discovery from 1,881 to 1,887. The
+  source diff SHA-256 is
+  `853f3a95a4ef0bf8aa5e4900b62d04deef48b1dd6fb58278d75a7b550c61dc01`.
+- Literal body parity passes for all six moved definitions, and all 131 retained
+  graph-helper functions pass full AST parity after normalizing only selected
+  call targets. The scope owner finishes public/private 7/9. The graph's newly
+  dead `_report_scope_source_reports` and
+  `STRUCTURED_CELL_PERIOD_SCORING_POLICY` imports are removed;
+  `PERIOD_FOCUS_POLICY` remains live. Dependency edges stay acyclic, the moved
+  spans contain no reviewed runtime-domain occurrence, and the audit remains
+  218 without a baseline change.
+- Validation passes focused 6/6, affected eight-module semantic 844/844,
+  import-side-effects 19/19, runtime audit 218, full discovery 1,887/1,887,
+  pycompile/fresh import, DAG/body/full-caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only candidate report/period-scope ownership. Candidate
+and evidence construction/adoption, broad scoring/reconciliation, mutable
+state/evidence, callbacks, carriers, trace/artifact/ledger work, and final
+sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is a characterize-first 128-line
+candidate surface-contract/segment-binding batch from
+`financial_graph_helpers.py` into `financial_surface_contracts.py`. Exact
+25/15/20/23/12/33-line definitions become public five plus owner-private
+segment-surface assembly. Their 17 calls, including reconciliation's descriptor
+call, finish external 15/local two. The destination adds only `Optional` typing
+and no module edge. Segment metric-combination support remains graph-owned
+because moving its row-surface dependency would form a reverse cycle; concept-
+conflict policy remains separate because it owns a distinct concept-specific
+contract. Direct/ratio acceptance, broad scoring/reconciliation, candidate/
+evidence construction and adoption, mutable state/evidence, callbacks,
+carriers, trace/artifact/ledger work, and final sequencing remain hard stops.
+Exact APIs, behavior, the six-method CURRENT-SOURCE gate, dependencies,
+projected validation, and rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).

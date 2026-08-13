@@ -255,7 +255,8 @@ also owner-resident. Dependency input matching, sibling-output synthesis
 preference, task-output binding projection, prepared runtime-evidence merge, and
 ratio task-artifact row projection are owner-resident as well. Final-answer
 evidence filtering, operand-evidence append, and surface-operand projection are
-also owner-resident.
+also owner-resident. Generic operand-period, structured-cell selection/scoring,
+and candidate report/period-scope matching/scoring are owner-resident as well.
 Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
@@ -643,20 +644,37 @@ value projection, reconciliation orchestration, mutable state/evidence,
 callbacks, carriers, trace/artifact/ledger work, and final sequencing remain
 graph-owned.
 
-The selected follow-on is one 228-line candidate report/period-scope ownership
-batch from `financial_graph_helpers.py` into `financial_scope_policies.py`.
-Move exact 31/39/46/49/27/36-line receipt, comparative-fallback, target-report,
-binding-bonus, target-year, and explicit-year definitions as public four plus
-owner-private two. Their 18 current direct calls finish external 10/local eight.
-The destination needs no new module edge; add only two policy constants on its
-existing config edge and `Optional` typing, then remove graph's dead source-
-report and structured-period-scoring imports. The selected spans contain zero
-reviewed domain-language occurrences. Broad operand scoring, reconciliation
-orchestration, candidate/evidence construction/adoption, mutable state/evidence,
-callback, carrier, trace/artifact/ledger work, and final sequencing remain hard
-stops. Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
-DAG/dead-import consequences, and rejected scorer/reconcile/ratio/precision/
-state expansions live only in
+The completed `ba35519` follow-on moved 228 candidate report/period-scope
+definition-span lines from `financial_graph_helpers.py` into
+`financial_scope_policies.py` as public four plus owner-private two. Its 18
+calls finish external 10/local eight. Source is `+257/-253`, tests are
+`+1,416/-16`, and the whole commit is `+1,673/-269`. Graph helpers moved from
+6,429 to 6,191 physical lines, scope policy from 215 to 457, and six new methods
+moved discovery from 1,881 to 1,887. Final gates passed focused 6/6, affected
+semantic 844/844, import 19/19, audit 218, full 1,887/1,887, pycompile/fresh
+import, DAG/body/full-caller parity, retired-ref zero, and diff check. The source
+diff SHA-256 is
+`853f3a95a4ef0bf8aa5e4900b62d04deef48b1dd6fb58278d75a7b550c61dc01`.
+Candidate/evidence construction/adoption, broad scoring/reconciliation, mutable
+state/evidence, callback, carrier, trace/artifact/ledger work, and final
+sequencing remain hard stops.
+
+The selected follow-on is one 128-line candidate surface-contract/segment-
+binding ownership batch from `financial_graph_helpers.py` into
+`financial_surface_contracts.py`. Move exact 25/15/20/23/12/33-line required-
+surface, numeric-signal, descriptor-row, segment-surface, segment-match, and
+segment-bonus definitions as public five plus one owner-private helper. The 17
+current calls finish external 15/local two, including reconciliation's existing
+cross-module descriptor call. The destination adds only `Optional` typing and
+no module edge; the selected spans contain zero reviewed domain-language
+occurrences. Segment metric-combination support remains graph-owned because
+co-moving its row-surface dependency would create a reverse cycle. Concept-
+conflict policy, direct/ratio acceptance, broad scoring/reconciliation,
+candidate/evidence construction/adoption, mutable state/evidence, callback,
+carrier, trace/artifact/ledger work, and final sequencing remain hard stops.
+Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
+DAG/import consequences, and rejected segment-support/concept/structured-row/
+precision/state expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
