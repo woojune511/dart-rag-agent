@@ -114,6 +114,8 @@ from src.agent.financial_scope_policies import (
     candidate_report_scope_binding_bonus,
     operand_period_focus,
     operand_target_years,
+    query_period_focus,
+    task_period_focus_from_operands,
 )
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
@@ -451,7 +453,7 @@ def build_hybrid_narrative_subtask(
     next_task_id: str,
 ) -> Dict[str, Any]:
     consolidation_scope = _desired_consolidation_scope(query, report_scope)
-    period_focus = _infer_period_focus(query, "unknown")
+    period_focus = query_period_focus(query, "unknown")
     active_policies = active_narrative_policies(query)
     active_slot_groups = [
         group
@@ -1979,9 +1981,9 @@ def _build_concept_task_constraints(
     consolidation_scope = _desired_consolidation_scope(query, report_scope)
     if consolidation_scope == "unknown":
         consolidation_scope = str(defaults.get("consolidation_scope") or "unknown")
-    period_focus = _infer_period_focus(query, str(defaults.get("period_focus") or "unknown"))
+    period_focus = query_period_focus(query, str(defaults.get("period_focus") or "unknown"))
     if operand_specs:
-        period_focus = _task_period_focus_from_operands(operation_family, operand_specs, period_focus)
+        period_focus = task_period_focus_from_operands(operation_family, operand_specs, period_focus)
     constraint_policy = dict(TASK_CONSTRAINT_POLICY)
     segment_markers = tuple(str(item) for item in (constraint_policy.get("segment_markers") or ()) if str(item))
     normalized_query = _normalise_spaces(query)
@@ -2326,7 +2328,7 @@ def _build_heuristic_numeric_task(
     operation_family = _infer_operation_family_from_query(query, get_financial_ontology())
     constraints = {
         "consolidation_scope": _desired_consolidation_scope(query, report_scope),
-        "period_focus": _infer_period_focus(query, "unknown"),
+        "period_focus": query_period_focus(query, "unknown"),
         "entity_scope": "company",
         "segment_scope": (
             "segment"
@@ -2337,7 +2339,7 @@ def _build_heuristic_numeric_task(
             else "none"
         ),
     }
-    constraints["period_focus"] = _task_period_focus_from_operands(
+    constraints["period_focus"] = task_period_focus_from_operands(
         operation_family,
         operand_specs,
         str(constraints.get("period_focus") or "unknown"),
@@ -3149,46 +3151,6 @@ def _annotate_task_dependencies(
     return _topologically_order_dependency_tasks(annotated_tasks)
 
 
-def _infer_period_focus(query: str, default_value: str = "unknown") -> str:
-    text = _normalise_spaces(query)
-    period_policy = dict(PERIOD_FOCUS_POLICY)
-    if any(keyword in text for keyword in (period_policy.get("prior_markers") or ())):
-        return "prior"
-    if any(keyword in text for keyword in (period_policy.get("current_markers") or ())):
-        return "current"
-    explicit_years = list(dict.fromkeys(re.findall(str(period_policy.get("explicit_year_pattern") or r"$^"), text)))
-    if len(explicit_years) == 1:
-        return "current"
-    return default_value or "unknown"
-
-
-def _task_period_focus_from_operands(
-    operation_family: str,
-    operand_specs: List[Dict[str, Any]],
-    default_value: str,
-) -> str:
-    roles = {
-        str(spec.get("role") or "").strip()
-        for spec in operand_specs
-        if str(spec.get("role") or "").strip()
-    }
-    if not roles:
-        return default_value or "unknown"
-    if operation_family in {"lookup", "single_value"}:
-        if roles == {"current_period"}:
-            return "current"
-        if roles == {"prior_period"}:
-            return "prior"
-    if operation_family in {"difference", "growth_rate"}:
-        if "current_period" in roles and "prior_period" in roles:
-            return "multi_period"
-        if roles == {"current_period"}:
-            return "current"
-        if roles == {"prior_period"}:
-            return "prior"
-    return default_value or "unknown"
-
-
 def _build_task_constraints(
     query: str,
     report_scope: Dict[str, Any],
@@ -3197,7 +3159,7 @@ def _build_task_constraints(
 ) -> Dict[str, str]:
     defaults = dict(ontology.default_constraints_for_metric(metric_key) or {})
     defaults["consolidation_scope"] = _desired_consolidation_scope(query, report_scope)
-    defaults["period_focus"] = _infer_period_focus(query, str(defaults.get("period_focus") or "unknown"))
+    defaults["period_focus"] = query_period_focus(query, str(defaults.get("period_focus") or "unknown"))
     return {
         "consolidation_scope": str(defaults.get("consolidation_scope") or "unknown"),
         "period_focus": str(defaults.get("period_focus") or "unknown"),

@@ -17,10 +17,10 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
-    _infer_period_focus,
     llm_plan_preserves_analysis_shape,
     llm_plan_preserves_segment_sum_shape,
 )
+from src.agent.financial_scope_policies import query_period_focus
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
     _missing_required_operands,
@@ -2031,11 +2031,11 @@ class SemanticNumericPlanTests(unittest.TestCase):
 
     def test_single_year_query_defaults_period_focus_to_current(self) -> None:
         self.assertEqual(
-            _infer_period_focus("2023년 연결 재무상태표에서 단기차입금을 찾아줘."),
+            query_period_focus("2023년 연결 재무상태표에서 단기차입금을 찾아줘."),
             "current",
         )
         self.assertEqual(
-            _infer_period_focus("2023년과 2022년 부채비율을 비교해 줘."),
+            query_period_focus("2023년과 2022년 부채비율을 비교해 줘."),
             "unknown",
         )
 

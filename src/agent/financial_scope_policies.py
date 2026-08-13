@@ -109,6 +109,46 @@ def operand_period_focus(operand: Dict[str, Any], default_period_focus: str) -> 
     return default_period_focus
 
 
+def query_period_focus(query: str, default_value: str = "unknown") -> str:
+    text = _normalise_spaces(query)
+    period_policy = dict(PERIOD_FOCUS_POLICY)
+    if any(keyword in text for keyword in (period_policy.get("prior_markers") or ())):
+        return "prior"
+    if any(keyword in text for keyword in (period_policy.get("current_markers") or ())):
+        return "current"
+    explicit_years = list(dict.fromkeys(re.findall(str(period_policy.get("explicit_year_pattern") or r"$^"), text)))
+    if len(explicit_years) == 1:
+        return "current"
+    return default_value or "unknown"
+
+
+def task_period_focus_from_operands(
+    operation_family: str,
+    operand_specs: List[Dict[str, Any]],
+    default_value: str,
+) -> str:
+    roles = {
+        str(spec.get("role") or "").strip()
+        for spec in operand_specs
+        if str(spec.get("role") or "").strip()
+    }
+    if not roles:
+        return default_value or "unknown"
+    if operation_family in {"lookup", "single_value"}:
+        if roles == {"current_period"}:
+            return "current"
+        if roles == {"prior_period"}:
+            return "prior"
+    if operation_family in {"difference", "growth_rate"}:
+        if "current_period" in roles and "prior_period" in roles:
+            return "multi_period"
+        if roles == {"current_period"}:
+            return "current"
+        if roles == {"prior_period"}:
+            return "prior"
+    return default_value or "unknown"
+
+
 def _report_scope_source_reports(report_scope: Dict[str, Any]) -> List[Dict[str, Any]]:
     scope = dict(report_scope or {})
     rows: List[Dict[str, Any]] = []

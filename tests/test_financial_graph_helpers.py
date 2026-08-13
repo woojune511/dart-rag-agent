@@ -473,7 +473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 99),
+            (9, 97),
         )
         self.assertEqual(
             (
@@ -1874,7 +1874,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 99),
+            (9, 97),
         )
         self.assertEqual(
             (
@@ -2840,7 +2840,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 99),
+            (9, 97),
         )
         self.assertEqual(
             (
@@ -4559,7 +4559,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 99))
+        self.assertEqual(current_graph_counts, (9, 97))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -6030,7 +6030,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 99))
+        self.assertEqual(graph_counts, (9, 97))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -6507,6 +6507,1226 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 self.assertEqual(mention_owner.call_count, expected_mentions)
                 self.assertEqual(component_owner.call_count, expected_components)
                 stopped_constraints.assert_not_called()
+
+    def test_current_source_query_period_focus_pins_precedence_laziness_defaults_and_exceptions(self) -> None:
+        public_name = "query_period_focus"
+        target_name = public_name
+        target_owner = financial_scope_policies
+        target = getattr(target_owner, target_name)
+        events = []
+        query = object()
+        prior_match = object()
+        stopped_prior = object()
+        stopped_current = object()
+        nested = {"preserve": True}
+        real_dict = dict
+
+        class MarkerStream:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = list(values)
+                self.bool_calls = 0
+                self.iter_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append((self.name, "bool"))
+                return True
+
+            def __iter__(self):
+                self.iter_calls += 1
+                events.append((self.name, "iter"))
+                for value in self.values:
+                    events.append((self.name, "yield", value))
+                    yield value
+
+        class NormalizedText:
+            def __contains__(self, marker):
+                events.append(("text", "contains", marker))
+                return marker is prior_match
+
+        class RecordingPolicyCopy(dict):
+            def get(self, key, default=None):
+                events.append(("policy-copy", "get", key, default))
+                return super().get(key, default)
+
+        class DictOwner:
+            def __init__(self):
+                self.copy_inputs = []
+                self.copy_results = []
+                self.fromkeys_inputs = []
+
+            def __call__(self, value):
+                events.append(("dict", "copy", value))
+                self.copy_inputs.append(value)
+                copied = RecordingPolicyCopy(real_dict(value))
+                self.copy_results.append(copied)
+                return copied
+
+            def fromkeys(self, values):
+                retained = list(values)
+                events.append(("dict", "fromkeys", retained))
+                self.fromkeys_inputs.append(retained)
+                return real_dict.fromkeys(retained)
+
+        prior_markers = MarkerStream("prior", [prior_match, stopped_prior])
+        current_markers = MarkerStream("current", [stopped_current])
+        policy = {
+            "prior_markers": prior_markers,
+            "current_markers": current_markers,
+            "explicit_year_pattern": r"20\d{2}",
+            "nested": nested,
+        }
+        dict_owner = DictOwner()
+        normalization_inputs = []
+
+        def normalize(value):
+            normalization_inputs.append(value)
+            events.append(("normalize", value))
+            self.assertIs(value, query)
+            return NormalizedText()
+
+        with (
+            patch.object(target_owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(target_owner, "PERIOD_FOCUS_POLICY", policy),
+            patch.object(target_owner, "dict", dict_owner, create=True),
+        ):
+            self.assertEqual(target(query, "fallback"), "prior")
+
+        self.assertEqual(normalization_inputs, [query])
+        self.assertEqual(dict_owner.copy_inputs, [policy])
+        self.assertIsNot(dict_owner.copy_results[0], policy)
+        self.assertIs(dict_owner.copy_results[0]["nested"], nested)
+        self.assertEqual(dict_owner.fromkeys_inputs, [])
+        self.assertEqual(prior_markers.bool_calls, 1)
+        self.assertEqual(prior_markers.iter_calls, 1)
+        self.assertEqual(current_markers.bool_calls, 0)
+        self.assertEqual(current_markers.iter_calls, 0)
+        self.assertIn(("prior", "yield", prior_match), events)
+        self.assertNotIn(("prior", "yield", stopped_prior), events)
+        self.assertNotIn(("current", "yield", stopped_current), events)
+        self.assertLess(
+            events.index(("normalize", query)),
+            events.index(("dict", "copy", policy)),
+        )
+        self.assertEqual(
+            [event[2] for event in events if event[:2] == ("policy-copy", "get")],
+            ["prior_markers"],
+        )
+        self.assertIs(policy["prior_markers"], prior_markers)
+        self.assertIs(policy["current_markers"], current_markers)
+        self.assertIs(policy["nested"], nested)
+
+        plain_policy = {
+            "prior_markers": ("prior",),
+            "current_markers": ("current",),
+            "explicit_year_pattern": r"20\d{2}",
+        }
+
+        class TruthyDefault:
+            def __init__(self):
+                self.bool_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                return True
+
+        truthy_default = TruthyDefault()
+        with patch.object(target_owner, "PERIOD_FOCUS_POLICY", plain_policy):
+            self.assertEqual(
+                target("prior current 2024", "fallback"),
+                "prior",
+            )
+            self.assertEqual(target("current 2024", "fallback"), "current")
+            self.assertEqual(target("2024 2024", "fallback"), "current")
+            self.assertIs(target("2024 2023", truthy_default), truthy_default)
+            self.assertEqual(target("no marker", ""), "unknown")
+            self.assertEqual(target("CURRENT 2024 2023", "fallback"), "fallback")
+        self.assertEqual(truthy_default.bool_calls, 1)
+
+        ordered_events = []
+
+        class OrderedPolicyCopy(dict):
+            def get(self, key, default=None):
+                ordered_events.append(("get", key, default))
+                return super().get(key, default)
+
+        class OrderedDictOwner:
+            def __call__(self, value):
+                ordered_events.append(("copy", value))
+                return OrderedPolicyCopy(real_dict(value))
+
+            def fromkeys(self, values):
+                ordered_events.append(("fromkeys", values))
+                return real_dict.fromkeys(values)
+
+        class ReOwner:
+            def findall(self, pattern, text):
+                ordered_events.append(("findall", pattern, text))
+                return ["2024", "2024"]
+
+        ordered_policy = {
+            "prior_markers": (),
+            "current_markers": (),
+            "explicit_year_pattern": object(),
+        }
+        ordered_dict = OrderedDictOwner()
+        with (
+            patch.object(target_owner, "_normalise_spaces", return_value="normalized"),
+            patch.object(target_owner, "PERIOD_FOCUS_POLICY", ordered_policy),
+            patch.object(target_owner, "dict", ordered_dict, create=True),
+            patch.object(target_owner, "re", ReOwner()),
+        ):
+            self.assertEqual(target(query, "fallback"), "current")
+        self.assertEqual(
+            [event[1] for event in ordered_events if event[0] == "get"],
+            ["prior_markers", "current_markers", "explicit_year_pattern"],
+        )
+        findall_event = next(event for event in ordered_events if event[0] == "findall")
+        fromkeys_event = next(event for event in ordered_events if event[0] == "fromkeys")
+        self.assertEqual(findall_event[1:], (str(ordered_policy["explicit_year_pattern"]), "normalized"))
+        self.assertEqual(fromkeys_event[1], ["2024", "2024"])
+        self.assertLess(ordered_events.index(findall_event), ordered_events.index(fromkeys_event))
+
+        policy_copy = Mock(side_effect=AssertionError("policy copy reached"))
+        with (
+            patch.object(
+                target_owner,
+                "_normalise_spaces",
+                side_effect=RuntimeError("query normalization failed"),
+            ),
+            patch.object(target_owner, "dict", policy_copy, create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "query normalization failed"):
+                target(object())
+        policy_copy.assert_not_called()
+
+        class IterationFailure:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("prior marker iteration failed")
+
+        with patch.object(
+            target_owner,
+            "PERIOD_FOCUS_POLICY",
+            {
+                "prior_markers": IterationFailure(),
+                "current_markers": (),
+                "explicit_year_pattern": r"20\d{2}",
+            },
+        ):
+            with self.assertRaisesRegex(RuntimeError, "prior marker iteration failed"):
+                target("query")
+
+        class ContainsFailure:
+            def __contains__(self, marker):
+                raise RuntimeError("marker membership failed")
+
+        with (
+            patch.object(target_owner, "_normalise_spaces", return_value=ContainsFailure()),
+            patch.object(
+                target_owner,
+                "PERIOD_FOCUS_POLICY",
+                {
+                    "prior_markers": ("marker",),
+                    "current_markers": (),
+                    "explicit_year_pattern": r"20\d{2}",
+                },
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker membership failed"):
+                target("query")
+
+        class PatternStringFailure:
+            def __str__(self):
+                raise RuntimeError("pattern string failed")
+
+        with patch.object(
+            target_owner,
+            "PERIOD_FOCUS_POLICY",
+            {
+                "prior_markers": (),
+                "current_markers": (),
+                "explicit_year_pattern": PatternStringFailure(),
+            },
+        ):
+            with self.assertRaisesRegex(RuntimeError, "pattern string failed"):
+                target("query")
+
+        class DedupeFailure:
+            def __call__(self, value):
+                return real_dict(value)
+
+            def fromkeys(self, values):
+                raise RuntimeError("year dedupe failed")
+
+        with (
+            patch.object(
+                target_owner,
+                "PERIOD_FOCUS_POLICY",
+                {
+                    "prior_markers": (),
+                    "current_markers": (),
+                    "explicit_year_pattern": r"20\d{2}",
+                },
+            ),
+            patch.object(target_owner, "dict", DedupeFailure(), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "year dedupe failed"):
+                target("2024")
+
+        class DefaultBoolFailure:
+            def __bool__(self):
+                raise RuntimeError("default truth failed")
+
+        with patch.object(target_owner, "PERIOD_FOCUS_POLICY", plain_policy):
+            with self.assertRaisesRegex(RuntimeError, "default truth failed"):
+                target("no marker", DefaultBoolFailure())
+
+    def test_current_source_task_period_focus_from_operands_pins_role_collection_matrix_and_exceptions(self) -> None:
+        public_name = "task_period_focus_from_operands"
+        target_name = public_name
+        target_owner = financial_scope_policies
+        target = getattr(target_owner, target_name)
+        events = []
+        nested = {"preserve": True}
+
+        class RoleProbe:
+            def __init__(self, name, value, *, truth=True):
+                self.name = name
+                self.value = value
+                self.truth = truth
+                self.bool_calls = 0
+                self.str_calls = 0
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append((self.name, "bool"))
+                return self.truth
+
+            def __str__(self):
+                self.str_calls += 1
+                events.append((self.name, "str"))
+                return self.value
+
+        class SpecProbe:
+            def __init__(self, name, role):
+                self.name = name
+                self.role = role
+                self.get_calls = []
+                self.nested = nested
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append((self.name, "get", key))
+                return self.role
+
+        class OperandSpecsProbe:
+            def __init__(self, values):
+                self.values = list(values)
+                self.iter_calls = 0
+
+            def __iter__(self):
+                self.iter_calls += 1
+                events.append(("operand-specs", "iter"))
+                for value in self.values:
+                    events.append(("operand-specs", "yield", value.name))
+                    yield value
+
+        current = RoleProbe("current", " current_period ")
+        current_duplicate = RoleProbe("current-duplicate", "current_period")
+        prior = RoleProbe("prior", " prior_period ")
+        extra = RoleProbe("extra", " extra ")
+        blank = RoleProbe("blank", "stopped", truth=False)
+        specs = OperandSpecsProbe(
+            [
+                SpecProbe("current-spec", current),
+                SpecProbe("duplicate-spec", current_duplicate),
+                SpecProbe("prior-spec", prior),
+                SpecProbe("extra-spec", extra),
+                SpecProbe("blank-spec", blank),
+            ]
+        )
+        original_specs = list(specs.values)
+        self.assertEqual(target("difference", specs, "fallback"), "multi_period")
+        self.assertEqual(specs.iter_calls, 1)
+        self.assertEqual(specs.values, original_specs)
+        self.assertTrue(all(spec.nested is nested for spec in specs.values))
+        for spec in specs.values[:-1]:
+            self.assertEqual(spec.get_calls, [("role", None), ("role", None)])
+        self.assertEqual(specs.values[-1].get_calls, [("role", None)])
+        for role in (current, current_duplicate, prior, extra):
+            self.assertEqual(role.bool_calls, 2)
+            self.assertEqual(role.str_calls, 2)
+        self.assertEqual(blank.bool_calls, 1)
+        self.assertEqual(blank.str_calls, 0)
+        yielded = [event[2] for event in events if event[:2] == ("operand-specs", "yield")]
+        self.assertEqual(
+            yielded,
+            ["current-spec", "duplicate-spec", "prior-spec", "extra-spec", "blank-spec"],
+        )
+
+        cases = [
+            ("lookup", [{"role": "current_period"}], "fallback", "current"),
+            ("single_value", [{"role": "prior_period"}], "fallback", "prior"),
+            (
+                "lookup",
+                [{"role": "current_period"}, {"role": "prior_period"}],
+                "fallback",
+                "fallback",
+            ),
+            (
+                "difference",
+                [
+                    {"role": "current_period"},
+                    {"role": "prior_period"},
+                    {"role": "extra"},
+                ],
+                "fallback",
+                "multi_period",
+            ),
+            ("growth_rate", [{"role": " current_period "}], "fallback", "current"),
+            ("difference", [{"role": "prior_period"}], "fallback", "prior"),
+            ("sum", [{"role": "current_period"}], "fallback", "fallback"),
+            ("lookup", [{"role": "CURRENT_PERIOD"}], "fallback", "fallback"),
+            ("lookup", [], "", "unknown"),
+        ]
+        for operation_family, operand_specs, default_value, expected in cases:
+            with self.subTest(
+                operation_family=operation_family,
+                operand_specs=operand_specs,
+            ):
+                before = deepcopy(operand_specs)
+                self.assertEqual(
+                    target(operation_family, operand_specs, default_value),
+                    expected,
+                )
+                self.assertEqual(operand_specs, before)
+
+        class ChangingSpec:
+            def __init__(self):
+                self.calls = []
+                self.values = iter((" current_period ", " prior_period "))
+
+            def get(self, key, default=None):
+                self.calls.append((key, default))
+                return next(self.values)
+
+        changing = ChangingSpec()
+        self.assertEqual(target("lookup", [changing], "fallback"), "prior")
+        self.assertEqual(changing.calls, [("role", None), ("role", None)])
+
+        class SpecIterationFailure:
+            def __iter__(self):
+                raise RuntimeError("operand spec iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "operand spec iteration failed"):
+            target("lookup", SpecIterationFailure(), "fallback")
+
+        class RoleGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("role get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "role get failed"):
+            target("lookup", [RoleGetFailure()], "fallback")
+
+        class RoleTruthFailure:
+            def __bool__(self):
+                raise RuntimeError("role truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "role truth failed"):
+            target("lookup", [{"role": RoleTruthFailure()}], "fallback")
+
+        class RoleStringFailure:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("role string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "role string failed"):
+            target("lookup", [{"role": RoleStringFailure()}], "fallback")
+
+        class LateSpecFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("late spec failed")
+
+        with self.assertRaisesRegex(RuntimeError, "late spec failed"):
+            target(
+                "lookup",
+                [{"role": "current_period"}, LateSpecFailure()],
+                "fallback",
+            )
+
+        operation_specs = [SpecProbe("operation-spec", RoleProbe("operation-role", "current_period"))]
+        with self.assertRaises(TypeError):
+            target([], operation_specs, "fallback")
+        self.assertEqual(
+            operation_specs[0].get_calls,
+            [("role", None), ("role", None)],
+        )
+
+        class DefaultBoolFailure:
+            def __bool__(self):
+                raise RuntimeError("role default truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "role default truth failed"):
+            target("lookup", [], DefaultBoolFailure())
+
+    def test_current_source_period_focus_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        public_names = {
+            "query_period_focus",
+            "task_period_focus_from_operands",
+        }
+        private_names = {
+            "_infer_period_focus",
+            "_task_period_focus_from_operands",
+        }
+        current_names = set(public_names)
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {}
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.ancestor_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in current_names:
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def generic_visit(self, node):
+                if isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.Try, ast.TryStar),
+                ):
+                    return super().generic_visit(node)
+                self.ancestor_stack.append(node)
+                super().generic_visit(node)
+                self.ancestor_stack.pop()
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in current_names:
+                    context = "expression"
+                    for item in reversed(self.ancestor_stack):
+                        if isinstance(item, ast.Assign):
+                            context = "Assign"
+                            break
+                        if isinstance(item, ast.Dict):
+                            context = "Dict"
+                            break
+                        if isinstance(item, ast.If):
+                            context = "If"
+                            break
+                    calls.append(
+                        (
+                            node.lineno,
+                            called_name,
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                            context,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        query_name = "query_period_focus"
+        task_name = "task_period_focus_from_operands"
+        self.assertEqual(set(definitions), {query_name, task_name})
+        self.assertEqual(
+            {
+                name: (
+                    module_name,
+                    node.end_lineno - node.lineno + 1,
+                    [argument.arg for argument in node.args.args],
+                    [ast.unparse(default) for default in node.args.defaults],
+                    ast.unparse(node.returns),
+                )
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                query_name: (
+                    "financial_scope_policies",
+                    11,
+                    ["query", "default_value"],
+                    ["'unknown'"],
+                    "str",
+                ),
+                task_name: (
+                    "financial_scope_policies",
+                    25,
+                    ["operation_family", "operand_specs", "default_value"],
+                    [],
+                    "str",
+                ),
+            },
+        )
+        for _module_name, definition in definitions.values():
+            self.assertEqual(definition.args.kwonlyargs, [])
+            self.assertEqual(definition.decorator_list, [])
+            self.assertFalse(
+                any(
+                    isinstance(node, (ast.Try, ast.TryStar))
+                    for node in ast.walk(definition)
+                )
+            )
+
+        calls = sorted(calls)
+        self.assertEqual(
+            [row[1:] for row in calls],
+            [
+                (
+                    query_name,
+                    "financial_graph_helpers",
+                    "build_hybrid_narrative_subtask",
+                    "Name",
+                    ("query", "'unknown'"),
+                    (),
+                    0,
+                    "Assign",
+                ),
+                (
+                    query_name,
+                    "financial_graph_helpers",
+                    "_build_concept_task_constraints",
+                    "Name",
+                    (
+                        "query",
+                        "str(defaults.get('period_focus') or 'unknown')",
+                    ),
+                    (),
+                    0,
+                    "Assign",
+                ),
+                (
+                    task_name,
+                    "financial_graph_helpers",
+                    "_build_concept_task_constraints",
+                    "Name",
+                    ("operation_family", "operand_specs", "period_focus"),
+                    (),
+                    0,
+                    "Assign",
+                ),
+                (
+                    query_name,
+                    "financial_graph_helpers",
+                    "_build_heuristic_numeric_task",
+                    "Name",
+                    ("query", "'unknown'"),
+                    (),
+                    0,
+                    "Dict",
+                ),
+                (
+                    task_name,
+                    "financial_graph_helpers",
+                    "_build_heuristic_numeric_task",
+                    "Name",
+                    (
+                        "operation_family",
+                        "operand_specs",
+                        "str(constraints.get('period_focus') or 'unknown')",
+                    ),
+                    (),
+                    0,
+                    "Assign",
+                ),
+                (
+                    query_name,
+                    "financial_graph_helpers",
+                    "_build_task_constraints",
+                    "Name",
+                    (
+                        "query",
+                        "str(defaults.get('period_focus') or 'unknown')",
+                    ),
+                    (),
+                    0,
+                    "Assign",
+                ),
+            ],
+        )
+        self.assertEqual(
+            (
+                len(calls),
+                sum(row[2] == "financial_scope_policies" for row in calls),
+            ),
+            (6, 0),
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        owner_defs = [
+            node
+            for node in module_trees["financial_scope_policies"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        graph_counts = (
+            sum(not node.name.startswith("_") for node in graph_defs),
+            sum(node.name.startswith("_") for node in graph_defs),
+        )
+        owner_counts = (
+            sum(not node.name.startswith("_") for node in owner_defs),
+            sum(node.name.startswith("_") for node in owner_defs),
+        )
+        self.assertEqual(graph_counts, (9, 97))
+        self.assertEqual(owner_counts, (9, 9))
+
+        def imported_names(module_name, imported_module):
+            return {
+                alias.name
+                for node in module_trees[module_name].body
+                if isinstance(node, ast.ImportFrom)
+                and node.module == imported_module
+                for alias in node.names
+            }
+
+        owner_module = "src.agent.financial_scope_policies"
+        graph_owner_imports = imported_names(
+            "financial_graph_helpers",
+            owner_module,
+        )
+        self.assertTrue(
+            {
+                "_desired_consolidation_scope",
+                "operand_period_focus",
+            }.issubset(graph_owner_imports)
+        )
+        self.assertTrue(public_names.issubset(graph_owner_imports))
+        self.assertFalse(private_names & graph_owner_imports)
+        self.assertNotIn(
+            "src.agent.financial_graph_helpers",
+            {
+                node.module
+                for node in module_trees["financial_scope_policies"].body
+                if isinstance(node, ast.ImportFrom) and node.module
+            },
+        )
+        self.assertTrue(
+            {"Any", "Dict", "List"}.issubset(
+                imported_names("financial_scope_policies", "typing")
+            )
+        )
+        self.assertIn(
+            "PERIOD_FOCUS_POLICY",
+            imported_names(
+                "financial_scope_policies",
+                "src.config.retrieval_policy",
+            ),
+        )
+        self.assertIn(
+            "_normalise_spaces",
+            imported_names(
+                "financial_scope_policies",
+                "src.agent.financial_runtime_normalization",
+            ),
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Import)
+                and any(alias.name == "re" for alias in node.names)
+                for node in module_trees["financial_scope_policies"].body
+            )
+        )
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(reaches("financial_graph_helpers", "financial_scope_policies"))
+        self.assertFalse(reaches("financial_scope_policies", "financial_graph_helpers"))
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        current_source_methods = {
+            node.name
+            for node in ast.walk(current_test_tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name.startswith("test_current_source_")
+            and (
+                "query_period_focus" in node.name
+                or "task_period_focus_from_operands" in node.name
+                or "period_focus_bindings" in node.name
+                or "period_focus_callers" in node.name
+            )
+        }
+        self.assertEqual(
+            current_source_methods,
+            {
+                "test_current_source_query_period_focus_pins_precedence_laziness_defaults_and_exceptions",
+                "test_current_source_task_period_focus_from_operands_pins_role_collection_matrix_and_exceptions",
+                "test_current_source_period_focus_bindings_pin_defs_calls_dag_and_baseline",
+                "test_current_source_period_focus_callers_pin_order_adoption_and_stops",
+            },
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for _name, (module_name, definition) in definitions.items():
+            selected_hits.extend(
+                record
+                for record in baseline["records"]
+                if record.get("path") == f"src/agent/{module_name}.py"
+                and any(
+                    definition.lineno <= line <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+            )
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_period_focus_callers_pin_order_adoption_and_stops(self) -> None:
+        query_public_name = "query_period_focus"
+        task_public_name = "task_period_focus_from_operands"
+        query_name = query_public_name
+        task_name = task_public_name
+        query = "query"
+        nested = {"preserve": True}
+        report_scope = {"company": "Example", "nested": nested}
+
+        hybrid_events = []
+
+        def hybrid_scope(actual_query, actual_scope):
+            self.assertEqual(actual_query, query)
+            self.assertIs(actual_scope, report_scope)
+            hybrid_events.append("scope")
+            return "consolidated"
+
+        def hybrid_period(actual_query, default_value):
+            self.assertEqual((actual_query, default_value), (query, "unknown"))
+            hybrid_events.append("query-period")
+            return "current"
+
+        def hybrid_policies(actual_query):
+            self.assertEqual(actual_query, query)
+            hybrid_events.append("policies")
+            return []
+
+        before_scope = deepcopy(report_scope)
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_desired_consolidation_scope",
+                side_effect=hybrid_scope,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=hybrid_period,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "active_narrative_policies",
+                side_effect=hybrid_policies,
+            ),
+            patch.object(financial_graph_helpers, "narrative_policy_slot_groups", return_value=[]),
+            patch.object(financial_graph_helpers, "default_format_preference", return_value="paragraph"),
+            patch.object(financial_graph_helpers, "narrative_policy_query_suffixes", return_value=[]),
+            patch.object(financial_graph_helpers, "narrative_policy_preferred_sections", return_value=[]),
+            patch.object(financial_graph_helpers, "PLANNING_POLICY", {}),
+            patch.object(financial_graph_helpers, "NARRATIVE_BASE_RETRIEVAL_SUFFIXES", ()),
+        ):
+            hybrid = financial_graph_helpers.build_hybrid_narrative_subtask(
+                query=query,
+                intent="qa",
+                report_scope=report_scope,
+                next_task_id="task_1",
+            )
+        self.assertEqual(hybrid_events, ["scope", "query-period", "policies"])
+        self.assertEqual(hybrid["constraints"]["period_focus"], "current")
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(report_scope["nested"], nested)
+
+        stopped_policies = Mock(side_effect=AssertionError("period failure must stop policies"))
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=RuntimeError("hybrid query period failed"),
+            ),
+            patch.object(financial_graph_helpers, "active_narrative_policies", stopped_policies),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "hybrid query period failed"):
+                financial_graph_helpers.build_hybrid_narrative_subtask(
+                    query=query,
+                    intent="qa",
+                    report_scope=report_scope,
+                    next_task_id="task_1",
+                )
+        stopped_policies.assert_not_called()
+
+        class Ontology:
+            planner_guidance = {
+                "dimension_defaults": {
+                    "consolidation_scope": "default-scope",
+                    "period_focus": "default-period",
+                    "entity_scope": "default-entity",
+                }
+            }
+
+            def __init__(self):
+                self.default_calls = []
+
+            def default_constraints_for_metric(self, metric_key):
+                self.default_calls.append(metric_key)
+                return {
+                    "period_focus": "ontology-period",
+                    "entity_scope": "entity",
+                    "segment_scope": "segment",
+                    "nested": nested,
+                }
+
+        ontology = Ontology()
+        operand_specs = [{"role": "current_period", "nested": nested}]
+        before_operands = deepcopy(operand_specs)
+        concept_events = []
+
+        def concept_scope(actual_query, actual_scope):
+            concept_events.append("scope")
+            self.assertEqual(actual_query, query)
+            self.assertIs(actual_scope, report_scope)
+            return "unknown"
+
+        def concept_query_period(actual_query, default_value):
+            concept_events.append(("query-period", default_value))
+            return "prior"
+
+        def concept_task_period(operation_family, actual_specs, default_value):
+            concept_events.append(("task-period", operation_family, default_value))
+            self.assertIs(actual_specs, operand_specs)
+            return "multi_period"
+
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", side_effect=concept_scope),
+            patch.object(financial_graph_helpers, query_name, side_effect=concept_query_period),
+            patch.object(financial_graph_helpers, task_name, side_effect=concept_task_period),
+            patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
+        ):
+            concept = financial_graph_helpers._build_concept_task_constraints(
+                query,
+                report_scope,
+                ontology,
+                operand_specs,
+                "growth_rate",
+            )
+        self.assertEqual(
+            concept_events,
+            [
+                "scope",
+                ("query-period", "default-period"),
+                ("task-period", "growth_rate", "prior"),
+            ],
+        )
+        self.assertEqual(concept["period_focus"], "multi_period")
+        self.assertEqual(concept["consolidation_scope"], "default-scope")
+        self.assertEqual(operand_specs, before_operands)
+        self.assertIs(operand_specs[0]["nested"], nested)
+
+        skipped_task_period = Mock(side_effect=AssertionError("falsey specs must skip role refinement"))
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="separate"),
+            patch.object(financial_graph_helpers, query_name, return_value="current"),
+            patch.object(financial_graph_helpers, task_name, skipped_task_period),
+            patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
+        ):
+            empty_concept = financial_graph_helpers._build_concept_task_constraints(
+                query,
+                report_scope,
+                ontology,
+                [],
+                "lookup",
+            )
+        self.assertEqual(empty_concept["period_focus"], "current")
+        skipped_task_period.assert_not_called()
+
+        stopped_task = Mock(side_effect=AssertionError("query-period failure must stop role refinement"))
+        stopped_normalize = Mock(side_effect=AssertionError("query-period failure must stop segment policy"))
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=RuntimeError("concept query period failed"),
+            ),
+            patch.object(financial_graph_helpers, task_name, stopped_task),
+            patch.object(financial_graph_helpers, "_normalise_spaces", stopped_normalize),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "concept query period failed"):
+                financial_graph_helpers._build_concept_task_constraints(
+                    query,
+                    report_scope,
+                    ontology,
+                    operand_specs,
+                    "growth_rate",
+                )
+        stopped_task.assert_not_called()
+        stopped_normalize.assert_not_called()
+
+        stopped_normalize = Mock(side_effect=AssertionError("role failure must stop segment policy"))
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, query_name, return_value="prior"),
+            patch.object(
+                financial_graph_helpers,
+                task_name,
+                side_effect=RuntimeError("concept task period failed"),
+            ),
+            patch.object(financial_graph_helpers, "_normalise_spaces", stopped_normalize),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "concept task period failed"):
+                financial_graph_helpers._build_concept_task_constraints(
+                    query,
+                    report_scope,
+                    ontology,
+                    operand_specs,
+                    "growth_rate",
+                )
+        stopped_normalize.assert_not_called()
+
+        heuristic_events = []
+        heuristic_specs = [{"role": "current_period", "nested": nested}]
+        before_heuristic_specs = deepcopy(heuristic_specs)
+
+        def heuristic_query_period(actual_query, default_value):
+            heuristic_events.append(("query-period", default_value))
+            return "prior"
+
+        def heuristic_task_period(operation_family, actual_specs, default_value):
+            heuristic_events.append(("task-period", operation_family, default_value))
+            self.assertIs(actual_specs, heuristic_specs)
+            return "multi_period"
+
+        def heuristic_retrieval(**kwargs):
+            heuristic_events.append(("retrieval", kwargs["constraints"]["period_focus"]))
+            self.assertIs(kwargs["operand_specs"], heuristic_specs)
+            return ["retrieve"]
+
+        with (
+            patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
+            patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=heuristic_specs),
+            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="growth_rate"),
+            patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="consolidated"),
+            patch.object(financial_graph_helpers, query_name, side_effect=heuristic_query_period),
+            patch.object(financial_graph_helpers, task_name, side_effect=heuristic_task_period),
+            patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", side_effect=heuristic_retrieval),
+            patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
+        ):
+            heuristic = financial_graph_helpers._build_heuristic_numeric_task(
+                query=query,
+                topic="topic",
+                intent="comparison",
+                report_scope=report_scope,
+            )
+        self.assertEqual(
+            heuristic_events,
+            [
+                ("query-period", "unknown"),
+                ("task-period", "growth_rate", "prior"),
+                ("retrieval", "multi_period"),
+            ],
+        )
+        self.assertEqual(heuristic["constraints"]["period_focus"], "multi_period")
+        self.assertEqual(heuristic_specs, before_heuristic_specs)
+        self.assertIs(heuristic_specs[0]["nested"], nested)
+
+        stopped_task = Mock(side_effect=AssertionError("heuristic query failure must stop role refinement"))
+        stopped_retrieval = Mock(side_effect=AssertionError("heuristic query failure must stop retrieval"))
+        with (
+            patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
+            patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=[]),
+            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="lookup"),
+            patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=RuntimeError("heuristic query period failed"),
+            ),
+            patch.object(financial_graph_helpers, task_name, stopped_task),
+            patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", stopped_retrieval),
+            patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "heuristic query period failed"):
+                financial_graph_helpers._build_heuristic_numeric_task(
+                    query=query,
+                    topic="topic",
+                    intent="comparison",
+                    report_scope=report_scope,
+                )
+        stopped_task.assert_not_called()
+        stopped_retrieval.assert_not_called()
+
+        stopped_retrieval = Mock(side_effect=AssertionError("role failure must stop retrieval"))
+        with (
+            patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
+            patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=[]),
+            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="lookup"),
+            patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, query_name, return_value="current"),
+            patch.object(
+                financial_graph_helpers,
+                task_name,
+                side_effect=RuntimeError("heuristic task period failed"),
+            ),
+            patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", stopped_retrieval),
+            patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "heuristic task period failed"):
+                financial_graph_helpers._build_heuristic_numeric_task(
+                    query=query,
+                    topic="topic",
+                    intent="comparison",
+                    report_scope=report_scope,
+                )
+        stopped_retrieval.assert_not_called()
+
+        task_events = []
+        metric_ontology = Ontology()
+
+        def metric_scope(actual_query, actual_scope):
+            task_events.append(("scope", actual_query))
+            self.assertIs(actual_scope, report_scope)
+            return "separate"
+
+        def metric_period(actual_query, default_value):
+            task_events.append(("query-period", default_value))
+            return "prior"
+
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", side_effect=metric_scope),
+            patch.object(financial_graph_helpers, query_name, side_effect=metric_period),
+        ):
+            metric_constraints = financial_graph_helpers._build_task_constraints(
+                query,
+                report_scope,
+                metric_ontology,
+                "metric",
+            )
+        self.assertEqual(metric_ontology.default_calls, ["metric"])
+        self.assertEqual(
+            task_events,
+            [("scope", query), ("query-period", "ontology-period")],
+        )
+        self.assertEqual(
+            metric_constraints,
+            {
+                "consolidation_scope": "separate",
+                "period_focus": "prior",
+                "entity_scope": "entity",
+                "segment_scope": "segment",
+            },
+        )
+
+        class OutputStringBomb:
+            def __init__(self):
+                self.str_calls = 0
+
+            def __str__(self):
+                self.str_calls += 1
+                raise AssertionError("query-period failure must stop output projection")
+
+        output_bomb = OutputStringBomb()
+
+        class FailingMetricOntology:
+            def default_constraints_for_metric(self, metric_key):
+                return {
+                    "period_focus": "ontology-period",
+                    "entity_scope": output_bomb,
+                    "segment_scope": "none",
+                }
+
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(
+                financial_graph_helpers,
+                query_name,
+                side_effect=RuntimeError("metric query period failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metric query period failed"):
+                financial_graph_helpers._build_task_constraints(
+                    query,
+                    report_scope,
+                    FailingMetricOntology(),
+                    "metric",
+                )
+        self.assertEqual(output_bomb.str_calls, 0)
 
     def test_current_source_candidate_sibling_surface_hit_count_pins_projection_dedupe_compaction_and_identity(self) -> None:
         target_name = "candidate_sibling_surface_hit_count"
@@ -7030,7 +8250,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 99))
+        self.assertEqual(graph_counts, (9, 97))
         self.assertEqual(row_counts, (5, 15))
 
         def imported_names(module_name, imported_module):
@@ -9092,7 +10312,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as scope_owner,
             patch.object(
                 financial_graph_helpers,
-                "_infer_period_focus",
+                "query_period_focus",
                 side_effect=lambda query, default: record("period", "current"),
             ) as period_owner,
             patch.object(
@@ -9201,7 +10421,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         term_owner = Mock(side_effect=AssertionError("table terms accessed"))
         with (
             patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="separate"),
-            patch.object(financial_graph_helpers, "_infer_period_focus", return_value="prior"),
+            patch.object(financial_graph_helpers, "query_period_focus", return_value="prior"),
             patch.object(financial_graph_helpers, "active_narrative_policies", return_value=[paragraph_policy]),
             patch.object(financial_graph_helpers, "narrative_policy_slot_groups", return_value=[]),
             patch.object(financial_graph_helpers, "default_format_preference", default_owner),
@@ -9248,7 +10468,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "_desired_consolidation_scope",
                 side_effect=RuntimeError("scope failed"),
             ),
-            patch.object(financial_graph_helpers, "_infer_period_focus", period_owner),
+            patch.object(financial_graph_helpers, "query_period_focus", period_owner),
             patch.object(financial_graph_helpers, "active_narrative_policies", active_owner),
         ):
             with self.assertRaisesRegex(RuntimeError, "scope failed"):
@@ -9588,7 +10808,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 99),
+            (9, 97),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -9703,7 +10923,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for node in ast.walk(definition)
         }
         dead_after_move = {
-            "_infer_period_focus",
+            "query_period_focus",
             "_query_requests_narrative_context",
             "_desired_consolidation_scope",
             "NARRATIVE_BASE_RETRIEVAL_SUFFIXES",
@@ -10489,7 +11709,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (7, 9),
+            (9, 9),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -13132,7 +14352,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (7, 9),
+            (9, 9),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -13197,7 +14417,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for entry in name_loads["PERIOD_FOCUS_POLICY"]
                 if entry[0] == "financial_graph_helpers" and entry[1] not in target_names
             ),
-            ["_candidate_satisfies_direct_acceptance_contract", "_infer_period_focus"],
+            ["_candidate_satisfies_direct_acceptance_contract"],
         )
 
         baseline = json.loads(
@@ -14175,7 +15395,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 99),
+            (9, 97),
         )
         self.assertEqual(
             (
