@@ -473,14 +473,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 95),
+            (9, 93),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (7, 15),
+            (9, 15),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1874,14 +1874,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 95),
+            (9, 93),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (7, 15),
+            (9, 15),
         )
 
         graph_row_imports = {
@@ -2828,8 +2828,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 95))
-        self.assertEqual(row_counts, (7, 15))
+        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(row_counts, (9, 15))
 
         graph_row_imports = {
             alias.name
@@ -3223,6 +3223,975 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 invoke()
             stopped_stage.assert_not_called()
             self.assertEqual(events, ["value"])
+
+    def test_current_source_candidate_operand_context_surface_pins_order_short_circuit_identity_and_exceptions(self) -> None:
+        target_owner = financial_row_surfaces
+        target_name = "candidate_has_operand_context_surface"
+        target = getattr(target_owner, target_name)
+        real_dict = dict
+        events = []
+        nested = {"preserve": True}
+
+        class TextProbe:
+            def __init__(self, label, value):
+                self.label = label
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                events.append(("str", self.label, self.calls))
+                return self.value
+
+        class CandidateProbe:
+            def __init__(self, metadata, text):
+                self.metadata = metadata
+                self.text = text
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("candidate-get", key, default))
+                if key == "metadata":
+                    return self.metadata
+                if key == "text":
+                    return self.text
+                return default
+
+        class RecordingCopy(dict):
+            def __init__(self, value):
+                super().__init__(value)
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("metadata-get", key, default))
+                return super().get(key, default)
+
+        class DictOwner:
+            def __init__(self):
+                self.inputs = []
+                self.results = []
+
+            def __call__(self, value):
+                self.inputs.append(value)
+                events.append(("dict-copy", value))
+                result = RecordingCopy(real_dict(value))
+                self.results.append(result)
+                return result
+
+        alias = TextProbe("alias", " Alias ")
+        blank_alias = TextProbe("blank-alias", " ")
+        header = TextProbe("header", " Header ")
+        blank_header = TextProbe("blank-header", "")
+        row_labels = TextProbe("row-labels", " Rows ")
+        summary = TextProbe("summary", " Summary ")
+        row_text = TextProbe("row-text", " Row ")
+        candidate_text = TextProbe("candidate-text", " Candidate ")
+        metadata = {
+            "semantic_aliases": [alias, blank_alias],
+            "column_headers_chain": [header, blank_header],
+            "table_row_labels_text": row_labels,
+            "table_summary_text": summary,
+            "row_text": row_text,
+            "nested": nested,
+        }
+        candidate = CandidateProbe(metadata, candidate_text)
+        operand = {"concept": object()}
+        dict_owner = DictOwner()
+
+        def positive(text, actual_operand):
+            self.assertEqual(text, "Alias Header Rows Summary Row Candidate")
+            self.assertIs(actual_operand, operand)
+            events.append(("positive", text))
+            return True
+
+        stopped_fallback = Mock(
+            side_effect=AssertionError("positive match must stop fallback matcher")
+        )
+        with (
+            patch.object(target_owner, "dict", dict_owner, create=True),
+            patch.object(target_owner, "_text_has_positive_surface", side_effect=positive),
+            patch.object(target_owner, "_operand_text_match", stopped_fallback),
+        ):
+            self.assertTrue(target(candidate, operand))
+        stopped_fallback.assert_not_called()
+        self.assertEqual(candidate.get_calls, [("metadata", None), ("text", None)])
+        self.assertEqual(
+            dict_owner.results[0].get_calls,
+            [
+                ("semantic_aliases", None),
+                ("column_headers_chain", None),
+                ("table_row_labels_text", None),
+                ("table_summary_text", None),
+                ("row_text", None),
+            ],
+        )
+        self.assertEqual(
+            {
+                probe.label: probe.calls
+                for probe in (
+                    alias,
+                    blank_alias,
+                    header,
+                    blank_header,
+                    row_labels,
+                    summary,
+                    row_text,
+                    candidate_text,
+                )
+            },
+            {
+                "alias": 2,
+                "blank-alias": 1,
+                "header": 2,
+                "blank-header": 1,
+                "row-labels": 1,
+                "summary": 1,
+                "row-text": 1,
+                "candidate-text": 1,
+            },
+        )
+        self.assertEqual(dict_owner.inputs, [metadata])
+        self.assertIsNot(dict_owner.results[0], metadata)
+        self.assertIs(dict_owner.results[0]["nested"], nested)
+        self.assertIs(metadata["nested"], nested)
+
+        matcher_events = []
+
+        def miss(text, actual_operand):
+            matcher_events.append(("positive", text, actual_operand))
+            return False
+
+        def fallback(text, actual_operand):
+            matcher_events.append(("fallback", text, actual_operand))
+            return "matched"
+
+        with (
+            patch.object(target_owner, "_text_has_positive_surface", side_effect=miss),
+            patch.object(target_owner, "_operand_text_match", side_effect=fallback),
+        ):
+            self.assertEqual(
+                target({"metadata": {"row_text": " Row "}, "text": " Text "}, operand),
+                "matched",
+            )
+        self.assertEqual(
+            matcher_events,
+            [
+                ("positive", "Row Text", operand),
+                ("fallback", "Row Text", operand),
+            ],
+        )
+
+        class GetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("candidate get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "candidate get failed"):
+            target(GetFailure(), operand)
+
+        class TruthFailure:
+            def __bool__(self):
+                raise RuntimeError("metadata truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata truth failed"):
+            target(CandidateProbe(TruthFailure(), ""), operand)
+
+        with patch.object(
+            target_owner,
+            "dict",
+            side_effect=RuntimeError("metadata copy failed"),
+            create=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                target({"metadata": {}}, operand)
+
+        class MetadataGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("metadata field get failed")
+
+        with patch.object(target_owner, "dict", return_value=MetadataGetFailure(), create=True):
+            with self.assertRaisesRegex(RuntimeError, "metadata field get failed"):
+                target({"metadata": {}}, operand)
+
+        class IterFailure:
+            def __iter__(self):
+                raise RuntimeError("alias iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "alias iteration failed"):
+            target({"metadata": {"semantic_aliases": IterFailure()}}, operand)
+
+        class StringFailure:
+            def __str__(self):
+                raise RuntimeError("surface string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "surface string failed"):
+            target({"metadata": {"semantic_aliases": [StringFailure()]}}, operand)
+
+        stopped_fallback = Mock(
+            side_effect=AssertionError("positive matcher exception must stop fallback")
+        )
+        with (
+            patch.object(
+                target_owner,
+                "_text_has_positive_surface",
+                side_effect=RuntimeError("positive matcher failed"),
+            ),
+            patch.object(target_owner, "_operand_text_match", stopped_fallback),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "positive matcher failed"):
+                target({"metadata": {}}, operand)
+        stopped_fallback.assert_not_called()
+
+        with (
+            patch.object(target_owner, "_text_has_positive_surface", return_value=False),
+            patch.object(
+                target_owner,
+                "_operand_text_match",
+                side_effect=RuntimeError("fallback matcher failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "fallback matcher failed"):
+                target({"metadata": {}}, operand)
+
+    def test_current_source_table_row_structured_sibling_pins_order_soft_json_identity_and_exceptions(self) -> None:
+        target_owner = financial_row_surfaces
+        target_name = "table_row_has_matching_structured_sibling"
+        target = getattr(target_owner, target_name)
+        events = []
+        nested = {"preserve": True}
+        operand = {"concept": object()}
+
+        class MetadataProbe:
+            def __init__(self, values):
+                self.values = values
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("metadata-get", key, default))
+                return self.values.get(key, default)
+
+        class RecordProbe:
+            def __init__(self, values, label):
+                self.values = values
+                self.label = label
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("record-get", self.label, key, default))
+                return self.values.get(key, default)
+
+        class TextProbe:
+            def __init__(self, label, value):
+                self.label = label
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                events.append(("str", self.label, self.calls))
+                return self.value
+
+        header = TextProbe("header", " Header ")
+        blank_header = TextProbe("blank-header", "")
+        alias = TextProbe("alias", " Alias Hit ")
+        record = RecordProbe(
+            {
+                "row_label": "",
+                "semantic_label": " Semantic ",
+                "row_headers": [header, blank_header],
+                "semantic_aliases": [alias],
+                "nested": nested,
+            },
+            "record",
+        )
+        metadata = MetadataProbe(
+            {
+                "table_row_records_json": " malformed ",
+                "table_value_records_json": " valid ",
+                "nested": nested,
+            }
+        )
+
+        def loads(payload):
+            events.append(("loads", payload))
+            if payload == "malformed":
+                raise json.JSONDecodeError("bad payload", payload, 0)
+            self.assertEqual(payload, "valid")
+            return [record]
+
+        def matcher(surface, actual_operand):
+            self.assertIs(actual_operand, operand)
+            events.append(("match", surface))
+            return surface == "Alias Hit"
+
+        dict_owner = Mock(
+            side_effect=AssertionError("structured sibling lookup must not copy metadata")
+        )
+        with (
+            patch.object(target_owner, "dict", dict_owner, create=True),
+            patch.object(target_owner.json, "loads", side_effect=loads),
+            patch.object(target_owner, "_operand_text_match", side_effect=matcher),
+        ):
+            self.assertTrue(target(metadata, operand))
+        dict_owner.assert_not_called()
+        self.assertEqual(
+            metadata.get_calls,
+            [("table_row_records_json", None), ("table_value_records_json", None)],
+        )
+        self.assertEqual(
+            record.get_calls,
+            [
+                ("row_label", None),
+                ("semantic_label", None),
+                ("row_headers", None),
+                ("semantic_aliases", None),
+            ],
+        )
+        self.assertEqual(
+            [event for event in events if event[0] in {"loads", "match"}],
+            [
+                ("loads", "malformed"),
+                ("loads", "valid"),
+                ("match", "Semantic"),
+                ("match", "Header"),
+                ("match", "Alias Hit"),
+            ],
+        )
+        self.assertEqual(
+            {probe.label: probe.calls for probe in (header, blank_header, alias)},
+            {"header": 2, "blank-header": 1, "alias": 2},
+        )
+        self.assertIs(record.values["nested"], nested)
+        self.assertIs(metadata.values["nested"], nested)
+
+        first = RecordProbe(
+            {
+                "row_label": "Match First",
+                "semantic_label": "stopped",
+                "row_headers": [],
+                "semantic_aliases": [],
+            },
+            "first",
+        )
+        stopped_record = Mock(
+            side_effect=AssertionError("first matching record must stop later records")
+        )
+        stopped_metadata = MetadataProbe(
+            {
+                "table_row_records_json": "first",
+                "table_value_records_json": "stopped",
+            }
+        )
+        with (
+            patch.object(target_owner.json, "loads", return_value=[first, stopped_record]),
+            patch.object(
+                target_owner,
+                "_operand_text_match",
+                side_effect=lambda surface, actual_operand: surface == "Match First",
+            ),
+        ):
+            self.assertTrue(target(stopped_metadata, operand))
+        stopped_record.assert_not_called()
+        self.assertEqual(stopped_metadata.get_calls, [("table_row_records_json", None)])
+
+        blank_metadata = MetadataProbe(
+            {
+                "table_row_records_json": " ",
+                "table_value_records_json": " [] ",
+            }
+        )
+        with patch.object(target_owner.json, "loads", return_value=[]) as loads_owner:
+            self.assertFalse(target(blank_metadata, operand))
+        loads_owner.assert_called_once_with("[]")
+
+        class MetadataGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("metadata get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata get failed"):
+            target(MetadataGetFailure(), operand)
+
+        class PayloadStringFailure:
+            def __str__(self):
+                raise RuntimeError("payload string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "payload string failed"):
+            target({"table_row_records_json": PayloadStringFailure()}, operand)
+
+        soft_metadata = MetadataProbe(
+            {
+                "table_row_records_json": "bad",
+                "table_value_records_json": "good",
+            }
+        )
+        with patch.object(
+            target_owner.json,
+            "loads",
+            side_effect=[json.JSONDecodeError("bad", "bad", 0), []],
+        ):
+            self.assertFalse(target(soft_metadata, operand))
+
+        hard_metadata = MetadataProbe(
+            {
+                "table_row_records_json": "bad",
+                "table_value_records_json": "stopped",
+            }
+        )
+        with patch.object(
+            target_owner.json,
+            "loads",
+            side_effect=ValueError("non-json failure"),
+        ):
+            with self.assertRaisesRegex(ValueError, "non-json failure"):
+                target(hard_metadata, operand)
+        self.assertEqual(hard_metadata.get_calls, [("table_row_records_json", None)])
+
+        class RecordGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("record get failed")
+
+        with patch.object(target_owner.json, "loads", return_value=[RecordGetFailure()]):
+            with self.assertRaisesRegex(RuntimeError, "record get failed"):
+                target({"table_row_records_json": "valid"}, operand)
+
+        stopped_second_payload = MetadataProbe(
+            {
+                "table_row_records_json": "valid",
+                "table_value_records_json": "stopped",
+            }
+        )
+        matcher_record = {
+            "row_label": "Surface",
+            "semantic_label": "",
+            "row_headers": [],
+            "semantic_aliases": [],
+        }
+        with (
+            patch.object(target_owner.json, "loads", return_value=[matcher_record]),
+            patch.object(
+                target_owner,
+                "_operand_text_match",
+                side_effect=RuntimeError("matcher failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "matcher failed"):
+                target(stopped_second_payload, operand)
+        self.assertEqual(stopped_second_payload.get_calls, [("table_row_records_json", None)])
+
+    def test_current_source_candidate_row_context_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        current_names = {
+            "candidate_has_operand_context_surface",
+            "table_row_has_matching_structured_sibling",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {}
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.ancestor_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in current_names:
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def generic_visit(self, node):
+                if isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.Try, ast.TryStar),
+                ):
+                    return super().generic_visit(node)
+                self.ancestor_stack.append(node)
+                super().generic_visit(node)
+                self.ancestor_stack.pop()
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Name) and node.func.id in current_names:
+                    context = "expression"
+                    for ancestor in reversed(self.ancestor_stack):
+                        if isinstance(ancestor, ast.If):
+                            context = "If"
+                            break
+                    calls.append(
+                        (
+                            node.func.id,
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                            context,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        context_name = "candidate_has_operand_context_surface"
+        sibling_name = "table_row_has_matching_structured_sibling"
+        self.assertEqual(set(definitions), current_names)
+        self.assertEqual(
+            {
+                name: (
+                    module_name,
+                    node.end_lineno - node.lineno + 1,
+                    [argument.arg for argument in node.args.args],
+                    ast.unparse(node.returns),
+                )
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                context_name: ("financial_row_surfaces", 15, ["candidate", "operand"], "bool"),
+                sibling_name: ("financial_row_surfaces", 19, ["metadata", "operand"], "bool"),
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    sibling_name,
+                    "financial_graph_helpers",
+                    "_candidate_is_direct_grounding_candidate",
+                    ("metadata", "operand"),
+                    (),
+                    0,
+                    "If",
+                ),
+                (
+                    context_name,
+                    "financial_graph_helpers",
+                    "_candidate_direct_match_strength",
+                    ("candidate", "operand"),
+                    (),
+                    0,
+                    "If",
+                ),
+            ],
+        )
+
+        context_definition = definitions[context_name][1]
+        sibling_definition = definitions[sibling_name][1]
+        self.assertFalse(
+            any(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(context_definition))
+        )
+        sibling_tries = [
+            node
+            for node in ast.walk(sibling_definition)
+            if isinstance(node, (ast.Try, ast.TryStar))
+        ]
+        self.assertEqual(len(sibling_tries), 1)
+        self.assertEqual(
+            [ast.unparse(handler.type) for handler in sibling_tries[0].handlers],
+            ["json.JSONDecodeError"],
+        )
+        expected_direct_calls = {
+            context_name: {
+                "dict": 1,
+                "str": 10,
+                "_text_has_positive_surface": 1,
+                "_operand_text_match": 1,
+            },
+            sibling_name: {
+                "str": 7,
+                "any": 1,
+                "_operand_text_match": 1,
+            },
+        }
+        for name, definition in (
+            (context_name, context_definition),
+            (sibling_name, sibling_definition),
+        ):
+            direct_calls = [
+                node.func.id
+                for node in ast.walk(definition)
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            ]
+            self.assertEqual(
+                {
+                    called: direct_calls.count(called)
+                    for called in expected_direct_calls[name]
+                },
+                expected_direct_calls[name],
+            )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and ast.unparse(node.func) == "json.loads"
+                for node in ast.walk(sibling_definition)
+            ),
+            1,
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        row_defs = [
+            node
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in graph_defs),
+                sum(node.name.startswith("_") for node in graph_defs),
+            ),
+            (9, 93),
+        )
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in row_defs),
+                sum(node.name.startswith("_") for node in row_defs),
+            ),
+            (9, 15),
+        )
+        graph_row_imports = {
+            alias.name
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_row_surfaces"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {
+                "candidate_has_operand_context_surface",
+                "table_row_has_matching_structured_sibling",
+            }
+            .issubset(graph_row_imports)
+        )
+        self.assertNotIn(
+            "src.agent.financial_graph_helpers",
+            {
+                node.module
+                for node in module_trees["financial_row_surfaces"].body
+                if isinstance(node, ast.ImportFrom) and node.module
+            },
+        )
+
+        baseline = json.loads(
+            (
+                repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for module_name, definition in definitions.values():
+            selected_hits.extend(
+                record
+                for record in baseline["records"]
+                if record.get("path") == f"src/agent/{module_name}.py"
+                and any(
+                    definition.lineno <= line <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+            )
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_candidate_operand_context_surface_pins_order_short_circuit_identity_and_exceptions",
+            "test_current_source_table_row_structured_sibling_pins_order_soft_json_identity_and_exceptions",
+            "test_current_source_candidate_row_context_bindings_pin_defs_calls_dag_and_baseline",
+            "test_current_source_candidate_row_context_callers_pin_order_short_circuits_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_row_context_callers_pin_order_short_circuits_and_stops(self) -> None:
+        sibling_name = "table_row_has_matching_structured_sibling"
+        context_name = "candidate_has_operand_context_surface"
+        nested = {"preserve": True}
+        candidate = {
+            "candidate_kind": "table_row",
+            "metadata": {
+                "statement_type": "notes",
+                "period_focus": "unknown",
+                "semantic_label": "",
+                "row_text": "Ordinary Row",
+                "nested": nested,
+            },
+        }
+        operand = {"binding_policy": {}, "nested": nested}
+        constraints = {"period_focus": "unknown", "consolidation_scope": "unknown"}
+
+        def grounding_patches(events, *, report_match=True):
+            return [
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
+                patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
+                patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=report_match),
+                patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=False),
+                patch.object(
+                    financial_graph_helpers,
+                    "_is_delta_like_row_label",
+                    side_effect=lambda text: events.append(("delta", text)) or False,
+                ),
+            ]
+
+        def invoke_grounding(operation_family="lookup", actual_candidate=candidate):
+            return financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                actual_candidate,
+                operand=operand,
+                constraints=constraints,
+                query_years=[],
+                operation_family=operation_family,
+                report_scope={},
+            )
+
+        events = []
+
+        def sibling_miss(actual_metadata, actual_operand):
+            self.assertIsNot(actual_metadata, candidate["metadata"])
+            self.assertEqual(actual_metadata, candidate["metadata"])
+            self.assertIs(actual_metadata["nested"], nested)
+            self.assertIs(actual_operand, operand)
+            events.append(("sibling", actual_metadata))
+            return False
+
+        with ExitStack() as stack:
+            for current_patch in grounding_patches(events):
+                stack.enter_context(current_patch)
+            stack.enter_context(
+                patch.object(financial_graph_helpers, sibling_name, side_effect=sibling_miss)
+            )
+            self.assertTrue(invoke_grounding())
+        self.assertEqual([event[0] for event in events], ["sibling", "delta"])
+        self.assertEqual(events[1], ("delta", "Ordinary Row"))
+
+        for label, sibling_result, expected in (
+            ("sibling-hit", True, False),
+            ("sibling-miss", False, True),
+        ):
+            with self.subTest(label=label):
+                events = []
+                with ExitStack() as stack:
+                    for current_patch in grounding_patches(events):
+                        stack.enter_context(current_patch)
+                    stack.enter_context(
+                        patch.object(
+                            financial_graph_helpers,
+                            sibling_name,
+                            side_effect=lambda *_: events.append(("sibling", label)) or sibling_result,
+                        )
+                    )
+                    self.assertEqual(invoke_grounding(), expected)
+                expected_events = ["sibling"] if sibling_result else ["sibling", "delta"]
+                self.assertEqual([event[0] for event in events], expected_events)
+
+        for operation_family, candidate_kind in (
+            ("sum", "table_row"),
+            ("lookup", "structured_value"),
+        ):
+            with self.subTest(operation_family=operation_family, candidate_kind=candidate_kind):
+                events = []
+                current_candidate = {
+                    **candidate,
+                    "candidate_kind": candidate_kind,
+                }
+                stopped_sibling = Mock(
+                    side_effect=AssertionError("operation and kind gates must stop sibling lookup")
+                )
+                with ExitStack() as stack:
+                    for current_patch in grounding_patches(events):
+                        stack.enter_context(current_patch)
+                    stack.enter_context(
+                        patch.object(financial_graph_helpers, sibling_name, stopped_sibling)
+                    )
+                    self.assertTrue(invoke_grounding(operation_family, current_candidate))
+                stopped_sibling.assert_not_called()
+                self.assertEqual(events, [])
+
+        events = []
+        stopped_sibling = Mock(
+            side_effect=AssertionError("report gate must stop sibling lookup")
+        )
+        with ExitStack() as stack:
+            for current_patch in grounding_patches(events, report_match=False):
+                stack.enter_context(current_patch)
+            stack.enter_context(patch.object(financial_graph_helpers, sibling_name, stopped_sibling))
+            self.assertFalse(invoke_grounding())
+        stopped_sibling.assert_not_called()
+        self.assertEqual(events, [])
+
+        events = []
+        stopped_delta = Mock(
+            side_effect=AssertionError("sibling exception must stop delta-row check")
+        )
+        with ExitStack() as stack:
+            for current_patch in grounding_patches(events):
+                stack.enter_context(current_patch)
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    sibling_name,
+                    side_effect=RuntimeError("sibling failed"),
+                )
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "_is_delta_like_row_label", stopped_delta)
+            )
+            with self.assertRaisesRegex(RuntimeError, "sibling failed"):
+                invoke_grounding()
+        stopped_delta.assert_not_called()
+
+        strength_candidate = {
+            "candidate_kind": "table_row",
+            "metadata": {"aggregate_label": "Aggregate", "nested": nested},
+        }
+
+        def exercise_strength(
+            *,
+            lookup_result=True,
+            context_result=True,
+            value_result="aggregate",
+            stage_result="final",
+            aggregate_label="Aggregate",
+            failure="",
+        ):
+            current_candidate = {
+                "candidate_kind": "table_row",
+                "metadata": {"aggregate_label": aggregate_label, "nested": nested},
+            }
+            events = []
+
+            def lookup(surface, actual_operand):
+                self.assertEqual(surface, "Aggregate")
+                self.assertIs(actual_operand, operand)
+                events.append("lookup")
+                if failure == "lookup":
+                    raise RuntimeError("lookup failed")
+                return lookup_result
+
+            def context(actual_candidate, actual_operand):
+                self.assertIs(actual_candidate, current_candidate)
+                self.assertIs(actual_operand, operand)
+                events.append("context")
+                if failure == "context":
+                    raise RuntimeError("context failed")
+                return context_result
+
+            def value(actual_candidate):
+                self.assertIs(actual_candidate, current_candidate)
+                events.append("value")
+                return value_result
+
+            def stage(actual_candidate):
+                self.assertIs(actual_candidate, current_candidate)
+                events.append("stage")
+                return stage_result
+
+            def segment(actual_candidate, actual_operand):
+                self.assertIs(actual_candidate, current_candidate)
+                self.assertIs(actual_operand, operand)
+                events.append("segment")
+                if failure == "segment":
+                    raise RuntimeError("segment failed")
+                return False
+
+            with ExitStack() as stack:
+                for current_patch in (
+                    patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                    patch.object(financial_graph_helpers, "_operand_needles", return_value=[]),
+                    patch.object(financial_graph_helpers, "_surface_match_variants", side_effect=lambda text: [text]),
+                    patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+                    patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                    patch.object(financial_graph_helpers, "_operand_prefers_contextual_aggregate_match", return_value=False),
+                    patch.object(financial_graph_helpers, "operand_lookup_surface_match", side_effect=lookup),
+                    patch.object(financial_graph_helpers, context_name, side_effect=context),
+                    patch.object(financial_graph_helpers, "candidate_value_role", side_effect=value),
+                    patch.object(financial_graph_helpers, "candidate_aggregation_stage", side_effect=stage),
+                    patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", side_effect=segment),
+                ):
+                    stack.enter_context(current_patch)
+                if failure:
+                    with self.assertRaisesRegex(RuntimeError, f"{failure} failed"):
+                        financial_graph_helpers._candidate_direct_match_strength(
+                            current_candidate,
+                            operand,
+                        )
+                    score = None
+                else:
+                    score = financial_graph_helpers._candidate_direct_match_strength(
+                        current_candidate,
+                        operand,
+                    )
+            self.assertIs(current_candidate["metadata"]["nested"], nested)
+            return score, events
+
+        score, events = exercise_strength()
+        self.assertEqual(score, 2.25)
+        self.assertEqual(events, ["lookup", "context", "value", "stage", "segment"])
+
+        for kwargs, expected_score, expected_events in (
+            ({"lookup_result": False}, 0.0, ["lookup", "segment"]),
+            ({"context_result": False}, 0.0, ["lookup", "context", "segment"]),
+            ({"value_result": "detail"}, 0.0, ["lookup", "context", "value", "segment"]),
+            ({"stage_result": "none"}, 0.0, ["lookup", "context", "value", "stage", "segment"]),
+            ({"aggregate_label": ""}, 0.0, ["segment"]),
+        ):
+            with self.subTest(kwargs=kwargs):
+                score, events = exercise_strength(**kwargs)
+                self.assertEqual(score, expected_score)
+                self.assertEqual(events, expected_events)
+
+        for failure, expected_events in (
+            ("lookup", ["lookup"]),
+            ("context", ["lookup", "context"]),
+            ("segment", ["lookup", "context", "value", "stage", "segment"]),
+        ):
+            with self.subTest(failure=failure):
+                score, events = exercise_strength(failure=failure)
+                self.assertIsNone(score)
+                self.assertEqual(events, expected_events)
+
+        self.assertIs(strength_candidate["metadata"]["nested"], nested)
 
     def test_current_source_lookup_preference_projection_pins_segment_short_circuit_coercion_and_exceptions(self) -> None:
         nested = {"preserve": True}
@@ -3938,7 +4907,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 95),
+            (9, 93),
         )
         self.assertEqual(
             (
@@ -4151,10 +5120,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertLess(strength_source.index("aggregate_signal ="), strength_match)
         self.assertLess(
             strength_match,
-            strength_source.index("_candidate_has_operand_context_surface"),
+            strength_source.index("candidate_has_operand_context_surface"),
         )
         self.assertLess(
-            strength_source.index("_candidate_has_operand_context_surface"),
+            strength_source.index("candidate_has_operand_context_surface"),
             strength_source.index("candidate_value_role", strength_match),
         )
         self.assertLess(
@@ -4684,7 +5653,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_has_operand_context_surface",
+                    "candidate_has_operand_context_surface",
                     stopped_context,
                 )
             )
@@ -5657,7 +6626,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 95))
+        self.assertEqual(current_graph_counts, (9, 93))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -7128,7 +8097,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 95))
+        self.assertEqual(graph_counts, (9, 93))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -8308,7 +9277,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 95))
+        self.assertEqual(graph_counts, (9, 93))
         self.assertEqual(owner_counts, (9, 9))
 
         def imported_names(module_name, imported_module):
@@ -9348,8 +10317,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 95))
-        self.assertEqual(row_counts, (7, 15))
+        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(row_counts, (9, 15))
 
         def imported_names(module_name, imported_module):
             return {
@@ -11906,7 +12875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 95),
+            (9, 93),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -16493,7 +17462,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 95),
+            (9, 93),
         )
         self.assertEqual(
             (

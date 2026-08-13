@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.agent.financial_surface_contracts import _operand_needles, _operand_segment_label, candidate_matches_segment_binding
+from src.agent.financial_surface_contracts import (
+    _operand_needles,
+    _operand_segment_label,
+    _text_has_positive_surface,
+    candidate_matches_segment_binding,
+)
 from src.config.retrieval_policy import (
     HELPER_RUNTIME_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
@@ -367,6 +373,44 @@ def candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
     if inferred_stage != "none":
         return inferred_stage
     return "none"
+
+
+def candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    metadata = dict(candidate.get("metadata") or {})
+    context_text = " ".join(
+        str(part or "").strip()
+        for part in (
+            " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+            " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+            str(metadata.get("table_row_labels_text") or ""),
+            str(metadata.get("table_summary_text") or ""),
+            str(metadata.get("row_text") or ""),
+            str(candidate.get("text") or ""),
+        )
+        if str(part or "").strip()
+    )
+    return _text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
+
+
+def table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    for key in ("table_row_records_json", "table_value_records_json"):
+        payload = str(metadata.get(key) or "").strip()
+        if not payload:
+            continue
+        try:
+            records = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        for record in records:
+            surfaces = [
+                str(record.get("row_label") or "").strip(),
+                str(record.get("semantic_label") or "").strip(),
+                " ".join(str(item).strip() for item in (record.get("row_headers") or []) if str(item).strip()),
+                " ".join(str(item).strip() for item in (record.get("semantic_aliases") or []) if str(item).strip()),
+            ]
+            if any(_operand_text_match(surface, operand) for surface in surfaces if surface):
+                return True
+    return False
 
 
 def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:

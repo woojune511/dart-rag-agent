@@ -94,10 +94,12 @@ from src.agent.financial_row_surfaces import (
     aggregate_like_row_role,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
+    candidate_has_operand_context_surface,
     candidate_has_segment_local_binding,
     candidate_sibling_surface_hit_count,
     candidate_supports_segment_metric_combo,
     candidate_value_role,
+    table_row_has_matching_structured_sibling,
 )
 from src.agent.financial_structured_cells import (
     _structured_cell_period_text,
@@ -2494,23 +2496,6 @@ def _lookup_constraint_from_binding(binding: Dict[str, Any], base_constraints: D
     return constraints
 
 
-def _candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    metadata = dict(candidate.get("metadata") or {})
-    context_text = " ".join(
-        str(part or "").strip()
-        for part in (
-            " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
-            " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
-            str(metadata.get("table_row_labels_text") or ""),
-            str(metadata.get("table_summary_text") or ""),
-            str(metadata.get("row_text") or ""),
-            str(candidate.get("text") or ""),
-        )
-        if str(part or "").strip()
-    )
-    return _text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
-
-
 def _concept_spec_for_key(ontology: Any, key: str) -> Dict[str, Any]:
     concept_key = _normalise_spaces(str(key or ""))
     if not concept_key:
@@ -4298,27 +4283,6 @@ def _candidate_period_table_coherence_bonus(
     return score
 
 
-def _table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    for key in ("table_row_records_json", "table_value_records_json"):
-        payload = str(metadata.get(key) or "").strip()
-        if not payload:
-            continue
-        try:
-            records = json.loads(payload)
-        except json.JSONDecodeError:
-            continue
-        for record in records:
-            surfaces = [
-                str(record.get("row_label") or "").strip(),
-                str(record.get("semantic_label") or "").strip(),
-                " ".join(str(item).strip() for item in (record.get("row_headers") or []) if str(item).strip()),
-                " ".join(str(item).strip() for item in (record.get("semantic_aliases") or []) if str(item).strip()),
-            ]
-            if any(_operand_text_match(surface, operand) for surface in surfaces if surface):
-                return True
-    return False
-
-
 def _candidate_is_direct_grounding_candidate(
     candidate: Dict[str, Any],
     *,
@@ -4399,7 +4363,7 @@ def _candidate_is_direct_grounding_candidate(
             return False
 
     if operation_family in {"lookup", "single_value"} and candidate_kind == "table_row":
-        if _table_row_has_matching_structured_sibling(metadata, operand):
+        if table_row_has_matching_structured_sibling(metadata, operand):
             return False
         if row_text and _is_delta_like_row_label(row_text):
             return False
@@ -4848,7 +4812,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
     if (
         aggregate_signal
         and operand_lookup_surface_match(aggregate_signal, operand)
-        and _candidate_has_operand_context_surface(candidate, operand)
+        and candidate_has_operand_context_surface(candidate, operand)
         and candidate_value_role(candidate) == "aggregate"
         and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
     ):
