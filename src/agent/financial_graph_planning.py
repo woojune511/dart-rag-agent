@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _normalise_operand_value,
     _normalise_spaces,
 )
 from src.agent.financial_retrieval_hints import _infer_statement_and_section_hints
@@ -59,377 +58,16 @@ from src.agent.financial_runtime_trace import (
     _resolve_runtime_calculation_trace,
 )
 from src.agent.financial_task_artifacts import semantic_plan_artifact_update as _semantic_plan_artifact_update
-from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
-from src.agent.financial_surface_contracts import _operand_needles
-from src.config import get_financial_ontology
-from src.config.retrieval_policy import (
-    NUMERIC_UNIT_NORMALIZATION_POLICY,
-    PLANNING_POLICY,
+from src.agent.financial_lookup_recovery import (
+    coerce_lookup_magnitude_record,
+    lookup_operand_matches_active_task,
+    lookup_slot_supporting_doc_evidence,
+    refine_lookup_slot_unit_from_evidence,
+    synthesize_lookup_answer_slot_from_prose,
 )
+from src.config import get_financial_ontology
+from src.config.retrieval_policy import PLANNING_POLICY
 logger = logging.getLogger(__name__)
-
-
-_MONEY_SURFACE_RE = re.compile(str(PLANNING_POLICY.get("money_surface_pattern") or r"$^"))
-_LOOKUP_YEAR_RE = re.compile(str(PLANNING_POLICY.get("year_token_pattern") or r"$^"))
-_LOOKUP_YEAR_LABEL_RE = re.compile(str(PLANNING_POLICY.get("year_label_token_pattern") or r"$^"))
-
-
-def _money_match_to_slot_values(match: re.Match[str]) -> Dict[str, Any]:
-    raw_number = _normalise_spaces(match.group("raw"))
-    if raw_number.startswith("(") and not raw_number.endswith(")"):
-        raw_number = raw_number[1:]
-    raw_unit = _normalise_spaces(match.group("unit"))
-    rendered_value = _normalise_spaces(f"{raw_number}{raw_unit}")
-    compound_unit_prefix = str(PLANNING_POLICY.get("money_surface_compound_unit_prefix") or "")
-    normalized_input = rendered_value if compound_unit_prefix and raw_unit.startswith(compound_unit_prefix) else raw_number
-    normalized_value, normalized_unit = _normalise_operand_value(normalized_input, raw_unit)
-    return {
-        "raw_value": raw_number,
-        "raw_unit": raw_unit,
-        "rendered_value": rendered_value,
-        "normalized_value": normalized_value,
-        "normalized_unit": normalized_unit,
-        }
-def _slot_values_match_operand_unit(values: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    desired_unit = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
-    actual_unit = _normalise_spaces(str(values.get("normalized_unit") or "")).upper()
-    if desired_unit not in {"KRW", "USD", "COUNT", "PERCENT"}:
-        return True
-    if not actual_unit or actual_unit == "UNKNOWN":
-        return True
-    return actual_unit == desired_unit
-
-
-def _lookup_operand_matches_active_task(operand: Dict[str, Any], active_subtask: Dict[str, Any]) -> bool:
-    active_label = _normalise_spaces(str(active_subtask.get("metric_label") or active_subtask.get("query") or ""))
-    operand_label = _normalise_spaces(
-        str(operand.get("label") or operand.get("matched_operand_label") or operand.get("name") or "")
-    )
-    operand_period = _normalise_spaces(str(operand.get("period") or operand.get("period_hint") or ""))
-    active_years = set(_LOOKUP_YEAR_RE.findall(active_label))
-    operand_years = set(_LOOKUP_YEAR_RE.findall(f"{operand_label} {operand_period}"))
-    if active_years and operand_years and not (active_years & operand_years):
-        return False
-    if active_years and not operand_years:
-        return False
-    if active_label and operand_label:
-        if active_label == operand_label or active_label in operand_label or operand_label in active_label:
-            return True
-        active_tokens = {
-            token
-            for token in re.split(r"\s+", active_label)
-            if token and not _LOOKUP_YEAR_LABEL_RE.fullmatch(token)
-        }
-        operand_tokens = {
-            token
-            for token in re.split(r"\s+", operand_label)
-            if token and not _LOOKUP_YEAR_LABEL_RE.fullmatch(token)
-        }
-        return bool(active_tokens & operand_tokens)
-    return True
-
-
-def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
-    raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
-    if not raw_value:
-        return slot
-    current_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
-    current_normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
-    direct_text = _normalise_spaces(
-        " ".join(
-            str(part or "")
-            for part in [
-                evidence.get("raw_row_text"),
-                evidence.get("quote_span"),
-            ]
-        )
-    )
-    claim_text = _normalise_spaces(str(evidence.get("claim") or ""))
-    metadata_text = _normalise_spaces(
-        " ".join(
-            str(part or "")
-            for part in [
-                (evidence.get("metadata") or {}).get("table_value_labels_text"),
-            ]
-        )
-    )
-    text_parts = [direct_text]
-    if (
-        not current_unit
-        or current_normalized_unit in {"", "UNKNOWN"}
-        or (
-            claim_text
-            and raw_value in direct_text
-            and raw_value in claim_text
-            and (not current_unit or current_unit not in claim_text)
-        )
-    ):
-        text_parts.append(claim_text)
-    if not current_unit or current_normalized_unit in {"", "UNKNOWN"}:
-        text_parts.append(metadata_text)
-    text = _normalise_spaces(" ".join(part for part in text_parts if part))
-
-    def _update_with_unit(unit_text: str) -> Optional[Dict[str, Any]]:
-        evidence_unit = _normalise_spaces(str(unit_text or "")).strip("()[]{}")
-        if not evidence_unit or evidence_unit == current_unit:
-            return None
-        aliases = dict(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_unit_aliases") or {})
-        evidence_unit = str(aliases.get(evidence_unit, evidence_unit))
-        normalized_value, normalized_unit = _normalise_operand_value(raw_value, evidence_unit)
-        if normalized_value is not None and str(normalized_unit or "").strip().upper() != "UNKNOWN":
-            updated = dict(slot)
-            updated["raw_unit"] = evidence_unit
-            updated["normalized_value"] = normalized_value
-            updated["normalized_unit"] = normalized_unit
-            updated["rendered_value"] = _normalise_spaces(f"{raw_value}{evidence_unit}")
-            return updated
-        return None
-
-    if text and raw_value in text:
-        inline_pattern = str(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_value_unit_pattern") or "")
-        if inline_pattern:
-            raw_compact = re.sub(r"[,\s()]", "", raw_value)
-            for match in re.finditer(inline_pattern, text):
-                matched_compact = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
-                if matched_compact != raw_compact:
-                    continue
-                updated = _update_with_unit(str(match.group("unit") or ""))
-                if updated:
-                    return updated
-        for match in re.finditer(rf"{re.escape(raw_value)}\s*\(\s*([^)]+?)\s*\)", text):
-            updated = _update_with_unit(match.group(1))
-            if updated:
-                return updated
-        for match in re.finditer(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text):
-            updated = _update_with_unit(match.group(1))
-            if updated:
-                return updated
-    if current_unit and current_normalized_unit not in {"", "UNKNOWN"}:
-        return slot
-    metadata = dict(evidence.get("metadata") or {})
-    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
-    if unit_hint and not current_unit:
-        updated = _update_with_unit(unit_hint)
-        if updated:
-            return updated
-    if current_unit:
-        return slot
-    return slot
-
-
-def _extract_lookup_slot_from_answer_text(
-    *,
-    answer: str,
-    operand: Dict[str, Any],
-    metric_label: str,
-    selected_claim_ids: List[str],
-) -> Optional[Dict[str, Any]]:
-    """Build a lookup answer slot from ontology operand surfaces in prose."""
-    text = _normalise_spaces(answer)
-    if not text:
-        return None
-    surface_contract = dict(operand.get("surface_contract") or {})
-    surfaces = [
-        _normalise_spaces(str(surface))
-        for surface in [
-            *(surface_contract.get("positive") or []),
-            *_operand_needles(operand),
-        ]
-        if _normalise_spaces(str(surface))
-    ]
-    surfaces = sorted(dict.fromkeys(surfaces), key=len, reverse=True)
-    money_matches = list(_MONEY_SURFACE_RE.finditer(text))
-    if not surfaces:
-        if len(money_matches) != 1:
-            return None
-        best_match = money_matches[0]
-        values = _money_match_to_slot_values(best_match)
-        if values.get("normalized_value") is None and not values.get("rendered_value"):
-            return None
-        if not _slot_values_match_operand_unit(values, operand):
-            return None
-        source_claim_ids = [
-            str(claim_id).strip()
-            for claim_id in selected_claim_ids
-            if str(claim_id).strip()
-        ]
-        return {
-            "label": _normalise_spaces(str(operand.get("label") or metric_label)),
-            "concept": _normalise_spaces(str(operand.get("concept") or "")),
-            "role": _normalise_spaces(str(operand.get("role") or "primary_value")) or "primary_value",
-            "period": _normalise_spaces(str(operand.get("period_hint") or operand.get("period") or "")),
-            "status": "ok",
-            **values,
-            "source_row_id": source_claim_ids[0] if source_claim_ids else "",
-            "source_row_ids": source_claim_ids[:1],
-            "source_claim_ids": source_claim_ids,
-        }
-    haystack = text.lower()
-    best_match: Optional[re.Match[str]] = None
-    best_distance: Optional[int] = None
-    for surface in surfaces:
-        needle = surface.lower()
-        search_from = 0
-        while True:
-            surface_index = haystack.find(needle, search_from)
-            if surface_index < 0:
-                break
-            window = text[surface_index : surface_index + max(80, len(surface) + 80)]
-            money_match = _MONEY_SURFACE_RE.search(window)
-            if money_match:
-                values = _money_match_to_slot_values(money_match)
-                if not _slot_values_match_operand_unit(values, operand):
-                    search_from = surface_index + max(1, len(needle))
-                    continue
-                distance = money_match.start()
-                if best_distance is None or distance < best_distance:
-                    best_distance = distance
-                    best_match = money_match
-            search_from = surface_index + max(1, len(needle))
-
-    if best_match is None:
-        return None
-    values = _money_match_to_slot_values(best_match)
-    if values.get("normalized_value") is None and not values.get("rendered_value"):
-        return None
-    source_claim_ids = [
-        str(claim_id).strip()
-        for claim_id in selected_claim_ids
-        if str(claim_id).strip()
-    ]
-    return {
-        "label": _normalise_spaces(str(operand.get("label") or metric_label)),
-        "concept": _normalise_spaces(str(operand.get("concept") or "")),
-        "role": _normalise_spaces(str(operand.get("role") or "primary_value")) or "primary_value",
-        "period": _normalise_spaces(str(operand.get("period_hint") or operand.get("period") or "")),
-        "status": "ok",
-        **values,
-        "source_row_id": source_claim_ids[0] if source_claim_ids else "",
-        "source_row_ids": source_claim_ids[:1],
-        "source_claim_ids": source_claim_ids,
-        }
-def _synthesize_lookup_answer_slot_from_prose(
-    *,
-    active_subtask: Dict[str, Any],
-    answer: str,
-    calculation_result: Dict[str, Any],
-    selected_claim_ids: List[str],
-) -> Dict[str, Any]:
-    operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
-    metric_family = _normalise_spaces(str(active_subtask.get("metric_family") or "")).lower()
-    if operation_family not in {"lookup", "single_value", "concept_lookup"} and not metric_family.startswith("concept_"):
-        return calculation_result
-
-    operands = [dict(item or {}) for item in list(active_subtask.get("required_operands") or []) if isinstance(item, dict)]
-    if not operands:
-        operands = [
-            {
-                "label": _normalise_spaces(str(active_subtask.get("metric_label") or "")),
-                "concept": _normalise_spaces(str(active_subtask.get("metric_family") or "")),
-                "role": "primary_value",
-            }
-        ]
-    if len(operands) != 1:
-        return calculation_result
-
-    answer_slots = dict(calculation_result.get("answer_slots") or {})
-    if answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
-        return calculation_result
-
-    slot = _extract_lookup_slot_from_answer_text(
-        answer=answer,
-        operand=operands[0],
-        metric_label=str(active_subtask.get("metric_label") or ""),
-        selected_claim_ids=selected_claim_ids,
-    )
-    if not slot:
-        return calculation_result
-
-    updated_slots = {
-        **answer_slots,
-        "operation_family": "lookup",
-        "primary_value": slot,
-    }
-    rendered_value = _normalise_spaces(str(slot.get("rendered_value") or ""))
-    return {
-        **calculation_result,
-        "status": "ok",
-        "operation_family": "lookup",
-        "rendered_value": rendered_value,
-        "formatted_result": _normalise_spaces(answer) or rendered_value,
-        "answer_slots": _validate_answer_slots_payload(updated_slots),
-    }
-
-
-def _doc_metadata_value(doc: Any, key: str) -> str:
-    metadata = getattr(doc, "metadata", None)
-    if isinstance(metadata, dict):
-        return _normalise_spaces(str(metadata.get(key) or ""))
-    return ""
-
-
-def _doc_page_content(doc: Any) -> str:
-    return _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-
-
-def _source_anchor_from_doc(doc: Any) -> str:
-    explicit = _doc_metadata_value(doc, "source_anchor")
-    if explicit:
-        return explicit
-    metadata = getattr(doc, "metadata", None)
-    if not isinstance(metadata, dict):
-        return ""
-    parts = [
-        _normalise_spaces(str(metadata.get("company") or "")),
-        _normalise_spaces(str(metadata.get("year") or "")),
-        _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")),
-    ]
-    parts = [part for part in parts if part]
-    return f"[{' | '.join(parts)}]" if parts else ""
-
-
-def _lookup_slot_supporting_doc_evidence(
-    *,
-    active_subtask: Dict[str, Any],
-    slot: Dict[str, Any],
-    docs: List[Any],
-) -> Optional[Dict[str, Any]]:
-    rendered_value = _normalise_spaces(str(slot.get("rendered_value") or ""))
-    raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
-    if not rendered_value and not raw_value:
-        return None
-    operands = [dict(item or {}) for item in list(active_subtask.get("required_operands") or []) if isinstance(item, dict)]
-    operand = operands[0] if operands else {}
-    surface_contract = dict(operand.get("surface_contract") or {})
-    surfaces = [
-        _normalise_spaces(str(surface))
-        for surface in [
-            *(surface_contract.get("positive") or []),
-            *_operand_needles(operand),
-            str(slot.get("label") or ""),
-        ]
-        if _normalise_spaces(str(surface))
-    ]
-    compact_raw = raw_value.replace(",", "")
-    for doc in docs:
-        text = _doc_page_content(doc)
-        compact_text = text.replace(",", "")
-        if rendered_value and rendered_value not in text:
-            if not raw_value or raw_value not in text:
-                if not compact_raw or compact_raw not in compact_text:
-                    continue
-        if surfaces and not any(surface in text for surface in surfaces):
-            continue
-        anchor = _source_anchor_from_doc(doc)
-        metadata = dict(getattr(doc, "metadata", {}) or {})
-        return {
-            "evidence_id": f"slot_support:{str(active_subtask.get('task_id') or 'lookup')}:primary_value",
-            "source_anchor": anchor,
-            "claim": text[:700],
-            "quote_span": rendered_value or raw_value,
-            "metadata": metadata,
-        }
-    return None
 
 
 def _project_logical_tasks_from_execution_tasks(
@@ -1411,7 +1049,7 @@ class FinancialAgentPlanningMixin:
             matching_operands = [
                 dict(operand)
                 for operand in calculation_operands
-                if _lookup_operand_matches_active_task(dict(operand), active_subtask)
+                if lookup_operand_matches_active_task(dict(operand), active_subtask)
             ]
             operand_row = dict(matching_operands[0]) if matching_operands else {}
         else:
@@ -1464,7 +1102,7 @@ class FinancialAgentPlanningMixin:
             and (not calculation_operands or not operand_row)
             and (active_operation in {"lookup", "single_value"} or lookup_subtask_in_loop)
         ):
-            calculation_result = _synthesize_lookup_answer_slot_from_prose(
+            calculation_result = synthesize_lookup_answer_slot_from_prose(
                 active_subtask=active_subtask,
                 answer=answer,
                 calculation_result=calculation_result,
@@ -1485,7 +1123,7 @@ class FinancialAgentPlanningMixin:
                 None,
             )
             if not slot_evidence:
-                slot_evidence = _lookup_slot_supporting_doc_evidence(
+                slot_evidence = lookup_slot_supporting_doc_evidence(
                 active_subtask=active_subtask,
                 slot=primary_slot,
                 docs=list(state.get("retrieved_docs", []) or []) + list(state.get("seed_retrieved_docs", []) or []),
@@ -1507,7 +1145,7 @@ class FinancialAgentPlanningMixin:
                     primary_slot["source_row_ids"] = slot_source_ids or [evidence_id]
                     if not _normalise_spaces(str(primary_slot.get("source_anchor") or "")):
                         primary_slot["source_anchor"] = _normalise_spaces(str(slot_evidence.get("source_anchor") or ""))
-                    primary_slot = _refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
+                    primary_slot = refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
                     primary_slot = coerce_lookup_magnitude_record(primary_slot, slot_evidence)
                     if calculation_operands:
                         refined_operands: List[Dict[str, Any]] = []

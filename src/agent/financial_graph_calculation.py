@@ -336,13 +336,13 @@ from src.agent.financial_task_artifacts import (
     synchronize_calculation_result_artifact as _synchronize_calculation_result_artifact,
     supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
-from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_lookup_recovery import (
     align_or_replace_successful_lookup_row,
     lookup_recovery_value_refinement_allowed,
     lookup_result_from_slot,
     normalize_lookup_slot_unit,
     recovered_slot_has_primary_label_match,
+    synthesize_lookup_answer_slot_from_prose,
 )
 from src.config import get_financial_ontology
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
@@ -5096,7 +5096,7 @@ class FinancialAgentCalculationMixin:
                         "operation_family": "lookup",
                         "required_operands": [dict(binding)],
                     }
-                synthetic_result = _synthesize_lookup_answer_slot_from_prose(
+                synthetic_result = synthesize_lookup_answer_slot_from_prose(
                     active_subtask=producer_task,
                     answer=_normalise_spaces(
                         str(

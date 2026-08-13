@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequen
 
 from src.agent import financial_answer_slots
 from src.agent.financial_graph_helpers import _operand_period_focus
-from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
+from src.agent.financial_lookup_recovery import synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
 from src.agent.financial_operand_resolution import (
@@ -2034,7 +2034,7 @@ def _dependency_lookup_slot_for_result_row(
         result_task_id=result_task_id,
     )
     _populate_answer_numeric_slot_context(answer_numeric_slot, producer_task)
-    synthetic_result = _synthesize_lookup_answer_slot_from_prose(
+    synthetic_result = synthesize_lookup_answer_slot_from_prose(
         active_subtask=producer_task,
         answer=answer_text,
         calculation_result=result,

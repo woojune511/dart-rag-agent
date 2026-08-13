@@ -1860,7 +1860,8 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
         )
         self.assertEqual(planning_loads["subtask_row_has_material"], 0)
-        for name in ("re", "Dict", "List", "_normalise_spaces"):
+        self.assertEqual(planning_loads["re"], 2)
+        for name in ("Dict", "List", "_normalise_spaces"):
             self.assertGreater(planning_loads[name], 2)
 
         owner_loads = Counter(

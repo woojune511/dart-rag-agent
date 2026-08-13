@@ -65,7 +65,7 @@ from src.agent.financial_aggregate_projection import (
 )
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
 from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
-from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_lookup_recovery import refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_task_artifacts import (
     AggregateArtifactProjectionPayloadSyncInput,
@@ -7752,7 +7752,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "metadata": {"table_value_labels_text": "metric 3,146억원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "십억원")
         self.assertEqual(refined["normalized_value"], 3_146_000_000_000.0)
@@ -10288,7 +10288,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "metadata": {"unit_hint": "백만원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "천원")
         self.assertEqual(refined["normalized_value"], 2_546_649_000)
@@ -14151,7 +14151,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 pending.extend(module_edges.get(current, ()))
             return False
 
-        self.assertTrue(
+        self.assertFalse(
             reaches("src.agent.financial_aggregate_projection", "src.agent.financial_graph_planning")
         )
         self.assertFalse(

@@ -78,7 +78,7 @@ from src.agent.financial_graph_models import (
     NumericExtraction,
 )
 from src.agent.financial_graph_helpers import build_hybrid_narrative_subtask
-from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_lookup_recovery import refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_retrieval_hints import (
@@ -4340,7 +4340,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "백만원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "억원")
         self.assertEqual(refined["normalized_value"], 676900000000.0)
@@ -4363,7 +4363,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "천원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "원")
         self.assertEqual(refined["normalized_value"], 2176431531380.0)
@@ -4386,7 +4386,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "백만원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "백만원")
         self.assertEqual(refined["normalized_value"], 2163234000000.0)

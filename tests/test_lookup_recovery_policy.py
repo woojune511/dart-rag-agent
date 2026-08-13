@@ -1,8 +1,10 @@
 import ast
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -12,7 +14,13 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent import financial_aggregate_projection, financial_graph_calculation, financial_lookup_recovery
+from src.agent import (
+    financial_aggregate_projection,
+    financial_dependency_projection,
+    financial_graph_calculation,
+    financial_graph_planning,
+    financial_lookup_recovery,
+)
 from src.agent.financial_graph import FinancialAgent
 
 
@@ -1392,7 +1400,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         for node in owner_tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 (private if node.name.startswith("_") else public).append(node.name)
-        self.assertEqual((len(public), len(private)), (11, 7))
+        self.assertEqual((len(public), len(private)), (15, 13))
 
         modules = {
             path.stem: path
@@ -2021,7 +2029,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         for node in owner_tree.body:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 (private if node.name.startswith("_") else public).append(node.name)
-        self.assertEqual((len(public), len(private)), (11, 7))
+        self.assertEqual((len(public), len(private)), (15, 13))
 
         modules = {
             path.stem: path
@@ -2234,6 +2242,1118 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertEqual(downstream, [])
         self.assertEqual(row, row_frozen)
         self.assertEqual(evidence, evidence_frozen)
+
+    def test_current_source_lookup_projection_money_and_unit_contract(self) -> None:
+        class Match:
+            def __init__(self, raw, unit):
+                self.values = {"raw": raw, "unit": unit}
+
+            def group(self, key):
+                return self.values[key]
+
+        events = []
+
+        def normalize(value, unit):
+            events.append((value, unit))
+            return 1234.0, "KRW"
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "PLANNING_POLICY",
+                {"money_surface_compound_unit_prefix": "hundred"},
+            ),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
+        ):
+            compound = financial_lookup_recovery._money_match_to_slot_values(
+                Match(" (1,234 ", " hundred million ")
+            )
+            ordinary = financial_lookup_recovery._money_match_to_slot_values(Match(" 77 ", " million "))
+
+        self.assertEqual(
+            compound,
+            {
+                "raw_value": "1,234",
+                "raw_unit": "hundred million",
+                "rendered_value": "1,234hundred million",
+                "normalized_value": 1234.0,
+                "normalized_unit": "KRW",
+            },
+        )
+        self.assertEqual(ordinary["rendered_value"], "77million")
+        self.assertEqual(events, [("1,234hundred million", "hundred million"), ("77", "million")])
+
+        values = {"normalized_unit": "KRW", "nested": {"alias": True}}
+        operand = {"unit_family": "KRW", "nested": {"alias": True}}
+        values_frozen = json.loads(json.dumps(values))
+        operand_frozen = json.loads(json.dumps(operand))
+        self.assertTrue(financial_lookup_recovery._slot_values_match_operand_unit(values, operand))
+        self.assertTrue(
+            financial_lookup_recovery._slot_values_match_operand_unit(
+                {"normalized_unit": "UNKNOWN"}, {"unit_family": "USD"}
+            )
+        )
+        self.assertFalse(
+            financial_lookup_recovery._slot_values_match_operand_unit(
+                {"normalized_unit": "USD"}, {"unit_family": "KRW"}
+            )
+        )
+        self.assertTrue(
+            financial_lookup_recovery._slot_values_match_operand_unit(
+                {"normalized_unit": "USD"}, {"unit_family": "RATIO"}
+            )
+        )
+        self.assertEqual(values, values_frozen)
+        self.assertEqual(operand, operand_frozen)
+
+        with patch.object(
+            financial_lookup_recovery,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("money normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "money normalization failed"):
+                financial_lookup_recovery._money_match_to_slot_values(Match("10", "million"))
+
+    def test_current_source_lookup_projection_active_task_match_contract(self) -> None:
+        operand = {"label": "Revenue 2023", "period": "2023", "nested": {"alias": True}}
+        task = {"metric_label": "Revenue 2023", "nested": {"alias": True}}
+        operand_frozen = json.loads(json.dumps(operand))
+        task_frozen = json.loads(json.dumps(task))
+        year_pattern = re.compile(r"\b20\d{2}\b")
+        year_label_pattern = re.compile(r"20\d{2}")
+
+        with (
+            patch.object(financial_lookup_recovery, "_LOOKUP_YEAR_RE", year_pattern),
+            patch.object(financial_lookup_recovery, "_LOOKUP_YEAR_LABEL_RE", year_label_pattern),
+        ):
+            self.assertTrue(financial_lookup_recovery.lookup_operand_matches_active_task(operand, task))
+            self.assertFalse(
+                financial_lookup_recovery.lookup_operand_matches_active_task(
+                    {"label": "Revenue 2022", "period": "2022"},
+                    {"metric_label": "Revenue 2023"},
+                )
+            )
+            self.assertFalse(
+                financial_lookup_recovery.lookup_operand_matches_active_task(
+                    {"label": "Revenue"}, {"metric_label": "Revenue 2023"}
+                )
+            )
+            self.assertTrue(
+                financial_lookup_recovery.lookup_operand_matches_active_task(
+                    {"matched_operand_label": "Segment Revenue 2023"},
+                    {"metric_label": "Revenue 2023"},
+                )
+            )
+            self.assertTrue(
+                financial_lookup_recovery.lookup_operand_matches_active_task(
+                    {"name": "Revenue prior"}, {"query": "Revenue current"}
+                )
+            )
+            self.assertTrue(financial_lookup_recovery.lookup_operand_matches_active_task({}, {}))
+            with patch.object(
+                financial_lookup_recovery.re,
+                "split",
+                side_effect=AssertionError("year mismatch must stop before token splitting"),
+            ):
+                self.assertFalse(
+                    financial_lookup_recovery.lookup_operand_matches_active_task(
+                        {"label": "Revenue 2022", "period": "2022"},
+                        {"metric_label": "Revenue 2023"},
+                    )
+                )
+
+        self.assertEqual(operand, operand_frozen)
+        self.assertEqual(task, task_frozen)
+
+        class YearBomb:
+            def findall(self, _value):
+                raise RuntimeError("year scan failed")
+
+        with patch.object(financial_lookup_recovery, "_LOOKUP_YEAR_RE", YearBomb()):
+            with self.assertRaisesRegex(RuntimeError, "year scan failed"):
+                financial_lookup_recovery.lookup_operand_matches_active_task(operand, task)
+
+    def test_current_source_lookup_projection_refine_unit_contract(self) -> None:
+        nested = {"alias": True}
+        slot = {
+            "raw_value": "1,234",
+            "raw_unit": "",
+            "normalized_unit": "UNKNOWN",
+            "nested": nested,
+        }
+        evidence = {
+            "raw_row_text": "Metric 1,234 million",
+            "quote_span": "",
+            "claim": "Metric 1,234",
+            "metadata": {"unit_hint": "billion", "table_value_labels_text": "Metric"},
+        }
+        slot_frozen = json.loads(json.dumps(slot))
+        evidence_frozen = json.loads(json.dumps(evidence))
+        policy = {
+            "inline_unit_aliases": {"mn": "million"},
+            "inline_value_unit_pattern": r"(?P<value>[\d,]+)\s*(?P<unit>million|billion|mn)",
+        }
+        events = []
+
+        def normalize(raw_value, raw_unit):
+            events.append((raw_value, raw_unit))
+            scale = {"million": 1_000_000.0, "billion": 1_000_000_000.0}[raw_unit]
+            return 1234.0 * scale, "KRW"
+
+        with (
+            patch.object(financial_lookup_recovery, "NUMERIC_UNIT_NORMALIZATION_POLICY", policy),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
+        ):
+            refined = financial_lookup_recovery.refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+        self.assertIsNot(refined, slot)
+        self.assertIs(refined["nested"], nested)
+        self.assertEqual(refined["raw_unit"], "million")
+        self.assertEqual(refined["normalized_value"], 1_234_000_000.0)
+        self.assertEqual(refined["normalized_unit"], "KRW")
+        self.assertEqual(refined["rendered_value"], "1,234million")
+        self.assertEqual(events, [("1,234", "million")])
+        self.assertEqual(slot, slot_frozen)
+        self.assertEqual(evidence, evidence_frozen)
+
+        class EvidenceBomb(dict):
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("blank raw value must not inspect evidence")
+
+        blank = {"raw_value": "", "nested": nested}
+        self.assertIs(
+            financial_lookup_recovery.refine_lookup_slot_unit_from_evidence(blank, EvidenceBomb()),
+            blank,
+        )
+
+        metadata_slot = {"raw_value": "10", "raw_unit": "", "normalized_unit": "UNKNOWN"}
+        metadata_evidence = {"metadata": {"unit_hint": "billion"}}
+        with (
+            patch.object(financial_lookup_recovery, "NUMERIC_UNIT_NORMALIZATION_POLICY", policy),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                return_value=(10_000_000_000.0, "KRW"),
+            ),
+        ):
+            metadata_refined = financial_lookup_recovery.refine_lookup_slot_unit_from_evidence(
+                metadata_slot, metadata_evidence
+            )
+        self.assertEqual(metadata_refined["raw_unit"], "billion")
+
+        known = {"raw_value": "10", "raw_unit": "million", "normalized_unit": "KRW"}
+        with (
+            patch.object(financial_lookup_recovery, "NUMERIC_UNIT_NORMALIZATION_POLICY", policy),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                side_effect=AssertionError("known unit must not be renormalized without a new surface"),
+            ),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.refine_lookup_slot_unit_from_evidence(known, {"metadata": {}}),
+                known,
+            )
+
+        with (
+            patch.object(financial_lookup_recovery, "NUMERIC_UNIT_NORMALIZATION_POLICY", policy),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("unit normalization failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit normalization failed"):
+                financial_lookup_recovery.refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+    def test_current_source_lookup_projection_extract_answer_slot_contract(self) -> None:
+        money_pattern = re.compile(r"(?P<raw>\d+)\s*(?P<unit>million)")
+        operand = {
+            "label": "Metric",
+            "concept": "revenue",
+            "role": "primary_value",
+            "period_hint": "2023",
+            "surface_contract": {"positive": ["Metric", "Metric total"]},
+            "nested": {"alias": True},
+        }
+        operand_frozen = json.loads(json.dumps(operand))
+        selected_claim_ids = [" ev1 ", "", "ev2"]
+        claim_ids_frozen = list(selected_claim_ids)
+        events = []
+
+        def convert(match):
+            raw = match.group("raw")
+            events.append(("convert", raw))
+            return {
+                "raw_value": raw,
+                "raw_unit": match.group("unit"),
+                "rendered_value": f"{raw} million",
+                "normalized_value": float(raw) * 1_000_000.0,
+                "normalized_unit": "KRW",
+            }
+
+        def unit_gate(values, actual_operand):
+            self.assertIs(actual_operand, operand)
+            events.append(("unit", values["raw_value"]))
+            return True
+
+        with (
+            patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
+            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
+            patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", side_effect=unit_gate),
+        ):
+            slot = financial_lookup_recovery._extract_lookup_slot_from_answer_text(
+                answer="Metric 10 million and Metric total 20 million",
+                operand=operand,
+                metric_label="Fallback metric",
+                selected_claim_ids=selected_claim_ids,
+            )
+
+        self.assertEqual(slot["raw_value"], "10")
+        self.assertEqual(slot["label"], "Metric")
+        self.assertEqual(slot["concept"], "revenue")
+        self.assertEqual(slot["role"], "primary_value")
+        self.assertEqual(slot["period"], "2023")
+        self.assertEqual(slot["source_row_id"], "ev1")
+        self.assertEqual(slot["source_row_ids"], ["ev1"])
+        self.assertEqual(slot["source_claim_ids"], ["ev1", "ev2"])
+        self.assertEqual(
+            events,
+            [
+                ("convert", "20"),
+                ("unit", "20"),
+                ("convert", "10"),
+                ("unit", "10"),
+                ("convert", "20"),
+                ("unit", "20"),
+                ("convert", "10"),
+            ],
+        )
+        self.assertEqual(operand, operand_frozen)
+        self.assertEqual(selected_claim_ids, claim_ids_frozen)
+
+        no_surface = {"label": "Only metric"}
+        with (
+            patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
+            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
+            patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", return_value=True),
+        ):
+            single = financial_lookup_recovery._extract_lookup_slot_from_answer_text(
+                answer="10 million",
+                operand=no_surface,
+                metric_label="Fallback",
+                selected_claim_ids=[],
+            )
+            multiple = financial_lookup_recovery._extract_lookup_slot_from_answer_text(
+                answer="10 million and 20 million",
+                operand=no_surface,
+                metric_label="Fallback",
+                selected_claim_ids=[],
+            )
+        self.assertEqual(single["raw_value"], "10")
+        self.assertIsNone(multiple)
+
+        with (
+            patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
+            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
+            patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", return_value=False),
+        ):
+            self.assertIsNone(
+                financial_lookup_recovery._extract_lookup_slot_from_answer_text(
+                    answer="10 million",
+                    operand=no_surface,
+                    metric_label="Fallback",
+                    selected_claim_ids=[],
+                )
+            )
+
+        with patch.object(
+            financial_lookup_recovery,
+            "_operand_needles",
+            side_effect=RuntimeError("surface projection failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface projection failed"):
+                financial_lookup_recovery._extract_lookup_slot_from_answer_text(
+                    answer="10 million",
+                    operand=operand,
+                    metric_label="Fallback",
+                    selected_claim_ids=[],
+                )
+
+    def test_current_source_lookup_projection_synthesize_slot_contract(self) -> None:
+        nested = {"alias": True}
+        result = {"status": "partial", "answer_slots": {}, "nested": nested}
+        result_frozen = {"status": "partial", "answer_slots": {}, "nested": nested}
+        ordinary_task = {"operation_family": "difference", "required_operands": []}
+        with patch.object(
+            financial_lookup_recovery,
+            "_extract_lookup_slot_from_answer_text",
+            side_effect=AssertionError("non-lookup gate must stop before extraction"),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
+                    active_subtask=ordinary_task,
+                    answer="Metric 10 million",
+                    calculation_result=result,
+                    selected_claim_ids=["ev1"],
+                ),
+                result,
+            )
+
+        multi_task = {
+            "operation_family": "lookup",
+            "required_operands": [{"label": "a"}, {"label": "b"}],
+        }
+        with patch.object(
+            financial_lookup_recovery,
+            "_extract_lookup_slot_from_answer_text",
+            side_effect=AssertionError("multi-operand gate must stop before extraction"),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
+                    active_subtask=multi_task,
+                    answer="Metric 10 million",
+                    calculation_result=result,
+                    selected_claim_ids=["ev1"],
+                ),
+                result,
+            )
+
+        task = {
+            "operation_family": "lookup",
+            "metric_family": "concept_revenue",
+            "metric_label": "Metric",
+            "required_operands": [
+                {"label": "Metric", "concept": "revenue", "role": "primary_value", "nested": nested}
+            ],
+        }
+        slot = {
+            "status": "ok",
+            "raw_value": "10",
+            "raw_unit": "million",
+            "rendered_value": "10 million",
+            "normalized_value": 10_000_000.0,
+            "normalized_unit": "KRW",
+            "nested": nested,
+        }
+        events = []
+
+        def material(actual_slot):
+            events.append(("material", bool(actual_slot)))
+            return bool(actual_slot.get("raw_value"))
+
+        def extract(**kwargs):
+            self.assertEqual(kwargs["answer"], " Metric 10 million ")
+            self.assertIsNot(kwargs["operand"], task["required_operands"][0])
+            self.assertEqual(kwargs["operand"], task["required_operands"][0])
+            self.assertIs(kwargs["operand"]["nested"], nested)
+            self.assertEqual(kwargs["metric_label"], "Metric")
+            self.assertEqual(kwargs["selected_claim_ids"], ["ev1"])
+            events.append(("extract", kwargs["answer"]))
+            return slot
+
+        validated = {"validated": True, "primary_value": slot}
+
+        def validate(payload):
+            self.assertIs(payload["primary_value"], slot)
+            self.assertEqual(payload["operation_family"], "lookup")
+            events.append(("validate", payload["operation_family"]))
+            return validated
+
+        with (
+            patch.object(financial_lookup_recovery, "answer_slot_has_material", side_effect=material),
+            patch.object(financial_lookup_recovery, "_extract_lookup_slot_from_answer_text", side_effect=extract),
+            patch.object(financial_lookup_recovery, "_validate_answer_slots_payload", side_effect=validate),
+        ):
+            synthesized = financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
+                active_subtask=task,
+                answer=" Metric 10 million ",
+                calculation_result=result,
+                selected_claim_ids=["ev1"],
+            )
+
+        self.assertIsNot(synthesized, result)
+        self.assertIs(synthesized["nested"], nested)
+        self.assertEqual(synthesized["status"], "ok")
+        self.assertEqual(synthesized["operation_family"], "lookup")
+        self.assertEqual(synthesized["rendered_value"], "10 million")
+        self.assertEqual(synthesized["formatted_result"], "Metric 10 million")
+        self.assertIs(synthesized["answer_slots"], validated)
+        self.assertEqual(events, [("material", False), ("extract", " Metric 10 million "), ("validate", "lookup")])
+        self.assertEqual(result, result_frozen)
+        self.assertIs(result["nested"], nested)
+
+        existing = {"answer_slots": {"primary_value": {"raw_value": "existing"}}}
+        with (
+            patch.object(financial_lookup_recovery, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_lookup_recovery,
+                "_extract_lookup_slot_from_answer_text",
+                side_effect=AssertionError("material slot must stop before extraction"),
+            ),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
+                    active_subtask=task,
+                    answer="ignored",
+                    calculation_result=existing,
+                    selected_claim_ids=[],
+                ),
+                existing,
+            )
+
+        with (
+            patch.object(financial_lookup_recovery, "answer_slot_has_material", return_value=False),
+            patch.object(financial_lookup_recovery, "_extract_lookup_slot_from_answer_text", return_value=slot),
+            patch.object(
+                financial_lookup_recovery,
+                "_validate_answer_slots_payload",
+                side_effect=RuntimeError("slot validation failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "slot validation failed"):
+                financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
+                    active_subtask=task,
+                    answer="Metric 10 million",
+                    calculation_result=result,
+                    selected_claim_ids=[],
+                )
+
+    def test_current_source_lookup_projection_supporting_doc_contract(self) -> None:
+        class Doc:
+            def __init__(self, text, metadata):
+                self.page_content = text
+                self.metadata = metadata
+
+        nested = {"alias": True}
+        docs = [
+            Doc("Other 1,234 million", {"source_anchor": "wrong"}),
+            Doc(
+                "Revenue 1,234 million",
+                {"company": "Acme", "year": "2023", "section_path": "Notes", "nested": nested},
+            ),
+            Doc("Revenue 1,234 million later", {"source_anchor": "later"}),
+        ]
+        task = {
+            "task_id": "task_lookup",
+            "required_operands": [{"surface_contract": {"positive": ["Revenue"]}}],
+        }
+        slot = {"label": "Metric", "raw_value": "1,234", "rendered_value": "1,234 million"}
+        task_frozen = json.loads(json.dumps(task))
+        slot_frozen = json.loads(json.dumps(slot))
+        doc_texts = [doc.page_content for doc in docs]
+        metadata_copies = [dict(doc.metadata) for doc in docs]
+
+        with patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]):
+            evidence = financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
+                active_subtask=task,
+                slot=slot,
+                docs=docs,
+            )
+
+        self.assertEqual(evidence["evidence_id"], "slot_support:task_lookup:primary_value")
+        self.assertEqual(evidence["source_anchor"], "[Acme | 2023 | Notes]")
+        self.assertEqual(evidence["claim"], "Revenue 1,234 million")
+        self.assertEqual(evidence["quote_span"], "1,234 million")
+        self.assertIsNot(evidence["metadata"], docs[1].metadata)
+        self.assertIs(evidence["metadata"]["nested"], nested)
+        self.assertEqual(task, task_frozen)
+        self.assertEqual(slot, slot_frozen)
+        self.assertEqual([doc.page_content for doc in docs], doc_texts)
+        self.assertEqual([dict(doc.metadata) for doc in docs], metadata_copies)
+
+        compact_slot = {"raw_value": "1,234", "rendered_value": "", "label": "Revenue"}
+        compact_doc = Doc("Revenue 1234", {"source_anchor": "compact"})
+        with patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]):
+            compact = financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
+                active_subtask={"task_id": "task2"},
+                slot=compact_slot,
+                docs=[compact_doc],
+            )
+        self.assertEqual(compact["source_anchor"], "compact")
+
+        class DocsBomb(list):
+            def __iter__(self):
+                raise AssertionError("blank values must stop before document iteration")
+
+        self.assertIsNone(
+            financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
+                active_subtask=task,
+                slot={"raw_value": "", "rendered_value": ""},
+                docs=DocsBomb(),
+            )
+        )
+
+        downstream = []
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "_doc_page_content",
+                side_effect=RuntimeError("document projection failed"),
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "_source_anchor_from_doc",
+                side_effect=lambda *_args: downstream.append("anchor"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "document projection failed"):
+                financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
+                    active_subtask=task,
+                    slot=slot,
+                    docs=docs,
+                )
+        self.assertEqual(downstream, [])
+
+    def test_current_source_lookup_projection_static_binding_dag_and_baseline(self) -> None:
+        planning_path = PROJECT_ROOT / "src" / "agent" / "financial_graph_planning.py"
+        owner_path = PROJECT_ROOT / "src" / "agent" / "financial_lookup_recovery.py"
+        planning_tree = ast.parse(planning_path.read_text(encoding="utf-8-sig"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
+        targets = [
+            "_money_match_to_slot_values",
+            "_slot_values_match_operand_unit",
+            "lookup_operand_matches_active_task",
+            "refine_lookup_slot_unit_from_evidence",
+            "_extract_lookup_slot_from_answer_text",
+            "synthesize_lookup_answer_slot_from_prose",
+            "_doc_metadata_value",
+            "_doc_page_content",
+            "_source_anchor_from_doc",
+            "lookup_slot_supporting_doc_evidence",
+        ]
+        expected_spans = [16, 8, 27, 86, 91, 51, 5, 2, 14, 42]
+        planning_defs = {
+            node.name: node
+            for node in planning_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in targets
+        }
+        self.assertEqual(planning_defs, {})
+        owner_defs = {
+            node.name: node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in targets
+        }
+        self.assertEqual(list(owner_defs), targets)
+        self.assertEqual(
+            [owner_defs[name].end_lineno - owner_defs[name].lineno + 1 for name in targets],
+            expected_spans,
+        )
+        self.assertEqual(sum(expected_spans), 342)
+
+        expected_signatures = {
+            "_money_match_to_slot_values": (["match"], []),
+            "_slot_values_match_operand_unit": (["values", "operand"], []),
+            "lookup_operand_matches_active_task": (["operand", "active_subtask"], []),
+            "refine_lookup_slot_unit_from_evidence": (["slot", "evidence"], []),
+            "_extract_lookup_slot_from_answer_text": ([], ["answer", "operand", "metric_label", "selected_claim_ids"]),
+            "synthesize_lookup_answer_slot_from_prose": (
+                [],
+                ["active_subtask", "answer", "calculation_result", "selected_claim_ids"],
+            ),
+            "_doc_metadata_value": (["doc", "key"], []),
+            "_doc_page_content": (["doc"], []),
+            "_source_anchor_from_doc": (["doc"], []),
+            "lookup_slot_supporting_doc_evidence": ([], ["active_subtask", "slot", "docs"]),
+        }
+        for name, node in owner_defs.items():
+            self.assertEqual(
+                ([argument.arg for argument in node.args.args], [argument.arg for argument in node.args.kwonlyargs]),
+                expected_signatures[name],
+            )
+
+        binding_names = ("_MONEY_SURFACE_RE", "_LOOKUP_YEAR_RE", "_LOOKUP_YEAR_LABEL_RE")
+        bindings = []
+        for node in owner_tree.body:
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+                continue
+            if node.targets[0].id in binding_names:
+                bindings.append(node)
+                self.assertEqual(ast.unparse(node.value.func), "re.compile")
+                self.assertIn("PLANNING_POLICY.get", ast.unparse(node.value))
+        self.assertEqual([node.targets[0].id for node in bindings], list(binding_names))
+        self.assertEqual([node.lineno for node in bindings], [28, 29, 30])
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, relative_path):
+                self.relative_path = relative_path
+                self.stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = node.func.attr if isinstance(node.func, ast.Attribute) else (
+                    node.func.id if isinstance(node.func, ast.Name) else ""
+                )
+                if name in targets:
+                    receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "Name"
+                    self.calls.append(
+                        (
+                            self.relative_path,
+                            self.stack[-1],
+                            name,
+                            receiver,
+                            len(node.args),
+                            tuple(keyword.arg for keyword in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        calls = []
+        for path in sorted((PROJECT_ROOT / "src").rglob("*.py")):
+            visitor = BindingVisitor(path.relative_to(PROJECT_ROOT).as_posix())
+            visitor.visit(ast.parse(path.read_text(encoding="utf-8-sig")))
+            calls.extend(visitor.calls)
+        self.assertEqual(len(calls), 15)
+        self.assertTrue(all(call[3] == "Name" and call[6] == 0 for call in calls))
+        counts = {name: sum(call[2] == name for call in calls) for name in targets}
+        self.assertEqual(
+            counts,
+            {
+                "_money_match_to_slot_values": 3,
+                "_slot_values_match_operand_unit": 2,
+                "lookup_operand_matches_active_task": 1,
+                "refine_lookup_slot_unit_from_evidence": 1,
+                "_extract_lookup_slot_from_answer_text": 1,
+                "synthesize_lookup_answer_slot_from_prose": 3,
+                "_doc_metadata_value": 1,
+                "_doc_page_content": 1,
+                "_source_anchor_from_doc": 1,
+                "lookup_slot_supporting_doc_evidence": 1,
+            },
+        )
+        expected_external = {
+            ("src/agent/financial_graph_planning.py", "_capture_current_subtask_result", "lookup_operand_matches_active_task"),
+            ("src/agent/financial_graph_planning.py", "_capture_current_subtask_result", "refine_lookup_slot_unit_from_evidence"),
+            ("src/agent/financial_graph_planning.py", "_capture_current_subtask_result", "synthesize_lookup_answer_slot_from_prose"),
+            ("src/agent/financial_graph_planning.py", "_capture_current_subtask_result", "lookup_slot_supporting_doc_evidence"),
+            ("src/agent/financial_graph_calculation.py", "_build_dependency_operand_rows", "synthesize_lookup_answer_slot_from_prose"),
+            ("src/agent/financial_dependency_projection.py", "_dependency_lookup_slot_for_result_row", "synthesize_lookup_answer_slot_from_prose"),
+        }
+        external = {(call[0], call[1], call[2]) for call in calls if call[1] not in targets}
+        self.assertEqual(external, expected_external)
+        self.assertEqual(sum(call[1] in targets for call in calls), 9)
+
+        public = []
+        private = []
+        for node in owner_tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                (private if node.name.startswith("_") else public).append(node.name)
+        self.assertEqual((len(public), len(private)), (15, 13))
+
+        selected_nodes = set(bindings)
+        for node in owner_defs.values():
+            selected_nodes.update(ast.walk(node))
+        for binding in bindings:
+            selected_nodes.update(ast.walk(binding))
+        planning_imports = {
+            alias.name
+            for node in planning_tree.body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        for name in ("_normalise_operand_value", "_operand_needles", "NUMERIC_UNIT_NORMALIZATION_POLICY"):
+            self.assertNotIn(name, planning_imports)
+        for name in ("re", "PLANNING_POLICY", "answer_slot_has_material", "_validate_answer_slots_payload", "_normalise_spaces"):
+            outside = [
+                node
+                for node in ast.walk(planning_tree)
+                if isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+                and node not in selected_nodes
+            ]
+            self.assertTrue(outside, name)
+
+        modules = {path.stem: path for path in (PROJECT_ROOT / "src" / "agent").glob("*.py")}
+        edges = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            module_tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(module_tree):
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    dependency = node.module.rsplit(".", 1)[-1]
+                    if dependency in modules:
+                        edges[module_name].add(dependency)
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith("src.agent."):
+                            dependency = alias.name.rsplit(".", 1)[-1]
+                            if dependency in modules:
+                                edges[module_name].add(dependency)
+        def reaches(start, destination):
+            pending = list(edges.get(start, set()))
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == destination:
+                    return True
+                if current not in seen:
+                    seen.add(current)
+                    pending.extend(edges.get(current, set()))
+            return False
+
+        for dependency in (
+            "financial_answer_slots",
+            "financial_graph_model_loaders",
+            "financial_graph_helpers",
+            "financial_operand_resolution",
+            "financial_surface_contracts",
+        ):
+            self.assertFalse(reaches(dependency, "financial_lookup_recovery"), dependency)
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph_planning"))
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph_calculation"))
+
+        baseline = json.loads(
+            (PROJECT_ROOT / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_start = min(node.lineno for node in bindings)
+        selected_end = max(node.end_lineno for node in owner_defs.values())
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record["path"] == "src/agent/financial_lookup_recovery.py"
+            and any(selected_start <= line <= selected_end for line in record.get("first_lines") or [])
+        ]
+        self.assertEqual(selected_records, [])
+
+    def test_current_source_lookup_projection_callers_pin_args_adoption_and_exception_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"alias": True}
+        operand = {
+            "label": "Metric",
+            "concept": "revenue",
+            "matched_operand_role": "primary_value",
+            "period": "2023",
+            "raw_value": "10",
+            "raw_unit": "",
+            "normalized_value": 10.0,
+            "normalized_unit": "UNKNOWN",
+            "rendered_value": "10",
+            "source_row_id": "operand_ev",
+            "source_row_ids": ["operand_ev"],
+            "nested": nested,
+        }
+        projected = {
+            "calculation_operands": [operand],
+            "calculation_plan": {"operation": "lookup"},
+            "calculation_result": {},
+            "reconciliation_result": {},
+            "artifact_ids": ["artifact1"],
+        }
+        retrieved_doc = {"doc": "retrieved", "nested": nested}
+        seed_doc = {"doc": "seed", "nested": nested}
+        state = {
+            "query": "Metric query",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "Metric",
+                "operation_family": "lookup",
+                "query": "Metric query",
+            },
+            "calc_subtasks": [{"task_id": "task_lookup"}],
+            "answer": "Metric 10",
+            "selected_claim_ids": ["answer_ev"],
+            "retrieved_docs": [retrieved_doc],
+            "seed_retrieved_docs": [seed_doc],
+            "evidence_items": [],
+        }
+        state_frozen = json.loads(json.dumps(state))
+        events = []
+        active_copy = None
+        support_evidence = {
+            "evidence_id": "slot_ev",
+            "source_anchor": "anchor",
+            "claim": "Metric 10 million",
+            "quote_span": "10 million",
+            "metadata": {"unit_hint": "million", "nested": nested},
+        }
+
+        def promote(**kwargs):
+            nonlocal active_copy
+            self.assertIsNot(kwargs["active_subtask"], state["active_subtask"])
+            self.assertEqual(kwargs["active_subtask"], state["active_subtask"])
+            active_copy = kwargs["active_subtask"]
+            events.append("promote")
+            return kwargs["answer"], kwargs["status"], kwargs["calculation_result"]
+
+        def active_match(actual_operand, actual_task):
+            self.assertIsNot(actual_operand, operand)
+            self.assertEqual(actual_operand, operand)
+            self.assertIs(actual_operand["nested"], nested)
+            self.assertIs(actual_task, active_copy)
+            events.append("match")
+            return True
+
+        def validate(payload):
+            self.assertEqual(payload["operation_family"], "lookup")
+            self.assertEqual(payload["primary_value"]["raw_value"], "10")
+            events.append("validate")
+            return payload
+
+        def support(*, active_subtask, slot, docs):
+            self.assertIs(active_subtask, active_copy)
+            self.assertEqual(slot["raw_value"], "10")
+            self.assertIsNot(docs, state["retrieved_docs"])
+            self.assertEqual(len(docs), 2)
+            self.assertIs(docs[0], retrieved_doc)
+            self.assertIs(docs[1], seed_doc)
+            events.append("support")
+            return support_evidence
+
+        refined_slot = None
+
+        def refine(slot, evidence):
+            nonlocal refined_slot
+            self.assertIs(evidence, support_evidence)
+            self.assertIn("slot_ev", slot["source_row_ids"])
+            events.append("refine")
+            refined_slot = {
+                **slot,
+                "raw_unit": "million",
+                "normalized_value": 10_000_000.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "10 million",
+            }
+            return refined_slot
+
+        def magnitude(slot, evidence):
+            self.assertIs(slot, refined_slot)
+            self.assertIs(evidence, support_evidence)
+            events.append("magnitude")
+            return slot
+
+        def repair(actual_state, *, operands, plan, calculation_result):
+            self.assertIs(actual_state, state)
+            self.assertEqual(plan, {"operation": "lookup"})
+            self.assertEqual(calculation_result["answer_slots"]["primary_value"]["raw_unit"], "million")
+            self.assertEqual(operands[0]["raw_unit"], "million")
+            events.append("repair")
+            return SimpleNamespace(
+                calculation_operands=operands,
+                calculation_plan=plan,
+                calculation_result=calculation_result,
+                repair_applied=False,
+                selected_evidence_ids=[],
+            )
+
+        with (
+            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(
+                financial_graph_planning,
+                "promote_nested_subtask_result_if_more_specific",
+                side_effect=promote,
+            ),
+            patch.object(financial_graph_planning, "answer_slot_has_material", side_effect=lambda slot: bool(slot.get("raw_value"))),
+            patch.object(financial_graph_planning, "lookup_operand_matches_active_task", side_effect=active_match),
+            patch.object(financial_graph_planning, "_validate_answer_slots_payload", side_effect=validate),
+            patch.object(financial_graph_planning, "lookup_slot_supporting_doc_evidence", side_effect=support),
+            patch.object(financial_graph_planning, "refine_lookup_slot_unit_from_evidence", side_effect=refine),
+            patch.object(financial_graph_planning, "coerce_lookup_magnitude_record", side_effect=magnitude),
+            patch.object(agent, "_repair_stale_calculation_result_from_operands", side_effect=repair),
+        ):
+            captured = agent._capture_current_subtask_result(state)
+
+        self.assertEqual(events, ["promote", "match", "validate", "support", "refine", "magnitude", "repair"])
+        self.assertEqual(captured["selected_claim_ids"], ["answer_ev", "slot_ev"])
+        self.assertEqual([item["evidence_id"] for item in captured["runtime_evidence"]], ["slot_ev"])
+        self.assertEqual(captured["calculation_result"]["rendered_value"], "10 million")
+        self.assertIs(captured["calculation_result"]["answer_slots"]["primary_value"], refined_slot)
+        self.assertEqual(captured["calculation_operands"][0]["raw_unit"], "million")
+        self.assertEqual(state, state_frozen)
+        self.assertIs(state["retrieved_docs"][0]["nested"], nested)
+        self.assertIs(state["seed_retrieved_docs"][0]["nested"], nested)
+
+        downstream = []
+        with (
+            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(
+                financial_graph_planning,
+                "promote_nested_subtask_result_if_more_specific",
+                side_effect=lambda **kwargs: (kwargs["answer"], kwargs["status"], kwargs["calculation_result"]),
+            ),
+            patch.object(financial_graph_planning, "answer_slot_has_material", return_value=False),
+            patch.object(
+                financial_graph_planning,
+                "lookup_operand_matches_active_task",
+                side_effect=RuntimeError("active match failed"),
+            ),
+            patch.object(
+                financial_graph_planning,
+                "synthesize_lookup_answer_slot_from_prose",
+                side_effect=lambda **_kwargs: downstream.append("synthesize"),
+            ),
+            patch.object(
+                financial_graph_planning,
+                "lookup_slot_supporting_doc_evidence",
+                side_effect=lambda **_kwargs: downstream.append("support"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "active match failed"):
+                agent._capture_current_subtask_result(state)
+        self.assertEqual(downstream, [])
+        self.assertEqual(state, state_frozen)
+
+        producer_task = {
+            "task_id": "producer",
+            "operation_family": "lookup",
+            "metric_family": "concept_lookup",
+            "metric_label": "Metric",
+            "required_operands": [{"label": "Metric", "concept": "revenue"}],
+        }
+        result_row = {
+            "task_id": "producer",
+            "answer": " Metric 10 million ",
+            "calculation_result": {},
+            "selected_claim_ids": [" ev1 ", "", "ev2"],
+        }
+        result_row_frozen = json.loads(json.dumps(result_row))
+        synthetic_slot = {"raw_value": "10", "rendered_value": "10 million", "nested": nested}
+        synthetic_result = {"answer_slots": {"primary_value": synthetic_slot}}
+        dependency_events = []
+
+        def dependency_synth(**kwargs):
+            self.assertIs(kwargs["active_subtask"], producer_task)
+            self.assertEqual(kwargs["answer"], "Metric 10 million")
+            self.assertEqual(kwargs["calculation_result"], {})
+            self.assertEqual(kwargs["selected_claim_ids"], ["ev1", "ev2"])
+            dependency_events.append("synthesize")
+            return synthetic_result
+
+        with (
+            patch.object(financial_dependency_projection, "_dependency_producer_task", return_value=producer_task),
+            patch.object(
+                financial_dependency_projection,
+                "synthesize_lookup_answer_slot_from_prose",
+                side_effect=dependency_synth,
+            ),
+        ):
+            dependency_slot = financial_dependency_projection._dependency_lookup_slot_for_result_row(
+                result_row,
+                task_by_id={"producer": producer_task},
+                result_task_id="producer",
+                slot_has_material=lambda slot: bool(slot.get("raw_value")),
+            )
+        self.assertEqual(dependency_events, ["synthesize"])
+        self.assertEqual(dependency_slot, synthetic_slot)
+        self.assertIsNot(dependency_slot, synthetic_slot)
+        self.assertIs(dependency_slot["nested"], nested)
+        self.assertEqual(result_row, result_row_frozen)
+
+        with (
+            patch.object(financial_dependency_projection, "_dependency_producer_task", return_value=producer_task),
+            patch.object(
+                financial_dependency_projection,
+                "synthesize_lookup_answer_slot_from_prose",
+                side_effect=RuntimeError("dependency synthesis failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency synthesis failed"):
+                financial_dependency_projection._dependency_lookup_slot_for_result_row(
+                    result_row,
+                    task_by_id={"producer": producer_task},
+                    result_task_id="producer",
+                    slot_has_material=lambda slot: bool(slot.get("raw_value")),
+                )
+
+        binding = {
+            "label": "Metric",
+            "concept": "revenue",
+            "role": "primary_value",
+            "source_preference": ["task_output"],
+            "preferred_task_id": "producer",
+        }
+        calculation_state = {
+            "active_subtask": {"inputs": [binding]},
+            "calc_subtasks": [producer_task],
+            "semantic_plan": {"tasks": []},
+            "subtask_results": [result_row],
+            "evidence_items": [],
+            "runtime_evidence": [],
+        }
+        calculation_state_frozen = json.loads(json.dumps(calculation_state))
+        calculation_events = []
+
+        def calculation_synth(**kwargs):
+            self.assertIsNot(kwargs["active_subtask"], producer_task)
+            self.assertEqual(kwargs["active_subtask"], producer_task)
+            self.assertIs(kwargs["active_subtask"]["required_operands"], producer_task["required_operands"])
+            self.assertEqual(kwargs["answer"], "Metric 10 million")
+            self.assertEqual(kwargs["calculation_result"], {})
+            self.assertEqual(kwargs["selected_claim_ids"], ["ev1", "ev2"])
+            calculation_events.append("synthesize")
+            return synthetic_result
+
+        def adopted_slot_gate(actual_binding, actual_slot, *, sibling_row, state):
+            self.assertIsNot(actual_binding, binding)
+            self.assertEqual(actual_binding, binding)
+            self.assertEqual(actual_slot, synthetic_slot)
+            self.assertIsNot(actual_slot, synthetic_slot)
+            self.assertIs(actual_slot["nested"], nested)
+            self.assertIsNot(sibling_row, result_row)
+            self.assertEqual(sibling_row, result_row)
+            self.assertIs(state, calculation_state)
+            calculation_events.append("adopted")
+            return False
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "resolve_dependency_producer_scope",
+                return_value=SimpleNamespace(producer_task=producer_task, preferred_statement_types=[]),
+            ),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", side_effect=lambda slot: bool(slot.get("raw_value"))),
+            patch.object(
+                financial_graph_calculation,
+                "synthesize_lookup_answer_slot_from_prose",
+                side_effect=calculation_synth,
+            ),
+            patch.object(financial_graph_calculation, "dependency_slot_matches_input", side_effect=adopted_slot_gate),
+        ):
+            self.assertEqual(agent._build_dependency_operand_rows(calculation_state), [])
+        self.assertEqual(calculation_events, ["synthesize", "adopted"])
+        self.assertEqual(calculation_state, calculation_state_frozen)
+
+        downstream.clear()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "resolve_dependency_producer_scope",
+                return_value=SimpleNamespace(producer_task=producer_task, preferred_statement_types=[]),
+            ),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", side_effect=lambda slot: bool(slot.get("raw_value"))),
+            patch.object(
+                financial_graph_calculation,
+                "synthesize_lookup_answer_slot_from_prose",
+                side_effect=RuntimeError("calculation synthesis failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "dependency_slot_matches_input",
+                side_effect=lambda *_args, **_kwargs: downstream.append("match"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "calculation synthesis failed"):
+                agent._build_dependency_operand_rows(calculation_state)
+        self.assertEqual(downstream, [])
+        self.assertEqual(calculation_state, calculation_state_frozen)
 
 if __name__ == "__main__":
     unittest.main()
