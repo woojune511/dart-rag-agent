@@ -612,19 +612,32 @@ mutable result/evidence/state, nested-result promotion, calculation/dependency
 orchestration, trace/artifact/ledger work, and final sequencing remain hard
 stops.
 
-The selected follow-on is one 117-line read-only evidence-hint projection batch
-from `financial_graph_evidence.py` into `financial_retrieval_hints.py`. Public
-focus-term, preferred-section subset, and compression-guidance functions become
-114 owner lines; their three calls remain graph-external, while one existing
-`_active_preferred_sections(...)` use becomes owner-local. The new graph-state
-and operation-policy edges are acyclic, the graph's newly dead active-section
-import retires, and the selected definitions contain zero reviewed domain-
-language occurrences. `_select_evidence_for_compression(...)`,
-`_extract_evidence(...)`, `_compress_answer(...)`, model invocation, evidence
-construction/mutation, state, trace/artifact/ledger work, and final sequencing
-remain hard stops. Exact behavior, the five-method CURRENT-SOURCE gate,
-projected validations, DAG/dead-import consequences, and rejected state/
-carrier/evidence expansions live only in
+The completed `02d1422` follow-on moved three read-only evidence-hint
+definitions totaling 117 lines from `financial_graph_evidence.py` into
+`financial_retrieval_hints.py` as three public functions. All three calls remain
+graph-external, while the active preferred-section helper call is owner-local.
+Source is `+134/-125`, tests are `+830/-0`, and the whole commit is
+`+964/-125`. Graph evidence moved from 4,579 to 4,461 physical lines, retrieval
+hints from 167 to 294, and five new tests moved discovery from 1,861 to 1,866.
+Final gates passed focused 5/5, affected semantic 692/692, import 19/19, audit
+218, full 1,866/1,866, pycompile/fresh import, DAG/body/caller parity, retired-
+ref zero, and diff check. Its source diff SHA-256 is
+`d2925a071c1555658c448d0779168e851304e7602431df8da216904dc60959ec`.
+Context/model construction, evidence construction/ranking/mutation, mutable
+state, trace/artifact/ledger work, and final sequencing remain graph-owned.
+
+The selected follow-on is one 228-line deterministic quantitative-impact
+answer projection batch from `financial_graph_evidence.py` into
+`financial_aggregate_projection.py`. Owner-private labeled-numeric line parsing
+and one public supported-impact composer project to 226 owner lines. Four
+selected calls finish graph-external three and owner-local one; graph evidence
+adds an acyclic aggregate-owner edge and retires two policy-constant imports.
+The selected definitions contain zero reviewed domain-language occurrences.
+Validation, aggregate composition state/adoption, prompt/model fallback,
+evidence construction/selection, trace/artifact/ledger work, and final
+sequencing remain hard stops. Exact behavior, the five-method CURRENT-SOURCE
+gate, projected validations, DAG/dead-import consequences, and rejected entity-
+table, ratio-assembly, prompt/evidence/state/carrier expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

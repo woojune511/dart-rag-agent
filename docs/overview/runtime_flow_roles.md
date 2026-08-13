@@ -227,10 +227,10 @@ evidence mixin에는 `_retrieve` 호환 복사본이 없다.
 ### `src/agent/financial_retrieval_hints.py`
 
 현재 ontology/policy 기반 statement type, preferred section, query suffix와
-active-subtask section hint를 state-free하게 투영한다. 다음 선택은 evidence
-mixin의 query focus-term, preferred-section evidence subset, compression-guidance
-projection만 이 owner로 옮긴다. 검색 실행, document/evidence construction,
-prompt/model invocation과 state mutation은 evidence/retrieval graph에 남는다.
+active-subtask section hint뿐 아니라 query focus-term, preferred-section
+evidence subset, compression guidance를 state-free하게 투영한다. 검색 실행,
+document/context/evidence construction과 ranking, prompt/model invocation,
+state adoption은 evidence/retrieval graph에 남는다.
 
 ## 7. Reconciliation Layer
 
@@ -296,8 +296,8 @@ State-free owner topology:
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
-| `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints; read-only evidence focus/subset/compression guidance is the selected next boundary, while retrieval, evidence construction, and model invocation remain graph-owned |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
+| `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection; deterministic quantitative-impact line parsing/composition is the selected next boundary |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
@@ -565,10 +565,18 @@ Aggregate/narrative row의 state-free answer policy owner다.
   public/private 15/13이다. Focused 8/8, owner 32/32, semantic 864/864,
   import 19/19, audit 218과 full 1,861/1,861이 통과했다. Retrieval pool,
   mutable result/evidence/state, orchestration과 final sequencing은 graph에 남는다.
-- 다음 선택은 evidence mixin의 focus-term 40줄, preferred-section subset 59줄,
-  compression guidance 18줄을 `financial_retrieval_hints.py`의 public 3으로
-  이동하는 한 batch다. 세 call은 external 3/local 0으로 유지되며 exact
-  boundary와 hard stop은
+- 완료된 read-only evidence-hint batch는 evidence mixin의 focus-term 40줄,
+  preferred-section subset 59줄, compression guidance 18줄을
+  `financial_retrieval_hints.py`의 public 3으로 옮겼다. 세 call은 external
+  3/local 0이고 owner 함수 수는 public/private 3/9다. Focused 5/5,
+  semantic 692/692, import 19/19, audit 218과 full 1,866/1,866이 통과했다.
+  Context/evidence construction, model invocation, mutable state와 final
+  sequencing은 graph에 남는다.
+- 다음 선택은 evidence mixin의 labeled-numeric parser 33줄과 supported
+  quantitative-impact composer 195줄을 `financial_aggregate_projection.py`의
+  public 1/owner-private 1로 이동하는 한 batch다. 네 call은 external 3/local
+  1이 되며 validation/model fallback과 mutable composition state는 graph에
+  남는다. Exact boundary와 hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -3563,3 +3563,53 @@ diagnostic/evidence/state/carrier expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work). Model
 invocation, evidence construction/ranking/mutation, state, trace/artifact/
 ledger work, and final sequencing remain graph-owned.
+
+### Read-only evidence-hint projection ownership milestone
+
+- `02d1422` moves three definitions totaling 117 old definition-span lines from
+  `financial_graph_evidence.py` into `financial_retrieval_hints.py`. Public
+  `evidence_extraction_focus_terms(...)`,
+  `preferred_section_evidence_subset(...)`, and
+  `compression_guidance(...)` total 116 owner lines. All three selected calls
+  remain graph-external and outside `try`; the preferred-subset body's active-
+  section call becomes owner-local. Literal body and full retained-caller parity
+  passed after normalizing only the selected call targets. Retired graph-private
+  definitions and executable source/test refs are zero.
+- Source is `+134/-125`, net `+9`; tests are `+830/-0`; and the whole commit is
+  `+964/-125`, net `+839`. Graph evidence moved from 4,579 to 4,461 physical
+  lines, retrieval hints from 167 to 294, and the new test file contains 830
+  lines. Five new unittest methods moved full discovery from 1,861 to 1,866 and
+  AST-counted methods from 1,831 to 1,836. The source diff SHA-256 is
+  `d2925a071c1555658c448d0779168e851304e7602431df8da216904dc60959ec`.
+- The retrieval-hint owner is public/private 3/9. Its graph-state and operation-
+  policy dependencies are acyclic; the graph's newly dead active-section import
+  is removed. The selected spans move no reviewed runtime-domain record, so the
+  audit remains 218 without a baseline change.
+- Final validation passed focused 5/5, affected seven-module semantic 692/692,
+  import-side-effects 19/19, runtime audit 218, full discovery 1,866/1,866,
+  pycompile/fresh import, DAG/body/full-caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN** and no remote CI run is
+  claimed for this local commit.
+
+This milestone changes only read-only retrieval-hint ownership. Context and
+evidence construction/ranking, prompt/model invocation, mutable state/evidence,
+trace/artifact/ledger work, and final sequencing remain graph-owned. It proves
+no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, ledger completion, or Phase 3
+completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 228-line
+deterministic quantitative-impact answer projection batch from
+`financial_graph_evidence.py` into `financial_aggregate_projection.py`.
+Owner-private labeled-numeric parsing and one public supported-impact composer
+project to 226 owner lines. Four calls finish graph-external three and owner-
+local one. The aggregate owner adds only two policy constants on an existing
+config edge; graph evidence adds one acyclic owner edge and retires those two
+local policy imports. The exact five-method CURRENT-SOURCE gate, projected
+validations, parser/composer contracts, caller `try` placement, import cleanup,
+and rejected entity-table/ratio-assembly/evidence/state/carrier expansions are
+maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+Validation/model fallback, evidence combination and selection, mutable
+composition state, trace/artifact/ledger work, and final sequencing remain
+graph-owned.

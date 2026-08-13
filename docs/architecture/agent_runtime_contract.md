@@ -3597,15 +3597,14 @@ calculation and dependency orchestration, and final sequencing remain graph-
 owned. No callback, carrier, wrapper, alias, or compatibility bridge is
 authorized.
 
-The next read-only evidence-hint projection boundary is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). Public
-`evidence_extraction_focus_terms(...)`,
+The read-only evidence-hint projection boundary completed in `02d1422`.
+Public `evidence_extraction_focus_terms(...)`,
 `preferred_section_evidence_subset(...)`, and
-`compression_guidance(...)` will move the current private 40/59/18-line
-definitions from `financial_graph_evidence.py` into
-`financial_retrieval_hints.py` as 39/58/17 owner lines. Their three exact calls
-remain graph-external and outside `try`; the preferred-subset body's existing
-`_active_preferred_sections(...)` call becomes owner-local.
+`compression_guidance(...)` now live in `financial_retrieval_hints.py` as
+40/58/18-line owner definitions. Their three exact calls remain graph-external
+and outside `try`; the preferred-subset body's existing
+`_active_preferred_sections(...)` call is owner-local. Retired private source
+and executable test refs are zero.
 
 The focus-term contract preserves copied policy access, token and particle
 regex order, parenthetical and outside-parenthesis variants, stopword/length/
@@ -3623,6 +3622,34 @@ document/evidence construction and ranking, anchor resolution, mutable state/
 evidence, trace/artifact/ledger work, and final sequencing remain graph-owned.
 The move authorizes no prompt-diagnostic, callback, state, carrier, evidence-
 construction, wrapper, or compatibility expansion.
+
+The next deterministic quantitative-impact projection boundary is defined only
+by [Project Status Next Work](../overview/project_status.md#next-work).
+Owner-private `_parse_labeled_numeric_lines(...)` and public
+`compose_supported_quantitative_impact_answer(...)` will move the current
+33/195-line definitions from `financial_graph_evidence.py` into
+`financial_aggregate_projection.py` as projected 32/194-line definitions. The
+three composition calls remain graph-external; the parser call becomes owner-
+local. The calculation caller is outside `try`, while the two validation
+placements retain their existing structured/fallback validation boundary.
+
+The parser contract preserves copied metadata, source line order and index,
+signed/parenthesized/percent numeric surfaces, unit/evidence/claim projection,
+soft `ValueError` skips, shallow nested aliases, input immutability, and
+uncaught non-`ValueError` exceptions. The composer contract preserves query-
+marker and minimum-row gates; compact, quoted, and token label matching;
+prior-period exclusion; numerator/denominator precedence; denominator and
+absolute-ratio guards; unit/consolidation display; relation visibility;
+cost/loss/caveat template selection; stable supporting-ID projection; policy
+copying, access laziness, and input immutability.
+
+`_validate_answer(...)` and
+`_apply_initial_aggregate_answer_composition(...)` retain evidence combination,
+exact caller order and adoption, validation/model fallback, mutable composition
+state, selected-claim projection, trace/artifact/ledger work, and final
+sequencing. The move authorizes no entity-table, ratio-operand assembly,
+anchor/runtime-evidence construction, prompt-diagnostic, callback, carrier,
+state, wrapper, or compatibility expansion.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
