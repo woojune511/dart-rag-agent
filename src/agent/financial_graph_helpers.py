@@ -103,9 +103,9 @@ from src.agent.financial_row_surfaces import (
 )
 from src.agent.financial_structured_cells import (
     _structured_cell_period_text,
+    candidate_selected_cell_for_operand,
     score_structured_cell,
     select_aggregate_structured_cell,
-    select_structured_cell,
 )
 from src.agent.financial_scope_policies import (
     _desired_consolidation_scope,
@@ -650,29 +650,6 @@ def _scoped_surface_affinity_priority(
     if adjustment_markers and any(marker in surface for marker in adjustment_markers):
         score += adjustment_weight
     return score
-
-
-def _candidate_selected_cell_for_operand(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    query_years: List[int],
-    period_focus: str,
-) -> Optional[Dict[str, Any]]:
-    metadata = dict(candidate.get("metadata") or {})
-    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
-    cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-    if not cells and candidate_kind in {"table_row", "evidence_row"}:
-        cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
-    if not cells:
-        return None
-    cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
-    return select_structured_cell(
-        cells,
-        operand=operand,
-        query_years=query_years,
-        period_focus=period_focus,
-    )
 
 
 def _candidate_is_canonical_statement_winner(
@@ -5366,7 +5343,7 @@ def _deterministic_reconcile_task(
                 )
                 direct_entries: List[Dict[str, Any]] = []
                 for candidate in ranked:
-                    selected_cell = _candidate_selected_cell_for_operand(
+                    selected_cell = candidate_selected_cell_for_operand(
                         candidate,
                         operand=operand,
                         query_years=years,

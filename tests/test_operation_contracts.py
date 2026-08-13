@@ -41,7 +41,6 @@ from src.agent.financial_graph_helpers import (
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
-    _candidate_selected_cell_for_operand,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
@@ -87,7 +86,10 @@ from src.agent.financial_retrieval_hints import (
     _desired_statement_types,
     _infer_statement_and_section_hints,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import (
+    _structured_cell_period_text,
+    candidate_selected_cell_for_operand,
+)
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
 
@@ -6092,7 +6094,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        selected_cell = _candidate_selected_cell_for_operand(
+        selected_cell = candidate_selected_cell_for_operand(
             candidate,
             operand=operand,
             query_years=[2023],
@@ -6458,7 +6460,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        selected_cell = _candidate_selected_cell_for_operand(
+        selected_cell = candidate_selected_cell_for_operand(
             candidate,
             operand=operand,
             query_years=[2023, 2022],

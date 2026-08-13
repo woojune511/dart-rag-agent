@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from src.agent.financial_row_surfaces import _generic_column_headers, _operand_text_match
+from src.agent.financial_row_surfaces import (
+    _generic_column_headers,
+    _operand_text_match,
+    _parse_unstructured_table_row_cells,
+)
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_target_years
 from src.agent.financial_surface_contracts import _operand_needles
@@ -59,6 +63,29 @@ def select_structured_cell(
         reverse=True,
     )
     return ranked_cells[0] if ranked_cells else None
+
+
+def candidate_selected_cell_for_operand(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    period_focus: str,
+) -> Optional[Dict[str, Any]]:
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
+    cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
+    if not cells and candidate_kind in {"table_row", "evidence_row"}:
+        cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+    if not cells:
+        return None
+    cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+    return select_structured_cell(
+        cells,
+        operand=operand,
+        query_years=query_years,
+        period_focus=period_focus,
+    )
 
 
 def select_aggregate_structured_cell(

@@ -473,7 +473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             (
@@ -1874,7 +1874,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             (
@@ -2828,7 +2828,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(graph_counts, (9, 92))
         self.assertEqual(row_counts, (9, 15))
 
         graph_row_imports = {
@@ -3870,7 +3870,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             (
@@ -4907,7 +4907,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             (
@@ -6626,7 +6626,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 93))
+        self.assertEqual(current_graph_counts, (9, 92))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -6926,7 +6926,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_selected_cell_for_operand",
+                    "candidate_selected_cell_for_operand",
                     side_effect=select_cell,
                 ),
                 patch.object(
@@ -7120,7 +7120,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_selected_cell_for_operand",
+                "candidate_selected_cell_for_operand",
                 return_value=rejected_cell,
             ) as rejected_selector,
             patch.object(
@@ -7211,7 +7211,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_selected_cell_for_operand",
+                    "candidate_selected_cell_for_operand",
                     return_value=cell,
                 ),
                 patch.object(
@@ -8097,7 +8097,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(graph_counts, (9, 92))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9277,7 +9277,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(graph_counts, (9, 92))
         self.assertEqual(owner_counts, (9, 9))
 
         def imported_names(module_name, imported_module):
@@ -10317,7 +10317,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 93))
+        self.assertEqual(graph_counts, (9, 92))
         self.assertEqual(row_counts, (9, 15))
 
         def imported_names(module_name, imported_module):
@@ -10521,7 +10521,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_selected_cell_for_operand",
+                    "candidate_selected_cell_for_operand",
                     side_effect=lambda candidate, **_kwargs: cells[
                         candidate["candidate_id"]
                     ],
@@ -12875,7 +12875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -14893,6 +14893,1243 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     operand=operand,
                 )
 
+    def test_current_source_candidate_selected_cell_projection_pins_structured_copy_order_identity_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        first_cell = {"value_text": "10", "_report_year": "stale", "nested": nested}
+        empty_cell = {}
+        second_cell = {"value_text": "20", "nested": nested}
+        metadata = {
+            "year": 2024,
+            "structured_cells": [first_cell, empty_cell, second_cell],
+            "nested": nested,
+        }
+        events = []
+
+        class CandidateProbe:
+            def get(self, key, default=None):
+                events.append(("candidate-get", key))
+                return {
+                    "metadata": metadata,
+                    "candidate_kind": " table_row ",
+                }.get(key, default)
+
+        class MetadataCopy(dict):
+            def get(self, key, default=None):
+                events.append(("metadata-get", key))
+                return super().get(key, default)
+
+        real_dict = type({})
+
+        def copy_mapping(value):
+            if value is metadata:
+                events.append(("dict", "metadata"))
+                return MetadataCopy(value)
+            label = (
+                "first"
+                if value is first_cell
+                else "empty"
+                if value is empty_cell
+                else "second"
+                if value is second_cell
+                else "unknown"
+            )
+            events.append(("dict", label))
+            return real_dict(value)
+
+        operand = {"label": "Revenue", "nested": nested}
+        query_years = [2024]
+        selected = {"selected": True, "nested": nested}
+        parser_owner = Mock(
+            side_effect=AssertionError("structured cells must suppress parser fallback")
+        )
+
+        def selector(cells, **kwargs):
+            events.append(("selector", len(cells)))
+            self.assertEqual(
+                cells,
+                [
+                    {"value_text": "10", "_report_year": 2024, "nested": nested},
+                    {"value_text": "20", "nested": nested, "_report_year": 2024},
+                ],
+            )
+            self.assertIsNot(cells[0], first_cell)
+            self.assertIsNot(cells[1], second_cell)
+            self.assertIs(cells[0]["nested"], nested)
+            self.assertIs(cells[1]["nested"], nested)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertEqual(kwargs["period_focus"], "current")
+            return selected
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=copy_mapping,
+                create=True,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_parse_unstructured_table_row_cells",
+                parser_owner,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                side_effect=selector,
+            ),
+        ):
+            result = financial_structured_cells.candidate_selected_cell_for_operand(
+                CandidateProbe(),
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+
+        self.assertIs(result, selected)
+        parser_owner.assert_not_called()
+        self.assertEqual(
+            events,
+            [
+                ("candidate-get", "metadata"),
+                ("dict", "metadata"),
+                ("candidate-get", "candidate_kind"),
+                ("metadata-get", "structured_cells"),
+                ("dict", "first"),
+                ("dict", "first"),
+                ("dict", "empty"),
+                ("dict", "second"),
+                ("dict", "second"),
+                ("metadata-get", "year"),
+                ("metadata-get", "year"),
+                ("selector", 2),
+            ],
+        )
+        self.assertEqual(first_cell["_report_year"], "stale")
+        self.assertNotIn("_report_year", second_cell)
+        self.assertIs(metadata["nested"], nested)
+
+        copy_bomb = {"value_text": "boom"}
+        stopped_selector = Mock(
+            side_effect=AssertionError("cell-copy failure must stop selection")
+        )
+
+        def fail_cell_copy(value):
+            if value is copy_bomb:
+                raise RuntimeError("cell copy failed")
+            return real_dict(value)
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=fail_cell_copy,
+                create=True,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                stopped_selector,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cell copy failed"):
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    {
+                        "candidate_kind": "table_row",
+                        "metadata": {"structured_cells": [copy_bomb]},
+                    },
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        stopped_selector.assert_not_called()
+
+        with patch.object(
+            financial_structured_cells,
+            "select_structured_cell",
+            side_effect=RuntimeError("selector failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "selector failed"):
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    {
+                        "candidate_kind": "table_row",
+                        "metadata": {"structured_cells": [first_cell], "year": 2024},
+                    },
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        self.assertEqual(first_cell["_report_year"], "stale")
+
+        def assert_preparation_failure(message, current_candidate, *extra_patches):
+            stopped_parser = Mock(
+                side_effect=AssertionError(f"{message} must stop parser fallback")
+            )
+            stopped_selection = Mock(
+                side_effect=AssertionError(f"{message} must stop selection")
+            )
+            with ExitStack() as stack:
+                for current_patch in extra_patches:
+                    stack.enter_context(current_patch)
+                stack.enter_context(
+                    patch.object(
+                        financial_structured_cells,
+                        "_parse_unstructured_table_row_cells",
+                        stopped_parser,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_structured_cells,
+                        "select_structured_cell",
+                        stopped_selection,
+                    )
+                )
+                with self.assertRaisesRegex(RuntimeError, message):
+                    financial_structured_cells.candidate_selected_cell_for_operand(
+                        current_candidate,
+                        operand=operand,
+                        query_years=query_years,
+                        period_focus="current",
+                    )
+            stopped_parser.assert_not_called()
+            stopped_selection.assert_not_called()
+
+        class TruthBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __bool__(self):
+                raise RuntimeError(self.message)
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("structured iteration failed")
+
+        class MetadataFieldCandidate:
+            def get(self, key, default=None):
+                if key == "metadata":
+                    raise RuntimeError("metadata field failed")
+                raise AssertionError(key)
+
+        class KindFieldCandidate:
+            def get(self, key, default=None):
+                if key == "metadata":
+                    return {}
+                if key == "candidate_kind":
+                    raise RuntimeError("kind field failed")
+                raise AssertionError(key)
+
+        class KindStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("kind string failed")
+
+        class StripBomb:
+            def strip(self):
+                raise RuntimeError("kind strip failed")
+
+        class StructuredGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "structured_cells":
+                    raise RuntimeError("structured field failed")
+                return super().get(key, default)
+
+        class StructuredTruthMetadata(dict):
+            def get(self, key, default=None):
+                if key == "structured_cells":
+                    return TruthBomb("structured truth failed")
+                return super().get(key, default)
+
+        class StructuredIterationMetadata(dict):
+            def get(self, key, default=None):
+                if key == "structured_cells":
+                    return IterBomb()
+                return super().get(key, default)
+
+        assert_preparation_failure("metadata field failed", MetadataFieldCandidate())
+        assert_preparation_failure(
+            "metadata truth failed",
+            {"metadata": TruthBomb("metadata truth failed")},
+        )
+        assert_preparation_failure(
+            "metadata copy failed",
+            {"metadata": {}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=RuntimeError("metadata copy failed"),
+                create=True,
+            ),
+        )
+        assert_preparation_failure("kind field failed", KindFieldCandidate())
+        assert_preparation_failure(
+            "kind truth failed",
+            {"metadata": {}, "candidate_kind": TruthBomb("kind truth failed")},
+        )
+        assert_preparation_failure(
+            "kind string failed",
+            {"metadata": {}, "candidate_kind": KindStringBomb()},
+        )
+        assert_preparation_failure(
+            "kind strip failed",
+            {"metadata": {}, "candidate_kind": "table_row"},
+            patch.object(
+                financial_structured_cells,
+                "str",
+                return_value=StripBomb(),
+                create=True,
+            ),
+        )
+        assert_preparation_failure(
+            "structured field failed",
+            {"metadata": {}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=StructuredGetBomb(),
+                create=True,
+            ),
+        )
+        assert_preparation_failure(
+            "structured truth failed",
+            {"metadata": {}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=StructuredTruthMetadata(),
+                create=True,
+            ),
+        )
+        assert_preparation_failure(
+            "structured iteration failed",
+            {"metadata": {}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=StructuredIterationMetadata(),
+                create=True,
+            ),
+        )
+
+        real_dict = dict
+        copy_count = 0
+
+        def truth_failing_cell_copy(value):
+            nonlocal copy_count
+            copy_count += 1
+            if copy_count == 1:
+                return real_dict(value)
+            return TruthBomb("cell truth failed")
+
+        assert_preparation_failure(
+            "cell truth failed",
+            {"metadata": {"structured_cells": [{"value_text": "10"}]}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=truth_failing_cell_copy,
+                create=True,
+            ),
+        )
+        self.assertEqual(copy_count, 2)
+
+        copy_count = 0
+
+        def expression_failing_cell_copy(value):
+            nonlocal copy_count
+            copy_count += 1
+            if copy_count == 1:
+                return real_dict(value)
+            if copy_count == 2:
+                return {"value_text": "10"}
+            raise RuntimeError("cell expression copy failed")
+
+        assert_preparation_failure(
+            "cell expression copy failed",
+            {"metadata": {"structured_cells": [{"value_text": "10"}]}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=expression_failing_cell_copy,
+                create=True,
+            ),
+        )
+        self.assertEqual(copy_count, 3)
+
+        class YearGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "year":
+                    raise RuntimeError("year field failed")
+                return super().get(key, default)
+
+        copy_count = 0
+
+        def year_failing_copy(value):
+            nonlocal copy_count
+            copy_count += 1
+            if copy_count == 1:
+                return YearGetBomb(value)
+            return real_dict(value)
+
+        assert_preparation_failure(
+            "year field failed",
+            {"metadata": {"structured_cells": [{"value_text": "10"}]}},
+            patch.object(
+                financial_structured_cells,
+                "dict",
+                side_effect=year_failing_copy,
+                create=True,
+            ),
+        )
+        self.assertEqual(copy_count, 3)
+
+    def test_current_source_candidate_selected_cell_projection_pins_parser_fallback_enrichment_and_stops(self) -> None:
+        nested = {"preserve": True}
+        operand = {"label": "Revenue", "nested": nested}
+        query_years = [2024]
+        parser_cells = [
+            {"value_text": "10", "_report_year": "stale", "nested": nested},
+            {"value_text": "20", "nested": nested},
+        ]
+        metadata = {
+            "structured_cells": [],
+            "row_text": "10 | 20",
+            "year": 2024,
+            "nested": nested,
+        }
+        candidate = {
+            "candidate_kind": " evidence_row ",
+            "metadata": metadata,
+            "nested": nested,
+        }
+        selected = {"selected": True, "nested": nested}
+        events = []
+
+        def parser(row_text, current_metadata):
+            events.append("parser")
+            self.assertEqual(row_text, "10 | 20")
+            self.assertIsNot(current_metadata, metadata)
+            self.assertEqual(current_metadata, metadata)
+            self.assertIs(current_metadata["nested"], nested)
+            return parser_cells
+
+        def selector(cells, **kwargs):
+            events.append("selector")
+            self.assertEqual(
+                cells,
+                [
+                    {"value_text": "10", "_report_year": 2024, "nested": nested},
+                    {"value_text": "20", "nested": nested, "_report_year": 2024},
+                ],
+            )
+            self.assertIsNot(cells[0], parser_cells[0])
+            self.assertIsNot(cells[1], parser_cells[1])
+            self.assertIs(cells[0]["nested"], nested)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertEqual(kwargs["period_focus"], "prior")
+            return selected
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_parse_unstructured_table_row_cells",
+                side_effect=parser,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                side_effect=selector,
+            ),
+        ):
+            self.assertIs(
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="prior",
+                ),
+                selected,
+            )
+        self.assertEqual(events, ["parser", "selector"])
+        self.assertEqual(parser_cells[0]["_report_year"], "stale")
+        self.assertNotIn("_report_year", parser_cells[1])
+        self.assertIs(candidate["metadata"]["nested"], nested)
+
+        stopped_parser = Mock(
+            side_effect=AssertionError("other candidate kinds must skip parser fallback")
+        )
+        stopped_selector = Mock(
+            side_effect=AssertionError("empty cells must stop selection")
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_parse_unstructured_table_row_cells",
+                stopped_parser,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                stopped_selector,
+            ),
+        ):
+            self.assertIsNone(
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    {
+                        "candidate_kind": "TABLE_ROW",
+                        "metadata": {"structured_cells": [], "row_text": "10"},
+                    },
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+            )
+        stopped_parser.assert_not_called()
+        stopped_selector.assert_not_called()
+
+        empty_selector = Mock(
+            side_effect=AssertionError("empty parser output must stop selection")
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_parse_unstructured_table_row_cells",
+                return_value=[],
+            ) as empty_parser,
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                empty_selector,
+            ),
+        ):
+            self.assertIsNone(
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    {
+                        "candidate_kind": "table_row",
+                        "metadata": {"structured_cells": [], "row_text": ""},
+                    },
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+            )
+        empty_parser.assert_called_once()
+        empty_selector.assert_not_called()
+
+        stopped_after_parser = Mock(
+            side_effect=AssertionError("parser failure must stop selection")
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_parse_unstructured_table_row_cells",
+                side_effect=RuntimeError("parser failed"),
+            ),
+            patch.object(
+                financial_structured_cells,
+                "select_structured_cell",
+                stopped_after_parser,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "parser failed"):
+                financial_structured_cells.candidate_selected_cell_for_operand(
+                    {
+                        "candidate_kind": "evidence_row",
+                        "metadata": {"structured_cells": [], "row_text": "10"},
+                    },
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        stopped_after_parser.assert_not_called()
+
+        class TruthBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __bool__(self):
+                raise RuntimeError(self.message)
+
+        class RowTextGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "row_text":
+                    raise RuntimeError("row text field failed")
+                return super().get(key, default)
+
+        class RowTextTruthMetadata(dict):
+            def get(self, key, default=None):
+                if key == "row_text":
+                    return TruthBomb("row text truth failed")
+                return super().get(key, default)
+
+        class RowTextStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("row text string failed")
+
+        class ParserIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("parser iteration failed")
+
+        class UnpackBomb:
+            def keys(self):
+                raise RuntimeError("cell unpack failed")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        class ParserYearGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "year":
+                    raise RuntimeError("parser year failed")
+                return super().get(key, default)
+
+        def assert_fallback_failure(
+            message,
+            current_metadata,
+            *,
+            parser_result=None,
+            parser_effect=None,
+            metadata_owner=None,
+        ):
+            stopped_selection = Mock(
+                side_effect=AssertionError(f"{message} must stop selection")
+            )
+            parser_kwargs = (
+                {"side_effect": parser_effect}
+                if parser_effect is not None
+                else {"return_value": parser_result}
+            )
+            with ExitStack() as stack:
+                if metadata_owner is not None:
+                    stack.enter_context(metadata_owner)
+                parser_mock = stack.enter_context(
+                    patch.object(
+                        financial_structured_cells,
+                        "_parse_unstructured_table_row_cells",
+                        **parser_kwargs,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_structured_cells,
+                        "select_structured_cell",
+                        stopped_selection,
+                    )
+                )
+                with self.assertRaisesRegex(RuntimeError, message):
+                    financial_structured_cells.candidate_selected_cell_for_operand(
+                        {
+                            "candidate_kind": "table_row",
+                            "metadata": current_metadata,
+                        },
+                        operand=operand,
+                        query_years=query_years,
+                        period_focus="current",
+                    )
+            stopped_selection.assert_not_called()
+            return parser_mock
+
+        row_get_parser = assert_fallback_failure(
+            "row text field failed",
+            {},
+            parser_result=[],
+            metadata_owner=patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=RowTextGetBomb(structured_cells=[]),
+                create=True,
+            ),
+        )
+        row_get_parser.assert_not_called()
+
+        row_truth_parser = assert_fallback_failure(
+            "row text truth failed",
+            {},
+            parser_result=[],
+            metadata_owner=patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=RowTextTruthMetadata(structured_cells=[]),
+                create=True,
+            ),
+        )
+        row_truth_parser.assert_not_called()
+
+        row_string_parser = assert_fallback_failure(
+            "row text string failed",
+            {
+                "structured_cells": [],
+                "row_text": RowTextStringBomb(),
+            },
+            parser_result=[],
+        )
+        row_string_parser.assert_not_called()
+
+        parser_truth = assert_fallback_failure(
+            "parser truth failed",
+            {"structured_cells": [], "row_text": "10"},
+            parser_result=TruthBomb("parser truth failed"),
+        )
+        parser_truth.assert_called_once()
+
+        parser_iteration = assert_fallback_failure(
+            "parser iteration failed",
+            {"structured_cells": [], "row_text": "10"},
+            parser_result=ParserIterationBomb(),
+        )
+        parser_iteration.assert_called_once()
+
+        parser_unpack = assert_fallback_failure(
+            "cell unpack failed",
+            {"structured_cells": [], "row_text": "10"},
+            parser_result=[UnpackBomb()],
+        )
+        parser_unpack.assert_called_once()
+
+        parser_year = assert_fallback_failure(
+            "parser year failed",
+            {},
+            parser_result=[{"value_text": "10"}],
+            metadata_owner=patch.object(
+                financial_structured_cells,
+                "dict",
+                return_value=ParserYearGetBomb(
+                    structured_cells=[],
+                    row_text="10",
+                ),
+                create=True,
+            ),
+        )
+        parser_year.assert_called_once()
+
+    def test_current_source_candidate_selected_cell_bindings_pin_def_call_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_name = "candidate_selected_cell_for_operand"
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(owner_name, "financial_structured_cells")
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 21)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["candidate"])
+        self.assertEqual(
+            [arg.arg for arg in definition.args.kwonlyargs],
+            ["operand", "query_years", "period_focus"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "Optional[Dict[str, Any]]")
+        self.assertFalse(any(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)))
+
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "dict": 3,
+                "str": 2,
+                "get": 5,
+                "strip": 1,
+                "_parse_unstructured_table_row_cells": 1,
+                "select_structured_cell": 1,
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_helpers",
+                    "_deterministic_reconcile_task",
+                    "Name",
+                    ("candidate",),
+                    (
+                        ("operand", "operand"),
+                        ("query_years", "years"),
+                        ("period_focus", "period_focus"),
+                    ),
+                    0,
+                )
+            ],
+        )
+
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+                if module_name in {"financial_graph_helpers", "financial_structured_cells"}
+            },
+            {
+                "financial_graph_helpers": (9, 92),
+                "financial_structured_cells": (4, 4),
+            },
+        )
+
+        selector_calls = []
+        for module_name, tree in module_trees.items():
+            function_stack = []
+
+            class SelectorVisitor(ast.NodeVisitor):
+                def visit_FunctionDef(self, node):
+                    function_stack.append(node.name)
+                    self.generic_visit(node)
+                    function_stack.pop()
+
+                visit_AsyncFunctionDef = visit_FunctionDef
+
+                def visit_Call(self, node):
+                    called_name = (
+                        node.func.id
+                        if isinstance(node.func, ast.Name)
+                        else node.func.attr
+                        if isinstance(node.func, ast.Attribute)
+                        else ""
+                    )
+                    if called_name == "select_structured_cell":
+                        selector_calls.append(
+                            (module_name, function_stack[-1] if function_stack else "")
+                        )
+                    self.generic_visit(node)
+
+            SelectorVisitor().visit(tree)
+        self.assertEqual(len(selector_calls), 7)
+        self.assertEqual(
+            {
+                module: sum(1 for current_module, _caller in selector_calls if current_module == module)
+                for module in {current_module for current_module, _caller in selector_calls}
+            },
+            {
+                "financial_graph_calculation": 1,
+                "financial_graph_reconciliation": 3,
+                "financial_lookup_recovery": 2,
+                "financial_structured_cells": 1,
+            },
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_structured_cells",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        graph_imports = imported_modules(module_trees["financial_graph_helpers"])
+        self.assertIn("src.agent.financial_row_surfaces", graph_imports)
+        self.assertIn("src.agent.financial_structured_cells", graph_imports)
+        graph_structured_imports = {
+            alias.name
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_structured_cells"
+            for alias in node.names
+        }
+        structured_row_imports = {
+            alias.name
+            for node in module_trees["financial_structured_cells"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_row_surfaces"
+            for alias in node.names
+        }
+        self.assertIn("candidate_selected_cell_for_operand", graph_structured_imports)
+        self.assertNotIn("select_structured_cell", graph_structured_imports)
+        self.assertIn("_parse_unstructured_table_row_cells", structured_row_imports)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_structured_cells.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_candidate_selected_cell_projection_pins_structured_copy_order_identity_and_exceptions",
+            "test_current_source_candidate_selected_cell_projection_pins_parser_fallback_enrichment_and_stops",
+            "test_current_source_candidate_selected_cell_bindings_pin_def_call_dag_imports_and_baseline",
+            "test_current_source_candidate_selected_cell_caller_pins_gates_order_identity_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_selected_cell_caller_pins_gates_order_identity_and_stops(self) -> None:
+        nested = {"preserve": True}
+        required_operand = {
+            "label": "Revenue",
+            "required": True,
+            "nested": nested,
+        }
+        candidate = {
+            "candidate_id": "candidate-1",
+            "metadata": {},
+            "nested": nested,
+        }
+        selected_cell = {
+            "value_text": "10",
+            "column_headers": ["2024"],
+            "nested": nested,
+        }
+        years = [2024]
+        events = []
+        projected_operands = []
+
+        def candidate_match(actual_candidate, actual_operand):
+            events.append("match")
+            self.assertIs(actual_candidate, candidate)
+            projected_operands.append(actual_operand)
+            return True
+
+        def score_candidate(actual_candidate, **kwargs):
+            events.append("score")
+            self.assertIs(actual_candidate, candidate)
+            projected_operands.append(kwargs["operand"])
+            self.assertIs(kwargs["query_years"], years)
+            return 5.0
+
+        def period_focus(actual_operand, fallback):
+            events.append("focus")
+            projected_operands.append(actual_operand)
+            self.assertEqual(fallback, "unknown")
+            return "current"
+
+        def select_cell(actual_candidate, **kwargs):
+            events.append("select")
+            self.assertIs(actual_candidate, candidate)
+            projected_operands.append(kwargs["operand"])
+            self.assertIs(kwargs["query_years"], years)
+            self.assertEqual(kwargs["period_focus"], "current")
+            return selected_cell
+
+        def accept_candidate(actual_candidate, **kwargs):
+            events.append("accept")
+            self.assertIs(actual_candidate, candidate)
+            projected_operands.append(kwargs["operand"])
+            self.assertIs(kwargs["selected_cell"], selected_cell)
+            return True
+
+        def logical_signature(actual_candidate, **kwargs):
+            events.append("logical")
+            self.assertIs(actual_candidate, candidate)
+            self.assertIs(kwargs["selected_cell"], selected_cell)
+            return ("scope", "row", "10", "2024")
+
+        def family_signature(actual_candidate, **kwargs):
+            events.append("family")
+            self.assertIs(actual_candidate, candidate)
+            self.assertIs(kwargs["selected_cell"], selected_cell)
+            return ("scope", "row", "2024", "type")
+
+        def canonical_winner(actual_candidate, **kwargs):
+            events.append("winner")
+            self.assertIs(actual_candidate, candidate)
+            projected_operands.append(kwargs["operand"])
+            self.assertIs(kwargs["query_years"], years)
+            return False
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_matches_operand",
+                side_effect=candidate_match,
+            ),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(
+                financial_graph_helpers,
+                "_score_operand_candidate",
+                side_effect=score_candidate,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "operand_period_focus",
+                side_effect=period_focus,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_selected_cell_for_operand",
+                side_effect=select_cell,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_satisfies_direct_acceptance_contract",
+                side_effect=accept_candidate,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_direct_logical_signature",
+                side_effect=logical_signature,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_direct_family_signature",
+                side_effect=family_signature,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_canonical_statement_winner",
+                side_effect=canonical_winner,
+            ),
+        ):
+            result = financial_graph_helpers._deterministic_reconcile_task(
+                active_subtask={
+                    "task_id": "task-1",
+                    "operation_family": "lookup",
+                    "required_operands": [required_operand],
+                },
+                candidates=[candidate],
+                years=years,
+                reconciliation_retry_count=1,
+            )
+
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["matched_operands"][0]["candidate_ids"], ["candidate-1"])
+        self.assertEqual(
+            events,
+            [
+                "match",
+                "score",
+                "focus",
+                "select",
+                "accept",
+                "logical",
+                "family",
+                "score",
+                "winner",
+            ],
+        )
+        projected_operand = projected_operands[0]
+        self.assertIsNot(projected_operand, required_operand)
+        self.assertIs(projected_operand["nested"], nested)
+        self.assertTrue(all(item is projected_operand for item in projected_operands))
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(selected_cell["nested"], nested)
+
+        stopped_selector = Mock(
+            side_effect=AssertionError("non-direct operation must skip selected-cell projection")
+        )
+        with (
+            patch.object(financial_graph_helpers, "_candidate_matches_operand", return_value=True),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "_score_operand_candidate", return_value=1.0),
+            patch.object(financial_graph_helpers, "candidate_selected_cell_for_operand", stopped_selector),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_direct_grounding_candidate",
+                return_value=True,
+            ),
+        ):
+            non_direct = financial_graph_helpers._deterministic_reconcile_task(
+                active_subtask={
+                    "task_id": "task-sum",
+                    "operation_family": "sum",
+                    "required_operands": [required_operand],
+                },
+                candidates=[candidate],
+                years=years,
+                reconciliation_retry_count=1,
+            )
+        self.assertEqual(non_direct["status"], "ready")
+        stopped_selector.assert_not_called()
+
+        stopped_after_rejection = Mock(
+            side_effect=AssertionError("acceptance miss must stop signatures")
+        )
+        with (
+            patch.object(financial_graph_helpers, "_candidate_matches_operand", return_value=True),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "_score_operand_candidate", return_value=1.0),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="current"),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_selected_cell_for_operand",
+                return_value=selected_cell,
+            ) as rejected_selector,
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_satisfies_direct_acceptance_contract",
+                return_value=False,
+            ) as rejected_acceptance,
+            patch.object(
+                financial_graph_helpers,
+                "candidate_direct_logical_signature",
+                stopped_after_rejection,
+            ),
+        ):
+            rejected = financial_graph_helpers._deterministic_reconcile_task(
+                active_subtask={
+                    "task_id": "task-rejected",
+                    "operation_family": "lookup",
+                    "required_operands": [required_operand],
+                },
+                candidates=[candidate],
+                years=years,
+                reconciliation_retry_count=1,
+            )
+        self.assertEqual(rejected["status"], "insufficient_operands")
+        rejected_selector.assert_called_once()
+        self.assertIs(rejected_selector.call_args.args[0], candidate)
+        self.assertIs(rejected_selector.call_args.kwargs["query_years"], years)
+        self.assertIs(rejected_acceptance.call_args.kwargs["selected_cell"], selected_cell)
+        stopped_after_rejection.assert_not_called()
+
+        stopped_acceptance = Mock(
+            side_effect=AssertionError("selector failure must stop acceptance")
+        )
+        with (
+            patch.object(financial_graph_helpers, "_candidate_matches_operand", return_value=True),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "_score_operand_candidate", return_value=1.0),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="current"),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_selected_cell_for_operand",
+                side_effect=RuntimeError("selection failed"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_satisfies_direct_acceptance_contract",
+                stopped_acceptance,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "selection failed"):
+                financial_graph_helpers._deterministic_reconcile_task(
+                    active_subtask={
+                        "task_id": "task-failed",
+                        "operation_family": "lookup",
+                        "required_operands": [required_operand],
+                    },
+                    candidates=[candidate],
+                    years=years,
+                    reconciliation_retry_count=1,
+                )
+        stopped_acceptance.assert_not_called()
+
     def test_current_source_structured_cell_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
         repo_root = Path(__file__).resolve().parents[1]
         agent_root = repo_root / "src" / "agent"
@@ -15032,9 +16269,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "select_structured_cell": {
                     "financial_graph_calculation": 1,
-                    "financial_graph_helpers": 1,
                     "financial_graph_reconciliation": 3,
                     "financial_lookup_recovery": 2,
+                    "financial_structured_cells": 1,
                 },
                 "select_aggregate_structured_cell": {
                     "financial_graph_calculation": 1,
@@ -15053,11 +16290,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sorted(
                 (entry[1], entry[3], entry[4])
                 for entry in calls["select_structured_cell"]
-                if entry[0] == "financial_graph_helpers"
+                if entry[0] == "financial_structured_cells"
             ),
             [
                 (
-                    "_candidate_selected_cell_for_operand",
+                    "candidate_selected_cell_for_operand",
                     ("cells",),
                     (
                         ("operand", "operand"),
@@ -15091,7 +16328,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in structured_functions),
                 sum(name.startswith("_") for name in structured_functions),
             ),
-            (3, 4),
+            (4, 4),
         )
         self.assertTrue(target_names.issubset(structured_functions))
 
@@ -15196,12 +16433,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return selected
 
         with patch.object(
-            financial_graph_helpers,
+            financial_structured_cells,
             "select_structured_cell",
             side_effect=selector,
         ):
             self.assertIs(
-                financial_graph_helpers._candidate_selected_cell_for_operand(
+                financial_structured_cells.candidate_selected_cell_for_operand(
                     candidate,
                     operand=operand,
                     query_years=[2024],
@@ -15221,12 +16458,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(candidate["nested"], nested)
 
         with patch.object(
-            financial_graph_helpers,
+            financial_structured_cells,
             "select_structured_cell",
             side_effect=RuntimeError("selector failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "selector failed"):
-                financial_graph_helpers._candidate_selected_cell_for_operand(
+                financial_structured_cells.candidate_selected_cell_for_operand(
                     candidate,
                     operand=operand,
                     query_years=[2024],
@@ -17462,7 +18699,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 93),
+            (9, 92),
         )
         self.assertEqual(
             (
