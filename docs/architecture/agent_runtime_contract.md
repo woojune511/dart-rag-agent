@@ -3866,16 +3866,15 @@ work, and final sequencing remain graph-owned. No wrapper, alias, compatibility
 bridge, concept-specific semantic expansion, or evidence/state expansion is
 authorized.
 
-The completed characterize-only lookup-hint inventory selects the exact current
-5/14/7/5-line private group in `financial_graph_helpers.py` for a future public
-move to `financial_operand_resolution.py`:
+The lookup-hint projection/match boundary completed in `2eec794`. The exact
+former 5/14/7/5-line private group in `financial_graph_helpers.py` now lives as
+public functions in `financial_operand_resolution.py`:
 `lookup_prefers_canonical_statement_rows(...)`,
 `lookup_canonical_statement_preferences(...)`,
 `lookup_query_surface_preferences(...)`, and
-`operand_lookup_surface_match(...)`. No production source or test has moved at
-this checkpoint. These functions project ontology lookup hints and perform one
-operand-surface match; they do not own task construction, candidate admission,
-scoring, retry assembly, or graph state.
+`operand_lookup_surface_match(...)`. These functions project ontology lookup
+hints and perform one operand-surface match; they do not own task construction,
+candidate admission, scoring, retry assembly, or graph state.
 
 Canonical-row preference calls `_operand_segment_label(...)` first with the
 original operand. A truthy segment returns `False` before concept or hint access.
@@ -3894,8 +3893,8 @@ must remain exact. Surface matching calls query projection once, stops on a
 falsy collection, and otherwise forwards the exact text and collection identity
 to `_text_has_contract_term(...)`, returning its result without added coercion.
 
-The 17 direct calls finish graph-external 7/5/3/1 and owner-local 0/0/1/0 after
-the future move, with every call outside `try`. Winner selection retains its
+The 17 direct calls finish graph-external 7/5/3/1 and owner-local 0/0/1/0, with
+every call outside `try`. Winner selection retains its
 preference-first stop. Generic retrieval retains label, first-three-alias, hint-
 surface order, variant expansion, and stable dedupe. Producer-task construction
 retains two distinct preference checks, explicit-policy laziness, role/stage
@@ -3908,22 +3907,89 @@ surface projection remains earlier than canonical section prepend.
 
 `financial_operand_resolution.py` already defines the hint owner and imports
 `_operand_segment_label(...)` from surface contracts. Adding
-`_text_has_contract_term(...)` changes no module edge; graph already reaches the
+`_text_has_contract_term(...)` changed no module edge; graph already reaches the
 operand owner, and the owner does not reach graph. Moving only the first three
 would leave a one-call graph composer and split the semantic boundary. Moving
 the group to surface contracts would reverse the existing operand-to-surface
-edge. The selected four-function move instead projects graph helpers from
-public/private 9/108 to 9/104 and operand resolution from 37/37 to 41/37.
+edge. The selected four-function move projected graph helpers from public/
+private 9/108 to 9/104 and operand resolution from 37/37 to 41/37.
 
-Four named CURRENT-SOURCE methods and the exact pre/post call, import, behavior,
-caller, stop, baseline, and gate contracts are maintained only in
+Four CURRENT-SOURCE methods passed before and after relocation. They pin exact
+projection/filter behavior, segment and matcher short-circuits, identity,
+stringification counts, exceptions, definitions/calls/DAG/baseline, all eight
+caller contexts, adoption order, and stops. Selected body parity 4/4, all 113
+retained graph functions, full caller/DAG parity, and retired private source/
+test refs zero passed. Source moved `+60/-57`, tests `+1,673/-20`, and the whole
+commit `+1,733/-77`; graph helpers finish at 5,861 lines and operand resolution
+at 3,643. The source diff SHA-256 is
+`262d0304e03d9574acd45cb97e1c8b4ec4c32164f766a60c057c7bb526cc8416`.
+Focused 4/4, owner 127/127, affected semantic 938/938, import 19/19, audit 218,
+and full 1,911/1,911 passed in the project `.venv`, with pycompile/fresh import,
+public identity, and diff check. Benchmark refresh was **NOT RUN** and remote CI
+is unverified.
+
+Lookup producer-task construction, direct grounding/acceptance, canonical-
+winner selection, generic/retry query assembly, direct-match strength, broad
+scoring, candidate/evidence construction and adoption, mutable state/evidence,
+artifacts/ledger, and final sequencing remain graph-owned. No wrapper, alias,
+compatibility bridge, concept-specific semantic expansion, or evidence/state
+expansion is authorized.
+
+The completed characterize-only direct candidate-signature inventory selects
+the exact current 26-line `_candidate_direct_logical_signature(...)` and 22-line
+`_candidate_direct_family_signature(...)` graph definitions for a future public
+move to `financial_operand_resolution.py` as
+`candidate_direct_logical_signature(...)` and
+`candidate_direct_family_signature(...)`. No production source or test has
+moved for this pair at this checkpoint. These functions project collapse keys
+over already prepared candidates; they do not own admission, ranking, collapse,
+or reconciliation state.
+
+Both functions shallow-copy `candidate.get("metadata") or {}` before calling
+`candidate_row_block_signature(...)` once with the original candidate. They
+normalize table source and choose row label lazily in row, semantic, aggregate,
+empty order. Scope uses block signature, then table source, then lazy section
+path. Candidate and selected-cell inputs remain unmodified, nested metadata
+identities survive the shallow copy, and mapping, copy, truth-value, lookup,
+normalization, and stringification errors remain uncaught.
+
+Logical signature returns scope, row label, value text, and period marker. It
+uses selected-cell value first, then metadata row text, then candidate text. It
+uses selected-cell headers first and falls back to metadata `period_focus` only
+when their normalized marker is empty. Its value and header `(selected_cell or
+{})` expressions remain separate. Family signature returns scope, row label,
+selected-cell period marker, and statement type. It intentionally does not use
+metadata `period_focus`; missing headers leave its period component empty. Both
+header projections preserve order/duplicates, stringify blank items once and
+retained items twice, join with one space, and normalize the result.
+
+Each selected function has one graph-external direct-name call outside `try`
+from `_deterministic_reconcile_task(...)`, receiving the exact candidate and
+selected-cell objects. The underlying block-signature matrix changes from
+external six/local one to external four/local three after relocation, with no
+new edge; graph already reaches the operand owner and the owner does not reach
+graph. Projected function counts are graph helpers 9/102 and operand resolution
+43/37.
+
+The caller reaches the pair only after selected-cell construction and direct-
+acceptance success. Direct-entry evaluation remains candidate, logical, family,
+selected value, score, canonical winner. Exceptions stop all later fields and
+no partial entry is appended. Family signatures and distinct selected values
+choose the single-family fast collapse; otherwise logical signatures key the
+best-by-signature grouping before sibling, canonical, semantic, and score policy.
+All of those decisions remain graph-owned.
+
+Sibling-surface ranking, canonical-winner, semantic priority, candidate value-
+role/stage, direct acceptance, and collapse are rejected expansions. Four named
+CURRENT-SOURCE methods and exact behavior/caller/DAG/projected-gate contracts
+are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 127/127, affected semantic 938/938, import 19/19,
-audit 218, full 1,911/1,911, pycompile/fresh import and public identity, selected
-body parity 4/4, all 113 retained graph functions, caller/DAG parity, retired-ref
+gates are focused 4/4, owner 131/131, affected semantic 942/942, import 19/19,
+audit 218, full 1,915/1,915, pycompile/fresh import and public identity, selected
+body parity 2/2, all 111 retained graph functions, caller/DAG parity, retired-ref
 zero, and diff check. Static AST/DAG, selected-body baseline, and isolated
-behavior probes passed for this inventory; benchmark refresh and remote CI were
-**NOT RUN**.
+projection/caller probes passed; benchmark refresh and remote CI were **NOT
+RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

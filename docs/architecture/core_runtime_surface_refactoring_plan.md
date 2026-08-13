@@ -191,7 +191,7 @@ Current ownership is intentionally split by state boundary:
 | Surface | Owner | Stop line |
 | --- | --- | --- |
 | Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
-| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, lookup-hint projection/matching, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
@@ -717,25 +717,42 @@ body/retained/caller/DAG parity, and retired-ref zero passed. The source diff
 SHA-256 is
 `075e776a65b50061c7751b2340b7eb256ad8d8f0cfbc85887a3f42867f2ae55a`.
 
-The completed characterize-only inventory selects one follow-on: move the exact
-5/14/7/5-line lookup-hint projection/match group from graph helpers to four
-public functions in `financial_operand_resolution.py`. Its 17 calls finish
-external 16/local one. The owner already defines the hint lookup, imports the
-segment projection and surface-contract module, and is already below graph
-helpers; the move adds no module edge. Projected function counts are graph
-helpers 9/104 and operand resolution 41/37.
+The completed `2eec794` follow-on moved the exact 5/14/7/5-line lookup-hint
+projection/match group from graph helpers to four public functions in
+`financial_operand_resolution.py`. Its 17 calls finish graph-external 16/owner-
+local one. Source is `+60/-57`, tests `+1,673/-20`, and the whole commit
+`+1,733/-77`; graph helpers moved from 5,898 to 5,861 lines and operand
+resolution from 3,603 to 3,643. Focused 4/4, owner 127/127, affected semantic
+938/938, import 19/19, audit 218, full 1,911/1,911, pycompile/fresh import/public
+identity, body/retained/caller/DAG parity, retired-ref zero, and diff check
+passed. The source diff SHA-256 is
+`262d0304e03d9574acd45cb97e1c8b4ec4c32164f766a60c057c7bb526cc8416`.
+Lookup task construction, candidate admission/scoring, retry assembly, state/
+evidence, artifacts/ledger, and final sequencing remain hard stops.
 
-Moving only the first three projections is rejected because it leaves a one-
-call graph matcher that only composes query hints with the existing contract-
-term primitive. Surface-contract ownership would reverse the current operand-
-to-surface edge, and leaving all four in graph has no state, caller, or DAG
-justification. Exact behavior, eight caller contexts, four required CURRENT-
-SOURCE methods, stops, and projected focused 4/4, owner 127/127, affected
-semantic 938/938, import 19/19, audit 218, and full 1,911/1,911 gates are defined
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
-No source or test movement has occurred at this characterization checkpoint;
-the selected four-function move is the sole next priority, and this plan does
-not maintain a competing queue.
+The completed characterize-only inventory selects one follow-on: move only the
+exact current 26/22-line direct logical/family candidate-signature pair from
+graph helpers to public `candidate_direct_logical_signature(...)` and
+`candidate_direct_family_signature(...)` in the operand owner. Each public call
+remains graph-external one/local zero, while the underlying seven-call
+`candidate_row_block_signature(...)` matrix changes from external six/local one
+to external four/local three. The owner already defines that block primitive and
+all other selected dependencies; the move removes its graph import and adds no
+module edge. Projected function counts are graph helpers 9/102 and operand
+resolution 43/37.
+
+Sibling-surface, canonical-winner, semantic-priority, candidate role/stage,
+direct acceptance, and collapse policy are rejected expansions because they own
+ranking or admission rather than direct identity projection. Reconciliation
+owners already reach graph helpers, and row/surface/structured-cell owners do
+not own the block signature. Exact projection asymmetries, caller/collapse
+stops, four required CURRENT-SOURCE methods, and projected focused 4/4, owner
+131/131, affected semantic 942/942, import 19/19, audit 218, and full
+1,915/1,915 gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No source
+or test movement has occurred for this pair at the characterization checkpoint;
+the selected two-function move is the sole next priority, and this plan does not
+maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

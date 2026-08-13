@@ -287,7 +287,7 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
+| `financial_operand_resolution.py` | candidate match/merge/adoption, lookup-hint projection/matching, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
@@ -627,13 +627,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,907/1,907과 pycompile/fresh import, AST/caller/DAG parity가 통과했다.
   Candidate value-role/stage 16/18줄과 각 11 call, direct/ratio acceptance,
   matching/scoring, state/evidence/ledger와 final sequencing은 graph에 남는다.
-- 완료된 characterize-only inventory는 lookup-hint projection/match의 정확한
-  5/14/7/5줄 네 함수를 `financial_operand_resolution.py`의 public API로
-  옮기는 다음 production 작업을 선택했다. Projected call은 external 16/
-  local 1이고 graph helper public/private는 9/104, operand resolution은
-  41/37이다. 아직 source/test 이동은 없으며 exact behavior/caller/DAG와 네
-  CURRENT-SOURCE method, projected gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 lookup-hint projection/match batch는 graph helper의 정확한
+  5/14/7/5줄 네 정의를 `financial_operand_resolution.py`의 public API로
+  옮겼다. Call은 graph-external 16/owner-local 1이고 graph helper public/
+  private는 9/104, operand resolution은 41/37이다. Focused 4/4, owner
+  127/127, semantic 938/938, import 19/19, audit 218, full 1,911/1,911과
+  pycompile/fresh import/public identity, AST/caller/DAG parity가 통과했다.
+  Lookup task construction, candidate admission/scoring, retry assembly,
+  state/evidence/ledger와 final sequencing은 graph에 남는다.
+- 완료된 characterize-only inventory는 direct logical/family candidate-
+  signature의 정확한 26/22줄 pair를 `financial_operand_resolution.py`의
+  public API로 옮기는 다음 production 작업을 선택했다. 두 selected call은
+  external 2/local 0을 유지하고 block-signature call은 external 6/local 1에서
+  external 4/local 3으로 수렴한다. Projected graph helper public/private는
+  9/102, operand resolution은 43/37이다. 아직 이 pair의 source/test 이동은
+  없으며 exact behavior/caller/collapse/DAG와 네 CURRENT-SOURCE method,
+  projected gate는 [Project Status의 Next Work](project_status.md#next-work)가
+  단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 
