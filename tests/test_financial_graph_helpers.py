@@ -1,4 +1,5 @@
 import ast
+from contextlib import ExitStack
 from copy import deepcopy
 import inspect
 import json
@@ -2292,7 +2293,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 128),
+            (9, 122),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -3158,8 +3159,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "operand_target_years": {
-                    "financial_graph_helpers": 10,
+                    "financial_graph_helpers": 5,
                     "financial_reconciliation_candidates": 2,
+                    "financial_scope_policies": 5,
                     "financial_structured_cells": 2,
                 },
                 "operand_period_focus": {
@@ -3179,7 +3181,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual((14 + 23, 1), (37, 1))
+        self.assertEqual((9 + 23, 5 + 1), (32, 6))
 
         scope_tree = module_trees["financial_scope_policies"]
         scope_functions = [
@@ -3192,7 +3194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (3, 7),
+            (7, 9),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -3281,12 +3283,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return [2024]
 
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "operand_target_years",
             side_effect=target_years_owner,
         ):
             self.assertEqual(
-                financial_graph_helpers._operand_target_receipts(
+                financial_scope_policies._operand_target_receipts(
                     operand,
                     query_years,
                     report_scope,
@@ -3299,12 +3301,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(operand, before_operand)
         self.assertEqual(report_scope, before_scope)
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "operand_target_years",
             side_effect=RuntimeError("target years failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "target years failed"):
-                financial_graph_helpers._operand_target_receipts(
+                financial_scope_policies._operand_target_receipts(
                     operand,
                     query_years,
                     report_scope,
@@ -4860,6 +4862,1402 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_coerce.assert_not_called()
         self.assertEqual(evidence_item, before_evidence)
         self.assertIs(evidence_item["nested"], nested)
+
+    def test_current_source_candidate_receipts_and_comparative_fallback_pin_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        source_rows = [
+            {"year": 2024, "rcept_no": "r-2024", "nested": nested},
+            {"year": 2023, "rcept_no": "r-2023", "nested": nested},
+            {"year": 2023, "rcept_no": "r-2023", "nested": nested},
+        ]
+        report_scope = {"source_reports": source_rows, "nested": nested}
+        query_years = [2024, 2023]
+
+        class ReceiptOperand(dict):
+            def get(self, key, default=None):
+                if key == "role":
+                    raise AssertionError("matched receipts must skip role fallback")
+                return super().get(key, default)
+
+        operand = ReceiptOperand({"period_hint": "current", "nested": nested})
+        before_operand = dict(operand)
+        before_scope = deepcopy(report_scope)
+        receipt_events = []
+
+        def source_owner(current_scope):
+            receipt_events.append("source")
+            self.assertIs(current_scope, report_scope)
+            return source_rows
+
+        def target_owner(current_operand, current_years):
+            receipt_events.append("target")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return [2023, 2024]
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_reports",
+                side_effect=source_owner,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "operand_target_years",
+                side_effect=target_owner,
+            ),
+        ):
+            self.assertEqual(
+                financial_scope_policies._operand_target_receipts(
+                    operand,
+                    query_years,
+                    report_scope,
+                ),
+                ["r-2023", "r-2024"],
+            )
+        self.assertEqual(receipt_events, ["source", "target"])
+        self.assertEqual(dict(operand), before_operand)
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(report_scope["nested"], nested)
+        self.assertIs(source_rows[0]["nested"], nested)
+
+        skipped_target = Mock(side_effect=AssertionError("empty source must stop target lookup"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=[]),
+            patch.object(financial_scope_policies, "operand_target_years", skipped_target),
+        ):
+            self.assertEqual(
+                financial_scope_policies._operand_target_receipts({}, [], report_scope),
+                [],
+            )
+        skipped_target.assert_not_called()
+
+        ranked_rows = [
+            {"year": 2022, "rcept_no": "r-2022"},
+            {"year": 2024, "rcept_no": "r-2024"},
+            {"year": 2023, "rcept_no": "r-2023"},
+        ]
+        for role, expected in (
+            ("current_period", ["r-2024"]),
+            ("prior_period", ["r-2023"]),
+            ("other", []),
+        ):
+            with self.subTest(role=role):
+                with (
+                    patch.object(
+                        financial_scope_policies,
+                        "_report_scope_source_reports",
+                        return_value=ranked_rows,
+                    ),
+                    patch.object(financial_scope_policies, "operand_target_years", return_value=[]),
+                ):
+                    self.assertEqual(
+                        financial_scope_policies._operand_target_receipts(
+                            {"role": role},
+                            query_years,
+                            report_scope,
+                        ),
+                        expected,
+                    )
+        self.assertEqual([row["year"] for row in ranked_rows], [2022, 2024, 2023])
+
+        candidate = {
+            "metadata": {
+                "rcept_no": "r-2024",
+                "period_focus": "current",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        current_operand = {"role": "current_period", "nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_current_operand = deepcopy(current_operand)
+        fallback_events = []
+
+        def fallback_source(current_scope):
+            fallback_events.append("source")
+            self.assertIs(current_scope, report_scope)
+            return ranked_rows
+
+        def fallback_targets(current_operand, current_years):
+            fallback_events.append("target")
+            self.assertIs(current_operand, current_operand_ref)
+            self.assertIs(current_years, query_years)
+            return [2024]
+
+        def explicit_owner(current_candidate):
+            fallback_events.append("explicit")
+            self.assertIs(current_candidate, candidate)
+            return [2024]
+
+        current_operand_ref = current_operand
+        with (
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_reports",
+                side_effect=fallback_source,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "operand_target_years",
+                side_effect=fallback_targets,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "candidate_explicit_years",
+                side_effect=explicit_owner,
+            ),
+        ):
+            self.assertTrue(
+                financial_scope_policies._candidate_allows_comparative_report_scope_fallback(
+                    candidate,
+                    operand=current_operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        self.assertEqual(fallback_events, ["source", "target", "explicit"])
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(current_operand, before_current_operand)
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(candidate["nested"], nested)
+
+        shallow_source = Mock(return_value=[ranked_rows[0]])
+        shallow_targets = Mock(side_effect=AssertionError("one source must stop target lookup"))
+        shallow_explicit = Mock(side_effect=AssertionError("one source must stop explicit years"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", shallow_source),
+            patch.object(financial_scope_policies, "operand_target_years", shallow_targets),
+            patch.object(financial_scope_policies, "candidate_explicit_years", shallow_explicit),
+        ):
+            self.assertFalse(
+                financial_scope_policies._candidate_allows_comparative_report_scope_fallback(
+                    candidate,
+                    operand=current_operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        shallow_targets.assert_not_called()
+        shallow_explicit.assert_not_called()
+
+        class CandidateMetadataBomb(dict):
+            def get(self, key, default=None):
+                if key == "metadata":
+                    raise AssertionError("year mismatch must stop metadata access")
+                return super().get(key, default)
+
+        mismatch_candidate = CandidateMetadataBomb()
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=ranked_rows),
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[2023]),
+        ):
+            self.assertFalse(
+                financial_scope_policies._candidate_allows_comparative_report_scope_fallback(
+                    mismatch_candidate,
+                    operand=current_operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+
+        class RoleBomb(dict):
+            def get(self, key, default=None):
+                if key == "role":
+                    raise AssertionError("receipt mismatch must stop role access")
+                return super().get(key, default)
+
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=ranked_rows),
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2023]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[2023]),
+        ):
+            self.assertFalse(
+                financial_scope_policies._candidate_allows_comparative_report_scope_fallback(
+                    {"metadata": {"rcept_no": "r-2023", "period_focus": "prior"}},
+                    operand=RoleBomb(),
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=ranked_rows),
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(
+                financial_scope_policies,
+                "candidate_explicit_years",
+                side_effect=RuntimeError("explicit years failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "explicit years failed"):
+                financial_scope_policies._candidate_allows_comparative_report_scope_fallback(
+                    candidate,
+                    operand=current_operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+
+    def test_current_source_candidate_year_projection_pins_policy_fallback_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        candidate = {
+            "metadata": {
+                "period_labels": ["2024 2022", "2024"],
+                "year": "2024",
+                "structured_cells": [
+                    {
+                        "period_text": "2023",
+                        "column_headers": ["CUR", "PREV"],
+                        "nested": nested,
+                    }
+                ],
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        before_candidate = deepcopy(candidate)
+        with (
+            patch.object(
+                financial_scope_policies,
+                "PERIOD_FOCUS_POLICY",
+                {"explicit_year_pattern": r"20\d{2}"},
+            ),
+            patch.object(
+                financial_scope_policies,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": ("CUR",),
+                    "prior_positive_markers": ("PREV",),
+                },
+            ),
+        ):
+            self.assertEqual(
+                financial_scope_policies.candidate_explicit_years(candidate),
+                [2022, 2023, 2024],
+            )
+        self.assertEqual(candidate, before_candidate)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(candidate["metadata"]["structured_cells"][0]["nested"], nested)
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "PERIOD_FOCUS_POLICY",
+                {"explicit_year_pattern": r"20\d{2}"},
+            ),
+            patch.object(
+                financial_scope_policies,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {"current_positive_markers": (), "prior_positive_markers": ()},
+            ),
+        ):
+            self.assertEqual(
+                financial_scope_policies.candidate_explicit_years(
+                    {
+                        "metadata": {
+                            "period_labels": ["2021"],
+                            "year": "bad",
+                            "structured_cells": [],
+                        }
+                    }
+                ),
+                [2021],
+            )
+
+        class PolicyBomb:
+            def keys(self):
+                raise RuntimeError("period policy copy failed")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        skipped_scoring = Mock(side_effect=AssertionError("period policy failure must stop scoring policy"))
+        with (
+            patch.object(financial_scope_policies, "PERIOD_FOCUS_POLICY", PolicyBomb()),
+            patch.object(
+                financial_scope_policies,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                skipped_scoring,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period policy copy failed"):
+                financial_scope_policies.candidate_explicit_years(candidate)
+
+        operand = {"period_hint": "current", "nested": nested}
+        query_years = [2024]
+        skipped_explicit = Mock(side_effect=AssertionError("empty target years must stop explicit years"))
+        with (
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", skipped_explicit),
+        ):
+            self.assertFalse(
+                financial_scope_policies.candidate_matches_operand_target_year(
+                    candidate,
+                    operand,
+                    query_years,
+                )
+            )
+        skipped_explicit.assert_not_called()
+
+        class MetadataBomb(dict):
+            def get(self, key, default=None):
+                if key == "metadata":
+                    raise AssertionError("explicit overlap must stop metadata access")
+                return super().get(key, default)
+
+        with (
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[2024]),
+        ):
+            self.assertTrue(
+                financial_scope_policies.candidate_matches_operand_target_year(
+                    MetadataBomb(),
+                    operand,
+                    query_years,
+                )
+            )
+
+        for period_focus, target_years, expected in (
+            ("prior", [2023], True),
+            ("current", [2024], True),
+            ("unknown", [2024], True),
+            ("prior", [2024], False),
+        ):
+            with self.subTest(period_focus=period_focus, target_years=target_years):
+                with (
+                    patch.object(financial_scope_policies, "operand_target_years", return_value=target_years),
+                    patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[]),
+                ):
+                    self.assertEqual(
+                        financial_scope_policies.candidate_matches_operand_target_year(
+                            {"metadata": {"year": 2024, "period_focus": period_focus}},
+                            operand,
+                            query_years,
+                        ),
+                        expected,
+                    )
+
+        class SoftIntBomb:
+            def __int__(self):
+                raise ValueError("soft year failure")
+
+        with (
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[]),
+        ):
+            self.assertFalse(
+                financial_scope_policies.candidate_matches_operand_target_year(
+                    {"metadata": {"year": SoftIntBomb()}},
+                    operand,
+                    query_years,
+                )
+            )
+
+        class RuntimeIntBomb:
+            def __int__(self):
+                raise RuntimeError("year conversion failed")
+
+        with (
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "year conversion failed"):
+                financial_scope_policies.candidate_matches_operand_target_year(
+                    {"metadata": {"year": RuntimeIntBomb()}},
+                    operand,
+                    query_years,
+                )
+
+        with (
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[]),
+            patch.object(
+                financial_scope_policies,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                financial_scope_policies.candidate_matches_operand_target_year(
+                    {"metadata": {"year": 2024, "period_focus": "current"}},
+                    operand,
+                    query_years,
+                )
+
+    def test_current_source_candidate_target_report_match_pins_precedence_laziness_and_stop(self) -> None:
+        nested = {"preserve": True}
+        candidate = {
+            "metadata": {"rcept_no": "r-2024", "year": "2024", "nested": nested},
+            "nested": nested,
+        }
+        operand = {"role": "current_period", "nested": nested}
+        query_years = [2024]
+        report_scope = {"source_reports": [{"rcept_no": "r-2024", "year": 2024}], "nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_scope = deepcopy(report_scope)
+        events = []
+
+        def source_owner(current_scope):
+            events.append("source")
+            self.assertIs(current_scope, report_scope)
+            return report_scope["source_reports"]
+
+        def explicit_owner(current_candidate):
+            events.append("explicit")
+            self.assertIs(current_candidate, candidate)
+            return [2024]
+
+        def target_owner(current_operand, current_years):
+            events.append("target")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return [2024]
+
+        def receipt_owner(current_operand, current_years, current_scope):
+            events.append("receipts")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            self.assertIs(current_scope, report_scope)
+            return ["r-2024"]
+
+        skipped_fallback = Mock(side_effect=AssertionError("matching receipt must skip fallback"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", side_effect=source_owner),
+            patch.object(financial_scope_policies, "candidate_explicit_years", side_effect=explicit_owner),
+            patch.object(financial_scope_policies, "operand_target_years", side_effect=target_owner),
+            patch.object(financial_scope_policies, "_operand_target_receipts", side_effect=receipt_owner),
+            patch.object(
+                financial_scope_policies,
+                "_candidate_allows_comparative_report_scope_fallback",
+                skipped_fallback,
+            ),
+        ):
+            self.assertTrue(
+                financial_scope_policies.candidate_matches_target_report_scope(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        self.assertEqual(events, ["source", "explicit", "target", "receipts"])
+        skipped_fallback.assert_not_called()
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(candidate["nested"], nested)
+
+        fallback_calls = []
+
+        def comparative(current_candidate, **kwargs):
+            fallback_calls.append((current_candidate, kwargs))
+            return True
+
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=report_scope["source_reports"]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "operand_target_years", return_value=[2024]),
+            patch.object(financial_scope_policies, "_operand_target_receipts", return_value=["different"]),
+            patch.object(
+                financial_scope_policies,
+                "_candidate_allows_comparative_report_scope_fallback",
+                side_effect=comparative,
+            ),
+        ):
+            self.assertTrue(
+                financial_scope_policies.candidate_matches_target_report_scope(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        self.assertEqual(len(fallback_calls), 1)
+        self.assertIs(fallback_calls[0][0], candidate)
+        self.assertIs(fallback_calls[0][1]["operand"], operand)
+        self.assertIs(fallback_calls[0][1]["query_years"], query_years)
+        self.assertIs(fallback_calls[0][1]["report_scope"], report_scope)
+
+        for current_candidate, explicit_years, target_years, receipts, expected in (
+            ({"metadata": {"rcept_no": "", "year": 2023}}, [2024], [2024], ["r-2024"], True),
+            ({"metadata": {"rcept_no": "", "year": 2024}}, [], [2024], [], True),
+            ({"metadata": {"rcept_no": "", "year": 2023}}, [], [2024], [], False),
+            ({"metadata": {"rcept_no": "", "year": "bad"}}, [], [2024], [], True),
+            ({"metadata": {"rcept_no": "", "year": 2023}}, [], [], [], True),
+        ):
+            with self.subTest(candidate=current_candidate):
+                with (
+                    patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=report_scope["source_reports"]),
+                    patch.object(financial_scope_policies, "candidate_explicit_years", return_value=explicit_years),
+                    patch.object(financial_scope_policies, "operand_target_years", return_value=target_years),
+                    patch.object(financial_scope_policies, "_operand_target_receipts", return_value=receipts),
+                ):
+                    self.assertEqual(
+                        financial_scope_policies.candidate_matches_target_report_scope(
+                            current_candidate,
+                            operand=operand,
+                            query_years=query_years,
+                            report_scope=report_scope,
+                        ),
+                        expected,
+                    )
+
+        skipped_explicit = Mock(side_effect=AssertionError("empty source must stop explicit years"))
+        skipped_targets = Mock(side_effect=AssertionError("empty source must stop target years"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=[]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", skipped_explicit),
+            patch.object(financial_scope_policies, "operand_target_years", skipped_targets),
+        ):
+            self.assertTrue(
+                financial_scope_policies.candidate_matches_target_report_scope(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        skipped_explicit.assert_not_called()
+        skipped_targets.assert_not_called()
+
+        stopped_targets = Mock(side_effect=AssertionError("explicit exception must stop target years"))
+        stopped_receipts = Mock(side_effect=AssertionError("explicit exception must stop receipts"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=report_scope["source_reports"]),
+            patch.object(
+                financial_scope_policies,
+                "candidate_explicit_years",
+                side_effect=RuntimeError("explicit years failed"),
+            ),
+            patch.object(financial_scope_policies, "operand_target_years", stopped_targets),
+            patch.object(financial_scope_policies, "_operand_target_receipts", stopped_receipts),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "explicit years failed"):
+                financial_scope_policies.candidate_matches_target_report_scope(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        stopped_targets.assert_not_called()
+        stopped_receipts.assert_not_called()
+
+    def test_current_source_candidate_report_binding_bonus_pins_scores_order_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        operand = {"role": "current_period", "nested": nested}
+        query_years = [2024]
+        report_scope = {"source_reports": [{"year": 2024, "rcept_no": "r-2024"}], "nested": nested}
+
+        skipped_explicit = Mock(side_effect=AssertionError("empty source must stop explicit years"))
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", return_value=[]),
+            patch.object(financial_scope_policies, "candidate_explicit_years", skipped_explicit),
+        ):
+            self.assertEqual(
+                financial_scope_policies.candidate_report_scope_binding_bonus(
+                    {},
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                ),
+                0.0,
+            )
+        skipped_explicit.assert_not_called()
+
+        def evaluate(candidate, *, explicit, targets, receipts, fallback=False):
+            fallback_mock = Mock(return_value=fallback)
+            with (
+                patch.object(
+                    financial_scope_policies,
+                    "_report_scope_source_reports",
+                    return_value=report_scope["source_reports"],
+                ),
+                patch.object(financial_scope_policies, "candidate_explicit_years", return_value=explicit),
+                patch.object(financial_scope_policies, "operand_target_years", return_value=targets),
+                patch.object(financial_scope_policies, "_operand_target_receipts", return_value=receipts),
+                patch.object(
+                    financial_scope_policies,
+                    "_candidate_allows_comparative_report_scope_fallback",
+                    fallback_mock,
+                ),
+            ):
+                result = financial_scope_policies.candidate_report_scope_binding_bonus(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            return result, fallback_mock
+
+        cases = [
+            ({"metadata": {"rcept_no": "r-2024"}}, [], [2024], ["r-2024"], False, 3.0, 0),
+            ({"metadata": {"rcept_no": "other"}}, [], [2024], ["r-2024"], True, 1.25, 1),
+            ({"metadata": {"rcept_no": "other"}}, [], [2024], ["r-2024"], False, -3.0, 1),
+            ({"metadata": {"rcept_no": ""}}, [2024], [2024], ["r-2024"], False, 1.0, 0),
+            ({"metadata": {"rcept_no": ""}}, [], [2024], ["r-2024"], False, -3.0, 0),
+            ({"metadata": {"year": 2024}}, [2024], [2024], [], False, 1.0, 0),
+            ({"metadata": {"year": 2024}}, [], [2024], [], False, 0.75, 0),
+            ({"metadata": {"year": 2023}}, [], [2024], [], False, -0.75, 0),
+            ({"metadata": {}}, [], [2024], [], False, 0.0, 0),
+            ({"metadata": {"year": 2024}}, [], [], [], False, 0.0, 0),
+        ]
+        for current_candidate, explicit, targets, receipts, fallback, expected, fallback_count in cases:
+            with self.subTest(expected=expected, candidate=current_candidate):
+                before_candidate = deepcopy(current_candidate)
+                result, fallback_mock = evaluate(
+                    current_candidate,
+                    explicit=explicit,
+                    targets=targets,
+                    receipts=receipts,
+                    fallback=fallback,
+                )
+                self.assertEqual(result, expected)
+                self.assertEqual(fallback_mock.call_count, fallback_count)
+                self.assertEqual(current_candidate, before_candidate)
+
+        events = []
+        candidate = {"metadata": {"rcept_no": "other", "year": 2024}, "nested": nested}
+        before_candidate = deepcopy(candidate)
+
+        def source_owner(current_scope):
+            events.append("source")
+            self.assertIs(current_scope, report_scope)
+            return report_scope["source_reports"]
+
+        def explicit_owner(current_candidate):
+            events.append("explicit")
+            self.assertIs(current_candidate, candidate)
+            return [2024]
+
+        def target_owner(current_operand, current_years):
+            events.append("target")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return [2024]
+
+        def receipt_owner(current_operand, current_years, current_scope):
+            events.append("receipts")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            self.assertIs(current_scope, report_scope)
+            return ["r-2024"]
+
+        def fallback_owner(current_candidate, **kwargs):
+            events.append("fallback")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertIs(kwargs["report_scope"], report_scope)
+            return True
+
+        with (
+            patch.object(financial_scope_policies, "_report_scope_source_reports", side_effect=source_owner),
+            patch.object(financial_scope_policies, "candidate_explicit_years", side_effect=explicit_owner),
+            patch.object(financial_scope_policies, "operand_target_years", side_effect=target_owner),
+            patch.object(financial_scope_policies, "_operand_target_receipts", side_effect=receipt_owner),
+            patch.object(
+                financial_scope_policies,
+                "_candidate_allows_comparative_report_scope_fallback",
+                side_effect=fallback_owner,
+            ),
+        ):
+            self.assertEqual(
+                financial_scope_policies.candidate_report_scope_binding_bonus(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                ),
+                1.25,
+            )
+        self.assertEqual(events, ["source", "explicit", "target", "receipts", "fallback"])
+        self.assertEqual(candidate, before_candidate)
+        self.assertIs(candidate["nested"], nested)
+
+        stopped_receipts = Mock(side_effect=AssertionError("target exception must stop receipts"))
+        with (
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_reports",
+                return_value=report_scope["source_reports"],
+            ),
+            patch.object(financial_scope_policies, "candidate_explicit_years", return_value=[]),
+            patch.object(
+                financial_scope_policies,
+                "operand_target_years",
+                side_effect=RuntimeError("target years failed"),
+            ),
+            patch.object(financial_scope_policies, "_operand_target_receipts", stopped_receipts),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "target years failed"):
+                financial_scope_policies.candidate_report_scope_binding_bonus(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        stopped_receipts.assert_not_called()
+
+    def test_current_source_candidate_report_period_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "_operand_target_receipts",
+            "_candidate_allows_comparative_report_scope_fallback",
+            "candidate_matches_target_report_scope",
+            "candidate_report_scope_binding_bonus",
+            "candidate_matches_operand_target_year",
+            "candidate_explicit_years",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+        name_loads = {
+            "_report_scope_source_reports": [],
+            "STRUCTURED_CELL_PERIOD_SCORING_POLICY": [],
+            "PERIOD_FOCUS_POLICY": [],
+        }
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if isinstance(node.ctx, ast.Load) and node.id in name_loads:
+                    name_loads[node.id].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in entries
+                ]
+                for name, entries in definitions.items()
+            },
+            {
+                "_operand_target_receipts": [("financial_scope_policies", 31)],
+                "_candidate_allows_comparative_report_scope_fallback": [("financial_scope_policies", 39)],
+                "candidate_matches_target_report_scope": [("financial_scope_policies", 46)],
+                "candidate_report_scope_binding_bonus": [("financial_scope_policies", 49)],
+                "candidate_matches_operand_target_year": [("financial_scope_policies", 27)],
+                "candidate_explicit_years": [("financial_scope_policies", 36)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in entries[0][1].args.args],
+                    [arg.arg for arg in entries[0][1].args.kwonlyargs],
+                )
+                for name, entries in definitions.items()
+            },
+            {
+                "_operand_target_receipts": (["operand", "query_years", "report_scope"], []),
+                "_candidate_allows_comparative_report_scope_fallback": (
+                    ["candidate"],
+                    ["operand", "query_years", "report_scope"],
+                ),
+                "candidate_matches_target_report_scope": (
+                    ["candidate"],
+                    ["operand", "query_years", "report_scope"],
+                ),
+                "candidate_report_scope_binding_bonus": (
+                    ["candidate"],
+                    ["operand", "query_years", "report_scope"],
+                ),
+                "candidate_matches_operand_target_year": (
+                    ["candidate", "operand", "query_years"],
+                    [],
+                ),
+                "candidate_explicit_years": (["candidate"], []),
+            },
+        )
+        self.assertEqual(
+            {name: len(entries) for name, entries in calls.items()},
+            {
+                "_operand_target_receipts": 2,
+                "_candidate_allows_comparative_report_scope_fallback": 2,
+                "candidate_matches_target_report_scope": 2,
+                "candidate_report_scope_binding_bonus": 1,
+                "candidate_matches_operand_target_year": 6,
+                "candidate_explicit_years": 5,
+            },
+        )
+        self.assertTrue(all(entry[2] == "Name" for entries in calls.values() for entry in entries))
+        self.assertTrue(all(entry[5] == 0 for entries in calls.values() for entry in entries))
+        self.assertTrue(
+            all(len(entry[3]) == 3 and not entry[4] for entry in calls["_operand_target_receipts"])
+        )
+        self.assertTrue(
+            all(
+                len(entry[3]) == 1
+                and tuple(keyword for keyword, _value in entry[4])
+                == ("operand", "query_years", "report_scope")
+                for name in (
+                    "_candidate_allows_comparative_report_scope_fallback",
+                    "candidate_matches_target_report_scope",
+                    "candidate_report_scope_binding_bonus",
+                )
+                for entry in calls[name]
+            )
+        )
+        self.assertTrue(
+            all(
+                len(entry[3]) == 3 and not entry[4]
+                for entry in calls["candidate_matches_operand_target_year"]
+            )
+        )
+        self.assertTrue(
+            all(len(entry[3]) == 1 and not entry[4] for entry in calls["candidate_explicit_years"])
+        )
+
+        self.assertEqual(
+            {
+                name: sorted(entry[1] for entry in entries)
+                for name, entries in calls.items()
+            },
+            {
+                "_operand_target_receipts": [
+                    "candidate_matches_target_report_scope",
+                    "candidate_report_scope_binding_bonus",
+                ],
+                "_candidate_allows_comparative_report_scope_fallback": [
+                    "candidate_matches_target_report_scope",
+                    "candidate_report_scope_binding_bonus",
+                ],
+                "candidate_matches_target_report_scope": [
+                    "_candidate_is_direct_grounding_candidate",
+                    "_candidate_satisfies_ratio_component_acceptance_contract",
+                ],
+                "candidate_report_scope_binding_bonus": ["_score_operand_candidate"],
+                "candidate_matches_operand_target_year": [
+                    "_candidate_is_canonical_statement_winner",
+                    "_candidate_is_direct_grounding_candidate",
+                    "_candidate_satisfies_ratio_component_acceptance_contract",
+                    "_direct_candidate_semantic_priority",
+                    "_score_operand_candidate",
+                    "_score_operand_candidate",
+                ],
+                "candidate_explicit_years": [
+                    "_candidate_allows_comparative_report_scope_fallback",
+                    "_candidate_period_table_coherence_bonus",
+                    "candidate_matches_operand_target_year",
+                    "candidate_matches_target_report_scope",
+                    "candidate_report_scope_binding_bonus",
+                ],
+            },
+        )
+        selected_callers = target_names
+        planned_distribution = {}
+        for name, entries in calls.items():
+            local_count = sum(entry[1] in selected_callers for entry in entries)
+            planned_distribution[name] = (len(entries) - local_count, local_count)
+        self.assertEqual(
+            planned_distribution,
+            {
+                "_operand_target_receipts": (0, 2),
+                "_candidate_allows_comparative_report_scope_fallback": (0, 2),
+                "candidate_matches_target_report_scope": (2, 0),
+                "candidate_report_scope_binding_bonus": (1, 0),
+                "candidate_matches_operand_target_year": (6, 0),
+                "candidate_explicit_years": (1, 4),
+            },
+        )
+        self.assertEqual(
+            (
+                sum(value[0] for value in planned_distribution.values()),
+                sum(value[1] for value in planned_distribution.values()),
+            ),
+            (10, 8),
+        )
+
+        scope_tree = module_trees["financial_scope_policies"]
+        scope_functions = [
+            node.name
+            for node in scope_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in scope_functions),
+                sum(name.startswith("_") for name in scope_functions),
+            ),
+            (7, 9),
+        )
+        self.assertTrue(target_names.issubset(scope_functions))
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        self.assertIn(
+            "src.config.retrieval_policy",
+            imported_modules(scope_tree),
+        )
+        self.assertEqual(
+            [
+                entry
+                for entry in name_loads["_report_scope_source_reports"]
+                if entry[0] == "financial_graph_helpers" and entry[1] not in target_names
+            ],
+            [],
+        )
+        self.assertEqual(
+            [
+                entry
+                for entry in name_loads["STRUCTURED_CELL_PERIOD_SCORING_POLICY"]
+                if entry[0] == "financial_graph_helpers" and entry[1] not in target_names
+            ],
+            [],
+        )
+        self.assertEqual(
+            sorted(
+                entry[1]
+                for entry in name_loads["PERIOD_FOCUS_POLICY"]
+                if entry[0] == "financial_graph_helpers" and entry[1] not in target_names
+            ),
+            ["_candidate_satisfies_direct_acceptance_contract", "_infer_period_focus"],
+        )
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_source = "\n".join(
+            ast.get_source_segment(module_sources[module_name], node) or ""
+            for entries in definitions.values()
+            for module_name, node in entries
+        )
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if str(record.get("text") or "") in selected_source
+            ],
+            [],
+        )
+
+    def test_current_source_candidate_report_period_callers_pin_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": "Revenue 100",
+            "metadata": {
+                "row_label": "Revenue",
+                "semantic_label": "Revenue",
+                "statement_type": "income_statement",
+                "consolidation_scope": "unknown",
+                "period_focus": "prior",
+                "year": 2024,
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "table_source_id": "table-1",
+                "structured_cells": [
+                    {"value_text": "100", "unit_hint": "KRW", "nested": nested}
+                ],
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        operand = {
+            "label": "Revenue",
+            "role": "current_period",
+            "period_hint": "current",
+            "unit_family": "PERCENT",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final"],
+            },
+            "nested": nested,
+        }
+        query_years = [2024]
+        constraints = {"period_focus": "current", "nested": nested}
+        report_scope = {"source_reports": [], "nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_constraints = deepcopy(constraints)
+        before_scope = deepcopy(report_scope)
+
+        canonical_calls = []
+
+        def canonical_year(current_candidate, current_operand, current_years):
+            canonical_calls.append((current_candidate, current_operand, current_years))
+            return False
+
+        with (
+            patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=True),
+            patch.object(financial_graph_helpers, "_lookup_canonical_statement_preferences", return_value=([], [])),
+            patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=3.0),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_matches_operand_target_year",
+                side_effect=canonical_year,
+            ),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="prior"),
+        ):
+            self.assertTrue(
+                financial_graph_helpers._candidate_is_canonical_statement_winner(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                )
+            )
+        self.assertEqual(len(canonical_calls), 1)
+        self.assertIs(canonical_calls[0][0], candidate)
+        self.assertIs(canonical_calls[0][1], operand)
+        self.assertIs(canonical_calls[0][2], query_years)
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.5),
+            patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True) as year_match,
+        ):
+            self.assertEqual(
+                financial_graph_helpers._direct_candidate_semantic_priority(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=["income_statement"],
+                    query_years=query_years,
+                ),
+                (1, 1, 1, 1, 26),
+            )
+        year_match.assert_called_once_with(candidate, operand, query_years)
+
+        coherence_events = []
+
+        def explicit_owner(current_candidate):
+            coherence_events.append("explicit")
+            self.assertIs(current_candidate, candidate)
+            return [2023, 2024]
+
+        def target_owner(current_operand, current_years):
+            coherence_events.append("target")
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return [2024]
+
+        with (
+            patch.object(financial_graph_helpers, "candidate_explicit_years", side_effect=explicit_owner),
+            patch.object(financial_graph_helpers, "operand_target_years", side_effect=target_owner),
+        ):
+            self.assertAlmostEqual(
+                financial_graph_helpers._candidate_period_table_coherence_bonus(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                ),
+                2.6,
+            )
+        self.assertEqual(coherence_events, ["explicit", "target"])
+
+        def enter_common_direct_patches(stack):
+            for current_patch in (
+                patch.object(financial_graph_helpers, "_candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_has_numeric_value_signal", return_value=True),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.0),
+                patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
+                patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+                patch.object(financial_graph_helpers, "_binding_policy_allows_candidate_shape", return_value=True),
+                patch.object(financial_graph_helpers, "_lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                patch.object(financial_graph_helpers, "_is_delta_like_row_label", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_matches_segment_binding", return_value=True),
+            ):
+                stack.enter_context(current_patch)
+
+        direct_events = []
+
+        def report_match(current_candidate, **kwargs):
+            direct_events.append("report")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertIsNot(kwargs["report_scope"], report_scope)
+            self.assertEqual(kwargs["report_scope"], report_scope)
+            self.assertIs(kwargs["report_scope"]["nested"], nested)
+            return True
+
+        def year_match_owner(current_candidate, current_operand, current_years):
+            direct_events.append("year")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return True
+
+        with ExitStack() as stack:
+            enter_common_direct_patches(stack)
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", side_effect=report_match)
+            )
+            stack.enter_context(
+                patch.object(
+                financial_graph_helpers,
+                "candidate_matches_operand_target_year",
+                side_effect=year_match_owner,
+                )
+            )
+            self.assertTrue(
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        self.assertEqual(direct_events, ["report", "year"])
+
+        stopped_direct_year = Mock(side_effect=AssertionError("report mismatch must stop direct year"))
+        with ExitStack() as stack:
+            enter_common_direct_patches(stack)
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=False)
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", stopped_direct_year)
+            )
+            self.assertFalse(
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        stopped_direct_year.assert_not_called()
+
+        ratio_events = []
+
+        def ratio_report(current_candidate, **kwargs):
+            ratio_events.append("report")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertEqual(kwargs["report_scope"], report_scope)
+            return True
+
+        def ratio_year(current_candidate, current_operand, current_years):
+            ratio_events.append("year")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return True
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_is_descriptor_row", return_value=False),
+            patch.object(financial_graph_helpers, "_candidate_has_numeric_value_signal", return_value=True),
+            patch.object(financial_graph_helpers, "_candidate_matches_segment_binding", return_value=True),
+            patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", side_effect=ratio_report),
+            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "_binding_policy_allows_candidate_shape", return_value=True),
+            patch.object(financial_graph_helpers, "_operand_surface_contract", return_value={}),
+            patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.0),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_matches_operand_target_year",
+                side_effect=ratio_year,
+            ),
+        ):
+            self.assertTrue(
+                financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                    candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        self.assertEqual(ratio_events, ["report", "year"])
+
+        score_events = []
+
+        def score_year(current_candidate, current_operand, current_years):
+            score_events.append("year")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return True
+
+        def score_coherence(current_candidate, **kwargs):
+            score_events.append("coherence")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            return 2.0
+
+        def score_report(current_candidate, **kwargs):
+            score_events.append("report")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertIsNot(kwargs["report_scope"], report_scope)
+            self.assertEqual(kwargs["report_scope"], report_scope)
+            self.assertIs(kwargs["report_scope"]["nested"], nested)
+            return 3.0
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", side_effect=score_year),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_period_table_coherence_bonus",
+                side_effect=score_coherence,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_report_scope_binding_bonus",
+                side_effect=score_report,
+            ),
+        ):
+            score_with_bonus = financial_graph_helpers._score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=["income_statement"],
+                constraints=constraints,
+                query_years=query_years,
+                report_scope=report_scope,
+            )
+        self.assertEqual(score_events, ["year", "coherence", "report"])
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True),
+            patch.object(financial_graph_helpers, "_candidate_period_table_coherence_bonus", return_value=0.0),
+            patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
+        ):
+            score_without_bonus = financial_graph_helpers._score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=["income_statement"],
+                constraints=constraints,
+                query_years=query_years,
+                report_scope=report_scope,
+            )
+        self.assertEqual(score_with_bonus, score_without_bonus + 5.0)
+
+        stopped_report = Mock(side_effect=AssertionError("coherence exception must stop report bonus"))
+        with (
+            patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True),
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_period_table_coherence_bonus",
+                side_effect=RuntimeError("coherence failed"),
+            ),
+            patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", stopped_report),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coherence failed"):
+                financial_graph_helpers._score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=["income_statement"],
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        stopped_report.assert_not_called()
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(constraints, before_constraints)
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
 
 
 if __name__ == "__main__":

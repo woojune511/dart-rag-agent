@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
     GENERIC_PERIOD_OPERAND_POLICY,
+    PERIOD_FOCUS_POLICY,
+    STRUCTURED_CELL_PERIOD_SCORING_POLICY,
 )
 
 
@@ -140,6 +142,246 @@ def _report_scope_source_reports(report_scope: Dict[str, Any]) -> List[Dict[str,
                 }
             )
     return rows
+
+
+def _operand_target_receipts(
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> List[str]:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return []
+
+    target_years = operand_target_years(operand, query_years)
+    receipts: List[str] = []
+    if target_years:
+        for year in target_years:
+            for row in source_rows:
+                if row.get("year") == year:
+                    receipt_no = str(row.get("rcept_no") or "").strip()
+                    if receipt_no and receipt_no not in receipts:
+                        receipts.append(receipt_no)
+        if receipts:
+            return receipts
+
+    role = str(operand.get("role") or "").strip()
+    year_ranked = [
+        row for row in sorted(source_rows, key=lambda current: int(current.get("year") or -1), reverse=True)
+        if row.get("year") is not None and str(row.get("rcept_no") or "").strip()
+    ]
+    if role == "current_period" and year_ranked:
+        return [str(year_ranked[0].get("rcept_no") or "").strip()]
+    if role == "prior_period" and len(year_ranked) >= 2:
+        return [str(year_ranked[1].get("rcept_no") or "").strip()]
+    return []
+
+
+def _candidate_allows_comparative_report_scope_fallback(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> bool:
+    source_rows = _report_scope_source_reports(report_scope)
+    if len(source_rows) < 2:
+        return False
+
+    target_years = operand_target_years(operand, query_years)
+    explicit_years = candidate_explicit_years(candidate)
+    if not target_years or not explicit_years or not any(year in explicit_years for year in target_years):
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    if not candidate_receipt:
+        return False
+
+    year_ranked = [
+        row
+        for row in sorted(source_rows, key=lambda current: int(current.get("year") or -1), reverse=True)
+        if row.get("year") is not None and str(row.get("rcept_no") or "").strip()
+    ]
+    if not year_ranked:
+        return False
+    latest_receipt = str(year_ranked[0].get("rcept_no") or "").strip()
+    if candidate_receipt != latest_receipt:
+        return False
+
+    role = str(operand.get("role") or "").strip()
+    candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+    if role == "prior_period" and candidate_period_focus == "current":
+        return False
+    if role == "current_period" and candidate_period_focus == "prior":
+        return False
+    return True
+
+
+def candidate_matches_target_report_scope(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> bool:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return True
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    candidate_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+    except (TypeError, ValueError):
+        candidate_year = None
+    explicit_years = candidate_explicit_years(candidate)
+    target_years = operand_target_years(operand, query_years)
+    target_receipts = _operand_target_receipts(operand, query_years, report_scope)
+
+    if target_receipts:
+        if candidate_receipt:
+            if candidate_receipt in target_receipts:
+                return True
+            if _candidate_allows_comparative_report_scope_fallback(
+                candidate,
+                operand=operand,
+                query_years=query_years,
+                report_scope=report_scope,
+            ):
+                return True
+            return False
+        if target_years and explicit_years and any(year in explicit_years for year in target_years):
+            return True
+        return False
+
+    if target_years:
+        if explicit_years:
+            return any(year in explicit_years for year in target_years)
+        if candidate_year is not None:
+            return candidate_year in target_years
+    return True
+
+
+def candidate_report_scope_binding_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Dict[str, Any],
+) -> float:
+    source_rows = _report_scope_source_reports(report_scope)
+    if not source_rows:
+        return 0.0
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_receipt = str(metadata.get("rcept_no") or "").strip()
+    explicit_years = candidate_explicit_years(candidate)
+    candidate_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+    except (TypeError, ValueError):
+        candidate_year = None
+
+    target_years = operand_target_years(operand, query_years)
+    target_receipts = _operand_target_receipts(operand, query_years, report_scope)
+
+    if target_receipts:
+        if candidate_receipt:
+            if candidate_receipt in target_receipts:
+                return 3.0
+            if _candidate_allows_comparative_report_scope_fallback(
+                candidate,
+                operand=operand,
+                query_years=query_years,
+                report_scope=report_scope,
+            ):
+                return 1.25
+            return -3.0
+        if explicit_years and target_years and any(year in explicit_years for year in target_years):
+            return 1.0
+        return -3.0
+
+    if target_years:
+        if explicit_years and any(year in explicit_years for year in target_years):
+            return 1.0
+        if candidate_year is not None and candidate_year in target_years:
+            return 0.75
+        if candidate_year is not None:
+            return -0.75
+    return 0.0
+
+
+def candidate_matches_operand_target_year(
+    candidate: Dict[str, Any],
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> bool:
+    target_years = operand_target_years(operand, query_years)
+    if not target_years:
+        return False
+
+    explicit_years = candidate_explicit_years(candidate)
+    if explicit_years and any(year in explicit_years for year in target_years):
+        return True
+
+    metadata = dict(candidate.get("metadata") or {})
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            candidate_year = int(raw_year)
+            candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+            if candidate_period_focus == "prior":
+                return (candidate_year - 1) in target_years
+            if candidate_period_focus == "current":
+                return candidate_year in target_years
+            return candidate_year in target_years
+    except (TypeError, ValueError):
+        return False
+    return False
+
+
+def candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
+    metadata = dict(candidate.get("metadata") or {})
+    years: set[int] = set()
+    period_policy = dict(PERIOD_FOCUS_POLICY)
+    scoring_policy = dict(STRUCTURED_CELL_PERIOD_SCORING_POLICY)
+    year_pattern = str(period_policy.get("explicit_year_pattern") or r"20\d{2}")
+    current_markers = tuple(str(item) for item in (scoring_policy.get("current_positive_markers") or ()) if str(item))
+    prior_markers = tuple(str(item) for item in (scoring_policy.get("prior_positive_markers") or ()) if str(item))
+    for raw in metadata.get("period_labels") or []:
+        years.update(int(token) for token in re.findall(year_pattern, str(raw or "")))
+    report_year: Optional[int] = None
+    try:
+        raw_year = metadata.get("year")
+        if raw_year not in (None, ""):
+            report_year = int(raw_year)
+    except (TypeError, ValueError):
+        report_year = None
+    for cell in metadata.get("structured_cells") or []:
+        cell_data = dict(cell or {})
+        for raw in (
+            str(cell_data.get("period_text") or ""),
+            " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip()),
+        ):
+            years.update(int(token) for token in re.findall(year_pattern, raw))
+        if report_year is None:
+            continue
+        period_headers = _normalise_spaces(
+            " ".join(str(item).strip() for item in (cell_data.get("column_headers") or []) if str(item).strip())
+        )
+        if not period_headers:
+            continue
+        if any(token in period_headers for token in current_markers):
+            years.add(report_year)
+        if any(token in period_headers for token in prior_markers):
+            years.add(report_year - 1)
+    return sorted(years)
 
 
 def _report_scope_source_receipts(report_scope: Dict[str, Any]) -> List[str]:

@@ -31,7 +31,6 @@ from src.agent import financial_graph_evidence, financial_operand_resolution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
-    _candidate_explicit_years,
     _build_concept_task_constraints,
     _build_semantic_numeric_plan,
     _build_generic_required_operands,
@@ -42,7 +41,6 @@ from src.agent.financial_graph_helpers import (
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
-    _candidate_matches_operand_target_year,
     _candidate_selected_cell_for_operand,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
@@ -50,7 +48,11 @@ from src.agent.financial_graph_helpers import (
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
-from src.agent.financial_scope_policies import operand_target_years
+from src.agent.financial_scope_policies import (
+    candidate_explicit_years,
+    candidate_matches_operand_target_year,
+    operand_target_years,
+)
 from src.agent.financial_graph_evidence import _prioritize_candidate_items
 from src.agent.financial_operand_resolution import (
     _evidence_item_for_operand_row,
@@ -1272,7 +1274,7 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(period, "2021")
 
-    def test_candidate_explicit_years_infers_current_and_prior_from_relative_headers(self) -> None:
+    def test_scope_owner_explicit_years_infers_current_and_prior_from_relative_headers(self) -> None:
         candidate = {
             "metadata": {
                 "year": 2023,
@@ -1282,7 +1284,7 @@ class OperationContractTests(unittest.TestCase):
                 ],
             }
         }
-        self.assertEqual(_candidate_explicit_years(candidate), [2022, 2023])
+        self.assertEqual(candidate_explicit_years(candidate), [2022, 2023])
 
     def test_operating_expense_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(8,181,823,307)", "천원")
@@ -5678,9 +5680,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
-        self.assertTrue(_candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
-        self.assertTrue(_candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
+        self.assertFalse(candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
+        self.assertTrue(candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
+        self.assertTrue(candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
 
     def test_candidate_score_respects_operand_aggregate_stage_order(self) -> None:
         operand = {
