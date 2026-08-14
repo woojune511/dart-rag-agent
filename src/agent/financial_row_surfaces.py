@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_surface_contracts import (
     _operand_needles,
-    _operand_segment_label,
+    operand_segment_label,
     _text_has_positive_surface,
     candidate_matches_segment_binding,
 )
@@ -436,7 +436,7 @@ def table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand:
 
 
 def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    segment_label = _operand_segment_label(operand)
+    segment_label = operand_segment_label(operand)
     if not segment_label:
         return True
     if candidate_matches_segment_binding(candidate, operand, strict=True):
@@ -445,7 +445,7 @@ def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict
 
 
 def candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    segment_label = _operand_segment_label(operand)
+    segment_label = operand_segment_label(operand)
     if not segment_label:
         return False
     if not candidate_matches_segment_binding(candidate, operand, strict=True):

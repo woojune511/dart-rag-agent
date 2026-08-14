@@ -1,6 +1,7 @@
 import ast
 from contextlib import ExitStack
 from copy import deepcopy
+import hashlib
 import inspect
 import json
 from pathlib import Path
@@ -126,7 +127,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_match = Mock(side_effect=AssertionError("empty segment must stop strict matching"))
         stopped_support = Mock(side_effect=AssertionError("empty segment must stop fallback"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value=""),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value=""),
             patch.object(financial_row_surfaces, "candidate_matches_segment_binding", stopped_match),
             patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", stopped_support),
         ):
@@ -152,7 +153,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_support = Mock(side_effect=AssertionError("strict match must stop fallback"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", side_effect=direct_segment),
+            patch.object(financial_row_surfaces, "operand_segment_label", side_effect=direct_segment),
             patch.object(
                 financial_row_surfaces,
                 "candidate_matches_segment_binding",
@@ -186,7 +187,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return text == "metric context"
 
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", side_effect=fallback_segment),
+            patch.object(financial_row_surfaces, "operand_segment_label", side_effect=fallback_segment),
             patch.object(
                 financial_row_surfaces,
                 "candidate_matches_segment_binding",
@@ -204,7 +205,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_support = Mock(side_effect=AssertionError("strict exception must stop fallback"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_row_surfaces,
                 "candidate_matches_segment_binding",
@@ -228,7 +229,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_match = Mock(side_effect=AssertionError("empty segment must stop strict matching"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value=""),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value=""),
             patch.object(financial_row_surfaces, "candidate_matches_segment_binding", stopped_match),
         ):
             self.assertFalse(
@@ -239,7 +240,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_copy = Mock(side_effect=AssertionError("segment mismatch must stop metadata copy"))
         stopped_surface = Mock(side_effect=AssertionError("segment mismatch must stop surface matching"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value="North"),
             patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=False),
             patch.object(financial_row_surfaces, "dict", stopped_copy, create=True),
             patch.object(financial_row_surfaces, "_operand_text_match", stopped_surface),
@@ -290,7 +291,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return text == "metric summary"
 
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_row_surfaces,
                 "candidate_matches_segment_binding",
@@ -314,7 +315,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         failing_match = Mock(side_effect=RuntimeError("surface match failed"))
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value="North"),
             patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=True),
             patch.object(financial_row_surfaces, "_operand_text_match", failing_match),
         ):
@@ -340,7 +341,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         definitions = {name: [] for name in target_names}
         calls = {name: [] for name in target_names}
         dependency_loads = {
-            "_operand_segment_label": [],
+            "operand_segment_label": [],
             "candidate_matches_segment_binding": [],
             "_operand_text_match": [],
         }
@@ -454,7 +455,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             {name: len(entries) for name, entries in dependency_loads.items()},
             {
-                "_operand_segment_label": 2,
+                "operand_segment_label": 2,
                 "candidate_matches_segment_binding": 2,
                 "_operand_text_match": 1,
             },
@@ -510,7 +511,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for alias in node.names
         }
         self.assertTrue(
-            {"_operand_segment_label", "candidate_matches_segment_binding"}
+            {"operand_segment_label", "candidate_matches_segment_binding"}
             <= row_surface_imports
         )
         self.assertIn("candidate_has_segment_local_binding", graph_row_imports)
@@ -604,7 +605,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, "candidate_matches_operand", side_effect=candidate_match),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value="North"),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_graph_helpers,
                 "candidate_has_segment_local_binding",
@@ -646,7 +647,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_score = Mock(side_effect=AssertionError("segment exception must stop scoring"))
         with (
             patch.object(financial_graph_helpers, "candidate_matches_operand", return_value=True),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value="North"),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_graph_helpers,
                 "candidate_has_segment_local_binding",
@@ -992,7 +993,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 raise AssertionError(f"candidate accessed: {key}")
 
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value=""),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value=""),
             patch.object(
                 financial_surface_contracts,
                 "_candidate_segment_surfaces",
@@ -1030,7 +1031,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_surface_contracts,
-                "_operand_segment_label",
+                "operand_segment_label",
                 side_effect=RuntimeError("segment failed"),
             ),
             patch.object(financial_surface_contracts, "_candidate_segment_surfaces", stopped_surfaces),
@@ -1040,7 +1041,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_surfaces.assert_not_called()
 
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value="North"),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_surface_contracts,
                 "_candidate_segment_surfaces",
@@ -1066,7 +1067,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_match = Mock(side_effect=AssertionError("match should stay lazy"))
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value=""),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value=""),
             patch.object(financial_surface_contracts, "candidate_matches_segment_binding", stopped_match),
         ):
             self.assertEqual(
@@ -1083,7 +1084,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_match.assert_not_called()
 
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value="North"),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value="North"),
             patch.object(financial_surface_contracts, "candidate_matches_segment_binding", return_value=True) as match,
             patch.object(
                 financial_surface_contracts,
@@ -1109,7 +1110,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 raise AssertionError("policy should stay lazy on mismatch")
 
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value="North"),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value="North"),
             patch.object(financial_surface_contracts, "candidate_matches_segment_binding", return_value=False),
             patch.object(financial_surface_contracts, "HELPER_RUNTIME_POLICY", PolicyBomb()),
         ):
@@ -1138,7 +1139,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_policy = Mock(side_effect=AssertionError("policy should stay stopped"))
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value="North"),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_surface_contracts,
                 "candidate_matches_segment_binding",
@@ -1158,7 +1159,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_policy.assert_not_called()
 
         with (
-            patch.object(financial_surface_contracts, "_operand_segment_label", return_value="North"),
+            patch.object(financial_surface_contracts, "operand_segment_label", return_value="North"),
             patch.object(
                 financial_surface_contracts,
                 "_normalise_spaces",
@@ -1215,7 +1216,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
         self.assertEqual(
             (sum(not node.name.startswith("_") for node in owner_defs), sum(node.name.startswith("_") for node in owner_defs)),
-            (15, 7),
+            (16, 6),
         )
         self.assertEqual(
             {
@@ -1425,7 +1426,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_scope.assert_not_called()
 
         with (
-            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "operand_segment_label", return_value="North"),
             patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=False) as match,
             patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", return_value=True) as support,
         ):
@@ -4261,7 +4262,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value=" Segment ",
             ) as segment_owner,
             patch.object(
@@ -4310,7 +4311,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 side_effect=segment_projection,
             ),
             patch.object(
@@ -4342,7 +4343,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -4361,7 +4362,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 side_effect=RuntimeError("segment failed"),
             ),
             patch.object(
@@ -4382,7 +4383,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -4399,7 +4400,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -4420,7 +4421,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -4444,7 +4445,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_operand_resolution,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -4740,7 +4741,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         definitions = {name: [] for name in target_names}
         calls = {name: [] for name in target_names}
         dependency_loads = {
-            "_operand_segment_label": [],
+            "operand_segment_label": [],
             "lookup_hints_for_concept_key": [],
             "_text_has_contract_term": [],
         }
@@ -4943,7 +4944,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for name, entries in dependency_loads.items()
             },
             {
-                "_operand_segment_label": [
+                "operand_segment_label": [
                     (expected_owner, preference_name)
                 ],
                 "lookup_hints_for_concept_key": sorted(
@@ -5009,7 +5010,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertTrue((target_names - {match_name}) <= graph_operand_imports)
         self.assertNotIn(match_name, graph_operand_imports)
         self.assertNotIn("_text_has_contract_term", graph_surface_imports)
-        self.assertIn("_operand_segment_label", operand_surface_imports)
+        self.assertIn("operand_segment_label", operand_surface_imports)
         self.assertIn("_text_has_contract_term", operand_surface_imports)
 
         edges = {name: set() for name in module_trees}
@@ -6998,7 +6999,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_operand_segment_label",
+                    "operand_segment_label",
                     return_value="",
                 ),
                 patch.object(
@@ -7192,7 +7193,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_operand_segment_label",
+                "operand_segment_label",
                 return_value="",
             ),
             patch.object(
@@ -7283,7 +7284,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_operand_segment_label",
+                    "operand_segment_label",
                     return_value="",
                 ),
                 patch.object(
@@ -10593,7 +10594,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_operand_segment_label",
+                    "operand_segment_label",
                     return_value="",
                 ),
                 patch.object(
@@ -16049,7 +16050,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "candidate_matches_operand",
                 side_effect=candidate_match,
             ),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
             patch.object(
                 financial_graph_helpers,
                 "score_operand_candidate",
@@ -16125,7 +16126,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         with (
             patch.object(financial_graph_helpers, "candidate_matches_operand", return_value=True),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
             patch.object(financial_graph_helpers, "score_operand_candidate", return_value=1.0),
             patch.object(financial_graph_helpers, "candidate_selected_cell_for_operand", stopped_selector),
             patch.object(
@@ -16152,7 +16153,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         with (
             patch.object(financial_graph_helpers, "candidate_matches_operand", return_value=True),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
             patch.object(financial_graph_helpers, "score_operand_candidate", return_value=1.0),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="current"),
             patch.object(
@@ -16193,7 +16194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         with (
             patch.object(financial_graph_helpers, "candidate_matches_operand", return_value=True),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
             patch.object(financial_graph_helpers, "score_operand_candidate", return_value=1.0),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="current"),
             patch.object(
@@ -18841,7 +18842,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (15, 7),
+            (16, 6),
         )
 
         def imported_modules(tree):
@@ -19385,7 +19386,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         }
         with (
             patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", policy),
-            patch.object(owner, "_operand_segment_label", side_effect=segment_label),
+            patch.object(owner, "operand_segment_label", side_effect=segment_label),
             patch.object(owner, "_normalise_spaces", side_effect=normalize),
         ):
             score = affinity(
@@ -19458,7 +19459,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", PolicyBomb()),
-            patch.object(owner, "_operand_segment_label", return_value=""),
+            patch.object(owner, "operand_segment_label", return_value=""),
         ):
             self.assertEqual(
                 affinity(
@@ -19498,7 +19499,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}),
-            patch.object(owner, "_operand_segment_label", side_effect=first_segment_only),
+            patch.object(owner, "operand_segment_label", side_effect=first_segment_only),
         ):
             self.assertEqual(
                 affinity(
@@ -19631,7 +19632,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "STRUCTURED_CELL_AFFINITY_POLICY", {"metric_terms": ()}),
-            patch.object(owner, "_operand_segment_label", side_effect=RuntimeError("segment failed")),
+            patch.object(owner, "operand_segment_label", side_effect=RuntimeError("segment failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "segment failed"):
                 affinity(
@@ -19771,7 +19772,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {name: direct_calls.count(name) for name in set(direct_calls)},
             {
                 "_normalise_spaces": 2,
-                "_operand_segment_label": 1,
+                "operand_segment_label": 1,
                 "any": 4,
                 "dict": 3,
                 "get": 15,
@@ -19840,7 +19841,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "financial_graph_helpers": (9, 71),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -25140,7 +25141,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -26095,7 +26096,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -27106,7 +27107,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -28270,7 +28271,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -29546,7 +29547,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (15, 7),
+                "financial_surface_contracts": (16, 6),
             },
         )
 
@@ -32447,7 +32448,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, target_name, side_effect=matcher),
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+            patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
             patch.object(financial_graph_helpers, "score_operand_candidate", side_effect=scorer),
             patch.object(financial_graph_helpers, "candidate_is_direct_grounding_candidate", side_effect=grounding),
         ):
@@ -33562,7 +33563,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_operand_segment_label",
+                    "operand_segment_label",
                     return_value="",
                 ),
                 patch.object(
@@ -35113,7 +35114,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_operand_segment_label",
+                    "operand_segment_label",
                     return_value="",
                 ),
                 patch.object(
@@ -37434,7 +37435,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
             with (
                 patch.object(financial_graph_helpers, "candidate_matches_operand", return_value=True),
-                patch.object(financial_graph_helpers, "_operand_segment_label", return_value=""),
+                patch.object(financial_graph_helpers, "operand_segment_label", return_value=""),
                 patch.object(
                     financial_graph_helpers,
                     "score_operand_candidate",
@@ -40157,6 +40158,867 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     query_years=query_years,
                 )
         stopped_candidate_get.assert_not_called()
+
+    def test_current_source_operand_segment_label_pins_copy_fallback_normalization_and_result(self) -> None:
+        target = financial_surface_contracts.operand_segment_label
+        nested = {"preserve": True}
+        events = []
+        normalized_result = object()
+
+        class SegmentValue:
+            def __bool__(self):
+                events.append("segment-bool")
+                return True
+
+            def __str__(self):
+                events.append("segment-str")
+                return "  Division   A  "
+
+        class BindingPolicy(dict):
+            def __bool__(self):
+                events.append("policy-bool")
+                return True
+
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("the helper must read from the shallow dict copy")
+
+        class Operand(dict):
+            def get(self, key, default=None):
+                events.append(("operand-get", key, default))
+                return super().get(key, default)
+
+        value = SegmentValue()
+        policy = BindingPolicy(segment_label=value, nested=nested)
+        operand = Operand(
+            segment_label="ignored top-level",
+            binding_policy=policy,
+            nested=nested,
+        )
+
+        def normalize(raw):
+            events.append(("normalize", raw))
+            return normalized_result
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            side_effect=normalize,
+        ):
+            result = target(operand)
+
+        self.assertIs(result, normalized_result)
+        self.assertEqual(
+            events,
+            [
+                ("operand-get", "binding_policy", None),
+                "policy-bool",
+                "segment-bool",
+                "segment-str",
+                ("normalize", "  Division   A  "),
+            ],
+        )
+        self.assertIs(operand["binding_policy"], policy)
+        self.assertIs(policy["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(policy["segment_label"], value)
+
+        falsey_events = []
+        falsey_result = object()
+
+        class FalseyPolicy(dict):
+            def __bool__(self):
+                falsey_events.append("policy-bool")
+                return False
+
+            def keys(self):
+                raise AssertionError("falsey binding policy must skip dict copying")
+
+        class FalseyOperand(dict):
+            def get(self, key, default=None):
+                falsey_events.append(("operand-get", key, default))
+                return super().get(key, default)
+
+        falsey_policy = FalseyPolicy(segment_label="must-not-be-read", nested=nested)
+
+        def normalize_falsey(raw):
+            falsey_events.append(("normalize", raw))
+            return falsey_result
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            side_effect=normalize_falsey,
+        ):
+            result = target(FalseyOperand(binding_policy=falsey_policy))
+
+        self.assertIs(result, falsey_result)
+        self.assertEqual(
+            falsey_events,
+            [
+                ("operand-get", "binding_policy", None),
+                "policy-bool",
+                ("normalize", ""),
+            ],
+        )
+
+        segment_events = []
+
+        class FalseySegment:
+            def __bool__(self):
+                segment_events.append("segment-bool")
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsey segment label must skip string conversion")
+
+        def normalize_segment(raw):
+            segment_events.append(("normalize", raw))
+            return "empty-result"
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            side_effect=normalize_segment,
+        ):
+            self.assertEqual(
+                target({"binding_policy": {"segment_label": FalseySegment()}}),
+                "empty-result",
+            )
+        self.assertEqual(segment_events, ["segment-bool", ("normalize", "")])
+        self.assertEqual(target({"segment_label": "top-level-only"}), "")
+
+    def test_current_source_operand_segment_label_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        target = financial_surface_contracts.operand_segment_label
+        stopped_normalizer = Mock(
+            side_effect=AssertionError("earlier failure must stop normalization")
+        )
+
+        class GetBomb:
+            def get(self, _key):
+                raise RuntimeError("operand get failed")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operand get failed"):
+                target(GetBomb())
+        stopped_normalizer.assert_not_called()
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("binding truth failed")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "binding truth failed"):
+                target({"binding_policy": TruthBomb()})
+        stopped_normalizer.assert_not_called()
+
+        class CopyBomb:
+            def __bool__(self):
+                return True
+
+            def keys(self):
+                raise RuntimeError("binding copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("failed keys lookup must stop item access")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "binding copy failed"):
+                target({"binding_policy": CopyBomb()})
+        stopped_normalizer.assert_not_called()
+
+        class SegmentTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("segment truth failed")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment truth failed"):
+                target(
+                    {
+                        "binding_policy": {
+                            "segment_label": SegmentTruthBomb(),
+                        }
+                    }
+                )
+        stopped_normalizer.assert_not_called()
+
+        class SegmentStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("segment string failed")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment string failed"):
+                target(
+                    {
+                        "binding_policy": {
+                            "segment_label": SegmentStringBomb(),
+                        }
+                    }
+                )
+        stopped_normalizer.assert_not_called()
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                target({"binding_policy": {"segment_label": "segment"}})
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaises(AttributeError):
+                target(None)
+        stopped_normalizer.assert_not_called()
+
+    def test_current_source_operand_segment_label_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_calculation": repo_root
+            / "src"
+            / "agent"
+            / "financial_graph_calculation.py",
+            "financial_graph_helpers": repo_root
+            / "src"
+            / "agent"
+            / "financial_graph_helpers.py",
+            "financial_operand_resolution": repo_root
+            / "src"
+            / "agent"
+            / "financial_operand_resolution.py",
+            "financial_row_surfaces": repo_root
+            / "src"
+            / "agent"
+            / "financial_row_surfaces.py",
+            "financial_surface_contracts": repo_root
+            / "src"
+            / "agent"
+            / "financial_surface_contracts.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source) for name, source in module_sources.items()
+        }
+        target_name = "operand_segment_label"
+        definitions = [
+            (module_name, node)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(owner_name, "financial_surface_contracts")
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 3)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["operand"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.args.args[0].annotation), "Dict[str, Any]")
+        self.assertEqual(ast.unparse(definition.returns), "str")
+        self.assertEqual(len(definition.body), 2)
+        self.assertIsInstance(definition.body[0], ast.Assign)
+        self.assertIsInstance(definition.body[1], ast.Return)
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "_normalise_spaces": 1,
+                "dict": 1,
+                "get": 2,
+                "str": 1,
+            },
+        )
+        owner_source = module_sources[owner_name]
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode()).hexdigest(),
+            "f45683e2627aadce08efd58750b62aa23fe567196d27c139fd5e35a15a6297b3",
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        owner_module = "src.agent.financial_surface_contracts"
+        external_modules = {
+            "financial_graph_calculation",
+            "financial_graph_helpers",
+            "financial_operand_resolution",
+            "financial_row_surfaces",
+        }
+        for module_name in external_modules:
+            self.assertIn(owner_module, imported_modules(module_trees[module_name]))
+            self.assertIn(
+                target_name,
+                imported_names(module_trees[module_name], owner_module),
+            )
+        self.assertNotIn(
+            owner_module,
+            imported_modules(module_trees["financial_surface_contracts"]),
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+                if module_name
+                in {
+                    "financial_graph_helpers",
+                    "financial_operand_resolution",
+                    "financial_surface_contracts",
+                }
+            },
+            {
+                "financial_graph_helpers": (9, 71),
+                "financial_operand_resolution": (54, 37),
+                "financial_surface_contracts": (16, 6),
+            },
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_surface_contracts.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        required_methods = {
+            "test_current_source_operand_segment_label_pins_copy_fallback_normalization_and_result",
+            "test_current_source_operand_segment_label_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_operand_segment_label_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_operand_segment_label_callers_pin_args_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_operand_segment_label_callers_pin_args_adoption_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_calculation": repo_root
+            / "src"
+            / "agent"
+            / "financial_graph_calculation.py",
+            "financial_graph_helpers": repo_root
+            / "src"
+            / "agent"
+            / "financial_graph_helpers.py",
+            "financial_operand_resolution": repo_root
+            / "src"
+            / "agent"
+            / "financial_operand_resolution.py",
+            "financial_row_surfaces": repo_root
+            / "src"
+            / "agent"
+            / "financial_row_surfaces.py",
+            "financial_surface_contracts": repo_root
+            / "src"
+            / "agent"
+            / "financial_surface_contracts.py",
+        }
+        target_name = "operand_segment_label"
+        calls_by_module = {}
+        parent_kinds_by_module = {}
+        for module_name, path in module_paths.items():
+            source = path.read_text(encoding="utf-8-sig")
+            tree = ast.parse(source)
+            parents = {}
+            for parent in ast.walk(tree):
+                for child in ast.iter_child_nodes(parent):
+                    parents[child] = parent
+            calls = []
+            parent_kinds = []
+            for call in sorted(
+                (
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ),
+                key=lambda node: (node.lineno, node.col_offset),
+            ):
+                current = call
+                function_name = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        function_name = current.name
+                        break
+                calls.append(
+                    (
+                        function_name,
+                        tuple(ast.unparse(arg) for arg in call.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in call.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+                parent_kinds.append(type(parents[call]).__name__)
+            calls_by_module[module_name] = calls
+            parent_kinds_by_module[module_name] = parent_kinds
+
+        self.assertEqual(
+            calls_by_module,
+            {
+                "financial_graph_calculation": [
+                    (
+                        "_precision_cell_from_flattened_table_surface",
+                        ("row",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_refine_operand_precision_from_evidence_table",
+                        ("row",),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_graph_helpers": [
+                    ("_build_generic_retrieval_queries", ("operand",), (), 0),
+                    (
+                        "_task_output_slots_for_dependency",
+                        ("dict(operand)",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_task_input_bindings_for_dependency",
+                        ("dict(operand)",),
+                        (),
+                        0,
+                    ),
+                    ("_deterministic_reconcile_task", ("operand",), (), 0),
+                ],
+                "financial_operand_resolution": [
+                    (
+                        "_operand_row_satisfies_required_surface_contract",
+                        ("matching_operand",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "lookup_prefers_canonical_statement_rows",
+                        ("operand",),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_row_surfaces": [
+                    (
+                        "candidate_has_segment_local_binding",
+                        ("operand",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "candidate_supports_segment_metric_combo",
+                        ("operand",),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_surface_contracts": [
+                    (
+                        "scoped_surface_affinity_priority",
+                        ("dict(operand or {})",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "candidate_matches_segment_binding",
+                        ("operand",),
+                        (),
+                        0,
+                    ),
+                    (
+                        "candidate_segment_binding_bonus",
+                        ("operand",),
+                        (),
+                        0,
+                    ),
+                ],
+            },
+        )
+        self.assertEqual(
+            parent_kinds_by_module,
+            {
+                "financial_graph_calculation": ["BoolOp", "BoolOp"],
+                "financial_graph_helpers": ["Assign", "Dict", "Dict", "If"],
+                "financial_operand_resolution": ["BoolOp", "If"],
+                "financial_row_surfaces": ["Assign", "Assign"],
+                "financial_surface_contracts": [
+                    "GeneratorExp",
+                    "Assign",
+                    "Assign",
+                ],
+            },
+        )
+        self.assertEqual(
+            sum(len(calls) for calls in calls_by_module.values()),
+            13,
+        )
+        self.assertEqual(
+            sum(
+                len(calls)
+                for module_name, calls in calls_by_module.items()
+                if module_name != "financial_surface_contracts"
+            ),
+            10,
+        )
+
+        nested = {"preserve": True}
+        operand = {
+            "concept": "metric",
+            "role": "primary_value",
+            "label": "Metric",
+            "binding_policy": {"nested": nested},
+            "nested": nested,
+        }
+        task = {
+            "operation_family": "lookup",
+            "metric_label": "Metric",
+            "required_operands": [operand],
+        }
+        captured_operands = []
+
+        def segment_projection(current_operand):
+            captured_operands.append(current_operand)
+            return "Segment A"
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=segment_projection,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_task_binding_period_hint",
+                return_value="current",
+            ),
+        ):
+            outputs = financial_graph_helpers._task_output_slots_for_dependency(
+                task,
+                report_scope={},
+            )
+        self.assertEqual(outputs[0]["segment_label"], "Segment A")
+        self.assertEqual(len(captured_operands), 1)
+        self.assertIsNot(captured_operands[0], operand)
+        self.assertIs(captured_operands[0]["nested"], nested)
+        self.assertIs(captured_operands[0]["binding_policy"], operand["binding_policy"])
+
+        stopped_lookup = Mock(
+            side_effect=AssertionError("segment gate must stop lookup hints")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                return_value="Segment A",
+            ) as segment_owner,
+            patch.object(
+                financial_operand_resolution,
+                "lookup_hints_for_concept_key",
+                stopped_lookup,
+            ),
+        ):
+            self.assertFalse(
+                financial_operand_resolution.lookup_prefers_canonical_statement_rows(
+                    operand
+                )
+            )
+        segment_owner.assert_called_once_with(operand)
+        stopped_lookup.assert_not_called()
+
+        candidate = {"metadata": {}, "nested": nested}
+        stopped_match = Mock(
+            side_effect=AssertionError("empty segment must stop strict matching")
+        )
+        stopped_support = Mock(
+            side_effect=AssertionError("empty segment must stop combo fallback")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                return_value="",
+            ) as segment_owner,
+            patch.object(
+                financial_row_surfaces,
+                "candidate_matches_segment_binding",
+                stopped_match,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "candidate_supports_segment_metric_combo",
+                stopped_support,
+            ),
+        ):
+            self.assertTrue(
+                financial_row_surfaces.candidate_has_segment_local_binding(
+                    candidate,
+                    operand,
+                )
+            )
+        segment_owner.assert_called_once_with(operand)
+        stopped_match.assert_not_called()
+        stopped_support.assert_not_called()
+
+        stopped_surfaces = Mock(
+            side_effect=AssertionError("empty segment must stop candidate surfaces")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                return_value="",
+            ) as segment_owner,
+            patch.object(
+                financial_surface_contracts,
+                "_candidate_segment_surfaces",
+                stopped_surfaces,
+            ),
+        ):
+            self.assertTrue(
+                financial_surface_contracts.candidate_matches_segment_binding(
+                    candidate,
+                    operand,
+                )
+            )
+        segment_owner.assert_called_once_with(operand)
+        stopped_surfaces.assert_not_called()
+
+        stopped_binding_match = Mock(
+            side_effect=AssertionError("empty segment must stop binding match")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                return_value="",
+            ) as segment_owner,
+            patch.object(
+                financial_surface_contracts,
+                "candidate_matches_segment_binding",
+                stopped_binding_match,
+            ),
+        ):
+            self.assertEqual(
+                financial_surface_contracts.candidate_segment_binding_bonus(
+                    candidate,
+                    operand=operand,
+                    constraints={},
+                    statement_type="",
+                    local_heading="",
+                    section_path="",
+                ),
+                0.0,
+            )
+        segment_owner.assert_called_once_with(operand)
+        stopped_binding_match.assert_not_called()
+
+        scoped_nested = {"preserve": True}
+        scoped_operands = [
+            {"binding_policy": {}, "nested": scoped_nested},
+            {"binding_policy": {}, "nested": scoped_nested},
+            {"binding_policy": {}, "nested": scoped_nested},
+        ]
+        scoped_calls = []
+
+        def scoped_segment(current_operand):
+            scoped_calls.append(current_operand)
+            return "" if len(scoped_calls) == 1 else "Segment A"
+
+        with patch.object(
+            financial_surface_contracts,
+            target_name,
+            side_effect=scoped_segment,
+        ):
+            financial_surface_contracts.scoped_surface_affinity_priority(
+                [],
+                query="",
+                topic="",
+                required_operands=scoped_operands,
+                require_segment_operand=True,
+            )
+        self.assertEqual(len(scoped_calls), 2)
+        for index, current_operand in enumerate(scoped_calls):
+            self.assertIsNot(current_operand, scoped_operands[index])
+            self.assertIs(current_operand["nested"], scoped_nested)
+
+        stopped_normalizer = Mock(
+            side_effect=AssertionError("segment failure must stop later affinity work")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                side_effect=RuntimeError("segment projection failed"),
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                stopped_normalizer,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "segment projection failed",
+            ):
+                financial_surface_contracts.scoped_surface_affinity_priority(
+                    [],
+                    query="",
+                    topic="",
+                    required_operands=scoped_operands,
+                    require_segment_operand=True,
+                )
+        stopped_normalizer.assert_not_called()
 
 
 if __name__ == "__main__":

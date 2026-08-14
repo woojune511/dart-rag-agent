@@ -281,7 +281,7 @@ from src.agent.financial_reflection_projection import (
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
-    _operand_segment_label,
+    operand_segment_label,
     _text_has_negative_surface,
     _text_has_positive_surface,
     scoped_surface_affinity_priority,
@@ -7033,7 +7033,7 @@ class FinancialAgentCalculationMixin:
             return 0
 
         ordered_row_labels = sorted(row_labels, key=_row_label_score, reverse=True)
-        segment_label = _normalise_spaces(str(_operand_segment_label(row) or ""))
+        segment_label = _normalise_spaces(str(operand_segment_label(row) or ""))
         segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
         role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
         aggregate_tokens = tuple(
@@ -7268,7 +7268,7 @@ class FinancialAgentCalculationMixin:
                 best_normalized = float(contextual_value)
 
         segment_label = _normalise_spaces(
-            str(_operand_segment_label(row) or dict(row.get("binding_policy") or {}).get("segment_label") or "")
+            str(operand_segment_label(row) or dict(row.get("binding_policy") or {}).get("segment_label") or "")
         )
         segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
         if segment_label and "|" in surface:

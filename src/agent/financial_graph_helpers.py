@@ -62,7 +62,7 @@ from src.agent.financial_retrieval_hints import (
     query_mentions_metric,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_segment_label,
+    operand_segment_label,
     _operand_surface_contract,
     _text_has_negative_surface,
     binding_policy_allows_candidate_shape,
@@ -1179,7 +1179,7 @@ def _build_generic_retrieval_queries(
         if not label:
             continue
         operand_prefix = _prefix_for_operand(operand) or year_prefix.strip()
-        segment_label = _operand_segment_label(operand)
+        segment_label = operand_segment_label(operand)
         normalized_label = _strip_leading_period_prefix(label)
         queries.append(_collapse_duplicate_query_tokens(f"{operand_prefix} {normalized_label or label}"))
         for surface in _query_surfaces_for_operand(operand):
@@ -2220,7 +2220,7 @@ def _task_output_slots_for_dependency(
                 "concept": concept,
                 "period": _task_binding_period_hint(dict(operand), task=task, report_scope=report_scope),
                 "label": _normalise_spaces(str(operand.get("label") or task.get("metric_label") or "")),
-                "segment_label": _operand_segment_label(dict(operand)),
+                "segment_label": operand_segment_label(dict(operand)),
                 "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
@@ -2249,7 +2249,7 @@ def _task_input_bindings_for_dependency(
                 "preferred_task_id": "",
                 "source_slot": "primary_value",
                 "source_preference": ["retrieval"],
-                "segment_label": _operand_segment_label(dict(operand)),
+                "segment_label": operand_segment_label(dict(operand)),
                 "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
@@ -3983,7 +3983,7 @@ def _deterministic_reconcile_task(
     for operand in required_operands:
         label = str(operand.get("label") or "").strip()
         matches = [candidate for candidate in candidates if candidate_matches_operand(candidate, operand)]
-        if _operand_segment_label(operand):
+        if operand_segment_label(operand):
             segment_local_matches = [
                 candidate
                 for candidate in matches

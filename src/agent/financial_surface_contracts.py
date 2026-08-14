@@ -23,7 +23,7 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
     return [needle for needle in [label, *aliases] if needle]
 
 
-def _operand_segment_label(operand: Dict[str, Any]) -> str:
+def operand_segment_label(operand: Dict[str, Any]) -> str:
     binding_policy = dict(operand.get("binding_policy") or {})
     return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
 
@@ -39,7 +39,7 @@ def scoped_surface_affinity_priority(
     adjustment_weight: float = 0.0,
 ) -> float:
     if require_segment_operand and not any(
-        _operand_segment_label(dict(operand or {})) for operand in list(required_operands or [])
+        operand_segment_label(dict(operand or {})) for operand in list(required_operands or [])
     ):
         return 0.0
     affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
@@ -450,7 +450,7 @@ def _candidate_segment_surfaces(candidate: Dict[str, Any], *, strict: bool = Fal
 
 
 def candidate_matches_segment_binding(candidate: Dict[str, Any], operand: Dict[str, Any], *, strict: bool = False) -> bool:
-    segment_label = _operand_segment_label(operand)
+    segment_label = operand_segment_label(operand)
     if not segment_label:
         return True
 
@@ -472,7 +472,7 @@ def candidate_segment_binding_bonus(
     local_heading: str,
     section_path: str,
 ) -> float:
-    segment_label = _operand_segment_label(operand)
+    segment_label = operand_segment_label(operand)
     if not segment_label:
         return 0.0
 

@@ -39,7 +39,7 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
-    _operand_segment_label,
+    operand_segment_label,
     _operand_surface_contract,
     _text_has_contract_term,
     _text_has_negative_surface,
@@ -1676,7 +1676,7 @@ def _operand_row_satisfies_required_surface_contract(
     evidence_item = _evidence_item_for_operand_row(row, evidence_by_id)
     segment_label = _normalise_spaces(
         str(
-            _operand_segment_label(matching_operand)
+            operand_segment_label(matching_operand)
             or dict(row.get("binding_policy") or {}).get("segment_label")
             or ""
         )
@@ -3523,7 +3523,7 @@ def lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
 
 
 def lookup_prefers_canonical_statement_rows(operand: Dict[str, Any]) -> bool:
-    if _operand_segment_label(operand):
+    if operand_segment_label(operand):
         return False
     lookup_hints = lookup_hints_for_concept_key(str(operand.get("concept") or ""))
     return bool(lookup_hints.get("prefer_canonical_statement_rows"))
