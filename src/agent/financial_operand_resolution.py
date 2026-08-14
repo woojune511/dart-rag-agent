@@ -21,6 +21,7 @@ from src.agent.financial_operation_policies import (
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     _operand_text_match,
+    _strip_financial_label_annotations,
     _surface_match_variants,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
@@ -51,6 +52,7 @@ from src.agent.financial_surface_contracts import (
     candidate_is_descriptor_row,
     candidate_local_aggregate_context,
     candidate_matches_segment_binding,
+    candidate_segment_binding_bonus,
     candidate_selected_unit_family,
     is_balance_sheet_aggregate_operand,
     is_capex_total_operand,
@@ -58,8 +60,11 @@ from src.agent.financial_surface_contracts import (
     operand_prefers_note_aggregate_lookup,
 )
 from src.agent.financial_scope_policies import (
+    _metadata_period_match_strength,
     candidate_matches_operand_target_year,
     candidate_matches_target_report_scope,
+    candidate_period_table_coherence_bonus,
+    candidate_report_scope_binding_bonus,
     operand_period_focus,
     operand_target_years,
 )
@@ -3896,6 +3901,323 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
     if candidate_supports_segment_metric_combo(candidate, operand):
         best = max(best, 2.25)
     return best
+
+
+def score_operand_candidate(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    preferred_statement_types: List[str],
+    constraints: Dict[str, Any],
+    query_years: List[int],
+    report_scope: Optional[Dict[str, Any]] = None,
+) -> float:
+    """Rank candidate rows/chunks for a single operand.
+
+    The scorer is deterministic on purpose: it gives the graph a stable first
+    pass before any optional LLM reranking is considered.
+    """
+    metadata = dict(candidate.get("metadata") or {})
+    if candidate_conflicts_with_operand_concept(candidate, operand):
+        return -10.0
+
+    score = 0.0
+    row_label = str(metadata.get("row_label") or "").strip()
+    semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
+    operand_binding_policy = dict(operand.get("binding_policy") or {})
+    if row_label:
+        row_label_variants = set(_surface_match_variants(row_label))
+        if any(
+            needle_variant in row_label_variants
+            for needle in _operand_needles(operand)
+            for needle_variant in _surface_match_variants(needle)
+        ):
+            score += 3.0
+        elif _operand_text_match(row_label, operand):
+            score += 1.5
+    score += candidate_direct_match_strength(candidate, operand)
+    candidate_kind = str(candidate.get("candidate_kind") or "")
+    if candidate_kind == "structured_value":
+        score += 2.5
+    elif candidate_kind == "structured_row":
+        score += 2.0
+    elif candidate_kind == "structured_column_value":
+        score += 1.75
+    elif candidate_kind == "table_row":
+        score += 1.0
+    elif candidate_kind == "evidence_row":
+        score += 0.5
+    elif candidate_kind == "chunk":
+        score -= 0.25
+
+    if candidate_kind in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
+        direct_match_strength = candidate_direct_match_strength(candidate, operand)
+        if direct_match_strength >= 2.5:
+            score += 1.25
+        elif direct_match_strength >= 1.5:
+            score += 0.5
+
+    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
+    numeric_cell_count = 0
+    for cell in structured_cells:
+        raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
+        raw_unit = _normalise_spaces(str(cell.get("unit_hint") or metadata.get("unit_hint") or ""))
+        normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        if normalized_value is not None:
+            numeric_cell_count += 1
+    if (
+        bool(metadata.get("direct_row_from_table_value_labels"))
+        and numeric_cell_count == 1
+        and _operand_text_match(" ".join(part for part in (row_label, semantic_label) if part), operand)
+    ):
+        score += 4.0
+
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
+    if aggregation_stage == "final":
+        score += 1.5
+    elif aggregation_stage == "direct":
+        score += 1.25
+    elif aggregation_stage == "subtotal":
+        score += 0.5
+    elif value_role == "adjustment":
+        score -= 1.5
+
+    aggregate_signal = " ".join(
+        part
+        for part in (
+            semantic_label,
+            row_label,
+            _normalise_spaces(str(metadata.get("aggregate_label") or "")),
+            " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+        )
+        if part
+    )
+    if value_role == "aggregate" and aggregation_stage in {"direct", "final"} and _operand_text_match(aggregate_signal, operand):
+        score += 2.0
+    elif value_role == "aggregate" and aggregation_stage == "subtotal" and _operand_text_match(aggregate_signal, operand):
+        score += 0.75
+    preferred_value_roles = [
+        _normalise_spaces(str(item)).lower()
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if _normalise_spaces(str(item))
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item)).lower()
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if _normalise_spaces(str(item))
+    ]
+    if value_role and value_role in preferred_value_roles:
+        try:
+            score += max(3.0 - (0.75 * preferred_value_roles.index(value_role)), 0.5)
+        except ValueError:
+            pass
+    if aggregation_stage and aggregation_stage in preferred_aggregation_stages:
+        try:
+            score += max(4.0 - (0.75 * preferred_aggregation_stages.index(aggregation_stage)), 0.5)
+        except ValueError:
+            pass
+    if value_role == "detail" and operand_prefers_aggregate_value_role(operand):
+        score -= 1.5
+
+    if candidate_has_numeric_value_signal(candidate):
+        score += 1.0
+
+    score += candidate_location_entity_subject_score(candidate, operand=operand)
+
+    if candidate_is_descriptor_row(candidate):
+        score -= 3.0
+
+    statement_type = str(metadata.get("statement_type") or "unknown").strip()
+    operand_preferred_statement_types = [
+        str(item).strip()
+        for item in (operand.get("preferred_statement_types") or [])
+        if str(item).strip()
+    ]
+    if preferred_statement_types:
+        if statement_type in preferred_statement_types:
+            score += 2.5
+        elif statement_type != "unknown":
+            score -= 0.8
+    if operand_preferred_statement_types:
+        if statement_type in operand_preferred_statement_types:
+            score += 1.5
+        elif statement_type != "unknown":
+            score -= 0.35
+
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    if lookup_prefers_canonical_statement_rows(operand):
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
+        canonical_section_hit = bool(canonical_sections) and any(
+            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
+            for section_term in canonical_sections
+            if _normalise_spaces(section_term)
+        )
+        note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+        note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
+        allows_note_canonical = any(
+            marker in _normalise_spaces(section)
+            for marker in note_markers
+            for section in canonical_sections
+        )
+        if statement_type == "income_statement":
+            score += 1.0
+        elif statement_type == "summary_financials":
+            score += 0.5
+        elif statement_type == "notes":
+            score -= 0.5
+        if canonical_section_hit:
+            score += 1.0
+        elif note_context and not allows_note_canonical:
+            score -= 2.5
+
+        related_party_context = " ".join(
+            part
+            for part in (
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("table_row_labels_text") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("local_heading") or "").strip(),
+                " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+                " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+            )
+            if part
+        )
+        related_party_terms = tuple(str(item) for item in (scoring_policy.get("related_party_penalty_terms") or ()) if str(item))
+        if any(token in related_party_context for token in related_party_terms):
+            score -= 3.0
+        stripped_row_label = _strip_financial_label_annotations(row_label)
+        stripped_needles = {_strip_financial_label_annotations(needle) for needle in _operand_needles(operand)}
+        generic_suffix_terms = tuple(str(item) for item in (scoring_policy.get("generic_suffix_penalty_terms") or ()) if str(item))
+        if stripped_row_label and any(token in stripped_row_label for token in generic_suffix_terms) and stripped_row_label not in stripped_needles:
+            score -= 1.5
+
+    desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
+    candidate_consolidation = candidate_consolidation_scope(metadata)
+    desired_period_focus = operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
+    if desired_consolidation == "unknown":
+        desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
+    if desired_period_focus == "unknown":
+        desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
+    if desired_period_focus in {"current", "prior"} and is_delta_like_row_label(semantic_label or row_label):
+        score -= 4.0
+    candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
+    score += candidate_segment_binding_bonus(
+        candidate,
+        operand=operand,
+        constraints=constraints,
+        statement_type=statement_type,
+        local_heading=local_heading,
+        section_path=section_path,
+    )
+    if desired_consolidation != "unknown":
+        if candidate_consolidation == desired_consolidation:
+            score += 2.0
+        elif candidate_consolidation != "unknown":
+            score -= 2.0
+        elif desired_consolidation == "consolidated":
+            context_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
+            consolidated_markers = tuple(str(item) for item in (context_markers.get("consolidated") or ()) if str(item))
+            separate_markers = tuple(str(item) for item in (context_markers.get("separate") or ()) if str(item))
+            if any(marker in local_heading for marker in consolidated_markers):
+                score += 1.5
+            elif any(marker in local_heading for marker in separate_markers):
+                score -= 1.5
+        elif desired_consolidation == "separate":
+            context_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
+            consolidated_markers = tuple(str(item) for item in (context_markers.get("consolidated") or ()) if str(item))
+            separate_markers = tuple(str(item) for item in (context_markers.get("separate") or ()) if str(item))
+            if any(marker in local_heading for marker in separate_markers):
+                score += 1.5
+            elif any(marker in local_heading for marker in consolidated_markers):
+                score -= 1.5
+
+    if desired_period_focus == "current":
+        if candidate_period_focus == "current":
+            score += 2.5
+        elif candidate_period_focus == "prior":
+            if candidate_matches_operand_target_year(candidate, operand, query_years):
+                score += 0.5
+            else:
+                score -= 2.5
+    elif desired_period_focus == "prior":
+        if candidate_period_focus == "prior":
+            score += 2.5
+        elif candidate_period_focus == "current":
+            if candidate_matches_operand_target_year(candidate, operand, query_years):
+                score += 0.5
+            else:
+                score -= 2.5
+
+    preferred_value_roles = [
+        str(item).strip()
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    ]
+    avoid_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = [
+        str(item).strip()
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    ]
+    avoid_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    score += preference_bonus(value_role, preferred_value_roles, base=0.6)
+    score += preference_bonus(aggregation_stage, preferred_aggregation_stages, base=0.5)
+    if _normalise_spaces(value_role) in avoid_value_roles:
+        score -= 2.0
+    if _normalise_spaces(aggregation_stage) in avoid_aggregation_stages:
+        score -= 1.75
+
+    operand_preferred_sections = [
+        str(item).strip()
+        for item in (operand.get("preferred_sections") or [])
+        if str(item).strip()
+    ]
+    if operand_preferred_sections:
+        if any(
+            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
+            for section_term in operand_preferred_sections
+        ):
+            score += 0.75
+
+    score += candidate_source_priority_bonus(
+        candidate,
+        operand=operand,
+        statement_type=statement_type,
+        value_role=value_role,
+        aggregation_stage=aggregation_stage,
+        local_heading=local_heading,
+    )
+
+    score += _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
+    score += candidate_period_table_coherence_bonus(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+    )
+    score += candidate_report_scope_binding_bonus(
+        candidate,
+        operand=operand,
+        query_years=query_years,
+        report_scope=dict(report_scope or {}),
+    )
+
+    if str(metadata.get("table_source_id") or "").strip():
+        score += 0.25
+
+    return score
 
 
 def direct_candidate_semantic_priority(

@@ -18,11 +18,11 @@ from src.agent.financial_graph_helpers import (
     _build_lookup_producer_task_from_binding,
     _build_reconciliation_retry_queries,
     _deterministic_reconcile_task,
-    _score_operand_candidate,
 )
 from src.agent.financial_operand_resolution import (
     candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
+    score_operand_candidate,
 )
 
 
@@ -854,7 +854,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        current_score = _score_operand_candidate(
+        current_score = score_operand_candidate(
             current_candidate,
             operand=operand,
             preferred_statement_types=["business_overview"],
@@ -862,7 +862,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             query_years=[2023],
             report_scope=report_scope,
         )
-        prior_score = _score_operand_candidate(
+        prior_score = score_operand_candidate(
             prior_candidate,
             operand=operand,
             preferred_statement_types=["business_overview"],
@@ -940,7 +940,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        score = _score_operand_candidate(
+        score = score_operand_candidate(
             comparative_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
@@ -1228,14 +1228,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        subtotal_score = _score_operand_candidate(
+        subtotal_score = score_operand_candidate(
             subtotal_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated"},
             query_years=[2023],
         )
-        final_score = _score_operand_candidate(
+        final_score = score_operand_candidate(
             final_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
@@ -1366,14 +1366,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        good_score = _score_operand_candidate(
+        good_score = score_operand_candidate(
             good_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated"},
             query_years=[2023],
         )
-        bad_score = _score_operand_candidate(
+        bad_score = score_operand_candidate(
             bad_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
@@ -1409,14 +1409,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        row_score = _score_operand_candidate(
+        row_score = score_operand_candidate(
             table_row_candidate,
             operand=operand,
             preferred_statement_types=["balance_sheet", "notes"],
             constraints={"consolidation_scope": "consolidated"},
             query_years=[2023],
         )
-        chunk_score = _score_operand_candidate(
+        chunk_score = score_operand_candidate(
             chunk_candidate,
             operand=operand,
             preferred_statement_types=["balance_sheet", "notes"],
@@ -1465,14 +1465,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        consolidated_score = _score_operand_candidate(
+        consolidated_score = score_operand_candidate(
             consolidated_candidate,
             operand=operand,
             preferred_statement_types=["balance_sheet", "summary_financials", "notes"],
             constraints={"consolidation_scope": "consolidated"},
             query_years=[2023],
         )
-        separate_score = _score_operand_candidate(
+        separate_score = score_operand_candidate(
             separate_candidate,
             operand=operand,
             preferred_statement_types=["balance_sheet", "summary_financials", "notes"],
@@ -1536,14 +1536,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        detail_score = _score_operand_candidate(
+        detail_score = score_operand_candidate(
             detail_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        final_score = _score_operand_candidate(
+        final_score = score_operand_candidate(
             final_total_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
@@ -1743,14 +1743,14 @@ class ReconciliationPlanTests(unittest.TestCase):
                 ],
             },
         }
-        summary_score = _score_operand_candidate(
+        summary_score = score_operand_candidate(
             mixed_summary_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        final_score = _score_operand_candidate(
+        final_score = score_operand_candidate(
             final_note_candidate,
             operand=operand,
             preferred_statement_types=["notes"],
@@ -1967,14 +1967,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        canonical_score = _score_operand_candidate(
+        canonical_score = score_operand_candidate(
             canonical_candidate,
             operand=operand,
             preferred_statement_types=["summary_financials", "balance_sheet", "notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        note_detail_score = _score_operand_candidate(
+        note_detail_score = score_operand_candidate(
             note_detail_candidate,
             operand=operand,
             preferred_statement_types=["summary_financials", "balance_sheet", "notes"],
@@ -2106,14 +2106,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        absolute_score = _score_operand_candidate(
+        absolute_score = score_operand_candidate(
             absolute_candidate,
             operand=operand,
             preferred_statement_types=["income_statement", "summary_financials", "notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        delta_score = _score_operand_candidate(
+        delta_score = score_operand_candidate(
             delta_candidate,
             operand=operand,
             preferred_statement_types=["income_statement", "summary_financials", "notes"],
@@ -2175,14 +2175,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        multi_score = _score_operand_candidate(
+        multi_score = score_operand_candidate(
             multi_period_candidate,
             operand=operand,
             preferred_statement_types=["mda", "summary_financials", "notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "multi_period"},
             query_years=[2023, 2022],
         )
-        single_score = _score_operand_candidate(
+        single_score = score_operand_candidate(
             single_period_note_candidate,
             operand=operand,
             preferred_statement_types=["mda", "summary_financials", "notes"],
@@ -2220,7 +2220,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertFalse(candidate_matches_operand(surrogate_candidate, operand))
         self.assertLess(
-            _score_operand_candidate(
+            score_operand_candidate(
                 surrogate_candidate,
                 operand=operand,
                 preferred_statement_types=["income_statement", "summary_financials", "notes"],
@@ -2260,7 +2260,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertFalse(candidate_matches_operand(surrogate_candidate, operand))
         self.assertLess(
-            _score_operand_candidate(
+            score_operand_candidate(
                 surrogate_candidate,
                 operand=operand,
                 preferred_statement_types=["mda", "summary_financials", "notes"],
@@ -2324,14 +2324,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        segment_score = _score_operand_candidate(
+        segment_score = score_operand_candidate(
             segment_candidate,
             operand=operand,
             preferred_statement_types=["notes", "mda", "summary_financials"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
             query_years=[2024],
         )
-        total_score = _score_operand_candidate(
+        total_score = score_operand_candidate(
             total_candidate,
             operand=operand,
             preferred_statement_types=["notes", "mda", "summary_financials"],
@@ -2609,14 +2609,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        business_score = _score_operand_candidate(
+        business_score = score_operand_candidate(
             business_candidate,
             operand=operand,
             preferred_statement_types=[],
             constraints={"consolidation_scope": "unknown", "period_focus": "current"},
             query_years=[2023, 2022],
         )
-        cash_flow_score = _score_operand_candidate(
+        cash_flow_score = score_operand_candidate(
             cash_flow_candidate,
             operand=operand,
             preferred_statement_types=[],
@@ -3256,14 +3256,14 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        canonical_score = _score_operand_candidate(
+        canonical_score = score_operand_candidate(
             canonical_candidate,
             operand=operand,
             preferred_statement_types=["income_statement", "summary_financials", "notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        related_party_score = _score_operand_candidate(
+        related_party_score = score_operand_candidate(
             related_party_candidate,
             operand=operand,
             preferred_statement_types=["income_statement", "summary_financials", "notes"],

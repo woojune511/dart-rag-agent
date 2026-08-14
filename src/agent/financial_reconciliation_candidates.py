@@ -5,13 +5,11 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from src.agent.financial_graph_helpers import (
-    _resolve_candidate_local_unit_hint,
-    _score_operand_candidate,
-)
+from src.agent.financial_graph_helpers import _resolve_candidate_local_unit_hint
 from src.agent.financial_operand_resolution import (
     candidate_satisfies_direct_acceptance_contract,
     coerce_lookup_magnitude_value,
+    score_operand_candidate,
 )
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_row_surfaces import _parse_unstructured_table_row_cells
@@ -167,7 +165,7 @@ def pair_candidate_period_score(
     period_focus: str,
     report_scope: Optional[Dict[str, Any]] = None,
 ) -> tuple[float, str]:
-    candidate_score = _score_operand_candidate(
+    candidate_score = score_operand_candidate(
         candidate,
         operand=operand,
         preferred_statement_types=preferred_statement_types,

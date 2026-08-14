@@ -37,7 +37,6 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _score_operand_candidate,
     _extract_generic_operand_labels,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
@@ -59,6 +58,7 @@ from src.agent.financial_operand_resolution import (
     candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
     candidate_satisfies_direct_acceptance_contract,
+    score_operand_candidate,
     table_label_metadata_lookup_score,
 )
 from src.agent.financial_operand_resolution import (
@@ -2543,7 +2543,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"year": 2023, "section_path": "business section"},
         }
 
-        market_score = _score_operand_candidate(
+        market_score = score_operand_candidate(
             market_total,
             operand=operand,
             preferred_statement_types=[],
@@ -2551,7 +2551,7 @@ class OperationContractTests(unittest.TestCase):
             query_years=[2023, 2022],
             report_scope={},
         )
-        entity_score = _score_operand_candidate(
+        entity_score = score_operand_candidate(
             entity_sales,
             operand=operand,
             preferred_statement_types=[],
@@ -5159,7 +5159,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertTrue(candidate_conflicts_with_operand_concept(candidate, operand))
         self.assertLess(
-            _score_operand_candidate(
+            score_operand_candidate(
                 candidate,
                 operand=operand,
                 preferred_statement_types=[],
@@ -5723,21 +5723,21 @@ class OperationContractTests(unittest.TestCase):
                 },
             }
 
-        final_score = _score_operand_candidate(
+        final_score = score_operand_candidate(
             candidate("final"),
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        subtotal_score = _score_operand_candidate(
+        subtotal_score = score_operand_candidate(
             candidate("subtotal"),
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        detail_score = _score_operand_candidate(
+        detail_score = score_operand_candidate(
             candidate("none", value_role="detail"),
             operand=operand,
             preferred_statement_types=["notes"],
@@ -5784,8 +5784,8 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        direct_score = _score_operand_candidate(direct_row, **score_kwargs)
-        multicell_score = _score_operand_candidate(multicell_row, **score_kwargs)
+        direct_score = score_operand_candidate(direct_row, **score_kwargs)
+        multicell_score = score_operand_candidate(multicell_row, **score_kwargs)
 
         self.assertGreater(direct_score, multicell_score)
 

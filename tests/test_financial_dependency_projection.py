@@ -5935,7 +5935,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=candidate_match,
         ), patch.object(
             graph_reconciliation,
-            "_score_operand_candidate",
+            "score_operand_candidate",
             side_effect=candidate_score,
         ), patch.object(
             agent,
@@ -5976,7 +5976,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=AssertionError("candidate matching must stop"),
         ), patch.object(
             graph_reconciliation,
-            "_score_operand_candidate",
+            "score_operand_candidate",
             side_effect=AssertionError("candidate scoring must stop"),
         ), patch.object(
             agent,

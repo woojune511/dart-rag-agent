@@ -195,7 +195,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         events = []
 
         with (
-            patch.object(candidates, "_score_operand_candidate", side_effect=lambda *args, **kwargs: events.append(("candidate", args, kwargs)) or 2.5),
+            patch.object(candidates, "score_operand_candidate", side_effect=lambda *args, **kwargs: events.append(("candidate", args, kwargs)) or 2.5),
             patch.object(candidates, "operand_target_years", side_effect=lambda op, ys: events.append(("years", op, ys)) or [2024]),
             patch.object(candidates, "operand_period_focus", side_effect=lambda op, focus: events.append(("focus", op, focus)) or "current"),
             patch.object(candidates, "score_structured_cell", side_effect=lambda *args, **kwargs: events.append(("cell", args, kwargs)) or 1.25),
@@ -220,7 +220,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         period.assert_called_once_with(operand=operand, cell=cell, query_years=years, period_focus="current")
 
         with (
-            patch.object(candidates, "_score_operand_candidate", side_effect=RuntimeError("candidate score failed")),
+            patch.object(candidates, "score_operand_candidate", side_effect=RuntimeError("candidate score failed")),
             patch.object(candidates, "score_structured_cell") as stopped_cell,
             patch.object(candidates, "_resolved_period_text_for_operand") as stopped_period,
             self.assertRaisesRegex(RuntimeError, "candidate score failed"),
@@ -608,7 +608,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(reconciliation, "extract_structured_period_pair_rows", return_value=([], set())),
             patch.object(reconciliation, "expand_structured_candidate_ids", return_value=["candidate"]),
             patch.object(reconciliation, "structured_candidate_from_id", return_value=dict(candidate)),
-            patch.object(reconciliation, "_score_operand_candidate", return_value=1.0),
+            patch.object(reconciliation, "score_operand_candidate", return_value=1.0),
             patch.object(reconciliation, "select_structured_cell", return_value={"value_text": "10"}),
             patch.object(reconciliation, "candidate_satisfies_direct_acceptance_contract", return_value=True),
             patch.object(reconciliation, "build_operand_row_from_candidate_cell", return_value={"evidence_id": "candidate"}) as build_row,
@@ -1322,7 +1322,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(reconciliation, "extract_structured_period_pair_rows", side_effect=pair_owner),
             patch.object(reconciliation, "expand_structured_candidate_ids", side_effect=expand_owner),
             patch.object(reconciliation, "structured_candidate_from_id", side_effect=lambda cid, mapping: events.append("candidate") or dict(mapping[cid])),
-            patch.object(reconciliation, "_score_operand_candidate", side_effect=lambda *args, **kwargs: events.append("score") or 1.0),
+            patch.object(reconciliation, "score_operand_candidate", side_effect=lambda *args, **kwargs: events.append("score") or 1.0),
             patch.object(reconciliation, "select_structured_cell", side_effect=lambda cells, **kwargs: events.append("select") or cells[0]),
             patch.object(reconciliation, "candidate_satisfies_direct_acceptance_contract", side_effect=lambda *args, **kwargs: events.append("accept") or True),
             patch.object(reconciliation, "build_operand_row_from_candidate_cell", side_effect=lambda **kwargs: events.append("row") or ordinary_row),

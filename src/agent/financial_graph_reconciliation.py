@@ -20,7 +20,6 @@ from src.agent.financial_graph_helpers import (
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
     _query_years_from_state,
-    _score_operand_candidate,
 )
 from src.agent.financial_structured_cells import (
     select_aggregate_structured_cell,
@@ -35,6 +34,7 @@ from src.agent.financial_operand_resolution import (
     candidate_satisfies_ratio_component_acceptance_contract,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     repair_note_operand_units_from_same_block,
+    score_operand_candidate,
 )
 from src.agent.financial_reconciliation_candidates import (
     build_operand_row_from_candidate_cell,
@@ -368,7 +368,7 @@ class FinancialAgentReconciliationMixin:
             scored_candidates = [
                 {
                     "candidate": candidate,
-                    "score": _score_operand_candidate(
+                    "score": score_operand_candidate(
                         candidate,
                         operand=operand,
                         preferred_statement_types=preferred_statement_types,
@@ -649,7 +649,7 @@ class FinancialAgentReconciliationMixin:
             selected_cell: Optional[Dict[str, Any]] = None
             if structured_candidates:
                 structured_candidates.sort(
-                    key=lambda current: _score_operand_candidate(
+                    key=lambda current: score_operand_candidate(
                         current,
                         operand=operand,
                         preferred_statement_types=preferred_statement_types,
@@ -766,7 +766,7 @@ class FinancialAgentReconciliationMixin:
                             6.0 if same_block_keys and candidate_row_block_signature(current) in same_block_keys else 0.0
                         ) + (
                             3.0
-                            + _score_operand_candidate(
+                            + score_operand_candidate(
                                 current,
                                 operand=operand,
                                 preferred_statement_types=preferred_statement_types,
