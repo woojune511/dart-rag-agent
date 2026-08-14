@@ -98,6 +98,7 @@ from src.agent.financial_row_surfaces import (
     candidate_sibling_surface_hit_count,
     candidate_supports_segment_metric_combo,
     candidate_value_role,
+    is_delta_like_row_label,
     table_row_has_matching_structured_sibling,
 )
 from src.agent.financial_structured_cells import (
@@ -4225,7 +4226,7 @@ def _candidate_is_direct_grounding_candidate(
     if desired_period_focus == "unknown":
         desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
-    if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label):
+    if desired_period_focus in {"current", "prior"} and is_delta_like_row_label(semantic_label):
         return False
     if not candidate_matches_segment_binding(candidate, operand, strict=True):
         return False
@@ -4252,7 +4253,7 @@ def _candidate_is_direct_grounding_candidate(
     if operation_family in {"lookup", "single_value"} and candidate_kind == "table_row":
         if table_row_has_matching_structured_sibling(metadata, operand):
             return False
-        if row_text and _is_delta_like_row_label(row_text):
+        if row_text and is_delta_like_row_label(row_text):
             return False
 
     return True
@@ -4574,15 +4575,6 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
     if structured_candidate:
         return False
     return _operand_text_match(str(candidate.get("text") or ""), operand)
-
-
-def _is_delta_like_row_label(label: str) -> bool:
-    text = _normalise_spaces(str(label or ""))
-    if not text:
-        return False
-    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-    delta_markers = tuple(str(item) for item in (scoring_policy.get("delta_row_markers") or ()) if str(item))
-    return any(token in text for token in delta_markers)
 
 
 def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
@@ -4909,7 +4901,7 @@ def _score_operand_candidate(
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
     if desired_period_focus == "unknown":
         desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
-    if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label or row_label):
+    if desired_period_focus in {"current", "prior"} and is_delta_like_row_label(semantic_label or row_label):
         score -= 4.0
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
     score += candidate_segment_binding_bonus(

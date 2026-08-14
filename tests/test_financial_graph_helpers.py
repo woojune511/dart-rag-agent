@@ -475,14 +475,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (9, 15),
+            (10, 15),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1339,7 +1339,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "lookup_prefers_canonical_statement_rows": False,
             "candidate_consolidation_scope": "unknown",
             "operand_period_focus": "unknown",
-            "_is_delta_like_row_label": False,
+            "is_delta_like_row_label": False,
             "candidate_matches_segment_binding": True,
             "candidate_matches_target_report_scope": True,
             "candidate_matches_operand_target_year": False,
@@ -1393,7 +1393,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
-            patch.object(financial_graph_helpers, "_is_delta_like_row_label", return_value=False),
+            patch.object(financial_graph_helpers, "is_delta_like_row_label", return_value=False),
             patch.object(
                 financial_graph_helpers,
                 "candidate_matches_segment_binding",
@@ -1876,14 +1876,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (9, 15),
+            (10, 15),
         )
 
         graph_row_imports = {
@@ -2830,8 +2830,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 89))
-        self.assertEqual(row_counts, (9, 15))
+        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(row_counts, (10, 15))
 
         graph_row_imports = {
             alias.name
@@ -3872,14 +3872,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (9, 15),
+            (10, 15),
         )
         graph_row_imports = {
             alias.name
@@ -3972,7 +3972,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=False),
                 patch.object(
                     financial_graph_helpers,
-                    "_is_delta_like_row_label",
+                    "is_delta_like_row_label",
                     side_effect=lambda text: events.append(("delta", text)) or False,
                 ),
             ]
@@ -4077,7 +4077,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
             )
             stack.enter_context(
-                patch.object(financial_graph_helpers, "_is_delta_like_row_label", stopped_delta)
+                patch.object(financial_graph_helpers, "is_delta_like_row_label", stopped_delta)
             )
             with self.assertRaisesRegex(RuntimeError, "sibling failed"):
                 invoke_grounding()
@@ -4909,7 +4909,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             (
@@ -6628,7 +6628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 89))
+        self.assertEqual(current_graph_counts, (9, 88))
         self.assertEqual(current_operand_counts, (44, 37))
 
         def imported_names(module_name, imported_module):
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 89))
+        self.assertEqual(graph_counts, (9, 88))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,7 +9279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 89))
+        self.assertEqual(graph_counts, (9, 88))
         self.assertEqual(owner_counts, (10, 9))
 
         def imported_names(module_name, imported_module):
@@ -10319,8 +10319,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 89))
-        self.assertEqual(row_counts, (9, 15))
+        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(row_counts, (10, 15))
 
         def imported_names(module_name, imported_module):
             return {
@@ -12877,7 +12877,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15746,7 +15746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 89),
+                "financial_graph_helpers": (9, 88),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -17888,7 +17888,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
                 patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
-                patch.object(financial_graph_helpers, "_is_delta_like_row_label", return_value=False),
+                patch.object(financial_graph_helpers, "is_delta_like_row_label", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
             ):
                 stack.enter_context(current_patch)
@@ -18718,7 +18718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 89),
+            (9, 88),
         )
         self.assertEqual(
             (
@@ -19706,7 +19706,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 89),
+                "financial_graph_helpers": (9, 88),
                 "financial_surface_contracts": (10, 7),
             },
         )
@@ -20503,7 +20503,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 89),
+                "financial_graph_helpers": (9, 88),
                 "financial_scope_policies": (10, 9),
             },
         )
@@ -21411,7 +21411,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 89),
+                "financial_graph_helpers": (9, 88),
                 "financial_operand_resolution": (44, 37),
             },
         )
@@ -21642,6 +21642,792 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(report_scope, before_report_scope)
         self.assertIs(candidate["metadata"]["nested"], nested)
         self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
+
+    def test_current_source_delta_like_row_label_pins_normalization_policy_markers_and_result(self) -> None:
+        owner = financial_row_surfaces
+        classify = owner.is_delta_like_row_label
+        events = []
+
+        class FalseyLabel:
+            def __bool__(self):
+                events.append("label-bool")
+                return False
+
+            def __str__(self):
+                raise AssertionError("a falsey label must not be stringified")
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("blank normalized text must stop policy access")
+
+        def blank_normalizer(value):
+            events.append(("normalize", value))
+            return ""
+
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=blank_normalizer),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", PolicyBomb()),
+        ):
+            self.assertIs(classify(FalseyLabel()), False)
+        self.assertEqual(events, ["label-bool", ("normalize", "")])
+
+        events.clear()
+        nested = {"preserve": True}
+
+        class Label:
+            def __bool__(self):
+                events.append("label-bool")
+                return True
+
+            def __str__(self):
+                events.append("label-str")
+                return " raw-label "
+
+        class Text:
+            def __bool__(self):
+                events.append("text-bool")
+                return True
+
+            def __contains__(self, token):
+                events.append(("contains", token))
+                return token == "hit"
+
+        class Marker:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("marker-str", self.name))
+                return self.value
+
+        markers = [
+            Marker("blank", ""),
+            Marker("miss", "miss"),
+            Marker("hit", "hit"),
+            Marker("later", "later"),
+        ]
+
+        class MarkerCollection:
+            def __bool__(self):
+                events.append("markers-bool")
+                return True
+
+            def __iter__(self):
+                events.append("markers-iter")
+                yield from markers
+
+        marker_collection = MarkerCollection()
+
+        class Policy:
+            def keys(self):
+                events.append("policy-keys")
+                return ["delta_row_markers", "nested"]
+
+            def __getitem__(self, key):
+                events.append(("policy-item", key))
+                return marker_collection if key == "delta_row_markers" else nested
+
+        policy = Policy()
+
+        def text_normalizer(value):
+            events.append(("normalize", value))
+            self.assertEqual(value, " raw-label ")
+            return Text()
+
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=text_normalizer),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy),
+        ):
+            self.assertIs(classify(Label()), True)
+
+        self.assertEqual(events[:4], ["label-bool", "label-str", ("normalize", " raw-label "), "text-bool"])
+        self.assertEqual(events.count(("marker-str", "blank")), 1)
+        self.assertEqual(events.count(("marker-str", "miss")), 2)
+        self.assertEqual(events.count(("marker-str", "hit")), 2)
+        self.assertEqual(events.count(("marker-str", "later")), 2)
+        first_membership = events.index(("contains", "miss"))
+        self.assertLess(events.index(("marker-str", "later")), first_membership)
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "contains"],
+            [("contains", "miss"), ("contains", "hit")],
+        )
+        self.assertIn("policy-keys", events)
+        self.assertIn("markers-bool", events)
+        self.assertIn("markers-iter", events)
+
+        checked_in_markers = tuple(
+            str(item)
+            for item in owner.OPERAND_CANDIDATE_SCORING_POLICY["delta_row_markers"]
+        )
+        self.assertEqual(
+            checked_in_markers,
+            ("\uc99d\uac00(\uac10\uc18c)", "\uc99d\uac00", "\uac10\uc18c", "\uc99d\uac10", "\ubcc0\ub3d9"),
+        )
+        for marker in checked_in_markers:
+            with self.subTest(marker=marker):
+                self.assertIs(classify(f"prefix {marker} suffix"), True)
+        self.assertIs(classify("ordinary row"), False)
+        self.assertIs(classify(""), False)
+
+    def test_current_source_delta_like_row_label_pins_laziness_repeated_strings_immutability_and_exceptions(self) -> None:
+        owner = financial_row_surfaces
+        classify = owner.is_delta_like_row_label
+
+        class FalseyMarkers:
+            def __bool__(self):
+                return False
+
+            def __iter__(self):
+                raise AssertionError("a falsey marker source must fall back before iteration")
+
+        nested = {"preserve": True}
+        marker_source = FalseyMarkers()
+        policy = {"delta_row_markers": marker_source, "nested": nested}
+        before_policy = dict(policy)
+        with patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy):
+            self.assertIs(classify("ordinary"), False)
+        self.assertEqual(policy, before_policy)
+        self.assertIs(policy["delta_row_markers"], marker_source)
+        self.assertIs(policy["nested"], nested)
+
+        marker_list = ["hit", "later"]
+        policy = {"delta_row_markers": marker_list, "nested": nested}
+        before_markers = list(marker_list)
+        with patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy):
+            self.assertIs(classify("hit"), True)
+        self.assertEqual(marker_list, before_markers)
+        self.assertIs(policy["delta_row_markers"], marker_list)
+        self.assertIs(policy["nested"], nested)
+
+        class LabelTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("label truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "label truth failed"):
+            classify(LabelTruthBomb())
+
+        class LabelStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("label string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "label string failed"):
+            classify(LabelStringBomb())
+
+        with patch.object(
+            owner,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                classify("label")
+
+        class TextTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("text truth failed")
+
+        with patch.object(owner, "_normalise_spaces", return_value=TextTruthBomb()):
+            with self.assertRaisesRegex(RuntimeError, "text truth failed"):
+                classify("label")
+
+        class PolicyCopyBomb:
+            def keys(self):
+                raise RuntimeError("policy copy failed")
+
+        with patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", PolicyCopyBomb()):
+            with self.assertRaisesRegex(RuntimeError, "policy copy failed"):
+                classify("label")
+
+        class PolicyKeyBomb:
+            def __hash__(self):
+                return hash("delta_row_markers")
+
+            def __eq__(self, _other):
+                raise RuntimeError("policy get failed")
+
+        with patch.object(
+            owner,
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            [(PolicyKeyBomb(), ["hit"])],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy get failed"):
+                classify("label")
+
+        class MarkerTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("marker truth failed")
+
+        with patch.object(
+            owner,
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            {"delta_row_markers": MarkerTruthBomb()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker truth failed"):
+                classify("label")
+
+        class MarkerIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("marker iteration failed")
+
+        with patch.object(
+            owner,
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            {"delta_row_markers": MarkerIterationBomb()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker iteration failed"):
+                classify("label")
+
+        class MarkerStringBomb:
+            def __str__(self):
+                raise RuntimeError("marker string failed")
+
+        with patch.object(
+            owner,
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            {"delta_row_markers": [MarkerStringBomb()]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker string failed"):
+                classify("label")
+
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", {"delta_row_markers": ["hit"]}),
+            patch.object(owner, "tuple", create=True, side_effect=RuntimeError("tuple failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "tuple failed"):
+                classify("label")
+
+        class MembershipBomb:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, _token):
+                raise RuntimeError("membership failed")
+
+        with (
+            patch.object(owner, "_normalise_spaces", return_value=MembershipBomb()),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", {"delta_row_markers": ["hit"]}),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "membership failed"):
+                classify("label")
+
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", {"delta_row_markers": ["hit"]}),
+            patch.object(owner, "any", create=True, side_effect=RuntimeError("any failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "any failed"):
+                classify("label")
+
+    def test_current_source_delta_like_row_label_bindings_pin_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_row_surfaces": repo_root / "src" / "agent" / "financial_row_surfaces.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "is_delta_like_row_label"
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual((owner_name, definition.name), ("financial_row_surfaces", target_name))
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 7)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["label"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(sum(isinstance(node, ast.Return) for node in ast.walk(definition)), 2)
+        self.assertEqual(
+            sum(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)),
+            0,
+        )
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {"_normalise_spaces": 1, "any": 1, "dict": 1, "get": 1, "str": 3, "tuple": 1},
+        )
+        self.assertEqual(
+            calls,
+            [
+                ("financial_graph_helpers", "_candidate_is_direct_grounding_candidate", "Name", ("semantic_label",), (), 0),
+                ("financial_graph_helpers", "_candidate_is_direct_grounding_candidate", "Name", ("row_text",), (), 0),
+                ("financial_graph_helpers", "_score_operand_candidate", "Name", ("semantic_label or row_label",), (), 0),
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {"financial_graph_helpers": (9, 88), "financial_row_surfaces": (10, 15)},
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        graph_imports = imported_modules(module_trees["financial_graph_helpers"])
+        row_imports = imported_modules(module_trees["financial_row_surfaces"])
+        self.assertIn("src.agent.financial_row_surfaces", graph_imports)
+        self.assertNotIn("src.agent.financial_graph_helpers", row_imports)
+        self.assertIn("src.agent.financial_runtime_normalization", row_imports)
+        self.assertIn("src.config.retrieval_policy", row_imports)
+        self.assertIn(
+            target_name,
+            imported_names(
+                module_trees["financial_graph_helpers"],
+                "src.agent.financial_row_surfaces",
+            ),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        dependency_graph = {}
+        for path in agent_files:
+            relative = path.relative_to(repo_root).with_suffix("")
+            module_name = ".".join(relative.parts)
+            dependency_graph[module_name] = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(reachable("src.agent.financial_row_surfaces", "src.agent.financial_graph_helpers"))
+
+        graph_tree = module_trees["financial_graph_helpers"]
+        grounding_definition = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_candidate_is_direct_grounding_candidate"
+        )
+        score_definition = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_score_operand_candidate"
+        )
+        grounding_source = ast.unparse(grounding_definition)
+        score_source = ast.unparse(score_definition)
+        self.assertIn(f"{target_name}(semantic_label)", grounding_source)
+        self.assertIn(f"row_text and {target_name}(row_text)", grounding_source)
+        self.assertIn(f"{target_name}(semantic_label or row_label)", score_source)
+        self.assertLess(
+            grounding_source.index(f"{target_name}(semantic_label)"),
+            grounding_source.index("candidate_matches_segment_binding"),
+        )
+        self.assertLess(
+            grounding_source.index("table_row_has_matching_structured_sibling"),
+            grounding_source.index(f"{target_name}(row_text)"),
+        )
+        self.assertLess(
+            score_source.index(f"{target_name}(semantic_label or row_label)"),
+            score_source.index("candidate_segment_binding_bonus"),
+        )
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == f"src/agent/{module_paths[owner_name].name}"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_delta_like_row_label_pins_normalization_policy_markers_and_result",
+            "test_current_source_delta_like_row_label_pins_laziness_repeated_strings_immutability_and_exceptions",
+            "test_current_source_delta_like_row_label_bindings_pin_def_calls_dag_imports_and_baseline",
+            "test_current_source_delta_like_row_label_callers_pin_gates_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_delta_like_row_label_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        target_name = "is_delta_like_row_label"
+        nested = {"preserve": True}
+        operand = {"binding_policy": {}, "nested": nested}
+        constraints = {"period_focus": "current", "nested": nested}
+        query_years = [2024]
+        report_scope = {"nested": nested}
+
+        def enter_grounding_patches(stack, *, period_focus, target_effect, events):
+            for current_patch in (
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
+                patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value=period_focus),
+                patch.object(financial_graph_helpers, target_name, side_effect=target_effect),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_matches_segment_binding",
+                    side_effect=lambda *_args, **_kwargs: events.append("segment") or True,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_matches_target_report_scope",
+                    side_effect=lambda *_args, **_kwargs: events.append("report") or True,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_matches_operand_target_year",
+                    side_effect=lambda *_args, **_kwargs: events.append("year") or False,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "table_row_has_matching_structured_sibling",
+                    side_effect=lambda *_args, **_kwargs: events.append("sibling") or False,
+                ),
+            ):
+                stack.enter_context(current_patch)
+
+        semantic_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "semantic_label": "Semantic Delta",
+                "period_focus": "unknown",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+
+        for target_result, expected, expected_events in (
+            (True, False, [("delta", "Semantic Delta")]),
+            (False, True, [("delta", "Semantic Delta"), "segment", "report", "year"]),
+        ):
+            with self.subTest(semantic_result=target_result):
+                events = []
+
+                def semantic_target(label):
+                    events.append(("delta", label))
+                    return target_result
+
+                with ExitStack() as stack:
+                    enter_grounding_patches(
+                        stack,
+                        period_focus="current",
+                        target_effect=semantic_target,
+                        events=events,
+                    )
+                    actual = financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                        semantic_candidate,
+                        operand=operand,
+                        constraints=constraints,
+                        query_years=query_years,
+                        report_scope=report_scope,
+                    )
+                self.assertEqual(actual, expected)
+                self.assertEqual(events, expected_events)
+
+        events = []
+        stopped_segment = Mock(side_effect=AssertionError("delta failure must stop segment matching"))
+        with ExitStack() as stack:
+            enter_grounding_patches(
+                stack,
+                period_focus="current",
+                target_effect=RuntimeError("semantic delta failed"),
+                events=events,
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "candidate_matches_segment_binding", stopped_segment)
+            )
+            with self.assertRaisesRegex(RuntimeError, "semantic delta failed"):
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    semantic_candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        stopped_segment.assert_not_called()
+
+        stopped_delta = Mock(side_effect=AssertionError("unknown period focus must skip semantic delta"))
+        events = []
+        with ExitStack() as stack:
+            enter_grounding_patches(
+                stack,
+                period_focus="unknown",
+                target_effect=stopped_delta,
+                events=events,
+            )
+            self.assertTrue(
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    semantic_candidate,
+                    operand=operand,
+                    constraints={"period_focus": "unknown"},
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            )
+        stopped_delta.assert_not_called()
+
+        row_candidate = {
+            "candidate_kind": "table_row",
+            "metadata": {
+                "semantic_label": "Ordinary",
+                "row_text": "Row Delta",
+                "period_focus": "unknown",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        for target_result, expected in ((True, False), (False, True)):
+            with self.subTest(row_result=target_result):
+                events = []
+
+                def row_target(label):
+                    events.append(("delta", label))
+                    return target_result
+
+                with ExitStack() as stack:
+                    enter_grounding_patches(
+                        stack,
+                        period_focus="unknown",
+                        target_effect=row_target,
+                        events=events,
+                    )
+                    actual = financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                        row_candidate,
+                        operand=operand,
+                        constraints={"period_focus": "unknown"},
+                        query_years=query_years,
+                        operation_family="lookup",
+                        report_scope=report_scope,
+                    )
+                self.assertEqual(actual, expected)
+                self.assertEqual(events, ["segment", "report", "year", "sibling", ("delta", "Row Delta")])
+
+        blank_row_candidate = {
+            **row_candidate,
+            "metadata": {**row_candidate["metadata"], "row_text": ""},
+        }
+        stopped_delta = Mock(side_effect=AssertionError("blank row text must skip delta classification"))
+        events = []
+        with ExitStack() as stack:
+            enter_grounding_patches(
+                stack,
+                period_focus="unknown",
+                target_effect=stopped_delta,
+                events=events,
+            )
+            self.assertTrue(
+                financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                    blank_row_candidate,
+                    operand=operand,
+                    constraints={"period_focus": "unknown"},
+                    query_years=query_years,
+                    operation_family="lookup",
+                    report_scope=report_scope,
+                )
+            )
+        stopped_delta.assert_not_called()
+
+        score_candidate = {
+            "candidate_kind": "",
+            "metadata": {"semantic_label": "Semantic Delta", "row_label": "Row Delta", "nested": nested},
+            "nested": nested,
+        }
+
+        def run_score(
+            *,
+            target_result=False,
+            period_focus="current",
+            semantic_label="Semantic Delta",
+            failure=None,
+            event_sink=None,
+        ):
+            events = [] if event_sink is None else event_sink
+            current_candidate = {
+                **score_candidate,
+                "metadata": {**score_candidate["metadata"], "semantic_label": semantic_label},
+            }
+
+            def delta_target(label):
+                events.append(("delta", label))
+                if failure:
+                    raise RuntimeError(failure)
+                return target_result
+
+            with ExitStack() as stack:
+                for current_patch in (
+                    patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                    patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+                    patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
+                    patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
+                    patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                    patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                    patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                    patch.object(financial_graph_helpers, "operand_period_focus", return_value=period_focus),
+                    patch.object(financial_graph_helpers, target_name, side_effect=delta_target),
+                    patch.object(
+                        financial_graph_helpers,
+                        "candidate_segment_binding_bonus",
+                        side_effect=lambda *_args, **_kwargs: events.append("segment") or 0.0,
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        "_candidate_source_priority_bonus",
+                        side_effect=lambda *_args, **_kwargs: events.append("source") or 0.0,
+                    ),
+                    patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
+                ):
+                    stack.enter_context(current_patch)
+                score = financial_graph_helpers._score_operand_candidate(
+                    current_candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints={"period_focus": period_focus},
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            return score, events
+
+        ordinary_score, ordinary_events = run_score(target_result=False)
+        delta_score, delta_events = run_score(target_result=True)
+        self.assertEqual(delta_score, ordinary_score - 4.0)
+        self.assertEqual(ordinary_events[:2], [("delta", "Semantic Delta"), "segment"])
+        self.assertEqual(delta_events[:2], [("delta", "Semantic Delta"), "segment"])
+        fallback_score, fallback_events = run_score(semantic_label="")
+        self.assertEqual(fallback_score, ordinary_score)
+        self.assertEqual(fallback_events[0], ("delta", "Row Delta"))
+        unknown_score, unknown_events = run_score(period_focus="unknown")
+        self.assertEqual(unknown_score, ordinary_score)
+        self.assertNotIn("delta", [event[0] if isinstance(event, tuple) else event for event in unknown_events])
+
+        failure_events = []
+        with self.assertRaisesRegex(RuntimeError, "scorer delta failed"):
+            run_score(failure="scorer delta failed", event_sink=failure_events)
+        self.assertEqual(failure_events, [("delta", "Semantic Delta")])
+
+        self.assertIs(semantic_candidate["metadata"]["nested"], nested)
+        self.assertIs(row_candidate["metadata"]["nested"], nested)
+        self.assertIs(score_candidate["metadata"]["nested"], nested)
         self.assertIs(operand["nested"], nested)
         self.assertIs(constraints["nested"], nested)
         self.assertIs(report_scope["nested"], nested)

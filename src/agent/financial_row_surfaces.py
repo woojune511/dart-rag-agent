@@ -15,6 +15,7 @@ from src.agent.financial_surface_contracts import (
 )
 from src.config.retrieval_policy import (
     HELPER_RUNTIME_POLICY,
+    OPERAND_CANDIDATE_SCORING_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
 )
 
@@ -28,6 +29,15 @@ def _strip_financial_label_annotations(text: str) -> str:
     normalized = re.sub(r"\((?:주\s*\d+[^\)]*|\*)\)", "", normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     return normalized
+
+
+def is_delta_like_row_label(label: str) -> bool:
+    text = _normalise_spaces(str(label or ""))
+    if not text:
+        return False
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    delta_markers = tuple(str(item) for item in (scoring_policy.get("delta_row_markers") or ()) if str(item))
+    return any(token in text for token in delta_markers)
 
 
 def _strip_leading_period_qualifiers(text: str) -> str:
