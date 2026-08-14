@@ -36,6 +36,11 @@ from src.agent.financial_surface_contracts import (
     _text_has_contract_term,
     _text_has_negative_surface,
     _text_has_positive_surface,
+    candidate_local_aggregate_context,
+    is_balance_sheet_aggregate_operand,
+    is_capex_total_operand,
+    operand_prefers_contextual_aggregate_match,
+    operand_prefers_note_aggregate_lookup,
 )
 from src.agent.financial_text_surface import _strip_rerank_metadata
 from src.config import get_financial_ontology
@@ -3519,6 +3524,84 @@ def lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
         for item in (lookup_hints.get("aggregate_query_surfaces") or [])
         if str(item).strip()
     ]
+
+
+def candidate_source_priority_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    statement_type: str,
+    value_role: str,
+    aggregation_stage: str,
+    local_heading: str,
+) -> float:
+    score = 0.0
+
+    if is_balance_sheet_aggregate_operand(operand):
+        if statement_type in {"summary_financials", "balance_sheet"}:
+            score += 3.0
+            if value_role == "aggregate":
+                score += 1.25
+            elif value_role == "detail":
+                score -= 0.5
+            if aggregation_stage in {"direct", "final"}:
+                score += 0.75
+            scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+            scope_markers = dict(scoring_policy.get("balance_sheet_scope_markers") or {})
+            if any(marker in local_heading for marker in scope_markers.get("consolidated") or ()):
+                score += 0.5
+            elif any(marker in local_heading for marker in scope_markers.get("separate") or ()):
+                score -= 0.5
+        elif statement_type == "notes":
+            score -= 1.5
+            if value_role == "detail":
+                score -= 1.25
+
+    if is_capex_total_operand(operand):
+        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+        capex_section_terms = tuple(str(item) for item in (scoring_policy.get("capex_priority_section_terms") or ()) if str(item))
+        if any(token in local_heading for token in capex_section_terms):
+            score += 2.75
+            if value_role == "aggregate":
+                score += 1.0
+            if aggregation_stage in {"final", "direct", "subtotal"}:
+                score += 0.75
+        if statement_type == "cash_flow":
+            score -= 2.5
+            if value_role != "aggregate":
+                score -= 0.5
+
+    if operand_prefers_contextual_aggregate_match(operand):
+        context_text = candidate_local_aggregate_context(candidate)
+        if (
+            value_role == "aggregate"
+            and aggregation_stage in {"final", "subtotal", "direct"}
+            and _text_has_positive_surface(context_text, operand)
+        ):
+            score += 2.0
+        elif value_role == "detail" and _text_has_positive_surface(context_text, operand):
+            score -= 1.0
+
+    if operand_prefers_note_aggregate_lookup(operand):
+        candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
+        metadata = dict(candidate.get("metadata") or {})
+        row_context_text = str(metadata.get("row_context_text") or "")
+        if statement_type == "notes":
+            if candidate_kind == "structured_value":
+                if value_role == "aggregate" and aggregation_stage == "final":
+                    score += 2.75
+                elif value_role == "aggregate" and aggregation_stage == "subtotal":
+                    score += 1.5
+                elif value_role == "aggregate" and aggregation_stage == "direct":
+                    score += 1.0
+            elif candidate_kind == "table_row":
+                score -= 1.0
+                if row_context_text and len(row_context_text) > 2500:
+                    score -= 0.75
+                if value_role != "aggregate":
+                    score -= 0.5
+
+    return score
 
 
 def candidate_location_entity_subject_score(candidate: Dict[str, Any], *, operand: Dict[str, Any]) -> float:
