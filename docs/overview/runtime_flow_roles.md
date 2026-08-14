@@ -810,15 +810,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   pycompile/fresh identity, body/caller/DAG parity가 통과했다. Source-priority
   score branch와 전체 candidate scoring, candidate/evidence work 및 state/
   artifact/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 76줄 candidate
-  source-priority scorer `_candidate_source_priority_bonus(...)` 하나를
-  선택했다. 이미 준비된 candidate/operand/schema 값과 declarative policy를
-  점수로 합산하는 public operand-resolution contract로 옮기며, graph의
-  `_score_operand_candidate(...)` 전체 orchestration과 후속 period/table/report
-  score는 유지한다. 한 call은 external 1/local 0으로 수렴하고 projected
-  graph/operand-resolution public/private는 9/79와 46/37이다. 아직 source/test
-  이동은 없으며 네 branch의 exact score/order/laziness, caller adoption/stop,
-  네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `334fff0` candidate source-priority batch는 graph helper의 정확한
+  76줄 scorer를
+  `financial_operand_resolution.candidate_source_priority_bonus(...)` public
+  API로 옮겼다. 한 call은 broad graph scorer에서 external 1/local 0으로
+  수렴했다. Graph/operand-resolution public/private는 9/79와 46/37이다.
+  Focused 4/4, owner 138/138, semantic 1,098/1,098, import 19/19, audit 217,
+  full 1,991/1,991과 body/caller/DAG parity가 통과했다. Broad candidate
+  scoring, period/table/report score, acceptance/ranking, candidate/evidence와
+  state/artifact/ledger는 graph 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 83줄
+  `_candidate_matches_operand(candidate, operand)` 하나를 선택했다. 준비된
+  candidate와 operand 사이의 conflict/surface/CAPEX/contextual/fallback
+  매칭만 public operand-resolution contract로 옮기며 candidate construction,
+  direct/ratio acceptance, scoring/ranking과 adoption은 유지한다. 한 call은
+  list-comprehension filter에서 external 1/local 0으로 수렴하고 projected
+  graph/operand-resolution public/private는 9/78과 47/37이다. 아직 source/test
+  이동은 없으며 exact precedence/laziness/identity/failure, caller
+  iteration/adoption/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

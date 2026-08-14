@@ -5872,3 +5872,82 @@ immutability/identity 1/1, gate-failure stops 4/4, caller adoption 1/1, and
 caller-failure stop 1/1 passed. Benchmark refresh and remote CI were **NOT
 RUN**. This checkpoint is not a behavior, quality, performance, benchmark,
 schedule, or completion claim.
+
+### Candidate source-priority score ownership milestone
+
+- Commit `334fff0` moves the exact former 76-line
+  `_candidate_source_priority_bonus(...)` definition from graph helpers to
+  public
+  `financial_operand_resolution.candidate_source_priority_bonus(...)` with its
+  body unchanged. The old private definition and executable private refs are
+  gone without an alias or bridge.
+- Balance-sheet, CAPEX, contextual-aggregate, and note-aggregate branch order,
+  every score weight, policy and candidate access laziness, shallow copies,
+  cumulative arithmetic, identities, input immutability, and all uncaught
+  failures remain pinned by four CURRENT-SOURCE methods.
+- The sole graph call finishes external/local 1/0 inside
+  `_score_operand_candidate(...)`, positional exact `candidate` plus five exact
+  keywords, caller `try` depth zero, and immediate `AugAssign`. Broad scoring,
+  later period/table/report work, ranking, acceptance, and adoption remain
+  graph-owned.
+- Production source is `+85/-80`, net `+5`: graph helpers are `+2/-80` and move
+  from 5,346 to 5,268 physical lines; operand resolution is `+83/-0` and moves
+  from 3,759 to 3,842. Tests are `+993/-152`, net `+841`; graph-helper tests
+  move from 29,593 to 30,434 lines. The whole commit is `+1,078/-232`, net
+  `+846`, and four methods move discovery from 1,987 to 1,991. Final counts are
+  graph 9/79 and operand resolution 46/37. The source diff SHA-256 is
+  `83b28fa8e35aae9a69981142c705b38a85c471148683c69f470999acc3f1914e`.
+- Focused 4/4, owner 138/138, affected eleven-module semantic 1,098/1,098,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  1,991/1,991 passed. Pycompile, fresh import/public identity 2/2, selected-body
+  parity 1/1, retained graph exact 87/88 and call-normalized 88/88, all 82
+  retained operand-resolution functions, sole caller, full 48-module/203-edge
+  DAG parity, zero retired private refs, non-ASCII preservation, and diff check
+  also passed. The first affected-set run failed only two absolute source-line
+  contracts after insertion; measured AST positions were updated and the
+  identical 1,098-test set passed. Benchmark refresh and remote CI were **NOT
+  RUN**.
+
+This milestone changes only deterministic source-priority score ownership. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Candidate-to-operand matching characterization checkpoint
+
+- A docs-only inventory selects the current exact 83-line
+  `_candidate_matches_operand(candidate, operand)` graph definition for a
+  future public move to
+  `financial_operand_resolution.candidate_matches_operand(...)`. No production
+  source or test moved for this projection.
+- The predicate preserves exact concept-conflict, structured-surface, CAPEX,
+  contextual-aggregate, structured-miss, and unstructured-text-fallback
+  precedence across 19 top-level statements and eleven returns. Candidate and
+  metadata reads, eager iterable materialization, repeated conversion/strip,
+  joins, normalization, gate laziness, short circuits, identities, shallow-copy
+  immutability, exact final match object, and every uncaught failure remain
+  normative.
+- Operand resolution already reaches the surface and row-surface owners. Adding
+  `candidate_conflicts_with_operand_concept`, `aggregate_like_row_stage`,
+  `candidate_aggregation_stage`, and `candidate_value_role` creates no edge.
+  The full 48-module/203-edge DAG stays unchanged. Current/projected counts are
+  graph 9/79 to 9/78 and operand resolution 46/37 to 47/37; the selected span
+  has zero of 217 reviewed runtime-domain records.
+- One direct call projects external/local 1/0 in the exact
+  `_deterministic_reconcile_task(...)` list-comprehension filter, positional
+  exact `candidate, operand`, no keywords, caller `try` depth zero, original
+  iteration order and identities. Helper truth adopts the original candidate;
+  call or result-truth failure stops remaining candidates and later filtering,
+  ranking, acceptance, projection, retry-query work, and return.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 142/142,
+  affected semantic 1,102/1,102, import 19/19, audit 217, full 1,995/1,995,
+  public identity, selected-body parity, retained graph call-normalized 87/87,
+  retained operand owner 83/83, sole caller, full DAG parity, retired-ref zero,
+  non-ASCII preservation, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection, direct behavior probes 12/12, gate/access-order probes 2/2, caller
+iteration/identity adoption 1/1, and call/result-truth failure stops 2/2
+passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is
+not a behavior, quality, performance, benchmark, schedule, or completion
+claim.

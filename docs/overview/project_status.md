@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## At A Glance
 
@@ -16,10 +16,10 @@ Last updated: 2026-08-14
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `1119ac3` moved the exact 23-line note-aggregate lookup-preference predicate to public surface-contract ownership without changing its source-priority score branch |
-| What passed? | Focused 4/4, owner module 134/134, affected eleven-module semantic set 1,094/1,094, import-side-effect 19/19, runtime audit 217, full unittest 1,987/1,987 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest note-aggregate preference ownership change |
-| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 76-line candidate source-priority scorer to operand-resolution ownership |
+| What just changed? | `334fff0` moved the exact 76-line candidate source-priority scorer to public operand-resolution ownership without moving the broad candidate scorer |
+| What passed? | Focused 4/4, owner module 138/138, affected eleven-module semantic set 1,098/1,098, import-side-effect 19/19, runtime audit 217, full unittest 1,991/1,991 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest candidate source-priority ownership change |
+| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 83-line candidate-to-operand matcher to operand-resolution ownership |
 
 ## Product Boundary
 
@@ -747,12 +747,12 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, note-aggregate lookup-preference ownership 4 / 4; owner module 134 / 134 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,094 / 1,094 |
+| Latest focused owner checkpoint | PASS, candidate source-priority ownership 4 / 4; owner module 138 / 138 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,098 / 1,098 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 1,987 / 1,987 |
-| Benchmark refresh after latest note-aggregate preference ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 1,991 / 1,991 |
+| Benchmark refresh after latest candidate source-priority ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -786,7 +786,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject scoring, deterministic positional preference scoring, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, scoring/reconciliation, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference scoring, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, broad scoring/reconciliation, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
 
@@ -796,136 +796,189 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The characterize-only inventory selects exactly one production follow-on. Add
-four CURRENT-SOURCE contracts, then move only the current exact 76-line
-`_candidate_source_priority_bonus(...)` definition from
+four CURRENT-SOURCE contracts, then move only the current exact 83-line
+`_candidate_matches_operand(candidate, operand)` definition from
 `financial_graph_helpers.py` to the existing
 `financial_operand_resolution.py` owner as public
-`candidate_source_priority_bonus(...)`. Do not leave a graph alias or
-compatibility bridge.
+`candidate_matches_operand(...)`. Do not leave a graph alias or compatibility
+bridge.
 
-No production source or test has moved for this projection. The function owns
-only deterministic source-priority score composition over already prepared
-`candidate`, `operand`, `statement_type`, `value_role`, `aggregation_stage`, and
-`local_heading` inputs plus checked-in declarative policy. It does not construct
-or admit candidates, derive those inputs, retrieve evidence, invoke a model, or
-read/write graph state.
+No production source or test has moved for this projection. The predicate owns
+deterministic matching between one already prepared candidate and one operand.
+It does not build candidates, choose a winner, compute a rank, apply direct or
+ratio acceptance, retrieve evidence, invoke a model, or read/write graph state.
 
 The destination already imports `Any`, `Dict`, `_normalise_spaces`,
-`_text_has_positive_surface`, and `OPERAND_CANDIDATE_SCORING_POLICY`, and already
-reaches `financial_surface_contracts.py`. Add only the remaining public surface
-names used by the exact body: `candidate_local_aggregate_context`,
-`is_balance_sheet_aggregate_operand`, `is_capex_total_operand`,
-`operand_prefers_contextual_aggregate_match`, and
-`operand_prefers_note_aggregate_lookup`. Graph already reaches operand
-resolution and the destination does not reach graph, so the move adds no module
-edge. Current public/private counts are graph helpers 9/80 and operand
-resolution 45/37; projected counts are 9/79 and 46/37. The full
-48-module/203-internal-edge DAG remains unchanged, and the selected span
-contains zero of the 217 reviewed runtime-domain records.
+`_operand_text_match`, `_text_has_positive_surface`,
+`candidate_local_aggregate_context`, `is_capex_total_operand`, and
+`operand_prefers_contextual_aggregate_match`. Add only
+`candidate_conflicts_with_operand_concept` from the existing surface owner and
+`aggregate_like_row_stage`, `candidate_aggregation_stage`, and
+`candidate_value_role` from the existing row-surface owner. Graph already
+reaches operand resolution, operand resolution already reaches both dependency
+owners, and operand resolution does not reach graph. The full
+48-module/203-internal-edge DAG therefore remains unchanged. Current
+public/private counts are graph helpers 9/79 and operand resolution 46/37;
+projected counts are 9/78 and 47/37. The selected span contains zero of the 217
+reviewed runtime-domain records.
 
-Preserve the exact six-statement body. Initialize `score = 0.0`, then evaluate
-balance-sheet, CAPEX, contextual-aggregate, and note-aggregate branches in that
-order, followed by exact `return score`. Every predicate receives the original
-operand identity. A false predicate skips only its branch. Predicate call or
-result-truth failure stops all later work.
+Preserve the exact 19-statement body and eleven returns. First call
+`candidate_conflicts_with_operand_concept(candidate, operand)` with both
+original identities. Truth returns exact `False` before any candidate read;
+call or result-truth failure stops all later work.
 
-The balance-sheet branch keeps exact statement and score behavior. For
-`summary_financials` or `balance_sheet`, add `3.0`; add another `1.25` for
-aggregate role or subtract `0.5` for detail; add `0.75` for direct/final stage.
-Then shallow-copy exact `OPERAND_CANDIDATE_SCORING_POLICY`, obtain
-`balance_sheet_scope_markers`, apply raw `or {}`, and shallow-copy it. Test the
-raw consolidated iterable before separate using exact `any(marker in
-local_heading ...)`; consolidated truth adds `0.5`, otherwise separate truth
-subtracts `0.5`. Both marker classes are not applied together. For exact
-`notes`, subtract `1.5` and another `1.25` for detail. Other statement types add
-nothing and do not read balance-sheet marker policy.
+Next project `candidate_kind` through exact candidate get, raw `or ""`,
+`str(...)`, and `.strip()`. Build `structured_candidate` by case-sensitive
+membership in the exact set `structured_value`, `structured_row`,
+`structured_column_value`, `table_row`, and `evidence_row`. Then call candidate
+metadata get, apply raw `or {}`, and shallow-copy with `dict(...)`; nested
+objects retain identity and inputs remain unmodified.
 
-The CAPEX branch independently shallow-copies the scoring policy, reads
-`capex_priority_section_terms`, applies raw `or ()`, and eagerly builds an exact
-tuple. The filter stringifies every item once; a retained item is stringified a
-second time, without strip or normalization. A first heading membership hit
-adds `2.75`, aggregate another `1.0`, and final/direct/subtotal another `0.75`.
-Exact cash-flow statement type independently subtracts `2.5` and nonaggregate
-another `0.5`, so section and cash-flow effects remain cumulative.
+Test authoritative metadata surfaces in exact order: stripped `row_label`,
+stripped `semantic_label`, joined `semantic_aliases`, joined `row_headers`, and
+stripped `aggregate_label`. Each surface enters `_operand_text_match(surface,
+operand)` with original operand identity and truth returns exact `True` before
+later reads. Alias and header iterables are eager; their filters stringify and
+strip every item once, retained items are stringified and stripped a second
+time, and exact retained strings feed one space join. Preserve iteration,
+truth, conversion, join, and short-circuit order.
 
-The contextual branch first calls
-`candidate_local_aggregate_context(candidate)` with original candidate
-identity. Aggregate final/subtotal/direct then calls exact
-`_text_has_positive_surface(context_text, operand)` and adds `2.0` on truth.
-Detail reaches the existing `elif`, calls the same predicate, and subtracts
-`1.0` on truth. Other role/stage combinations preserve short-circuit behavior
-and do not invoke positive-surface matching.
+After those surfaces, only a non-`table_row` candidate reads
+`table_row_labels_text`, applies raw `or ""` and `str(...)` without strip, and
+passes it to `_operand_text_match(...)`. A table row skips that metadata read
+and match entirely. A truthy match returns exact `True`.
 
-The note branch preserves candidate-kind projection as exact candidate get,
-raw `or ""`, `str(...)`, `_normalise_spaces(...)`; metadata get/raw-or and
-shallow `dict(...)`; and row-context get/raw-or/string conversion. These reads
-occur whenever the note-preference predicate is true, even for non-notes input.
-Under exact `statement_type == "notes"`, structured-value aggregate
-final/subtotal/direct adds `2.75`, `1.5`, or `1.0`. A table row subtracts `1.0`,
-another `0.75` only when row context is truthy and `len(...) > 2500`, and
-another `0.5` for nonaggregate role. Other kinds, stages, or statements add
-nothing.
+The CAPEX branch stays next. On a true `is_capex_total_operand(operand)` gate,
+build `section_context` from nonempty stripped local heading, table context,
+section path, row context, and candidate text in that order. Build
+`preferred_sections` eagerly from `operand["preferred_sections"]`: the filter
+stringifies and strips once, retained items stringify again and enter
+`_normalise_spaces(...)`. A nonempty list then runs ordered `any(section in
+_normalise_spaces(section_context) ...)`, preserving one context normalization
+per attempted section and first-hit short circuit. Only a section hit calls
+`_text_has_positive_surface(section_context, operand)`. Positive truth then
+calls `candidate_value_role(candidate)`; exact aggregate returns `True` without
+stage lookup, otherwise `candidate_aggregation_stage(candidate)` accepts exact
+final/direct/subtotal and returns `True`. Every miss continues.
 
-All four branches remain cumulative and the final score is returned without a
-second coercion. There is no exception boundary. Predicate calls/result truth,
-policy copy/get/result truth/iteration, marker string/membership, candidate and
-metadata get/truth/copy, normalization, context and positive-surface calls,
-row-context string/truth/length, comparisons, score arithmetic, and return
-failures remain uncaught in current order. Inputs, nested objects, and checked-
-in policy remain unmodified. No callback, wrapper, reason, flag, trace,
-fallback, retry, or compatibility bridge is permitted.
+The contextual branch follows. A true
+`operand_prefers_contextual_aggregate_match(operand)` gate first calls
+`candidate_local_aggregate_context(candidate)`. It then rereads aggregate,
+row, and semantic labels from the metadata copy, strips nonempty parts, joins
+them, and normalizes the result as `aggregate_surface`. Compute
+`aggregate_like` before positive-surface matching: candidate value-role exact
+aggregate short-circuits stage and row-stage work; otherwise exact final or
+subtotal stage short-circuits row-stage work; otherwise
+`aggregate_like_row_stage(aggregate_surface) != "none"` decides it. Then call
+`_text_has_positive_surface(section_context, operand)` first in the final
+condition; positive truth plus `aggregate_like` returns exact `True`.
+
+After both specialized branches, an unmatched structured candidate returns
+exact `False` without reading candidate text for fallback. Only an unstructured
+candidate performs exact candidate text get/raw-or/string conversion and
+returns the exact object from `_operand_text_match(text, operand)` without a
+second coercion.
+
+There is no exception boundary. Predicate calls/result truth, candidate and
+metadata get/result truth/copy, string/strip, set membership, iterable
+materialization, join, surface-match call/truth, section list construction,
+normalization, membership and `any`, role/stage/row-stage projection and
+comparison, fallback read/match, and returned-result failures remain uncaught
+in current order. Inputs and nested objects remain unmodified. No wrapper,
+callback, carrier, reason, flag, trace, retry, fallback, normalization change,
+or compatibility bridge is permitted.
 
 The projection has exactly one direct `ast.Name` call. In
-`_score_operand_candidate(...)` it stays exact body index 56 of 62, caller
-`try` depth zero, with immediate `AugAssign` parent. Preserve positional exact
-`candidate`, followed in exact order by five keywords whose values are the
-same-name objects: `operand`, `statement_type`, `value_role`,
-`aggregation_stage`, and `local_heading`. Add the returned object through the
-existing `score += ...`; do not coerce or clamp it.
+`_deterministic_reconcile_task(...)` it remains inside top-level body statement
+9 of 17, the `for operand in required_operands` loop, at loop-body statement 1.
+Preserve the exact assignment
+`matches = [candidate for candidate in candidates if
+candidate_matches_operand(candidate, operand)]`: one generator, original
+candidate iteration order and identities, positional exact `candidate,
+operand`, no keywords, caller `try` depth zero, and immediate `comprehension`
+parent under `ListComp` and `Assign`. Helper result truth selects the original
+candidate; falsehood skips it. Helper or result-truth failure stops remaining
+candidates and all later segment filtering, ranking, acceptance, match/missing
+projection, retry-query work, and final return.
 
-All score accumulated before body index 56 remains graph-owned. Later
-`_metadata_period_match_strength(...)`, candidate period/table coherence,
-report-scope binding, table-source bonus, and final return also remain graph-
-owned. Helper or addition failure stops all later work; successful adoption
-continues without replacing the score object or any input.
-
-Moving policy values, any score weight or branch, candidate/operand/statement/
-role/stage/heading preparation, direct-match strength, value-role/stage
-preference bonuses, period/table/report scoring, broader matching/acceptance/
-ranking, candidate/evidence construction or adoption, report-file I/O,
-retrieval, graph state, model invocation, artifact/ledger mutation, retry, or
-final sequencing is rejected.
+Candidate construction, the required-operand loop, segment-local filtering,
+`_candidate_direct_match_strength(...)`, direct/ratio acceptance, all score
+weights and ranking, top-candidate collapse, candidate/evidence adoption,
+report-file I/O, retrieval, graph state, model invocation, artifact/ledger
+mutation, retry, and final sequencing remain graph/existing-owner
+responsibilities and are rejected from this batch.
 
 Before production movement, add exactly these four CURRENT-SOURCE methods to
 `FinancialGraphHelperTests`:
 
-- `test_current_source_candidate_source_priority_bonus_pins_balance_capex_contextual_note_scoring`;
-- `test_current_source_candidate_source_priority_bonus_pins_policy_laziness_identity_immutability_and_exceptions`;
-- `test_current_source_candidate_source_priority_bonus_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_candidate_source_priority_bonus_caller_pins_order_args_adoption_and_stops`.
+- `test_current_source_candidate_matches_operand_pins_conflict_structured_surface_and_text_precedence`;
+- `test_current_source_candidate_matches_operand_pins_capex_contextual_laziness_identity_immutability_and_exceptions`;
+- `test_current_source_candidate_matches_operand_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_candidate_matches_operand_caller_pins_comprehension_args_adoption_and_stops`.
 
-They must pin the exact 76-line current definition/signature, six body
-statements, four branch order and all score constants, policy copy/get/or and
-marker materialization, context/positive-surface and candidate/metadata
-laziness, cumulative arithmetic, identities, immutability, every uncaught
-failure, sole caller expression/index/arguments/adoption/stop, current/projected
-function counts, import DAG, and zero selected-body runtime-domain records.
+They must pin the exact 83-line definition/signature, 19 body statements,
+eleven returns, conflict and structured-candidate precedence, all surface and
+specialized-branch access order/laziness, repeated conversion, joins,
+identities, immutability, every uncaught failure, final exact return object,
+sole caller expression/placement/arguments/iteration/adoption/stops,
+current/projected function counts, import DAG, and zero selected-body runtime-
+domain records.
 
 Projected post-move gates are focused 4/4, graph-helper characterization owner
-138/138, affected eleven-module semantic set 1,098/1,098,
-import-side-effects 19/19, audit 217, and full discovery 1,991/1,991, plus
-pycompile/fresh import and public identity 2/2, selected-body parity 1/1,
-retained graph exact 87/88 and call-normalized 88/88, all 82 retained operand-
+142/142, affected eleven-module semantic set 1,102/1,102,
+import-side-effects 19/19, audit 217, and full discovery 1,995/1,995, plus
+pycompile/fresh import and public identity 1/1, selected-body parity 1/1,
+retained graph exact 86/87 and call-normalized 87/87, all 83 retained operand-
 resolution functions, the sole caller, full 48-module/203-edge DAG parity,
 retired executable graph-private refs zero, non-ASCII preservation, and
 `git diff --check`. These are projections to verify, not completed results.
 
 Static definition/call/DAG/function-count/import and selected-body audit
-inspection, direct score probes 9/9, gate order 4/4, false-gate laziness 1/1,
-immutability/identity 1/1, gate-failure stops 4/4, caller adoption 1/1, and
-caller-failure stop 1/1 passed. Benchmark refresh and remote CI were **NOT
-RUN**. This characterization makes no behavior, accuracy, ranking, performance,
-benchmark, schedule, ledger, or Phase 3 completion claim.
+inspection, direct behavior probes 12/12, gate/access-order probes 2/2, caller
+iteration/identity adoption 1/1, and caller call/truth failure stops 2/2 passed.
+Benchmark refresh and remote CI were **NOT RUN**. This characterization makes
+no behavior, accuracy, ranking, performance, benchmark, schedule, ledger, or
+Phase 3 completion claim.
+
+## Completed Candidate Source-Priority Score Characterization
+
+Commit `334fff0` moved the exact former 76-line graph scorer to public
+`financial_operand_resolution.candidate_source_priority_bonus(...)` with its
+body unchanged. The old private definition and all executable private
+references are gone; no graph alias or bridge was added.
+
+Balance-sheet, CAPEX, contextual-aggregate, and note-aggregate branch order,
+all score weights, policy and candidate access laziness, shallow copies,
+filter-versus-expression stringification, cumulative arithmetic, exact return,
+identities, immutability, and uncaught failures remain pinned by four CURRENT-
+SOURCE methods. The one graph call remains positional exact `candidate` plus
+five exact keyword arguments, caller `try` depth zero, and immediate
+`AugAssign`; the broad scorer and later period/table/report work remain graph-
+owned.
+
+Production source is `+85/-80`, net `+5`: graph helpers are `+2/-80` and move
+from 5,346 to 5,268 physical lines; operand resolution is `+83/-0` and moves
+from 3,759 to 3,842. Tests are `+993/-152`, net `+841`: graph-helper tests are
+`+990/-149` and move from 29,593 to 30,434 lines, while operand-resolution
+static line contracts are `+3/-3` with unchanged physical length. The whole
+commit is `+1,078/-232`, net `+846`, and four methods move discovery from 1,987
+to 1,991. Final public/private counts are graph 9/79 and operand resolution
+46/37. The source diff SHA-256 is
+`83b28fa8e35aae9a69981142c705b38a85c471148683c69f470999acc3f1914e`.
+
+Focused 4/4, owner 138/138, affected semantic 1,098/1,098, import 19/19, audit
+217, and full 1,991/1,991 passed. Pycompile, fresh import/public identity 2/2,
+selected-body parity 1/1, retained graph exact 87/88 and call-normalized 88/88,
+all 82 retained operand-resolution functions, sole caller, full
+48-module/203-edge DAG parity, retired executable private refs zero, non-ASCII
+preservation, and `git diff --check` also passed. The first affected-set run
+failed only two absolute source-line contracts after the owner file moved; the
+measured current AST positions were updated and the identical 1,098-test set
+then passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic source-priority score ownership. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Note-Aggregate Lookup-Preference Characterization
 

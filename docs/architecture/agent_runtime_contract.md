@@ -4707,75 +4707,68 @@ import 19/19, audit 217, and full 1,987/1,987, plus pycompile, fresh identity
 surface owner 21/21, caller parity, retired-ref zero, non-ASCII preservation,
 and diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active candidate source-priority score contract is characterized for the
-next bounded owner batch. Move only the current exact 76-line
-`_candidate_source_priority_bonus(...)` definition from graph helpers without
-a graph alias to public
-`financial_operand_resolution.candidate_source_priority_bonus(...)`. It
-combines already prepared candidate, operand, statement-type, value-role,
-aggregation-stage, and heading inputs with existing declarative policy; it does
-not build or admit a candidate, retrieve evidence, or access graph state.
+Commit `334fff0` completed the candidate source-priority score contract, now
+owned by
+`financial_operand_resolution.candidate_source_priority_bonus(...)`. The exact
+former 76-line body, balance-sheet/CAPEX/contextual/note branch order, policy
+and candidate access laziness, shallow copies, exact weights, cumulative
+arithmetic, identities, input immutability, and every uncaught failure remain
+unchanged and pinned by four CURRENT-SOURCE methods. No graph alias or bridge
+was added.
 
-Preserve exact body order: initialize `score = 0.0`, evaluate balance-sheet,
-CAPEX, contextual-aggregate, then note-aggregate gates, and return the final
-float. All four gates receive the original operand identity. Gate falsehood
-skips only its branch; gate/helper/result-truth failure remains uncaught and
-stops every later branch.
+Its one graph call remains in `_score_operand_candidate(...)`, positional exact
+`candidate` plus the five exact keyword arguments `operand`, `statement_type`,
+`value_role`, `aggregation_stage`, and `local_heading`, at caller `try` depth
+zero with an immediate `AugAssign` parent. Broad scoring and later period,
+table, report, ranking, and adoption work remain graph-owned. Final counts are
+graph 9/79 and operand resolution 46/37; the 48-module/203-edge DAG is
+unchanged. Executed gates are focused 4/4, owner 138/138, affected semantic
+1,098/1,098, import 19/19, audit 217, and full 1,991/1,991, plus pycompile,
+fresh identity 2/2, selected-body parity 1/1, retained graph exact 87/88 and
+call-normalized 88/88, all 82 retained operand-resolution functions, sole
+caller, DAG parity, retired-ref zero, non-ASCII preservation, and diff check.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-The balance-sheet branch preserves exact statement-type behavior. Summary or
-balance-sheet rows receive `+3.0`, aggregate role another `+1.25` or detail role
-`-0.5`, and direct/final stage another `+0.75`. Only then shallow-copy
-`OPERAND_CANDIDATE_SCORING_POLICY`, shallow-copy its
-`balance_sheet_scope_markers`, and check consolidated markers before separate
-markers; the first class wins with `+0.5`, while a separate-only hit gives
-`-0.5`. A notes statement instead receives `-1.5` and detail another `-1.25`.
-No other statement enters this branch.
+The active candidate-to-operand matching contract is characterized for the
+next bounded owner batch. Move only the current exact 83-line
+`_candidate_matches_operand(candidate, operand)` definition from graph helpers
+without a graph alias to public
+`financial_operand_resolution.candidate_matches_operand(...)`. It matches one
+already prepared candidate against one operand; it does not construct or rank
+candidates, apply acceptance policy, retrieve evidence, or access graph state.
 
-The CAPEX branch independently shallow-copies the same scoring policy and
-eagerly builds the priority-section tuple with current filter-versus-expression
-stringification. A heading hit receives `+2.75`, aggregate another `+1.0`, and
-final/direct/subtotal another `+0.75`. Cash-flow statement type independently
-receives `-2.5` and nonaggregate another `-0.5`, so section and cash-flow effects
-remain cumulative.
+Preserve the exact 19-statement body and eleven returns. Concept conflict
+precedes all candidate reads. Candidate kind and a shallow metadata copy then
+feed row-label, semantic-label, semantic-alias, row-header, aggregate-label,
+and non-table-row table-label matching in that order. CAPEX section-context
+matching precedes contextual aggregate matching. Structured candidates that
+still miss return exact `False`; only unstructured candidates fall back to
+candidate text and return the exact `_operand_text_match(...)` result without
+a second coercion. Preserve every current read, eager materialization,
+filter-versus-expression conversion, join, normalization, short circuit,
+identity, shallow-copy boundary, and uncaught failure in current order.
 
-The contextual branch first builds exact
-`candidate_local_aggregate_context(candidate)`. Aggregate final/subtotal/direct
-calls `_text_has_positive_surface(context, operand)` and adds `+2.0` on truth;
-detail calls the same predicate through the existing `elif` and subtracts
-`1.0` on truth. Other role/stage combinations preserve short-circuit behavior
-and do not call positive-surface matching.
+The destination adds only existing public dependencies:
+`candidate_conflicts_with_operand_concept`, `aggregate_like_row_stage`,
+`candidate_aggregation_stage`, and `candidate_value_role`. The 48-module/
+203-edge DAG remains unchanged; projected counts are graph 9/78 and operand
+resolution 47/37, and the selected span has zero of 217 reviewed records.
 
-The note branch preserves candidate-kind normalization, metadata shallow copy,
-and row-context string projection before the statement-type gate. For notes,
-structured-value aggregate final/subtotal/direct receives `+2.75`, `+1.5`, or
-`+1.0`. A table row receives `-1.0`, another `-0.75` only for nonempty context
-longer than 2,500 characters, and another `-0.5` for nonaggregate role. A true
-note preference still reads candidate metadata for non-notes input, but adds no
-note score.
+The sole direct call remains the exact list-comprehension filter in
+`_deterministic_reconcile_task(...)`: original candidate iteration order and
+identities, positional exact `candidate, operand`, no keywords, and caller
+`try` depth zero. Predicate truth adopts the original candidate; call or
+result-truth failure stops remaining candidates and all later filtering,
+ranking, acceptance, projection, retry-query work, and return.
 
-There is no exception boundary. Predicate calls and result truth, policy copy/
-get/truth/iteration, marker stringification/membership, candidate and metadata
-get/truth/copy, normalization, context/positive-surface calls, row-context
-string/truth/length, comparisons, score arithmetic, and final return failures
-remain uncaught in current order. Inputs, nested objects, and checked-in policy
-remain unmodified. No wrapper, callback, reason, flag, trace, fallback, retry,
-or compatibility bridge is permitted. Complete test names and projected gates
-are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work).
-
-The sole source call remains in `_score_operand_candidate(...)` at exact body
-index 56 of 62, caller `try` depth zero, with immediate `AugAssign` parent.
-Preserve positional exact `candidate` followed by the five exact keyword
-arguments `operand`, `statement_type`, `value_role`, `aggregation_stage`, and
-`local_heading`. Its result is added to the already accumulated score. Later
-metadata-period, period/table-coherence, report-scope, table-source, and final
-return work remains graph-owned; helper or addition failure stops all of it.
-
-Moving policy values, any branch or weight, candidate/operand/value-role/stage/
-heading preparation, direct matching, preference bonuses, period/table/report
-score, broader matching/acceptance/ranking, candidate/evidence construction or
+Candidate construction, segment filtering, direct-match strength, direct and
+ratio acceptance, score weights/ranking, top-candidate collapse, evidence
 adoption, I/O, retrieval, graph state, model invocation, artifact/ledger
-mutation, retry, or final sequencing remains outside this contract.
+mutation, retry, and final sequencing remain outside this contract. The four
+required CURRENT-SOURCE methods and projected focused 4/4, owner 142/142,
+affected semantic 1,102/1,102, import 19/19, audit 217, and full 1,995/1,995
+gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.
