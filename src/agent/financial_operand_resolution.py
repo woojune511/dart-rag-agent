@@ -48,6 +48,7 @@ from src.agent.financial_surface_contracts import (
     operand_prefers_contextual_aggregate_match,
     operand_prefers_note_aggregate_lookup,
 )
+from src.agent.financial_scope_policies import candidate_matches_operand_target_year
 from src.agent.financial_text_surface import _strip_rerank_metadata
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -3879,6 +3880,61 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
     if candidate_supports_segment_metric_combo(candidate, operand):
         best = max(best, 2.25)
     return best
+
+
+def direct_candidate_semantic_priority(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    preferred_statement_types: List[str],
+    query_years: List[int],
+) -> tuple[int, int, int, int, int]:
+    metadata = dict(candidate.get("metadata") or {})
+    binding_policy = dict(operand.get("binding_policy") or {})
+    normalized_preferred_types = [
+        _normalise_spaces(str(item))
+        for item in preferred_statement_types
+        if _normalise_spaces(str(item))
+    ]
+    preferred_value_roles = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if _normalise_spaces(str(item))
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if _normalise_spaces(str(item))
+    ]
+
+    statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
+    direct_match_strength = candidate_direct_match_strength(candidate, operand)
+    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
+
+    statement_rank = 0
+    if statement_type in normalized_preferred_types:
+        statement_rank = len(normalized_preferred_types) - normalized_preferred_types.index(statement_type)
+
+    value_role_rank = 0
+    if value_role in preferred_value_roles:
+        value_role_rank = len(preferred_value_roles) - preferred_value_roles.index(value_role)
+
+    aggregation_stage_rank = 0
+    if aggregation_stage in preferred_aggregation_stages:
+        aggregation_stage_rank = len(preferred_aggregation_stages) - preferred_aggregation_stages.index(aggregation_stage)
+
+    target_year_match = 1 if candidate_matches_operand_target_year(candidate, operand, query_years) else 0
+    structured_value_rank = 1 if candidate_kind == "structured_value" else 0
+
+    return (
+        aggregation_stage_rank,
+        value_role_rank,
+        statement_rank,
+        target_year_match,
+        structured_value_rank + int(direct_match_strength * 10),
+    )
 
 
 def coerce_lookup_magnitude_value(

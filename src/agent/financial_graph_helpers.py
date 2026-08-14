@@ -134,6 +134,7 @@ from src.agent.financial_operand_resolution import (
     candidate_location_entity_subject_score,
     candidate_matches_operand,
     candidate_source_priority_bonus,
+    direct_candidate_semantic_priority,
     lookup_canonical_statement_preferences,
     lookup_prefers_canonical_statement_rows,
     lookup_query_surface_preferences,
@@ -629,61 +630,6 @@ def _candidate_is_canonical_statement_winner(
         if desired_period_focus in {"current", "prior"} and candidate_period_focus != desired_period_focus:
             return False
     return True
-
-
-def _direct_candidate_semantic_priority(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    preferred_statement_types: List[str],
-    query_years: List[int],
-) -> tuple[int, int, int, int, int]:
-    metadata = dict(candidate.get("metadata") or {})
-    binding_policy = dict(operand.get("binding_policy") or {})
-    normalized_preferred_types = [
-        _normalise_spaces(str(item))
-        for item in preferred_statement_types
-        if _normalise_spaces(str(item))
-    ]
-    preferred_value_roles = [
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_value_roles") or [])
-        if _normalise_spaces(str(item))
-    ]
-    preferred_aggregation_stages = [
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_aggregation_stages") or [])
-        if _normalise_spaces(str(item))
-    ]
-
-    statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
-    value_role = candidate_value_role(candidate)
-    aggregation_stage = candidate_aggregation_stage(candidate)
-    direct_match_strength = candidate_direct_match_strength(candidate, operand)
-    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
-
-    statement_rank = 0
-    if statement_type in normalized_preferred_types:
-        statement_rank = len(normalized_preferred_types) - normalized_preferred_types.index(statement_type)
-
-    value_role_rank = 0
-    if value_role in preferred_value_roles:
-        value_role_rank = len(preferred_value_roles) - preferred_value_roles.index(value_role)
-
-    aggregation_stage_rank = 0
-    if aggregation_stage in preferred_aggregation_stages:
-        aggregation_stage_rank = len(preferred_aggregation_stages) - preferred_aggregation_stages.index(aggregation_stage)
-
-    target_year_match = 1 if candidate_matches_operand_target_year(candidate, operand, query_years) else 0
-    structured_value_rank = 1 if candidate_kind == "structured_value" else 0
-
-    return (
-        aggregation_stage_rank,
-        value_role_rank,
-        statement_rank,
-        target_year_match,
-        structured_value_rank + int(direct_match_strength * 10),
-    )
 
 
 _QUOTED_METRIC_RE = re.compile(r"""['"“”‘’「」『』](?P<label>[^'"“”‘’「」『』]+)['"“”‘’「」『』]""")
@@ -4895,7 +4841,7 @@ def _deterministic_reconcile_task(
                             ranked_by_priority = sorted(
                                 collapsed_entries,
                                 key=lambda entry: (
-                                    _direct_candidate_semantic_priority(
+                                    direct_candidate_semantic_priority(
                                         dict(entry.get("candidate") or {}),
                                         operand=operand,
                                         preferred_statement_types=preferred_statement_types,
@@ -4905,13 +4851,13 @@ def _deterministic_reconcile_task(
                                 ),
                                 reverse=True,
                             )
-                            top_priority = _direct_candidate_semantic_priority(
+                            top_priority = direct_candidate_semantic_priority(
                                 dict(ranked_by_priority[0].get("candidate") or {}),
                                 operand=operand,
                                 preferred_statement_types=preferred_statement_types,
                                 query_years=years,
                             )
-                            next_priority = _direct_candidate_semantic_priority(
+                            next_priority = direct_candidate_semantic_priority(
                                 dict(ranked_by_priority[1].get("candidate") or {}),
                                 operand=operand,
                                 preferred_statement_types=preferred_statement_types,
