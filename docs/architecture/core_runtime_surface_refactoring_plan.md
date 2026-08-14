@@ -213,7 +213,8 @@ gap/lookup-answer policy, narrative term/variant/context presentation, prepared
 KRW raw-unit/growth alignment/period-conflict policy, dependency-task KRW
 consistency, table-metadata KRW repair, and final-answer evidence filtering/
 operand append and surface-operand projection. Candidate report/period scope,
-surface/segment contracts, local aggregate context, consolidation scope,
+surface/segment contracts, delta-like row-label classification, local aggregate
+context, consolidation scope,
 binding-shape admission, and selected-unit-family projection are also owner-held.
 Current
 validation and benchmark
@@ -887,30 +888,46 @@ passed. The source diff SHA-256 is
 Operand policy, candidate construction, other scoring, matching/acceptance/
 ranking, adoption, retrieval, and graph/artifact/ledger state remain hard stops.
 
+The completed `e04a7bf` follow-on moved the exact former 7-line delta-like row-
+label classifier from graph helpers to public `is_delta_like_row_label(...)` in
+`financial_row_surfaces.py`. Its three direct calls finish owner-external/local
+3/0 across direct grounding and operand scoring. Source is `+14/-12`, tests
+`+811/-25`, and the whole commit `+825/-37`; graph helpers moved from 5,478 to
+5,470 lines and row surfaces from 471 to 481. Focused 4/4, owner 102/102,
+affected semantic 1,062/1,062, import 19/19, audit 218, full 1,955/1,955,
+pycompile/fresh import/public identity, body/retained/all three callers/full
+48-module DAG parity, retired executable private refs zero, and diff check
+passed. The source diff SHA-256 is
+`b3ceafde06df105a8d62b77dae1e8d6f61711ed04e2132e9f90213012d4c7e0c`.
+Period policy, candidate construction, broader scoring, matching/acceptance/
+ranking, adoption, retrieval, and graph/artifact/ledger state remain hard stops.
+
 The new characterize-only inventory selects one follow-on: move only the exact
-current 7-line `_is_delta_like_row_label(label: str) -> bool` definition from
-graph helpers to public `is_delta_like_row_label(...)` in
-`financial_row_surfaces.py`. Its three direct `ast.Name` calls remain at caller
-`try` depth zero: two in direct grounding over prepared `semantic_label` and
-`row_text`, and one in operand scoring over `semantic_label or row_label`.
-Direct-grounding hits reject; the scorer hit subtracts `4.0` and continues.
+current 7-line `_preference_bonus(...)` definition from graph helpers to public
+`preference_bonus(...)` in `financial_operand_resolution.py`. Its complete
+signature is
+`(value: str, preferred: List[str], *, base: float = 0.4) -> float`. Its two direct
+`ast.Name` calls remain consecutive scorer `AugAssign` expressions at caller
+`try` depth zero over exact role/preference inputs with `base=0.6` and stage/
+preference inputs with `base=0.5`.
 
-The row owner already imports normalization and the retrieval-policy module;
-adding the candidate-scoring policy name adds no module edge. Graph reaches the
-row owner and the owner does not reach graph. Projected function counts are
-graph helpers 9/88 and row surfaces 10/15; calls finish owner-external/local
-3/0 and the selected span contains zero of 218 reviewed domain records.
+The operand owner already imports `List` and normalization; adding the function
+adds no module edge. Graph reaches the owner and the owner does not reach graph.
+Projected function counts are graph helpers 9/87 and operand resolution 45/37;
+calls finish owner-external/local 2/0 and the selected span contains zero of 218
+reviewed domain records.
 
-Moving period-focus derivation, candidate construction, concept/direct matching,
-acceptance, broader scoring/ranking, candidate/evidence adoption, retrieval, or
-plan/state/artifact/ledger mutation is rejected. Exact raw label truth/string
-and normalization, blank stop, policy copy and marker fallback, eager marker
-tuple, repeated marker strings, policy-order membership and first-hit result,
-identities, immutability, exception stops, four required CURRENT-SOURCE methods,
-and projected focused 4/4, owner 102/102, affected semantic 1,062/1,062, import
-19/19, audit 218, and full 1,955/1,955 gates are defined only in
+Moving caller preference/avoid collection construction, role/stage derivation,
+candidate construction, concept/direct matching, acceptance, source/report/
+period or broader scoring/ranking, candidate/evidence adoption, retrieval, or
+plan/state/artifact/ledger mutation is rejected. Exact eager preference
+iteration, repeated normalization, target truth/membership/index, first-equal
+position, raw base multiplication, identities, immutability, exception stops,
+four required CURRENT-SOURCE methods, and projected focused 4/4, owner 106/106,
+affected semantic 1,066/1,066, import 19/19, audit 218, and full 1,959/1,959
+gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this delta-like row-label projection at the
+or test movement has occurred for this preference-bonus projection at the
 characterization checkpoint; it is the sole next priority, and this plan
 maintains no competing queue.
 

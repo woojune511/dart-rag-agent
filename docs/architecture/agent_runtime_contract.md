@@ -4405,7 +4405,90 @@ unverified. Operand policy, candidate construction, other scoring, matching/
 acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state remain
 outside this owner.
 
-The new characterize-only delta-like row-label inventory selects the current
+Commit `e04a7bf` moved the exact former 7-line delta-like row-label classifier
+to public `financial_row_surfaces.is_delta_like_row_label(...)` without changing
+its body. Raw `label or ""` truth, selected-value stringification, one
+normalization, falsey-text stop before policy access, policy shallow copy,
+falsey marker fallback, eager tuple construction, retained-marker double and
+blank-marker single stringification, ordered membership, first-hit `any(...)`,
+checked-in results, identity, immutability, and all uncaught errors remain exact.
+
+Three direct calls finish graph-external/owner-local 3/0. Direct grounding still
+passes prepared `semantic_label` under current/prior focus before segment work
+and truthy `row_text` for lookup/single-value table rows after structured-sibling
+rejection; hits reject. Operand scoring still passes exact left-to-right
+`semantic_label or row_label`; a hit subtracts `4.0` and continues. Source moved
+`+14/-12`, tests `+811/-25`, and the whole commit `+825/-37`; graph helpers
+finish at 5,470 lines and row surfaces at 481. The source diff SHA-256 is
+`b3ceafde06df105a8d62b77dae1e8d6f61711ed04e2132e9f90213012d4c7e0c`.
+Focused 4/4, owner 102/102, affected semantic 1,062/1,062, import 19/19, audit
+218, full 1,955/1,955, pycompile/fresh import/public identity 1/1, selected-body
+1/1, retained graph 97/97, retained row owner 24/24, all three callers/two
+caller bodies, full 48-module DAG parity, retired executable graph-private refs
+zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote CI
+remains unverified. Period policy, candidate construction, broader scoring,
+matching/acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state
+remain outside this owner.
+
+The new characterize-only preference-bonus inventory selects the current exact
+7-line `_preference_bonus(...)` graph definition for a public move to
+`financial_operand_resolution.py` as `preference_bonus(...)`. Its complete
+signature is
+`(value: str, preferred: List[str], *, base: float = 0.4) -> float`. No production
+source or test has moved for this projection at this checkpoint. It receives
+prepared value/preference/base inputs and does not derive role/stage, read
+operand policy, construct candidates, own surrounding ranking, adopt results,
+retrieve evidence, or read graph state.
+
+The projection must preserve eager source-order consumption of `preferred`.
+Each raw item first enters `_normalise_spaces(item)` in the filter; a falsey
+normalized result is dropped after one call, while a retained item invokes the
+same normalization again and appends the exact second result. All preference
+iteration and normalization completes before `_normalise_spaces(value)` runs
+once. A falsey normalized target returns exact `0.0` before membership; a
+truthy missing target performs ordered list membership and also returns exact
+`0.0`. No string coercion or input mutation is introduced.
+
+On a membership hit, `ordered.index(target)` remains a distinct second scan and
+uses the first equal entry. The result remains exact
+`base * max(len(ordered) - index, 1)`: one length, subtraction, max with integer
+one, then raw left-hand base multiplication without float coercion. Default-base
+first/middle/last scores over three ordinary entries remain `1.2/0.8/0.4`.
+Duplicate order, repeated/stateful equality, raw truth, identity, immutability,
+and every preferred-iteration, normalization, equality/membership/index,
+length/subtraction/max/multiplication error remain exact and uncaught.
+
+Two direct `ast.Name` calls remain consecutive `AugAssign` expressions in
+`_score_operand_candidate(...)` at caller `try` depth zero. They receive exact
+`value_role, preferred_value_roles, base=0.6` and
+`aggregation_stage, preferred_aggregation_stages, base=0.5`. Both occur after
+the caller's preference/avoid collections and period-focus score work and before
+avoid penalties, preferred-section/source/period/table/report scoring and
+return. Each result is added in order; a first-call failure stops the second and
+all later work, while a second-call or caller-addition failure also stops later
+ranking/adoption.
+
+The operand owner already imports `List` and normalization, graph reaches it,
+and it does not reach graph, so the full DAG remains unchanged. Projected counts
+are graph helpers 9/87 and operand resolution 45/37; calls finish external/local
+2/0 and the selected span has zero reviewed runtime-domain records. Moving
+caller collection construction, role/stage derivation, candidate construction,
+other scoring, matching/acceptance/ranking, adoption, retrieval, or graph/
+artifact/ledger state is rejected. Four named CURRENT-SOURCE methods and exact
+contracts remain solely in
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 106/106, affected semantic 1,066/1,066, import
+19/19, audit 218, full 1,959/1,959, public identity 1/1, selected body 1/1,
+retained graph 96/96, retained operand owner 81/81, both callers/sole caller
+body, full 48-module DAG parity, retired executable graph-private refs zero, and
+diff check. Static inventory, direct behavior probes 6/6, and caller order/
+adoption/stop probes 3/3 passed; benchmark refresh and remote CI were **NOT
+RUN**.
+
+The following delta-like row-label paragraphs preserve the historical
+characterization checkpoint that preceded `e04a7bf`; they are not active work.
+The historical characterize-only delta-like row-label inventory selected the
+then-current
 7-line `_is_delta_like_row_label(label: str) -> bool` graph definition for a
 future public move to `financial_row_surfaces.py` as
 `is_delta_like_row_label(...)`. No production source or test has moved for this

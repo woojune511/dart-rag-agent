@@ -300,7 +300,7 @@ State-free owner topology:
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, public query/task and generic operand target-year/period-focus policy, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
-| `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
+| `financial_row_surfaces.py` | row/table text matching and parsing, delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
@@ -728,14 +728,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   audit 218, full 1,951/1,951와 pycompile/fresh import/public identity,
   AST/caller/DAG parity가 통과했다. 다른 scoring, matching/acceptance/ranking/
   adoption과 state/evidence/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 7줄 delta-like
-  row-label classifier를 `financial_row_surfaces.py`의 public API로 옮기는
-  다음 production 작업으로 선택했다. 세 call은 direct grounding과 operand
-  scorer에서 external 3/local 0을 유지한다. Projected graph helper public/
-  private는 9/88, row surfaces는 10/15이다. 아직 이 projection의 source/test
-  이동은 없으며 raw label/normalization gate, declarative marker tuple과
-  first-hit classification, 세 caller의 order/adoption/stop, 네 CURRENT-
-  SOURCE method와 projected gate는
+- 완료된 `e04a7bf` delta-like row-label batch는 graph helper의 정확한 7줄
+  classifier를 `financial_row_surfaces.py`의 public API로 옮겼다. 세 call은
+  direct grounding과 operand scorer에서 external 3/local 0으로 수렴했다.
+  Graph helper public/private는 9/88, row surfaces는 10/15이다. Focused 4/4,
+  owner 102/102, semantic 1,062/1,062, import 19/19, audit 218, full
+  1,955/1,955와 pycompile/fresh import/public identity, AST/caller/DAG parity가
+  통과했다. Period policy, broader scoring, matching/acceptance/ranking/adoption과
+  state/evidence/ledger는 graph 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 7줄 preference
+  bonus projection을 `financial_operand_resolution.py`의 public API로 옮기는
+  다음 production 작업으로 선택했다. 두 call은 operand scorer에서 external
+  2/local 0으로 수렴한다. Projected graph helper public/private는 9/87,
+  operand resolution은 45/37이다. 아직 이 projection의 source/test 이동은
+  없으며 eager preference normalization, ordered membership/index, raw base
+  multiplication, 두 caller의 order/adoption/stop, 네 CURRENT-SOURCE method와
+  projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
