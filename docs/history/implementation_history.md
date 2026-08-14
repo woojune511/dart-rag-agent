@@ -5362,3 +5362,86 @@ The characterization establishes no implementation or quality improvement.
 Static definition/call/DAG/function-count and selected-body baseline inspection,
 direct behavior probes 6/6, and caller gate/order/adoption probes 3/3 passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Single-report-scope ownership milestone
+
+- Commit `471f6a5` moves the exact former 8-line
+  `_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` definition
+  from `financial_graph_helpers.py` to public
+  `financial_scope_policies.has_single_report_scope(...)` with its body and
+  complete signature unchanged. The graph imports the public owner and no
+  longer imports `_report_scope_source_receipts(...)`.
+- The sole direct call finishes graph-external/owner-local 1/0 with exact
+  positional `report_scope`, no keywords, caller `try` depth zero, and immediate
+  `If` parent in `align_scope_hints(...)`. Its placement after company/year
+  list preparation and the truthy scope-company gate but before company and
+  later year adoption is unchanged.
+- Raw scope truth, one shallow `dict` copy, nested identities, explicit receipt
+  get/or/string/strip/truth precedence, source-receipt helper/length laziness,
+  exact zero/one/many cardinality, the narrow `Exception` catch, uncaught pre-
+  try and `BaseException` failures, caller fallback order, input immutability,
+  and all stops are pinned by four CURRENT-SOURCE methods. No graph alias,
+  wrapper, callback, carrier, reason, flag, trace, coercion, or fallback was
+  added.
+- Source is `+12/-12`, net zero: graph helpers are `+2/-12` and move from
+  5,450 to 5,440 physical lines; scope policies are `+10/-0` and move from 529
+  to 539. Graph-helper tests are `+620/-29`, net `+591`, and move from 23,816
+  to 24,407 lines. The whole commit is `+632/-41`, net `+591`, and four methods
+  move full discovery from 1,963 to 1,967. Graph helper public/private counts
+  finish 9/85 and scope-policy counts finish 11/9. The source diff SHA-256 is
+  `2deab9c118170b25431f43717bd2dc0328798416cbd3da18cc29891b7ab369cf`.
+- Focused 4/4, graph-helper owner 114/114, affected eleven-module semantic
+  1,074/1,074, import-side-effects 19/19, runtime-domain audit 218, and full
+  discovery 1,967/1,967 passed. Pycompile, fresh import/public identity,
+  whole-function/body parity, retained graph 94/94 after call normalization,
+  retained scope owner 19/19, the sole caller/body, full 48-module/203-edge DAG
+  parity, zero selected-body audit hits, zero retired executable private refs,
+  and diff check also passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic single-report-scope ownership.
+Company/year alignment, report inventory/selection, consolidation/candidate
+scope policy, candidate/evidence construction, report-file I/O, retrieval,
+score/rank/admission/acceptance, graph state, model invocation, artifact/ledger
+mutation, retry, and final sequencing remain outside. It proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+### Candidate-concept-conflict characterization checkpoint
+
+- A docs-only inventory selects the current 27-line
+  `_candidate_conflicts_with_operand_concept(candidate, operand)` graph
+  definition. Before owner movement, its two inline exclusive-surface marker
+  occurrences must become exact declarative
+  `CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in retrieval policy. Runtime
+  keeps only generic marker membership and no domain-named control variable.
+- The selected follow-on then moves the function as public
+  `candidate_conflicts_with_operand_concept(...)` to
+  `financial_surface_contracts.py`. That owner already contains normalization,
+  operand-needle, surface-contract, positive-surface, and negative-surface
+  dependencies. Graph already reaches it and it does not reach graph, so the
+  48-module/203-edge DAG remains unchanged. Current/projected public/private
+  counts are graph 9/85 to 9/84 and surface owner 10/7 to 11/7. Three calls
+  project external/local 3/0; the current span has zero of 218 reviewed records.
+- The projection preserves dropped-once/retained-twice operand normalization,
+  exact policy-marker first-hit membership, one metadata shallow copy, ordered
+  semantic/row/aggregate/alias/header authoritative surfaces, repeated retained
+  alias/header strings, special-marker precedence and candidate-text exclusion,
+  falsey-contract stop, authoritative negative-before-positive precedence, and
+  final candidate-text negative fallback with exact returns and uncaught errors.
+- All calls are positional exact `candidate, operand`, without keywords, at
+  caller `try` depth zero and immediate `If` parents. Conflict truth returns
+  `False` from candidate matching, `0.0` from direct strength, and `-10.0` from
+  scoring after that caller's metadata copy. Moving the callers, other matching,
+  direct/ratio acceptance, score/rank, construction/adoption, file I/O,
+  retrieval, or graph/artifact/ledger state is rejected.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 118/118,
+  affected semantic 1,078/1,078, import 19/19, audit 218, full 1,971/1,971,
+  public identity/policy-normalized body parity, retained graph 93/93, retained
+  surface owner 17/17, all callers, full DAG parity, retired-ref zero, and diff
+  check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+No production source or test moved for this characterization. Static
+definition/call/DAG/function-count and selected-body baseline inspection,
+direct behavior probes 8/8, and caller gate/order/return probes 3/3 passed;
+benchmark refresh and remote CI were **NOT RUN**.

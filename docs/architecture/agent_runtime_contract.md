@@ -4540,17 +4540,15 @@ Moving row/cell preparation, grouping/candidate construction, matching/scoring/
 acceptance, adoption, report-file I/O, retrieval, or graph/artifact/ledger state
 remains rejected. Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only single-report-scope inventory selects the current
-exact 8-line
+Commit `471f6a5` moved the exact former 8-line
 `_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` graph
-definition for a public move to
-`financial_scope_policies.has_single_report_scope(...)`. No production source
-or test has moved for this projection at this checkpoint. It receives one
+definition to public
+`financial_scope_policies.has_single_report_scope(...)`. It receives one
 caller-supplied report-scope mapping and does not own company/year alignment,
 report inventory/selection, candidate/evidence construction, report-file I/O,
 retrieval, or graph state.
 
-The projection must first evaluate raw `report_scope or {}`, then call
+The function must first evaluate raw `report_scope or {}`, then call
 `dict(...)` exactly once. A truthy input is the direct copy operand; a falsey
 input selects the fresh empty literal first. Input truth and dictionary
 construction remain outside the function's `try` and uncaught. The result is a
@@ -4585,19 +4583,72 @@ inside the helper and follow the fallback branch. Inputs remain unmodified.
 
 Scope policies already imports `Any`/`Dict` and owns the receipt helper. Graph
 reaches that owner, which does not reach graph, so the full DAG remains
-unchanged. Projected counts are graph helpers 9/85 and scope policies 11/9;
+unchanged. Final counts are graph helpers 9/85 and scope policies 11/9;
 the selected call finishes external/local 1/0 and the span has zero reviewed
 runtime-domain records. Moving caller alignment, report inventory/selection,
 consolidation/candidate scope policy, report-file I/O, candidate/evidence
 construction, retrieval, or graph/artifact/ledger state is rejected. Four named
-CURRENT-SOURCE methods and exact contracts remain solely in
-[Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 114/114, affected semantic 1,074/1,074, import
+CURRENT-SOURCE methods pin the exact contract. Executed gates are focused 4/4,
+owner 114/114, affected semantic 1,074/1,074, import
 19/19, audit 218, full 1,967/1,967, public identity/body 1/1, retained graph
 94/94, retained scope owner 19/19, sole caller/body, full DAG parity, retired-
 ref zero, and diff check. Static inventory, direct behavior probes 6/6, and
 caller gate/order/adoption probes 3/3 passed; benchmark refresh and remote CI
 were **NOT RUN**.
+
+The active candidate-concept-conflict contract is characterized for the next
+bounded policy-and-owner batch. The checked-in exclusive marker currently
+appears twice inline in the 27-line graph helper. Before relocation, that exact
+value must become declarative
+`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in
+`src/config/retrieval_policy.py`; runtime code may consume the marker through a
+generic identifier but may not retain an inline financial term or add a new
+marker family. The implementation then moves without a graph alias to public
+`financial_surface_contracts.candidate_conflicts_with_operand_concept(...)`.
+
+Operand needles are projected before any candidate work. The owner calls
+`_operand_needles(operand)` once, eagerly filters through
+`_normalise_spaces(...)`, and repeats normalization only for retained entries;
+the exact second results form the fresh ordered list. Ordered membership of the
+exact policy marker then determines whether the operand already expects that
+exclusive surface. Marker normalization, alias expansion, or ontology lookup
+at this point is not permitted.
+
+Candidate metadata is obtained by exact get/raw-or and one shallow `dict`
+copy. Authoritative surfaces are prepared in fixed order: semantic label, row
+label, aggregate label, joined semantic aliases, joined row headers. Scalar
+get/or/string/strip ordering, eager alias/header iteration, dropped-once and
+retained-twice string/strip behavior, second-result retention, raw surface
+truth filtering, nested identities, and input immutability are normative.
+
+When the operand does not expect the marker, the first authoritative candidate
+surface containing it after one normalization returns exact `True` before any
+surface-contract lookup. An operand that expects the marker skips only this
+special conflict gate. Candidate free text is not eligible for that marker
+gate. Next, one `_operand_surface_contract(operand)` call controls the generic
+contract path: a falsey contract returns exact `False`; authoritative negative
+support is scanned first and wins with `True`; only a complete negative miss
+allows ordered positive support to return `False`; only both misses reach one
+final `_text_has_negative_surface(str(candidate.get("text") or ""), operand)`
+call, whose exact result is returned. Candidate text receives neither positive
+support nor exclusive-marker matching.
+
+No exception boundary is added. All operand, normalization, marker membership,
+candidate/metadata mapping, truth, dictionary-copy, string/strip/join,
+authoritative-surface, contract, positive/negative helper, candidate-text, and
+returned-result failures remain uncaught. The complete required test names,
+failure ordering, static counts, stop lines, and projected gates are governed
+only by [Project Status Next Work](../overview/project_status.md#next-work).
+
+Three direct calls remain positional exact `candidate, operand`, without
+keywords and at caller `try` depth zero. Conflict truth returns `False` from
+`_candidate_matches_operand(...)` before its later preparation, returns `0.0`
+from `_candidate_direct_match_strength(...)` before strength work, and returns
+`-10.0` from `_score_operand_candidate(...)` after that caller's metadata copy
+but before score initialization. Helper/truth failures stop all later caller
+work. Other matching, scoring, acceptance, candidate/evidence construction,
+adoption, report-file I/O, retrieval, graph state, artifact/ledger mutation,
+retry, and final sequencing remain outside the contract.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

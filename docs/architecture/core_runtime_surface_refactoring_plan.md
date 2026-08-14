@@ -213,6 +213,7 @@ gap/lookup-answer policy, narrative term/variant/context presentation, prepared
 KRW raw-unit/growth alignment/period-conflict policy, dependency-task KRW
 consistency, table-metadata KRW repair, and final-answer evidence filtering/
 operand append and surface-operand projection. Candidate report/period scope,
+single-report-scope classification,
 surface/segment contracts, delta-like row-label classification, local aggregate
 context, consolidation scope,
 binding-shape admission, selected-unit-family projection, and deterministic
@@ -260,8 +261,9 @@ also owner-resident. Dependency input matching, sibling-output synthesis
 preference, task-output binding projection, prepared runtime-evidence merge, and
 ratio task-artifact row projection are owner-resident as well. Final-answer
 evidence filtering, operand-evidence append, and surface-operand projection are
-also owner-resident. Generic operand-period, structured-cell selection/scoring,
-and candidate report/period-scope matching/scoring are owner-resident as well.
+also owner-resident. Generic operand-period, single-report-scope classification,
+structured-cell selection/scoring, and candidate report/period-scope matching/
+scoring are owner-resident as well.
 Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
@@ -943,35 +945,49 @@ fixed. Row/cell preparation, grouping/candidate construction, scoring/
 acceptance, adoption, retrieval, and graph/artifact/ledger state remain hard
 stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 8-line
-`_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` definition from
-graph helpers to public `has_single_report_scope(...)` in
-`financial_scope_policies.py`. Its sole direct `ast.Name` call is positional
-`report_scope`, has no keywords, and remains at caller `try` depth zero as the
-immediate `If` condition inside `align_scope_hints(...)`.
+The completed `471f6a5` follow-on moved the exact former 8-line single-report-
+scope predicate from graph helpers to public `has_single_report_scope(...)` in
+`financial_scope_policies.py`. Its sole direct call finishes owner-external/
+local 1/0 in `align_scope_hints(...)`. Exact raw input truth, one shallow copy,
+explicit receipt precedence, source-receipt cardinality, narrow `Exception`
+boundary, identities, immutability, and caller gate/order/adoption/stops remain
+pinned by four CURRENT-SOURCE methods. Source is `+12/-12`, tests `+620/-29`,
+and the whole commit `+632/-41`; graph helpers moved from 5,450 to 5,440 lines
+and scope policies from 529 to 539. Focused 4/4, owner 114/114, affected
+semantic 1,074/1,074, import 19/19, audit 218, full 1,967/1,967,
+pycompile/fresh import/public identity, body/retained/caller/full
+48-module/203-edge DAG parity, retired private refs zero, and diff check passed.
+The source diff SHA-256 is
+`2deab9c118170b25431f43717bd2dc0328798416cbd3da18cc29891b7ab369cf`.
+Company/year alignment, report inventory/selection, candidate/evidence work,
+report-file I/O, retrieval, and graph/artifact/ledger state remain hard stops.
 
-The scope owner already imports `Any`/`Dict` and owns
-`_report_scope_source_receipts(...)`. Graph reaches the owner and the owner does
-not reach graph, so moving the function changes no module edge and removes
-graph's need to import the owner-private receipt helper. Projected function
-counts are graph helpers 9/85 and scope policies 11/9; the call finishes owner-
-external/local 1/0 and the selected span contains zero of 218 reviewed records.
+The new characterize-only inventory selects one follow-on: classify the exact
+inline candidate concept-conflict marker as declarative
+`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in retrieval policy, then move
+only the current 27-line `_candidate_conflicts_with_operand_concept(...)`
+definition to public `candidate_conflicts_with_operand_concept(...)` in
+`financial_surface_contracts.py`. The owner already contains every state-free
+dependency; graph already reaches it and it does not reach graph. All three
+calls remain positional `candidate, operand`, owner-external/local 3/0, at
+caller `try` depth zero and immediate `If` parents. The full
+48-module/203-edge DAG remains unchanged; projected function counts are graph
+helpers 9/84 and surface contracts 11/7, and the selected span contains zero of
+218 reviewed records.
 
-Moving company/year alignment, report inventory/selection, consolidation or
-candidate scope policy, candidate/evidence construction, report-file I/O,
-retrieval, or plan/state/artifact/ledger mutation is rejected. The file-I/O
-unit-hint cluster, policy-unclassified domain predicates, cycle-forming
-candidate builder, and graph-state year helper remain excluded. Exact raw input
-truth and shallow copying, explicit-receipt precedence, receipt projection and
-cardinality, the narrow `Exception` boundary, identities, immutability, caller
-gate/order/adoption/stops, four required CURRENT-SOURCE methods, and projected
-focused 4/4, owner 114/114, affected semantic 1,074/1,074, import 19/19, audit
-218, and full 1,967/1,967 gates are defined only in
+Moving other matching, direct/ratio acceptance, score/rank, candidate/evidence
+construction or adoption, report-file I/O, retrieval, or plan/state/artifact/
+ledger work is rejected. The balance-sheet/capex/source-priority cluster still
+requires separate policy classification; the candidate builder would still
+create a cycle, the year helper reads graph state, and the unit-hint cluster
+performs local file I/O. Exact marker classification, repeated operand and
+authoritative-surface preparation, negative/positive/text precedence, three
+caller returns/stops, four required CURRENT-SOURCE methods, and projected
+focused 4/4, owner 118/118, affected semantic 1,078/1,078, import 19/19, audit
+218, and full 1,971/1,971 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this single-report-scope projection at the
-characterization checkpoint; it is the sole next priority, and this plan
-maintains no competing queue.
+or test movement has occurred for this candidate-conflict projection; it is the
+sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
