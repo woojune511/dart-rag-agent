@@ -5236,7 +5236,9 @@ completion.
   the owner, the owner does not reach graph, and the owner already imports
   `re`, `List`, normalization and owns `_generic_column_headers()`, so the full
   agent DAG remains unchanged. The selected call projects external/local 1/0
-  and the span contains zero of the 218 reviewed runtime-domain records.
+  and the then-current line-derived baseline check reported zero selected-body
+  records. The later ownership audit established that this was stale line
+  metadata: the year regex was already one of the 218 reviewed records.
 - The projection preserves eager source-order header consumption, raw
   normalization once for dropped and twice for retained headers, exact second-
   result retention, completion before generic policy access, blank exact `""`
@@ -5266,4 +5268,97 @@ completion.
 The characterization establishes no implementation or quality improvement.
 Static definition/call/DAG/function-count and selected-body baseline inspection,
 direct behavior probes 6/6, and caller order/adoption/stop probes 3/3 passed;
+benchmark refresh and remote CI were **NOT RUN**.
+
+### Column-candidate-label ownership milestone
+
+- Commit `0dc278e` moves the exact former 10-line
+  `_column_candidate_label(column_headers: List[str]) -> str` definition from
+  `financial_graph_helpers.py` to public
+  `financial_row_surfaces.column_candidate_label(...)` with its body unchanged.
+  The complete signature remains `(column_headers: List[str]) -> str`.
+- The sole direct `ast.Name` call finishes graph-external/owner-local 1/0 with
+  exact positional `original_headers`, no keywords, caller `try` depth zero,
+  and immediate `Assign` parent inside the table-column reconciliation
+  candidate builder. Its placement after row/header/numeric preparation and
+  before label truth, grouping, bucket mutation, and final candidate synthesis
+  is unchanged; all existing adoption and stop behavior remains uncaught.
+- Eager header consumption, dropped-once/retained-twice raw normalization,
+  second-result retention, blank early return, one direct generic-header
+  collection, ordered `not in`, last non-generic/all-generic fallback, exact
+  target-only year regex, identities, immutability, and exception behavior are
+  pinned by four CURRENT-SOURCE methods. No wrapper, graph alias, callback,
+  carrier, reason, flag, trace, coercion, or fallback is added.
+- The first post-move runtime-domain audit correctly failed with exactly one
+  unexpected row-owner record and one missing graph-owner record. The literal
+  `20\d{2}(?:년)?`, category `regex_or_pattern`, and count one were unchanged;
+  only the existing reviewed record's owner path, path-derived fingerprint, and
+  current line moved. This corrected the characterization's stale line-derived
+  zero-hit claim and kept the reviewed baseline total at 218.
+- Source is `+14/-14`, net zero: graph helpers are `+2/-14` and move from
+  5,462 to 5,450 physical lines; row surfaces are `+12/-0` and move from 481 to
+  493. Graph-helper tests are `+688/-22`, net `+666`, and move from 23,150 to
+  23,816 lines; the reviewed baseline is `+3/-3`. The whole commit is
+  `+705/-39`, net `+666`, and four methods move full discovery from 1,959 to
+  1,963. Graph helper public/private counts finish 9/86 and row-surface counts
+  finish 11/15. The source diff SHA-256 is
+  `053f3195dce934a7d005e8d61b57355c2639b215834eb29f741ed6592d86a9f7`.
+- Focused 4/4, graph-helper owner 110/110, affected eleven-module semantic
+  1,070/1,070, import-side-effects 19/19, runtime-domain audit 218, and full
+  discovery 1,963/1,963 passed. Pycompile, fresh import/public identity 1/1,
+  selected-body parity 1/1, retained graph 95/95 after target-call
+  normalization, retained row owner 25/25, sole caller expression/body, full
+  48-module/203-edge DAG parity, zero retired executable private refs, and diff
+  check also passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic column-label ownership. Row/cell
+preparation, numeric gating, grouping/bucket/candidate construction, matching/
+scoring/acceptance, evidence adoption, retrieval, report-file I/O, graph state,
+artifact/ledger mutation, and final sequencing remain outside. It proves no
+behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, ledger completion, or Phase 3
+completion.
+
+### Single-report-scope characterization checkpoint
+
+- A docs-only inventory selects the exact current 8-line
+  `_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` definition in
+  `financial_graph_helpers.py`. Its sole direct `ast.Name` call is positional
+  exact `report_scope`, has no keywords, and is the immediate `If` condition in
+  `align_scope_hints(...)` at caller `try` depth zero. No production source or
+  test moves for this projection at this checkpoint.
+- The selected follow-on moves it as public `has_single_report_scope(...)` in
+  `financial_scope_policies.py`. Current/projected public/private counts are
+  graph helpers 9/86 to 9/85 and scope policies 10/9 to 11/9. Graph already
+  reaches the owner, the owner does not reach graph, and the owner already
+  imports `Any`/`Dict` and owns `_report_scope_source_receipts(...)`; the full
+  48-module/203-edge agent DAG remains unchanged. The selected call projects
+  external/local 1/0 and the span contains zero of 218 reviewed records.
+- The projection preserves raw `report_scope or {}` truth before one `dict`
+  call, a fresh shallow copy with retained nested identities, exact receipt-key
+  get/or/string/strip/truth evaluation outside the `try`, and a truthy explicit-
+  receipt fast return before receipt projection. Otherwise it calls the owner-
+  private receipt helper once with the exact copied scope, takes one length,
+  and returns `len(...) <= 1` inside the current `try`. Exact `Exception`
+  failures become `False`; pre-try failures and `BaseException` remain uncaught.
+- The caller invokes the predicate only after a truthy normalized scope company
+  and after company/year list preparation. `True` replaces companies with the
+  scope company; `False` preserves the existing empty/prepend/already-present
+  fallback order; scope-year adoption remains later. Caller inputs stay
+  unmodified and every uncaught failure stops later adoption.
+- Moving caller-owned company/year alignment, report inventory/selection,
+  consolidation/candidate scope policy, report-file I/O, candidate/evidence
+  construction, retrieval, graph state, or artifact/ledger mutation is
+  rejected. The file-I/O unit-hint cluster, policy-unclassified domain
+  predicates, cycle-forming candidate builder, and graph-state year helper stay
+  excluded. Four named CURRENT-SOURCE methods and projected focused 4/4, owner
+  114/114, affected semantic 1,074/1,074, import 19/19, audit 218, full
+  1,967/1,967, public identity/body 1/1, retained graph 94/94, retained scope
+  owner 19/19, sole caller/body, full DAG parity, retired-ref zero, and diff
+  check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The characterization establishes no implementation or quality improvement.
+Static definition/call/DAG/function-count and selected-body baseline inspection,
+direct behavior probes 6/6, and caller gate/order/adoption probes 3/3 passed;
 benchmark refresh and remote CI were **NOT RUN**.

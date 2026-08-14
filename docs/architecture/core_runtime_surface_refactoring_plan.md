@@ -921,32 +921,55 @@ Caller collection construction, role/stage derivation, other scoring, matching/
 acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state remain
 hard stops.
 
+The completed `0dc278e` follow-on moved the exact former 10-line column-
+candidate-label definition from graph helpers to public
+`column_candidate_label(...)` in `financial_row_surfaces.py`. Its sole direct
+call finishes owner-external/local 1/0 in the table-column reconciliation
+candidate builder. Exact eager header iteration, repeated normalization, blank
+stop, direct generic-container membership, last non-generic/all-generic
+fallback, target-only year regex, identities, immutability, and exception stops
+remain pinned by four CURRENT-SOURCE methods. Source is `+14/-14`, graph-helper
+tests are `+688/-22`, the baseline is `+3/-3`, and the whole commit is
+`+705/-39`; graph helpers moved from 5,462 to 5,450 lines and row surfaces from
+481 to 493. Focused 4/4, owner 110/110, affected semantic 1,070/1,070, import
+19/19, audit 218, full 1,963/1,963, pycompile/fresh import/public identity,
+body/retained/caller/full 48-module/203-edge DAG parity, retired executable
+private refs zero, and diff check passed. The source diff SHA-256 is
+`053f3195dce934a7d005e8d61b57355c2639b215834eb29f741ed6592d86a9f7`.
+The audit corrected the characterization's stale line-derived zero-hit claim:
+the unchanged year regex is one reviewed record, and only that record's owner
+path, path-derived fingerprint, and line moved while the 218-record total stayed
+fixed. Row/cell preparation, grouping/candidate construction, scoring/
+acceptance, adoption, retrieval, and graph/artifact/ledger state remain hard
+stops.
+
 The new characterize-only inventory selects one follow-on: move only the exact
-current 10-line `_column_candidate_label(column_headers: List[str]) -> str`
-definition from graph helpers to public `column_candidate_label(...)` in
-`financial_row_surfaces.py`. Its sole direct `ast.Name` call is positional
-`original_headers`, has no keywords, and remains at caller `try` depth zero with
-immediate `Assign` parent in the table-column reconciliation candidate builder.
+current 8-line
+`_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` definition from
+graph helpers to public `has_single_report_scope(...)` in
+`financial_scope_policies.py`. Its sole direct `ast.Name` call is positional
+`report_scope`, has no keywords, and remains at caller `try` depth zero as the
+immediate `If` condition inside `align_scope_hints(...)`.
 
-The row owner already imports `re`, `List`, and normalization and owns
-`_generic_column_headers()`. Graph reaches the owner and the owner does not
-reach graph, so moving the function changes no module edge and removes graph's
-need to import the owner-private generic-header helper. Projected function
-counts are graph helpers 9/86 and row surfaces 11/15; the call finishes owner-
-external/local 1/0 and the selected span contains zero of 218 reviewed domain
-records.
+The scope owner already imports `Any`/`Dict` and owns
+`_report_scope_source_receipts(...)`. Graph reaches the owner and the owner does
+not reach graph, so moving the function changes no module edge and removes
+graph's need to import the owner-private receipt helper. Projected function
+counts are graph helpers 9/85 and scope policies 11/9; the call finishes owner-
+external/local 1/0 and the selected span contains zero of 218 reviewed records.
 
-Moving row/cell preparation, numeric gating, grouping/bucket/candidate
-construction, structured-cell selection, matching/scoring/acceptance, adoption,
-report-file I/O, retrieval, or plan/state/artifact/ledger mutation is rejected.
-Exact eager header iteration, once/twice normalization, blank stop, direct
-generic-container membership, last non-generic/all-generic fallback, target-
-only year regex, identities, immutability, exception stops, four required
-CURRENT-SOURCE methods, and projected focused 4/4, owner 110/110, affected
-semantic 1,070/1,070, import 19/19, audit 218, and full 1,963/1,963 gates are
-defined only in
+Moving company/year alignment, report inventory/selection, consolidation or
+candidate scope policy, candidate/evidence construction, report-file I/O,
+retrieval, or plan/state/artifact/ledger mutation is rejected. The file-I/O
+unit-hint cluster, policy-unclassified domain predicates, cycle-forming
+candidate builder, and graph-state year helper remain excluded. Exact raw input
+truth and shallow copying, explicit-receipt precedence, receipt projection and
+cardinality, the narrow `Exception` boundary, identities, immutability, caller
+gate/order/adoption/stops, four required CURRENT-SOURCE methods, and projected
+focused 4/4, owner 114/114, affected semantic 1,074/1,074, import 19/19, audit
+218, and full 1,967/1,967 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this column-candidate-label projection at the
+or test movement has occurred for this single-report-scope projection at the
 characterization checkpoint; it is the sole next priority, and this plan
 maintains no competing queue.
 

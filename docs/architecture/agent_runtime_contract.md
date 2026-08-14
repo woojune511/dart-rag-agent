@@ -4485,14 +4485,11 @@ The source diff SHA-256 is
 `319be70af91d64a48d09ec63a1524fe3f5b4834b32238a32a1f1e967e1ec69e5`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only column-candidate-label inventory selects the current
-exact 10-line `_column_candidate_label(column_headers: List[str]) -> str` graph
-definition for a public move to
-`financial_row_surfaces.column_candidate_label(...)`. No production source or
-test has moved for this projection at this checkpoint. It receives one prepared
-header iterable and does not own row/cell preparation, grouping, candidate
-construction, structured-cell selection, scoring/acceptance, adoption,
-retrieval, report-file I/O, or graph state.
+Commit `0dc278e` moved the exact former 10-line graph definition to public
+`financial_row_surfaces.column_candidate_label(...)` without changing its
+body. It receives one prepared header iterable and does not own row/cell
+preparation, grouping, candidate construction, structured-cell selection,
+scoring/acceptance, adoption, retrieval, report-file I/O, or graph state.
 
 The projection must preserve eager source-order consumption of
 `column_headers`. Each raw header first enters `_normalise_spaces(header)` in
@@ -4523,20 +4520,84 @@ later cells and final synthesis without mutating supplied row records or
 metadata.
 
 Row surfaces already imports `re`, `List`, and normalization and owns
-`_generic_column_headers()`. Graph already reaches that owner, which does not
-reach graph, so the 48-module DAG remains unchanged. Projected counts are graph
-helpers 9/86 and row surfaces 11/15; the selected call finishes external/local
-1/0 and the span has zero reviewed runtime-domain records. Moving row/cell
-preparation, grouping/candidate construction, matching/scoring/acceptance,
-adoption, report-file I/O, retrieval, or graph/artifact/ledger state is rejected.
-Four named CURRENT-SOURCE methods and exact contracts remain solely in
+`_generic_column_headers()`. Graph reaches that owner, which does not reach
+graph, so the 48-module/203-edge DAG is unchanged. Counts finish graph helpers
+9/86 and row surfaces 11/15; the selected call finishes external/local 1/0.
+Four named CURRENT-SOURCE methods pin the exact contract. The first post-move
+audit exposed that the characterization's selected-body zero-hit result came
+from stale `first_lines` metadata: the unchanged year regex is one reviewed
+runtime-domain record. Only that record's owner path, path-derived fingerprint,
+and line moved; its literal/category/count and the 218-record total are fixed.
+Executed gates passed focused 4/4, owner 110/110, affected semantic
+1,070/1,070, import 19/19, audit 218, full 1,963/1,963, public identity/body
+1/1, retained graph 95/95 after target-call normalization, retained row owner
+25/25, sole caller/body, full DAG parity, retired-ref zero, and diff check.
+Source moved `+14/-14`, the baseline `+3/-3`, tests `+688/-22`, and the whole
+commit `+705/-39`; graph helpers finish at 5,450 lines and row surfaces at 493.
+The source diff SHA-256 is
+`053f3195dce934a7d005e8d61b57355c2639b215834eb29f741ed6592d86a9f7`.
+Moving row/cell preparation, grouping/candidate construction, matching/scoring/
+acceptance, adoption, report-file I/O, retrieval, or graph/artifact/ledger state
+remains rejected. Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only single-report-scope inventory selects the current
+exact 8-line
+`_has_single_report_scope(report_scope: Dict[str, Any]) -> bool` graph
+definition for a public move to
+`financial_scope_policies.has_single_report_scope(...)`. No production source
+or test has moved for this projection at this checkpoint. It receives one
+caller-supplied report-scope mapping and does not own company/year alignment,
+report inventory/selection, candidate/evidence construction, report-file I/O,
+retrieval, or graph state.
+
+The projection must first evaluate raw `report_scope or {}`, then call
+`dict(...)` exactly once. A truthy input is the direct copy operand; a falsey
+input selects the fresh empty literal first. Input truth and dictionary
+construction remain outside the function's `try` and uncaught. The result is a
+fresh shallow dictionary: top-level identity is new, nested value identities
+are retained, and the input remains unmodified.
+
+The copied scope then receives exact `get("rcept_no")`, raw `or ""`, one
+`str(...)`, one `.strip()`, and truth evaluation, all outside the `try`. A
+truthy stripped receipt number returns exact `True` before receipt projection
+or length access. Otherwise the function enters its existing `try`, calls
+`_report_scope_source_receipts(scope)` once with the exact copied scope as one
+positional argument and no keywords, calls `len(...)` once on the exact result,
+and returns `len(...) <= 1`. Zero or one source receipt is `True`; two or more
+is `False`.
+
+The exact `except Exception` boundary covers only receipt projection, length,
+comparison, and return-expression evaluation inside the `try`. A caught
+`Exception` returns exact `False`; all pre-try errors and `BaseException`
+subclasses remain uncaught. No coercion, deep copy, alternate receipt source,
+catch expansion, wrapper, graph alias, callback, reason, flag, trace, or
+fallback may be added.
+
+The sole direct `ast.Name` call is positional `report_scope` with no keywords
+inside `align_scope_hints(...)`, at caller `try` depth zero and immediate `If`
+parent. The caller has already extracted scope company/year and fully prepared
+fresh normalized company/year lists. A falsey scope company skips the call. A
+truthy predicate replaces companies with `[scope_company]`; a falsey predicate
+then follows the exact empty-list, missing-company prepend, or already-present
+fallback order. Scope-year adoption remains later. Uncaught helper failures
+stop later adoption; ordinary receipt `Exception` failures become `False`
+inside the helper and follow the fallback branch. Inputs remain unmodified.
+
+Scope policies already imports `Any`/`Dict` and owns the receipt helper. Graph
+reaches that owner, which does not reach graph, so the full DAG remains
+unchanged. Projected counts are graph helpers 9/85 and scope policies 11/9;
+the selected call finishes external/local 1/0 and the span has zero reviewed
+runtime-domain records. Moving caller alignment, report inventory/selection,
+consolidation/candidate scope policy, report-file I/O, candidate/evidence
+construction, retrieval, or graph/artifact/ledger state is rejected. Four named
+CURRENT-SOURCE methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 110/110, affected semantic 1,070/1,070, import
-19/19, audit 218, full 1,963/1,963, public identity/body 1/1, retained graph
-95/95, retained row owner 25/25, sole caller/body, full DAG parity, retired-ref
-zero, and diff check. Static inventory, direct behavior probes 6/6, and caller
-order/adoption/stop probes 3/3 passed; benchmark refresh and remote CI were
-**NOT RUN**.
+gates are focused 4/4, owner 114/114, affected semantic 1,074/1,074, import
+19/19, audit 218, full 1,967/1,967, public identity/body 1/1, retained graph
+94/94, retained scope owner 19/19, sole caller/body, full DAG parity, retired-
+ref zero, and diff check. Static inventory, direct behavior probes 6/6, and
+caller gate/order/adoption probes 3/3 passed; benchmark refresh and remote CI
+were **NOT RUN**.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.
