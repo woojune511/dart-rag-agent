@@ -4625,56 +4625,84 @@ callers, DAG parity, retired-ref zero, and diff check. The removed marker formed
 one grouped reviewed record, so the exact audit baseline moved from 218 to 217.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The active contextual-aggregate-preference contract is characterized for the
-next bounded owner batch. Move the exact current 17-line
-`_operand_prefers_contextual_aggregate_match(operand)` graph definition without
-a graph alias to public
+Commit `c837e31` completed the contextual-aggregate-preference contract, now
+owned by
 `financial_surface_contracts.operand_prefers_contextual_aggregate_match(...)`.
-It is a generic binding-policy and surface-contract predicate, not candidate
-context construction or scoring.
+The exact former 17-line body, one binding-policy shallow copy, eager role then
+stage list preparation, separate filter/expression stringification, exact
+case-sensitive role/stage gates, one positive-contract lookup with original
+operand identity, final boolean, input immutability, and all uncaught failures
+remain unchanged and pinned by four CURRENT-SOURCE methods.
 
-The owner must evaluate exact `operand.get("binding_policy")`, raw `or {}`, and
-one `dict(...)` shallow copy. A truthy raw mapping goes directly to `dict`; a
-falsey value selects the fresh empty literal first. The copy is fresh, nested
-identities are retained, and the input remains unmodified.
+Three graph calls remain positional exact `operand`, without keywords, at
+caller `try` depth zero and immediate `If` parents. Source-priority scoring,
+candidate matching, and direct strength retain their existing contextual
+branches and later continuation/stop behavior. Final counts are graph 9/83 and
+surface owner 12/7; the 48-module/203-edge DAG is unchanged. Executed gates are
+focused 4/4, owner 122/122, affected semantic 1,082/1,082, import 19/19, audit
+217, and full 1,975/1,975, plus pycompile, fresh identity 2/2, selected body
+1/1, retained graph 92/92 after call normalization, retained surface owner
+18/18, callers, DAG parity, retired-ref zero, non-ASCII preservation, and diff
+check. Benchmark refresh and remote CI were **NOT RUN**.
 
-Preferred value roles are materialized before preferred aggregation stages.
-Each source uses exact mapping `.get(...) or []` and eager ordered iteration.
-Each raw item first executes `str(item).strip()` in the filter. A blank item is
-dropped after one string/strip path. A retained item is stringified again and
-the exact second string enters one `_normalise_spaces(...)` call; that result is
-retained even when falsey. List order, duplicates, eager completion, and the
-separate filter/expression evaluations are normative.
+The active balance-sheet-aggregate-operand contract is characterized for the
+next bounded owner batch. Move the exact current 9-line
+`_is_balance_sheet_aggregate_operand(operand)` graph definition without a graph
+alias to public
+`financial_surface_contracts.is_balance_sheet_aggregate_operand(...)`. It is a
+policy-driven operand-surface classifier, not policy-vocabulary ownership,
+candidate construction, scoring, or acceptance.
 
-Only after both lists are complete may exact `"aggregate"` list membership
-return `False` on a miss. A hit enables ordered
-`any(stage in {"final", "subtotal", "direct"} ...)`; the first stage hit stops
-the scan and a complete miss returns `False`. These are exact, case-sensitive
-runtime schema values and receive no alias or normalization expansion. Both
-gates must pass before one `_operand_surface_contract(operand)` call with the
-original operand identity. The owner then calls `.get("positive")` directly on
-the exact returned contract, applies `bool(...)` once, and returns that boolean.
-It does not copy the contract, add a fallback, inspect negative terms, or infer
-support from candidate text.
+Call `_operand_needles(operand)` exactly once with the original operand
+identity and consume its result eagerly in the current set comprehension. Each
+raw returned needle goes directly to `_normalise_spaces(needle)` without local
+truth filtering or string conversion. Pass the exact normalized result as the
+third positional argument to `re.sub(r"\s+", "", ...)`, then insert the result
+into the fresh set. Preserve hashing/equality, duplicate collapse, and full
+materialization. Only after completion call `needles.discard("")` once. The
+discard is not a comprehension filter and must not be moved or widened.
 
-No exception boundary is added. Operand/mapping access and truth, dictionary
-copy, iterable access, iteration, string/strip, normalization, list membership
-and equality, stage membership, `any`, contract call/get, and final truth
-failures remain uncaught. The complete required test names, exact failure
+Only then evaluate exact
+`HELPER_RUNTIME_POLICY.get("balance_sheet_aggregate_labels")`, raw `or ()`, and
+the generator passed to one `set(...)` call. The policy mapping is not copied
+or mutated. Each policy item first executes `str(item)` in the filter and tests
+that exact result without stripping. An empty string is dropped after one
+conversion. A retained item is stringified again, normalized once, then passed
+through exact positional `re.sub(r"\s+", "", ...)`. A whitespace-only value is
+therefore retained by the filter and may become an empty label; the second set
+does not discard it. Preserve eager full consumption by `set(...)`, hash/
+equality behavior, and duplicate collapse.
+
+After both sets are complete return exact
+`any(needle in aggregate_labels for needle in needles)`. The scan uses native
+needle-set iteration rather than source order; membership stops at the first
+hit. No extra boolean conversion, sort, list/tuple replacement, case folding,
+aliasing, or policy expansion is allowed. Empty sets return the built-in
+`any(...)` false result.
+
+There is no exception boundary. Operand-needle call/iteration, normalization,
+regex attribute/call, first-set hash/equality and discard, policy get/truth/
+iteration, string conversion/truth, `set` lookup/construction, second-set hash/
+equality, membership, and `any` lookup/call failures remain uncaught. Inputs
+and policy remain unmodified. The complete required test names, exact failure
 ordering, static counts, stop lines, and projected gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
-Three direct calls remain positional exact `operand`, without keywords, at
-caller `try` depth zero and immediate `If` parents. Source-priority scoring
-keeps the gate after balance-sheet/capex work and before note-aggregate work;
-candidate matching keeps it after capex and before structured/free-text
-fallback; direct strength keeps it after capex and before aggregate-signal
-scoring. Truth enters only each existing contextual branch; falsehood skips the
-branch and continues. Helper or result-truth failures stop all later caller
-work. Candidate context, positive-surface matching, value-role/stage projection,
-domain-qualified predicates, other scoring/matching, candidate/evidence work,
-I/O, retrieval, graph state, artifact/ledger mutation, retry, and final
-sequencing remain outside this contract.
+Two direct calls remain positional exact `operand`, without keywords, at caller
+`try` depth zero and immediate `If` parents. Source-priority scoring keeps the
+gate as body statement 1/6 after score initialization and before capex,
+contextual, and note work; truth enters only its existing balance-sheet branch.
+Direct acceptance keeps the gate as body statement 13/19 after grounding,
+period, binding, unit/strength, prepared candidate surfaces, and canonical
+guards but before capex, later period checks, and return. A truthy gate rejects
+only prepared `notes` plus `detail`; every other truthy or falsey path
+continues. Helper or result-truth failures stop all later caller work.
+
+Policy values, operand-needle ownership, caller branches, capex/contextual/note
+predicates, source-priority scoring, direct grounding/acceptance preparation,
+period/unit/report/canonical policy, other matching/scoring/ranking, candidate/
+evidence construction or adoption, I/O, retrieval, graph state, artifact/
+ledger mutation, retry, and final sequencing remain outside this contract.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

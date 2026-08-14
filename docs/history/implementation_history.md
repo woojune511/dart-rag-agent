@@ -5533,3 +5533,90 @@ Static definition/call/DAG/function-count and selected-body audit inspection,
 direct behavior probes 8/8, and caller gate/argument probes 3/3 passed.
 Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
 behavior, quality, performance, benchmark, schedule, or completion claim.
+
+### Contextual-aggregate-preference ownership milestone
+
+- Commit `c837e31` moves the exact former 17-line
+  `_operand_prefers_contextual_aggregate_match(operand)` definition from
+  `financial_graph_helpers.py` to public
+  `financial_surface_contracts.operand_prefers_contextual_aggregate_match(...)`
+  with its body unchanged. The graph imports the public owner; the old private
+  definition and every executable private reference are gone, with no alias or
+  compatibility bridge.
+- One binding-policy shallow copy, role-list-before-stage-list eager
+  materialization, dropped-once/retained-twice stringification, one
+  normalization per retained item, exact role/stage membership, positive-
+  contract laziness and original operand identity, final boolean, nested
+  identities, immutability, and uncaught failures are pinned by four
+  CURRENT-SOURCE methods.
+- The three graph calls finish external/local 3/0, positional exact `operand`,
+  without keywords, at caller `try` depth zero and immediate `If` parents.
+  Source-priority, candidate-match, and direct-strength contextual branches and
+  all later caller work are unchanged.
+- Production source is `+23/-22`, net `+1`: graph helpers are `+4/-22` and move
+  from 5,412 to 5,394 physical lines; surface contracts are `+19/-0` and move
+  from 426 to 445. Graph-helper tests are `+1,084/-32`, net `+1,052`, and move
+  from 25,304 to 26,356 lines. The whole commit is `+1,107/-54`, net `+1,053`,
+  and four methods move discovery from 1,971 to 1,975. Final public/private
+  counts are graph 9/83 and surface owner 12/7. The source diff SHA-256 is
+  `23f01c478d1d63b68e4f499254fa43ecc388bc0a53cd0b6391ce6f238f044fc5`.
+- Focused 4/4, graph-helper owner 122/122, affected eleven-module semantic
+  1,082/1,082, import-side-effects 19/19, runtime-domain audit 217, and full
+  discovery 1,975/1,975 passed. Pycompile, fresh import/public identity 2/2,
+  selected-body parity 1/1, retained graph exact 89/92 and call-normalized
+  92/92, retained surface owner 18/18, all three callers, full
+  48-module/203-edge DAG parity, zero retired private refs, non-ASCII
+  preservation, and diff check also passed. Benchmark refresh and remote CI
+  were **NOT RUN**.
+
+This milestone changes only deterministic contextual-aggregate-preference
+ownership. Candidate-context construction, positive-surface matching,
+value-role/stage projection, domain-qualified predicates, source-priority and
+other matching/strength work, candidate/evidence construction or adoption,
+I/O, retrieval, graph state, model invocation, artifact/ledger mutation, retry,
+and final sequencing remain outside. It proves no behavior, accuracy, ranking,
+performance, executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+### Balance-sheet-aggregate-operand characterization checkpoint
+
+- A docs-only inventory selects the current exact 9-line
+  `_is_balance_sheet_aggregate_operand(operand)` graph definition for a future
+  public move to
+  `financial_surface_contracts.is_balance_sheet_aggregate_operand(...)`. No
+  production source or test moved for this projection.
+- The predicate calls `_operand_needles(operand)` once, normalizes and removes
+  whitespace from every returned needle into a fresh set, discards exact blank,
+  then builds a second set from declarative
+  `HELPER_RUNTIME_POLICY["balance_sheet_aggregate_labels"]`. It returns only
+  native-set membership through `any(...)`; it does not own the policy values,
+  candidate work, scoring, or acceptance.
+- Needle preparation preserves direct normalization without local string/filter
+  work, positional regex substitution, set hashing/equality/dedupe, full
+  materialization, then one blank discard. Policy preparation preserves exact
+  get/or, filter `str(item)` without strip, second retained-item stringification,
+  normalization/substitution, eager `set(...)`, duplicate collapse, and no
+  second-set blank discard. Native set iteration, first-hit membership, exact
+  result, identities, immutability, and every uncaught error remain normative.
+- The surface owner already owns `_operand_needles(...)` and imports `re`,
+  `_normalise_spaces`, and `HELPER_RUNTIME_POLICY`. Graph reaches it, it does not
+  reach graph, and the full 48-module/203-edge DAG remains unchanged. Current/
+  projected public/private counts are graph 9/83 to 9/82 and surface owner 12/7
+  to 13/7; the selected span has zero of 217 reviewed runtime-domain records.
+- Two direct calls project external/local 2/0, each positional exact `operand`,
+  with no keywords, caller `try` depth zero, and immediate `If` parent. Source
+  priority calls at body statement 1/6 after score initialization; direct
+  acceptance calls at statement 13/19 after canonical guards and before capex/
+  period/final work. Existing scoring and notes-detail rejection remain caller-
+  owned; helper or result-truth failures stop later work.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 126/126,
+  affected semantic 1,086/1,086, import 19/19, audit 217, full 1,979/1,979,
+  public identity/body parity, retained graph 91/91, retained surface owner
+  19/19, both callers, full DAG parity, retired-ref zero, and diff check are
+  governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count and selected-body audit inspection,
+direct behavior probes 6/6, and caller gate/branch probes 3/3 passed. Benchmark
+refresh and remote CI were **NOT RUN**. This checkpoint is not a behavior,
+quality, performance, benchmark, schedule, or completion claim.

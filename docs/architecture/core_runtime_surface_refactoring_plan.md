@@ -982,32 +982,47 @@ one grouped reviewed record, so the exact baseline correctly moves from 218 to
 217 rather than retaining a synthetic runtime literal. Benchmark refresh and
 remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current 17-line `_operand_prefers_contextual_aggregate_match(...)` definition
-to public `operand_prefers_contextual_aggregate_match(...)` in
-`financial_surface_contracts.py`. This generic predicate copies one supplied
-binding policy, prepares preferred value-role and aggregation-stage lists, and
-returns whether the operand's positive surface contract authorizes the
-callers' existing contextual aggregate branches. The owner already contains
-both state-free dependencies; graph reaches it and it does not reach graph.
-All three calls remain positional exact `operand`, owner-external/local 3/0,
-at caller `try` depth zero and immediate `If` parents. The full
-48-module/203-edge DAG remains unchanged; projected function counts are graph
-helpers 9/83 and surface contracts 12/7, and the selected span contains zero of
-217 reviewed records.
+The completed `c837e31` follow-on moved the exact former 17-line contextual-
+aggregate-preference predicate from graph helpers to public
+`operand_prefers_contextual_aggregate_match(...)` in
+`financial_surface_contracts.py`. Its three calls finish owner-external/local
+3/0 in source priority, candidate matching, and direct strength. Exact binding-
+policy copy, role/stage list materialization and membership, positive-contract
+laziness, identities, uncaught errors, caller branches, and stops remain pinned
+by four CURRENT-SOURCE methods. Production source is `+23/-22`, tests are
+`+1,084/-32`, and the whole commit is `+1,107/-54`; graph helpers move from
+5,412 to 5,394 lines and surface contracts from 426 to 445. Focused 4/4, owner
+122/122, affected semantic 1,082/1,082, import 19/19, audit 217, full
+1,975/1,975, pycompile/fresh identity, body/retained/caller/full
+48-module/203-edge DAG parity, retired private refs zero, non-ASCII
+preservation, and diff check passed. Benchmark refresh and remote CI were
+**NOT RUN**.
 
-Moving caller branches, candidate-context construction, positive-surface
-matching, value-role/stage projection, balance-sheet/capex/note predicates,
-source-priority scoring, other matching/direct-strength work, candidate/
-evidence construction or adoption, report-file I/O, retrieval, or plan/state/
-artifact/ledger work is rejected. Exact copy, repeated retained-item
-stringification, normalization, role-before-stage-before-contract precedence,
-three caller gates/stops, four required CURRENT-SOURCE methods, and projected
-focused 4/4, owner 122/122, affected semantic 1,082/1,082, import 19/19, audit
-217, and full 1,975/1,975 gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the
+current exact 9-line `_is_balance_sheet_aggregate_operand(...)` definition to
+public `is_balance_sheet_aggregate_operand(...)` in
+`financial_surface_contracts.py`. The predicate performs only prepared operand-
+needle normalization, whitespace removal, set dedupe/blank discard, and
+membership against the existing declarative
+`HELPER_RUNTIME_POLICY["balance_sheet_aggregate_labels"]` set. The owner already
+contains `_operand_needles(...)` and imports `re`, normalization, and the
+policy. Graph reaches it and it does not reach graph. Both calls remain
+positional exact `operand`, owner-external/local 2/0, at caller `try` depth zero
+and immediate `If` parents. The full 48-module/203-edge DAG remains unchanged;
+projected function counts are graph helpers 9/82 and surface contracts 13/7,
+and the selected span contains zero of 217 reviewed records.
+
+Moving policy values, operand-needle ownership, source-priority or direct-
+acceptance branches, capex/contextual/note predicates, candidate/evidence
+construction, broader matching/scoring/ranking/adoption, report-file I/O,
+retrieval, or plan/state/artifact/ledger work is rejected. Exact needle-set and
+policy-set construction, filter-versus-expression string conversion, native
+set membership, both caller gates/stops, four required CURRENT-SOURCE methods,
+and projected focused 4/4, owner 126/126, affected semantic 1,086/1,086, import
+19/19, audit 217, and full 1,979/1,979 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this contextual-preference projection; it is
-the sole next priority and this plan maintains no competing queue.
+or test movement has occurred for this balance-sheet aggregate projection; it
+is the sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
