@@ -802,15 +802,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   body/caller/DAG parity가 통과했다. Caller scoring/acceptance/matching/strength,
   candidate/evidence work와 state/artifact/ledger는 graph 또는 기존 owner에
   남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 23줄 note-aggregate
-  lookup-preference `_operand_prefers_note_aggregate_lookup(...)` predicate
-  하나를 선택했다.
-  Preferred statement type, value role, aggregation stage의 이미 준비된 schema
-  값만 판별하는 public surface contract로 옮기며, source-priority caller의
-  candidate scoring branch는 graph에 유지한다. 한 call은 external 1/local 0으로
-  수렴하고 projected graph/surface public/private는 9/80과 15/7이다. 아직
-  source/test 이동은 없으며 exact list/set materialization, laziness, caller
-  gate/branch/stop, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `1119ac3` note-aggregate lookup-preference batch는 graph helper의
+  정확한 23줄 predicate를 `financial_surface_contracts.py`의 public API로
+  옮겼다. 한 call은 source priority에서 external 1/local 0으로 수렴했다.
+  Graph/surface public/private는 9/80과 15/7이다. Focused 4/4, owner 134/134,
+  semantic 1,094/1,094, import 19/19, audit 217, full 1,987/1,987과
+  pycompile/fresh identity, body/caller/DAG parity가 통과했다. Source-priority
+  score branch와 전체 candidate scoring, candidate/evidence work 및 state/
+  artifact/ledger는 graph 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 76줄 candidate
+  source-priority scorer `_candidate_source_priority_bonus(...)` 하나를
+  선택했다. 이미 준비된 candidate/operand/schema 값과 declarative policy를
+  점수로 합산하는 public operand-resolution contract로 옮기며, graph의
+  `_score_operand_candidate(...)` 전체 orchestration과 후속 period/table/report
+  score는 유지한다. 한 call은 external 1/local 0으로 수렴하고 projected
+  graph/operand-resolution public/private는 9/79와 46/37이다. 아직 source/test
+  이동은 없으며 네 branch의 exact score/order/laziness, caller adoption/stop,
+  네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -1033,31 +1033,48 @@ preservation, and diff check passed. The source diff SHA-256 is
 `3fcf523be5e9727cbc0b902beb30a899051d288a01459af8799da45071ec02d8`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current exact 23-line `_operand_prefers_note_aggregate_lookup(...)` definition
-from graph helpers to public `operand_prefers_note_aggregate_lookup(...)` in
-`financial_surface_contracts.py`. It classifies existing generic statement-
-type, value-role, and aggregation-stage schema values. The destination already
-imports `Dict`, `Any`, and `_normalise_spaces`; graph already reaches the owner
-and the owner does not reach graph, so no module edge is added.
+The completed `1119ac3` follow-on moved the exact former 23-line note-aggregate
+lookup-preference predicate from graph helpers to public
+`operand_prefers_note_aggregate_lookup(...)` in
+`financial_surface_contracts.py`. Its one call finishes owner-external/local
+1/0 in source-priority scoring. Statement/role/stage set materialization,
+laziness, identities, uncaught failures, caller branch, and stop remain pinned
+by four CURRENT-SOURCE methods. Production source is `+27/-26`, tests are
+`+987/-36`, and the whole commit is `+1,014/-62`; graph helpers move from 5,370
+to 5,346 lines, surface contracts from 473 to 498, and graph-helper tests from
+28,642 to 29,593. Focused 4/4, owner 134/134, affected semantic 1,094/1,094,
+import 19/19, audit 217, full 1,987/1,987, pycompile/fresh identity,
+body/retained/caller/full 48-module/203-edge DAG parity, retired private refs
+zero, non-ASCII preservation, and diff check passed. The source diff SHA-256 is
+`0426929d4ef1e09147f9a21dbd661c595fea67a01e38e30f03d81144250e494c`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Its sole direct call must remain positional exact `operand`, owner-external/
-local 1/0, at caller `try` depth zero and immediate `If` parent in source
-priority. The full 48-module/203-edge DAG remains unchanged; projected function
-counts are graph helpers 9/80 and surface contracts 15/7, and the selected span
-contains zero of 217 reviewed records. Moving schema vocabulary, caller score
-weights or branch, candidate metadata/value-role/stage preparation, other
-predicates, broader matching/acceptance/scoring/ranking, candidate/evidence
-construction or adoption, report-file I/O, retrieval, or plan/state/artifact/
-ledger work is rejected. Exact statement-set-first materialization and note
-short circuit, binding-policy shallow copy, role-set-before-stage-set ordering,
-case-sensitive role/stage intersection, laziness, identities, failures, caller
-gate/stop, four required CURRENT-SOURCE methods, and projected focused 4/4,
-owner 134/134, affected semantic 1,094/1,094, import 19/19, audit 217, and full
-1,987/1,987 gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No
-source or test movement has occurred for this note-aggregate projection; it is
-the sole next priority and this plan maintains no competing queue.
+The new characterize-only inventory selects one follow-on: move only the
+current exact 76-line `_candidate_source_priority_bonus(...)` definition from
+graph helpers to public `candidate_source_priority_bonus(...)` in
+`financial_operand_resolution.py`. It owns state-free balance-sheet, CAPEX,
+contextual-aggregate, and note-aggregate source-priority score composition over
+already prepared inputs and existing policy. The destination already imports
+normalization, the scoring policy, and the surface-contract module; adding the
+remaining public surface names creates no module edge.
+
+Its sole direct call must remain in `_score_operand_candidate(...)`, positional
+exact `candidate` plus exact operand/statement-type/value-role/aggregation-stage/
+local-heading keywords, owner-external/local 1/0, caller `try` depth zero, and
+immediate `AugAssign` parent at body index 56/62. The full 48-module/203-edge DAG
+remains unchanged; projected function counts are graph helpers 9/79 and operand
+resolution 46/37, and the selected span contains zero of 217 reviewed records.
+Moving policy values, any score branch/weight, input preparation, direct match,
+preference bonus, later period/table/report scoring, candidate/evidence work,
+broader matching/acceptance/ranking, I/O, retrieval, or plan/state/artifact/
+ledger work is rejected. Exact four-branch order, policy and candidate laziness,
+shallow copies, score arithmetic, identities, failures, caller adoption/stop,
+four required CURRENT-SOURCE methods, and projected focused 4/4, owner 138/138,
+affected semantic 1,098/1,098, import 19/19, audit 217, and full 1,991/1,991
+gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No source
+or test movement has occurred for this source-priority projection; it is the
+sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

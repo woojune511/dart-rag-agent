@@ -5793,3 +5793,82 @@ inspection, direct behavior probes 6/6, note-gate laziness 1/1, caller score
 probes 5/5, and caller-gate laziness 1/1 passed. Benchmark refresh and remote CI
 were **NOT RUN**. This checkpoint is not a behavior, quality, performance,
 benchmark, schedule, or completion claim.
+
+### Note-aggregate lookup-preference ownership milestone
+
+- Commit `1119ac3` moves the exact former 23-line
+  `_operand_prefers_note_aggregate_lookup(operand)` definition from graph
+  helpers to public
+  `financial_surface_contracts.operand_prefers_note_aggregate_lookup(...)` with
+  its body unchanged. The graph imports the public owner; the old private
+  definition and executable private refs are gone without an alias or bridge.
+- Statement-type set materialization and note short circuit, binding-policy
+  shallow copy, value-role-set-before-stage-set construction, filter-versus-
+  expression stringification, case-sensitive membership/intersection,
+  identities, input immutability, and every uncaught failure remain pinned by
+  four CURRENT-SOURCE methods.
+- The one graph call finishes external/local 1/0, positional exact `operand`,
+  without keywords, caller `try` depth zero, and immediate `If` parent.
+  Candidate metadata reads and structured-value/table-row note score remain in
+  source-priority scoring and all later graph work is unchanged.
+- Production source is `+27/-26`, net `+1`: graph helpers are `+2/-26` and move
+  from 5,370 to 5,346 physical lines; surface contracts are `+25/-0` and move
+  from 473 to 498. Graph-helper tests are `+987/-36`, net `+951`, and move from
+  28,642 to 29,593 lines. The whole commit is `+1,014/-62`, net `+952`, and four
+  methods move discovery from 1,983 to 1,987. Final public/private counts are
+  graph 9/80 and surface owner 15/7. The source diff SHA-256 is
+  `0426929d4ef1e09147f9a21dbd661c595fea67a01e38e30f03d81144250e494c`.
+- Focused 4/4, graph-helper owner 134/134, affected eleven-module semantic
+  1,094/1,094, import-side-effects 19/19, runtime-domain audit 217, and full
+  discovery 1,987/1,987 passed. Pycompile, fresh import/public identity 2/2,
+  selected-body parity 1/1, retained graph exact 88/89 and call-normalized
+  89/89, retained surface owner 21/21, sole caller, full 48-module/203-edge DAG
+  parity, zero retired private refs, non-ASCII preservation, and diff check also
+  passed. The first affected-set command used system Python and failed only on
+  missing `langchain_core`/`dotenv`; the identical project-`.venv` command
+  passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic note-aggregate preference ownership.
+Schema vocabulary, candidate metadata/value-role/stage preparation, source-
+priority weights and branching, broader matching/acceptance/scoring/ranking,
+candidate/evidence construction or adoption, I/O, retrieval, graph state,
+model invocation, artifact/ledger mutation, retry, and final sequencing remain
+outside. It proves no behavior, accuracy, ranking, performance, benchmark,
+schedule, ledger completion, or Phase 3 completion.
+
+### Candidate source-priority score characterization checkpoint
+
+- A docs-only inventory selects the current exact 76-line
+  `_candidate_source_priority_bonus(...)` graph definition for a future public
+  move to `financial_operand_resolution.candidate_source_priority_bonus(...)`.
+  No production source or test moved for this projection.
+- The scorer initializes zero, then applies balance-sheet, CAPEX, contextual-
+  aggregate, and note-aggregate branches in exact order. It preserves current
+  statement/kind/role/stage gates, declarative policy copies and marker
+  materialization, positive-surface and candidate-context laziness, exact
+  weights, cumulative arithmetic, final float, identities, immutability, and
+  all uncaught failures.
+- Operand resolution already imports normalization, scoring policy, and the
+  surface-contract module. Adding the remaining public surface names creates no
+  edge. The full 48-module/203-edge DAG stays unchanged. Current/projected
+  public/private counts are graph 9/80 to 9/79 and operand resolution 45/37 to
+  46/37; the selected span has zero of 217 reviewed runtime-domain records.
+- One direct call projects external/local 1/0 at exact
+  `_score_operand_candidate` body index 56/62, positional exact `candidate`
+  plus exact operand/statement-type/value-role/aggregation-stage/local-heading
+  keywords, caller `try` depth zero, and immediate `AugAssign` parent. The
+  already accumulated score and later period/table/report work remain graph-
+  owned; helper or addition failure stops all later work.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 138/138,
+  affected semantic 1,098/1,098, import 19/19, audit 217, full 1,991/1,991,
+  public identity, selected-body parity, retained graph call-normalized 88/88,
+  retained operand owner 82/82, sole caller, full DAG parity, retired-ref zero,
+  and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection, direct score probes 9/9, gate order 4/4, false-gate laziness 1/1,
+immutability/identity 1/1, gate-failure stops 4/4, caller adoption 1/1, and
+caller-failure stop 1/1 passed. Benchmark refresh and remote CI were **NOT
+RUN**. This checkpoint is not a behavior, quality, performance, benchmark,
+schedule, or completion claim.

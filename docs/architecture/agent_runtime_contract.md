@@ -4687,61 +4687,95 @@ after call normalization, retained surface owner 20/20, all four callers, DAG
 parity, retired-ref zero, non-ASCII preservation, and diff check. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The active note-aggregate lookup-preference contract is characterized for the
-next bounded owner batch. Move only the current exact 23-line
-`_operand_prefers_note_aggregate_lookup(operand)` definition from graph helpers
-without a graph alias to public
-`financial_surface_contracts.operand_prefers_note_aggregate_lookup(...)`. This
-predicate classifies already prepared statement-type and binding-policy schema
-values; it does not define domain vocabulary or own scoring.
+Commit `1119ac3` completed the note-aggregate lookup-preference contract, now
+owned by
+`financial_surface_contracts.operand_prefers_note_aggregate_lookup(...)`. The
+exact former 23-line body, statement-set-first materialization, note-gate
+laziness, binding-policy shallow copy, role-set-before-stage-set ordering,
+case-sensitive membership/intersection, identities, input immutability, and
+every uncaught failure remain unchanged and pinned by four CURRENT-SOURCE
+methods.
 
-Preserve statement-type preparation first. Invoke
-`operand.get("preferred_statement_types")`, apply raw `or []`, and eagerly build
-a fresh set. The filter stringifies each item and strips it once; blank items
-are dropped. Each retained item is stringified a second time and passed once to
-`_normalise_spaces(...)`. Preserve input iteration, set hashing/equality,
-duplicate collapse, complete materialization, and exact case. If exact
-`"notes"` is absent, return exact `False` before any binding-policy access.
+Its one graph call remains positional exact `operand`, without keywords, at
+caller `try` depth zero and an immediate `If` parent. Candidate kind/metadata
+reads and structured-value/table-row note scoring remain in
+`_candidate_source_priority_bonus(...)` and are unchanged. Final counts are
+graph 9/80 and surface owner 15/7; the 48-module/203-edge DAG is unchanged.
+Executed gates are focused 4/4, owner 134/134, affected semantic 1,094/1,094,
+import 19/19, audit 217, and full 1,987/1,987, plus pycompile, fresh identity
+2/2, selected body 1/1, retained graph 89/89 after call normalization, retained
+surface owner 21/21, caller parity, retired-ref zero, non-ASCII preservation,
+and diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-Only after that gate evaluate `dict(operand.get("binding_policy") or {})`.
-Preserve the shallow copy and nested identities. Build
-`preferred_value_roles` first and `preferred_aggregation_stages` second as fresh
-sets with the same raw `or []`, filter `str(item).strip()`, retained second
-stringification, normalization, eager materialization, hashing/equality, and
-duplicate behavior. Both sets finish before the return expression. Then return
-exact `"aggregate" in preferred_value_roles and bool({"final", "subtotal",
-"direct"} & preferred_aggregation_stages)`. Role falsehood short-circuits the
-intersection; role truth evaluates the fresh allowed-stage intersection and
-one exact `bool(...)`. Matching stays case-sensitive and no aliases are added.
+The active candidate source-priority score contract is characterized for the
+next bounded owner batch. Move only the current exact 76-line
+`_candidate_source_priority_bonus(...)` definition from graph helpers without
+a graph alias to public
+`financial_operand_resolution.candidate_source_priority_bonus(...)`. It
+combines already prepared candidate, operand, statement-type, value-role,
+aggregation-stage, and heading inputs with existing declarative policy; it does
+not build or admit a candidate, retrieve evidence, or access graph state.
 
-There is no exception boundary. Operand get/result-truth/iteration, item
-string/strip, normalization, set hash/equality, note membership, binding-policy
-get/result-truth/mapping copy, role membership, allowed-stage set creation and
-intersection, and `bool(...)` failures remain uncaught in their current order.
-Inputs and nested collections remain unmodified. No wrapper, callback, reason,
-flag, trace, fallback, retry, or compatibility bridge is permitted. Complete
-required test names and projected gates are governed only by
+Preserve exact body order: initialize `score = 0.0`, evaluate balance-sheet,
+CAPEX, contextual-aggregate, then note-aggregate gates, and return the final
+float. All four gates receive the original operand identity. Gate falsehood
+skips only its branch; gate/helper/result-truth failure remains uncaught and
+stops every later branch.
+
+The balance-sheet branch preserves exact statement-type behavior. Summary or
+balance-sheet rows receive `+3.0`, aggregate role another `+1.25` or detail role
+`-0.5`, and direct/final stage another `+0.75`. Only then shallow-copy
+`OPERAND_CANDIDATE_SCORING_POLICY`, shallow-copy its
+`balance_sheet_scope_markers`, and check consolidated markers before separate
+markers; the first class wins with `+0.5`, while a separate-only hit gives
+`-0.5`. A notes statement instead receives `-1.5` and detail another `-1.25`.
+No other statement enters this branch.
+
+The CAPEX branch independently shallow-copies the same scoring policy and
+eagerly builds the priority-section tuple with current filter-versus-expression
+stringification. A heading hit receives `+2.75`, aggregate another `+1.0`, and
+final/direct/subtotal another `+0.75`. Cash-flow statement type independently
+receives `-2.5` and nonaggregate another `-0.5`, so section and cash-flow effects
+remain cumulative.
+
+The contextual branch first builds exact
+`candidate_local_aggregate_context(candidate)`. Aggregate final/subtotal/direct
+calls `_text_has_positive_surface(context, operand)` and adds `+2.0` on truth;
+detail calls the same predicate through the existing `elif` and subtracts
+`1.0` on truth. Other role/stage combinations preserve short-circuit behavior
+and do not call positive-surface matching.
+
+The note branch preserves candidate-kind normalization, metadata shallow copy,
+and row-context string projection before the statement-type gate. For notes,
+structured-value aggregate final/subtotal/direct receives `+2.75`, `+1.5`, or
+`+1.0`. A table row receives `-1.0`, another `-0.75` only for nonempty context
+longer than 2,500 characters, and another `-0.5` for nonaggregate role. A true
+note preference still reads candidate metadata for non-notes input, but adds no
+note score.
+
+There is no exception boundary. Predicate calls and result truth, policy copy/
+get/truth/iteration, marker stringification/membership, candidate and metadata
+get/truth/copy, normalization, context/positive-surface calls, row-context
+string/truth/length, comparisons, score arithmetic, and final return failures
+remain uncaught in current order. Inputs, nested objects, and checked-in policy
+remain unmodified. No wrapper, callback, reason, flag, trace, fallback, retry,
+or compatibility bridge is permitted. Complete test names and projected gates
+are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
-The sole direct call remains positional exact `operand`, without keywords, at
-caller `try` depth zero and an immediate `If` parent in
-`_candidate_source_priority_bonus(...)`, exact `source_priority.body[4]` of six
-statements. It stays after score initialization and the balance-sheet, CAPEX,
-and contextual-aggregate branches, and before final return. Predicate
-falsehood skips the whole note block without reading candidate metadata.
-Truth preserves the caller-owned scoring: notes structured values receive
-`+2.75`, `+1.5`, or `+1.0` for aggregate final, subtotal, or direct stages;
-table rows receive `-1.0`, another `-0.75` only when nonempty row context is
-longer than 2,500 characters, and another `-0.5` for a nonaggregate role.
-Non-notes statement types receive no note-branch score. Predicate or result-
-truth failure stops all later caller work.
+The sole source call remains in `_score_operand_candidate(...)` at exact body
+index 56 of 62, caller `try` depth zero, with immediate `AugAssign` parent.
+Preserve positional exact `candidate` followed by the five exact keyword
+arguments `operand`, `statement_type`, `value_role`, `aggregation_stage`, and
+`local_heading`. Its result is added to the already accumulated score. Later
+metadata-period, period/table-coherence, report-scope, table-source, and final
+return work remains graph-owned; helper or addition failure stops all of it.
 
-Moving schema values, normalization ownership, the caller scoring branch,
-candidate kind/metadata projection, value-role or aggregation-stage derivation,
-other predicates, broader matching/acceptance/scoring/ranking, candidate or
-evidence construction/adoption, I/O, retrieval, graph state, model invocation,
-artifact/ledger mutation, retry, or final sequencing remains outside this
-contract.
+Moving policy values, any branch or weight, candidate/operand/value-role/stage/
+heading preparation, direct matching, preference bonuses, period/table/report
+score, broader matching/acceptance/ranking, candidate/evidence construction or
+adoption, I/O, retrieval, graph state, model invocation, artifact/ledger
+mutation, retry, or final sequencing remains outside this contract.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.
