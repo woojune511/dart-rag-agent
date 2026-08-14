@@ -19,7 +19,6 @@ from src.agent.financial_graph_helpers import (
     _build_table_row_reconciliation_candidates,
     _candidate_is_direct_grounding_candidate,
     _candidate_satisfies_direct_acceptance_contract,
-    _candidate_satisfies_ratio_component_acceptance_contract,
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
     _query_years_from_state,
@@ -33,6 +32,7 @@ from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_operand_resolution import (
     candidate_matches_operand,
     candidate_row_block_signature,
+    candidate_satisfies_ratio_component_acceptance_contract,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     repair_note_operand_units_from_same_block,
 )
@@ -462,7 +462,7 @@ class FinancialAgentReconciliationMixin:
                 )
                 if not selected_cell:
                     continue
-                if _candidate_satisfies_ratio_component_acceptance_contract(
+                if candidate_satisfies_ratio_component_acceptance_contract(
                     current,
                     operand=operand,
                     constraints=constraints,
@@ -702,7 +702,7 @@ class FinancialAgentReconciliationMixin:
                         report_scope=report_scope,
                     ) and not (
                         operation_family == "ratio"
-                        and _candidate_satisfies_ratio_component_acceptance_contract(
+                        and candidate_satisfies_ratio_component_acceptance_contract(
                             current_candidate,
                             operand=operand,
                             constraints=constraints,
@@ -820,7 +820,7 @@ class FinancialAgentReconciliationMixin:
                             report_scope=report_scope,
                         )
                         if not direct_accept:
-                            direct_accept = _candidate_satisfies_ratio_component_acceptance_contract(
+                            direct_accept = candidate_satisfies_ratio_component_acceptance_contract(
                                 current_candidate,
                                 operand=operand,
                                 constraints=constraints,

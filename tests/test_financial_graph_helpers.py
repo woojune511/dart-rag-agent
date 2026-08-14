@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             (
@@ -1185,10 +1185,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
     def test_current_source_candidate_surface_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
         project_root = Path(__file__).resolve().parents[1]
         graph_path = project_root / "src" / "agent" / "financial_graph_helpers.py"
+        operand_path = project_root / "src" / "agent" / "financial_operand_resolution.py"
         reconciliation_path = project_root / "src" / "agent" / "financial_graph_reconciliation.py"
         row_path = project_root / "src" / "agent" / "financial_row_surfaces.py"
         owner_path = project_root / "src" / "agent" / "financial_surface_contracts.py"
         graph_tree = ast.parse(graph_path.read_text(encoding="utf-8-sig"))
+        operand_tree = ast.parse(operand_path.read_text(encoding="utf-8-sig"))
         reconciliation_tree = ast.parse(reconciliation_path.read_text(encoding="utf-8-sig"))
         row_tree = ast.parse(row_path.read_text(encoding="utf-8-sig"))
         owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
@@ -1250,6 +1252,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         calls = {name: [] for name in selected}
         for module_name, tree in (
             ("graph", graph_tree),
+            ("operand", operand_tree),
             ("reconciliation", reconciliation_tree),
             ("row", row_tree),
             ("owner", owner_tree),
@@ -1282,8 +1285,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             [(module, caller) for module, caller, _, _ in calls["candidate_is_descriptor_row"]],
             [
                 ("graph", "_candidate_is_direct_grounding_candidate"),
-                ("graph", "_candidate_satisfies_ratio_component_acceptance_contract"),
                 ("graph", "_score_operand_candidate"),
+                ("operand", "candidate_satisfies_ratio_component_acceptance_contract"),
                 ("reconciliation", "_should_llm_rerank_candidates"),
             ],
         )
@@ -1356,10 +1359,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "candidate_has_required_surface_contract": True,
         }
         with ExitStack() as stack:
-            mocks = {
-                name: stack.enter_context(patch.object(financial_graph_helpers, name, return_value=value))
-                for name, value in patches.items()
-            }
+            mocks = {name: Mock(return_value=value) for name, value in patches.items()}
+            for name, mock in mocks.items():
+                for module in (financial_graph_helpers, financial_operand_resolution):
+                    if hasattr(module, name):
+                        stack.enter_context(patch.object(module, name, mock))
             self.assertTrue(
                 financial_graph_helpers._candidate_is_direct_grounding_candidate(
                     candidate,
@@ -1371,7 +1375,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
             )
             self.assertTrue(
-                financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(
                     candidate,
                     operand=operand,
                     constraints=constraints,
@@ -1885,7 +1889,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             (
@@ -2711,8 +2715,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 [value_name, stage_name],
             ),
             (
-                "_candidate_satisfies_ratio_component_acceptance_contract",
-                "financial_graph_helpers",
+                "candidate_satisfies_ratio_component_acceptance_contract",
+                "financial_operand_resolution",
                 "Assign",
                 [value_name, stage_name],
             ),
@@ -2791,6 +2795,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                         "candidate_matches_operand",
                         "candidate_direct_match_strength",
                         "direct_candidate_semantic_priority",
+                        "candidate_satisfies_ratio_component_acceptance_contract",
                     }
                     else "financial_graph_helpers"
                 )
@@ -2859,7 +2864,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 75))
+        self.assertEqual(graph_counts, (9, 74))
         self.assertEqual(row_counts, (11, 15))
 
         graph_row_imports = {
@@ -3123,12 +3128,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         def ratio_acceptance_patches(events):
             return [
-                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
-                patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
-                patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
+                patch.object(financial_operand_resolution, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_operand_resolution, "candidate_has_numeric_value_signal", return_value=True),
+                patch.object(financial_operand_resolution, "candidate_matches_segment_binding", return_value=True),
+                patch.object(financial_operand_resolution, "candidate_matches_target_report_scope", return_value=True),
                 patch.object(
-                    financial_graph_helpers,
+                    financial_operand_resolution,
                     "binding_policy_allows_candidate_shape",
                     side_effect=lambda **_: events.append("binding") or False,
                 ),
@@ -3136,7 +3141,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         exercise_caller(
             "ratio-acceptance",
-            lambda: financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+            lambda: financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints=constraints,
@@ -3144,6 +3149,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             ratio_acceptance_patches,
             ["value", "stage", "binding"],
+            projection_owner=financial_operand_resolution,
         )
 
         def matching_patches(events):
@@ -3916,7 +3922,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             (
@@ -4962,14 +4968,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in operand_defs),
                 sum(node.name.startswith("_") for node in operand_defs),
             ),
-            (50, 37),
+            (51, 37),
         )
 
         def imported_names(module_name, imported_module):
@@ -6694,8 +6700,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 75))
-        self.assertEqual(current_operand_counts, (50, 37))
+        self.assertEqual(current_graph_counts, (9, 74))
+        self.assertEqual(current_operand_counts, (51, 37))
 
         def imported_names(module_name, imported_module):
             return {
@@ -8165,7 +8171,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 75))
+        self.assertEqual(graph_counts, (9, 74))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9345,7 +9351,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 75))
+        self.assertEqual(graph_counts, (9, 74))
         self.assertEqual(owner_counts, (11, 9))
 
         def imported_names(module_name, imported_module):
@@ -10385,7 +10391,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 75))
+        self.assertEqual(graph_counts, (9, 74))
         self.assertEqual(row_counts, (11, 15))
 
         def imported_names(module_name, imported_module):
@@ -12944,7 +12950,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -13818,10 +13824,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "operand_period_focus": {
                     "financial_dependency_projection": 2,
                     "financial_graph_calculation": 3,
-                    "financial_graph_helpers": 5,
+                    "financial_graph_helpers": 4,
                     "financial_graph_reconciliation": 5,
                     "financial_lookup_recovery": 5,
-                    "financial_operand_resolution": 1,
+                    "financial_operand_resolution": 2,
                     "financial_reconciliation_candidates": 2,
                     "financial_scope_policies": 1,
                 },
@@ -15814,7 +15820,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 75),
+                "financial_graph_helpers": (9, 74),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -17686,15 +17692,15 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ],
                 "candidate_matches_target_report_scope": [
                     "_candidate_is_direct_grounding_candidate",
-                    "_candidate_satisfies_ratio_component_acceptance_contract",
+                    "candidate_satisfies_ratio_component_acceptance_contract",
                 ],
                 "candidate_report_scope_binding_bonus": ["_score_operand_candidate"],
                 "candidate_matches_operand_target_year": [
                     "_candidate_is_direct_grounding_candidate",
-                    "_candidate_satisfies_ratio_component_acceptance_contract",
                     "_score_operand_candidate",
                     "_score_operand_candidate",
                     "candidate_is_canonical_statement_winner",
+                    "candidate_satisfies_ratio_component_acceptance_contract",
                     "direct_candidate_semantic_priority",
                 ],
                 "candidate_explicit_years": [
@@ -18041,24 +18047,24 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return True
 
         with (
-            patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-            patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", side_effect=ratio_report),
-            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
-            patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
-            patch.object(financial_graph_helpers, "_operand_surface_contract", return_value={}),
-            patch.object(financial_graph_helpers, "candidate_direct_match_strength", return_value=2.0),
-            patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+            patch.object(financial_operand_resolution, "candidate_is_descriptor_row", return_value=False),
+            patch.object(financial_operand_resolution, "candidate_has_numeric_value_signal", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_segment_binding", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_target_report_scope", side_effect=ratio_report),
+            patch.object(financial_operand_resolution, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_operand_resolution, "candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_operand_resolution, "binding_policy_allows_candidate_shape", return_value=True),
+            patch.object(financial_operand_resolution, "_operand_surface_contract", return_value={}),
+            patch.object(financial_operand_resolution, "candidate_direct_match_strength", return_value=2.0),
+            patch.object(financial_operand_resolution, "operand_period_focus", return_value="unknown"),
             patch.object(
-                financial_graph_helpers,
+                financial_operand_resolution,
                 "candidate_matches_operand_target_year",
                 side_effect=ratio_year,
             ),
         ):
             self.assertTrue(
-                financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(
                     candidate,
                     operand=operand,
                     constraints=constraints,
@@ -18748,8 +18754,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     [
                         ("financial_graph_helpers", "_candidate_is_direct_grounding_candidate"),
                         (
-                            "financial_graph_helpers",
-                            "_candidate_satisfies_ratio_component_acceptance_contract",
+                            "financial_operand_resolution",
+                            "candidate_satisfies_ratio_component_acceptance_contract",
                         ),
                     ]
                 ),
@@ -18798,7 +18804,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 75),
+            (9, 74),
         )
         self.assertEqual(
             (
@@ -19111,20 +19117,20 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         ratio_binding = Mock(return_value=True)
         with (
-            patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-            patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
-            patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", ratio_binding),
-            patch.object(financial_graph_helpers, "_operand_surface_contract", return_value={}),
-            patch.object(financial_graph_helpers, "candidate_direct_match_strength", return_value=1.0),
-            patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
-            patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=False),
+            patch.object(financial_operand_resolution, "candidate_is_descriptor_row", return_value=False),
+            patch.object(financial_operand_resolution, "candidate_has_numeric_value_signal", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_segment_binding", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_target_report_scope", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_operand_resolution, "candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_operand_resolution, "binding_policy_allows_candidate_shape", ratio_binding),
+            patch.object(financial_operand_resolution, "_operand_surface_contract", return_value={}),
+            patch.object(financial_operand_resolution, "candidate_direct_match_strength", return_value=1.0),
+            patch.object(financial_operand_resolution, "operand_period_focus", return_value="unknown"),
+            patch.object(financial_operand_resolution, "candidate_matches_operand_target_year", return_value=False),
         ):
             self.assertTrue(
-                financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(
                     candidate,
                     operand=operand,
                     constraints=constraints,
@@ -19147,17 +19153,17 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_surface = Mock(side_effect=AssertionError("shape rejection must stop surface contract"))
         with (
-            patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
-            patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
-            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
-            patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=False),
-            patch.object(financial_graph_helpers, "_operand_surface_contract", stopped_surface),
+            patch.object(financial_operand_resolution, "candidate_is_descriptor_row", return_value=False),
+            patch.object(financial_operand_resolution, "candidate_has_numeric_value_signal", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_segment_binding", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_matches_target_report_scope", return_value=True),
+            patch.object(financial_operand_resolution, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_operand_resolution, "candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_operand_resolution, "binding_policy_allows_candidate_shape", return_value=False),
+            patch.object(financial_operand_resolution, "_operand_surface_contract", stopped_surface),
         ):
             self.assertFalse(
-                financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(
                     candidate,
                     operand=operand,
                     constraints=constraints,
@@ -19796,7 +19802,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 75),
+                "financial_graph_helpers": (9, 74),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -20593,7 +20599,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
+                "financial_graph_helpers": (9, 74),
                 "financial_scope_policies": (11, 9),
             },
         )
@@ -21501,8 +21507,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
             },
         )
 
@@ -22126,7 +22132,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 74), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -22970,7 +22976,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
+            {"financial_graph_helpers": (9, 74), "financial_operand_resolution": (51, 37)},
         )
 
         def imported_modules(tree):
@@ -23642,7 +23648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 74), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -24241,7 +24247,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_scope_policies": (11, 9)},
+            {"financial_graph_helpers": (9, 74), "financial_scope_policies": (11, 9)},
         )
 
         def imported_modules(tree):
@@ -25073,8 +25079,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -26035,8 +26041,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -27046,8 +27052,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -28214,8 +28220,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -29485,8 +29491,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -30400,7 +30406,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
+            {"financial_graph_helpers": (9, 74), "financial_operand_resolution": (51, 37)},
         )
 
         def imported_modules(tree):
@@ -31125,7 +31131,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
+            {"financial_graph_helpers": (9, 74), "financial_operand_resolution": (51, 37)},
         )
 
         def imported_modules(tree):
@@ -31297,8 +31303,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ("direct_candidate_semantic_priority", 19, 8, ("candidate", "operand"), (), 0),
                     ("_candidate_is_direct_grounding_candidate", 30, 5, ("candidate", "operand"), (), 0),
                     ("_candidate_satisfies_direct_acceptance_contract", 19, 6, ("candidate", "operand"), (), 0),
-                    ("_candidate_satisfies_ratio_component_acceptance_contract", 22, 9, ("candidate", "operand"), (), 0),
-                    ("_candidate_satisfies_ratio_component_acceptance_contract", 22, 15, ("candidate", "operand"), (), 0),
+                    ("candidate_satisfies_ratio_component_acceptance_contract", 22, 9, ("candidate", "operand"), (), 0),
+                    ("candidate_satisfies_ratio_component_acceptance_contract", 22, 15, ("candidate", "operand"), (), 0),
                     ("_score_operand_candidate", 62, 8, ("candidate", "operand"), (), 0),
                     ("_score_operand_candidate", 62, 11, ("candidate", "operand"), (), 0),
                 ]
@@ -31316,7 +31322,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "direct_candidate_semantic_priority",
                 "_candidate_is_direct_grounding_candidate",
                 "_candidate_satisfies_direct_acceptance_contract",
-                "_candidate_satisfies_ratio_component_acceptance_contract",
+                "candidate_satisfies_ratio_component_acceptance_contract",
                 "_score_operand_candidate",
             }
         }
@@ -31344,7 +31350,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             direct_acceptance_source,
         )
         self.assertIn("if direct_match_strength < 2.0:", direct_acceptance_source)
-        ratio_source = ast.unparse(callers["_candidate_satisfies_ratio_component_acceptance_contract"])
+        ratio_source = ast.unparse(callers["candidate_satisfies_ratio_component_acceptance_contract"])
         self.assertIn("candidate_direct_match_strength(candidate, operand) >= 1.0", ratio_source)
         self.assertIn("candidate_direct_match_strength(candidate, operand) < 1.0", ratio_source)
         score_source = ast.unparse(callers["_score_operand_candidate"])
@@ -32201,7 +32207,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
                 if module_name in {"financial_graph_helpers", "financial_operand_resolution"}
             },
-            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
+            {"financial_graph_helpers": (9, 74), "financial_operand_resolution": (51, 37)},
         )
 
         def imported_modules(tree):
@@ -33125,8 +33131,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
             },
         )
 
@@ -34723,8 +34729,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 75),
-                "financial_operand_resolution": (50, 37),
+                "financial_graph_helpers": (9, 74),
+                "financial_operand_resolution": (51, 37),
             },
         )
 
@@ -35209,6 +35215,1226 @@ class FinancialGraphHelperTests(unittest.TestCase):
             [candidate["candidate_id"] for candidate, _ in failure_records],
             ["a"],
         )
+
+    def test_current_source_candidate_satisfies_ratio_component_acceptance_contract_pins_precedence_aggregate_surface_period_and_result(self) -> None:
+        owner = financial_operand_resolution
+        target = owner.candidate_satisfies_ratio_component_acceptance_contract
+        nested = {"preserve": True}
+        base_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {"period_focus": "current", "nested": nested},
+            "nested": nested,
+        }
+        base_operand = {
+            "binding_policy": {"mode": "strict", "nested": nested},
+            "nested": nested,
+        }
+        constraints = {"period_focus": "current", "nested": nested}
+        query_years = [2024]
+        selected_cell = {"value_text": "100", "nested": nested}
+        report_scope = {"source_reports": [{"year": 2024}], "nested": nested}
+
+        def execute(
+            *,
+            candidate_kind="structured_value",
+            descriptor=False,
+            numeric=True,
+            segment=True,
+            report=True,
+            value_role="aggregate",
+            aggregation_stage="detail",
+            binding=True,
+            positive_terms=("metric",),
+            surface_values=(True,),
+            strength_values=(2.0,),
+            desired_period="current",
+            candidate_period="current",
+            target_year=True,
+            current_selected_cell=selected_cell,
+        ):
+            events = []
+            report_copies = []
+            binding_copies = []
+            candidate = {
+                **base_candidate,
+                "candidate_kind": candidate_kind,
+                "metadata": {
+                    **base_candidate["metadata"],
+                    "period_focus": candidate_period,
+                },
+            }
+            surface_results = iter(surface_values)
+            strength_results = iter(strength_values)
+
+            def descriptor_owner(current):
+                events.append("descriptor")
+                self.assertIs(current, candidate)
+                return descriptor
+
+            def numeric_owner(current):
+                events.append("numeric")
+                self.assertIs(current, candidate)
+                return numeric
+
+            def segment_owner(current, current_operand, *, strict=False):
+                events.append("segment")
+                self.assertIs(current, candidate)
+                self.assertIs(current_operand, base_operand)
+                self.assertIs(strict, True)
+                return segment
+
+            def report_owner(current, *, operand, query_years, report_scope):
+                events.append("report")
+                self.assertIs(current, candidate)
+                self.assertIs(operand, base_operand)
+                self.assertIs(query_years, globals_query_years)
+                report_copies.append(report_scope)
+                return report
+
+            def role_owner(current):
+                events.append("role")
+                self.assertIs(current, candidate)
+                return value_role
+
+            def stage_owner(current):
+                events.append("stage")
+                self.assertIs(current, candidate)
+                return aggregation_stage
+
+            def surface_owner(current, current_operand, *, selected_cell=None):
+                events.append("surface")
+                self.assertIs(current, candidate)
+                self.assertIs(current_operand, base_operand)
+                self.assertIs(selected_cell, current_selected_cell)
+                return next(surface_results)
+
+            def strength_owner(current, current_operand):
+                events.append("strength")
+                self.assertIs(current, candidate)
+                self.assertIs(current_operand, base_operand)
+                return next(strength_results)
+
+            def binding_owner(*, value_role, aggregation_stage, operand_binding_policy):
+                events.append("binding")
+                self.assertEqual(value_role, value_role_result)
+                self.assertEqual(aggregation_stage, aggregation_stage_result)
+                binding_copies.append(operand_binding_policy)
+                return binding
+
+            def contract_owner(current_operand):
+                events.append("contract")
+                self.assertIs(current_operand, base_operand)
+                return {"positive": positive_terms}
+
+            def period_owner(current_operand, default_period):
+                events.append("period")
+                self.assertIs(current_operand, base_operand)
+                self.assertEqual(default_period, constraints["period_focus"])
+                return desired_period
+
+            def year_owner(current, current_operand, current_years):
+                events.append("year")
+                self.assertIs(current, candidate)
+                self.assertIs(current_operand, base_operand)
+                self.assertIs(current_years, globals_query_years)
+                return target_year
+
+            globals_query_years = query_years
+            value_role_result = value_role
+            aggregation_stage_result = aggregation_stage
+            with (
+                patch.object(owner, "candidate_is_descriptor_row", side_effect=descriptor_owner),
+                patch.object(owner, "candidate_has_numeric_value_signal", side_effect=numeric_owner),
+                patch.object(owner, "candidate_matches_segment_binding", side_effect=segment_owner),
+                patch.object(owner, "candidate_matches_target_report_scope", side_effect=report_owner),
+                patch.object(owner, "candidate_value_role", side_effect=role_owner),
+                patch.object(owner, "candidate_aggregation_stage", side_effect=stage_owner),
+                patch.object(owner, "candidate_has_required_surface_contract", side_effect=surface_owner),
+                patch.object(owner, "candidate_direct_match_strength", side_effect=strength_owner),
+                patch.object(owner, "binding_policy_allows_candidate_shape", side_effect=binding_owner),
+                patch.object(owner, "_operand_surface_contract", side_effect=contract_owner),
+                patch.object(owner, "operand_period_focus", side_effect=period_owner),
+                patch.object(owner, "candidate_matches_operand_target_year", side_effect=year_owner),
+            ):
+                result = target(
+                    candidate,
+                    operand=base_operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    selected_cell=current_selected_cell,
+                    report_scope=report_scope,
+                )
+            return result, events, report_copies, binding_copies
+
+        result, events, _report_copies, _binding_copies = execute(
+            candidate_kind="chunk"
+        )
+        self.assertIs(result, False)
+        self.assertEqual(events, [])
+
+        gate_cases = [
+            ({"descriptor": True}, ["descriptor"]),
+            ({"numeric": False}, ["descriptor", "numeric"]),
+            ({"segment": False}, ["descriptor", "numeric", "segment"]),
+            (
+                {"report": False},
+                ["descriptor", "numeric", "segment", "report"],
+            ),
+            (
+                {"value_role": "detail", "aggregation_stage": "detail"},
+                ["descriptor", "numeric", "segment", "report", "role", "stage"],
+            ),
+            (
+                {"binding": False},
+                [
+                    "descriptor",
+                    "numeric",
+                    "segment",
+                    "report",
+                    "role",
+                    "stage",
+                    "binding",
+                ],
+            ),
+            (
+                {"surface_values": (False,)},
+                [
+                    "descriptor",
+                    "numeric",
+                    "segment",
+                    "report",
+                    "role",
+                    "stage",
+                    "binding",
+                    "contract",
+                    "surface",
+                ],
+            ),
+        ]
+        for kwargs, expected_events in gate_cases:
+            with self.subTest(kwargs=kwargs):
+                result, events, _report_copies, _binding_copies = execute(**kwargs)
+                self.assertIs(result, False)
+                self.assertEqual(events, expected_events)
+
+        result, events, report_copies, binding_copies = execute()
+        self.assertIs(result, True)
+        self.assertEqual(
+            events,
+            [
+                "descriptor",
+                "numeric",
+                "segment",
+                "report",
+                "role",
+                "stage",
+                "binding",
+                "contract",
+                "surface",
+                "period",
+                "year",
+            ],
+        )
+        self.assertEqual(len(report_copies), 1)
+        self.assertIsNot(report_copies[0], report_scope)
+        self.assertIs(report_copies[0]["nested"], nested)
+        self.assertEqual(len(binding_copies), 1)
+        self.assertIsNot(binding_copies[0], base_operand["binding_policy"])
+        self.assertIs(binding_copies[0]["nested"], nested)
+
+        result, events, _report_copies, _binding_copies = execute(
+            candidate_kind="table_row",
+            value_role="detail",
+            aggregation_stage="detail",
+            positive_terms=(),
+            surface_values=(True,),
+            strength_values=(1.0, 1.0),
+        )
+        self.assertIs(result, True)
+        self.assertEqual(events.count("surface"), 1)
+        self.assertEqual(events.count("strength"), 2)
+        self.assertLess(events.index("surface"), events.index("binding"))
+        self.assertLess(events.index("binding"), events.index("contract"))
+        self.assertLess(events.index("contract"), len(events) - 3)
+
+        conversion_events = []
+
+        class TextProbe:
+            def __init__(self, label, value):
+                self.label = label
+                self.value = value
+
+            def __str__(self):
+                conversion_events.append(self.label)
+                return self.value
+
+        result, _events, _report_copies, _binding_copies = execute(
+            positive_terms=(
+                TextProbe("blank", "  "),
+                TextProbe("first", " metric "),
+                TextProbe("second", "value"),
+            )
+        )
+        self.assertIs(result, True)
+        self.assertEqual(
+            conversion_events,
+            ["blank", "first", "first", "second", "second"],
+        )
+
+        period_cases = [
+            ("current", "prior", False, False),
+            ("current", "prior", True, True),
+            ("prior", "current", False, False),
+            ("prior", "current", True, True),
+            ("unknown", "prior", False, True),
+            ("current", "current", False, True),
+        ]
+        for desired, candidate_period, year_match, expected in period_cases:
+            with self.subTest(
+                desired=desired,
+                candidate_period=candidate_period,
+                year_match=year_match,
+            ):
+                result, events, _report_copies, _binding_copies = execute(
+                    desired_period=desired,
+                    candidate_period=candidate_period,
+                    target_year=year_match,
+                )
+                self.assertIs(result, expected)
+                self.assertEqual(events[-2:], ["period", "year"])
+
+    def test_current_source_candidate_satisfies_ratio_component_acceptance_contract_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        owner = financial_operand_resolution
+        target = owner.candidate_satisfies_ratio_component_acceptance_contract
+        nested = {"preserve": True}
+        candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {"period_focus": "current", "nested": nested},
+            "nested": nested,
+        }
+        operand = {
+            "binding_policy": {"mode": "strict", "nested": nested},
+            "nested": nested,
+        }
+        constraints = {"period_focus": "current", "nested": nested}
+        query_years = [2024]
+        selected_cell = {"value_text": "100", "nested": nested}
+        report_scope = {"source_reports": [{"year": 2024}], "nested": nested}
+        candidate_before = deepcopy(candidate)
+        operand_before = deepcopy(operand)
+        constraints_before = deepcopy(constraints)
+        report_before = deepcopy(report_scope)
+        captured = {"report": [], "binding": [], "surface": [], "year": []}
+
+        def invoke(*, current_candidate=candidate, overrides=None, positive=("metric",)):
+            overrides = dict(overrides or {})
+            defaults = {
+                "candidate_is_descriptor_row": Mock(return_value=False),
+                "candidate_has_numeric_value_signal": Mock(return_value=True),
+                "candidate_matches_segment_binding": Mock(return_value=True),
+                "candidate_matches_target_report_scope": Mock(
+                    side_effect=lambda current, **kwargs: captured["report"].append(
+                        (current, kwargs)
+                    )
+                    or True
+                ),
+                "candidate_value_role": Mock(return_value="aggregate"),
+                "candidate_aggregation_stage": Mock(return_value="detail"),
+                "candidate_has_required_surface_contract": Mock(
+                    side_effect=lambda current, current_operand, **kwargs: captured[
+                        "surface"
+                    ].append((current, current_operand, kwargs))
+                    or True
+                ),
+                "candidate_direct_match_strength": Mock(return_value=2.0),
+                "binding_policy_allows_candidate_shape": Mock(
+                    side_effect=lambda **kwargs: captured["binding"].append(kwargs)
+                    or True
+                ),
+                "_operand_surface_contract": Mock(
+                    return_value={"positive": positive}
+                ),
+                "operand_period_focus": Mock(return_value="current"),
+                "candidate_matches_operand_target_year": Mock(
+                    side_effect=lambda *args: captured["year"].append(args) or True
+                ),
+            }
+            defaults.update(overrides)
+            with ExitStack() as stack:
+                for name, replacement in defaults.items():
+                    stack.enter_context(patch.object(owner, name, replacement))
+                result = target(
+                    current_candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=query_years,
+                    selected_cell=selected_cell,
+                    report_scope=report_scope,
+                )
+            return result, defaults
+
+        result, defaults = invoke()
+        self.assertIs(result, True)
+        report_candidate, report_kwargs = captured["report"][-1]
+        self.assertIs(report_candidate, candidate)
+        self.assertIs(report_kwargs["operand"], operand)
+        self.assertIs(report_kwargs["query_years"], query_years)
+        self.assertIsNot(report_kwargs["report_scope"], report_scope)
+        self.assertIs(report_kwargs["report_scope"]["nested"], nested)
+        binding_kwargs = captured["binding"][-1]
+        self.assertIsNot(
+            binding_kwargs["operand_binding_policy"],
+            operand["binding_policy"],
+        )
+        self.assertIs(
+            binding_kwargs["operand_binding_policy"]["nested"],
+            nested,
+        )
+        surface_candidate, surface_operand, surface_kwargs = captured["surface"][-1]
+        self.assertIs(surface_candidate, candidate)
+        self.assertIs(surface_operand, operand)
+        self.assertIs(surface_kwargs["selected_cell"], selected_cell)
+        self.assertIs(captured["year"][-1][0], candidate)
+        self.assertIs(captured["year"][-1][1], operand)
+        self.assertIs(captured["year"][-1][2], query_years)
+        self.assertEqual(candidate, candidate_before)
+        self.assertEqual(operand, operand_before)
+        self.assertEqual(constraints, constraints_before)
+        self.assertEqual(report_scope, report_before)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
+
+        surface = Mock(return_value=True)
+        strength = Mock(return_value=2.0)
+        table_candidate = {
+            **candidate,
+            "candidate_kind": "table_row",
+        }
+        _result, _defaults = invoke(
+            current_candidate=table_candidate,
+            overrides={
+                "candidate_value_role": Mock(return_value="aggregate"),
+                "candidate_has_required_surface_contract": surface,
+                "candidate_direct_match_strength": strength,
+            },
+        )
+        self.assertEqual(surface.call_count, 2)
+        strength.assert_called_once_with(table_candidate, operand)
+
+        stopped_surface = Mock(
+            side_effect=AssertionError("missing selected cell must stop direct surface")
+        )
+        _result, defaults = invoke(
+            current_candidate={**table_candidate, "candidate_kind": "structured_value"},
+            overrides={"candidate_has_required_surface_contract": stopped_surface},
+            positive=(),
+        )
+        stopped_surface.assert_not_called()
+        defaults["candidate_direct_match_strength"].assert_called_once_with(
+            {**table_candidate, "candidate_kind": "structured_value"},
+            operand,
+        )
+
+        direct_surface = Mock(return_value=False)
+        stopped_strength = Mock(
+            side_effect=AssertionError("false direct surface must stop direct strength")
+        )
+        result, _defaults = invoke(
+            current_candidate=table_candidate,
+            overrides={
+                "candidate_value_role": Mock(return_value="detail"),
+                "candidate_aggregation_stage": Mock(return_value="detail"),
+                "candidate_has_required_surface_contract": direct_surface,
+                "candidate_direct_match_strength": stopped_strength,
+            },
+        )
+        self.assertIs(result, False)
+        direct_surface.assert_called_once_with(
+            table_candidate,
+            operand,
+            selected_cell=selected_cell,
+        )
+        stopped_strength.assert_not_called()
+
+        failure_dependencies = [
+            "candidate_is_descriptor_row",
+            "candidate_has_numeric_value_signal",
+            "candidate_matches_segment_binding",
+            "candidate_matches_target_report_scope",
+            "candidate_value_role",
+            "candidate_aggregation_stage",
+            "binding_policy_allows_candidate_shape",
+            "_operand_surface_contract",
+            "candidate_has_required_surface_contract",
+            "operand_period_focus",
+            "candidate_matches_operand_target_year",
+        ]
+        for dependency in failure_dependencies:
+            with self.subTest(dependency=dependency):
+                with self.assertRaisesRegex(RuntimeError, f"{dependency} failed"):
+                    invoke(
+                        overrides={
+                            dependency: Mock(
+                                side_effect=RuntimeError(f"{dependency} failed")
+                            )
+                        }
+                    )
+
+        with self.assertRaisesRegex(RuntimeError, "strength failed"):
+            invoke(
+                positive=(),
+                overrides={
+                    "candidate_direct_match_strength": Mock(
+                        side_effect=RuntimeError("strength failed")
+                    )
+                },
+            )
+
+        class GetBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("candidate get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "candidate get failed"):
+            invoke(current_candidate=GetBomb())
+
+        class IterBomb:
+            def __iter__(self):
+                raise RuntimeError("metadata copy failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+            invoke(
+                current_candidate={
+                    "candidate_kind": "structured_value",
+                    "metadata": IterBomb(),
+                }
+            )
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string conversion failed")
+
+        with self.assertRaisesRegex(RuntimeError, "string conversion failed"):
+            invoke(
+                current_candidate={
+                    **candidate,
+                    "candidate_kind": StringBomb(),
+                }
+            )
+        with self.assertRaisesRegex(RuntimeError, "string conversion failed"):
+            invoke(positive=(StringBomb(),))
+
+        class CompareBomb:
+            def __lt__(self, _other):
+                raise RuntimeError("comparison failed")
+
+        with self.assertRaisesRegex(RuntimeError, "comparison failed"):
+            invoke(
+                positive=(),
+                overrides={
+                    "candidate_direct_match_strength": Mock(
+                        return_value=CompareBomb()
+                    )
+                },
+            )
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("year truth failed")
+
+        prior_candidate = {
+            **candidate,
+            "metadata": {**candidate["metadata"], "period_focus": "prior"},
+        }
+        with self.assertRaisesRegex(RuntimeError, "year truth failed"):
+            invoke(
+                current_candidate=prior_candidate,
+                overrides={
+                    "candidate_matches_operand_target_year": Mock(
+                        return_value=BoolBomb()
+                    )
+                },
+            )
+
+    def test_current_source_candidate_satisfies_ratio_component_acceptance_contract_bindings_pin_owner_defs_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_name = "candidate_satisfies_ratio_component_acceptance_contract"
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source) for name, source in module_sources.items()
+        }
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Name) and node.func.id == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            [
+                (module_name, node.end_lineno - node.lineno + 1)
+                for module_name, node in definitions
+            ],
+            [("financial_operand_resolution", 68)],
+        )
+        target_node = definitions[0][1]
+        self.assertEqual(
+            (
+                [arg.arg for arg in target_node.args.args],
+                [arg.arg for arg in target_node.args.kwonlyargs],
+                [
+                    None if default is None else ast.unparse(default)
+                    for default in target_node.args.kw_defaults
+                ],
+                ast.unparse(target_node.returns),
+            ),
+            (
+                ["candidate"],
+                [
+                    "operand",
+                    "constraints",
+                    "query_years",
+                    "selected_cell",
+                    "report_scope",
+                ],
+                [None, None, None, "None", "None"],
+                "bool",
+            ),
+        )
+        self.assertEqual(len(target_node.body), 22)
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(target_node)),
+            12,
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(target_node)
+            )
+        )
+        dependency_counts = {}
+        for node in ast.walk(target_node):
+            if not isinstance(node, ast.Call):
+                continue
+            called = (
+                node.func.id
+                if isinstance(node.func, ast.Name)
+                else node.func.attr
+                if isinstance(node.func, ast.Attribute)
+                else ""
+            )
+            dependency_counts[called] = dependency_counts.get(called, 0) + 1
+        self.assertEqual(
+            {
+                name: dependency_counts.get(name, 0)
+                for name in {
+                    "candidate_is_descriptor_row",
+                    "candidate_has_numeric_value_signal",
+                    "candidate_matches_segment_binding",
+                    "candidate_matches_target_report_scope",
+                    "candidate_value_role",
+                    "candidate_aggregation_stage",
+                    "candidate_has_required_surface_contract",
+                    "candidate_direct_match_strength",
+                    "binding_policy_allows_candidate_shape",
+                    "_operand_surface_contract",
+                    "operand_period_focus",
+                    "candidate_matches_operand_target_year",
+                    "dict",
+                    "str",
+                }
+            },
+            {
+                "candidate_is_descriptor_row": 1,
+                "candidate_has_numeric_value_signal": 1,
+                "candidate_matches_segment_binding": 1,
+                "candidate_matches_target_report_scope": 1,
+                "candidate_value_role": 1,
+                "candidate_aggregation_stage": 1,
+                "candidate_has_required_surface_contract": 2,
+                "candidate_direct_match_strength": 2,
+                "binding_policy_allows_candidate_shape": 1,
+                "_operand_surface_contract": 1,
+                "operand_period_focus": 1,
+                "candidate_matches_operand_target_year": 1,
+                "dict": 3,
+                "str": 5,
+            },
+        )
+        expected_keywords = (
+            ("operand", "operand"),
+            ("constraints", "constraints"),
+            ("query_years", "query_years"),
+            ("selected_cell", "selected_cell"),
+            ("report_scope", "report_scope"),
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_reconciliation",
+                    "candidate_supports_operand",
+                    "Name",
+                    ("current",),
+                    expected_keywords,
+                    0,
+                ),
+                (
+                    "financial_graph_reconciliation",
+                    "_extract_structured_operands_from_reconciliation",
+                    "Name",
+                    ("current_candidate",),
+                    (
+                        ("operand", "operand"),
+                        ("constraints", "constraints"),
+                        ("query_years", "query_years"),
+                        ("selected_cell", "current_cell"),
+                        ("report_scope", "report_scope"),
+                    ),
+                    0,
+                ),
+                (
+                    "financial_graph_reconciliation",
+                    "_extract_structured_operands_from_reconciliation",
+                    "Name",
+                    ("current_candidate",),
+                    (
+                        ("operand", "operand"),
+                        ("constraints", "constraints"),
+                        ("query_years", "query_years"),
+                        ("selected_cell", "current_cell"),
+                        ("report_scope", "report_scope"),
+                    ),
+                    0,
+                ),
+            ],
+        )
+
+        def function_counts(module_name):
+            names = [
+                node.name
+                for node in module_trees[module_name].body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ]
+            return (
+                sum(not name.startswith("_") for name in names),
+                sum(name.startswith("_") for name in names),
+            )
+
+        self.assertEqual(function_counts("financial_graph_helpers"), (9, 74))
+        self.assertEqual(function_counts("financial_operand_resolution"), (51, 37))
+
+        def imported_names(module_name, imported_module):
+            return {
+                alias.name
+                for node in module_trees[module_name].body
+                if isinstance(node, ast.ImportFrom)
+                and node.module == imported_module
+                for alias in node.names
+            }
+
+        reconciliation_graph_imports = imported_names(
+            "financial_graph_reconciliation",
+            "src.agent.financial_graph_helpers",
+        )
+        reconciliation_operand_imports = imported_names(
+            "financial_graph_reconciliation",
+            "src.agent.financial_operand_resolution",
+        )
+        self.assertNotIn(target_name, reconciliation_graph_imports)
+        self.assertIn(target_name, reconciliation_operand_imports)
+        operand_surface_imports = imported_names(
+            "financial_operand_resolution",
+            "src.agent.financial_surface_contracts",
+        )
+        operand_scope_imports = imported_names(
+            "financial_operand_resolution",
+            "src.agent.financial_scope_policies",
+        )
+        self.assertTrue(
+            {
+                "binding_policy_allows_candidate_shape",
+                "candidate_has_required_surface_contract",
+                "candidate_has_numeric_value_signal",
+                "candidate_is_descriptor_row",
+                "candidate_matches_segment_binding",
+            }
+            <= operand_surface_imports
+        )
+        self.assertIn("candidate_matches_target_report_scope", operand_scope_imports)
+
+        recursive_paths = list(agent_root.rglob("*.py"))
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+            for path in recursive_paths
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 204))
+        indegree = {name: 0 for name in recursive_modules}
+        outgoing = {name: set() for name in recursive_modules}
+        for source, destination in edges:
+            outgoing[source].add(destination)
+            indegree[destination] += 1
+        pending = [name for name, degree in indegree.items() if degree == 0]
+        visited = 0
+        while pending:
+            current = pending.pop()
+            visited += 1
+            for destination in outgoing[current]:
+                indegree[destination] -= 1
+                if indegree[destination] == 0:
+                    pending.append(destination)
+        self.assertEqual(visited, len(recursive_modules))
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_operand_resolution.py"
+            and any(
+                target_node.lineno <= line <= target_node.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        required_methods = {
+            "test_current_source_candidate_satisfies_ratio_component_acceptance_contract_pins_precedence_aggregate_surface_period_and_result",
+            "test_current_source_candidate_satisfies_ratio_component_acceptance_contract_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_candidate_satisfies_ratio_component_acceptance_contract_bindings_pin_owner_defs_calls_dag_imports_and_baseline",
+            "test_current_source_candidate_satisfies_ratio_component_acceptance_contract_callers_pin_args_adoption_fallback_and_stops",
+        }
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_satisfies_ratio_component_acceptance_contract_callers_pin_args_adoption_fallback_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        source = (
+            repo_root / "src" / "agent" / "financial_graph_reconciliation.py"
+        ).read_text(encoding="utf-8-sig")
+        tree = ast.parse(source)
+        target_name = "candidate_satisfies_ratio_component_acceptance_contract"
+        parents = {
+            child: parent
+            for parent in ast.walk(tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == target_name
+        ]
+        calls.sort(key=lambda node: node.lineno)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(
+            [ast.unparse(call.args[0]) for call in calls],
+            ["current", "current_candidate", "current_candidate"],
+        )
+        self.assertEqual(
+            [tuple(keyword.arg for keyword in call.keywords) for call in calls],
+            [
+                (
+                    "operand",
+                    "constraints",
+                    "query_years",
+                    "selected_cell",
+                    "report_scope",
+                )
+            ]
+            * 3,
+        )
+        self.assertEqual(
+            [type(parents[call]).__name__ for call in calls],
+            ["If", "BoolOp", "Assign"],
+        )
+
+        agent = financial_graph_reconciliation.FinancialAgentReconciliationMixin()
+        nested = {"preserve": True}
+        operand = {
+            "label": "Metric",
+            "role": "denominator",
+            "required": True,
+            "nested": nested,
+        }
+        constraints = {"period_focus": "current", "nested": nested}
+        years = [2024]
+        cell = {"value_text": "100", "nested": nested}
+        candidate = {
+            "candidate_id": "candidate-1",
+            "candidate_kind": "table_row",
+            "text": "Metric 100",
+            "source_anchor": "[Example | 2024 | table]",
+            "metadata": {
+                "structured_cells": [cell],
+                "row_text": "Metric | 100",
+                "table_source_id": "table-1",
+                "year": 2024,
+                "value_role": "detail",
+                "aggregation_stage": "detail",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        active_subtask = {
+            "task_id": "task-1",
+            "operation_family": "ratio",
+            "required_operands": [operand],
+            "constraints": constraints,
+            "nested": nested,
+        }
+        evidence_state = {
+            "active_subtask": active_subtask,
+            "report_scope": {"source_reports": [], "nested": nested},
+            "reconciliation_result": {
+                "status": "ready",
+                "matched_operands": [
+                    {
+                        "label": "Metric",
+                        "role": "denominator",
+                        "candidate_ids": ["candidate-1"],
+                    }
+                ],
+            },
+            "artifacts": [],
+            "nested": nested,
+        }
+
+        def run_evidence(target_result):
+            records = []
+
+            def ratio_owner(current, **kwargs):
+                records.append((current, kwargs))
+                if isinstance(target_result, BaseException):
+                    raise target_result
+                return target_result
+
+            with (
+                patch.object(
+                    financial_graph_reconciliation,
+                    "active_subtask_with_sibling_lookup_surfaces",
+                    return_value=active_subtask,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_query_years_from_state",
+                    return_value=years,
+                ),
+                patch.object(
+                    agent,
+                    "_build_reconciliation_candidates",
+                    return_value=[candidate],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_candidate_is_direct_grounding_candidate",
+                    return_value=False,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_parse_unstructured_table_row_cells",
+                    return_value=[cell],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "select_structured_cell",
+                    return_value=cell,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "operand_period_focus",
+                    return_value="current",
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "structured_candidate_from_id",
+                    side_effect=lambda candidate_id, candidate_map: candidate_map.get(
+                        candidate_id
+                    ),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "expand_structured_candidate_ids",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    target_name,
+                    side_effect=ratio_owner,
+                ),
+            ):
+                result = agent._evidence_items_from_reconciliation_matches(
+                    evidence_state
+                )
+            return result, records
+
+        evidence_items, records = run_evidence(True)
+        self.assertEqual(len(evidence_items), 1)
+        self.assertEqual(evidence_items[0]["evidence_id"], "recon::candidate-1")
+        self.assertEqual(len(records), 1)
+        self.assertIs(records[0][0], candidate)
+        self.assertIsNot(records[0][1]["operand"], operand)
+        self.assertIs(records[0][1]["operand"]["nested"], nested)
+        self.assertIsNot(records[0][1]["constraints"], constraints)
+        self.assertIs(records[0][1]["constraints"]["nested"], nested)
+        self.assertIs(records[0][1]["query_years"], years)
+        self.assertIs(records[0][1]["selected_cell"], cell)
+        self.assertIs(records[0][1]["report_scope"]["nested"], nested)
+
+        evidence_items, records = run_evidence(False)
+        self.assertEqual(evidence_items, [])
+        self.assertEqual(len(records), 1)
+        with self.assertRaisesRegex(RuntimeError, "ratio evidence failed"):
+            run_evidence(RuntimeError("ratio evidence failed"))
+
+        extract_state = {
+            "active_subtask": active_subtask,
+            "report_scope": {"source_reports": [], "nested": nested},
+            "reconciliation_result": {
+                "status": "ready",
+                "matched_operands": [
+                    {
+                        "label": "Metric",
+                        "role": "denominator",
+                        "candidate_ids": ["candidate-1"],
+                    }
+                ],
+            },
+            "artifacts": [],
+            "nested": nested,
+        }
+
+        def run_extract(target_values, *, paired=False, direct_accept=False):
+            values = iter(target_values)
+            records = []
+            built_row = {
+                "evidence_id": "candidate-1",
+                "matched_operand_role": "denominator",
+                "table_source_id": "table-1",
+            }
+            paired_rows = (
+                [
+                    {
+                        "evidence_id": "paired",
+                        "matched_operand_role": "numerator",
+                        "table_source_id": "table-1",
+                    }
+                ]
+                if paired
+                else []
+            )
+
+            def ratio_owner(current, **kwargs):
+                records.append((current, kwargs))
+                value = next(values)
+                if isinstance(value, BaseException):
+                    raise value
+                return value
+
+            stopped_build = Mock(return_value=built_row)
+            stopped_repair = Mock(side_effect=lambda rows, _mapping: rows)
+            with (
+                patch.object(
+                    financial_graph_reconciliation,
+                    "active_subtask_with_sibling_lookup_surfaces",
+                    return_value=active_subtask,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_query_years_from_state",
+                    return_value=years,
+                ),
+                patch.object(
+                    agent,
+                    "_build_reconciliation_candidates",
+                    return_value=[candidate],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "extract_structured_period_pair_rows",
+                    return_value=(paired_rows, set()),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "reconciliation_artifact_candidate_ids_for_operand",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "reconciliation_artifact_candidate_ids",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "expand_structured_candidate_ids",
+                    side_effect=lambda ids, _mapping: list(ids),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "structured_candidate_from_id",
+                    side_effect=lambda candidate_id, candidate_map: candidate_map.get(
+                        candidate_id
+                    ),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_score_operand_candidate",
+                    return_value=1.0,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_operand_prefers_aggregate_value_role",
+                    return_value=False,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "select_structured_cell",
+                    return_value=cell,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_candidate_satisfies_direct_acceptance_contract",
+                    return_value=direct_accept,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "candidate_row_block_signature",
+                    return_value=(),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    target_name,
+                    side_effect=ratio_owner,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "build_operand_row_from_candidate_cell",
+                    stopped_build,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "repair_note_operand_units_from_same_block",
+                    stopped_repair,
+                ),
+            ):
+                result = agent._extract_structured_operands_from_reconciliation(
+                    extract_state
+                )
+            return result, records, stopped_build, stopped_repair
+
+        rows, records, build_row, _repair = run_extract([True])
+        self.assertEqual(rows, [build_row.return_value])
+        self.assertEqual(len(records), 1)
+        self.assertIs(records[0][0], candidate)
+        self.assertIs(records[0][1]["operand"]["nested"], nested)
+        self.assertIsNot(records[0][1]["constraints"], constraints)
+        self.assertIs(records[0][1]["constraints"]["nested"], nested)
+        self.assertIs(records[0][1]["query_years"], years)
+        self.assertIs(records[0][1]["selected_cell"], cell)
+
+        rows, records, build_row, _repair = run_extract(
+            [False, True],
+            paired=True,
+        )
+        self.assertEqual(rows[0]["evidence_id"], "paired")
+        self.assertEqual(rows[1], build_row.return_value)
+        self.assertEqual(len(records), 2)
+        self.assertIs(records[0][0], candidate)
+        self.assertIs(records[1][0], candidate)
+
+        stopped_ratio = Mock(
+            side_effect=AssertionError("direct acceptance must stop ratio fallback")
+        )
+        with patch.object(
+            financial_graph_reconciliation,
+            target_name,
+            stopped_ratio,
+        ):
+            rows, records, _build_row, _repair = run_extract(
+                [],
+                direct_accept=True,
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(records, [])
+        stopped_ratio.assert_not_called()
+
+        with self.assertRaisesRegex(RuntimeError, "ratio extraction failed"):
+            run_extract([RuntimeError("ratio extraction failed")])
 
 
 if __name__ == "__main__":
