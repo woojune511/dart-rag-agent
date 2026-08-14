@@ -191,7 +191,7 @@ Current ownership is intentionally split by state boundary:
 | Surface | Owner | Stop line |
 | --- | --- | --- |
 | Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
-| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, lookup-hint projection/matching, candidate location/entity subject scoring, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, lookup-hint projection/matching, candidate location/entity subject scoring, deterministic positional preference scoring, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
@@ -215,7 +215,8 @@ consistency, table-metadata KRW repair, and final-answer evidence filtering/
 operand append and surface-operand projection. Candidate report/period scope,
 surface/segment contracts, delta-like row-label classification, local aggregate
 context, consolidation scope,
-binding-shape admission, and selected-unit-family projection are also owner-held.
+binding-shape admission, selected-unit-family projection, and deterministic
+positional preference scoring are also owner-held.
 Current
 validation and benchmark
 status belong only in
@@ -902,32 +903,50 @@ passed. The source diff SHA-256 is
 Period policy, candidate construction, broader scoring, matching/acceptance/
 ranking, adoption, retrieval, and graph/artifact/ledger state remain hard stops.
 
+The completed `c4558b7` follow-on moved the exact former 7-line preference-bonus
+definition from graph helpers to public `preference_bonus(...)` in
+`financial_operand_resolution.py`. Its two direct scorer calls finish owner-
+external/local 2/0 as consecutive `AugAssign` expressions. Exact eager
+preference iteration, repeated normalization, target truth/membership/index,
+first-equal position, raw base multiplication, identities, immutability, and
+exception stops remain pinned by four CURRENT-SOURCE methods. Source is
+`+12/-11`, tests `+734/-21`, and the whole commit `+746/-32`; graph helpers
+moved from 5,470 to 5,462 lines and operand resolution from 3,750 to 3,759.
+Focused 4/4, owner 106/106, affected semantic 1,066/1,066, import 19/19, audit
+218, full 1,959/1,959, pycompile/fresh import/public identity, body/retained/
+caller/full 48-module DAG parity, retired executable private refs zero, and
+diff check passed. The source diff SHA-256 is
+`319be70af91d64a48d09ec63a1524fe3f5b4834b32238a32a1f1e967e1ec69e5`.
+Caller collection construction, role/stage derivation, other scoring, matching/
+acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state remain
+hard stops.
+
 The new characterize-only inventory selects one follow-on: move only the exact
-current 7-line `_preference_bonus(...)` definition from graph helpers to public
-`preference_bonus(...)` in `financial_operand_resolution.py`. Its complete
-signature is
-`(value: str, preferred: List[str], *, base: float = 0.4) -> float`. Its two direct
-`ast.Name` calls remain consecutive scorer `AugAssign` expressions at caller
-`try` depth zero over exact role/preference inputs with `base=0.6` and stage/
-preference inputs with `base=0.5`.
+current 10-line `_column_candidate_label(column_headers: List[str]) -> str`
+definition from graph helpers to public `column_candidate_label(...)` in
+`financial_row_surfaces.py`. Its sole direct `ast.Name` call is positional
+`original_headers`, has no keywords, and remains at caller `try` depth zero with
+immediate `Assign` parent in the table-column reconciliation candidate builder.
 
-The operand owner already imports `List` and normalization; adding the function
-adds no module edge. Graph reaches the owner and the owner does not reach graph.
-Projected function counts are graph helpers 9/87 and operand resolution 45/37;
-calls finish owner-external/local 2/0 and the selected span contains zero of 218
-reviewed domain records.
+The row owner already imports `re`, `List`, and normalization and owns
+`_generic_column_headers()`. Graph reaches the owner and the owner does not
+reach graph, so moving the function changes no module edge and removes graph's
+need to import the owner-private generic-header helper. Projected function
+counts are graph helpers 9/86 and row surfaces 11/15; the call finishes owner-
+external/local 1/0 and the selected span contains zero of 218 reviewed domain
+records.
 
-Moving caller preference/avoid collection construction, role/stage derivation,
-candidate construction, concept/direct matching, acceptance, source/report/
-period or broader scoring/ranking, candidate/evidence adoption, retrieval, or
-plan/state/artifact/ledger mutation is rejected. Exact eager preference
-iteration, repeated normalization, target truth/membership/index, first-equal
-position, raw base multiplication, identities, immutability, exception stops,
-four required CURRENT-SOURCE methods, and projected focused 4/4, owner 106/106,
-affected semantic 1,066/1,066, import 19/19, audit 218, and full 1,959/1,959
-gates are defined only in
+Moving row/cell preparation, numeric gating, grouping/bucket/candidate
+construction, structured-cell selection, matching/scoring/acceptance, adoption,
+report-file I/O, retrieval, or plan/state/artifact/ledger mutation is rejected.
+Exact eager header iteration, once/twice normalization, blank stop, direct
+generic-container membership, last non-generic/all-generic fallback, target-
+only year regex, identities, immutability, exception stops, four required
+CURRENT-SOURCE methods, and projected focused 4/4, owner 110/110, affected
+semantic 1,070/1,070, import 19/19, audit 218, and full 1,963/1,963 gates are
+defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this preference-bonus projection at the
+or test movement has occurred for this column-candidate-label projection at the
 characterization checkpoint; it is the sole next priority, and this plan
 maintains no competing queue.
 

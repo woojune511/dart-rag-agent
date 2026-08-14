@@ -4430,12 +4430,10 @@ remains unverified. Period policy, candidate construction, broader scoring,
 matching/acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state
 remain outside this owner.
 
-The new characterize-only preference-bonus inventory selects the current exact
-7-line `_preference_bonus(...)` graph definition for a public move to
-`financial_operand_resolution.py` as `preference_bonus(...)`. Its complete
-signature is
-`(value: str, preferred: List[str], *, base: float = 0.4) -> float`. No production
-source or test has moved for this projection at this checkpoint. It receives
+Commit `c4558b7` moved the exact former 7-line `_preference_bonus(...)` graph
+definition to public `financial_operand_resolution.preference_bonus(...)`
+without changing its body. Its complete signature remains
+`(value: str, preferred: List[str], *, base: float = 0.4) -> float`. It receives
 prepared value/preference/base inputs and does not derive role/stage, read
 operand policy, construct candidates, own surrounding ranking, adopt results,
 retrieve evidence, or read graph state.
@@ -4458,7 +4456,8 @@ Duplicate order, repeated/stateful equality, raw truth, identity, immutability,
 and every preferred-iteration, normalization, equality/membership/index,
 length/subtraction/max/multiplication error remain exact and uncaught.
 
-Two direct `ast.Name` calls remain consecutive `AugAssign` expressions in
+Two direct `ast.Name` calls finish owner-external/local 2/0 and remain
+consecutive `AugAssign` expressions in
 `_score_operand_candidate(...)` at caller `try` depth zero. They receive exact
 `value_role, preferred_value_roles, base=0.6` and
 `aggregation_stage, preferred_aggregation_stages, base=0.5`. Both occur after
@@ -4469,21 +4468,75 @@ all later work, while a second-call or caller-addition failure also stops later
 ranking/adoption.
 
 The operand owner already imports `List` and normalization, graph reaches it,
-and it does not reach graph, so the full DAG remains unchanged. Projected counts
-are graph helpers 9/87 and operand resolution 45/37; calls finish external/local
-2/0 and the selected span has zero reviewed runtime-domain records. Moving
+and it does not reach graph, so the full DAG remains unchanged. Counts finish
+at graph helpers 9/87 and operand resolution 45/37; the selected span has zero
+reviewed runtime-domain records. Moving
 caller collection construction, role/stage derivation, candidate construction,
 other scoring, matching/acceptance/ranking, adoption, retrieval, or graph/
-artifact/ledger state is rejected. Four named CURRENT-SOURCE methods and exact
-contracts remain solely in
-[Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 106/106, affected semantic 1,066/1,066, import
+artifact/ledger state is rejected. Four named CURRENT-SOURCE methods pin these
+exact contracts. Executed gates passed focused 4/4, owner 106/106, affected
+semantic 1,066/1,066, import
 19/19, audit 218, full 1,959/1,959, public identity 1/1, selected body 1/1,
 retained graph 96/96, retained operand owner 81/81, both callers/sole caller
 body, full 48-module DAG parity, retired executable graph-private refs zero, and
-diff check. Static inventory, direct behavior probes 6/6, and caller order/
-adoption/stop probes 3/3 passed; benchmark refresh and remote CI were **NOT
-RUN**.
+diff check. Source moved `+12/-11`, tests `+734/-21`, and the whole commit
+`+746/-32`; graph helpers finish at 5,462 lines and operand resolution at 3,759.
+The source diff SHA-256 is
+`319be70af91d64a48d09ec63a1524fe3f5b4834b32238a32a1f1e967e1ec69e5`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only column-candidate-label inventory selects the current
+exact 10-line `_column_candidate_label(column_headers: List[str]) -> str` graph
+definition for a public move to
+`financial_row_surfaces.column_candidate_label(...)`. No production source or
+test has moved for this projection at this checkpoint. It receives one prepared
+header iterable and does not own row/cell preparation, grouping, candidate
+construction, structured-cell selection, scoring/acceptance, adoption,
+retrieval, report-file I/O, or graph state.
+
+The projection must preserve eager source-order consumption of
+`column_headers`. Each raw header first enters `_normalise_spaces(header)` in
+the filter; a falsey result is dropped after one call, while a retained header
+is normalized again and the exact second result is appended. All header work
+finishes before generic policy access. The fresh cleaned list preserves raw
+normalization inputs, duplicate/order behavior, identities, and input
+immutability. A falsey cleaned list returns exact `""` before policy or regex.
+
+For a nonempty list, `_generic_column_headers()` is called once and its exact
+returned collection is used without copy/coercion. A fresh filtered list eagerly
+evaluates `header not in generic_headers` in cleaned order. The exact last
+non-generic entry wins; if all are generic, the exact last cleaned entry wins.
+Only that target enters one exact
+`re.fullmatch(r"20\d{2}(?:년)?", target)` call. A truthy match returns exact
+`""`; a falsey match returns the exact target. Iteration, normalization, truth,
+generic-policy, containment/equality/hash, regex, and match-truth errors remain
+uncaught.
+
+The sole direct `ast.Name` call is positional `original_headers` with no
+keywords in `_build_table_column_reconciliation_candidates(...)`, at caller
+`try` depth zero and immediate `Assign` parent. It follows row/header and
+numeric-value preparation plus eager rebuilding of the fresh original-header
+list, and precedes label truth, grouping-key construction, bucket mutation, and
+final candidate synthesis. A falsey label skips that cell; a truthy label is
+adopted as the bucket/result label. Helper or caller-side truth failures stop
+later cells and final synthesis without mutating supplied row records or
+metadata.
+
+Row surfaces already imports `re`, `List`, and normalization and owns
+`_generic_column_headers()`. Graph already reaches that owner, which does not
+reach graph, so the 48-module DAG remains unchanged. Projected counts are graph
+helpers 9/86 and row surfaces 11/15; the selected call finishes external/local
+1/0 and the span has zero reviewed runtime-domain records. Moving row/cell
+preparation, grouping/candidate construction, matching/scoring/acceptance,
+adoption, report-file I/O, retrieval, or graph/artifact/ledger state is rejected.
+Four named CURRENT-SOURCE methods and exact contracts remain solely in
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 110/110, affected semantic 1,070/1,070, import
+19/19, audit 218, full 1,963/1,963, public identity/body 1/1, retained graph
+95/95, retained row owner 25/25, sole caller/body, full DAG parity, retired-ref
+zero, and diff check. Static inventory, direct behavior probes 6/6, and caller
+order/adoption/stop probes 3/3 passed; benchmark refresh and remote CI were
+**NOT RUN**.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

@@ -288,7 +288,7 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate match/merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature and location/entity subject-score projection, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
+| `financial_operand_resolution.py` | candidate match/merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature, location/entity subject-score projection, deterministic positional preference scoring, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
@@ -736,14 +736,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,955/1,955와 pycompile/fresh import/public identity, AST/caller/DAG parity가
   통과했다. Period policy, broader scoring, matching/acceptance/ranking/adoption과
   state/evidence/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 7줄 preference
-  bonus projection을 `financial_operand_resolution.py`의 public API로 옮기는
-  다음 production 작업으로 선택했다. 두 call은 operand scorer에서 external
-  2/local 0으로 수렴한다. Projected graph helper public/private는 9/87,
-  operand resolution은 45/37이다. 아직 이 projection의 source/test 이동은
-  없으며 eager preference normalization, ordered membership/index, raw base
-  multiplication, 두 caller의 order/adoption/stop, 네 CURRENT-SOURCE method와
-  projected gate는
+- 완료된 `c4558b7` preference-bonus batch는 graph helper의 정확한 7줄
+  projection을 `financial_operand_resolution.py`의 public API로 옮겼다. 두
+  scorer call은 external 2/local 0으로 수렴했다. Graph helper public/private는
+  9/87, operand resolution은 45/37이다. Focused 4/4, owner 106/106, semantic
+  1,066/1,066, import 19/19, audit 218, full 1,959/1,959와 pycompile/fresh
+  import/public identity, AST/caller/DAG parity가 통과했다. Caller collection,
+  다른 scoring, matching/acceptance/ranking/adoption과 state/evidence/ledger는
+  graph 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 10줄 column-
+  candidate label projection을 `financial_row_surfaces.py`의 public API로
+  옮기는 다음 production 작업으로 선택했다. Sole call은 table-column
+  reconciliation candidate builder에서 external 1/local 0으로 수렴한다.
+  Projected graph helper public/private는 9/86, row surfaces는 11/15이다.
+  아직 이 projection의 source/test 이동은 없으며 eager header normalization,
+  generic-header membership, last-label/year selection, 유일 caller의 order/
+  adoption/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

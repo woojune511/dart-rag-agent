@@ -5172,3 +5172,98 @@ The characterization establishes no implementation or quality improvement.
 Static definition/call/DAG/function-count and selected-body baseline inspection,
 direct behavior probes 6/6, and caller order/adoption/stop probes 3/3 passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Preference-bonus ownership milestone
+
+- Commit `c4558b7` moves the exact former 7-line `_preference_bonus(...)`
+  definition from `financial_graph_helpers.py` to public
+  `financial_operand_resolution.preference_bonus(...)` with its body unchanged.
+  Its complete signature remains
+  `(value: str, preferred: List[str], *, base: float = 0.4) -> float`.
+- The two direct `ast.Name` calls finish graph-external/owner-local 2/0 as
+  consecutive scorer `AugAssign` expressions at caller `try` depth zero. Exact
+  `value_role, preferred_value_roles, base=0.6` remains first and exact
+  `aggregation_stage, preferred_aggregation_stages, base=0.5` remains second,
+  after period-focus score work and before avoid/section/source/period/table/
+  report work. Each result is added in order; all current failure stops remain
+  uncaught.
+- Eager source-order preference iteration, dropped-once/retained-twice raw
+  normalization, exact second-result retention, completion before value
+  normalization, falsey/missing exact `0.0`, separate membership/index scans,
+  first-equal duplicate selection, exact raw
+  `base * max(len(ordered) - index, 1)`, identities, immutability, and every
+  uncaught error remain pinned by four CURRENT-SOURCE methods. No wrapper,
+  graph alias, callback, carrier, reason, flag, trace, coercion, or fallback is
+  added.
+- Source is `+12/-11`, net `+1`: graph helpers are `+3/-11` and move from
+  5,470 to 5,462 physical lines; operand resolution is `+9/-0` and moves from
+  3,750 to 3,759. Tests are `+734/-21`, net `+713`: graph-helper tests are
+  `+732/-19` and move from 22,437 to 23,150 lines, while the operand-owner
+  static line-span update is `+2/-2`. The whole commit is `+746/-32`, net
+  `+714`, and four methods move full discovery from 1,955 to 1,959. Graph helper
+  public/private counts finish 9/87 and operand-resolution counts finish 45/37.
+  The source diff SHA-256 is
+  `319be70af91d64a48d09ec63a1524fe3f5b4834b32238a32a1f1e967e1ec69e5`.
+- Focused 4/4, graph-helper owner 106/106, affected eleven-module semantic
+  1,066/1,066, import-side-effects 19/19, runtime-domain audit 218, and full
+  discovery 1,959/1,959 passed. Pycompile 4/4, fresh import/public identity 1/1,
+  selected-body parity 1/1, retained graph 96/96, retained operand owner 81/81,
+  both caller expressions and the sole caller body, full 48-module DAG parity,
+  zero selected-body audit hits, zero retired executable private refs, and diff
+  check also passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic positional preference-bonus
+ownership. Caller collection preparation, role/stage derivation, candidate/
+evidence construction, all surrounding score/rank work, matching/admission/
+acceptance, adoption, retrieval, graph state, model invocation, artifact/ledger
+mutation, retry assembly, and final sequencing remain outside. It proves no
+behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, ledger completion, or Phase 3
+completion.
+
+### Column-candidate-label characterization checkpoint
+
+- A docs-only inventory selects the exact current 10-line
+  `_column_candidate_label(column_headers: List[str]) -> str` definition in
+  `financial_graph_helpers.py`. Its sole direct `ast.Name` call is positional
+  exact `original_headers`, has no keywords, and appears in an immediate
+  `Assign` inside `_build_table_column_reconciliation_candidates(...)` at
+  caller `try` depth zero. No production source or test moves for this
+  projection at this checkpoint.
+- The selected follow-on moves it as public `column_candidate_label(...)` in
+  `financial_row_surfaces.py`. Current/projected public/private counts are graph
+  helpers 9/87 to 9/86 and row surfaces 10/15 to 11/15. Graph already reaches
+  the owner, the owner does not reach graph, and the owner already imports
+  `re`, `List`, normalization and owns `_generic_column_headers()`, so the full
+  agent DAG remains unchanged. The selected call projects external/local 1/0
+  and the span contains zero of the 218 reviewed runtime-domain records.
+- The projection preserves eager source-order header consumption, raw
+  normalization once for dropped and twice for retained headers, exact second-
+  result retention, completion before generic policy access, blank exact `""`
+  stop, direct use of the one returned generic-header collection, eager ordered
+  `not in` membership, exact last non-generic or all-generic fallback, and one
+  target-only `re.fullmatch(r"20\d{2}(?:년)?", target)`. A truthy year match
+  returns exact `""`; a falsey match returns the exact target. Duplicate/order,
+  identities, immutability, and every current uncaught iteration/
+  normalization/truth/policy/containment/equality/hash/regex/match-truth error
+  remain exact.
+- The caller rebuilds normalized `original_headers` after its row/header and
+  numeric-value gates, then calls the helper before label truth, grouping-key
+  construction, bucket mutation, and final candidate synthesis. A falsey label
+  skips that cell; a truthy label is adopted into its bucket and output
+  candidate. Helper or caller-side truth failures stop later cells/final
+  synthesis without mutating supplied row records or metadata.
+- Moving row/cell preparation, numeric gating, grouping/bucket/candidate
+  construction, structured-cell selection, matching/scoring/acceptance,
+  adoption, report-file I/O, retrieval, or graph/artifact/ledger state is
+  rejected. Four named CURRENT-SOURCE methods and projected focused 4/4, owner
+  110/110, affected semantic 1,070/1,070, import 19/19, audit 218, full
+  1,963/1,963, public identity/body 1/1, retained graph 95/95, retained row owner
+  25/25, sole caller/body, full 48-module DAG parity, retired-ref zero, and diff
+  check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The characterization establishes no implementation or quality improvement.
+Static definition/call/DAG/function-count and selected-body baseline inspection,
+direct behavior probes 6/6, and caller order/adoption/stop probes 3/3 passed;
+benchmark refresh and remote CI were **NOT RUN**.
