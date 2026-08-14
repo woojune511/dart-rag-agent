@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             (
@@ -1876,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             (
@@ -2830,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 91))
+        self.assertEqual(graph_counts, (9, 90))
         self.assertEqual(row_counts, (9, 15))
 
         graph_row_imports = {
@@ -3169,7 +3169,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
-                patch.object(financial_graph_helpers, "_candidate_period_table_coherence_bonus", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
             ]
 
@@ -3872,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             (
@@ -4909,7 +4909,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             (
@@ -6628,7 +6628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 91))
+        self.assertEqual(current_graph_counts, (9, 90))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 91))
+        self.assertEqual(graph_counts, (9, 90))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,8 +9279,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 91))
-        self.assertEqual(owner_counts, (9, 9))
+        self.assertEqual(graph_counts, (9, 90))
+        self.assertEqual(owner_counts, (10, 9))
 
         def imported_names(module_name, imported_module):
             return {
@@ -10319,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 91))
+        self.assertEqual(graph_counts, (9, 90))
         self.assertEqual(row_counts, (9, 15))
 
         def imported_names(module_name, imported_module):
@@ -12877,7 +12877,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -13743,9 +13743,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "operand_target_years": {
-                    "financial_graph_helpers": 5,
+                    "financial_graph_helpers": 4,
                     "financial_reconciliation_candidates": 2,
-                    "financial_scope_policies": 5,
+                    "financial_scope_policies": 6,
                     "financial_structured_cells": 2,
                 },
                 "operand_period_focus": {
@@ -13765,7 +13765,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             1,
         )
-        self.assertEqual((9 + 23, 5 + 1), (32, 6))
+        self.assertEqual((8 + 23, 6 + 1), (31, 7))
 
         scope_tree = module_trees["financial_scope_policies"]
         scope_functions = [
@@ -13778,7 +13778,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (9, 9),
+            (10, 9),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -15746,7 +15746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 91),
+                "financial_graph_helpers": (9, 90),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -17431,6 +17431,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "candidate_report_scope_binding_bonus",
             "candidate_matches_operand_target_year",
             "candidate_explicit_years",
+            "candidate_period_table_coherence_bonus",
         }
         module_paths = {path.stem: path for path in agent_root.glob("*.py")}
         module_sources = {
@@ -17517,6 +17518,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "candidate_report_scope_binding_bonus": [("financial_scope_policies", 49)],
                 "candidate_matches_operand_target_year": [("financial_scope_policies", 27)],
                 "candidate_explicit_years": [("financial_scope_policies", 36)],
+                "candidate_period_table_coherence_bonus": [("financial_scope_policies", 30)],
             },
         )
         self.assertEqual(
@@ -17546,6 +17548,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     [],
                 ),
                 "candidate_explicit_years": (["candidate"], []),
+                "candidate_period_table_coherence_bonus": (
+                    ["candidate"],
+                    ["operand", "query_years"],
+                ),
             },
         )
         self.assertEqual(
@@ -17557,6 +17563,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "candidate_report_scope_binding_bonus": 1,
                 "candidate_matches_operand_target_year": 6,
                 "candidate_explicit_years": 5,
+                "candidate_period_table_coherence_bonus": 1,
             },
         )
         self.assertTrue(all(entry[2] == "Name" for entries in calls.values() for entry in entries))
@@ -17585,6 +17592,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertTrue(
             all(len(entry[3]) == 1 and not entry[4] for entry in calls["candidate_explicit_years"])
+        )
+        self.assertTrue(
+            all(
+                len(entry[3]) == 1
+                and tuple(keyword for keyword, _value in entry[4])
+                == ("operand", "query_years")
+                for entry in calls["candidate_period_table_coherence_bonus"]
+            )
         )
 
         self.assertEqual(
@@ -17616,11 +17631,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ],
                 "candidate_explicit_years": [
                     "_candidate_allows_comparative_report_scope_fallback",
-                    "_candidate_period_table_coherence_bonus",
                     "candidate_matches_operand_target_year",
                     "candidate_matches_target_report_scope",
+                    "candidate_period_table_coherence_bonus",
                     "candidate_report_scope_binding_bonus",
                 ],
+                "candidate_period_table_coherence_bonus": ["_score_operand_candidate"],
             },
         )
         selected_callers = target_names
@@ -17636,7 +17652,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "candidate_matches_target_report_scope": (2, 0),
                 "candidate_report_scope_binding_bonus": (1, 0),
                 "candidate_matches_operand_target_year": (6, 0),
-                "candidate_explicit_years": (1, 4),
+                "candidate_explicit_years": (0, 5),
+                "candidate_period_table_coherence_bonus": (1, 0),
             },
         )
         self.assertEqual(
@@ -17644,7 +17661,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(value[0] for value in planned_distribution.values()),
                 sum(value[1] for value in planned_distribution.values()),
             ),
-            (10, 8),
+            (10, 9),
         )
 
         scope_tree = module_trees["financial_scope_policies"]
@@ -17658,7 +17675,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (9, 9),
+            (10, 9),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -17847,11 +17864,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return [2024]
 
         with (
-            patch.object(financial_graph_helpers, "candidate_explicit_years", side_effect=explicit_owner),
-            patch.object(financial_graph_helpers, "operand_target_years", side_effect=target_owner),
+            patch.object(financial_scope_policies, "candidate_explicit_years", side_effect=explicit_owner),
+            patch.object(financial_scope_policies, "operand_target_years", side_effect=target_owner),
         ):
             self.assertAlmostEqual(
-                financial_graph_helpers._candidate_period_table_coherence_bonus(
+                financial_scope_policies.candidate_period_table_coherence_bonus(
                     candidate,
                     operand=operand,
                     query_years=query_years,
@@ -18014,7 +18031,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", side_effect=score_year),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_period_table_coherence_bonus",
+                "candidate_period_table_coherence_bonus",
                 side_effect=score_coherence,
             ),
             patch.object(
@@ -18036,7 +18053,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True),
-            patch.object(financial_graph_helpers, "_candidate_period_table_coherence_bonus", return_value=0.0),
+            patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
             patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
         ):
             score_without_bonus = financial_graph_helpers._score_operand_candidate(
@@ -18055,7 +18072,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_period_table_coherence_bonus",
+                "candidate_period_table_coherence_bonus",
                 side_effect=RuntimeError("coherence failed"),
             ),
             patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", stopped_report),
@@ -18701,7 +18718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 91),
+            (9, 90),
         )
         self.assertEqual(
             (
@@ -19132,7 +19149,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
-                patch.object(financial_graph_helpers, "_candidate_period_table_coherence_bonus", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
             ):
                 score = financial_graph_helpers._score_operand_candidate(
@@ -19689,7 +19706,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 91),
+                "financial_graph_helpers": (9, 90),
                 "financial_surface_contracts": (10, 7),
             },
         )
@@ -20020,6 +20037,747 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     topic=topic,
                     report_scope={},
                 )
+
+    def test_current_source_candidate_period_table_coherence_pins_year_gate_target_membership_and_scores(self) -> None:
+        owner = financial_scope_policies
+        coherence = owner.candidate_period_table_coherence_bonus
+        events = []
+        nested = {"preserve": True}
+
+        class Candidate(dict):
+            def get(self, key, default=None):
+                events.append(("candidate-get", key))
+                return super().get(key, default)
+
+        class Operand(dict):
+            def get(self, key, default=None):
+                events.append(("operand-get", key))
+                return super().get(key, default)
+
+        class TableSource:
+            def __bool__(self):
+                events.append(("table-source-bool",))
+                return True
+
+            def __str__(self):
+                events.append(("table-source-str",))
+                return " table-1 "
+
+        class Years:
+            def __bool__(self):
+                events.append(("years-bool",))
+                return True
+
+            def __contains__(self, year):
+                events.append(("years-contains", year))
+                return year == 2024
+
+            def __len__(self):
+                events.append(("years-len",))
+                return 2
+
+        class Targets:
+            def __bool__(self):
+                events.append(("targets-bool",))
+                return True
+
+            def __iter__(self):
+                events.append(("targets-iter",))
+                for year in (2022, 2024, 2025):
+                    events.append(("targets-yield", year))
+                    yield year
+
+        candidate = Candidate(
+            metadata={"table_source_id": TableSource(), "nested": nested},
+            nested=nested,
+        )
+        operand = Operand(
+            role=" current_period ",
+            unit_family=" percent ",
+            nested=nested,
+        )
+        query_years = [2024]
+        years = Years()
+        targets = Targets()
+
+        def explicit_years(current_candidate):
+            events.append(("explicit-years",))
+            self.assertIs(current_candidate, candidate)
+            return years
+
+        def target_years(current_operand, current_query_years):
+            events.append(("target-years",))
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_query_years, query_years)
+            return targets
+
+        with (
+            patch.object(owner, "candidate_explicit_years", side_effect=explicit_years),
+            patch.object(owner, "operand_target_years", side_effect=target_years),
+        ):
+            self.assertEqual(
+                coherence(candidate, operand=operand, query_years=query_years),
+                2.6,
+            )
+
+        self.assertEqual(
+            events,
+            [
+                ("candidate-get", "metadata"),
+                ("explicit-years",),
+                ("years-bool",),
+                ("target-years",),
+                ("targets-bool",),
+                ("targets-iter",),
+                ("targets-yield", 2022),
+                ("years-contains", 2022),
+                ("targets-yield", 2024),
+                ("years-contains", 2024),
+                ("operand-get", "role"),
+                ("years-len",),
+                ("table-source-bool",),
+                ("table-source-str",),
+                ("operand-get", "unit_family"),
+                ("years-len",),
+            ],
+        )
+        self.assertEqual(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2023, 2024]),
+            patch.object(owner, "operand_target_years", return_value=[2022]),
+        ):
+            self.assertEqual(
+                coherence(
+                    {"metadata": {"table_source_id": "table-1"}},
+                    operand={"role": "current_period", "unit_family": "PERCENT"},
+                    query_years=query_years,
+                ),
+                0.6,
+            )
+
+        class FalseYears:
+            def __bool__(self):
+                return False
+
+        stopped_targets = Mock(
+            side_effect=AssertionError("falsey years must stop target-year access")
+        )
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=FalseYears()),
+            patch.object(owner, "operand_target_years", stopped_targets),
+        ):
+            self.assertEqual(
+                coherence(
+                    {"metadata": {"nested": nested}},
+                    operand=object(),
+                    query_years=object(),
+                ),
+                0.0,
+            )
+        stopped_targets.assert_not_called()
+
+        class FalseTargets:
+            def __bool__(self):
+                return False
+
+            def __iter__(self):
+                raise AssertionError("falsey target years must not be iterated")
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2024, 2024]),
+            patch.object(owner, "operand_target_years", return_value=FalseTargets()),
+        ):
+            self.assertEqual(
+                coherence(
+                    {"metadata": {"table_source_id": "table-1"}},
+                    operand={"role": "prior_period", "unit_family": "PERCENT"},
+                    query_years=query_years,
+                ),
+                1.6,
+            )
+
+    def test_current_source_candidate_period_table_coherence_pins_copy_role_unit_laziness_and_exceptions(self) -> None:
+        owner = financial_scope_policies
+        coherence = owner.candidate_period_table_coherence_bonus
+        nested = {"preserve": True}
+        candidate = {
+            "metadata": {"table_source_id": "table-1", "nested": nested},
+            "nested": nested,
+        }
+        operand = {"role": "current_period", "unit_family": "PERCENT", "nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+
+        length_events = []
+
+        class LengthSequence:
+            def __init__(self, lengths):
+                self.lengths = iter(lengths)
+
+            def __bool__(self):
+                return True
+
+            def __len__(self):
+                value = next(self.lengths)
+                length_events.append(value)
+                return value
+
+            def __contains__(self, _year):
+                raise AssertionError("falsey target years must skip membership")
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=LengthSequence([2, 1])),
+            patch.object(owner, "operand_target_years", return_value=[]),
+        ):
+            self.assertEqual(
+                coherence(candidate, operand=operand, query_years=[]),
+                1.1,
+            )
+        self.assertEqual(length_events, [2, 1])
+
+        class LengthBomb:
+            def __bool__(self):
+                return True
+
+            def __len__(self):
+                raise AssertionError("non-matching role and unit must not inspect length")
+
+        class TableSourceBomb:
+            def __bool__(self):
+                raise AssertionError("non-matching role must not inspect table source")
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=LengthBomb()),
+            patch.object(owner, "operand_target_years", return_value=[]),
+        ):
+            self.assertEqual(
+                coherence(
+                    {"metadata": {"table_source_id": TableSourceBomb()}},
+                    operand={"role": "CURRENT_PERIOD", "unit_family": "percentage"},
+                    query_years=[],
+                ),
+                0.0,
+            )
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2024, 2024]),
+            patch.object(owner, "operand_target_years", return_value=[]),
+        ):
+            self.assertEqual(
+                coherence(candidate, operand=operand, query_years=[]),
+                1.6,
+            )
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        class MappingBomb:
+            def keys(self):
+                raise RuntimeError("metadata copy failed")
+
+        stopped_explicit = Mock(
+            side_effect=AssertionError("metadata copy failure must stop year extraction")
+        )
+        with patch.object(owner, "candidate_explicit_years", stopped_explicit):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                coherence(
+                    {"metadata": MappingBomb()},
+                    operand=operand,
+                    query_years=[],
+                )
+        stopped_explicit.assert_not_called()
+
+        stopped_targets = Mock(
+            side_effect=AssertionError("year extraction failure must stop target years")
+        )
+        with (
+            patch.object(
+                owner,
+                "candidate_explicit_years",
+                side_effect=RuntimeError("explicit years failed"),
+            ),
+            patch.object(owner, "operand_target_years", stopped_targets),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "explicit years failed"):
+                coherence(candidate, operand=operand, query_years=[])
+        stopped_targets.assert_not_called()
+
+        class OperandGetBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("target-year failure must stop operand access")
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2024]),
+            patch.object(
+                owner,
+                "operand_target_years",
+                side_effect=RuntimeError("target years failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "target years failed"):
+                coherence(candidate, operand=OperandGetBomb(), query_years=[])
+
+        unit_access = Mock(
+            side_effect=AssertionError("role failure must stop unit-family access")
+        )
+
+        class RoleBombOperand:
+            def get(self, key, default=None):
+                if key == "role":
+                    raise RuntimeError("role failed")
+                return unit_access(key, default)
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2024, 2023]),
+            patch.object(owner, "operand_target_years", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "role failed"):
+                coherence(candidate, operand=RoleBombOperand(), query_years=[])
+        unit_access.assert_not_called()
+
+        class FailingTableSource:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("table source failed")
+
+        class UnitTrackingOperand(dict):
+            def get(self, key, default=None):
+                if key == "unit_family":
+                    raise AssertionError("table-source failure must stop unit-family access")
+                return super().get(key, default)
+
+        with (
+            patch.object(owner, "candidate_explicit_years", return_value=[2024, 2023]),
+            patch.object(owner, "operand_target_years", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "table source failed"):
+                coherence(
+                    {"metadata": {"table_source_id": FailingTableSource()}},
+                    operand=UnitTrackingOperand(role="prior_period"),
+                    query_years=[],
+                )
+
+    def test_current_source_candidate_period_table_coherence_bindings_pin_def_call_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_scope_policies": repo_root / "src" / "agent" / "financial_scope_policies.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "candidate_period_table_coherence_bonus"
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.augassign_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_AugAssign(self, node):
+                self.augassign_depth += 1
+                self.generic_visit(node)
+                self.augassign_depth -= 1
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                            self.augassign_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(
+            (owner_name, definition.name),
+            ("financial_scope_policies", target_name),
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 30)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["candidate"])
+        self.assertEqual(
+            [arg.arg for arg in definition.args.kwonlyargs],
+            ["operand", "query_years"],
+        )
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kw_defaults, [None, None])
+        self.assertEqual(ast.unparse(definition.returns), "float")
+        self.assertFalse(any(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)))
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "any": 1,
+                "candidate_explicit_years": 1,
+                "dict": 1,
+                "get": 4,
+                "len": 2,
+                "operand_target_years": 1,
+                "str": 3,
+                "strip": 3,
+                "upper": 1,
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_helpers",
+                    "_score_operand_candidate",
+                    "Name",
+                    ("candidate",),
+                    (("operand", "operand"), ("query_years", "query_years")),
+                    0,
+                    1,
+                )
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {
+                "financial_graph_helpers": (9, 90),
+                "financial_scope_policies": (10, 9),
+            },
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        graph_scope_imports = imported_names(
+            module_trees["financial_graph_helpers"],
+            "src.agent.financial_scope_policies",
+        )
+        self.assertNotIn("candidate_explicit_years", graph_scope_imports)
+        self.assertIn("operand_target_years", graph_scope_imports)
+        self.assertIn(target_name, graph_scope_imports)
+
+        score_definition = next(
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef) and node.name == "_score_operand_candidate"
+        )
+        target_index = next(
+            index
+            for index, statement in enumerate(score_definition.body)
+            if isinstance(statement, ast.AugAssign)
+            and target_name in ast.unparse(statement)
+        )
+        neighborhood = [
+            ast.unparse(statement)
+            for statement in score_definition.body[target_index - 2 : target_index + 3]
+        ]
+        self.assertIn("_candidate_source_priority_bonus", neighborhood[0])
+        self.assertIn("_metadata_period_match_strength", neighborhood[1])
+        self.assertIn(target_name, neighborhood[2])
+        self.assertIn("candidate_report_scope_binding_bonus", neighborhood[3])
+        self.assertIn("table_source_id", neighborhood[4])
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_path = f"src/agent/{module_paths[owner_name].name}"
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == selected_path
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_candidate_period_table_coherence_pins_year_gate_target_membership_and_scores",
+            "test_current_source_candidate_period_table_coherence_pins_copy_role_unit_laziness_and_exceptions",
+            "test_current_source_candidate_period_table_coherence_bindings_pin_def_call_dag_imports_and_baseline",
+            "test_current_source_candidate_period_table_coherence_caller_pins_order_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_period_table_coherence_caller_pins_order_args_adoption_and_stops(self) -> None:
+        target_name = "candidate_period_table_coherence_bonus"
+        nested = {"preserve": True}
+        events = []
+
+        class TableSource:
+            def __init__(self, sink):
+                self.sink = sink
+
+            def __bool__(self):
+                self.sink.append("table-bool")
+                return True
+
+            def __str__(self):
+                self.sink.append("table-str")
+                return "table-1"
+
+        table_source = TableSource(events)
+        candidate = {
+            "candidate_kind": "",
+            "metadata": {"table_source_id": table_source, "nested": nested},
+            "nested": nested,
+        }
+        operand = {"nested": nested}
+        constraints = {"nested": nested}
+        query_years = [2024]
+        report_scope = {"nested": nested}
+
+        def enter_common_patches(stack):
+            for current_patch in (
+                patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
+            ):
+                stack.enter_context(current_patch)
+
+        def source_bonus(current_candidate, **kwargs):
+            events.append("source")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertEqual(kwargs["statement_type"], "unknown")
+            self.assertEqual(kwargs["value_role"], "")
+            self.assertEqual(kwargs["aggregation_stage"], "")
+            self.assertEqual(kwargs["local_heading"], "")
+            return 1.0
+
+        def period_strength(labels, current_query_years):
+            events.append("period")
+            self.assertEqual(labels, [])
+            self.assertIs(current_query_years, query_years)
+            return 2.0
+
+        def coherence_bonus(current_candidate, **kwargs):
+            events.append("coherence")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            return 4.0
+
+        def report_bonus(current_candidate, **kwargs):
+            events.append("report")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["query_years"], query_years)
+            self.assertIsNot(kwargs["report_scope"], report_scope)
+            self.assertEqual(kwargs["report_scope"], report_scope)
+            self.assertIs(kwargs["report_scope"]["nested"], nested)
+            return 5.0
+
+        with ExitStack() as stack:
+            enter_common_patches(stack)
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", side_effect=source_bonus)
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "_metadata_period_match_strength", side_effect=period_strength)
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, target_name, side_effect=coherence_bonus)
+            )
+            stack.enter_context(
+                patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", side_effect=report_bonus)
+            )
+            score = financial_graph_helpers._score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=[],
+                constraints=constraints,
+                query_years=query_years,
+                report_scope=report_scope,
+            )
+
+        self.assertEqual(score, 13.25)
+        self.assertEqual(
+            events,
+            ["source", "period", "coherence", "report", "table-bool", "table-str"],
+        )
+        self.assertIs(candidate["metadata"]["table_source_id"], table_source)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
+
+        failure_events = []
+        failing_candidate = {
+            "candidate_kind": "",
+            "metadata": {
+                "table_source_id": TableSource(failure_events),
+                "nested": nested,
+            },
+        }
+        stopped_report = Mock(
+            side_effect=AssertionError("coherence failure must stop report bonus")
+        )
+        with ExitStack() as stack:
+            enter_common_patches(stack)
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_source_priority_bonus",
+                    side_effect=lambda *_args, **_kwargs: failure_events.append("source") or 0.0,
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "_metadata_period_match_strength",
+                    side_effect=lambda *_args, **_kwargs: failure_events.append("period") or 0.0,
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    target_name,
+                    side_effect=RuntimeError("coherence failed"),
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_report_scope_binding_bonus",
+                    stopped_report,
+                )
+            )
+            with self.assertRaisesRegex(RuntimeError, "coherence failed"):
+                financial_graph_helpers._score_operand_candidate(
+                    failing_candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        self.assertEqual(failure_events, ["source", "period"])
+        stopped_report.assert_not_called()
 
 
 if __name__ == "__main__":

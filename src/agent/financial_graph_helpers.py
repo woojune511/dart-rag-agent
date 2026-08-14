@@ -111,9 +111,9 @@ from src.agent.financial_scope_policies import (
     _extract_year_tokens,
     _metadata_period_match_strength,
     _report_scope_source_receipts,
-    candidate_explicit_years,
     candidate_matches_operand_target_year,
     candidate_matches_target_report_scope,
+    candidate_period_table_coherence_bonus,
     candidate_report_scope_binding_bonus,
     operand_period_focus,
     operand_target_years,
@@ -4169,38 +4169,6 @@ def _candidate_source_priority_bonus(
     return score
 
 
-def _candidate_period_table_coherence_bonus(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    query_years: List[int],
-) -> float:
-    metadata = dict(candidate.get("metadata") or {})
-    years = candidate_explicit_years(candidate)
-    if not years:
-        return 0.0
-
-    score = 0.0
-    target_years = operand_target_years(operand, query_years)
-    if target_years:
-        if any(year in years for year in target_years):
-            score += 1.0
-        else:
-            score -= 1.0
-
-    role = str(operand.get("role") or "").strip()
-    if role in {"current_period", "prior_period"} and len(years) >= 2:
-        score += 0.75
-        if str(metadata.get("table_source_id") or "").strip():
-            score += 0.35
-
-    desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
-    if desired_unit_family == "PERCENT" and len(years) >= 2:
-        score += 0.5
-
-    return score
-
-
 def _candidate_is_direct_grounding_candidate(
     candidate: Dict[str, Any],
     *,
@@ -5094,7 +5062,7 @@ def _score_operand_candidate(
     )
 
     score += _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
-    score += _candidate_period_table_coherence_bonus(
+    score += candidate_period_table_coherence_bonus(
         candidate,
         operand=operand,
         query_years=query_years,

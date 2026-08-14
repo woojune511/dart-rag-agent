@@ -424,6 +424,38 @@ def candidate_explicit_years(candidate: Dict[str, Any]) -> List[int]:
     return sorted(years)
 
 
+def candidate_period_table_coherence_bonus(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> float:
+    metadata = dict(candidate.get("metadata") or {})
+    years = candidate_explicit_years(candidate)
+    if not years:
+        return 0.0
+
+    score = 0.0
+    target_years = operand_target_years(operand, query_years)
+    if target_years:
+        if any(year in years for year in target_years):
+            score += 1.0
+        else:
+            score -= 1.0
+
+    role = str(operand.get("role") or "").strip()
+    if role in {"current_period", "prior_period"} and len(years) >= 2:
+        score += 0.75
+        if str(metadata.get("table_source_id") or "").strip():
+            score += 0.35
+
+    desired_unit_family = str(operand.get("unit_family") or "").strip().upper()
+    if desired_unit_family == "PERCENT" and len(years) >= 2:
+        score += 0.5
+
+    return score
+
+
 def _report_scope_source_receipts(report_scope: Dict[str, Any]) -> List[str]:
     receipts: List[str] = []
     for row in _report_scope_source_reports(report_scope):
