@@ -13156,7 +13156,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 encoding="utf-8-sig"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         candidate_string_literals = [
             node.value
             for node in ast.walk(owner_def)
@@ -14182,7 +14182,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 encoding="utf-8-sig"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_baseline_records = [
             record
             for record in baseline["records"]

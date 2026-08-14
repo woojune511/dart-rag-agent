@@ -37,7 +37,6 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _candidate_conflicts_with_operand_concept,
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
@@ -47,6 +46,7 @@ from src.agent.financial_graph_helpers import (
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
+from src.agent.financial_surface_contracts import candidate_conflicts_with_operand_concept
 from src.agent.financial_scope_policies import (
     candidate_explicit_years,
     candidate_matches_operand_target_year,
@@ -5157,7 +5157,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_conflicts_with_operand_concept(candidate, operand))
+        self.assertTrue(candidate_conflicts_with_operand_concept(candidate, operand))
         self.assertLess(
             _score_operand_candidate(
                 candidate,

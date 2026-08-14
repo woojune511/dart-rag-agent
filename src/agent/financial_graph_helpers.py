@@ -73,6 +73,7 @@ from src.agent.financial_surface_contracts import (
     _text_has_negative_surface,
     _text_has_positive_surface,
     binding_policy_allows_candidate_shape,
+    candidate_conflicts_with_operand_concept,
     candidate_consolidation_scope,
     candidate_has_numeric_value_signal,
     candidate_has_required_surface_contract,
@@ -3481,35 +3482,6 @@ def _query_years_from_state(state: Dict[str, Any]) -> List[int]:
     return years
 
 
-def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
-    expects_liability = any("부채" in needle for needle in normalized_needles)
-
-    metadata = dict(candidate.get("metadata") or {})
-    authoritative_surfaces = [
-        str(metadata.get("semantic_label") or "").strip(),
-        str(metadata.get("row_label") or "").strip(),
-        str(metadata.get("aggregate_label") or "").strip(),
-        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
-        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
-    ]
-    authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
-    if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
-        return True
-
-    contract = _operand_surface_contract(operand)
-    if not contract:
-        return False
-
-    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
-        return True
-
-    if any(_text_has_positive_surface(surface, operand) for surface in authoritative_surfaces):
-        return False
-
-    return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
-
-
 def _build_table_value_reconciliation_candidates(
     *,
     candidate_id_prefix: str,
@@ -4463,7 +4435,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
 
 
 def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    if _candidate_conflicts_with_operand_concept(candidate, operand):
+    if candidate_conflicts_with_operand_concept(candidate, operand):
         return False
 
     candidate_kind = str(candidate.get("candidate_kind") or "").strip()
@@ -4549,7 +4521,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
 
 def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
     """Score how directly a candidate label represents the requested operand."""
-    if _candidate_conflicts_with_operand_concept(candidate, operand):
+    if candidate_conflicts_with_operand_concept(candidate, operand):
         return 0.0
 
     metadata = dict(candidate.get("metadata") or {})
@@ -4686,7 +4658,7 @@ def _score_operand_candidate(
     pass before any optional LLM reranking is considered.
     """
     metadata = dict(candidate.get("metadata") or {})
-    if _candidate_conflicts_with_operand_concept(candidate, operand):
+    if candidate_conflicts_with_operand_concept(candidate, operand):
         return -10.0
 
     score = 0.0

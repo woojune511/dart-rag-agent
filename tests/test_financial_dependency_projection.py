@@ -4575,7 +4575,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_literals = {
             node.value
             for method_name in targets
@@ -5825,7 +5825,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         self.assertEqual(
             [
                 record

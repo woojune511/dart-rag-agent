@@ -7434,7 +7434,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             if record.get("path") in selected_lines
             and selected_lines[record["path"]].intersection(record.get("first_lines") or [])
         ]
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         self.assertEqual(hits, [])
 
     def test_current_source_structured_operand_caller_adopts_note_unit_repair_and_propagates_failure(self) -> None:

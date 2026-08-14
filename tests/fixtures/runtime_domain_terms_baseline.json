@@ -621,17 +621,6 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
-      "text": "부채",
-      "category": "runtime_literal",
-      "fingerprint": "3df3bf753756b486",
-      "count": 2,
-      "first_lines": [
-        3848,
-        3859
-      ]
-    },
-    {
       "path": "src/agent/financial_operand_resolution.py",
       "text": "부채",
       "category": "runtime_literal",

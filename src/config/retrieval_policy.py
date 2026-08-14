@@ -290,6 +290,8 @@ EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
     "metric_label_template": "{denominator_label} 대비 {numerator_label} 비율",
 }
 
+CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER = "부채"
+
 OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "note_context_markers": ("주석",),
     "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),

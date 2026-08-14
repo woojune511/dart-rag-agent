@@ -1256,7 +1256,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_lines = set()
         for node in owner_definitions.values():
             selected_lines.update(range(node.lineno, node.end_lineno + 1))
@@ -2340,7 +2340,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_hits = [
             record
             for record in baseline["records"]

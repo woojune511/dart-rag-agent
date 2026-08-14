@@ -2822,7 +2822,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertEqual({record["text"] for record in selected_records}, selected_texts)
         self.assertTrue(all(record["category"] == "runtime_literal" for record in selected_records))
         self.assertTrue(all(record["count"] == 1 for record in selected_records))
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
 
         modules = {
             f"src.agent.{path.stem}": path

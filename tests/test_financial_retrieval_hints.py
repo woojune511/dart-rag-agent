@@ -560,7 +560,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             if row["path"] == "src/agent/financial_retrieval_hints.py"
             and any(start <= row["line"] <= end for start, end in selected_ranges)
         ]
-        self.assertEqual(len(records), 218)
+        self.assertEqual(len(records), 217)
         self.assertEqual(selected_hits, [])
 
     def test_current_source_retrieval_hint_callers_pin_args_adoption_and_exception_stop(self) -> None:

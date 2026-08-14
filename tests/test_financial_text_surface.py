@@ -653,7 +653,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         pattern = "[\uac00-\ud7a3A-Za-z0-9()]+"
         matching_records = [
             record
@@ -3765,7 +3765,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         records = [
             record
             for record in baseline["records"]
@@ -4441,7 +4441,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_lines = set(range(public_node.lineno, public_node.end_lineno + 1))
         self.assertEqual(
             [

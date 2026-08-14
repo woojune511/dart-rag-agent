@@ -1449,7 +1449,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_records = [
             record
             for record in baseline["records"]
@@ -2080,7 +2080,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_records = [
             record
             for record in baseline["records"]
@@ -3022,7 +3022,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
+        self.assertEqual(len(baseline["records"]), 217)
         selected_start = min(node.lineno for node in bindings)
         selected_end = max(node.end_lineno for node in owner_defs.values())
         selected_records = [

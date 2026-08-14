@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.config.retrieval_policy import (
+    CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER,
     CONSOLIDATION_SCOPE_POLICY,
     HELPER_RUNTIME_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
@@ -130,6 +131,35 @@ def _text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
 def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
     return _text_has_contract_term(text, list(contract.get("negative") or []))
+
+
+def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    expects_exclusive_marker = any(CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER in needle for needle in normalized_needles)
+
+    metadata = dict(candidate.get("metadata") or {})
+    authoritative_surfaces = [
+        str(metadata.get("semantic_label") or "").strip(),
+        str(metadata.get("row_label") or "").strip(),
+        str(metadata.get("aggregate_label") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
+        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
+    ]
+    authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
+    if not expects_exclusive_marker and any(CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER in _normalise_spaces(surface) for surface in authoritative_surfaces):
+        return True
+
+    contract = _operand_surface_contract(operand)
+    if not contract:
+        return False
+
+    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
+        return True
+
+    if any(_text_has_positive_surface(surface, operand) for surface in authoritative_surfaces):
+        return False
+
+    return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
 
 
 def candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:

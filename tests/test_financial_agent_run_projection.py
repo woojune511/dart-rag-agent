@@ -3474,8 +3474,8 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 encoding="utf-8-sig"
             )
         )
-        self.assertEqual(len(baseline["records"]), 218)
-        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 218)
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
         occurrences = collect_runtime_domain_term_occurrences(project_root)
         selected_ranges = [(node.lineno, node.end_lineno) for node in definitions.values()]
         self.assertEqual(
@@ -4371,7 +4371,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             collect_runtime_domain_terms,
         )
 
-        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 218)
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
         occurrences = collect_runtime_domain_term_occurrences(project_root)
         selected_ranges = [
             (node.lineno, node.end_lineno)
@@ -5381,7 +5381,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             collect_runtime_domain_terms,
         )
 
-        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 218)
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
         occurrences = collect_runtime_domain_term_occurrences(project_root)
         selected_ranges = [
             (node.lineno, node.end_lineno)
