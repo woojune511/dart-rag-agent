@@ -6466,28 +6466,64 @@ This milestone changes only deterministic scorer ownership. It proves no
 behavior, quality, ranking, performance, benchmark, schedule, ledger, or Phase
 3 completion claim.
 
-### Operand-segment-label private-API characterization checkpoint
+### Operand segment-label public-API milestone
 
-- A docs-only inventory selects the current exact 3-line
-  `financial_surface_contracts._operand_segment_label(operand)` definition with
-  `Dict[str, Any] -> str` typing for an in-place public rename to
-  `operand_segment_label(...)`. No source or test rename has occurred.
-- The projection preserves two statements, one return, the ordered operand
-  get/truth/shallow-copy/policy-get/truth/string/normalization pipeline, exact
-  result, input/nested-policy immutability, laziness, and every uncaught failure.
-- Thirteen one-positional-argument calls across five source modules remain at
-  caller `try` depth zero; external/local calls are 10/3. The four external
-  modules already import the surface owner, so the full DAG remains unchanged
-  and acyclic at 48 modules/205 edges. Projected counts are surface contracts
-  15/7 to 16/6, with graph 9/71 and operand resolution 54/37 unchanged. The
-  selected span has zero of 217 reviewed runtime-domain records.
+- Commit `cce5700` renames the exact former 3-line private helper in its existing
+  surface owner to public `operand_segment_label(...)`. Its two-statement body
+  is exact after definition-name normalization; the private definition and
+  executable refs are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin the ordered operand get/truth/shallow-copy/
+  policy-get/truth/string/normalization pipeline, exact result, identity,
+  immutability, laziness, and every uncaught failure.
+- All thirteen calls across graph calculation, graph helpers, operand resolution,
+  row surfaces, and surface contracts now bind the public API. Exact arguments,
+  fallback/normalization, generator laziness, short-circuit returns, query/task
+  projection, reconciliation filtering/ranking, later work, and exception stops
+  remain caller-owned.
+- Production source is `+18/-18`, net `0`; tests are `+925/-63`, net `+862`;
+  the whole commit is `+943/-81`, net `+862`; and all production physical line
+  counts are unchanged. Four methods move discovery from 2,023 to 2,027. Final
+  counts are surface contracts 16/6, graph 9/71, and operand resolution 54/37.
+  The source diff SHA-256 is
+  `416655cdf1c30a24afa9733cdeece140e43bf66016ad650af6ab8fb79808638e`.
+- Focused pre/post rename 4/4, graph owner 174/174, surface owner 1/1, operand
+  owner 69/69, affected semantic 1,134/1,134, reconciliation plan 51/51,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  2,027/2,027 passed. The first discovery attempt hit the 120-second command
+  limit; the identical command passed in 104.557 seconds with a 300-second
+  limit. Pycompile, exact production rename parity 5/5, selected-body hash
+  parity, public identity 4/4, all thirteen calls/five modules, unchanged
+  acyclic 48-module/205-edge DAG parity, retired private refs zero, non-ASCII
+  preservation 7/7, and diff check passed. Benchmark refresh and remote CI were
+  **NOT RUN**.
+
+This milestone changes only API visibility. It proves no behavior, quality,
+ranking, performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Operand-needles private-API characterization checkpoint
+
+- A docs-only inventory selects the current exact 4-line
+  `financial_surface_contracts._operand_needles(operand)` definition with
+  `Dict[str, Any] -> List[str]` typing for an in-place public rename to
+  `operand_needles(...)`. No source or test rename has occurred.
+- The projection preserves three statements, one return, label-before-alias
+  get/truth/string/strip order, eager alias iteration, retained-alias double
+  conversion, final filtering, duplicates, exact result order, immutability,
+  and every uncaught failure.
+- Twenty-four one-positional-argument calls across nine source modules remain at
+  caller `try` depth zero; external/local calls are 20/4. Nine external modules
+  import the helper, including one graph-evidence import-only binding. Existing
+  edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
+  Projected counts are surface contracts 16/6 to 17/5, with graph 9/71 and
+  operand resolution 54/37 unchanged. The selected span has zero of 217
+  reviewed runtime-domain records.
 - Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-  174/174, surface owner 1/1, operand owner 69/69, affected semantic
-  1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217, full
-  2,027/2,027, public identity across four external imports, selected-body and
-  name-normalized owner parity, all thirteen calls/five modules, unchanged
-  acyclic DAG, retired-ref zero, non-ASCII preservation, pycompile, and diff
-  check are governed only by
+  178/178, surface owner 1/1, operand owner 69/69, affected semantic
+  1,138/1,138, additional direct-caller modules 17/17, reconciliation plan
+  51/51, import 19/19, audit 217, full 2,031/2,031, public identity across nine
+  external imports, selected-body and name-normalized owner parity, all twenty-
+  four calls/nine call modules, unchanged acyclic DAG, retired-ref zero, non-
+  ASCII preservation, pycompile, and diff check are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
 
 Static definition/signature/call/DAG/function-count/import and selected-span

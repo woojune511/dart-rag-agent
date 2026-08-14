@@ -4917,35 +4917,58 @@ pycompile, public identity 4/4, helper-name-normalized selected-body parity,
 retained-function/caller parity, retired-ref zero, non-ASCII preservation, and
 diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 3-line
-`financial_surface_contracts._operand_segment_label(operand: Dict[str, Any]) -> str`
+Commit `cce5700` completed the operand segment-label public contract. The exact
+former 3-line private definition is now public
+`financial_surface_contracts.operand_segment_label(...)`; its two-statement
+get/truth/shallow-copy/get/truth/string/normalization body is unchanged after
+name normalization. No private alias or bridge exists.
+
+All thirteen calls across graph calculation, graph helpers, operand resolution,
+row surfaces, and surface contracts bind the public API at caller `try` depth
+zero. Their exact arguments, nested fallback and normalization, generator
+laziness, short-circuit return, later strict matching, query/task projection,
+reconciliation ranking, and exception stops remain caller-owned. Final counts
+are surface contracts 16/6, graph 9/71, and operand resolution 54/37; the full
+DAG remains unchanged and acyclic at 48 modules/205 edges.
+
+Executed gates are focused 4/4, graph owner 174/174, surface owner 1/1,
+operand owner 69/69, affected semantic 1,134/1,134, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,027/2,027, plus pycompile, exact production
+rename parity 5/5, selected-body hash parity, public identity 4/4, caller parity,
+retired-ref zero, non-ASCII preservation, and diff check. Benchmark refresh and
+remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 4-line
+`financial_surface_contracts._operand_needles(operand: Dict[str, Any]) -> List[str]`
 definition. It already belongs to the surface-contract owner; the authorized
-future batch only renames it in place to public `operand_segment_label(...)`
-and updates every caller without a private alias.
+future batch only renames it in place to public `operand_needles(...)` and
+updates every import/caller without a private alias.
 
-Preserve the exact two statements and one return. Evaluate operand
-`get("binding_policy")` once, retain raw truth/fallback, and shallow-copy the
-selected mapping with `dict(...)`. Evaluate copied-policy `get("segment_label")`
-once, retain raw truth/fallback, call `str(...)` once, call
-`_normalise_spaces(...)` once, and return that exact result. Input and nested
-policy remain unmodified. Mapping/get/truth/copy/string/normalization failures
-remain uncaught and ordered.
+Preserve the exact three statements and one return. Evaluate operand
+`get("label")` once, retain raw truth/fallback, call `str(...)` once, and call
+`.strip()` once. Only then evaluate operand `get("aliases")` once, retain raw
+truth/fallback to a new empty list, and iterate eagerly in order. The alias-list
+filter stringifies and strips each item once; its output expression stringifies
+and strips every retained item a second time. Preserve stateful-conversion
+effects, duplicates, label-before-alias ordering, the final
+`[label, *aliases]` truth filter, exact result order, input immutability, and all
+uncaught get/truth/string/strip/iteration/list-construction failures.
 
-All thirteen direct source calls use one positional argument, no keywords, and
-caller `try` depth zero. Ten calls in graph calculation, graph helpers, operand
-resolution, and row surfaces import the owner; three calls are owner-local.
-Row refinement, retrieval query construction, task binding projection,
-deterministic reconciliation, required-surface fallback, canonical-row stop,
-segment-local/combo gates, scoped affinity, segment matching, and segment bonus
-keep exact arguments, laziness, fallback, later work, and exception stops.
+All twenty-four direct source calls use one positional argument, no keywords,
+and caller `try` depth zero. Twenty external calls span graph calculation,
+reconciliation, lookup recovery, operand resolution, retrieval pipeline, row
+surfaces, structured cells, and task artifacts; four calls are owner-local.
+Graph evidence retains a ninth external import-only binding. Comprehension,
+loop, starred-list, normalization, matching, scoring/adoption, later work, and
+exception stops remain caller-owned.
 
 No module edge changes, so the full DAG remains acyclic at 48 modules/205 edges.
-Projected counts are surface contracts 15/7 to 16/6, with graph 9/71 and operand
+Projected counts are surface contracts 16/6 to 17/5, with graph 9/71 and operand
 resolution 54/37 unchanged; the selected span has zero of 217 reviewed records.
 The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-174/174, surface owner 1/1, operand owner 69/69, affected semantic
-1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217, and full
-2,027/2,027 gates are governed only by
+178/178, surface owner 1/1, operand owner 69/69, affected semantic
+1,138/1,138, additional direct-caller modules 17/17, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,031/2,031 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

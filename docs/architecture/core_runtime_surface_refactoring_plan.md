@@ -1250,22 +1250,40 @@ and diff check passed. The source diff SHA-256 is
 `2e681d92116eb7b6c213dc505ba61bddbb0aafe65b86eacf917bf4c28d594650`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the smaller private-API seam already
-in its correct owner: rename the exact 3-line
-`financial_surface_contracts._operand_segment_label(...)` in place to public
-`operand_segment_label(...)`, with no wrapper or alias. Preserve its two-
-statement get/truth/shallow-copy/get/truth/string/normalization pipeline,
-immutability, exact result, and uncaught failures.
+The completed `cce5700` follow-on renamed the exact former 3-line private
+segment-label helper in its existing surface-contract owner to public
+`operand_segment_label(...)`. Its two-statement copy/fallback/normalization body
+and all thirteen calls are exact after name normalization; no wrapper or alias
+was added. Production source is `+18/-18`, tests are `+925/-63`, and the whole
+commit is `+943/-81`; all production physical line counts are unchanged.
 
-Thirteen one-positional-argument calls across five source modules remain at
-caller `try` depth zero; external/local calls are 10/3. The four external
-modules already import the surface owner, so the full DAG remains unchanged and
-acyclic at 48 modules/205 edges. Projected surface-owner counts are 15/7 to
-16/6, while graph and operand counts remain 9/71 and 54/37. The selected span
-contains zero of 217 reviewed runtime-domain records. Four required CURRENT-
-SOURCE methods and projected focused 4/4, graph owner 174/174, surface owner
-1/1, operand owner 69/69, affected semantic 1,134/1,134, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,027/2,027 gates are defined only in
+Focused pre/post rename 4/4, graph owner 174/174, surface owner 1/1, operand
+owner 69/69, affected semantic 1,134/1,134, reconciliation plan 51/51, import
+19/19, audit 217, full 2,027/2,027, pycompile, exact production rename parity
+5/5, selected-body/public-identity/caller parity, unchanged acyclic 48-module/
+205-edge DAG parity, retired private refs zero, non-ASCII preservation, and diff
+check passed. The source diff SHA-256 is
+`416655cdf1c30a24afa9733cdeece140e43bf66016ad650af6ab8fb79808638e`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the next smaller private-API seam
+in the same correct owner: rename the exact 4-line
+`financial_surface_contracts._operand_needles(...)` in place to public
+`operand_needles(...)`, with no wrapper or alias. Preserve the three-statement
+label/alias get, truth, string, strip, eager-iteration, retained-alias double-
+conversion, final filtering, order, duplicate, immutability, and failure
+contract.
+
+Twenty-four one-positional-argument calls across nine source modules remain at
+caller `try` depth zero; external/local calls are 20/4. Nine external modules
+import the helper, including one graph-evidence import-only binding. Existing
+edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
+Projected surface-owner counts are 16/6 to 17/5, while graph and operand counts
+remain 9/71 and 54/37. The selected span contains zero of 217 reviewed runtime-
+domain records. Four required CURRENT-SOURCE methods and projected focused 4/4,
+graph owner 178/178, surface owner 1/1, operand owner 69/69, affected semantic
+1,138/1,138, additional direct-caller modules 17/17, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,031/2,031 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection; it is the sole next
 priority and this plan maintains no competing queue.

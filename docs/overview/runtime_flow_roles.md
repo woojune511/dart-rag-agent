@@ -299,7 +299,7 @@ State-free owner topology:
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, single-report-scope classification, public query/task and generic operand target-year/period-focus policy, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring |
-| `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate concept-conflict, contextual-aggregate preference, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
+| `financial_surface_contracts.py` | operand needles/public segment-label projection, positive/negative surface-term contracts, candidate concept-conflict, contextual-aggregate preference, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
 | `financial_row_surfaces.py` | row/table text matching and parsing, column-candidate and delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
@@ -908,13 +908,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,130/1,130, reconciliation plan 51/51, import 19/19, audit 217, full
   2,023/2,023과 body/caller/48-module/205-edge DAG parity가 통과했다. 인접한
   report-file/local-unit I/O helper는 graph에 남는다.
-- 새 characterize-only inventory는 이미 올바른 surface owner에 있는 정확한
-  3줄 `_operand_segment_label(...)`을 public `operand_segment_label(...)`로
-  이름 수렴시키는 private-API batch를 선택한다. 외부 10/local 3 call은 모두
-  단일 positional argument와 caller `try` depth zero를 유지하며, 기존 import
-  edge만 사용하므로 48-module/205-edge DAG는 그대로 비순환이다. Projected
-  surface-owner public/private는 16/6이고 graph/operand는 9/71과 54/37이다.
-  아직 source/test rename은 없으며 두 statement의 copy/fallback/normalization/
+- 완료된 `cce5700` segment-label API batch는 이미 올바른 surface owner에
+  있던 정확한 3줄 private helper를 public `operand_segment_label(...)`로
+  이름 수렴시켰다. 외부 10/local 3 call은 모두 public API를 사용하며 exact
+  argument, fallback/normalization, laziness, adoption과 stop은 유지됐다.
+  Surface/graph/operand public/private는 16/6, 9/71, 54/37이다. Focused 4/4,
+  graph owner 174/174, surface owner 1/1, operand owner 69/69, semantic
+  1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217, full
+  2,027/2,027과 exact rename/body/caller/48-module/205-edge DAG parity가
+  통과했다.
+- 새 characterize-only inventory는 같은 surface owner의 정확한 4줄
+  `_operand_needles(...)`을 public `operand_needles(...)`로 이름 수렴시키는
+  private-API batch를 선택한다. 외부 20/local 4 call은 모두 단일 positional
+  argument와 caller `try` depth zero를 유지하며, 9개 외부 import 중 graph
+  evidence 하나는 import-only다. 기존 edge만 사용하므로 48-module/205-edge
+  DAG는 그대로 비순환이고 projected surface public/private는 17/5다. 아직
+  source/test rename은 없으며 세 statement의 label/alias 반복 변환·순서·
   failure contract, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
