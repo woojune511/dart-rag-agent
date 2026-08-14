@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             (
@@ -1876,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             (
@@ -2830,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 90))
+        self.assertEqual(graph_counts, (9, 89))
         self.assertEqual(row_counts, (9, 15))
 
         graph_row_imports = {
@@ -3161,7 +3161,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
                 patch.object(financial_graph_helpers, "_candidate_direct_match_strength", side_effect=lambda *_: events.append("strength") or 0.0),
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", side_effect=lambda *_: events.append("numeric") or False),
-                patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
                 patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
@@ -3872,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             (
@@ -4909,14 +4909,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in operand_defs),
                 sum(node.name.startswith("_") for node in operand_defs),
             ),
-            (43, 37),
+            (44, 37),
         )
 
         def imported_names(module_name, imported_module):
@@ -5718,7 +5718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_location_entity_subject_score",
+                "candidate_location_entity_subject_score",
                 return_value=0.0,
             ),
             patch.object(
@@ -6628,8 +6628,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 90))
-        self.assertEqual(current_operand_counts, (43, 37))
+        self.assertEqual(current_graph_counts, (9, 89))
+        self.assertEqual(current_operand_counts, (44, 37))
 
         def imported_names(module_name, imported_module):
             return {
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 90))
+        self.assertEqual(graph_counts, (9, 89))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,7 +9279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 90))
+        self.assertEqual(graph_counts, (9, 89))
         self.assertEqual(owner_counts, (10, 9))
 
         def imported_names(module_name, imported_module):
@@ -10319,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 90))
+        self.assertEqual(graph_counts, (9, 89))
         self.assertEqual(row_counts, (9, 15))
 
         def imported_names(module_name, imported_module):
@@ -12877,7 +12877,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15746,7 +15746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 90),
+                "financial_graph_helpers": (9, 89),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -18718,7 +18718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 90),
+            (9, 89),
         )
         self.assertEqual(
             (
@@ -19141,7 +19141,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
                 patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
-                patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
                 patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value=scope) as scope_owner,
@@ -19174,7 +19174,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
             patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
-            patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+            patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
             patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(
@@ -19706,7 +19706,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 90),
+                "financial_graph_helpers": (9, 89),
                 "financial_surface_contracts": (10, 7),
             },
         )
@@ -20503,7 +20503,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 90),
+                "financial_graph_helpers": (9, 89),
                 "financial_scope_policies": (10, 9),
             },
         )
@@ -20649,7 +20649,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
                 patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
-                patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
                 patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
@@ -20778,6 +20778,873 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
         self.assertEqual(failure_events, ["source", "period"])
         stopped_report.assert_not_called()
+
+    def test_current_source_candidate_location_entity_subject_score_pins_operand_gates_policy_and_scores(self) -> None:
+        owner = financial_operand_resolution
+        subject_score = owner.candidate_location_entity_subject_score
+        events = []
+
+        class Operand(dict):
+            def get(self, key, default=None):
+                events.append(("operand-get", key))
+                return super().get(key, default)
+
+        class CandidateBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("an early operand gate must stop candidate access")
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("an early operand gate must stop policy copy")
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(value.split())
+
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", PolicyBomb()),
+        ):
+            self.assertEqual(
+                subject_score(
+                    CandidateBomb(),
+                    operand=Operand(
+                        unit_family=" amount ",
+                        operation_family=" lookup ",
+                        role=" current_period ",
+                    ),
+                ),
+                0.0,
+            )
+        self.assertEqual(
+            events,
+            [
+                ("operand-get", "unit_family"),
+                ("normalize", " amount "),
+                ("operand-get", "operation_family"),
+                ("normalize", " lookup "),
+                ("operand-get", "role"),
+                ("normalize", " current_period "),
+            ],
+        )
+
+        events.clear()
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", PolicyBomb()),
+        ):
+            self.assertEqual(
+                subject_score(
+                    CandidateBomb(),
+                    operand=Operand(
+                        unit_family=" count ",
+                        operation_family=" Growth_Rate ",
+                        role=" CURRENT_PERIOD ",
+                    ),
+                ),
+                0.0,
+            )
+        self.assertEqual(
+            events,
+            [
+                ("operand-get", "unit_family"),
+                ("normalize", " count "),
+                ("operand-get", "operation_family"),
+                ("normalize", " Growth_Rate "),
+                ("operand-get", "role"),
+                ("normalize", " CURRENT_PERIOD "),
+            ],
+        )
+
+        policy_events = []
+
+        class PolicyMapping:
+            def __init__(self, values):
+                self.values = values
+
+            def keys(self):
+                policy_events.append("keys")
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                policy_events.append(("policy-item", key))
+                return self.values[key]
+
+        class PolicyValue:
+            def __init__(self, label, value, truth=True):
+                self.label = label
+                self.value = value
+                self.truth = truth
+
+            def __bool__(self):
+                policy_events.append(("policy-bool", self.label))
+                return self.truth
+
+            def __str__(self):
+                policy_events.append(("policy-str", self.label))
+                return self.value
+
+        blank_pattern_policy = PolicyMapping(
+            {
+                "location_entity_subject_pattern": PolicyValue(
+                    "subject-pattern", "unused", truth=False
+                ),
+                "location_entity_temporal_subject_pattern": PolicyValue(
+                    "temporal-pattern", "temporal"
+                ),
+            }
+        )
+        with patch.object(
+            owner,
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            blank_pattern_policy,
+        ):
+            self.assertEqual(
+                subject_score(
+                    CandidateBomb(),
+                    operand={
+                        "unit_family": "COUNT",
+                        "operation_family": "unsupported",
+                        "role": "current_period",
+                    },
+                ),
+                0.0,
+            )
+        self.assertLess(
+            policy_events.index(("policy-bool", "subject-pattern")),
+            policy_events.index(("policy-bool", "temporal-pattern")),
+        )
+        self.assertIn(("policy-str", "temporal-pattern"), policy_events)
+
+        nested = {"preserve": True}
+        policy = {
+            "location_entity_subject_pattern": r"at(?P<subject>[A-Za-z0-9]+)is",
+            "location_entity_temporal_subject_pattern": r"^20\d{2}$",
+            "location_entity_subject_bonus": 2.0,
+            "location_entity_context_penalty": -1.0,
+            "nested": nested,
+        }
+        candidate = {
+            "metadata": {"row_text": " at Company is ", "nested": nested},
+            "nested": nested,
+        }
+        operand = {
+            "unit_family": " count ",
+            "operation_family": "lookup",
+            "role": "",
+            "nested": nested,
+        }
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_policy = deepcopy(policy)
+        with patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy):
+            self.assertEqual(subject_score(candidate, operand=operand), 2.0)
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "at 2024 is"}},
+                    operand=operand,
+                ),
+                -1.0,
+            )
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "no subject here"}},
+                    operand=operand,
+                ),
+                0.0,
+            )
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "at Company is"}},
+                    operand={
+                        "unit_family": "COUNT",
+                        "operation_family": "unsupported",
+                        "role": "prior_period",
+                    },
+                ),
+                2.0,
+            )
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(policy, before_policy)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(policy["nested"], nested)
+
+        self.assertEqual(
+            subject_score(
+                {"metadata": {"row_text": "서울에서회사는 근무한다"}},
+                operand={"unit_family": "COUNT", "operation_family": "lookup"},
+            ),
+            2.0,
+        )
+        self.assertEqual(
+            subject_score(
+                {"metadata": {"row_text": "서울에서2024년은 기준연도다"}},
+                operand={"unit_family": "COUNT", "operation_family": "lookup"},
+            ),
+            -1.0,
+        )
+
+    def test_current_source_candidate_location_entity_subject_score_pins_surface_order_match_classification_and_laziness(self) -> None:
+        owner = financial_operand_resolution
+        subject_score = owner.candidate_location_entity_subject_score
+        events = []
+
+        class Surface:
+            def __init__(self, label, value):
+                self.label = label
+                self.value = value
+
+            def __bool__(self):
+                events.append(("surface-bool", self.label))
+                return True
+
+            def __str__(self):
+                events.append(("surface-str", self.label))
+                return self.value
+
+        class Candidate(dict):
+            def get(self, key, default=None):
+                events.append(("candidate-get", key))
+                return super().get(key, default)
+
+        class SubjectMapping(dict):
+            def __init__(self, label, subject):
+                super().__init__(subject=subject)
+                self.label = label
+
+            def get(self, key, default=None):
+                events.append(("group-get", self.label, key))
+                return super().get(key, default)
+
+        class Match:
+            def __init__(self, label, subject, fail=False):
+                self.label = label
+                self.subject = subject
+                self.fail = fail
+
+            def groupdict(self):
+                events.append(("groupdict", self.label))
+                if self.fail:
+                    raise RuntimeError("groupdict failed")
+                return SubjectMapping(self.label, self.subject)
+
+        class RegexProbe:
+            def __init__(self, subjects, *, sub_error=None, find_error=None, search_error=None):
+                self.subjects = subjects
+                self.sub_error = sub_error
+                self.find_error = find_error
+                self.search_error = search_error
+
+            def sub(self, pattern, replacement, text):
+                events.append(("re-sub", pattern, replacement, text))
+                if self.sub_error:
+                    raise self.sub_error
+                return "compact"
+
+            def finditer(self, pattern, compact):
+                events.append(("re-finditer", pattern, compact))
+                if self.find_error:
+                    raise self.find_error
+
+                def matches():
+                    events.append("match-iteration-start")
+                    for index, subject in enumerate(self.subjects):
+                        events.append(("match-yield", index))
+                        if isinstance(subject, Match):
+                            yield subject
+                        else:
+                            yield Match(index, subject)
+                    events.append("match-iteration-end")
+
+                return matches()
+
+            def search(self, pattern, subject):
+                events.append(("re-search", pattern, subject))
+                if self.search_error:
+                    raise self.search_error
+                return subject == "2024"
+
+        class NumericValue:
+            def __init__(self, label, value, error=None):
+                self.label = label
+                self.value = value
+                self.error = error
+
+            def __bool__(self):
+                events.append(("score-bool", self.label))
+                return True
+
+            def __float__(self):
+                events.append(("score-float", self.label))
+                if self.error:
+                    raise self.error
+                return self.value
+
+        nested = {"preserve": True}
+        candidate = Candidate(
+            metadata={
+                "row_text": Surface("row-text", "row"),
+                "semantic_label": Surface("semantic-label", "semantic"),
+                "row_label": Surface("row-label", "label"),
+                "table_context": Surface("table-context", "context"),
+                "nested": nested,
+            },
+            text=Surface("candidate-text", "text"),
+            nested=nested,
+        )
+        policy = {
+            "location_entity_subject_pattern": "subject-pattern",
+            "location_entity_temporal_subject_pattern": "temporal-pattern",
+            "location_entity_subject_bonus": NumericValue("bonus", 2.5),
+            "location_entity_context_penalty": NumericValue("penalty", -1.5),
+            "nested": nested,
+        }
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(value.split())
+
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy),
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(owner, "re", RegexProbe(["2024", "Company", "ignored"])),
+        ):
+            self.assertEqual(
+                subject_score(
+                    candidate,
+                    operand={
+                        "unit_family": "COUNT",
+                        "operation_family": "lookup",
+                        "role": "",
+                    },
+                ),
+                2.5,
+            )
+
+        self.assertLess(
+            events.index(("candidate-get", "text")),
+            events.index(("surface-bool", "row-text")),
+        )
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "surface-bool"],
+            [
+                ("surface-bool", "row-text"),
+                ("surface-bool", "row-text"),
+                ("surface-bool", "semantic-label"),
+                ("surface-bool", "semantic-label"),
+                ("surface-bool", "row-label"),
+                ("surface-bool", "row-label"),
+                ("surface-bool", "table-context"),
+                ("surface-bool", "table-context"),
+                ("surface-bool", "candidate-text"),
+                ("surface-bool", "candidate-text"),
+            ],
+        )
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "surface-str"],
+            [
+                ("surface-str", "row-text"),
+                ("surface-str", "row-text"),
+                ("surface-str", "semantic-label"),
+                ("surface-str", "semantic-label"),
+                ("surface-str", "row-label"),
+                ("surface-str", "row-label"),
+                ("surface-str", "table-context"),
+                ("surface-str", "table-context"),
+                ("surface-str", "candidate-text"),
+                ("surface-str", "candidate-text"),
+            ],
+        )
+        self.assertLess(events.index(("match-yield", 2)), events.index(("groupdict", 0)))
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "groupdict"],
+            [("groupdict", 0), ("groupdict", 1)],
+        )
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "re-search"],
+            [
+                ("re-search", "temporal-pattern", "2024"),
+                ("re-search", "temporal-pattern", "Company"),
+            ],
+        )
+        self.assertIn(("score-float", "bonus"), events)
+        self.assertNotIn(("score-bool", "penalty"), events)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(policy["nested"], nested)
+
+        events.clear()
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy),
+            patch.object(owner, "re", RegexProbe(["", "2024"])),
+        ):
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "present"}},
+                    operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                ),
+                -1.5,
+            )
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] == "re-search"],
+            [("re-search", "temporal-pattern", "2024")],
+        )
+        self.assertIn(("score-float", "penalty"), events)
+        self.assertNotIn(("score-bool", "bonus"), events)
+
+        fallback_policy = dict(policy)
+        fallback_policy["location_entity_subject_bonus"] = object()
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", fallback_policy),
+            patch.object(owner, "re", RegexProbe(["Company"])),
+        ):
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "present"}},
+                    operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                ),
+                0.0,
+            )
+        fallback_policy["location_entity_subject_bonus"] = "not-a-number"
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", fallback_policy),
+            patch.object(owner, "re", RegexProbe(["Company"])),
+        ):
+            self.assertEqual(
+                subject_score(
+                    {"metadata": {"row_text": "present"}},
+                    operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                ),
+                0.0,
+            )
+
+        failing_policy = dict(policy)
+        failing_policy["location_entity_subject_bonus"] = NumericValue(
+            "bonus", 0.0, RuntimeError("score conversion failed")
+        )
+        with (
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", failing_policy),
+            patch.object(owner, "re", RegexProbe(["Company"])),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "score conversion failed"):
+                subject_score(
+                    {"metadata": {"row_text": "present"}},
+                    operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                )
+
+        class MappingBomb:
+            def keys(self):
+                raise RuntimeError("metadata copy failed")
+
+        with patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                subject_score(
+                    {"metadata": MappingBomb()},
+                    operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                )
+
+        for regex_probe, message in (
+            (RegexProbe([], sub_error=RuntimeError("sub failed")), "sub failed"),
+            (RegexProbe([], find_error=RuntimeError("find failed")), "find failed"),
+            (RegexProbe([Match("bad", "Company", fail=True)]), "groupdict failed"),
+            (RegexProbe(["Company"], search_error=RuntimeError("search failed")), "search failed"),
+        ):
+            with (
+                patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy),
+                patch.object(owner, "re", regex_probe),
+            ):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    subject_score(
+                        {"metadata": {"row_text": "present"}},
+                        operand={"unit_family": "COUNT", "operation_family": "lookup"},
+                    )
+
+    def test_current_source_candidate_location_entity_subject_score_bindings_pin_def_call_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_operand_resolution": repo_root / "src" / "agent" / "financial_operand_resolution.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "candidate_location_entity_subject_score"
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.augassign_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_AugAssign(self, node):
+                self.augassign_depth += 1
+                self.generic_visit(node)
+                self.augassign_depth -= 1
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                            self.augassign_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(
+            (owner_name, definition.name),
+            ("financial_operand_resolution", target_name),
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 53)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["candidate"])
+        self.assertEqual([arg.arg for arg in definition.args.kwonlyargs], ["operand"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kw_defaults, [None])
+        self.assertEqual(ast.unparse(definition.returns), "float")
+        self.assertEqual(
+            sum(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)),
+            2,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            11,
+        )
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "_normalise_spaces": 4,
+                "_subject_is_temporal": 1,
+                "any": 1,
+                "bool": 1,
+                "dict": 2,
+                "finditer": 1,
+                "float": 2,
+                "get": 14,
+                "groupdict": 1,
+                "join": 1,
+                "list": 1,
+                "search": 1,
+                "str": 8,
+                "strip": 1,
+                "sub": 1,
+                "upper": 1,
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_helpers",
+                    "_score_operand_candidate",
+                    "Name",
+                    ("candidate",),
+                    (("operand", "operand"),),
+                    0,
+                    1,
+                )
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {
+                "financial_graph_helpers": (9, 89),
+                "financial_operand_resolution": (44, 37),
+            },
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertIn(
+            "src.agent.financial_operand_resolution",
+            dependency_graph["src.agent.financial_graph_helpers"],
+        )
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_operand_resolution",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        self.assertIn(
+            "candidate_location_entity_subject_score",
+            imported_names(
+                module_trees["financial_graph_helpers"],
+                "src.agent.financial_operand_resolution",
+            ),
+        )
+
+        score_definition = next(
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef) and node.name == "_score_operand_candidate"
+        )
+        target_index = next(
+            index
+            for index, statement in enumerate(score_definition.body)
+            if isinstance(statement, ast.AugAssign)
+            and target_name in ast.unparse(statement)
+        )
+        self.assertIn("candidate_has_numeric_value_signal", ast.unparse(score_definition.body[target_index - 1]))
+        self.assertIn(target_name, ast.unparse(score_definition.body[target_index]))
+        self.assertIn("candidate_is_descriptor_row", ast.unparse(score_definition.body[target_index + 1]))
+        target_statement = score_definition.body[target_index]
+        self.assertIsInstance(target_statement.target, ast.Name)
+        self.assertEqual(target_statement.target.id, "score")
+        self.assertIsInstance(target_statement.op, ast.Add)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_path = f"src/agent/{module_paths[owner_name].name}"
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == selected_path
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_candidate_location_entity_subject_score_pins_operand_gates_policy_and_scores",
+            "test_current_source_candidate_location_entity_subject_score_pins_surface_order_match_classification_and_laziness",
+            "test_current_source_candidate_location_entity_subject_score_bindings_pin_def_call_dag_imports_and_baseline",
+            "test_current_source_candidate_location_entity_subject_score_caller_pins_order_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_location_entity_subject_score_caller_pins_order_args_adoption_and_stops(self) -> None:
+        target_name = "candidate_location_entity_subject_score"
+        nested = {"preserve": True}
+        candidate = {"candidate_kind": "", "metadata": {"nested": nested}, "nested": nested}
+        operand = {"nested": nested}
+        constraints = {"nested": nested}
+        query_years = [2024]
+        report_scope = {"nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_constraints = deepcopy(constraints)
+        before_report_scope = deepcopy(report_scope)
+
+        def run_score(target_value):
+            events = []
+
+            def numeric_signal(current_candidate):
+                events.append("numeric")
+                self.assertIs(current_candidate, candidate)
+                return True
+
+            def location_score(current_candidate, **kwargs):
+                events.append("location")
+                self.assertIs(current_candidate, candidate)
+                self.assertEqual(tuple(kwargs), ("operand",))
+                self.assertIs(kwargs["operand"], operand)
+                return target_value
+
+            def descriptor(current_candidate):
+                events.append("descriptor")
+                self.assertIs(current_candidate, candidate)
+                return False
+
+            with ExitStack() as stack:
+                for current_patch in (
+                    patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                    patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+                    patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
+                    patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", side_effect=numeric_signal),
+                    patch.object(financial_graph_helpers, target_name, side_effect=location_score),
+                    patch.object(financial_graph_helpers, "candidate_is_descriptor_row", side_effect=descriptor),
+                    patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                    patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                    patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                    patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
+                    patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", return_value=0.0),
+                    patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
+                ):
+                    stack.enter_context(current_patch)
+                score = financial_graph_helpers._score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            return score, events
+
+        score_with_location, events = run_score(4.0)
+        score_without_location, zero_events = run_score(0.0)
+        self.assertEqual(score_with_location - score_without_location, 4.0)
+        self.assertEqual(events, ["numeric", "location", "descriptor"])
+        self.assertEqual(zero_events, ["numeric", "location", "descriptor"])
+
+        failure_events = []
+        stopped_descriptor = Mock(
+            side_effect=AssertionError("location failure must stop descriptor scoring")
+        )
+        stopped_source = Mock(
+            side_effect=AssertionError("location failure must stop later source scoring")
+        )
+
+        def failing_numeric(current_candidate):
+            failure_events.append("numeric")
+            self.assertIs(current_candidate, candidate)
+            return True
+
+        def failing_location(current_candidate, **kwargs):
+            failure_events.append("location")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            raise RuntimeError("location score failed")
+
+        with ExitStack() as stack:
+            for current_patch in (
+                patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", side_effect=failing_numeric),
+                patch.object(financial_graph_helpers, target_name, side_effect=failing_location),
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", stopped_descriptor),
+                patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", stopped_source),
+            ):
+                stack.enter_context(current_patch)
+            with self.assertRaisesRegex(RuntimeError, "location score failed"):
+                financial_graph_helpers._score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+        self.assertEqual(failure_events, ["numeric", "location"])
+        stopped_descriptor.assert_not_called()
+        stopped_source.assert_not_called()
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(constraints, before_constraints)
+        self.assertEqual(report_scope, before_report_scope)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
 
 
 if __name__ == "__main__":

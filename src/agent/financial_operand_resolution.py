@@ -3512,6 +3512,61 @@ def lookup_query_surface_preferences(operand: Dict[str, Any]) -> List[str]:
     ]
 
 
+def candidate_location_entity_subject_score(candidate: Dict[str, Any], *, operand: Dict[str, Any]) -> float:
+    """Prefer count candidates where a location context has an explicit subject."""
+    unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
+    operation_family = _normalise_spaces(str(operand.get("operation_family") or ""))
+    role = _normalise_spaces(str(operand.get("role") or ""))
+    if unit_family and unit_family != "COUNT":
+        return 0.0
+    if operation_family not in {"", "growth_rate", "lookup", "single_value"} and role not in {"current_period", "prior_period"}:
+        return 0.0
+
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    subject_pattern = str(scoring_policy.get("location_entity_subject_pattern") or "")
+    temporal_subject_pattern = str(scoring_policy.get("location_entity_temporal_subject_pattern") or "")
+    if not subject_pattern:
+        return 0.0
+
+    metadata = dict(candidate.get("metadata") or {})
+    text = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                metadata.get("row_text"),
+                metadata.get("semantic_label"),
+                metadata.get("row_label"),
+                metadata.get("table_context"),
+                candidate.get("text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    if not text:
+        return 0.0
+
+    compact = re.sub(r"\s+", "", text)
+    matches = list(re.finditer(subject_pattern, compact))
+    if not matches:
+        return 0.0
+
+    def _subject_is_temporal(subject: str) -> bool:
+        if not subject:
+            return True
+        return bool(temporal_subject_pattern and re.search(temporal_subject_pattern, subject))
+
+    if any(not _subject_is_temporal(str(match.groupdict().get("subject") or "")) for match in matches):
+        try:
+            return float(scoring_policy.get("location_entity_subject_bonus") or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    try:
+        return float(scoring_policy.get("location_entity_context_penalty") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
     surfaces = lookup_query_surface_preferences(operand)
     if not surfaces:
