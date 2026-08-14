@@ -38,7 +38,7 @@ from src.agent.financial_runtime_normalization import (
     _parse_number_text,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
+    operand_needles,
     operand_segment_label,
     _operand_surface_contract,
     _text_has_contract_term,
@@ -1314,7 +1314,7 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     if operand_years and row_years and operand_years.isdisjoint(row_years):
         return True
 
-    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    normalized_needles = [_normalise_spaces(needle) for needle in operand_needles(operand) if _normalise_spaces(needle)]
     expects_liability = any("부채" in needle for needle in normalized_needles)
     authoritative_surfaces = [
         str(row.get("matched_operand_label") or "").strip(),
@@ -2641,9 +2641,9 @@ def score_direct_structured_lookup_evidence(
                 reason="surface_contract_not_satisfied",
             )
 
-    operand_needles = [
+    normalized_operand_needles = [
         _normalise_spaces(str(needle))
-        for needle in _operand_needles(operand)
+        for needle in operand_needles(operand)
         if _normalise_spaces(str(needle))
     ]
 
@@ -2656,7 +2656,7 @@ def score_direct_structured_lookup_evidence(
     semantic_variants = _surface_variants(semantic_label) if semantic_label else set()
     needle_variants = {
         variant
-        for needle in operand_needles
+        for needle in normalized_operand_needles
         for variant in _surface_variants(needle)
         if variant
     }
@@ -3255,7 +3255,7 @@ def collect_retrieval_context_docs(
 def _required_operand_context_terms(required_operands: Sequence[Dict[str, Any]]) -> List[str]:
     terms: List[str] = []
     for operand in required_operands:
-        for needle in _operand_needles(dict(operand)):
+        for needle in operand_needles(dict(operand)):
             normalized = _normalise_spaces(
                 re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle)
             )
@@ -3399,7 +3399,7 @@ def collect_retrieved_operand_evidence_candidates(
                 claim = str(item.get("claim") or "")
                 missing_terms: List[str] = []
                 for binding in missing_dependency_bindings:
-                    missing_terms.extend(_operand_needles(dict(binding)))
+                    missing_terms.extend(operand_needles(dict(binding)))
                     label = _normalise_spaces(str(binding.get("label") or ""))
                     if label:
                         missing_terms.append(label)
@@ -3481,7 +3481,7 @@ def collect_retrieved_operand_evidence_candidates(
         text = str(item.get("claim") or "")
         missing_terms: List[str] = []
         for binding in missing_dependency_bindings:
-            missing_terms.extend(_operand_needles(dict(binding)))
+            missing_terms.extend(operand_needles(dict(binding)))
             label = _normalise_spaces(str(binding.get("label") or ""))
             if label:
                 missing_terms.append(label)
@@ -3820,12 +3820,12 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
         if not normalized_surface:
             continue
         surface_variants = set(_surface_match_variants(normalized_surface))
-        if any(_normalise_spaces(needle) == normalized_surface for needle in _operand_needles(operand)):
+        if any(_normalise_spaces(needle) == normalized_surface for needle in operand_needles(operand)):
             best = max(best, exact_bonus)
             continue
         if any(
             needle_variant in surface_variants
-            for needle in _operand_needles(operand)
+            for needle in operand_needles(operand)
             for needle_variant in _surface_match_variants(needle)
         ):
             best = max(best, exact_bonus)
@@ -3929,7 +3929,7 @@ def score_operand_candidate(
         row_label_variants = set(_surface_match_variants(row_label))
         if any(
             needle_variant in row_label_variants
-            for needle in _operand_needles(operand)
+            for needle in operand_needles(operand)
             for needle_variant in _surface_match_variants(needle)
         ):
             score += 3.0
@@ -4091,7 +4091,7 @@ def score_operand_candidate(
         if any(token in related_party_context for token in related_party_terms):
             score -= 3.0
         stripped_row_label = _strip_financial_label_annotations(row_label)
-        stripped_needles = {_strip_financial_label_annotations(needle) for needle in _operand_needles(operand)}
+        stripped_needles = {_strip_financial_label_annotations(needle) for needle in operand_needles(operand)}
         generic_suffix_terms = tuple(str(item) for item in (scoring_policy.get("generic_suffix_penalty_terms") or ()) if str(item))
         if stripped_row_label and any(token in stripped_row_label for token in generic_suffix_terms) and stripped_row_label not in stripped_needles:
             score -= 1.5

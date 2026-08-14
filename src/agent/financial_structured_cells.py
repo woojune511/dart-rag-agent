@@ -12,7 +12,7 @@ from src.agent.financial_row_surfaces import (
 )
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_target_years
-from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_surface_contracts import operand_needles
 from src.config.retrieval_policy import (
     GENERIC_PERIOD_OPERAND_POLICY,
     PERIOD_FOCUS_POLICY,
@@ -186,7 +186,7 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
     generic_headers = _generic_column_headers()
     non_generic_headers = [header for header in headers if header not in generic_headers]
     last_header = non_generic_headers[-1] if non_generic_headers else headers[-1]
-    needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    needles = [_normalise_spaces(needle) for needle in operand_needles(operand) if _normalise_spaces(needle)]
     if not needles:
         return 0.0
 

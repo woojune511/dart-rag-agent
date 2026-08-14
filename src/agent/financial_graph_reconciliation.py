@@ -62,7 +62,7 @@ from src.agent.financial_retrieval_hints import (
     _preferred_calc_sections,
     _supplement_section_terms_for_query,
 )
-from src.agent.financial_surface_contracts import candidate_is_descriptor_row, _operand_needles
+from src.agent.financial_surface_contracts import candidate_is_descriptor_row, operand_needles
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
     _parse_unstructured_table_row_cells,
@@ -1015,7 +1015,7 @@ class FinancialAgentReconciliationMixin:
         active_operand_needles = [
             _normalise_spaces(needle)
             for operand in (active_subtask.get("required_operands") or [])
-            for needle in _operand_needles(dict(operand))
+            for needle in operand_needles(dict(operand))
             if _normalise_spaces(needle)
         ]
         active_operand_needles.extend(

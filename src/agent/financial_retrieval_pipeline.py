@@ -40,7 +40,7 @@ from src.agent.financial_scope_policies import (
     _should_apply_strict_company_scope,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
+    operand_needles,
     _text_has_negative_surface,
     _text_has_positive_surface,
 )
@@ -189,7 +189,7 @@ def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], 
 
 def _operand_context_surface_variants(operand: Dict[str, Any]) -> List[str]:
     variants: List[str] = []
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
         if not normalized:
             continue
@@ -333,7 +333,7 @@ def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> 
     period_prefix_pattern = str(assembly_policy.get("lookup_surface_period_prefix_pattern") or "")
     year_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("year_pattern") or "")
     compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         needle = _normalise_spaces(needle)
         if period_prefix_pattern:
             needle = re.sub(period_prefix_pattern, "", needle)
@@ -1016,7 +1016,7 @@ class FinancialRetrievalPipelineMixin:
         operand_needles_by_role = [
             [
                 _normalise_spaces(str(needle))
-                for needle in _operand_needles(operand)
+                for needle in operand_needles(operand)
                 if _normalise_spaces(str(needle))
             ]
             for operand in required_operands

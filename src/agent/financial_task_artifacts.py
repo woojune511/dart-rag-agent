@@ -16,7 +16,7 @@ from src.agent.financial_artifact_contracts import (
 )
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_row_surfaces import _operand_text_match
-from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_surface_contracts import operand_needles
 from src.schema.runtime_enums import ArtifactKind, TaskKind, TaskStatus
 
 if TYPE_CHECKING:
@@ -236,7 +236,7 @@ def _artifact_text_matches_operand_surface(text: str, operand: Dict[str, Any]) -
     if _operand_text_match(normalized_text, operand):
         return True
     compact_text = re.sub(r"\s+", "", normalized_text)
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         normalized_needle = _normalise_spaces(str(needle or ""))
         if not normalized_needle:
             continue

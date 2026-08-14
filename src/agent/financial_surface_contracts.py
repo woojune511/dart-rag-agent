@@ -17,7 +17,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _operand_needles(operand: Dict[str, Any]) -> List[str]:
+def operand_needles(operand: Dict[str, Any]) -> List[str]:
     label = str(operand.get("label") or "").strip()
     aliases = [str(item).strip() for item in (operand.get("aliases") or []) if str(item).strip()]
     return [needle for needle in [label, *aliases] if needle]
@@ -102,7 +102,7 @@ def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
     if concept_key and concept_key in legacy_contracts:
         return dict(legacy_contracts[concept_key])
 
-    needles = " ".join(_operand_needles(operand))
+    needles = " ".join(operand_needles(operand))
     for contract in legacy_contracts.values():
         positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
         if any(_normalise_spaces(term) in _normalise_spaces(needles) for term in positive_terms):
@@ -136,7 +136,7 @@ def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
 
 
 def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
+    normalized_needles = [_normalise_spaces(needle) for needle in operand_needles(operand) if _normalise_spaces(needle)]
     expects_exclusive_marker = any(CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER in needle for needle in normalized_needles)
 
     metadata = dict(candidate.get("metadata") or {})
@@ -165,7 +165,7 @@ def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand:
 
 
 def is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
-    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in operand_needles(operand)}
     needles.discard("")
     aggregate_labels = set(
         re.sub(r"\s+", "", _normalise_spaces(str(item)))
@@ -179,7 +179,7 @@ def is_capex_total_operand(operand: Dict[str, Any]) -> bool:
     concept = str(operand.get("concept") or "").strip()
     if concept == CAPEX_TOTAL_CONCEPT_KEY:
         return True
-    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in operand_needles(operand)}
     needles.discard("")
     scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
     capex_surfaces = {

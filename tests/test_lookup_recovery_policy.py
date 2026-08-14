@@ -2499,7 +2499,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with (
             patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
-            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "operand_needles", return_value=[]),
             patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
             patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", side_effect=unit_gate),
         ):
@@ -2536,7 +2536,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         no_surface = {"label": "Only metric"}
         with (
             patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
-            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "operand_needles", return_value=[]),
             patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
             patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", return_value=True),
         ):
@@ -2557,7 +2557,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with (
             patch.object(financial_lookup_recovery, "_MONEY_SURFACE_RE", money_pattern),
-            patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]),
+            patch.object(financial_lookup_recovery, "operand_needles", return_value=[]),
             patch.object(financial_lookup_recovery, "_money_match_to_slot_values", side_effect=convert),
             patch.object(financial_lookup_recovery, "_slot_values_match_operand_unit", return_value=False),
         ):
@@ -2572,7 +2572,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with patch.object(
             financial_lookup_recovery,
-            "_operand_needles",
+            "operand_needles",
             side_effect=RuntimeError("surface projection failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "surface projection failed"):
@@ -2747,7 +2747,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         doc_texts = [doc.page_content for doc in docs]
         metadata_copies = [dict(doc.metadata) for doc in docs]
 
-        with patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]):
+        with patch.object(financial_lookup_recovery, "operand_needles", return_value=[]):
             evidence = financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
                 active_subtask=task,
                 slot=slot,
@@ -2767,7 +2767,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         compact_slot = {"raw_value": "1,234", "rendered_value": "", "label": "Revenue"}
         compact_doc = Doc("Revenue 1234", {"source_anchor": "compact"})
-        with patch.object(financial_lookup_recovery, "_operand_needles", return_value=[]):
+        with patch.object(financial_lookup_recovery, "operand_needles", return_value=[]):
             compact = financial_lookup_recovery.lookup_slot_supporting_doc_evidence(
                 active_subtask={"task_id": "task2"},
                 slot=compact_slot,
@@ -2966,7 +2966,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             if isinstance(node, ast.ImportFrom)
             for alias in node.names
         }
-        for name in ("_normalise_operand_value", "_operand_needles", "NUMERIC_UNIT_NORMALIZATION_POLICY"):
+        for name in ("_normalise_operand_value", "operand_needles", "NUMERIC_UNIT_NORMALIZATION_POLICY"):
             self.assertNotIn(name, planning_imports)
         for name in ("re", "PLANNING_POLICY", "answer_slot_has_material", "_validate_answer_slots_payload", "_normalise_spaces"):
             outside = [

@@ -280,7 +280,7 @@ from src.agent.financial_reflection_projection import (
     task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
+    operand_needles,
     operand_segment_label,
     _text_has_negative_surface,
     _text_has_positive_surface,
@@ -1563,7 +1563,7 @@ class FinancialAgentCalculationMixin:
                 source_compact = re.sub(r"\s+", "", source_text)
                 needle_surfaces = [
                     _normalise_spaces(str(needle))
-                    for needle in _operand_needles(operand)
+                    for needle in operand_needles(operand)
                     if _normalise_spaces(str(needle))
                 ]
                 claim_has_operand_label = any(

@@ -441,7 +441,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             side_effect=operand_match,
         ), patch.object(
             financial_task_artifacts,
-            "_operand_needles",
+            "operand_needles",
             side_effect=operand_needles,
         ), patch.object(
             financial_task_artifacts.re,
@@ -489,7 +489,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                     return_value=False,
                 ), patch.object(
                     financial_task_artifacts,
-                    "_operand_needles",
+                    "operand_needles",
                     return_value=needles,
                 ):
                     self.assertEqual(
@@ -529,7 +529,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             side_effect=RuntimeError("compact failed"),
         ), patch.object(
             financial_task_artifacts,
-            "_operand_needles",
+            "operand_needles",
             side_effect=AssertionError("needles must stay lazy"),
         ):
             with self.assertRaisesRegex(RuntimeError, "compact failed"):
@@ -540,7 +540,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_task_artifacts,
-            "_operand_needles",
+            "operand_needles",
             side_effect=RuntimeError("needles failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "needles failed"):

@@ -21,7 +21,7 @@ from src.agent.financial_structured_cells import (
     select_aggregate_structured_cell,
     select_structured_cell,
 )
-from src.agent.financial_surface_contracts import _operand_needles, _text_has_positive_surface
+from src.agent.financial_surface_contracts import operand_needles, _text_has_positive_surface
 from src.config.retrieval_policy import NUMERIC_UNIT_NORMALIZATION_POLICY, PLANNING_POLICY
 
 
@@ -189,7 +189,7 @@ def _extract_lookup_slot_from_answer_text(
         _normalise_spaces(str(surface))
         for surface in [
             *(surface_contract.get("positive") or []),
-            *_operand_needles(operand),
+            *operand_needles(operand),
         ]
         if _normalise_spaces(str(surface))
     ]
@@ -361,7 +361,7 @@ def lookup_slot_supporting_doc_evidence(
         _normalise_spaces(str(surface))
         for surface in [
             *(surface_contract.get("positive") or []),
-            *_operand_needles(operand),
+            *operand_needles(operand),
             str(slot.get("label") or ""),
         ]
         if _normalise_spaces(str(surface))

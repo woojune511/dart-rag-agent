@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
+    operand_needles,
     operand_segment_label,
     _text_has_positive_surface,
     candidate_matches_segment_binding,
@@ -75,7 +75,7 @@ def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
         return False
     for haystack in haystack_variants:
         haystack_compact = re.sub(r"\s+", "", haystack)
-        for needle in _operand_needles(operand):
+        for needle in operand_needles(operand):
             for normalized_needle in _surface_match_variants(needle):
                 needle_compact = re.sub(r"\s+", "", normalized_needle)
                 if (
@@ -227,7 +227,7 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         compact = re.sub(r"\s+", "", _normalise_spaces(needle))
         if not compact:
             continue
