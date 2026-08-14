@@ -162,6 +162,17 @@ def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand:
     return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
 
 
+def is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles.discard("")
+    aggregate_labels = set(
+        re.sub(r"\s+", "", _normalise_spaces(str(item)))
+        for item in (HELPER_RUNTIME_POLICY.get("balance_sheet_aggregate_labels") or ())
+        if str(item)
+    )
+    return any(needle in aggregate_labels for needle in needles)
+
+
 def operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
     binding_policy = dict(operand.get("binding_policy") or {})
     preferred_value_roles = [

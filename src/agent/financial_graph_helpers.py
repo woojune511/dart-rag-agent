@@ -82,6 +82,7 @@ from src.agent.financial_surface_contracts import (
     candidate_matches_segment_binding,
     candidate_segment_binding_bonus,
     candidate_selected_unit_family,
+    is_balance_sheet_aggregate_operand,
     operand_prefers_contextual_aggregate_match,
 )
 from src.agent.financial_row_surfaces import (
@@ -3966,17 +3967,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
-    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
-    needles.discard("")
-    aggregate_labels = set(
-        re.sub(r"\s+", "", _normalise_spaces(str(item)))
-        for item in (HELPER_RUNTIME_POLICY.get("balance_sheet_aggregate_labels") or ())
-        if str(item)
-    )
-    return any(needle in aggregate_labels for needle in needles)
-
-
 def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
     concept = str(operand.get("concept") or "").strip()
     if concept == "capital_expenditure_total":
@@ -4028,7 +4018,7 @@ def _candidate_source_priority_bonus(
 ) -> float:
     score = 0.0
 
-    if _is_balance_sheet_aggregate_operand(operand):
+    if is_balance_sheet_aggregate_operand(operand):
         if statement_type in {"summary_financials", "balance_sheet"}:
             score += 3.0
             if value_role == "aggregate":
@@ -4314,7 +4304,7 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
         if canonical_sections and (local_heading or section_path) and not canonical_section_hit and not canonical_statement_type_hit:
             return False
-    if _is_balance_sheet_aggregate_operand(operand):
+    if is_balance_sheet_aggregate_operand(operand):
         if statement_type == "notes" and value_role == "detail":
             return False
     if _is_capex_total_operand(operand):
