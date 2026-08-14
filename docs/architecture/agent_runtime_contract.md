@@ -4887,59 +4887,67 @@ full 2,019/2,019, plus pycompile, fresh identity, selected-body and retained-
 function parity, all five calls/three modules, retired-ref zero, non-ASCII
 preservation, and diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active operand-candidate scoring contract is characterized for the next
-bounded owner batch. Move only the current exact 315-line
-`_score_operand_candidate(candidate, *, operand, preferred_statement_types,
-constraints, query_years, report_scope=None)` graph definition without a graph
-alias to public `financial_operand_resolution.score_operand_candidate(...)`.
-It computes one deterministic score for an already prepared candidate;
-candidate/cell construction, collection sorting, winner selection, acceptance,
-fallback/adoption, evidence, graph state, report-file/local-unit I/O, model
-calls, artifacts/ledger, retry, and final sequencing remain outside. The
-adjacent `_resolve_candidate_local_unit_hint(...)` is not a dependency and must
-not move with it.
+Commit `3d6986e` completed the operand-candidate scoring owner contract. Public
+`financial_operand_resolution.score_operand_candidate(candidate, *, operand,
+preferred_statement_types, constraints, query_years, report_scope=None)` owns
+the exact former 315-line graph scorer. Its 62-statement/two-return/two-`try`
+body is unchanged except that the relocated body resolves the same-owner
+aggregate-role helper by its public name. No graph alias or bridge exists.
 
-Preserve the exact 62-statement body, two returns, one required positional
-candidate, four required and one optional keyword-only inputs, and `float`
-annotation. Shallow-copy metadata before the concept-conflict helper and exact
-`-10.0` early result. On the surviving path, keep row-label exact/generic
-matching, the first direct-strength addition, kind weights, the second
-structured-kind-only direct-strength call, structured-cell numeric counting,
-direct-table-row bonus, value-role/stage and aggregate-signal work, the first
-normalized/lower-cased preference collections, and their two ordered guarded
-additions.
+The shallow metadata copy and exact `-10.0` concept-conflict result, row/direct/
+kind/cell/value-role/stage/statement/canonical/consolidation/period/segment/
+source/report scoring order, repeated normalizations and helper calls, exact
+identities, nested identities, input immutability, and all other uncaught
+failures remain normative. Each of the two `try` nodes still catches only
+`ValueError` from one full guarded preferred-list
+`score += max(... .index(...) ...)` expression; no exception boundary grew.
 
-Each of the scorer's two `try` nodes catches `ValueError` from one complete
-`score += max(... preferred-list.index(...) ...)` statement. The membership
-guard remains outside, while `.index(...)`, multiplication, subtraction, `max`,
-and score addition all remain inside; a `ValueError` from any of them is
-swallowed and every other exception propagates. Then preserve numeric and
-location/entity bonuses, descriptor penalty, caller/operand statement
-preference, canonical-row/context/related-party/generic-suffix policy,
-consolidation and period focus, segment binding, current/prior target-year
-fallback, the separately rebuilt role/stage preference and avoidance
-collections, source priority, metadata-period, period/table, report-scope, and
-final table-source scoring in exact order. Repeated normalization and helper
-calls, all short circuits, exact identities, shallow copies, nested identities,
-input immutability, and every other uncaught failure are normative.
+All seven calls across graph helpers, reconciliation, period-pair projection,
+and ontology-shadow diagnostics bind the public owner at caller `try` depth
+zero. The diagnostic still omits report scope. Exact arguments, sorting, key/
+tuple assembly, score storage, pair selection, fallback, candidate/evidence
+adoption, and exception stops remain caller-owned. The adjacent report-file/
+local-unit I/O helper remains graph-owned and is not a scorer dependency.
 
-The destination adds five names to existing row/surface/scope imports, so no
-module edge is added. Static simulation keeps the full DAG acyclic and unchanged
-at 48 modules/205 edges; current/projected counts are graph 9/72 to 9/71 and
-operand resolution 53/37 to 54/37, and the selected span has zero of 217
-reviewed records.
+Final counts are graph 9/71 and operand resolution 54/37; the full DAG remains
+unchanged and acyclic at 48 modules/205 edges. Executed gates are focused 4/4,
+graph owner 170/170, operand owner 69/69, affected semantic 1,130/1,130,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,023/2,023, plus
+pycompile, public identity 4/4, helper-name-normalized selected-body parity,
+retained-function/caller parity, retired-ref zero, non-ASCII preservation, and
+diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-Seven direct calls across graph helpers, reconciliation, period-pair projection,
-and ontology-shadow diagnostics remain at caller `try` depth zero. They preserve
-exact candidate/operand/statement/constraint/year/report-scope inputs; the
-diagnostic call deliberately omits report scope. Sorting, key/tuple assembly,
-score storage, pair selection, fallback, adoption, and exception stops remain
-caller-owned. The four required CURRENT-SOURCE methods and projected focused
-4/4, graph owner 170/170, operand owner 69/69, affected semantic 1,130/1,130,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,023/2,023 gates
-are governed only by
+The next private-API contract is the exact current 3-line
+`financial_surface_contracts._operand_segment_label(operand: Dict[str, Any]) -> str`
+definition. It already belongs to the surface-contract owner; the authorized
+future batch only renames it in place to public `operand_segment_label(...)`
+and updates every caller without a private alias.
+
+Preserve the exact two statements and one return. Evaluate operand
+`get("binding_policy")` once, retain raw truth/fallback, and shallow-copy the
+selected mapping with `dict(...)`. Evaluate copied-policy `get("segment_label")`
+once, retain raw truth/fallback, call `str(...)` once, call
+`_normalise_spaces(...)` once, and return that exact result. Input and nested
+policy remain unmodified. Mapping/get/truth/copy/string/normalization failures
+remain uncaught and ordered.
+
+All thirteen direct source calls use one positional argument, no keywords, and
+caller `try` depth zero. Ten calls in graph calculation, graph helpers, operand
+resolution, and row surfaces import the owner; three calls are owner-local.
+Row refinement, retrieval query construction, task binding projection,
+deterministic reconciliation, required-surface fallback, canonical-row stop,
+segment-local/combo gates, scoped affinity, segment matching, and segment bonus
+keep exact arguments, laziness, fallback, later work, and exception stops.
+
+No module edge changes, so the full DAG remains acyclic at 48 modules/205 edges.
+Projected counts are surface contracts 15/7 to 16/6, with graph 9/71 and operand
+resolution 54/37 unchanged; the selected span has zero of 217 reviewed records.
+The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
+174/174, surface owner 1/1, operand owner 69/69, affected semantic
+1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217, and full
+2,027/2,027 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this scorer projection.
+or test rename has occurred for this helper projection.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

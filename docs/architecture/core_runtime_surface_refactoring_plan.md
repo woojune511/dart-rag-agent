@@ -191,7 +191,7 @@ Current ownership is intentionally split by state boundary:
 | Surface | Owner | Stop line |
 | --- | --- | --- |
 | Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
-| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution and direct/ratio acceptance, lookup-hint projection/matching, candidate location/entity subject scoring, deterministic positional preference scoring, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution and complete deterministic candidate scoring, direct/ratio acceptance, lookup-hint projection/matching, candidate location/entity subject scoring, deterministic positional preference scoring, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
@@ -216,8 +216,9 @@ operand append and surface-operand projection. Candidate report/period scope,
 single-report-scope classification,
 surface/segment contracts, delta-like row-label classification, local aggregate
 context, consolidation scope,
-binding-shape admission, selected-unit-family projection, and deterministic
-positional preference scoring are also owner-held.
+binding-shape admission, selected-unit-family projection, deterministic
+positional preference scoring, and complete operand-candidate scoring are also
+owner-held.
 Current
 validation and benchmark
 status belong only in
@@ -1226,36 +1227,47 @@ passed. The source diff SHA-256 is
 `2ed5b13b639fec8480de6594151a6fe63abdc9af776296d33d4e1614a9d51cc6`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one possible follow-on: move only
-the current exact 315-line `_score_operand_candidate(...)` definition from graph
-helpers to public `score_operand_candidate(...)` in operand resolution. It owns
-a deterministic score for one already prepared candidate, not candidate/cell
-construction, collection sorting, winner selection, acceptance, fallback/
-adoption, evidence, graph state, report-file/local-unit I/O, model calls,
-artifacts/ledger, retry, or final sequencing. The adjacent 43-line local-unit
-lookup remains a graph-owned hard stop and is not called by the scorer.
+The completed `3d6986e` follow-on moved the exact former 315-line operand-
+candidate scorer from graph helpers to public `score_operand_candidate(...)`
+in operand resolution. Its 62-statement/two-return/two-`try` body is unchanged
+except for the same-owner public helper spelling. The metadata-copy/conflict
+gate, complete ordered score pipeline, two narrow `ValueError` boundaries,
+repeated calls, exact identities, shallow copies, immutability, and uncaught
+failures are pinned by four CURRENT-SOURCE methods. No graph alias was added,
+and the adjacent report-file/local-unit I/O helper remained graph-owned.
 
-Preserve all 62 top-level statements, two returns, and two `try` nodes that each
-catch only `ValueError` from one full preferred-list
-`score += max(... .index(...) ...)` expression. The
-metadata-copy/concept-conflict gate, row/direct/kind/cell/value-role/stage/
-statement/canonical/consolidation/period/segment/source/report score order,
-repeated calls and collection materialization, exact identities, shallow copies,
-immutability, and every other uncaught failure remain unchanged.
+All seven calls across graph helpers, reconciliation, period-pair projection,
+and ontology-shadow diagnostics now bind the public owner while exact inputs,
+sorting/key construction, pair selection, fallback/adoption, evidence work, and
+exception stops remain caller-owned. Production source is `+338/-356`, tests
+are `+1,542/-364`, and the whole commit is `+1,880/-720`; graph helpers move
+from 4,634 to 4,294 lines and operand resolution from 4,494 to 4,816. Focused
+4/4, graph owner 170/170, operand owner 69/69, affected semantic 1,130/1,130,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,023/2,023,
+pycompile/fresh identity, body/retained/caller parity, unchanged acyclic
+48-module/205-edge DAG parity, retired private refs zero, non-ASCII preservation,
+and diff check passed. The source diff SHA-256 is
+`2e681d92116eb7b6c213dc505ba61bddbb0aafe65b86eacf917bf4c28d594650`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-The future owner needs five names on its existing row/surface/scope edges, so
-the full DAG remains acyclic and unchanged at 48 modules/205 edges. Current/
-projected counts are graph helpers 9/72 to 9/71 and operand resolution 53/37 to
-54/37. Seven calls across graph helpers, reconciliation, period-pair projection,
-and ontology-shadow diagnostics retain their exact arguments, ranking/adoption,
-and exception stops. The selected span contains zero of 217 reviewed runtime-
-domain records.
+The new characterize-only inventory selects the smaller private-API seam already
+in its correct owner: rename the exact 3-line
+`financial_surface_contracts._operand_segment_label(...)` in place to public
+`operand_segment_label(...)`, with no wrapper or alias. Preserve its two-
+statement get/truth/shallow-copy/get/truth/string/normalization pipeline,
+immutability, exact result, and uncaught failures.
 
-Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-170/170, operand owner 69/69, affected semantic 1,130/1,130, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,023/2,023 gates are defined only in
+Thirteen one-positional-argument calls across five source modules remain at
+caller `try` depth zero; external/local calls are 10/3. The four external
+modules already import the surface owner, so the full DAG remains unchanged and
+acyclic at 48 modules/205 edges. Projected surface-owner counts are 15/7 to
+16/6, while graph and operand counts remain 9/71 and 54/37. The selected span
+contains zero of 217 reviewed runtime-domain records. Four required CURRENT-
+SOURCE methods and projected focused 4/4, graph owner 174/174, surface owner
+1/1, operand owner 69/69, affected semantic 1,134/1,134, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,027/2,027 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this scorer projection; it is the sole next
+or test rename has occurred for this helper projection; it is the sole next
 priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
