@@ -4729,46 +4729,81 @@ call-normalized 88/88, all 82 retained operand-resolution functions, sole
 caller, DAG parity, retired-ref zero, non-ASCII preservation, and diff check.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The active candidate-to-operand matching contract is characterized for the
-next bounded owner batch. Move only the current exact 83-line
-`_candidate_matches_operand(candidate, operand)` definition from graph helpers
-without a graph alias to public
-`financial_operand_resolution.candidate_matches_operand(...)`. It matches one
-already prepared candidate against one operand; it does not construct or rank
-candidates, apply acceptance policy, retrieve evidence, or access graph state.
+Commit `1a24bc1` completed the candidate-to-operand matching contract, now
+owned by `financial_operand_resolution.candidate_matches_operand(...)`. The
+exact former 83-line body, 19 statements, eleven returns, concept-conflict and
+structured-surface precedence, CAPEX/contextual branches, structured miss,
+unstructured fallback, reads, eager materialization, short circuits, shallow-
+copy boundary, identities, input immutability, exact returned match object, and
+all uncaught failures remain unchanged and pinned by four CURRENT-SOURCE
+methods. No graph wrapper or compatibility bridge was added.
 
-Preserve the exact 19-statement body and eleven returns. Concept conflict
-precedes all candidate reads. Candidate kind and a shallow metadata copy then
-feed row-label, semantic-label, semantic-alias, row-header, aggregate-label,
-and non-table-row table-label matching in that order. CAPEX section-context
-matching precedes contextual aggregate matching. Structured candidates that
-still miss return exact `False`; only unstructured candidates fall back to
-candidate text and return the exact `_operand_text_match(...)` result without
-a second coercion. Preserve every current read, eager materialization,
-filter-versus-expression conversion, join, normalization, short circuit,
-identity, shallow-copy boundary, and uncaught failure in current order.
+The pre-move characterization undercounted source callers. Live inventory found
+the deterministic graph filter, the active reconciliation rerank filter, and
+the ops ontology-shadow filter. All three direct calls now bind the public
+owner; the two agent calls remain list comprehensions and the ops call remains
+the negated `If` test. Positional `candidate, operand`, no keywords, caller
+`try` depth zero, iteration/selection behavior, and exception stops remain
+unchanged. Final counts are graph 9/78 and operand resolution 47/37; the
+48-module/203-edge DAG is unchanged. Executed gates are focused 4/4, owner
+142/142, affected semantic 1,102/1,102, reconciliation plan 51/51, import
+19/19, audit 217, and full 1,995/1,995, plus pycompile, fresh identity across
+owner/graph/reconciliation/ops, exact body parity, retained graph exact 86/87
+and call-normalized 87/87, all 83 retained operand functions, three normalized
+caller bodies, DAG parity, retired-ref zero, non-ASCII preservation, and diff
+check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The destination adds only existing public dependencies:
-`candidate_conflicts_with_operand_concept`, `aggregate_like_row_stage`,
-`candidate_aggregation_stage`, and `candidate_value_role`. The 48-module/
-203-edge DAG remains unchanged; projected counts are graph 9/78 and operand
-resolution 47/37, and the selected span has zero of 217 reviewed records.
+The active direct-match-strength contract is characterized for the next bounded
+owner batch. Move only the current exact 122-line
+`_candidate_direct_match_strength(candidate, operand)` graph definition without
+a graph alias to public
+`financial_operand_resolution.candidate_direct_match_strength(...)`. It scores
+one prepared candidate against one operand; collection ranking, acceptance
+thresholds, adoption, retrieval, and graph state remain outside.
 
-The sole direct call remains the exact list-comprehension filter in
-`_deterministic_reconcile_task(...)`: original candidate iteration order and
-identities, positional exact `candidate, operand`, no keywords, and caller
-`try` depth zero. Predicate truth adopts the original candidate; call or
-result-truth failure stops remaining candidates and all later filtering,
-ranking, acceptance, projection, retry-query work, and return.
+Preserve the exact 15-statement body, two returns, and docstring. Conflict truth
+returns `0.0` before metadata work. Shallow-copied metadata and normalized
+candidate kind feed an eagerly built weighted surface list in this order:
+semantic label `3.0`, row label `2.5`, joined semantic aliases `2.0`, joined row
+headers `1.5`, and aggregate label `1.0`; non-table rows then extend it with
+table-row-label text `1.25` and row text `1.0`.
 
-Candidate construction, segment filtering, direct-match strength, direct and
-ratio acceptance, score weights/ranking, top-candidate collapse, evidence
-adoption, I/O, retrieval, graph state, model invocation, artifact/ledger
-mutation, retry, and final sequencing remain outside this contract. The four
-required CURRENT-SOURCE methods and projected focused 4/4, owner 142/142,
-affected semantic 1,102/1,102, import 19/19, audit 217, and full 1,995/1,995
-gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work).
+Each surface preserves normalization before blank rejection, variant-set
+materialization, full-weight normalized exact match, full-weight variant match,
+then half-weight operand-text fallback. Repeated operand-needle and variant
+generation, ordered `any(...)` short circuits, `max(...)` accumulation, and
+loop continuation are normative.
+
+Specialized scoring stays ordered. CAPEX preferred-section plus positive
+aggregate role/stage may raise `2.25`; contextual aggregate preference may
+raise `2.0`; direct aggregate-signal operand matching may raise `2.25`; lookup-
+surface plus candidate operand context may raise `2.25`; segment-metric
+combination is last and may raise `2.25`. Preserve every current mapping/truth,
+conversion, strip, normalization, list/set/join/extend, iteration, helper call
+and result truth, comparison, arithmetic, identity, immutability, and uncaught
+failure in current order.
+
+The destination already holds all dependencies except public
+`candidate_has_operand_context_surface(...)` and
+`candidate_supports_segment_metric_combo(...)` from row surfaces. Adding them
+creates no edge. Projected counts are graph 9/77 and operand resolution 48/37;
+the selected span has zero of 217 reviewed records.
+
+Eight direct calls across six graph callers remain positional exact
+`candidate, operand`, without keywords and at caller `try` depth zero. Preserve
+canonical-winner `< 2.5`, semantic-priority `int(strength * 10)`, direct-
+grounding `< 1.0`, direct-acceptance `< 2.0`, ratio-acceptance `>= 1.0` and
+later `< 2.0`, broad-score immediate addition, and structured-candidate
+`>= 2.5`/`>= 1.5` bonuses in their exact lazy positions. Duplicate calls,
+threshold ownership, later caller work, and failure stops do not move.
+
+The four required CURRENT-SOURCE methods and projected focused 4/4, owner
+146/146, affected semantic 1,106/1,106, import 19/19, audit 217, and full
+1,999/1,999 gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). Candidate
+construction, direct/ratio acceptance bodies, broad ranking, evidence adoption,
+I/O, retrieval, graph state, model invocation, artifact/ledger mutation, retry,
+and final sequencing remain hard stops.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

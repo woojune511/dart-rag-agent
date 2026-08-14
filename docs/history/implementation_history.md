@@ -5951,3 +5951,86 @@ iteration/identity adoption 1/1, and call/result-truth failure stops 2/2
 passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is
 not a behavior, quality, performance, benchmark, schedule, or completion
 claim.
+
+### Candidate-to-operand matching ownership milestone
+
+- Commit `1a24bc1` moves the exact former 83-line
+  `_candidate_matches_operand(candidate, operand)` graph definition to public
+  `financial_operand_resolution.candidate_matches_operand(...)` with the body
+  unchanged. The old private definition and executable private references are
+  gone without a wrapper or compatibility bridge.
+- The four CURRENT-SOURCE methods pin 19 top-level statements, eleven returns,
+  concept-conflict and structured-surface precedence, CAPEX/contextual
+  branches, structured miss, unstructured fallback, eager materialization,
+  repeated conversion/strip, joins, normalization, short circuits, identities,
+  shallow-copy immutability, exact final match object, and every uncaught
+  failure.
+- The pre-move characterization recorded only the deterministic graph filter.
+  Live source inventory found two additional executable direct callers: active
+  reconciliation reranking and the ops ontology-shadow filter. The two agent
+  list comprehensions and the ops negated `If` now bind the public owner with
+  positional exact `candidate, operand`, no keywords, and caller `try` depth
+  zero. Static CURRENT-SOURCE coverage pins all three. This corrects the old
+  inventory; it does not create a new runtime path.
+- Production source is `+96/-90`, net `+6`: graph helpers move from 5,268 to
+  5,184 physical lines and operand resolution from 3,842 to 3,931. Tests are
+  `+1,410/-230`, net `+1,180`; graph-helper tests move from 30,434 to 31,614.
+  The whole commit is `+1,506/-320`, net `+1,186`, and four methods move full
+  discovery from 1,991 to 1,995. Final counts are graph 9/78 and operand
+  resolution 47/37. The source diff SHA-256 is
+  `4774eaf925d6dcbc9e0d6da1cc268b889096b4ce9089e13a436bb5fdd41c987a`.
+- Focused pre/post movement 4/4, graph owner 142/142, operand owner 69/69,
+  affected eleven-module semantic 1,102/1,102, reconciliation plan 51/51,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  1,995/1,995 passed. Pycompile, fresh public identity across owner/graph/
+  reconciliation/ops, exact body parity, retained graph exact 86/87 and call-
+  normalized 87/87, all 83 retained operand functions, all three normalized
+  caller bodies, full 48-module/203-edge DAG parity, retired private refs zero,
+  non-ASCII preservation, and diff check passed.
+- The first graph-owner run after movement exposed 34 stale owner/count/patch
+  contracts and no production-behavior failure; they were updated to the new
+  boundary and 142/142 passed. The first operand-owner run then failed only two
+  absolute source-line contracts after insertion; measured AST positions were
+  updated and 69/69 passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic candidate-matching ownership. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Candidate direct-match-strength characterization checkpoint
+
+- A docs-only inventory selects the current exact 122-line
+  `_candidate_direct_match_strength(candidate, operand)` graph definition for a
+  future public move to
+  `financial_operand_resolution.candidate_direct_match_strength(...)`. No
+  production source or test moved for this projection.
+- The scorer has 15 top-level statements, two returns, no `try`, and zero of
+  217 reviewed runtime-domain records. It preserves conflict-first `0.0`, a
+  shallow metadata copy, exact weighted surface order, non-table extension,
+  per-surface exact/variant/half-weight fallback, CAPEX/contextual/aggregate-
+  signal/lookup-context/segment branches, `max` accumulation, exact float
+  results, identities, immutability, and all uncaught failures.
+- Operand resolution already holds every dependency except public
+  `candidate_has_operand_context_surface(...)` and
+  `candidate_supports_segment_metric_combo(...)` from row surfaces. Adding
+  those names creates no edge. The full 48-module/203-edge DAG stays unchanged;
+  current/projected counts are graph 9/78 to 9/77 and operand resolution 47/37
+  to 48/37.
+- Eight direct calls across six graph callers remain positional exact
+  `candidate, operand`, with no keywords and caller `try` depth zero. They keep
+  canonical-winner `< 2.5`, semantic-priority tuple use, direct-grounding
+  `< 1.0`, direct-acceptance `< 2.0`, ratio-acceptance `>= 1.0` and `< 2.0`,
+  broad-score addition, and structured bonus thresholds in their exact lazy
+  positions. Caller thresholds, duplicate evaluation, later work, and stops do
+  not move.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 146/146,
+  affected semantic 1,106/1,106, import 19/19, audit 217, full 1,999/1,999,
+  selected-body parity, retained graph call-normalized 86/86, retained operand
+  owner 84/84, all eight calls/six callers, full DAG parity, retired-ref zero,
+  non-ASCII preservation, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection passed. Benchmark refresh and remote CI were **NOT RUN**. This
+checkpoint is not a behavior, quality, performance, benchmark, schedule, or
+completion claim.

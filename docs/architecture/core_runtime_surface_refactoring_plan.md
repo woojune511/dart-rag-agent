@@ -1066,29 +1066,57 @@ preservation, and diff check passed. The source diff SHA-256 is
 `83b28fa8e35aae9a69981142c705b38a85c471148683c69f470999acc3f1914e`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current exact 83-line `_candidate_matches_operand(candidate, operand)`
-definition from graph helpers to public `candidate_matches_operand(...)` in
-`financial_operand_resolution.py`. It owns state-free matching between one
-prepared candidate and one operand. The destination already reaches the
-surface and row-surface owners; adding the four required public names creates
-no module edge.
+The completed `1a24bc1` follow-on moved the exact former 83-line candidate-to-
+operand matcher from graph helpers to public `candidate_matches_operand(...)`
+in `financial_operand_resolution.py`. Exact conflict/surface/CAPEX/contextual/
+fallback precedence, access and materialization laziness, identities, failures,
+and caller stops remain pinned by four CURRENT-SOURCE methods. Production
+source is `+96/-90`, tests are `+1,410/-230`, and the whole commit is
+`+1,506/-320`; graph helpers move from 5,268 to 5,184 lines, operand resolution
+from 3,842 to 3,931, and graph-helper tests from 30,434 to 31,614. Focused 4/4,
+owner 142/142, affected semantic 1,102/1,102, reconciliation plan 51/51, import
+19/19, audit 217, full 1,995/1,995, pycompile/fresh identity, exact body and
+retained-function parity, full 48-module/203-edge DAG parity, retired private
+refs zero, non-ASCII preservation, and diff check passed. The source diff
+SHA-256 is
+`4774eaf925d6dcbc9e0d6da1cc268b889096b4ce9089e13a436bb5fdd41c987a`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Its sole direct call must remain the exact list-comprehension filter in
-`_deterministic_reconcile_task(...)`, positional exact `candidate, operand`,
-owner-external/local 1/0, caller `try` depth zero, with original candidate
-iteration order and identities. The full 48-module/203-edge DAG remains
-unchanged; projected counts are graph helpers 9/78 and operand resolution
-47/37, and the selected span contains zero of 217 reviewed records. Candidate
-construction, segment filtering, direct-match strength, acceptance, scoring/
-ranking, evidence adoption, I/O, retrieval, or plan/state/artifact/ledger work
-is rejected. Exact conflict/surface/specialized/fallback precedence, access
-and materialization laziness, identities, failures, caller adoption/stops,
-four required CURRENT-SOURCE methods, and projected focused 4/4, owner 142/142,
-affected semantic 1,102/1,102, import 19/19, audit 217, and full 1,995/1,995
+The pre-move docs counted only `_deterministic_reconcile_task(...)`. Live source
+inventory found two more executable direct callers in active reconciliation
+reranking and the ops ontology-shadow diagnostic. All three were migrated and
+the static contract now pins both agent list-comprehension callers and the ops
+filter. This corrects characterization coverage; it does not add a runtime path.
+
+The new characterize-only inventory selects one follow-on: move only the
+current exact 122-line `_candidate_direct_match_strength(candidate, operand)`
+definition from graph helpers to public `candidate_direct_match_strength(...)`
+in `financial_operand_resolution.py`. It owns state-free weighted surface
+matching for one prepared candidate and operand, not collection ranking or
+acceptance thresholds.
+
+The destination already holds every dependency except the two public row-
+surface helpers `candidate_has_operand_context_surface(...)` and
+`candidate_supports_segment_metric_combo(...)`; adding them creates no module
+edge. The full 48-module/203-edge DAG remains unchanged; projected counts are
+graph helpers 9/77 and operand resolution 48/37, and the selected span contains
+zero of 217 reviewed records.
+
+Preserve the exact 15-statement/two-return body, weighted base-surface order,
+non-table extension, exact/variant/half-weight fallback precedence, CAPEX,
+contextual, aggregate-signal, lookup-context, and segment-combination branches,
+all materialization and short-circuit behavior, identities, immutability, exact
+float scores, and uncaught failures. Eight direct calls across six graph callers
+must remain positional exact `candidate, operand`, outside `try`, at their
+current threshold/addition/tuple positions. Direct/ratio acceptance bodies,
+broad ranking, evidence adoption, I/O, retrieval, and plan/state/artifact/ledger
+work are rejected.
+
+Four required CURRENT-SOURCE methods and projected focused 4/4, owner 146/146,
+affected semantic 1,106/1,106, import 19/19, audit 217, and full 1,999/1,999
 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this matcher projection; it is the sole next
+or test movement has occurred for this strength projection; it is the sole next
 priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
