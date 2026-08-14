@@ -16,10 +16,10 @@ Last updated: 2026-08-15
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `20feddc` moved the exact 68-line ratio-component-acceptance predicate to public operand-resolution ownership and updated all three reconciliation calls |
-| What passed? | Focused 4/4, graph owner 158/158, operand owner 69/69, affected eleven-module semantic set 1,118/1,118, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,011/2,011 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest ratio-component-acceptance ownership change |
-| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 86-line direct-grounding predicate to operand-resolution ownership |
+| What just changed? | `4c422ed` moved the exact former 86-line direct-grounding predicate to public operand-resolution ownership and updated all three calls |
+| What passed? | Focused 4/4, graph owner 162/162, operand owner 69/69, affected eleven-module semantic set 1,122/1,122, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,015/2,015 |
+| Was the benchmark refreshed? | **NOT RUN**; this was an ownership-only move with exact selected-body parity, not a parser, ingest, retrieval, or answer-contract change |
+| What is next? | Characterize the exact 161-line direct-acceptance predicate; no source or test movement is authorized until its four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -747,13 +747,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, ratio-component-acceptance ownership 4 / 4; graph owner 158 / 158; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,118 / 1,118 |
+| Latest focused owner checkpoint | PASS, direct-grounding ownership 4 / 4; graph owner 162 / 162; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,122 / 1,122 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,011 / 2,011 |
-| Benchmark refresh after latest ratio-component-acceptance ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,015 / 2,015 |
+| Benchmark refresh after latest direct-grounding ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -787,7 +787,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, and ratio-component acceptance, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct grounding/acceptance, broader evidence orchestration, broad scoring/reconciliation, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, ratio-component acceptance, and direct-grounding classification, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct acceptance, broader evidence orchestration, broad scoring/reconciliation, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
 
@@ -796,15 +796,114 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects exactly one production follow-on. Add
-four CURRENT-SOURCE contracts, then move only the current exact 86-line
+The characterize-only inventory selects exactly one possible production
+follow-on: the current exact 161-line
+`_candidate_satisfies_direct_acceptance_contract(candidate, *, operand,
+constraints, query_years, operation_family="", selected_cell=None,
+report_scope=None)` definition in `financial_graph_helpers.py`. Before any
+production movement, add four CURRENT-SOURCE contracts. Only after those
+contracts pass may the predicate move without a graph alias to public
+`financial_operand_resolution.candidate_satisfies_direct_acceptance_contract(...)`.
+
+No source or test movement has occurred for this follow-on. The predicate owns
+one state-free acceptance decision for an already prepared candidate and
+optional selected cell. It has nineteen top-level statements, seventeen
+returns, and one `try` that catches exactly `TypeError` and `ValueError` while
+recovering a selected-cell report year. Candidate/cell construction and
+selection, ratio acceptance, scoring, ranking, pairing, fallback/adoption,
+evidence, graph state, I/O, model calls, artifacts/ledger, retry, and final
+sequencing remain caller-owned.
+
+Preserve the first public
+`candidate_is_direct_grounding_candidate(...)` call with the exact candidate,
+operand, constraints, query years, operation family, and report scope. It
+intentionally receives no selected cell. False returns before metadata, period,
+unit, direct-strength, canonical, balance-sheet, CAPEX, or final period-label
+work.
+
+On the surviving path, preserve a shallow metadata copy and desired-period
+constraint fallback. A truthy selected cell alone triggers period-text
+projection. Exact current/prior candidate-period mismatch rejects first. When
+the projected cell text lacks the configured period-presence pattern, inspect
+`_report_year`, `report_year`, then `year` in order; only integer-conversion
+`TypeError`/`ValueError` are swallowed. Preserve opposite-marker rejection,
+explicit-year extraction, and target-year mismatch in their current lazy order.
+
+Keep a fresh binding-policy copy and the lazy union of its two surface-contract
+flags. When required, the selected-cell-aware surface contract must pass.
+Lookup/single-value unit validation remains limited to desired `KRW`, `USD`,
+`COUNT`, or `PERCENT` families; only then does mismatched selected-unit family
+reject. Preserve the one direct-strength call and exact `< 2.0` rejection.
+
+Statement type, value role, aggregation stage, local heading, and section path
+remain eagerly projected before canonical policy. For canonical lookup, retain
+canonical type/section preferences, fresh scoring-policy data, note markers,
+context projection, and all three canonical rejection gates in current order.
+Keep the balance-sheet aggregate note/detail rejection, then CAPEX preferred-
+section and aggregate truth, structured-value/column rejection, and contextual
+rejection. Finally materialize metadata period labels, call operand target-year
+projection a third time, and preserve the prior-focus explicit-year mismatch.
+Repeated normalization, truth checks, exact booleans, shallow copies, nested
+object identities, input immutability, and every uncaught failure are part of
+the contract.
+
+The destination already owns most policy helpers. The future move adds
+`PERIOD_FOCUS_POLICY`, `_structured_cell_period_text`,
+`operand_target_years`, and `candidate_selected_unit_family` imports. Graph
+helpers may then drop only `PERIOD_FOCUS_POLICY`,
+`_structured_cell_period_text`, `candidate_has_required_surface_contract`,
+and `candidate_selected_unit_family`; it keeps its other
+`operand_target_years` use. The new internal edge is operand resolution to
+structured cells. Static simulation projects an acyclic 48-module/205-edge DAG.
+Current/projected public/private counts are graph helpers 9/73 to 9/72 and
+operand resolution 52/37 to 53/37. The selected span contains zero of the 217
+reviewed runtime-domain records.
+
+There are five direct `ast.Name` calls across three modules, all at caller
+`try` depth zero:
+
+- deterministic reconciliation rejects before signature/entry construction;
+- two nested reconciliation sites preserve direct-then-ratio laziness,
+  same-block fallback, candidate/cell adoption, and `continue` behavior;
+- current and prior period-pair extraction independently score and append only
+  accepted entries, while pair selection remains caller-owned.
+
+Before production movement, add exactly these four CURRENT-SOURCE methods to
+`FinancialGraphHelperTests`:
+
+- `test_current_source_candidate_satisfies_direct_acceptance_contract_pins_grounding_selected_cell_period_unit_canonical_and_result`;
+- `test_current_source_candidate_satisfies_direct_acceptance_contract_pins_laziness_identity_immutability_soft_year_and_exceptions`;
+- `test_current_source_candidate_satisfies_direct_acceptance_contract_bindings_pin_owner_defs_calls_dag_imports_and_baseline`;
+- `test_current_source_candidate_satisfies_direct_acceptance_contract_callers_pin_args_fallback_adoption_and_stops`.
+
+Projected post-move gates are focused 4/4, graph owner 166/166, operand owner
+69/69, affected eleven-module semantic set 1,126/1,126, reconciliation plan
+51/51, import side effects 19/19, runtime audit 217, and full discovery
+2,019/2,019. Structural gates are selected-body parity 1/1, retained graph
+exact 80/81 and call-normalized 81/81, retained operand 89/89, five calls in
+three modules, full acyclic 48-module/205-edge DAG, retired private references
+zero, non-ASCII preservation, and `git diff --check`. These are projections,
+not executed results. Static definition/call/import/count/DAG/audit inspection
+passed; benchmark refresh and remote CI were **NOT RUN**.
+
+## Historical Direct-Grounding Characterization And Ownership Milestone
+
+Commit `4c422ed` completed the move described below. The exact former 86-line
+predicate is now public operand-resolution ownership with no graph alias; all
+three calls bind that owner. Focused 4/4, graph owner 162/162, operand owner
+69/69, affected semantic 1,122/1,122, reconciliation plan 51/51, import
+side-effects 19/19, audit 217, and full discovery 2,015/2,015 passed. The
+following inventory records the pre-`4c422ed` checkpoint and is not active work.
+
+The characterize-only inventory selected exactly one production follow-on. It
+moved only the former exact 86-line
 `_candidate_is_direct_grounding_candidate(candidate, *, operand, constraints,
 query_years, operation_family="", report_scope=None)` definition from
 `financial_graph_helpers.py` to the existing `financial_operand_resolution.py`
-owner as public `candidate_is_direct_grounding_candidate(...)`. Do not leave a
-graph alias or compatibility bridge.
+owner as public `candidate_is_direct_grounding_candidate(...)`. The completed
+move left no graph alias or compatibility bridge.
 
-No production source or test has moved for this projection. The predicate
+At that checkpoint, no production source or test had moved. The predicate
 classifies one already prepared candidate against kind, numeric, direct-match,
 binding-shape, canonical-statement, consolidation, period, segment/report, and
 lookup-table-row signals. It does not construct candidates or selected cells,

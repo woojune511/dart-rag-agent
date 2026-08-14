@@ -6309,3 +6309,82 @@ Static definition/call/DAG/function-count/import and selected-body audit
 inspection passed. Benchmark refresh and remote CI were **NOT RUN**. This
 checkpoint is not a behavior, quality, ranking, performance, benchmark,
 schedule, or completion claim.
+
+### Direct-grounding ownership milestone
+
+- Commit `4c422ed` moves the exact former 86-line
+  `_candidate_is_direct_grounding_candidate(candidate, *, operand, constraints,
+  query_years, operation_family="", report_scope=None)` graph definition to
+  public
+  `financial_operand_resolution.candidate_is_direct_grounding_candidate(...)`
+  with its 30-statement/fifteen-return/no-`try` body unchanged. The private
+  definition and executable references are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin metadata/binding/report shallow copies,
+  kind/descriptor/numeric/direct-strength order and `< 1.0`, binding/canonical/
+  consolidation/period precedence, both delta-label sites, segment/report
+  gates, eager target-year evaluation, lazy lookup-table-row truth, exact
+  booleans, identities, immutability, and every uncaught failure.
+- All three calls across graph helpers and reconciliation now bind the public
+  owner. Direct-acceptance first rejection, ordered non-lookup filtering and
+  unique/ambiguous fallback, reconciliation first-hit/non-ratio stop/ratio-cell
+  fallback, candidate/cell adoption, evidence work, and state sequencing remain
+  caller-owned.
+- Production source is `+96/-93`, net `+3`: graph helpers move from 4,888 to
+  4,800 physical lines and operand resolution from 4,236 to 4,327. Tests are
+  `+1,380/-207`, net `+1,173`; the whole commit is `+1,476/-300`, net
+  `+1,176`, and four methods move full discovery from 2,011 to 2,015. Final
+  counts are graph 9/73 and operand resolution 52/37. The source diff SHA-256
+  is `ed765a77a57fa6cb2a8a0e5e81a384074dd69d22e0311ff62a2561a33bc7c66f`.
+- Focused pre/post movement 4/4, graph owner 162/162, operand owner 69/69,
+  affected eleven-module semantic 1,122/1,122, reconciliation plan 51/51,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  2,015/2,015 passed. Pycompile, fresh public identity 1/1, exact selected-body
+  parity 1/1, retained graph exact 80/82 and call-normalized 82/82, all 88
+  retained operand functions, all three calls/two caller modules, full
+  48-module/204-edge acyclic DAG parity, retired private refs zero, non-ASCII
+  preservation 7/7, and diff check passed. Benchmark refresh and remote CI were
+  **NOT RUN**.
+
+This milestone changes only deterministic direct-grounding ownership. It proves
+no behavior, accuracy, ranking, performance, benchmark, schedule, ledger, or
+Phase 3 completion claim.
+
+### Direct-acceptance characterization checkpoint
+
+- A docs-only inventory selects the current exact 161-line
+  `_candidate_satisfies_direct_acceptance_contract(candidate, *, operand,
+  constraints, query_years, operation_family="", selected_cell=None,
+  report_scope=None)` graph definition for a possible future public move to
+  `financial_operand_resolution.candidate_satisfies_direct_acceptance_contract(...)`.
+  No production source or test moved for this projection.
+- The projection preserves nineteen top-level statements, seventeen returns,
+  the first direct-grounding rejection, selected-cell period/presence/report-
+  year recovery, marker/year gates, surface and unit truth, `< 2.0` direct
+  strength, eager statement/role/stage/location projection, canonical lookup,
+  balance-sheet aggregate, CAPEX, and final period-label gates. Its sole `try`
+  catches exactly `TypeError`/`ValueError` during selected-cell report-year
+  integer conversion; all other failures remain uncaught.
+- Operand resolution needs `PERIOD_FOCUS_POLICY`,
+  `_structured_cell_period_text`, `operand_target_years`, and
+  `candidate_selected_unit_family` imports. The new operand-to-structured-cells
+  edge projects an acyclic 48-module/205-edge DAG. Current/projected counts are
+  graph 9/73 to 9/72 and operand resolution 52/37 to 53/37; the selected span
+  has zero of 217 reviewed runtime-domain records.
+- Five direct calls project across three modules at caller `try` depth zero.
+  Deterministic reconciliation keeps its rejection stop; two nested-
+  reconciliation sites retain direct-then-ratio laziness, `continue`, same-
+  block fallback and candidate/cell adoption; current/prior period-pair sites
+  retain independent score/append decisions and caller-owned pair selection.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  166/166, operand owner 69/69, affected semantic 1,126/1,126, reconciliation
+  plan 51/51, import 19/19, audit 217, full 2,019/2,019, public identity,
+  selected-body parity, retained graph exact 80/81 and call-normalized 81/81,
+  retained operand owner 89/89, all five calls/three caller modules, full
+  acyclic 48-module/205-edge DAG, retired-ref zero, non-ASCII preservation, and
+  diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection passed. Benchmark refresh and remote CI were **NOT RUN**. This
+checkpoint is not a behavior, quality, ranking, performance, benchmark,
+schedule, or completion claim.

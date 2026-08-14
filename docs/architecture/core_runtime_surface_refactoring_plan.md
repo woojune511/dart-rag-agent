@@ -1177,37 +1177,65 @@ and diff check passed. The source diff SHA-256 is
 `f0e6496c26ea5ed85c50db99057911f149d4654690a833d09ff725125e0e2139`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current exact 86-line `_candidate_is_direct_grounding_candidate(...)`
-definition from graph helpers to public
+The completed `4c422ed` follow-on moved the exact former 86-line direct-
+grounding predicate from graph helpers to public
 `candidate_is_direct_grounding_candidate(...)` in
-`financial_operand_resolution.py`. It owns one state-free prepared-candidate
-grounding predicate, not candidate/cell construction, direct/ratio acceptance,
-collection scoring/collapse, fallback/adoption, or graph state.
+`financial_operand_resolution.py`. The exact 30-statement/fifteen-return/no-
+`try` body, metadata/binding/report shallow copies, kind/descriptor/numeric/
+direct-strength order, `< 1.0` threshold, binding/canonical/consolidation/
+period precedence, both delta-label sites, segment/report gates, eager target-
+year result, lazy lookup-table-row tail, exact booleans, identities,
+immutability, and uncaught failures remain pinned by four CURRENT-SOURCE
+methods. No graph alias was added.
 
-The destination already owns or imports all but three public dependency names.
-Add two row-surface imports and one surface-contract import; move the graph and
-reconciliation call bindings to the existing operand edge. No module edge
-changes. The acyclic full DAG remains 48 modules/204 edges; current/projected
-counts are graph helpers 9/74 to 9/73 and operand resolution 51/37 to 52/37,
-and the selected span contains zero of 217 reviewed records.
+All three calls across graph helpers and reconciliation now bind the public
+owner at caller `try` depth zero. Direct-acceptance first rejection, ordered
+non-lookup filtering and unique/ambiguous fallback, reconciliation first-hit/
+ratio fallback/adoption, evidence work, and state sequencing remain caller-
+owned. Production source is `+96/-93`, tests are `+1,380/-207`, and the whole
+commit is `+1,476/-300`; graph helpers move from 4,888 to 4,800 physical lines
+and operand resolution from 4,236 to 4,327. Focused 4/4, graph owner 162/162,
+operand owner 69/69, affected semantic 1,122/1,122, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,015/2,015, pycompile/fresh identity, body/
+retained/caller parity, acyclic 48-module/204-edge DAG parity, retired private
+refs zero, non-ASCII preservation, and diff check passed. The source diff
+SHA-256 is
+`ed765a77a57fa6cb2a8a0e5e81a384074dd69d22e0311ff62a2561a33bc7c66f`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Preserve the exact 30-statement/fifteen-return/no-`try` body, metadata/binding/
-report shallow copies, four-kind/descriptor/numeric/direct-strength gate order,
-`< 1.0` threshold, binding-shape and canonical-statement truth, consolidation
-and period fallback, both delta-label positions, strict segment/report gates,
-eager target-year result, trusted-period mismatch truth, lazy lookup table-row
-structured-sibling/delta tail, exact booleans, identities, immutability, and
-uncaught failures. All three calls across graph helpers and reconciliation must
-retain exact candidate/keyword inputs and `try` depth zero. Direct-acceptance
-first-gate stopping, ordered non-lookup filtering and unique/ambiguous fallback,
-and reconciliation first-hit/ratio fallback/adoption remain caller-owned.
+The new characterize-only inventory selects one possible follow-on: move only
+the current exact 161-line
+`_candidate_satisfies_direct_acceptance_contract(...)` definition from graph
+helpers to public
+`candidate_satisfies_direct_acceptance_contract(...)` in operand resolution.
+It owns a state-free acceptance decision for one prepared candidate and
+optional selected cell, not construction/selection, ratio acceptance, scoring/
+ranking/pairing, fallback/adoption, evidence, graph state, I/O, model calls,
+artifacts/ledger, retry, or final sequencing.
+
+Preserve the exact nineteen-statement/seventeen-return body and its sole
+`try`, which catches only `TypeError`/`ValueError` while recovering a selected-
+cell report year. The direct-grounding gate remains first. Selected-cell period
+projection, lazy marker/year truth, surface requirement, lookup unit family,
+`< 2.0` direct-strength threshold, eager statement/role/stage/location
+projection, canonical lookup gates, balance-sheet aggregate rejection, CAPEX
+section/aggregate rules, final period-label materialization, exact booleans,
+shallow copies, identities, immutability, and all other uncaught failures remain
+unchanged.
+
+The future owner needs four additional imports and one new internal edge from
+operand resolution to structured cells. Static simulation projects an acyclic
+48-module/205-edge DAG; current/projected counts are graph helpers 9/73 to 9/72
+and operand resolution 52/37 to 53/37. Five calls across graph reconciliation,
+nested reconciliation, and period-pair extraction retain their direct-then-
+ratio laziness, rejection stops, fallback/adoption, and score/append ownership.
+The selected span contains zero of 217 reviewed runtime-domain records.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-162/162, operand owner 69/69, affected semantic 1,122/1,122, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,015/2,015 gates are defined only in
+166/166, operand owner 69/69, affected semantic 1,126/1,126, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,019/2,019 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this direct-grounding projection; it is the
+or test movement has occurred for this direct-acceptance projection; it is the
 sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:

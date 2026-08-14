@@ -4843,66 +4843,92 @@ focused 4/4, graph owner 158/158, operand owner 69/69, affected semantic
 parity, all three calls/one caller module, retired-ref zero, non-ASCII
 preservation, and diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active direct-grounding contract is characterized for the next bounded
-owner batch. Move only the current exact 86-line
-`_candidate_is_direct_grounding_candidate(candidate, *, operand, constraints,
-query_years, operation_family="", report_scope=None)` graph definition without a
-graph alias to public
-`financial_operand_resolution.candidate_is_direct_grounding_candidate(...)`.
-It classifies one prepared candidate; candidate/cell construction,
-direct/ratio acceptance, collection scoring/collapse, fallback/adoption,
-evidence work, and graph state remain outside.
+Commit `4c422ed` completed the direct-grounding owner contract. Public
+`financial_operand_resolution.candidate_is_direct_grounding_candidate(...)`
+owns the exact former 86-line, 30-statement/fifteen-return/no-`try` predicate.
+Metadata/binding/report shallow copies, four-kind/descriptor/numeric/direct-
+strength order, `< 1.0` rejection, binding/canonical/consolidation/period
+precedence, both delta-label sites, strict segment/report gates, eager target-
+year result, trusted-period truth, lazy lookup-table-row tail, exact booleans,
+identities, immutability, and all uncaught failures remain unchanged and pinned
+by four CURRENT-SOURCE methods. No graph alias or bridge exists.
 
-Preserve the exact 30-statement body, fifteen returns, no `try`, one required
-positional candidate, three required and two optional keyword-only inputs, and
-`bool` result. Shallow-copy metadata before the exact four-kind gate. Preserve
-descriptor and numeric-signal gates, then one direct-strength call and exact
-`< 1.0` rejection before all binding and scope work.
+All three calls across graph helpers and reconciliation now bind the public
+owner. Direct-acceptance first rejection, the ordered non-lookup candidate
+filter and unique/ambiguous fallback, reconciliation first-hit/non-ratio stop/
+ratio-cell fallback, candidate/cell adoption, evidence work, and state
+sequencing remain caller-owned. Final counts are graph 9/73 and operand
+resolution 52/37; the full DAG remains acyclic at 48 modules/204 edges.
+Executed gates are focused 4/4, graph owner 162/162, operand owner 69/69,
+affected semantic 1,122/1,122, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,015/2,015, plus pycompile, fresh identity, selected-body and
+retained-function parity, all three calls/two caller modules, retired-ref zero,
+non-ASCII preservation, and diff check. Benchmark refresh and remote CI were
+**NOT RUN**.
 
-The fresh binding-policy copy, value-role, aggregation-stage, and statement-type
-projection remain ordered before the binding-shape gate. Canonical-statement
-preference retains its lazy exact table-row and three-statement whitelist.
-Consolidation focus keeps constraint-first then binding-policy fallback only for
-exact `unknown`, and compares one candidate-consolidation result only when both
-sides are known.
+The active direct-acceptance contract is characterized for the next bounded
+owner batch. Move only the current exact 161-line
+`_candidate_satisfies_direct_acceptance_contract(candidate, *, operand,
+constraints, query_years, operation_family="", selected_cell=None,
+report_scope=None)` graph definition without a graph alias to public
+`financial_operand_resolution.candidate_satisfies_direct_acceptance_contract(...)`.
+It decides acceptance for one prepared candidate and optional selected cell;
+construction/selection, ratio acceptance, scoring/ranking/pairing, fallback/
+adoption, evidence, graph state, I/O, model calls, artifacts/ledger, retry, and
+final sequencing remain outside.
 
-Period focus likewise uses the owner result with normalized constraint fallback,
-then binding preference only for exact `unknown`. Preserve semantic-label left-
-to-right fallback, normalization, and delta rejection only under exact current/
-prior focus. Strict segment binding remains before target-report-scope matching;
-the latter receives one fresh shallow report-scope mapping and stops all later
-period/year/table work on failure.
+Preserve the exact nineteen-statement body, seventeen returns, one positional
+candidate, three required and three optional keyword-only inputs, and `bool`
+result. The public direct-grounding call remains first with candidate, operand,
+constraints, query years, operation family, and report scope, deliberately
+without selected cell. False returns before metadata and every later gate.
 
-After that gate, preserve candidate-period and normalized row-text projection,
-the exact trusted-period boolean, and one eager target-year result even when the
-trust gate is false. Current/prior mismatch checks remain nested under that gate.
-The lookup/single-value table-row tail keeps exact membership and lazy order:
-structured-sibling rejection, then truthy row text, then the second delta-label
-call. Mapping access, truth, copy, conversion, normalization, strip, membership,
-helper, comparison, and return failures remain uncaught in order. All supplied
-objects and nested values remain unmodified and retain current identities.
+On the surviving path, shallow-copy metadata and preserve desired-period
+constraint fallback. Only a truthy selected cell projects period text. Exact
+candidate-period mismatch precedes presence-pattern recovery; missing period
+presence checks `_report_year`, `report_year`, then `year` in order. The sole
+`try` catches exactly `TypeError` and `ValueError` from integer conversion and
+continues to the next key. Opposite-marker and explicit-target-year mismatch
+checks retain their current lazy order.
 
-The destination adds two names to its existing row-surface import and one name
-to its existing surface-contract import. Graph and reconciliation move only call
-bindings to the existing operand edge, so no module edge changes. Current/
-projected counts are graph 9/74 to 9/73 and operand resolution 51/37 to 52/37;
-the acyclic full DAG remains 48/204 and the selected span has zero of 217
-reviewed records.
+Keep a fresh binding-policy copy and lazy truth of its two surface-contract
+flags. If required, the selected-cell-aware surface contract must pass. For
+lookup/single only, normalize desired and selected unit families; reject a
+mismatch only when desired family is `KRW`, `USD`, `COUNT`, or `PERCENT`.
+Preserve the one direct-strength call and exact `< 2.0` rejection.
 
-All three direct calls remain at `try` depth zero. Direct acceptance keeps its
-first-gate return and exact candidate plus five keyword inputs. The non-lookup
-deterministic filter keeps exact candidate/operand/constraints/years/operation/
-report inputs, iteration order, unique-candidate promotion, ambiguity/no-match
-fallback, and adoption. Reconciliation keeps exact candidate plus four keywords,
-the empty-string operation default, first-hit return, non-ratio stop, and ratio-
-cell fallback. The four required CURRENT-SOURCE methods and projected focused
-4/4, graph owner 162/162, operand owner 69/69, affected semantic 1,122/1,122,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,015/2,015 gates
-are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work).
-Candidate/cell construction, direct/ratio acceptance, sorting/scoring/collapse,
-fallback/adoption, evidence, I/O, retrieval, graph state, model invocation,
-artifact/ledger mutation, retry, and final sequencing remain hard stops.
+Statement type, value role, aggregation stage, local heading, and section path
+remain eagerly projected. Canonical lookup preserves canonical type/section
+preferences, fresh scoring-policy data, note markers/context, note allowance,
+and all three rejection gates. Balance-sheet aggregate note/detail rejection
+remains before CAPEX preferred-section/aggregate truth, structured-value/column
+rejection, and contextual rejection. Finally materialize metadata period
+labels, evaluate operand target years a third time, and keep prior-focus
+explicit-year mismatch. Repeated normalization, truth, exact booleans, shallow
+copies, nested identities, immutability, and all failures outside the one
+integer-conversion boundary remain unchanged.
+
+The future destination adds `PERIOD_FOCUS_POLICY`,
+`_structured_cell_period_text`, `operand_target_years`, and
+`candidate_selected_unit_family` imports. Graph helpers can drop only those
+names used exclusively by this predicate plus
+`candidate_has_required_surface_contract` while retaining their other scope
+uses. This introduces one internal operand-resolution-to-structured-cells edge.
+Static simulation projects an acyclic 48-module/205-edge DAG; current/projected
+counts are graph 9/73 to 9/72 and operand resolution 52/37 to 53/37, and the
+selected span has zero of 217 reviewed records.
+
+Five direct calls across three modules remain at caller `try` depth zero.
+Deterministic reconciliation preserves rejection before signature/entry
+construction. Two nested-reconciliation sites retain direct-then-ratio
+laziness, `continue` behavior, same-block fallback, and candidate/cell adoption.
+Current/prior period-pair extraction keeps independent acceptance before
+scoring/appending each entry and retains pair selection in its caller. The four
+required CURRENT-SOURCE methods and projected focused 4/4, graph owner 166/166,
+operand owner 69/69, affected semantic 1,126/1,126, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,019/2,019 gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No source
+or test movement has occurred for this direct-acceptance projection.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.
