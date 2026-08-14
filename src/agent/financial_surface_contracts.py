@@ -209,6 +209,31 @@ def operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
     return bool(_operand_surface_contract(operand).get("positive"))
 
 
+def operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
+    preferred_statement_types = {
+        _normalise_spaces(str(item))
+        for item in (operand.get("preferred_statement_types") or [])
+        if str(item).strip()
+    }
+    if "notes" not in preferred_statement_types:
+        return False
+
+    binding_policy = dict(operand.get("binding_policy") or {})
+    preferred_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    return "aggregate" in preferred_value_roles and bool(
+        {"final", "subtotal", "direct"} & preferred_aggregation_stages
+    )
+
+
 def candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:
     metadata = dict(candidate.get("metadata") or {})
     return " ".join(

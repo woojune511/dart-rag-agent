@@ -85,6 +85,7 @@ from src.agent.financial_surface_contracts import (
     is_balance_sheet_aggregate_operand,
     is_capex_total_operand,
     operand_prefers_contextual_aggregate_match,
+    operand_prefers_note_aggregate_lookup,
 )
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
@@ -3968,31 +3969,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
-    preferred_statement_types = {
-        _normalise_spaces(str(item))
-        for item in (operand.get("preferred_statement_types") or [])
-        if str(item).strip()
-    }
-    if "notes" not in preferred_statement_types:
-        return False
-
-    binding_policy = dict(operand.get("binding_policy") or {})
-    preferred_value_roles = {
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_value_roles") or [])
-        if str(item).strip()
-    }
-    preferred_aggregation_stages = {
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_aggregation_stages") or [])
-        if str(item).strip()
-    }
-    return "aggregate" in preferred_value_roles and bool(
-        {"final", "subtotal", "direct"} & preferred_aggregation_stages
-    )
-
-
 def _candidate_source_priority_bonus(
     candidate: Dict[str, Any],
     *,
@@ -4049,7 +4025,7 @@ def _candidate_source_priority_bonus(
         elif value_role == "detail" and _text_has_positive_surface(context_text, operand):
             score -= 1.0
 
-    if _operand_prefers_note_aggregate_lookup(operand):
+    if operand_prefers_note_aggregate_lookup(operand):
         candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
         metadata = dict(candidate.get("metadata") or {})
         row_context_text = str(metadata.get("row_context_text") or "")
