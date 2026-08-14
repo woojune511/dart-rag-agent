@@ -571,7 +571,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=lambda result, operand: next(row for row in result["matched_operands"] if row["role"] == operand["role"])),
             patch.object(candidates, "expand_structured_candidate_ids", side_effect=lambda ids, mapping: list(ids)),
             patch.object(candidates, "structured_candidate_from_id", side_effect=lambda cid, mapping: dict(mapping[cid])),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", return_value=True),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", return_value=True),
             patch.object(candidates, "pair_candidate_period_score", side_effect=score_owner),
             patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
             patch.object(candidates, "effective_structured_cell_unit_hint", side_effect=lambda **kwargs: "억원"),
@@ -610,7 +610,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(reconciliation, "structured_candidate_from_id", return_value=dict(candidate)),
             patch.object(reconciliation, "_score_operand_candidate", return_value=1.0),
             patch.object(reconciliation, "select_structured_cell", return_value={"value_text": "10"}),
-            patch.object(reconciliation, "_candidate_satisfies_direct_acceptance_contract", return_value=True),
+            patch.object(reconciliation, "candidate_satisfies_direct_acceptance_contract", return_value=True),
             patch.object(reconciliation, "build_operand_row_from_candidate_cell", return_value={"evidence_id": "candidate"}) as build_row,
             patch.object(reconciliation, "repair_note_operand_units_from_same_block", side_effect=lambda rows, mapping: events.append("repair") or rows),
         ):
@@ -698,7 +698,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "expand_structured_candidate_ids", side_effect=expand_owner),
             patch.object(candidates, "structured_candidate_from_id", side_effect=candidate_owner),
             patch.object(candidates, "_parse_unstructured_table_row_cells", side_effect=parse_owner),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=acceptance_owner),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=acceptance_owner),
             patch.object(candidates, "pair_candidate_period_score") as stopped_score,
         ):
             rows, handled = candidates.extract_structured_period_pair_rows(
@@ -791,7 +791,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
                 ),
                 patch.object(candidates, "expand_structured_candidate_ids", return_value=["candidate"]),
                 patch.object(candidates, "structured_candidate_from_id", return_value=dict(candidate)),
-                patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
+                patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
                 patch.object(candidates, "pair_candidate_period_score", side_effect=score_owner),
                 patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
                 patch.object(candidates, "effective_structured_cell_unit_hint", return_value=""),
@@ -878,7 +878,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=lambda result, operand: {"candidate_ids": ["plain", "table"]}),
             patch.object(candidates, "expand_structured_candidate_ids", return_value=["plain", "table"]),
             patch.object(candidates, "structured_candidate_from_id", side_effect=lambda cid, mapping: dict(mapping[cid])),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=accept_bonus),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=accept_bonus),
             patch.object(candidates, "pair_candidate_period_score", side_effect=score_bonus),
             patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
             patch.object(candidates, "effective_structured_cell_unit_hint", return_value=""),
@@ -962,7 +962,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=lambda current, operand: next(item for item in current["matched_operands"] if item["role"] == operand["role"])),
             patch.object(candidates, "expand_structured_candidate_ids", side_effect=lambda ids, mapping: list(dict.fromkeys(ids))),
             patch.object(candidates, "structured_candidate_from_id", side_effect=lambda cid, mapping: dict(mapping[cid])),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
             patch.object(candidates, "pair_candidate_period_score", side_effect=score_owner),
             patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
             patch.object(candidates, "effective_structured_cell_unit_hint", side_effect=unit_owner),
@@ -1032,7 +1032,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=lambda result, operand: next(item for item in result["matched_operands"] if item["label"] == operand["label"] and item["role"] == operand["role"])),
             patch.object(candidates, "expand_structured_candidate_ids", side_effect=lambda ids, mapping: list(ids)),
             patch.object(candidates, "structured_candidate_from_id", side_effect=lambda cid, mapping: dict(mapping[cid])),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
             patch.object(candidates, "pair_candidate_period_score", side_effect=score_owner),
             patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
             patch.object(
@@ -1064,7 +1064,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=lambda result, operand: next(item for item in result["matched_operands"] if item["label"] == operand["label"] and item["role"] == operand["role"])),
             patch.object(candidates, "expand_structured_candidate_ids", return_value=["first"]),
             patch.object(candidates, "structured_candidate_from_id", return_value=dict(candidate_map["first"])),
-            patch.object(candidates, "_candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
+            patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=accept_owner),
             patch.object(candidates, "pair_candidate_period_score", side_effect=score_owner),
             patch.object(candidates, "structured_cell_identity", side_effect=lambda cell: cell["value_id"]),
             patch.object(candidates, "effective_structured_cell_unit_hint", side_effect=RuntimeError("unit failed")),
@@ -1223,7 +1223,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         self.assertFalse(reaches("financial_reconciliation_candidates", "financial_graph_reconciliation"))
 
         expected_dependency_calls = {
-            "_candidate_satisfies_direct_acceptance_contract": 2,
+            "candidate_satisfies_direct_acceptance_contract": 2,
             "_parse_unstructured_table_row_cells": 1,
         }
         for dependency_name, expected_count in expected_dependency_calls.items():
@@ -1324,7 +1324,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(reconciliation, "structured_candidate_from_id", side_effect=lambda cid, mapping: events.append("candidate") or dict(mapping[cid])),
             patch.object(reconciliation, "_score_operand_candidate", side_effect=lambda *args, **kwargs: events.append("score") or 1.0),
             patch.object(reconciliation, "select_structured_cell", side_effect=lambda cells, **kwargs: events.append("select") or cells[0]),
-            patch.object(reconciliation, "_candidate_satisfies_direct_acceptance_contract", side_effect=lambda *args, **kwargs: events.append("accept") or True),
+            patch.object(reconciliation, "candidate_satisfies_direct_acceptance_contract", side_effect=lambda *args, **kwargs: events.append("accept") or True),
             patch.object(reconciliation, "build_operand_row_from_candidate_cell", side_effect=lambda **kwargs: events.append("row") or ordinary_row),
             patch.object(reconciliation, "repair_note_operand_units_from_same_block", side_effect=repair_owner),
         ):

@@ -17,12 +17,12 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
     _build_semantic_numeric_plan,
-    _candidate_satisfies_direct_acceptance_contract,
 )
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
     _llm_lookup_operand_has_direct_support,
     _operand_row_satisfies_required_surface_contract,
+    candidate_satisfies_direct_acceptance_contract,
     operand_prefers_aggregate_value_role,
     score_direct_structured_lookup_evidence,
 )
@@ -753,7 +753,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},
@@ -769,7 +769,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
             )
         )
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},

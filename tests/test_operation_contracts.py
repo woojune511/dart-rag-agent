@@ -37,7 +37,6 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
     _order_concept_specs_by_query,
@@ -59,6 +58,7 @@ from src.agent.financial_operand_resolution import (
     candidate_direct_match_strength,
     candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
+    candidate_satisfies_direct_acceptance_contract,
     table_label_metadata_lookup_score,
 )
 from src.agent.financial_operand_resolution import (
@@ -2860,7 +2860,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "unknown"},
@@ -3075,7 +3075,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertFalse(candidate_matches_operand(candidate, operand))
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},
@@ -6052,7 +6052,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertGreaterEqual(candidate_direct_match_strength(candidate, operand), 2.5)
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6103,7 +6103,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertTrue(candidate_matches_operand(candidate, operand))
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6217,7 +6217,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertLess(candidate_direct_match_strength(candidate, operand), 2.0)
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6313,7 +6313,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6356,7 +6356,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -6409,7 +6409,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -6469,7 +6469,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIsNotNone(selected_cell)
         self.assertEqual((selected_cell or {}).get("value_text"), "1,801,079")
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "prior", "segment_scope": "segment"},

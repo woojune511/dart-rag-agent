@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_helpers import (
     _build_reconciliation_candidate,
     _build_table_row_reconciliation_candidates,
-    _candidate_satisfies_direct_acceptance_contract,
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
     _query_years_from_state,
@@ -32,6 +31,7 @@ from src.agent.financial_operand_resolution import (
     candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
     candidate_row_block_signature,
+    candidate_satisfies_direct_acceptance_contract,
     candidate_satisfies_ratio_component_acceptance_contract,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     repair_note_operand_units_from_same_block,
@@ -692,7 +692,7 @@ class FinancialAgentReconciliationMixin:
                         )
                     if not current_cell:
                         continue
-                    if not _candidate_satisfies_direct_acceptance_contract(
+                    if not candidate_satisfies_direct_acceptance_contract(
                         current_candidate,
                         operand=operand,
                         constraints=constraints,
@@ -810,7 +810,7 @@ class FinancialAgentReconciliationMixin:
                             )
                         if not current_cell:
                             continue
-                        direct_accept = _candidate_satisfies_direct_acceptance_contract(
+                        direct_accept = candidate_satisfies_direct_acceptance_contract(
                             current_candidate,
                             operand=operand,
                             constraints=constraints,

@@ -46,7 +46,6 @@ from src.config.retrieval_policy import (
     NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
     OPERATION_FAMILY_QUERY_POLICIES,
     OPERAND_CANDIDATE_SCORING_POLICY,
-    PERIOD_FOCUS_POLICY,
     PLANNING_POLICY,
     TASK_CONSTRAINT_POLICY,
     active_narrative_policies,
@@ -75,11 +74,9 @@ from src.agent.financial_surface_contracts import (
     candidate_conflicts_with_operand_concept,
     candidate_consolidation_scope,
     candidate_has_numeric_value_signal,
-    candidate_has_required_surface_contract,
     candidate_is_descriptor_row,
     candidate_matches_segment_binding,
     candidate_segment_binding_bonus,
-    candidate_selected_unit_family,
     is_balance_sheet_aggregate_operand,
     is_capex_total_operand,
 )
@@ -100,7 +97,6 @@ from src.agent.financial_row_surfaces import (
     is_delta_like_row_label,
 )
 from src.agent.financial_structured_cells import (
-    _structured_cell_period_text,
     candidate_selected_cell_for_operand,
     score_structured_cell,
     select_aggregate_structured_cell,
@@ -141,6 +137,7 @@ from src.agent.financial_operand_resolution import (
     lookup_query_surface_preferences,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     preference_bonus,
+    candidate_satisfies_direct_acceptance_contract,
 )
 from src.routing import default_format_preference
 
@@ -3868,169 +3865,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _candidate_satisfies_direct_acceptance_contract(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    constraints: Dict[str, Any],
-    query_years: List[int],
-    operation_family: str = "",
-    selected_cell: Optional[Dict[str, Any]] = None,
-    report_scope: Optional[Dict[str, Any]] = None,
-) -> bool:
-    if not candidate_is_direct_grounding_candidate(
-        candidate,
-        operand=operand,
-        constraints=constraints,
-        query_years=query_years,
-        operation_family=operation_family,
-        report_scope=report_scope,
-    ):
-        return False
-
-    metadata = dict(candidate.get("metadata") or {})
-    desired_period_focus = operand_period_focus(
-        operand,
-        str((constraints or {}).get("period_focus") or "unknown").strip(),
-    )
-    if selected_cell:
-        period_policy = dict(PERIOD_FOCUS_POLICY)
-        period_presence_pattern = str(period_policy.get("period_presence_pattern") or period_policy.get("explicit_year_pattern") or r"$^")
-        current_markers = tuple(str(item) for item in (period_policy.get("current_markers") or ()) if str(item))
-        prior_markers = tuple(str(item) for item in (period_policy.get("prior_markers") or ()) if str(item))
-        explicit_year_pattern = str(period_policy.get("explicit_year_pattern") or r"20\d{2}")
-        period_text = _structured_cell_period_text(
-            selected_cell,
-            query_years,
-            desired_period_focus,
-        )
-        candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
-        if desired_period_focus == "current" and candidate_period_focus == "prior":
-            return False
-        if desired_period_focus == "prior" and candidate_period_focus == "current":
-            return False
-        if not re.search(period_presence_pattern, period_text):
-            report_year: Optional[int] = None
-            for raw_year in (
-                selected_cell.get("_report_year"),
-                selected_cell.get("report_year"),
-                selected_cell.get("year"),
-            ):
-                try:
-                    if raw_year not in (None, ""):
-                        report_year = int(raw_year)
-                        break
-                except (TypeError, ValueError):
-                    continue
-            if report_year is not None:
-                target_years = operand_target_years(operand, query_years)
-                if target_years and report_year in target_years:
-                    period_text = str(report_year)
-                else:
-                    period_text = str(report_year)
-        normalized_period = _normalise_spaces(period_text)
-        if desired_period_focus == "current" and normalized_period and any(
-            token in normalized_period for token in prior_markers
-        ):
-            return False
-        if desired_period_focus == "prior" and normalized_period and any(
-            token in normalized_period for token in current_markers
-        ):
-            return False
-        target_years = operand_target_years(operand, query_years)
-        explicit_years = [int(token) for token in re.findall(explicit_year_pattern, period_text or "")]
-        if target_years and explicit_years and not any(year in explicit_years for year in target_years):
-            return False
-
-    binding_policy = dict(operand.get("binding_policy") or {})
-    if bool(
-        binding_policy.get("require_surface_contract_for_direct_match")
-        or binding_policy.get("require_surface_contract_for_direct_lookup")
-    ) and not candidate_has_required_surface_contract(
-        candidate,
-        operand,
-        selected_cell=selected_cell,
-    ):
-        return False
-
-    if operation_family in {"lookup", "single_value"}:
-        desired_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
-        candidate_unit_family = candidate_selected_unit_family(candidate, selected_cell=selected_cell)
-        if (
-            desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
-            and candidate_unit_family
-            and candidate_unit_family != desired_unit_family
-        ):
-            return False
-        direct_match_strength = candidate_direct_match_strength(candidate, operand)
-        if direct_match_strength < 2.0:
-            return False
-
-    statement_type = str(metadata.get("statement_type") or "unknown").strip()
-    value_role = candidate_value_role(candidate)
-    aggregation_stage = candidate_aggregation_stage(candidate)
-    local_heading = _normalise_spaces(
-        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
-    )
-    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
-    if operation_family in {"lookup", "single_value"} and lookup_prefers_canonical_statement_rows(operand):
-        canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
-        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-        note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
-        note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
-        allows_note_canonical = any(
-            marker in _normalise_spaces(section)
-            for section in canonical_sections
-            for marker in note_markers
-        )
-        canonical_statement_type_hit = (
-            bool(canonical_types)
-            and statement_type in canonical_types
-            and statement_type not in {"notes", "unknown"}
-        )
-        canonical_section_hit = bool(canonical_sections) and any(
-            _normalise_spaces(section_term) in local_heading or _normalise_spaces(section_term) in section_path
-            for section_term in canonical_sections
-            if _normalise_spaces(section_term)
-        )
-        if canonical_types and statement_type not in canonical_types:
-            return False
-        if note_context and not allows_note_canonical and not canonical_section_hit:
-            return False
-        if canonical_sections and (local_heading or section_path) and not canonical_section_hit and not canonical_statement_type_hit:
-            return False
-    if is_balance_sheet_aggregate_operand(operand):
-        if statement_type == "notes" and value_role == "detail":
-            return False
-    if is_capex_total_operand(operand):
-        preferred_sections = [
-            _normalise_spaces(str(item))
-            for item in (operand.get("preferred_sections") or [])
-            if str(item).strip()
-        ]
-        aggregate_like = value_role == "aggregate" or aggregation_stage in {"final", "direct", "subtotal"}
-        if candidate.get("candidate_kind") in {"structured_value", "structured_column_value"} and not aggregate_like:
-            return False
-        if preferred_sections:
-            in_preferred_section = any(
-                section_term in local_heading or section_term in section_path
-                for section_term in preferred_sections
-                if section_term
-            )
-            if not in_preferred_section and not aggregate_like:
-                return False
-
-    metadata_periods = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
-    target_years = operand_target_years(operand, query_years)
-    if desired_period_focus == "prior" and target_years and metadata_periods:
-        flattened = " ".join(metadata_periods)
-        explicit_years = [int(token) for token in re.findall(r"20\d{2}", flattened)]
-        if explicit_years and not any(year in explicit_years for year in target_years):
-            return False
-
-    return True
-
-
 def _score_operand_candidate(
     candidate: Dict[str, Any],
     *,
@@ -4526,7 +4360,7 @@ def _deterministic_reconcile_task(
                         query_years=years,
                         period_focus=period_focus,
                     )
-                    if not _candidate_satisfies_direct_acceptance_contract(
+                    if not candidate_satisfies_direct_acceptance_contract(
                         candidate,
                         operand=operand,
                         constraints=constraints,

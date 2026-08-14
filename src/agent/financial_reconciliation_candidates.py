@@ -6,11 +6,13 @@ import re
 from typing import Any, Dict, List, Optional
 
 from src.agent.financial_graph_helpers import (
-    _candidate_satisfies_direct_acceptance_contract,
     _resolve_candidate_local_unit_hint,
     _score_operand_candidate,
 )
-from src.agent.financial_operand_resolution import coerce_lookup_magnitude_value
+from src.agent.financial_operand_resolution import (
+    candidate_satisfies_direct_acceptance_contract,
+    coerce_lookup_magnitude_value,
+)
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_row_surfaces import _parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
@@ -405,7 +407,7 @@ def extract_structured_period_pair_rows(
             accepted_current_entries: List[tuple[Dict[str, Any], str, float]] = []
             accepted_prior_entries: List[tuple[Dict[str, Any], str, float]] = []
             for cell in enriched_cells:
-                if _candidate_satisfies_direct_acceptance_contract(
+                if candidate_satisfies_direct_acceptance_contract(
                     candidate,
                     operand=current_operand,
                     constraints=constraints,
@@ -426,7 +428,7 @@ def extract_structured_period_pair_rows(
                     )
                     accepted_current_entries.append((cell, current_period, current_score))
                     current_entries.append((candidate, cell, current_period, current_score))
-                if _candidate_satisfies_direct_acceptance_contract(
+                if candidate_satisfies_direct_acceptance_contract(
                     candidate,
                     operand=prior_operand,
                     constraints=constraints,
