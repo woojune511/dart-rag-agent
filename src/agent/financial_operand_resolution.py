@@ -24,6 +24,8 @@ from src.agent.financial_row_surfaces import (
     _surface_match_variants,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
+    candidate_has_operand_context_surface,
+    candidate_supports_segment_metric_combo,
     candidate_value_role,
 )
 from src.agent.financial_runtime_normalization import (
@@ -3753,6 +3755,130 @@ def operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
     if not surfaces:
         return False
     return _text_has_contract_term(text, surfaces)
+
+
+def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
+    """Score how directly a candidate label represents the requested operand."""
+    if candidate_conflicts_with_operand_concept(candidate, operand):
+        return 0.0
+
+    metadata = dict(candidate.get("metadata") or {})
+    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
+    surfaces: List[tuple[str, float]] = [
+        (str(metadata.get("semantic_label") or "").strip(), 3.0),
+        (str(metadata.get("row_label") or "").strip(), 2.5),
+        (
+            " ".join(
+                str(item).strip()
+                for item in (metadata.get("semantic_aliases") or [])
+                if str(item).strip()
+            ),
+            2.0,
+        ),
+        (
+            " ".join(
+                str(item).strip()
+                for item in (metadata.get("row_headers") or [])
+                if str(item).strip()
+            ),
+            1.5,
+        ),
+        (str(metadata.get("aggregate_label") or "").strip(), 1.0),
+    ]
+    if candidate_kind != "table_row":
+        surfaces.extend(
+            [
+                (str(metadata.get("table_row_labels_text") or "").strip(), 1.25),
+                (str(metadata.get("row_text") or "").strip(), 1.0),
+            ]
+        )
+    best = 0.0
+    for surface, exact_bonus in surfaces:
+        normalized_surface = _normalise_spaces(surface)
+        if not normalized_surface:
+            continue
+        surface_variants = set(_surface_match_variants(normalized_surface))
+        if any(_normalise_spaces(needle) == normalized_surface for needle in _operand_needles(operand)):
+            best = max(best, exact_bonus)
+            continue
+        if any(
+            needle_variant in surface_variants
+            for needle in _operand_needles(operand)
+            for needle_variant in _surface_match_variants(needle)
+        ):
+            best = max(best, exact_bonus)
+            continue
+        if _operand_text_match(normalized_surface, operand):
+            best = max(best, exact_bonus * 0.5)
+    if is_capex_total_operand(operand):
+        context_text = " ".join(
+            part
+            for part in (
+                str(metadata.get("local_heading") or "").strip(),
+                str(metadata.get("table_context") or "").strip(),
+                str(metadata.get("section_path") or "").strip(),
+                str(metadata.get("row_context_text") or "").strip(),
+                str(candidate.get("text") or "").strip(),
+            )
+            if part
+        )
+        context_surfaces = [
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("section_path") or "").strip(),
+        ]
+        preferred_sections = [
+            _normalise_spaces(str(item))
+            for item in (operand.get("preferred_sections") or [])
+            if str(item).strip()
+        ]
+        if preferred_sections and any(
+            section in _normalise_spaces(surface)
+            for section in preferred_sections
+            for surface in context_surfaces
+            if _normalise_spaces(surface)
+        ):
+            if (
+                _text_has_positive_surface(context_text, operand)
+                and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+            ):
+                best = max(best, 2.25)
+    if operand_prefers_contextual_aggregate_match(operand):
+        context_text = candidate_local_aggregate_context(candidate)
+        if (
+            _text_has_positive_surface(context_text, operand)
+            and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+        ):
+            best = max(best, 2.0)
+    aggregate_signal = _normalise_spaces(
+        " ".join(
+            part
+            for part in (
+                str(metadata.get("aggregate_label") or "").strip(),
+                str(metadata.get("semantic_label") or "").strip(),
+                str(metadata.get("row_label") or "").strip(),
+            )
+            if part
+        )
+    )
+    if (
+        aggregate_signal
+        and _operand_text_match(aggregate_signal, operand)
+        and candidate_value_role(candidate) == "aggregate"
+        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+    ):
+        best = max(best, 2.25)
+    if (
+        aggregate_signal
+        and operand_lookup_surface_match(aggregate_signal, operand)
+        and candidate_has_operand_context_surface(candidate, operand)
+        and candidate_value_role(candidate) == "aggregate"
+        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+    ):
+        best = max(best, 2.25)
+    if candidate_supports_segment_metric_combo(candidate, operand):
+        best = max(best, 2.25)
+    return best
 
 
 def coerce_lookup_magnitude_value(

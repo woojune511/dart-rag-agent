@@ -71,20 +71,17 @@ from src.agent.financial_surface_contracts import (
     _operand_segment_label,
     _operand_surface_contract,
     _text_has_negative_surface,
-    _text_has_positive_surface,
     binding_policy_allows_candidate_shape,
     candidate_conflicts_with_operand_concept,
     candidate_consolidation_scope,
     candidate_has_numeric_value_signal,
     candidate_has_required_surface_contract,
     candidate_is_descriptor_row,
-    candidate_local_aggregate_context,
     candidate_matches_segment_binding,
     candidate_segment_binding_bonus,
     candidate_selected_unit_family,
     is_balance_sheet_aggregate_operand,
     is_capex_total_operand,
-    operand_prefers_contextual_aggregate_match,
 )
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
@@ -96,10 +93,8 @@ from src.agent.financial_row_surfaces import (
     aggregate_like_row_role,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
-    candidate_has_operand_context_surface,
     candidate_has_segment_local_binding,
     candidate_sibling_surface_hit_count,
-    candidate_supports_segment_metric_combo,
     candidate_value_role,
     column_candidate_label,
     is_delta_like_row_label,
@@ -133,6 +128,7 @@ from src.agent.financial_operation_policies import (
     _query_requests_narrative_context,
 )
 from src.agent.financial_operand_resolution import (
+    candidate_direct_match_strength,
     candidate_direct_family_signature,
     candidate_direct_logical_signature,
     candidate_location_entity_subject_score,
@@ -141,7 +137,6 @@ from src.agent.financial_operand_resolution import (
     lookup_canonical_statement_preferences,
     lookup_prefers_canonical_statement_rows,
     lookup_query_surface_preferences,
-    operand_lookup_surface_match,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     preference_bonus,
 )
@@ -626,7 +621,7 @@ def _candidate_is_canonical_statement_winner(
         if _normalise_spaces(section)
     ):
         return False
-    if _candidate_direct_match_strength(candidate, operand) < 2.5:
+    if candidate_direct_match_strength(candidate, operand) < 2.5:
         return False
     if not candidate_matches_operand_target_year(candidate, operand, query_years):
         candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
@@ -664,7 +659,7 @@ def _direct_candidate_semantic_priority(
     statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
     value_role = candidate_value_role(candidate)
     aggregation_stage = candidate_aggregation_stage(candidate)
-    direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+    direct_match_strength = candidate_direct_match_strength(candidate, operand)
     candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
 
     statement_rank = 0
@@ -3988,7 +3983,7 @@ def _candidate_is_direct_grounding_candidate(
     if not candidate_has_numeric_value_signal(candidate):
         return False
 
-    direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+    direct_match_strength = candidate_direct_match_strength(candidate, operand)
     if direct_match_strength < 1.0:
         return False
 
@@ -4152,7 +4147,7 @@ def _candidate_satisfies_direct_acceptance_contract(
             and candidate_unit_family != desired_unit_family
         ):
             return False
-        direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+        direct_match_strength = candidate_direct_match_strength(candidate, operand)
         if direct_match_strength < 2.0:
             return False
 
@@ -4254,7 +4249,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
         candidate_kind in {"table_row", "evidence_row"}
         and selected_cell is not None
         and candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell)
-        and _candidate_direct_match_strength(candidate, operand) >= 1.0
+        and candidate_direct_match_strength(candidate, operand) >= 1.0
     )
     aggregate_like = (
         value_role == "aggregate"
@@ -4275,7 +4270,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     if positive_terms:
         if not candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell):
             return False
-    elif _candidate_direct_match_strength(candidate, operand) < 1.0:
+    elif candidate_direct_match_strength(candidate, operand) < 1.0:
         return False
 
     desired_period_focus = operand_period_focus(
@@ -4289,130 +4284,6 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     if desired_period_focus == "prior" and candidate_period_focus == "current" and not target_year_match:
         return False
     return True
-
-
-def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
-    """Score how directly a candidate label represents the requested operand."""
-    if candidate_conflicts_with_operand_concept(candidate, operand):
-        return 0.0
-
-    metadata = dict(candidate.get("metadata") or {})
-    candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
-    surfaces: List[tuple[str, float]] = [
-        (str(metadata.get("semantic_label") or "").strip(), 3.0),
-        (str(metadata.get("row_label") or "").strip(), 2.5),
-        (
-            " ".join(
-                str(item).strip()
-                for item in (metadata.get("semantic_aliases") or [])
-                if str(item).strip()
-            ),
-            2.0,
-        ),
-        (
-            " ".join(
-                str(item).strip()
-                for item in (metadata.get("row_headers") or [])
-                if str(item).strip()
-            ),
-            1.5,
-        ),
-        (str(metadata.get("aggregate_label") or "").strip(), 1.0),
-    ]
-    if candidate_kind != "table_row":
-        surfaces.extend(
-            [
-                (str(metadata.get("table_row_labels_text") or "").strip(), 1.25),
-                (str(metadata.get("row_text") or "").strip(), 1.0),
-            ]
-        )
-    best = 0.0
-    for surface, exact_bonus in surfaces:
-        normalized_surface = _normalise_spaces(surface)
-        if not normalized_surface:
-            continue
-        surface_variants = set(_surface_match_variants(normalized_surface))
-        if any(_normalise_spaces(needle) == normalized_surface for needle in _operand_needles(operand)):
-            best = max(best, exact_bonus)
-            continue
-        if any(
-            needle_variant in surface_variants
-            for needle in _operand_needles(operand)
-            for needle_variant in _surface_match_variants(needle)
-        ):
-            best = max(best, exact_bonus)
-            continue
-        if _operand_text_match(normalized_surface, operand):
-            best = max(best, exact_bonus * 0.5)
-    if is_capex_total_operand(operand):
-        context_text = " ".join(
-            part
-            for part in (
-                str(metadata.get("local_heading") or "").strip(),
-                str(metadata.get("table_context") or "").strip(),
-                str(metadata.get("section_path") or "").strip(),
-                str(metadata.get("row_context_text") or "").strip(),
-                str(candidate.get("text") or "").strip(),
-            )
-            if part
-        )
-        context_surfaces = [
-            str(metadata.get("local_heading") or "").strip(),
-            str(metadata.get("table_context") or "").strip(),
-            str(metadata.get("section_path") or "").strip(),
-        ]
-        preferred_sections = [
-            _normalise_spaces(str(item))
-            for item in (operand.get("preferred_sections") or [])
-            if str(item).strip()
-        ]
-        if preferred_sections and any(
-            section in _normalise_spaces(surface)
-            for section in preferred_sections
-            for surface in context_surfaces
-            if _normalise_spaces(surface)
-        ):
-            if (
-                _text_has_positive_surface(context_text, operand)
-                and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
-            ):
-                best = max(best, 2.25)
-    if operand_prefers_contextual_aggregate_match(operand):
-        context_text = candidate_local_aggregate_context(candidate)
-        if (
-            _text_has_positive_surface(context_text, operand)
-            and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
-        ):
-            best = max(best, 2.0)
-    aggregate_signal = _normalise_spaces(
-        " ".join(
-            part
-            for part in (
-                str(metadata.get("aggregate_label") or "").strip(),
-                str(metadata.get("semantic_label") or "").strip(),
-                str(metadata.get("row_label") or "").strip(),
-            )
-            if part
-        )
-    )
-    if (
-        aggregate_signal
-        and _operand_text_match(aggregate_signal, operand)
-        and candidate_value_role(candidate) == "aggregate"
-        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
-    ):
-        best = max(best, 2.25)
-    if (
-        aggregate_signal
-        and operand_lookup_surface_match(aggregate_signal, operand)
-        and candidate_has_operand_context_surface(candidate, operand)
-        and candidate_value_role(candidate) == "aggregate"
-        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
-    ):
-        best = max(best, 2.25)
-    if candidate_supports_segment_metric_combo(candidate, operand):
-        best = max(best, 2.25)
-    return best
 
 
 def _score_operand_candidate(
@@ -4447,7 +4318,7 @@ def _score_operand_candidate(
             score += 3.0
         elif _operand_text_match(row_label, operand):
             score += 1.5
-    score += _candidate_direct_match_strength(candidate, operand)
+    score += candidate_direct_match_strength(candidate, operand)
     candidate_kind = str(candidate.get("candidate_kind") or "")
     if candidate_kind == "structured_value":
         score += 2.5
@@ -4463,7 +4334,7 @@ def _score_operand_candidate(
         score -= 0.25
 
     if candidate_kind in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
-        direct_match_strength = _candidate_direct_match_strength(candidate, operand)
+        direct_match_strength = candidate_direct_match_strength(candidate, operand)
         if direct_match_strength >= 2.5:
             score += 1.25
         elif direct_match_strength >= 1.5:
