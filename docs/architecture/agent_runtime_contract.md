@@ -4804,60 +4804,82 @@ retained-function parity, all three calls/one caller, retired-ref zero, non-
 ASCII preservation, and diff check. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The active canonical-statement-winner contract is characterized for the next
-bounded owner batch. Move only the current exact 42-line
-`_candidate_is_canonical_statement_winner(candidate, *, operand, query_years)`
+The canonical-statement-winner owner contract completed in `73a049c`. Public
+`financial_operand_resolution.candidate_is_canonical_statement_winner(...)`
+owns the exact former 42-line, 17-statement/seven-return/no-`try` predicate.
+Canonical preference, metadata/policy shallow-copy, marker/section iteration,
+direct-strength, target-year and period-focus behavior remain unchanged and
+pinned by four CURRENT-SOURCE methods. No graph alias or bridge exists.
+
+The sole `_deterministic_reconcile_task(...)` call now binds the public owner
+while direct-entry dictionary order, `canonical_winner` storage, later rank/
+collapse, semantic/score fallback, and adoption remain graph-owned. Final
+counts are graph 9/75 and operand resolution 50/37; the full DAG remains
+acyclic at 48 modules/204 edges. Executed gates are focused 4/4, graph owner
+154/154, operand owner 69/69, affected semantic 1,114/1,114, reconciliation
+plan 51/51, import 19/19, audit 217, and full 2,007/2,007, plus pycompile,
+fresh identity, selected-body and retained-function parity, sole call/caller,
+retired-ref zero, non-ASCII preservation, and diff check. Benchmark refresh and
+remote CI were **NOT RUN**.
+
+The active ratio-component-acceptance contract is characterized for the next
+bounded owner batch. Move only the current exact 68-line
+`_candidate_satisfies_ratio_component_acceptance_contract(candidate, *,
+operand, constraints, query_years, selected_cell=None, report_scope=None)`
 graph definition without a graph alias to public
-`financial_operand_resolution.candidate_is_canonical_statement_winner(...)`.
-It classifies one prepared candidate against canonical statement, section,
-direct-strength, and period signals; direct-entry construction, collection
-sorting, winner adoption, acceptance, broad scoring, retrieval, and graph state
-remain outside.
+`financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(...)`.
+It classifies one prepared ratio candidate and optional selected cell;
+candidate/cell construction, cell selection, direct acceptance, sorting,
+same-block fallback, operand-row adoption, evidence work, and graph state remain
+outside.
 
-Preserve the exact 17-statement body, seven returns, no `try`, required
-positional candidate, two required keyword-only inputs, and `bool` result.
-Canonical-row preference stays first and stops before candidate access. Then
-shallow-copy metadata, preserve statement-type fallback/string/strip and exact
-two-value canonical preference unpacking, reject a truthy type preference miss,
-and compute the canonical-type hit with explicit collection truth, repeated
-membership, and exact `notes`/`unknown` exclusion.
+Preserve the exact 22-statement body, twelve returns, no `try`, one required
+positional candidate, three required and two optional keyword-only inputs, and
+`bool` result. Shallow-copy metadata before the exact five-kind gate. Preserve
+descriptor, numeric-signal, strict segment-binding, and target-report-scope
+gates in order, including a fresh shallow report-scope mapping and every early
+stop.
 
-Do not copy or materialize the returned canonical type/section objects.
-Repeated type truth/membership and section iteration or exhaustion across the
-two section scans are normative, including stateful-container, duplicate, and
-first-hit effects.
+Value-role and aggregation-stage projection each run once after those gates.
+The direct-row-like chain remains lazy in exact kind, selected-cell, required-
+surface, then `>= 1.0` strength order. Aggregate truth keeps value-role, stage,
+then direct-row precedence. Its miss stops before the binding-policy shallow
+copy and exact keyword call.
 
-Preserve lazy local-heading/table-context/section-path fallback, the separate
-section-path read, policy shallow copy, eager marker tuple, retained-marker
-double stringification, marker-outer heading-before-section membership,
-marker/section nested iteration, repeated filtered canonical-section
-normalization, and all `any(...)` short circuits. Note-context and canonical-
-section rejections remain before one direct-strength call and exact `< 2.5`
-comparison. A truthy target-year result returns before period work; otherwise
-normalize candidate period focus, call `operand_period_focus(operand,
-"unknown")`, and reject only an exact current/prior mismatch. Mapping/truth,
-copy, unpacking, conversion, normalization, iteration, membership, helper,
-comparison, and return failures remain uncaught in order. Inputs, supplied
-preference objects, nested values, and `query_years` remain unmodified and
-retain identity.
+The surface contract is projected once. Positive terms are eagerly
+materialized in order with rejected-item single and retained-item double string
+conversion. A truthy list uses the selected-cell-aware required-surface gate
+without the later strength fallback; an empty list skips that gate and evaluates
+the separate direct-strength fallback once, rejecting `< 1.0`. This remains
+distinct from the earlier lazy direct-row-like strength expression. Preserve
+stateful iterable/duplicate effects and all short circuits.
 
-The destination already owns all dependencies and already imports from scope
-policy; adding `operand_period_focus(...)` creates no edge. Projected counts are
-graph 9/75 and operand resolution 50/37, and the acyclic full DAG remains
-48/204. The selected span has zero of 217 reviewed records.
+Only then derive period focus from the original operand and normalized
+constraint fallback, normalize candidate focus, and eagerly compute one target-
+year result before either mismatch branch. Reject only exact current/prior or
+prior/current mismatch with a falsey year result. Mapping access, truth, copy,
+conversion, strip, membership, materialization, helper, comparison, and return
+failures remain uncaught in order. All supplied objects and nested values remain
+unmodified and retain current identities.
 
-The sole call remains in `_deterministic_reconcile_task(...)`, under body
-statement index 9/17 and caller `try` depth zero. Preserve exact positional
-candidate, `operand=operand`, `query_years=years`, direct-entry dictionary
-evaluation order, storage under `canonical_winner`, later rank/collapse use,
-and every failure stop before append. The four required CURRENT-SOURCE methods
-and projected focused 4/4, graph owner 154/154, operand owner 69/69, affected
-semantic 1,114/1,114, reconciliation plan 51/51, import 19/19, audit 217, and
-full 2,007/2,007 gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). Entry
-construction, broad scoring, sorting/collapse, direct/ratio acceptance, evidence
-adoption, I/O, retrieval, graph state, model invocation, artifact/ledger
-mutation, retry, and final sequencing remain hard stops.
+The destination's existing surface-contract and scope-policy edges only gain
+public names; no module edge is added. Projected counts are graph 9/74 and
+operand resolution 51/37, the acyclic full DAG remains 48/204, and the selected
+span has zero of 217 reviewed records.
+
+All three direct calls remain at `try` depth zero in
+`financial_graph_reconciliation.py`. Preserve exact candidate plus five keyword
+inputs. The nested `candidate_supports_operand(...)` call keeps its first-hit
+return; the first extraction call remains the ratio-only half of the combined
+direct-acceptance condition and its `continue`; the second remains the
+`direct_accept` fallback assignment before same-block fallback and adoption.
+The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
+158/158, operand owner 69/69, affected semantic 1,118/1,118, reconciliation
+plan 51/51, import 19/19, audit 217, and full 2,011/2,011 gates are governed
+only by [Project Status Next Work](../overview/project_status.md#next-work).
+Cell construction/selection, direct acceptance, sorting/scoring, same-block
+fallback, evidence adoption, I/O, retrieval, graph state, model invocation,
+artifact/ledger mutation, retry, and final sequencing remain hard stops.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

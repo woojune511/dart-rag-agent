@@ -1132,38 +1132,62 @@ preservation, and diff check passed. The source diff SHA-256 is
 `6fe4cf715b6ea401a379f3ca40725ad7ea25e8b0bae16deb0752433f3937d304`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current exact 42-line `_candidate_is_canonical_statement_winner(...)`
-definition from graph helpers to public
+The completed `73a049c` follow-on moved the exact former 42-line canonical-
+statement-winner predicate from graph helpers to public
 `candidate_is_canonical_statement_winner(...)` in
-`financial_operand_resolution.py`. It owns one state-free canonical
-statement/section/direct-strength/period predicate for one prepared candidate,
-not direct-entry construction, collection sorting, winner adoption, acceptance,
-or broad scoring.
+`financial_operand_resolution.py`. The exact 17-statement/seven-return body,
+preference-first gate, metadata/policy shallow copies, marker and section
+iteration, `< 2.5` strength threshold, target-year/period fallback, identities,
+immutability, and uncaught failures remain pinned by four CURRENT-SOURCE
+methods. No graph alias was added.
 
-The destination already owns every dependency and already reaches scope policy;
-adding `operand_period_focus(...)` to that existing import creates no module
-edge. The acyclic full DAG remains 48 modules/204 edges; projected counts are
-graph helpers 9/75 and operand resolution 50/37, and the selected span contains
-zero of 217 reviewed records.
+The sole graph call now binds the public owner while direct-entry dictionary
+order, `canonical_winner` storage, later rank/collapse, semantic/score fallback,
+and adoption remain graph-owned. Production source is `+50/-46`, tests are
+`+1,593/-67`, and the whole commit is `+1,643/-113`; graph helpers move from
+5,001 to 4,958 lines, operand resolution from 4,113 to 4,160, and graph-helper
+tests from 33,689 to 35,215. Focused 4/4, graph owner 154/154, operand owner
+69/69, affected semantic 1,114/1,114, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,007/2,007, pycompile/fresh identity, body/retained/caller/full
+48-module/204-edge DAG parity, retired private refs zero, non-ASCII
+preservation, and diff check passed. The source diff SHA-256 is
+`f3733afbfbbeaec72deafed6a9cfcde10e2c8b1b88e03ece43c10dcd73c563d6`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Preserve the exact 17-statement/seven-return/no-`try` body, preference-first
-gate, metadata/policy shallow copies, statement-type and heading/section
-fallback order, repeated marker and canonical-section normalization, nested
-generator/`any` short circuits, `< 2.5` direct-strength rejection, target-year
-truth gate, period-focus fallback, exact booleans, identities, immutability,
-and uncaught failures. The sole call in `_deterministic_reconcile_task(...)`
-must retain exact candidate/operand/year arguments, direct-entry dictionary
-evaluation order, `canonical_winner` storage, later rank/collapse adoption, and
-failure stops at `try` depth zero. Entry construction, sorting, direct/ratio
-acceptance, broad scoring, evidence adoption, I/O, retrieval, and plan/state/
-artifact/ledger work are rejected.
+The new characterize-only inventory selects one follow-on: move only the
+current exact 68-line
+`_candidate_satisfies_ratio_component_acceptance_contract(...)` definition
+from graph helpers to public
+`candidate_satisfies_ratio_component_acceptance_contract(...)` in
+`financial_operand_resolution.py`. It owns one state-free prepared-candidate/
+selected-cell ratio acceptance predicate, not candidate/cell construction,
+cell selection, direct acceptance, collection sorting, same-block fallback,
+operand-row adoption, or graph state.
+
+The destination already owns or imports every dependency module. Adding five
+surface-contract names and one scope-policy name to existing imports creates no
+module edge. The acyclic full DAG remains 48 modules/204 edges; projected counts
+are graph helpers 9/74 and operand resolution 51/37, and the selected span
+contains zero of 217 reviewed records.
+
+Preserve the exact 22-statement/twelve-return/no-`try` body, metadata/report-
+scope/binding-policy shallow copies, candidate-kind/descriptor/numeric/segment/
+report gate order, lazy direct-row-like chain, aggregate precedence, surface-
+contract positive-term materialization, selected-cell-aware surface gate,
+`< 1.0` fallback threshold, eager target-year result, current/prior mismatch
+truth table, exact booleans, identities, immutability, and uncaught failures.
+All three calls in `financial_graph_reconciliation.py` must retain exact
+candidate and five keyword inputs, ratio-only fallback placement, return/
+continue/assignment semantics, same-block fallback order, adoption, and failure
+stops at `try` depth zero. Cell preparation/selection, direct acceptance,
+sorting/scoring, evidence work, I/O, retry, and plan/state/artifact/ledger work
+are rejected.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-154/154, operand owner 69/69, affected semantic 1,114/1,114, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,007/2,007 gates are defined only in
+158/158, operand owner 69/69, affected semantic 1,118/1,118, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,011/2,011 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this canonical-winner projection; it is the
+or test movement has occurred for this ratio-component projection; it is the
 sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
