@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             (
@@ -1885,7 +1885,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             (
@@ -2859,7 +2859,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 76))
+        self.assertEqual(graph_counts, (9, 75))
         self.assertEqual(row_counts, (11, 15))
 
         graph_row_imports = {
@@ -3916,7 +3916,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             (
@@ -4842,7 +4842,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         expected_callers = {
             preference_name: [
-                ("financial_graph_helpers", "_candidate_is_canonical_statement_winner"),
+                (
+                    "financial_operand_resolution",
+                    "candidate_is_canonical_statement_winner",
+                ),
                 ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
                 ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
                 ("financial_graph_helpers", "_candidate_is_direct_grounding_candidate"),
@@ -4854,7 +4857,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ("financial_graph_helpers", "_build_reconciliation_retry_queries"),
             ],
             canonical_name: [
-                ("financial_graph_helpers", "_candidate_is_canonical_statement_winner"),
+                (
+                    "financial_operand_resolution",
+                    "candidate_is_canonical_statement_winner",
+                ),
                 ("financial_graph_helpers", "_build_lookup_producer_task_from_binding"),
                 (
                     "financial_graph_helpers",
@@ -4956,14 +4962,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in operand_defs),
                 sum(node.name.startswith("_") for node in operand_defs),
             ),
-            (49, 37),
+            (50, 37),
         )
 
         def imported_names(module_name, imported_module):
@@ -5094,9 +5100,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
         query_name = "lookup_query_surface_preferences"
         match_name = "operand_lookup_surface_match"
 
-        winner_source = function_source(
-            "_candidate_is_canonical_statement_winner"
-        )
+        winner_source = ast.get_source_segment(
+            operand_source,
+            operand_function_nodes["candidate_is_canonical_statement_winner"],
+        ) or ""
         self.assertLess(
             winner_source.index(preference_name),
             winner_source.index("metadata ="),
@@ -5222,23 +5229,23 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         with (
             patch.object(
-                financial_graph_helpers,
+                financial_operand_resolution,
                 preference_name,
                 return_value=False,
             ) as winner_preference,
             patch.object(
-                financial_graph_helpers,
+                financial_operand_resolution,
                 canonical_name,
                 stopped_canonical,
             ),
             patch.object(
-                financial_graph_helpers,
+                financial_operand_resolution,
                 "candidate_direct_match_strength",
                 stopped_strength,
             ),
         ):
             self.assertFalse(
-                financial_graph_helpers._candidate_is_canonical_statement_winner(
+                financial_operand_resolution.candidate_is_canonical_statement_winner(
                     candidate,
                     operand=operand,
                     query_years=[],
@@ -6687,8 +6694,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 76))
-        self.assertEqual(current_operand_counts, (49, 37))
+        self.assertEqual(current_graph_counts, (9, 75))
+        self.assertEqual(current_operand_counts, (50, 37))
 
         def imported_names(module_name, imported_module):
             return {
@@ -6825,7 +6832,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             f'"family_signature": {family_name}',
             '"selected_value_text": _normalise_spaces',
             '"score": _score_operand_candidate',
-            '"canonical_winner": _candidate_is_canonical_statement_winner',
+            '"canonical_winner": candidate_is_canonical_statement_winner',
         ]
         entry_indexes = [entry_source.index(token) for token in entry_tokens]
         self.assertEqual(entry_indexes, sorted(entry_indexes))
@@ -7007,7 +7014,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_is_canonical_statement_winner",
+                    "candidate_is_canonical_statement_winner",
                     side_effect=canonical_winner,
                 ),
                 patch.object(
@@ -7201,7 +7208,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_is_canonical_statement_winner",
+                "candidate_is_canonical_statement_winner",
                 stopped_rejected_winner,
             ),
         ):
@@ -7292,7 +7299,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_is_canonical_statement_winner",
+                    "candidate_is_canonical_statement_winner",
                     winner_owner,
                 ),
             ):
@@ -8158,7 +8165,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 76))
+        self.assertEqual(graph_counts, (9, 75))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9338,7 +9345,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 76))
+        self.assertEqual(graph_counts, (9, 75))
         self.assertEqual(owner_counts, (11, 9))
 
         def imported_names(module_name, imported_module):
@@ -10378,7 +10385,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 76))
+        self.assertEqual(graph_counts, (9, 75))
         self.assertEqual(row_counts, (11, 15))
 
         def imported_names(module_name, imported_module):
@@ -10610,7 +10617,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_is_canonical_statement_winner",
+                    "candidate_is_canonical_statement_winner",
                     side_effect=lambda candidate, **_kwargs: candidate["canonical"],
                 ),
                 patch.object(
@@ -12937,7 +12944,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -13811,9 +13818,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "operand_period_focus": {
                     "financial_dependency_projection": 2,
                     "financial_graph_calculation": 3,
-                    "financial_graph_helpers": 6,
+                    "financial_graph_helpers": 5,
                     "financial_graph_reconciliation": 5,
                     "financial_lookup_recovery": 5,
+                    "financial_operand_resolution": 1,
                     "financial_reconciliation_candidates": 2,
                     "financial_scope_policies": 1,
                 },
@@ -15806,7 +15814,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 76),
+                "financial_graph_helpers": (9, 75),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -16054,7 +16062,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_is_canonical_statement_winner",
+                "candidate_is_canonical_statement_winner",
                 side_effect=canonical_winner,
             ),
         ):
@@ -17682,11 +17690,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ],
                 "candidate_report_scope_binding_bonus": ["_score_operand_candidate"],
                 "candidate_matches_operand_target_year": [
-                    "_candidate_is_canonical_statement_winner",
                     "_candidate_is_direct_grounding_candidate",
                     "_candidate_satisfies_ratio_component_acceptance_contract",
                     "_score_operand_candidate",
                     "_score_operand_candidate",
+                    "candidate_is_canonical_statement_winner",
                     "direct_candidate_semantic_priority",
                 ],
                 "candidate_explicit_years": [
@@ -17871,18 +17879,18 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return False
 
         with (
-            patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=True),
-            patch.object(financial_graph_helpers, "lookup_canonical_statement_preferences", return_value=([], [])),
-            patch.object(financial_graph_helpers, "candidate_direct_match_strength", return_value=3.0),
+            patch.object(financial_operand_resolution, "lookup_prefers_canonical_statement_rows", return_value=True),
+            patch.object(financial_operand_resolution, "lookup_canonical_statement_preferences", return_value=([], [])),
+            patch.object(financial_operand_resolution, "candidate_direct_match_strength", return_value=3.0),
             patch.object(
-                financial_graph_helpers,
+                financial_operand_resolution,
                 "candidate_matches_operand_target_year",
                 side_effect=canonical_year,
             ),
-            patch.object(financial_graph_helpers, "operand_period_focus", return_value="prior"),
+            patch.object(financial_operand_resolution, "operand_period_focus", return_value="prior"),
         ):
             self.assertTrue(
-                financial_graph_helpers._candidate_is_canonical_statement_winner(
+                financial_operand_resolution.candidate_is_canonical_statement_winner(
                     candidate,
                     operand=operand,
                     query_years=query_years,
@@ -18790,7 +18798,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 76),
+            (9, 75),
         )
         self.assertEqual(
             (
@@ -19788,7 +19796,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 76),
+                "financial_graph_helpers": (9, 75),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -20585,7 +20593,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
+                "financial_graph_helpers": (9, 75),
                 "financial_scope_policies": (11, 9),
             },
         )
@@ -21493,8 +21501,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
             },
         )
 
@@ -22118,7 +22126,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 75), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -22962,7 +22970,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_operand_resolution": (49, 37)},
+            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
         )
 
         def imported_modules(tree):
@@ -23634,7 +23642,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 75), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -24233,7 +24241,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_scope_policies": (11, 9)},
+            {"financial_graph_helpers": (9, 75), "financial_scope_policies": (11, 9)},
         )
 
         def imported_modules(tree):
@@ -25065,8 +25073,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -26027,8 +26035,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -27038,8 +27046,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -28206,8 +28214,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -29477,8 +29485,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
                 "financial_surface_contracts": (15, 7),
             },
         )
@@ -30392,7 +30400,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_operand_resolution": (49, 37)},
+            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
         )
 
         def imported_modules(tree):
@@ -31117,7 +31125,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 76), "financial_operand_resolution": (49, 37)},
+            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
         )
 
         def imported_modules(tree):
@@ -31285,7 +31293,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sorted(calls),
             sorted(
                 [
-                    ("_candidate_is_canonical_statement_winner", 17, 14, ("candidate", "operand"), (), 0),
+                    ("candidate_is_canonical_statement_winner", 17, 14, ("candidate", "operand"), (), 0),
                     ("direct_candidate_semantic_priority", 19, 8, ("candidate", "operand"), (), 0),
                     ("_candidate_is_direct_grounding_candidate", 30, 5, ("candidate", "operand"), (), 0),
                     ("_candidate_satisfies_direct_acceptance_contract", 19, 6, ("candidate", "operand"), (), 0),
@@ -31304,7 +31312,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, ast.FunctionDef)
             and node.name
             in {
-                "_candidate_is_canonical_statement_winner",
+                "candidate_is_canonical_statement_winner",
                 "direct_candidate_semantic_priority",
                 "_candidate_is_direct_grounding_candidate",
                 "_candidate_satisfies_direct_acceptance_contract",
@@ -31313,7 +31321,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
         }
         self.assertEqual(
-            ast.unparse(callers["_candidate_is_canonical_statement_winner"].body[14]),
+            ast.unparse(callers["candidate_is_canonical_statement_winner"].body[14]),
             "if candidate_direct_match_strength(candidate, operand) < 2.5:\n    return False",
         )
         self.assertEqual(
@@ -32193,7 +32201,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
                 if module_name in {"financial_graph_helpers", "financial_operand_resolution"}
             },
-            {"financial_graph_helpers": (9, 76), "financial_operand_resolution": (49, 37)},
+            {"financial_graph_helpers": (9, 75), "financial_operand_resolution": (50, 37)},
         )
 
         def imported_modules(tree):
@@ -33117,8 +33125,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 76),
-                "financial_operand_resolution": (49, 37),
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
             },
         )
 
@@ -33533,7 +33541,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_is_canonical_statement_winner",
+                    "candidate_is_canonical_statement_winner",
                     return_value=False,
                 ),
                 patch.object(
@@ -33682,6 +33690,1524 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             [candidate["candidate_id"] for candidate, _ in compare_records],
             ["a", "b", "c", "b", "c"],
+        )
+
+    def test_current_source_candidate_is_canonical_statement_winner_pins_precedence_markers_and_result(self) -> None:
+        owner = financial_operand_resolution
+        target = owner.candidate_is_canonical_statement_winner
+        events = []
+
+        class MarkerProbe:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+                self.str_calls = 0
+
+            def __str__(self):
+                self.str_calls += 1
+                events.append(("marker-str", self.name))
+                return self.value
+
+        class CanonicalTypes:
+            def __init__(self):
+                self.bool_calls = 0
+                self.contains_calls = []
+
+            def __bool__(self):
+                self.bool_calls += 1
+                events.append(("canonical-types-bool", self.bool_calls))
+                return True
+
+            def __contains__(self, value):
+                self.contains_calls.append(value)
+                events.append(("canonical-types-contains", value))
+                return value == "income_statement"
+
+        note_marker = MarkerProbe("note", "note")
+        blank_marker = MarkerProbe("blank", "")
+        unused_marker = MarkerProbe("unused", "unused")
+        canonical_types = CanonicalTypes()
+        canonical_sections = [" note section "]
+        nested = {"preserve": True}
+        metadata = {
+            "statement_type": " income_statement ",
+            "local_heading": " note heading ",
+            "table_context": "must stay lazy",
+            "section_path": " note path ",
+            "period_focus": " prior ",
+            "nested": nested,
+        }
+        candidate = {"metadata": metadata, "nested": nested}
+        operand = {"label": "Metric", "nested": nested}
+        query_years = [2024]
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_years = list(query_years)
+
+        def prefers(current_operand):
+            events.append(("prefers", current_operand))
+            return True
+
+        def preferences(current_operand):
+            events.append(("preferences", current_operand))
+            return canonical_types, canonical_sections
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def strength(current_candidate, current_operand):
+            events.append(("strength", current_candidate, current_operand))
+            return 2.5
+
+        def year_match(current_candidate, current_operand, current_years):
+            events.append(
+                ("year", current_candidate, current_operand, current_years)
+            )
+            return False
+
+        def period_focus(current_operand, fallback):
+            events.append(("period", current_operand, fallback))
+            return "prior"
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                side_effect=prefers,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                side_effect=preferences,
+            ),
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {
+                    "note_context_markers": [
+                        note_marker,
+                        blank_marker,
+                        unused_marker,
+                    ],
+                    "nested": nested,
+                },
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                side_effect=strength,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                side_effect=year_match,
+            ),
+            patch.object(
+                owner,
+                "operand_period_focus",
+                side_effect=period_focus,
+            ),
+        ):
+            result = target(
+                candidate,
+                operand=operand,
+                query_years=query_years,
+            )
+
+        self.assertIs(result, True)
+        self.assertEqual(canonical_types.bool_calls, 2)
+        self.assertEqual(
+            canonical_types.contains_calls,
+            ["income_statement", "income_statement"],
+        )
+        self.assertEqual(note_marker.str_calls, 2)
+        self.assertEqual(blank_marker.str_calls, 1)
+        self.assertEqual(unused_marker.str_calls, 2)
+        self.assertEqual(
+            [entry[0] for entry in events],
+            [
+                "prefers",
+                "preferences",
+                "canonical-types-bool",
+                "canonical-types-contains",
+                "canonical-types-bool",
+                "canonical-types-contains",
+                "normalize",
+                "normalize",
+                "marker-str",
+                "marker-str",
+                "marker-str",
+                "marker-str",
+                "marker-str",
+                "normalize",
+                "strength",
+                "year",
+                "normalize",
+                "period",
+            ],
+        )
+        self.assertEqual(
+            [entry[1] for entry in events if entry[0] == "normalize"],
+            [
+                " note heading ",
+                " note path ",
+                " note section ",
+                " prior ",
+            ],
+        )
+        strength_event = next(entry for entry in events if entry[0] == "strength")
+        year_event = next(entry for entry in events if entry[0] == "year")
+        period_event = next(entry for entry in events if entry[0] == "period")
+        self.assertIs(strength_event[1], candidate)
+        self.assertIs(strength_event[2], operand)
+        self.assertIs(year_event[1], candidate)
+        self.assertIs(year_event[2], operand)
+        self.assertIs(year_event[3], query_years)
+        self.assertIs(period_event[1], operand)
+        self.assertEqual(period_event[2], "unknown")
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(query_years, before_years)
+        self.assertIs(candidate["metadata"], metadata)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        stopped = Mock(
+            side_effect=AssertionError("precedence gate must stop later work")
+        )
+
+        class CandidateGetBomb(dict):
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("disabled preference must not read candidate")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=False,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                stopped,
+            ),
+        ):
+            self.assertIs(
+                target(CandidateGetBomb(), operand=operand, query_years=[]),
+                False,
+            )
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=(["income_statement"], []),
+            ),
+            patch.object(owner, "_normalise_spaces", stopped),
+        ):
+            self.assertIs(
+                target(
+                    {"metadata": {"statement_type": "notes"}},
+                    operand=operand,
+                    query_years=[],
+                ),
+                False,
+            )
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], ["other section"]),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": ["note"]},
+            ),
+            patch.object(owner, "candidate_direct_match_strength", stopped),
+        ):
+            self.assertIs(
+                target(
+                    {"metadata": {"local_heading": "note disclosure"}},
+                    operand=operand,
+                    query_years=[],
+                ),
+                False,
+            )
+        stopped.assert_not_called()
+
+        section_normalizations = []
+
+        def section_normalizer(value):
+            section_normalizations.append(value)
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], [" Revenue "]),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "_normalise_spaces",
+                side_effect=section_normalizer,
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.5,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                return_value=True,
+            ),
+        ):
+            self.assertIs(
+                target(
+                    {"metadata": {"local_heading": "Revenue table"}},
+                    operand=operand,
+                    query_years=query_years,
+                ),
+                True,
+            )
+        self.assertEqual(
+            section_normalizations,
+            ["Revenue table", "", " Revenue ", " Revenue "],
+        )
+
+        one_shot_sections = iter(["note section"])
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], one_shot_sections),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": ["note"]},
+            ),
+            patch.object(owner, "candidate_direct_match_strength", stopped),
+        ):
+            self.assertIs(
+                target(
+                    {"metadata": {"local_heading": "note heading"}},
+                    operand=operand,
+                    query_years=[],
+                ),
+                False,
+            )
+        stopped.assert_not_called()
+        self.assertEqual(list(one_shot_sections), [])
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.49,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                stopped,
+            ),
+        ):
+            self.assertIs(
+                target({"metadata": {}}, operand=operand, query_years=[]),
+                False,
+            )
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.5,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                return_value=True,
+            ),
+            patch.object(owner, "operand_period_focus", stopped),
+        ):
+            self.assertIs(
+                target({"metadata": {}}, operand=operand, query_years=[]),
+                True,
+            )
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.5,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                return_value=False,
+            ),
+            patch.object(owner, "operand_period_focus", return_value="current"),
+        ):
+            self.assertIs(
+                target(
+                    {"metadata": {"period_focus": "prior"}},
+                    operand=operand,
+                    query_years=query_years,
+                ),
+                False,
+            )
+
+    def test_current_source_candidate_is_canonical_statement_winner_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        owner = financial_operand_resolution
+        target = owner.candidate_is_canonical_statement_winner
+        nested = {"preserve": True}
+        metadata = {
+            "statement_type": "income_statement",
+            "period_focus": "prior",
+            "nested": nested,
+        }
+        policy = {"note_context_markers": (), "nested": nested}
+        candidate = {"metadata": metadata, "nested": nested}
+        operand = {"label": "Metric", "nested": nested}
+        query_years = [2024]
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_years = list(query_years)
+        real_dict = dict
+        copied_sources = []
+        helper_events = []
+
+        def copy_mapping(value):
+            copied_sources.append(value)
+            return real_dict(value)
+
+        def prefers(current_operand):
+            helper_events.append("prefers")
+            self.assertIs(current_operand, operand)
+            return True
+
+        def preferences(current_operand):
+            helper_events.append("preferences")
+            self.assertIs(current_operand, operand)
+            return [], []
+
+        def strength(current_candidate, current_operand):
+            helper_events.append("strength")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            return 2.5
+
+        def year_match(current_candidate, current_operand, current_years):
+            helper_events.append("year")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertIs(current_years, query_years)
+            return False
+
+        def period_focus(current_operand, fallback):
+            helper_events.append("period")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(fallback, "unknown")
+            return "unknown"
+
+        with (
+            patch.object(owner, "dict", side_effect=copy_mapping, create=True),
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                side_effect=prefers,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                side_effect=preferences,
+            ),
+            patch.object(owner, "OPERAND_CANDIDATE_SCORING_POLICY", policy),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                side_effect=strength,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                side_effect=year_match,
+            ),
+            patch.object(
+                owner,
+                "operand_period_focus",
+                side_effect=period_focus,
+            ),
+        ):
+            self.assertIs(
+                target(
+                    candidate,
+                    operand=operand,
+                    query_years=query_years,
+                ),
+                True,
+            )
+
+        self.assertEqual(copied_sources, [metadata, policy])
+        self.assertIs(copied_sources[0], metadata)
+        self.assertIs(copied_sources[1], policy)
+        self.assertEqual(
+            helper_events,
+            ["prefers", "preferences", "strength", "year", "period"],
+        )
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(query_years, before_years)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        stopped = Mock(
+            side_effect=AssertionError("exception must stop downstream work")
+        )
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                side_effect=RuntimeError("preference failed"),
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                stopped,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "preference failed"):
+                target(candidate, operand=operand, query_years=query_years)
+        stopped.assert_not_called()
+
+        class CandidateGetBomb(dict):
+            def get(self, *_args, **_kwargs):
+                raise RuntimeError("candidate get failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                stopped,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "candidate get failed"):
+                target(CandidateGetBomb(), operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        class StatementStrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("statement string failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                stopped,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "statement string failed"):
+                target(
+                    {"metadata": {"statement_type": StatementStrBomb()}},
+                    operand=operand,
+                    query_years=[],
+                )
+        stopped.assert_not_called()
+
+        class UnpackBomb:
+            def __iter__(self):
+                raise RuntimeError("preference unpack failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=UnpackBomb(),
+            ),
+            patch.object(owner, "_normalise_spaces", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "preference unpack failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        class CanonicalTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("canonical truth failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=(CanonicalTruthBomb(), []),
+            ),
+            patch.object(owner, "_normalise_spaces", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "canonical truth failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        class HeadingTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("heading truth failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(owner, "_normalise_spaces", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "heading truth failed"):
+                target(
+                    {"metadata": {"local_heading": HeadingTruthBomb()}},
+                    operand=operand,
+                    query_years=[],
+                )
+        stopped.assert_not_called()
+
+        policy_copy_calls = []
+
+        def fail_policy_copy(value):
+            policy_copy_calls.append(value)
+            if len(policy_copy_calls) == 2:
+                raise RuntimeError("policy copy failed")
+            return real_dict(value)
+
+        with (
+            patch.object(owner, "dict", side_effect=fail_policy_copy, create=True),
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(owner, "candidate_direct_match_strength", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy copy failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        self.assertEqual(
+            policy_copy_calls,
+            [{}, financial_graph_helpers.OPERAND_CANDIDATE_SCORING_POLICY],
+        )
+        stopped.assert_not_called()
+
+        class MarkerStrBomb:
+            def __str__(self):
+                raise RuntimeError("marker string failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": [MarkerStrBomb()]},
+            ),
+            patch.object(owner, "candidate_direct_match_strength", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker string failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        section_bomb = object()
+
+        def fail_section(value):
+            if value is section_bomb:
+                raise RuntimeError("section normalization failed")
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], [section_bomb]),
+            ),
+            patch.object(owner, "_normalise_spaces", side_effect=fail_section),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(owner, "candidate_direct_match_strength", stopped),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "section normalization failed",
+            ):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                side_effect=RuntimeError("strength failed"),
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                stopped,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "strength failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        class StrengthCompareBomb:
+            def __lt__(self, _other):
+                raise RuntimeError("strength comparison failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=StrengthCompareBomb(),
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                stopped,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "strength comparison failed",
+            ):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        class YearTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("year truth failed")
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.5,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                return_value=YearTruthBomb(),
+            ),
+            patch.object(owner, "operand_period_focus", stopped),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "year truth failed"):
+                target({"metadata": {}}, operand=operand, query_years=[])
+        stopped.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=True,
+            ),
+            patch.object(
+                owner,
+                "lookup_canonical_statement_preferences",
+                return_value=([], []),
+            ),
+            patch.object(
+                owner,
+                "OPERAND_CANDIDATE_SCORING_POLICY",
+                {"note_context_markers": []},
+            ),
+            patch.object(
+                owner,
+                "candidate_direct_match_strength",
+                return_value=2.5,
+            ),
+            patch.object(
+                owner,
+                "candidate_matches_operand_target_year",
+                return_value=False,
+            ),
+            patch.object(
+                owner,
+                "operand_period_focus",
+                side_effect=RuntimeError("period projection failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period projection failed"):
+                target(
+                    {"metadata": {"period_focus": "prior"}},
+                    operand=operand,
+                    query_years=query_years,
+                )
+
+    def test_current_source_candidate_is_canonical_statement_winner_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root
+            / "src"
+            / "agent"
+            / "financial_graph_helpers.py",
+            "financial_operand_resolution": repo_root
+            / "src"
+            / "agent"
+            / "financial_operand_resolution.py",
+        }
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        target_name = "candidate_is_canonical_statement_winner"
+        definitions = [
+            (module_name, node)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual(
+            (owner_name, definition.name),
+            ("financial_operand_resolution", target_name),
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 42)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["candidate"])
+        self.assertEqual(
+            [arg.arg for arg in definition.args.kwonlyargs],
+            ["operand", "query_years"],
+        )
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kw_defaults, [None, None])
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(len(definition.body), 17)
+        self.assertEqual(
+            tuple(type(statement).__name__ for statement in definition.body),
+            (
+                "If",
+                "Assign",
+                "Assign",
+                "Assign",
+                "If",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "If",
+                "If",
+                "If",
+                "If",
+                "Return",
+            ),
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            7,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "lookup_prefers_canonical_statement_rows": 1,
+                "dict": 2,
+                "get": 8,
+                "str": 6,
+                "strip": 1,
+                "lookup_canonical_statement_preferences": 1,
+                "bool": 1,
+                "_normalise_spaces": 7,
+                "tuple": 1,
+                "any": 3,
+                "candidate_direct_match_strength": 1,
+                "candidate_matches_operand_target_year": 1,
+                "operand_period_focus": 1,
+            },
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, ast.FunctionDef)
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, ast.FunctionDef)
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {
+                "financial_graph_helpers": (9, 75),
+                "financial_operand_resolution": (50, 37),
+            },
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        graph_tree = module_trees["financial_graph_helpers"]
+        operand_tree = module_trees["financial_operand_resolution"]
+        self.assertIn(
+            target_name,
+            imported_names(
+                graph_tree,
+                "src.agent.financial_operand_resolution",
+            ),
+        )
+        self.assertTrue(
+            {
+                "candidate_matches_operand_target_year",
+                "operand_period_focus",
+            }.issubset(
+            imported_names(
+                operand_tree,
+                "src.agent.financial_scope_policies",
+                )
+            )
+        )
+
+        caller_calls = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == target_name
+        ]
+        self.assertEqual(len(caller_calls), 1)
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        dependency_graph = {}
+        dependency_edges = set()
+        for path in agent_files:
+            relative = path.relative_to(repo_root).with_suffix("")
+            module_name = ".".join(relative.parts)
+            dependencies = {
+                dependency
+                for dependency in imported_modules(
+                    ast.parse(path.read_text(encoding="utf-8-sig"))
+                )
+                if dependency.startswith("src.agent.")
+            }
+            dependency_graph[module_name] = dependencies
+            dependency_edges.update(
+                (module_name, dependency) for dependency in dependencies
+            )
+        self.assertEqual(len(dependency_edges), 204)
+        ownership_edge = (
+            "src.agent.financial_operand_resolution",
+            "src.agent.financial_scope_policies",
+        )
+        self.assertIn(ownership_edge, dependency_edges)
+
+        def reachable(graph, start, target_module):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in graph.get(current, set()):
+                    if dependency == target_module:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            reachable(
+                dependency_graph,
+                "src.agent.financial_operand_resolution",
+                "src.agent.financial_scope_policies",
+            )
+        )
+        self.assertFalse(
+            reachable(
+                dependency_graph,
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_operand_resolution",
+            )
+        )
+        self.assertFalse(
+            reachable(
+                dependency_graph,
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path")
+            == f"src/agent/{module_paths[owner_name].name}"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        required_methods = {
+            "test_current_source_candidate_is_canonical_statement_winner_pins_precedence_markers_and_result",
+            "test_current_source_candidate_is_canonical_statement_winner_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_candidate_is_canonical_statement_winner_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_candidate_is_canonical_statement_winner_caller_pins_args_projection_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_is_canonical_statement_winner_caller_pins_args_projection_adoption_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        graph_source = (
+            repo_root / "src" / "agent" / "financial_graph_helpers.py"
+        ).read_text(encoding="utf-8-sig")
+        graph_tree = ast.parse(graph_source)
+        target_name = "candidate_is_canonical_statement_winner"
+        parents = {
+            child: parent
+            for parent in ast.walk(graph_tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+        calls = []
+        target_call = None
+        for node in ast.walk(graph_tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ):
+                continue
+            target_call = node
+            current = node
+            caller = None
+            try_depth = 0
+            while current in parents:
+                current = parents[current]
+                if isinstance(current, (ast.Try, ast.TryStar)):
+                    try_depth += 1
+                if isinstance(current, ast.FunctionDef):
+                    caller = current
+                    break
+            self.assertIsNotNone(caller)
+            statement_index = next(
+                index
+                for index, statement in enumerate(caller.body)
+                if any(descendant is node for descendant in ast.walk(statement))
+            )
+            calls.append(
+                (
+                    caller.name,
+                    len(caller.body),
+                    statement_index,
+                    tuple(ast.unparse(arg) for arg in node.args),
+                    tuple(
+                        (keyword.arg, ast.unparse(keyword.value))
+                        for keyword in node.keywords
+                    ),
+                    try_depth,
+                )
+            )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "_deterministic_reconcile_task",
+                    17,
+                    9,
+                    ("candidate",),
+                    (("operand", "operand"), ("query_years", "years")),
+                    0,
+                )
+            ],
+        )
+        self.assertIsNotNone(target_call)
+        direct_entry = parents[target_call]
+        self.assertIsInstance(direct_entry, ast.Dict)
+        self.assertEqual(
+            [ast.literal_eval(key) for key in direct_entry.keys],
+            [
+                "candidate",
+                "logical_signature",
+                "family_signature",
+                "selected_value_text",
+                "score",
+                "canonical_winner",
+            ],
+        )
+        self.assertIs(direct_entry.values[-1], target_call)
+        self.assertEqual(ast.unparse(direct_entry.values[0]), "candidate")
+        self.assertTrue(
+            ast.unparse(direct_entry.values[1]).startswith(
+                "candidate_direct_logical_signature(candidate"
+            )
+        )
+        self.assertTrue(
+            ast.unparse(direct_entry.values[2]).startswith(
+                "candidate_direct_family_signature(candidate"
+            )
+        )
+        self.assertTrue(
+            ast.unparse(direct_entry.values[3]).startswith("_normalise_spaces(")
+        )
+        self.assertTrue(
+            ast.unparse(direct_entry.values[4]).startswith(
+                "_score_operand_candidate(candidate"
+            )
+        )
+
+        nested = {"preserve": True}
+        years = [2024]
+
+        def run_scenario(canonical_values, call_records, event_records):
+            required_operand = {
+                "label": "Metric",
+                "required": True,
+                "nested": nested,
+            }
+            candidates = [
+                {
+                    "candidate_id": "a",
+                    "score": 3.0,
+                    "logical": ("logical-a", "row", "100", "2024"),
+                    "family": ("family", "row", "2024", "type"),
+                    "metadata": {},
+                    "nested": nested,
+                },
+                {
+                    "candidate_id": "b",
+                    "score": 2.0,
+                    "logical": ("logical-b", "row", "100", "2024"),
+                    "family": ("family", "row", "2024", "type"),
+                    "metadata": {},
+                    "nested": nested,
+                },
+            ]
+            cells = {
+                candidate["candidate_id"]: {
+                    "value_text": "100",
+                    "column_headers": ["2024"],
+                    "nested": nested,
+                }
+                for candidate in candidates
+            }
+            before_operand = deepcopy(required_operand)
+            before_candidates = deepcopy(candidates)
+            projected_operands = []
+
+            def score(candidate, **kwargs):
+                projected_operands.append(kwargs["operand"])
+                event_records.append(("score", candidate["candidate_id"]))
+                return candidate["score"]
+
+            def select_cell(candidate, **kwargs):
+                projected_operands.append(kwargs["operand"])
+                return cells[candidate["candidate_id"]]
+
+            def accept(candidate, **kwargs):
+                projected_operands.append(kwargs["operand"])
+                self.assertIs(
+                    kwargs["selected_cell"],
+                    cells[candidate["candidate_id"]],
+                )
+                return True
+
+            def canonical(candidate, **kwargs):
+                call_records.append((candidate, kwargs))
+                event_records.append(("canonical", candidate["candidate_id"]))
+                value = canonical_values[candidate["candidate_id"]]
+                if isinstance(value, BaseException):
+                    raise value
+                return value
+
+            stopped_priority = Mock(
+                side_effect=AssertionError(
+                    "single collapsed entry must stop semantic-priority fallback"
+                )
+            )
+            with (
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_matches_operand",
+                    return_value=True,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_operand_segment_label",
+                    return_value="",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_score_operand_candidate",
+                    side_effect=score,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "operand_period_focus",
+                    return_value="current",
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_selected_cell_for_operand",
+                    side_effect=select_cell,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_satisfies_direct_acceptance_contract",
+                    side_effect=accept,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_direct_logical_signature",
+                    side_effect=lambda candidate, **_kwargs: candidate[
+                        "logical"
+                    ],
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_direct_family_signature",
+                    side_effect=lambda candidate, **_kwargs: candidate[
+                        "family"
+                    ],
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    target_name,
+                    side_effect=canonical,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "direct_candidate_semantic_priority",
+                    stopped_priority,
+                ),
+            ):
+                result = financial_graph_helpers._deterministic_reconcile_task(
+                    active_subtask={
+                        "task_id": "task-canonical",
+                        "operation_family": "lookup",
+                        "preferred_statement_types": ["income_statement"],
+                        "required_operands": [required_operand],
+                    },
+                    candidates=candidates,
+                    years=years,
+                    reconciliation_retry_count=1,
+                )
+
+            stopped_priority.assert_not_called()
+            self.assertEqual(required_operand, before_operand)
+            self.assertEqual(candidates, before_candidates)
+            self.assertTrue(projected_operands)
+            projected_operand = projected_operands[0]
+            self.assertIsNot(projected_operand, required_operand)
+            self.assertIs(projected_operand["nested"], nested)
+            self.assertTrue(
+                all(
+                    current_operand is projected_operand
+                    for current_operand in projected_operands
+                )
+            )
+            for current_candidate, kwargs in call_records:
+                self.assertIs(
+                    current_candidate,
+                    next(
+                        candidate
+                        for candidate in candidates
+                        if candidate["candidate_id"]
+                        == current_candidate["candidate_id"]
+                    ),
+                )
+                self.assertIs(kwargs["operand"], projected_operand)
+                self.assertIs(kwargs["query_years"], years)
+                self.assertEqual(set(kwargs), {"operand", "query_years"})
+            return result
+
+        winner_records = []
+        winner_events = []
+        winner_result = run_scenario(
+            {"a": False, "b": True},
+            winner_records,
+            winner_events,
+        )
+        self.assertEqual(
+            [candidate["candidate_id"] for candidate, _ in winner_records],
+            ["a", "b"],
+        )
+        self.assertEqual(
+            winner_events,
+            [
+                ("score", "a"),
+                ("score", "b"),
+                ("score", "a"),
+                ("canonical", "a"),
+                ("score", "b"),
+                ("canonical", "b"),
+            ],
+        )
+        self.assertEqual(winner_result["status"], "ready")
+        self.assertEqual(
+            winner_result["matched_operands"][0]["candidate_ids"],
+            ["b", "a"],
+        )
+
+        score_records = []
+        score_events = []
+        score_result = run_scenario(
+            {"a": False, "b": False},
+            score_records,
+            score_events,
+        )
+        self.assertEqual(
+            score_result["matched_operands"][0]["candidate_ids"],
+            ["a", "b"],
+        )
+        self.assertEqual(
+            [candidate["candidate_id"] for candidate, _ in score_records],
+            ["a", "b"],
+        )
+
+        failure_records = []
+        failure_events = []
+        with self.assertRaisesRegex(RuntimeError, "canonical projection failed"):
+            run_scenario(
+                {
+                    "a": RuntimeError("canonical projection failed"),
+                    "b": True,
+                },
+                failure_records,
+                failure_events,
+            )
+        self.assertEqual(
+            failure_events,
+            [
+                ("score", "a"),
+                ("score", "b"),
+                ("score", "a"),
+                ("canonical", "a"),
+            ],
+        )
+        self.assertEqual(
+            [candidate["candidate_id"] for candidate, _ in failure_records],
+            ["a"],
         )
 
 

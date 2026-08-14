@@ -48,7 +48,10 @@ from src.agent.financial_surface_contracts import (
     operand_prefers_contextual_aggregate_match,
     operand_prefers_note_aggregate_lookup,
 )
-from src.agent.financial_scope_policies import candidate_matches_operand_target_year
+from src.agent.financial_scope_policies import (
+    candidate_matches_operand_target_year,
+    operand_period_focus,
+)
 from src.agent.financial_text_surface import _strip_rerank_metadata
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -3935,6 +3938,50 @@ def direct_candidate_semantic_priority(
         target_year_match,
         structured_value_rank + int(direct_match_strength * 10),
     )
+
+
+def candidate_is_canonical_statement_winner(
+    candidate: Dict[str, Any],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+) -> bool:
+    if not lookup_prefers_canonical_statement_rows(operand):
+        return False
+    metadata = dict(candidate.get("metadata") or {})
+    statement_type = str(metadata.get("statement_type") or "").strip()
+    canonical_types, canonical_sections = lookup_canonical_statement_preferences(operand)
+    if canonical_types and statement_type not in canonical_types:
+        return False
+    canonical_statement_type_hit = bool(canonical_types) and statement_type in canonical_types and statement_type not in {"notes", "unknown"}
+    local_heading = _normalise_spaces(
+        str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
+    )
+    section_path = _normalise_spaces(str(metadata.get("section_path") or ""))
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    note_markers = tuple(str(item) for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
+    note_context = any(marker in local_heading or marker in section_path for marker in note_markers)
+    allows_note_canonical = any(
+        marker in _normalise_spaces(section)
+        for marker in note_markers
+        for section in canonical_sections
+    )
+    if note_context and not allows_note_canonical:
+        return False
+    if canonical_sections and not canonical_statement_type_hit and not any(
+        _normalise_spaces(section) in local_heading or _normalise_spaces(section) in section_path
+        for section in canonical_sections
+        if _normalise_spaces(section)
+    ):
+        return False
+    if candidate_direct_match_strength(candidate, operand) < 2.5:
+        return False
+    if not candidate_matches_operand_target_year(candidate, operand, query_years):
+        candidate_period_focus = _normalise_spaces(str(metadata.get("period_focus") or ""))
+        desired_period_focus = operand_period_focus(operand, "unknown")
+        if desired_period_focus in {"current", "prior"} and candidate_period_focus != desired_period_focus:
+            return False
+    return True
 
 
 def coerce_lookup_magnitude_value(
