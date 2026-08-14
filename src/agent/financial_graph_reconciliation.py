@@ -18,7 +18,6 @@ from src.agent.financial_graph_helpers import (
     _build_reconciliation_candidate,
     _build_table_row_reconciliation_candidates,
     _candidate_is_direct_grounding_candidate,
-    _candidate_matches_operand,
     _candidate_satisfies_direct_acceptance_contract,
     _candidate_satisfies_ratio_component_acceptance_contract,
     _deterministic_reconcile_task,
@@ -32,6 +31,7 @@ from src.agent.financial_structured_cells import (
 )
 from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_operand_resolution import (
+    candidate_matches_operand,
     candidate_row_block_signature,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     repair_note_operand_units_from_same_block,
@@ -364,7 +364,7 @@ class FinancialAgentReconciliationMixin:
                 reranked_rows.append(current)
                 continue
 
-            matches = [candidate for candidate in candidates if _candidate_matches_operand(candidate, operand)]
+            matches = [candidate for candidate in candidates if candidate_matches_operand(candidate, operand)]
             scored_candidates = [
                 {
                     "candidate": candidate,

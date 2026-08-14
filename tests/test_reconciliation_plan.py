@@ -18,10 +18,10 @@ from src.agent.financial_graph_helpers import (
     _build_lookup_producer_task_from_binding,
     _build_reconciliation_retry_queries,
     _candidate_is_direct_grounding_candidate,
-    _candidate_matches_operand,
     _deterministic_reconcile_task,
     _score_operand_candidate,
 )
+from src.agent.financial_operand_resolution import candidate_matches_operand
 
 
 class ReconciliationPlanTests(unittest.TestCase):
@@ -1019,8 +1019,8 @@ class ReconciliationPlanTests(unittest.TestCase):
         equity_candidate = next(candidate for candidate in candidates if candidate["metadata"].get("row_label") == "자본총계")
 
         self.assertEqual(debt_candidate["candidate_kind"], "table_row")
-        self.assertTrue(_candidate_matches_operand(debt_candidate, {"label": "부채총계", "aliases": ["총부채"]}))
-        self.assertTrue(_candidate_matches_operand(equity_candidate, {"label": "자본총계", "aliases": ["총자본"]}))
+        self.assertTrue(candidate_matches_operand(debt_candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+        self.assertTrue(candidate_matches_operand(equity_candidate, {"label": "자본총계", "aliases": ["총자본"]}))
 
 
     def test_structured_row_candidates_are_built_from_row_record_json(self) -> None:
@@ -1057,7 +1057,7 @@ class ReconciliationPlanTests(unittest.TestCase):
         candidate = next(item for item in candidates if item["candidate_kind"] == "structured_row")
         self.assertEqual(candidate["candidate_kind"], "structured_row")
         self.assertEqual(candidate["metadata"].get("row_headers"), ["부채총계"])
-        self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+        self.assertTrue(candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
 
     def test_raw_table_rows_are_retained_even_when_row_record_json_exists(self) -> None:
         metadata = {
@@ -1146,7 +1146,7 @@ class ReconciliationPlanTests(unittest.TestCase):
         )
 
         debt_candidate = next(item for item in candidates if item["candidate_kind"] == "structured_column_value" and item["metadata"].get("row_label") == "부채총계")
-        self.assertTrue(_candidate_matches_operand(debt_candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+        self.assertTrue(candidate_matches_operand(debt_candidate, {"label": "부채총계", "aliases": ["총부채"]}))
         self.assertEqual(
             [cell["column_headers"] for cell in debt_candidate["metadata"].get("structured_cells", [])],
             [["2023"], ["2022"]],
@@ -1191,7 +1191,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         candidate = next(item for item in candidates if item["candidate_kind"] == "structured_value")
         self.assertEqual(candidate["metadata"].get("row_label"), "부채총계")
-        self.assertTrue(_candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
+        self.assertTrue(candidate_matches_operand(candidate, {"label": "부채총계", "aliases": ["총부채"]}))
 
     def test_final_aggregate_value_scores_above_subtotal_for_generic_operand(self) -> None:
         operand = {"label": "장기차입금", "aliases": ["장기 차입금", "장기차입금 합계"], "required": True}
@@ -2216,7 +2216,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(surrogate_candidate, operand))
+        self.assertFalse(candidate_matches_operand(surrogate_candidate, operand))
         self.assertLess(
             _score_operand_candidate(
                 surrogate_candidate,
@@ -2256,7 +2256,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(surrogate_candidate, operand))
+        self.assertFalse(candidate_matches_operand(surrogate_candidate, operand))
         self.assertLess(
             _score_operand_candidate(
                 surrogate_candidate,
@@ -2670,7 +2670,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             and str((candidate.get("metadata") or {}).get("row_label") or "") == "합 계"
         )
 
-        self.assertTrue(_candidate_matches_operand(aggregate_row, operand))
+        self.assertTrue(candidate_matches_operand(aggregate_row, operand))
         self.assertTrue(
             _candidate_is_direct_grounding_candidate(
                 aggregate_row,
@@ -2697,7 +2697,7 @@ class ReconciliationPlanTests(unittest.TestCase):
                 "table_context": "2023년 매출은 258조 9,355억원으로 전년 대비 14.3% 감소하였습니다.",
             },
         }
-        self.assertFalse(_candidate_matches_operand(revenue_total, operand))
+        self.assertFalse(candidate_matches_operand(revenue_total, operand))
 
     def test_deterministic_reconcile_prioritizes_direct_candidate_ids(self) -> None:
         active_subtask = {

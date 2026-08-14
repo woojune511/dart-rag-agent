@@ -5931,7 +5931,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=active_owner,
         ), patch.object(
             graph_reconciliation,
-            "_candidate_matches_operand",
+            "candidate_matches_operand",
             side_effect=candidate_match,
         ), patch.object(
             graph_reconciliation,
@@ -5972,7 +5972,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=RuntimeError("active projection failed"),
         ), patch.object(
             graph_reconciliation,
-            "_candidate_matches_operand",
+            "candidate_matches_operand",
             side_effect=AssertionError("candidate matching must stop"),
         ), patch.object(
             graph_reconciliation,

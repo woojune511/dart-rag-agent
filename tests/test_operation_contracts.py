@@ -39,7 +39,6 @@ from src.agent.financial_graph_helpers import (
     _build_table_row_reconciliation_candidates,
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
-    _candidate_matches_operand,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
@@ -59,6 +58,7 @@ from src.agent.financial_operand_resolution import (
     _llm_lookup_operand_has_direct_support,
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
+    candidate_matches_operand,
     table_label_metadata_lookup_score,
 )
 from src.agent.financial_operand_resolution import (
@@ -2523,7 +2523,7 @@ class OperationContractTests(unittest.TestCase):
                 "unit_hint": "\ubc31\ub9cc\uc6d0",
             },
         }
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(candidate_matches_operand(candidate, operand))
 
     def test_count_candidate_prefers_location_sentence_with_entity_subject(self) -> None:
         operand = {
@@ -2608,7 +2608,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("\uc870\uc815\ud56d\ubaa9\uc5d0 \uc758\ud55c \ud569\uacc4", candidate["metadata"]["row_text"])
         self.assertIn("\uacf5\uc2dc\uae08\uc561 2,526,280 \ucc9c\uc6d0", candidate["metadata"]["row_text"])
         self.assertTrue(
-            _candidate_matches_operand(
+            candidate_matches_operand(
                 candidate,
                 {
                     "label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
@@ -3073,7 +3073,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(candidate_matches_operand(candidate, operand))
         self.assertFalse(
             _candidate_satisfies_direct_acceptance_contract(
                 candidate,
@@ -3085,7 +3085,7 @@ class OperationContractTests(unittest.TestCase):
                 report_scope={"year": 2023},
             )
         )
-        self.assertTrue(_candidate_matches_operand(paragraph_candidate, operand))
+        self.assertTrue(candidate_matches_operand(paragraph_candidate, operand))
 
     def test_ampc_prose_surface_contract_extracts_preceding_numeric_value(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5581,9 +5581,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(broad_context_candidate, operand))
+        self.assertFalse(candidate_matches_operand(broad_context_candidate, operand))
         self.assertLess(_candidate_direct_match_strength(broad_context_candidate, operand), 1.0)
-        self.assertTrue(_candidate_matches_operand(local_metric_candidate, operand))
+        self.assertTrue(candidate_matches_operand(local_metric_candidate, operand))
         self.assertGreaterEqual(_candidate_direct_match_strength(local_metric_candidate, operand), 1.0)
 
     def test_structured_value_does_not_match_only_broad_table_context(self) -> None:
@@ -5615,7 +5615,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(wrong_structured_value, operand))
+        self.assertFalse(candidate_matches_operand(wrong_structured_value, operand))
 
     def test_row_block_signature_tracks_local_subtable_header(self) -> None:
         row_context_text = "\n".join(
@@ -5938,7 +5938,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(candidate_matches_operand(candidate, operand))
         self.assertLess(_candidate_direct_match_strength(candidate, operand), 1.0)
 
     def test_lookup_direct_acceptance_rejects_raw_table_row_when_structured_records_exist(self) -> None:
@@ -6101,7 +6101,7 @@ class OperationContractTests(unittest.TestCase):
             period_focus="current",
         )
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertTrue(candidate_matches_operand(candidate, operand))
         self.assertFalse(
             _candidate_satisfies_direct_acceptance_contract(
                 candidate,
@@ -6145,7 +6145,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertTrue(candidate_matches_operand(candidate, operand))
         self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
 
     def test_operand_text_match_ignores_leading_year_prefix_for_note_rows(self) -> None:
@@ -6178,7 +6178,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertTrue(candidate_matches_operand(candidate, operand))
         self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
 
     def test_lookup_direct_acceptance_rejects_broad_partial_related_party_label(self) -> None:

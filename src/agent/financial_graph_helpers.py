@@ -136,6 +136,7 @@ from src.agent.financial_operand_resolution import (
     candidate_direct_family_signature,
     candidate_direct_logical_signature,
     candidate_location_entity_subject_score,
+    candidate_matches_operand,
     candidate_source_priority_bonus,
     lookup_canonical_statement_preferences,
     lookup_prefers_canonical_statement_rows,
@@ -4290,91 +4291,6 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     return True
 
 
-def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    if candidate_conflicts_with_operand_concept(candidate, operand):
-        return False
-
-    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
-    structured_candidate = candidate_kind in {
-        "structured_value",
-        "structured_row",
-        "structured_column_value",
-        "table_row",
-        "evidence_row",
-    }
-    metadata = dict(candidate.get("metadata") or {})
-    row_label = str(metadata.get("row_label") or "").strip()
-    if _operand_text_match(row_label, operand):
-        return True
-    semantic_label = str(metadata.get("semantic_label") or "").strip()
-    if _operand_text_match(semantic_label, operand):
-        return True
-    semantic_aliases = " ".join(
-        str(item).strip()
-        for item in (metadata.get("semantic_aliases") or [])
-        if str(item).strip()
-    )
-    if _operand_text_match(semantic_aliases, operand):
-        return True
-    row_headers = " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip())
-    if _operand_text_match(row_headers, operand):
-        return True
-    aggregate_label = str(metadata.get("aggregate_label") or "").strip()
-    if _operand_text_match(aggregate_label, operand):
-        return True
-    if candidate_kind != "table_row" and _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
-        return True
-    if is_capex_total_operand(operand):
-        section_context = " ".join(
-            part
-            for part in (
-                str(metadata.get("local_heading") or "").strip(),
-                str(metadata.get("table_context") or "").strip(),
-                str(metadata.get("section_path") or "").strip(),
-                str(metadata.get("row_context_text") or "").strip(),
-                str(candidate.get("text") or "").strip(),
-            )
-            if part
-        )
-        preferred_sections = [
-            _normalise_spaces(str(item))
-            for item in (operand.get("preferred_sections") or [])
-            if str(item).strip()
-        ]
-        if preferred_sections and any(section in _normalise_spaces(section_context) for section in preferred_sections):
-            if (
-                _text_has_positive_surface(section_context, operand)
-                and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
-            ):
-                return True
-    if operand_prefers_contextual_aggregate_match(operand):
-        section_context = candidate_local_aggregate_context(candidate)
-        aggregate_surface = _normalise_spaces(
-            " ".join(
-                part
-                for part in (
-                    str(metadata.get("aggregate_label") or "").strip(),
-                    str(metadata.get("row_label") or "").strip(),
-                    str(metadata.get("semantic_label") or "").strip(),
-                )
-                if part
-            )
-        )
-        aggregate_like = (
-            candidate_value_role(candidate) == "aggregate"
-            or candidate_aggregation_stage(candidate) in {"final", "subtotal"}
-            or aggregate_like_row_stage(aggregate_surface) != "none"
-        )
-        if (
-            _text_has_positive_surface(section_context, operand)
-            and aggregate_like
-        ):
-            return True
-    if structured_candidate:
-        return False
-    return _operand_text_match(str(candidate.get("text") or ""), operand)
-
-
 def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:
     """Score how directly a candidate label represents the requested operand."""
     if candidate_conflicts_with_operand_concept(candidate, operand):
@@ -4956,7 +4872,7 @@ def _deterministic_reconcile_task(
 
     for operand in required_operands:
         label = str(operand.get("label") or "").strip()
-        matches = [candidate for candidate in candidates if _candidate_matches_operand(candidate, operand)]
+        matches = [candidate for candidate in candidates if candidate_matches_operand(candidate, operand)]
         if _operand_segment_label(operand):
             segment_local_matches = [
                 candidate
