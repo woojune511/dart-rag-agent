@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             (
@@ -658,7 +658,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         strength_operand = {"nested": nested}
         common_strength_patches = (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(
                 financial_graph_helpers,
                 "operand_prefers_contextual_aggregate_match",
@@ -1204,7 +1204,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
         self.assertEqual(
             (sum(not node.name.startswith("_") for node in owner_defs), sum(node.name.startswith("_") for node in owner_defs)),
-            (13, 7),
+            (14, 7),
         )
         self.assertEqual(
             {
@@ -1876,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             (
@@ -2084,7 +2084,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         common_patches = (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=True),
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
             patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
@@ -2830,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 82))
+        self.assertEqual(graph_counts, (9, 81))
         self.assertEqual(row_counts, (11, 15))
 
         graph_row_imports = {
@@ -3065,7 +3065,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     "is_balance_sheet_aggregate_operand",
                     side_effect=lambda *_: events.append("balance") or False,
                 ),
-                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                 patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
             ]
 
@@ -3110,7 +3110,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return [
                 patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
                 patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                 patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=True),
                 patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
                 patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
@@ -3135,7 +3135,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
                 patch.object(financial_graph_helpers, "_operand_needles", return_value=[]),
                 patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                 patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=True),
                 patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
                 patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
@@ -3872,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             (
@@ -4143,7 +4143,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     patch.object(financial_graph_helpers, "_operand_needles", return_value=[]),
                     patch.object(financial_graph_helpers, "_surface_match_variants", side_effect=lambda text: [text]),
                     patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-                    patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                    patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                     patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False),
                     patch.object(financial_graph_helpers, "operand_lookup_surface_match", side_effect=lookup),
                     patch.object(financial_graph_helpers, context_name, side_effect=context),
@@ -4909,7 +4909,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             (
@@ -5519,7 +5519,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_capex_total_operand",
+                "is_capex_total_operand",
                 return_value=False,
             ),
             patch.object(
@@ -5628,7 +5628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_capex_total_operand",
+                "is_capex_total_operand",
                 return_value=False,
             ),
             patch.object(
@@ -6628,7 +6628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 82))
+        self.assertEqual(current_graph_counts, (9, 81))
         self.assertEqual(current_operand_counts, (45, 37))
 
         def imported_names(module_name, imported_module):
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 82))
+        self.assertEqual(graph_counts, (9, 81))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,7 +9279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 82))
+        self.assertEqual(graph_counts, (9, 81))
         self.assertEqual(owner_counts, (11, 9))
 
         def imported_names(module_name, imported_module):
@@ -10319,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 82))
+        self.assertEqual(graph_counts, (9, 81))
         self.assertEqual(row_counts, (11, 15))
 
         def imported_names(module_name, imported_module):
@@ -12878,7 +12878,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15747,7 +15747,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 82),
+                "financial_graph_helpers": (9, 81),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -18719,14 +18719,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 82),
+            (9, 81),
         )
         self.assertEqual(
             (
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (13, 7),
+            (14, 7),
         )
 
         def imported_modules(tree):
@@ -18872,7 +18872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=True),
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", side_effect=source_context),
             patch.object(financial_graph_helpers, "_text_has_positive_surface", side_effect=positive_surface),
@@ -18994,7 +18994,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
         ):
             self.assertTrue(
@@ -19102,7 +19102,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         common_context_patches = (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=True),
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", side_effect=contextual_owner),
             patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
@@ -19707,8 +19707,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 82),
-                "financial_surface_contracts": (13, 7),
+                "financial_graph_helpers": (9, 81),
+                "financial_surface_contracts": (14, 7),
             },
         )
 
@@ -20504,7 +20504,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 82),
+                "financial_graph_helpers": (9, 81),
                 "financial_scope_policies": (11, 9),
             },
         )
@@ -21412,7 +21412,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 82),
+                "financial_graph_helpers": (9, 81),
                 "financial_operand_resolution": (45, 37),
             },
         )
@@ -22037,7 +22037,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 81), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -22881,7 +22881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_operand_resolution": (45, 37)},
+            {"financial_graph_helpers": (9, 81), "financial_operand_resolution": (45, 37)},
         )
 
         def imported_modules(tree):
@@ -23553,7 +23553,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 81), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -24152,7 +24152,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_scope_policies": (11, 9)},
+            {"financial_graph_helpers": (9, 81), "financial_scope_policies": (11, 9)},
         )
 
         def imported_modules(tree):
@@ -24956,7 +24956,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_surface_contracts": (13, 7)},
+            {"financial_graph_helpers": (9, 81), "financial_surface_contracts": (14, 7)},
         )
 
         marker_literals = [
@@ -25237,7 +25237,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, target_name, side_effect=strength_conflict),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False),
             patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", side_effect=final_strength_probe),
         ):
@@ -25885,7 +25885,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_surface_contracts": (13, 7)},
+            {"financial_graph_helpers": (9, 81), "financial_surface_contracts": (14, 7)},
         )
 
         def imported_modules(tree):
@@ -25991,21 +25991,21 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for node in graph_tree.body
             if isinstance(node, ast.FunctionDef) and node.name == "_candidate_source_priority_bonus"
         )
-        self.assertIn("_is_capex_total_operand(operand)", ast.unparse(source_priority.body[2]))
+        self.assertIn("is_capex_total_operand(operand)", ast.unparse(source_priority.body[2]))
         self.assertIn("_operand_prefers_note_aggregate_lookup(operand)", ast.unparse(source_priority.body[4]))
         matches = next(
             node
             for node in graph_tree.body
             if isinstance(node, ast.FunctionDef) and node.name == "_candidate_matches_operand"
         )
-        self.assertIn("_is_capex_total_operand(operand)", ast.unparse(matches.body[15]))
+        self.assertIn("is_capex_total_operand(operand)", ast.unparse(matches.body[15]))
         self.assertEqual(ast.unparse(matches.body[17]), "if structured_candidate:\n    return False")
         strength = next(
             node
             for node in graph_tree.body
             if isinstance(node, ast.FunctionDef) and node.name == "_candidate_direct_match_strength"
         )
-        self.assertIn("_is_capex_total_operand(operand)", ast.unparse(strength.body[8]))
+        self.assertIn("is_capex_total_operand(operand)", ast.unparse(strength.body[8]))
         self.assertTrue(ast.unparse(strength.body[10]).startswith("aggregate_signal ="))
 
         baseline = json.loads(
@@ -26071,7 +26071,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_capex_total_operand",
+                "is_capex_total_operand",
                 side_effect=source_probe("capex"),
             ),
             patch.object(
@@ -26107,7 +26107,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with self.subTest(value_role=value_role):
                 with (
                     patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
-                    patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                    patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                     patch.object(financial_graph_helpers, target_name, return_value=True) as contextual,
                     patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context") as context,
                     patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True) as positive,
@@ -26141,7 +26141,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=match_capex),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=match_capex),
             patch.object(financial_graph_helpers, target_name, side_effect=match_gate) as contextual,
             patch.object(
                 financial_graph_helpers,
@@ -26157,7 +26157,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, target_name, return_value=True) as contextual,
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context") as context,
             patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate") as value_role,
@@ -26202,7 +26202,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=strength_capex),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=strength_capex),
             patch.object(financial_graph_helpers, target_name, side_effect=strength_gate) as contextual,
             patch.object(
                 financial_graph_helpers,
@@ -26222,7 +26222,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
             patch.object(financial_graph_helpers, target_name, return_value=True) as contextual,
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context") as context,
             patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True) as positive,
@@ -26263,7 +26263,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     stack.enter_context(
                         patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False)
                     )
-                    stack.enter_context(patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False))
+                    stack.enter_context(patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False))
                     stack.enter_context(
                         patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False)
                     )
@@ -26311,7 +26311,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     stack.enter_context(
                         patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False)
                     )
-                    stack.enter_context(patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False))
+                    stack.enter_context(patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False))
                     stack.enter_context(
                         patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False)
                     )
@@ -26867,7 +26867,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 82), "financial_surface_contracts": (13, 7)},
+            {"financial_graph_helpers": (9, 81), "financial_surface_contracts": (14, 7)},
         )
 
         policy_assignment = next(
@@ -27026,14 +27026,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, ast.FunctionDef) and node.name == "_candidate_source_priority_bonus"
         )
         self.assertEqual(ast.unparse(source_priority.body[0]), "score = 0.0")
-        self.assertIn("_is_capex_total_operand(operand)", ast.unparse(source_priority.body[2]))
+        self.assertIn("is_capex_total_operand(operand)", ast.unparse(source_priority.body[2]))
         acceptance = next(
             node
             for node in graph_tree.body
             if isinstance(node, ast.FunctionDef) and node.name == "_candidate_satisfies_direct_acceptance_contract"
         )
         self.assertIn("lookup_prefers_canonical_statement_rows(operand)", ast.unparse(acceptance.body[12]))
-        self.assertIn("_is_capex_total_operand(operand)", ast.unparse(acceptance.body[14]))
+        self.assertIn("is_capex_total_operand(operand)", ast.unparse(acceptance.body[14]))
 
         baseline = json.loads(
             (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
@@ -27095,7 +27095,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, target_name, side_effect=source_gate) as balance,
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=later_source("capex")),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=later_source("capex")),
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", side_effect=later_source("contextual")),
             patch.object(financial_graph_helpers, "_operand_prefers_note_aggregate_lookup", side_effect=later_source("note")),
         ):
@@ -27119,7 +27119,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with self.subTest(statement_type=statement_type, value_role=value_role):
                 with (
                     patch.object(financial_graph_helpers, target_name, return_value=True) as balance,
-                    patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                    patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False),
                     patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False),
                     patch.object(financial_graph_helpers, "_operand_prefers_note_aggregate_lookup", return_value=False),
                 ):
@@ -27180,7 +27180,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_value_role", side_effect=value_role),
             patch.object(financial_graph_helpers, "candidate_aggregation_stage", side_effect=aggregation_stage),
             patch.object(financial_graph_helpers, target_name, side_effect=acceptance_gate) as balance,
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=capex_gate),
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=capex_gate),
             patch.object(financial_graph_helpers, "operand_target_years", side_effect=target_years),
         ):
             self.assertIs(
@@ -27206,7 +27206,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, target_name, return_value=True) as balance,
             patch.object(
                 financial_graph_helpers,
-                "_is_capex_total_operand",
+                "is_capex_total_operand",
                 side_effect=AssertionError("notes/detail rejection must stop capex"),
             ) as stopped_capex,
         ):
@@ -27232,7 +27232,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"),
             patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"),
             patch.object(financial_graph_helpers, target_name, return_value=True) as balance,
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False) as capex,
+            patch.object(financial_graph_helpers, "is_capex_total_operand", return_value=False) as capex,
             patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
         ):
             self.assertIs(
@@ -27249,7 +27249,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, target_name, side_effect=RuntimeError("balance gate failed")) as balance,
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=AssertionError("failure must stop capex")) as stopped_capex,
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=AssertionError("failure must stop capex")) as stopped_capex,
             patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", side_effect=AssertionError("failure must stop contextual")) as stopped_contextual,
         ):
             with self.assertRaisesRegex(RuntimeError, "balance gate failed"):
@@ -27271,7 +27271,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, target_name, return_value=ResultTruthBomb()) as balance,
-            patch.object(financial_graph_helpers, "_is_capex_total_operand", side_effect=AssertionError("truth failure must stop capex")) as stopped_capex,
+            patch.object(financial_graph_helpers, "is_capex_total_operand", side_effect=AssertionError("truth failure must stop capex")) as stopped_capex,
         ):
             with self.assertRaisesRegex(RuntimeError, "balance truth failed"):
                 financial_graph_helpers._candidate_source_priority_bonus(
@@ -27310,7 +27310,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     stopped_capex = stack.enter_context(
                         patch.object(
                             financial_graph_helpers,
-                            "_is_capex_total_operand",
+                            "is_capex_total_operand",
                             side_effect=AssertionError("balance failure must stop capex"),
                         )
                     )
@@ -27323,6 +27323,1312 @@ class FinancialGraphHelperTests(unittest.TestCase):
                         )
                 balance.assert_called_once_with(operand)
                 stopped_capex.assert_not_called()
+
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(candidate, before_candidate)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(operand["binding_policy"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+
+    def test_current_source_capex_total_operand_pins_concept_precedence_needles_policy_and_result(self) -> None:
+        owner = financial_surface_contracts
+        target = owner.is_capex_total_operand
+        nested = {"preserve": True}
+
+        concept_events = []
+
+        class Concept:
+            def __str__(self):
+                concept_events.append(("concept_str",))
+                return " capital_expenditure_total "
+
+        class Operand(dict):
+            def get(self, key, default=None):
+                concept_events.append(("operand_get", key))
+                return super().get(key, default)
+
+        fast_operand = Operand(concept=Concept(), nested=nested)
+        fast_before = {key: value for key, value in fast_operand.items()}
+        with (
+            patch.object(
+                owner,
+                "_operand_needles",
+                side_effect=AssertionError("concept hit must stop operand needles"),
+            ) as stopped_needles,
+            patch.object(
+                owner,
+                "dict",
+                side_effect=AssertionError("concept hit must stop scoring-policy copy"),
+                create=True,
+            ) as stopped_policy_copy,
+        ):
+            self.assertIs(target(fast_operand), True)
+        self.assertEqual(concept_events, [("operand_get", "concept"), ("concept_str",)])
+        stopped_needles.assert_not_called()
+        stopped_policy_copy.assert_not_called()
+        self.assertEqual(fast_operand, fast_before)
+        self.assertIs(fast_operand["nested"], nested)
+
+        uppercase_operand = {"concept": "CAPITAL_EXPENDITURE_TOTAL", "nested": nested}
+        with (
+            patch.object(owner, "_operand_needles", return_value=[]) as needles,
+            patch.object(owner, "dict", return_value={"capex_total_surfaces": ()}, create=True) as policy_copy,
+        ):
+            self.assertIs(target(uppercase_operand), False)
+        needles.assert_called_once_with(uppercase_operand)
+        policy_copy.assert_called_once_with(owner.OPERAND_CANDIDATE_SCORING_POLICY)
+
+        checked_in_cases = (
+            ({"concept": " capital_expenditure_total ", "label": "unrelated"}, True),
+            ({"concept": "other", "label": "\uc2dc\uc124 \ud22c\uc790"}, True),
+            ({"concept": "other", "label": "unrelated", "aliases": ["\uc790\ubcf8\uc801 \uc9c0\ucd9c"]}, True),
+            ({"concept": "other", "label": "CAPEX"}, False),
+            ({"concept": "other", "label": ""}, False),
+            ({"concept": "", "label": "unrelated"}, False),
+        )
+        for operand, expected in checked_in_cases:
+            with self.subTest(operand=operand):
+                before = deepcopy(operand)
+                self.assertIs(target(operand), expected)
+                self.assertEqual(operand, before)
+
+        events = []
+        needle_match = object()
+        needle_duplicate = object()
+        needle_blank = object()
+
+        class NeedleIterable:
+            def __iter__(self):
+                events.append(("needle_iter", "start"))
+                yield needle_match
+                yield needle_duplicate
+                yield needle_blank
+                events.append(("needle_iter", "end"))
+
+        class Surface:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                events.append(("surface_str", self.name, self.calls))
+                return self.value
+
+        dropped_empty = Surface("empty", "")
+        dropped_space = Surface("space", "   ")
+        retained_match = Surface("match", " cap ex ")
+
+        class SurfaceIterable:
+            def __bool__(self):
+                events.append(("surface_truth",))
+                return True
+
+            def __iter__(self):
+                events.append(("surface_iter", "start"))
+                yield dropped_empty
+                yield dropped_space
+                yield retained_match
+                events.append(("surface_iter", "end"))
+
+        surfaces = SurfaceIterable()
+
+        class PolicyCopy:
+            def get(self, key, default=None):
+                events.append(("policy_get", key))
+                self.assert_key = key
+                return surfaces
+
+        policy_copy_result = PolicyCopy()
+
+        def operand_needles(current_operand):
+            events.append(("operand_needles",))
+            self.assertIs(current_operand, fallback_operand)
+            return NeedleIterable()
+
+        def normalise(value):
+            events.append(("normalise", value))
+            if value is needle_match or value is needle_duplicate:
+                return " cap ex "
+            if value is needle_blank:
+                return ""
+            return value
+
+        def substitute(pattern, replacement, value):
+            events.append(("sub", pattern, replacement, value))
+            self.assertEqual((pattern, replacement), (r"\s+", ""))
+            return value.replace(" ", "")
+
+        def copy_policy(value):
+            events.append(("policy_copy",))
+            self.assertIs(value, owner.OPERAND_CANDIDATE_SCORING_POLICY)
+            return policy_copy_result
+
+        result_sentinel = object()
+
+        def any_probe(values):
+            events.append(("any",))
+            materialized = list(values)
+            events.append(("any_values", tuple(materialized)))
+            self.assertEqual(materialized, [True])
+            return result_sentinel
+
+        fallback_operand = {"concept": "other", "nested": nested}
+        fallback_before = deepcopy(fallback_operand)
+        with (
+            patch.object(owner, "_operand_needles", side_effect=operand_needles),
+            patch.object(owner, "_normalise_spaces", side_effect=normalise),
+            patch.object(owner.re, "sub", side_effect=substitute),
+            patch.object(owner, "dict", side_effect=copy_policy, create=True),
+            patch.object(owner, "any", side_effect=any_probe, create=True),
+        ):
+            self.assertIs(target(fallback_operand), result_sentinel)
+
+        self.assertEqual(
+            events,
+            [
+                ("operand_needles",),
+                ("needle_iter", "start"),
+                ("normalise", needle_match),
+                ("sub", r"\s+", "", " cap ex "),
+                ("normalise", needle_duplicate),
+                ("sub", r"\s+", "", " cap ex "),
+                ("normalise", needle_blank),
+                ("sub", r"\s+", "", ""),
+                ("needle_iter", "end"),
+                ("policy_copy",),
+                ("policy_get", "capex_total_surfaces"),
+                ("surface_truth",),
+                ("surface_iter", "start"),
+                ("surface_str", "empty", 1),
+                ("surface_str", "space", 1),
+                ("surface_str", "match", 1),
+                ("surface_str", "match", 2),
+                ("normalise", " cap ex "),
+                ("sub", r"\s+", "", " cap ex "),
+                ("surface_iter", "end"),
+                ("any",),
+                ("any_values", (True,)),
+            ],
+        )
+        self.assertEqual(dropped_empty.calls, 1)
+        self.assertEqual(dropped_space.calls, 1)
+        self.assertEqual(retained_match.calls, 2)
+        self.assertEqual(fallback_operand, fallback_before)
+        self.assertIs(fallback_operand["nested"], nested)
+
+    def test_current_source_capex_total_operand_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        owner = financial_surface_contracts
+        target = owner.is_capex_total_operand
+        nested = {"preserve": True}
+        operand = {"concept": "other", "nested": nested}
+        before_operand = deepcopy(operand)
+
+        with patch.object(owner, "_operand_needles", return_value=["capex"]) as needles:
+            self.assertIs(target(operand), True)
+        needles.assert_called_once_with(operand)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(operand["nested"], nested)
+
+        class GetBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("concept get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "concept get failed"):
+            target(GetBomb())
+
+        class ConceptStrBomb:
+            def __str__(self):
+                raise RuntimeError("concept str failed")
+
+        with self.assertRaisesRegex(RuntimeError, "concept str failed"):
+            target({"concept": ConceptStrBomb()})
+
+        concept_for_strip = object()
+
+        class StripBomb:
+            def strip(self):
+                raise RuntimeError("concept strip failed")
+
+        def concept_str_for_strip(value):
+            if value is concept_for_strip:
+                return StripBomb()
+            return str(value)
+
+        with patch.object(owner, "str", side_effect=concept_str_for_strip, create=True):
+            with self.assertRaisesRegex(RuntimeError, "concept strip failed"):
+                target({"concept": concept_for_strip})
+
+        concept_for_equality = object()
+
+        class EqualityBomb:
+            def __eq__(self, other):
+                raise RuntimeError("concept equality failed")
+
+        class StripToEqualityBomb:
+            def strip(self):
+                return EqualityBomb()
+
+        def concept_str_for_equality(value):
+            if value is concept_for_equality:
+                return StripToEqualityBomb()
+            return str(value)
+
+        with patch.object(owner, "str", side_effect=concept_str_for_equality, create=True):
+            with self.assertRaisesRegex(RuntimeError, "concept equality failed"):
+                target({"concept": concept_for_equality})
+
+        with patch.object(owner, "_operand_needles", side_effect=RuntimeError("needles call failed")):
+            with self.assertRaisesRegex(RuntimeError, "needles call failed"):
+                target(operand)
+
+        class NeedleIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("needle iteration failed")
+
+        with patch.object(owner, "_operand_needles", return_value=NeedleIterationBomb()):
+            with self.assertRaisesRegex(RuntimeError, "needle iteration failed"):
+                target(operand)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", side_effect=RuntimeError("needle normalize failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "needle normalize failed"):
+                target(operand)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", return_value="needle"),
+            patch.object(owner.re, "sub", side_effect=RuntimeError("needle regex failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "needle regex failed"):
+                target(operand)
+
+        class FirstSetHashBomb:
+            def __hash__(self):
+                raise RuntimeError("needle hash failed")
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", return_value="needle"),
+            patch.object(owner.re, "sub", return_value=FirstSetHashBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "needle hash failed"):
+                target(operand)
+
+        class DiscardEqualityBomb:
+            def __hash__(self):
+                return hash("")
+
+            def __eq__(self, other):
+                raise RuntimeError("needle discard equality failed")
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", return_value="needle"),
+            patch.object(owner.re, "sub", return_value=DiscardEqualityBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "needle discard equality failed"):
+                target(operand)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", return_value="needle"),
+            patch.object(owner.re, "sub", return_value="needle"),
+            patch.object(owner, "dict", side_effect=RuntimeError("policy copy failed"), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy copy failed"):
+                target(operand)
+
+        class PolicyGetBomb:
+            def get(self, key, default=None):
+                raise RuntimeError("policy get failed")
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "dict", return_value=PolicyGetBomb(), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy get failed"):
+                target(operand)
+
+        class PolicyTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("policy result truth failed")
+
+        class PolicyWithTruthBomb:
+            def get(self, key, default=None):
+                return PolicyTruthBomb()
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "dict", return_value=PolicyWithTruthBomb(), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy result truth failed"):
+                target(operand)
+
+        class SurfaceIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("surface iteration failed")
+
+        class PolicyWithIterationBomb:
+            def get(self, key, default=None):
+                return SurfaceIterationBomb()
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "dict", return_value=PolicyWithIterationBomb(), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface iteration failed"):
+                target(operand)
+
+        class SurfaceStrBomb:
+            def __str__(self):
+                raise RuntimeError("surface filter str failed")
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": [SurfaceStrBomb()]},
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface filter str failed"):
+                target(operand)
+
+        surface_for_strip = object()
+
+        class SurfaceStripBomb:
+            def strip(self):
+                raise RuntimeError("surface strip failed")
+
+        def str_with_surface_strip(value):
+            if value is surface_for_strip:
+                return SurfaceStripBomb()
+            return str(value)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": [surface_for_strip]},
+                create=True,
+            ),
+            patch.object(owner, "str", side_effect=str_with_surface_strip, create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface strip failed"):
+                target(operand)
+
+        surface_for_second_str = object()
+        surface_str_calls = 0
+
+        def str_with_second_surface_failure(value):
+            nonlocal surface_str_calls
+            if value is surface_for_second_str:
+                surface_str_calls += 1
+                if surface_str_calls == 2:
+                    raise RuntimeError("surface expression str failed")
+                return "surface"
+            return str(value)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": [surface_for_second_str]},
+                create=True,
+            ),
+            patch.object(owner, "str", side_effect=str_with_second_surface_failure, create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface expression str failed"):
+                target(operand)
+        self.assertEqual(surface_str_calls, 2)
+
+        def normalize_with_surface_failure(value):
+            if value == "surface":
+                raise RuntimeError("surface normalize failed")
+            return value
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", side_effect=normalize_with_surface_failure),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": ["surface"]},
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface normalize failed"):
+                target(operand)
+
+        regex_calls = 0
+
+        def regex_with_surface_failure(pattern, replacement, value):
+            nonlocal regex_calls
+            regex_calls += 1
+            if regex_calls == 2:
+                raise RuntimeError("surface regex failed")
+            return value
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(owner.re, "sub", side_effect=regex_with_surface_failure),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": ["surface"]},
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface regex failed"):
+                target(operand)
+        self.assertEqual(regex_calls, 2)
+
+        class SecondSetHashBomb:
+            def __hash__(self):
+                raise RuntimeError("surface hash failed")
+
+        hash_phase = 0
+
+        def regex_with_surface_hash_bomb(pattern, replacement, value):
+            nonlocal hash_phase
+            hash_phase += 1
+            return "needle" if hash_phase == 1 else SecondSetHashBomb()
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(owner.re, "sub", side_effect=regex_with_surface_hash_bomb),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": ["surface"]},
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface hash failed"):
+                target(operand)
+
+        class MembershipHashBomb:
+            def __init__(self):
+                self.calls = 0
+
+            def __hash__(self):
+                self.calls += 1
+                if self.calls == 2:
+                    raise RuntimeError("membership hash failed")
+                return hash("needle")
+
+        membership_needle = MembershipHashBomb()
+        membership_phase = 0
+
+        def regex_with_membership_bomb(pattern, replacement, value):
+            nonlocal membership_phase
+            membership_phase += 1
+            return membership_needle if membership_phase == 1 else "surface"
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(owner.re, "sub", side_effect=regex_with_membership_bomb),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": ["surface"]},
+                create=True,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "membership hash failed"):
+                target(operand)
+        self.assertEqual(membership_needle.calls, 2)
+
+        with (
+            patch.object(owner, "_operand_needles", return_value=["needle"]),
+            patch.object(
+                owner,
+                "dict",
+                return_value={"capex_total_surfaces": ["surface"]},
+                create=True,
+            ),
+            patch.object(owner, "any", side_effect=RuntimeError("any failed"), create=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "any failed"):
+                target(operand)
+
+        self.assertEqual(operand, before_operand)
+        self.assertIs(operand["nested"], nested)
+
+    def test_current_source_capex_total_operand_bindings_pin_policy_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_surface_contracts": repo_root / "src" / "agent" / "financial_surface_contracts.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        policy_path = repo_root / "src" / "config" / "retrieval_policy.py"
+        policy_source = policy_path.read_text(encoding="utf-8-sig")
+        policy_tree = ast.parse(policy_source)
+        ontology = json.loads(
+            (repo_root / "src" / "config" / "financial_ontology_concepts_v3.draft.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        target_name = "is_capex_total_operand"
+        definitions = []
+        calls = []
+
+        def parent_map(tree):
+            return {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+
+        for module_name, tree in module_trees.items():
+            parents = parent_map(tree)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name == target_name:
+                    definitions.append((module_name, node))
+                if not (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ):
+                    continue
+                current = node
+                caller = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current.name
+                        break
+                calls.append(
+                    (
+                        module_name,
+                        caller,
+                        tuple(ast.unparse(arg) for arg in node.args),
+                        tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                        try_depth,
+                        type(parents[node]).__name__,
+                    )
+                )
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual((owner_name, definition.name), ("financial_surface_contracts", target_name))
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 13)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["operand"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(len(definition.body), 7)
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            ["Assign", "If", "Assign", "Expr", "Assign", "Assign", "Return"],
+        )
+        self.assertEqual(ast.unparse(definition.body[0]), "concept = str(operand.get('concept') or '').strip()")
+        self.assertEqual(ast.unparse(definition.body[1].test), "concept == CAPEX_TOTAL_CONCEPT_KEY")
+        self.assertEqual(ast.unparse(definition.body[1].body[0]), "return True")
+        self.assertEqual(ast.unparse(definition.body[3]), "needles.discard('')")
+        self.assertEqual(ast.unparse(definition.body[4]), "scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)")
+        self.assertEqual(ast.unparse(definition.body[6].value.func), "any")
+        self.assertEqual(sum(isinstance(node, ast.Return) for node in ast.walk(definition)), 2)
+        self.assertEqual(
+            sum(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)),
+            0,
+        )
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "_normalise_spaces": 2,
+                "_operand_needles": 1,
+                "any": 1,
+                "dict": 1,
+                "discard": 1,
+                "get": 2,
+                "str": 3,
+                "strip": 2,
+                "sub": 2,
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                ("financial_graph_helpers", "_candidate_source_priority_bonus", ("operand",), (), 0, "If"),
+                (
+                    "financial_graph_helpers",
+                    "_candidate_satisfies_direct_acceptance_contract",
+                    ("operand",),
+                    (),
+                    0,
+                    "If",
+                ),
+                ("financial_graph_helpers", "_candidate_matches_operand", ("operand",), (), 0, "If"),
+                (
+                    "financial_graph_helpers",
+                    "_candidate_direct_match_strength",
+                    ("operand",),
+                    (),
+                    0,
+                    "If",
+                ),
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {"financial_graph_helpers": (9, 81), "financial_surface_contracts": (14, 7)},
+        )
+
+        def assignment_targets(node):
+            if isinstance(node, ast.Assign):
+                return node.targets
+            if isinstance(node, ast.AnnAssign):
+                return [node.target]
+            return []
+
+        policy_assignment = next(
+            node
+            for node in policy_tree.body
+            if isinstance(node, (ast.Assign, ast.AnnAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == "OPERAND_CANDIDATE_SCORING_POLICY"
+                for target in assignment_targets(node)
+            )
+        )
+        self.assertIsInstance(policy_assignment.value, ast.Dict)
+        policy_entries = {
+            key.value: value
+            for key, value in zip(policy_assignment.value.keys, policy_assignment.value.values)
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        self.assertEqual(
+            tuple(ast.literal_eval(item) for item in policy_entries["capex_total_surfaces"].elts),
+            (
+                "\uc2dc\uc124\ud22c\uc790",
+                "\uc2dc\uc124\ud22c\uc790(capex)",
+                "capex",
+                "\uc790\ubcf8\uc801\uc9c0\ucd9c",
+                "\uc2dc\uc124\ud22c\uc790\ucd1d\uc561",
+            ),
+        )
+        self.assertEqual(
+            tuple(ast.literal_eval(item) for item in policy_entries["capex_priority_section_terms"].elts),
+            ("\uc6d0\uc7ac\ub8cc \ubc0f \uc0dd\uc0b0\uc124\ube44", "\uc2dc\uc124\ud22c\uc790", "\uc0ac\uc5c5\uc758 \ub0b4\uc6a9"),
+        )
+        policy_names = {
+            target.id
+            for node in policy_tree.body
+            if isinstance(node, (ast.Assign, ast.AnnAssign))
+            for target in assignment_targets(node)
+            if isinstance(target, ast.Name)
+        }
+        self.assertIn("CAPEX_TOTAL_CONCEPT_KEY", policy_names)
+        concept_key_assignment = next(
+            node
+            for node in policy_tree.body
+            if isinstance(node, (ast.Assign, ast.AnnAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == "CAPEX_TOTAL_CONCEPT_KEY"
+                for target in assignment_targets(node)
+            )
+        )
+        self.assertEqual(ast.literal_eval(concept_key_assignment.value), "capital_expenditure_total")
+        self.assertIn("capital_expenditure_total", dict(ontology.get("concepts") or {}))
+        definition_literals = {
+            node.value
+            for node in ast.walk(definition)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertNotIn("capital_expenditure_total", definition_literals)
+        self.assertIn("capex_total_surfaces", definition_literals)
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        graph_imports = imported_modules(module_trees["financial_graph_helpers"])
+        surface_imports = imported_modules(module_trees["financial_surface_contracts"])
+        self.assertIn("src.agent.financial_surface_contracts", graph_imports)
+        self.assertNotIn("src.agent.financial_graph_helpers", surface_imports)
+        self.assertIn("src.config.retrieval_policy", surface_imports)
+        self.assertIn(
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            imported_names(module_trees["financial_graph_helpers"], "src.config.retrieval_policy"),
+        )
+        self.assertIn(
+            "OPERAND_CANDIDATE_SCORING_POLICY",
+            imported_names(module_trees["financial_surface_contracts"], "src.config.retrieval_policy"),
+        )
+        self.assertIn(
+            "CAPEX_TOTAL_CONCEPT_KEY",
+            imported_names(module_trees["financial_surface_contracts"], "src.config.retrieval_policy"),
+        )
+        self.assertIn(
+            "is_capex_total_operand",
+            imported_names(
+                module_trees["financial_graph_helpers"],
+                "src.agent.financial_surface_contracts",
+            ),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        dependency_graph = {}
+        dependency_edges = set()
+        for path in agent_files:
+            relative = path.relative_to(repo_root).with_suffix("")
+            module_name = ".".join(relative.parts)
+            dependencies = {
+                dependency
+                for dependency in imported_modules(
+                    ast.parse(path.read_text(encoding="utf-8-sig"))
+                )
+                if dependency.startswith("src.agent.")
+            }
+            dependency_graph[module_name] = dependencies
+            dependency_edges.update((module_name, dependency) for dependency in dependencies)
+        self.assertEqual(len(dependency_edges), 203)
+
+        def reachable(start, target_module):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target_module:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            reachable(
+                "src.agent.financial_graph_helpers",
+                "src.agent.financial_surface_contracts",
+            )
+        )
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_surface_contracts",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+
+        graph_tree = module_trees["financial_graph_helpers"]
+        expected_callers = {
+            "_candidate_source_priority_bonus": (6, 2),
+            "_candidate_satisfies_direct_acceptance_contract": (19, 14),
+            "_candidate_matches_operand": (19, 15),
+            "_candidate_direct_match_strength": (15, 8),
+        }
+        for caller_name, (body_length, statement_index) in expected_callers.items():
+            caller_definition = next(
+                node
+                for node in graph_tree.body
+                if isinstance(node, ast.FunctionDef) and node.name == caller_name
+            )
+            self.assertEqual(len(caller_definition.body), body_length)
+            statement_indexes = [
+                index
+                for index, statement in enumerate(caller_definition.body)
+                if target_name in ast.unparse(statement)
+            ]
+            self.assertEqual(statement_indexes, [statement_index])
+            statement = caller_definition.body[statement_index]
+            self.assertIsInstance(statement, ast.If)
+            self.assertEqual(ast.unparse(statement.test), f"{target_name}(operand)")
+
+        source_priority = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_candidate_source_priority_bonus"
+        )
+        self.assertIn("is_balance_sheet_aggregate_operand(operand)", ast.unparse(source_priority.body[1]))
+        self.assertIn("operand_prefers_contextual_aggregate_match(operand)", ast.unparse(source_priority.body[3]))
+        acceptance = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_candidate_satisfies_direct_acceptance_contract"
+        )
+        self.assertIn("is_balance_sheet_aggregate_operand(operand)", ast.unparse(acceptance.body[13]))
+        self.assertTrue(ast.unparse(acceptance.body[15]).startswith("metadata_periods ="))
+        matches = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_candidate_matches_operand"
+        )
+        self.assertIn("operand_prefers_contextual_aggregate_match(operand)", ast.unparse(matches.body[16]))
+        self.assertEqual(ast.unparse(matches.body[17]), "if structured_candidate:\n    return False")
+        strength = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_candidate_direct_match_strength"
+        )
+        self.assertIn("operand_prefers_contextual_aggregate_match(operand)", ast.unparse(strength.body[9]))
+        self.assertTrue(ast.unparse(strength.body[10]).startswith("aggregate_signal ="))
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == f"src/agent/{module_paths[owner_name].name}"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_capex_total_operand_pins_concept_precedence_needles_policy_and_result",
+            "test_current_source_capex_total_operand_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_capex_total_operand_bindings_pin_policy_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_capex_total_operand_callers_pin_gate_order_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_capex_total_operand_callers_pin_gate_order_args_adoption_and_stops(self) -> None:
+        target_name = "is_capex_total_operand"
+        nested = {"preserve": True}
+        facility_heading = "\uc2dc\uc124\ud22c\uc790"
+        operand = {
+            "preferred_sections": [facility_heading],
+            "binding_policy": {"nested": nested},
+            "nested": nested,
+        }
+        candidate = {
+            "candidate_kind": "structured_value",
+            "text": f"{facility_heading} total",
+            "metadata": {
+                "statement_type": "unknown",
+                "local_heading": facility_heading,
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        before_operand = deepcopy(operand)
+        before_candidate = deepcopy(candidate)
+
+        source_events = []
+
+        def source_gate(name, result=False):
+            def probe(current_operand):
+                source_events.append(name)
+                self.assertIs(current_operand, operand)
+                return result
+
+            return probe
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "is_balance_sheet_aggregate_operand",
+                side_effect=source_gate("balance"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=source_gate("capex"),
+            ) as capex,
+            patch.object(
+                financial_graph_helpers,
+                "operand_prefers_contextual_aggregate_match",
+                side_effect=source_gate("contextual"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_prefers_note_aggregate_lookup",
+                side_effect=source_gate("note"),
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._candidate_source_priority_bonus(
+                    candidate,
+                    operand=operand,
+                    statement_type="unknown",
+                    value_role="detail",
+                    aggregation_stage="none",
+                    local_heading="",
+                ),
+                0.0,
+            )
+        self.assertEqual(source_events, ["balance", "capex", "contextual", "note"])
+        capex.assert_called_once_with(operand)
+
+        for statement_type, value_role, aggregation_stage, local_heading, expected in (
+            ("unknown", "aggregate", "final", facility_heading, 4.5),
+            ("cash_flow", "detail", "none", "", -3.0),
+            ("unknown", "detail", "none", "", 0.0),
+        ):
+            with self.subTest(
+                statement_type=statement_type,
+                value_role=value_role,
+                aggregation_stage=aggregation_stage,
+            ):
+                with (
+                    patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
+                    patch.object(financial_graph_helpers, target_name, return_value=True) as capex,
+                    patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False),
+                    patch.object(financial_graph_helpers, "_operand_prefers_note_aggregate_lookup", return_value=False),
+                ):
+                    score = financial_graph_helpers._candidate_source_priority_bonus(
+                        candidate,
+                        operand=operand,
+                        statement_type=statement_type,
+                        value_role=value_role,
+                        aggregation_stage=aggregation_stage,
+                        local_heading=local_heading,
+                    )
+                self.assertEqual(score, expected)
+                capex.assert_called_once_with(operand)
+
+        acceptance_events = []
+
+        def grounding(current_candidate, **kwargs):
+            acceptance_events.append("grounding")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(kwargs["operand"], operand)
+            return True
+
+        def period_focus(current_operand, fallback):
+            acceptance_events.append("period")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(fallback, "unknown")
+            return "unknown"
+
+        def value_role(current_candidate):
+            acceptance_events.append("role")
+            self.assertIs(current_candidate, candidate)
+            return "detail"
+
+        def aggregation_stage(current_candidate):
+            acceptance_events.append("stage")
+            self.assertIs(current_candidate, candidate)
+            return "none"
+
+        def balance_gate(current_operand):
+            acceptance_events.append("balance")
+            self.assertIs(current_operand, operand)
+            return False
+
+        def capex_gate(current_operand):
+            acceptance_events.append("capex")
+            self.assertIs(current_operand, operand)
+            return False
+
+        def target_years(current_operand, query_years):
+            acceptance_events.append("years")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(query_years, [])
+            return []
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_is_direct_grounding_candidate", side_effect=grounding),
+            patch.object(financial_graph_helpers, "operand_period_focus", side_effect=period_focus),
+            patch.object(financial_graph_helpers, "candidate_value_role", side_effect=value_role),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", side_effect=aggregation_stage),
+            patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", side_effect=balance_gate),
+            patch.object(financial_graph_helpers, target_name, side_effect=capex_gate) as capex,
+            patch.object(financial_graph_helpers, "operand_target_years", side_effect=target_years),
+        ):
+            self.assertIs(
+                financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                    candidate,
+                    operand=operand,
+                    constraints={},
+                    query_years=[],
+                ),
+                True,
+            )
+        self.assertEqual(
+            acceptance_events,
+            ["grounding", "period", "role", "stage", "balance", "capex", "years"],
+        )
+        capex.assert_called_once_with(operand)
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_is_direct_grounding_candidate", return_value=True),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"),
+            patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=True) as capex,
+            patch.object(
+                financial_graph_helpers,
+                "operand_target_years",
+                side_effect=AssertionError("structured detail rejection must stop year work"),
+            ) as stopped_years,
+        ):
+            self.assertIs(
+                financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                    candidate,
+                    operand=operand,
+                    constraints={},
+                    query_years=[],
+                ),
+                False,
+            )
+        capex.assert_called_once_with(operand)
+        stopped_years.assert_not_called()
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_is_direct_grounding_candidate", return_value=True),
+            patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=True) as capex,
+            patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
+        ):
+            self.assertIs(
+                financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                    candidate,
+                    operand=operand,
+                    constraints={},
+                    query_years=[],
+                ),
+                True,
+            )
+        capex.assert_called_once_with(operand)
+
+        match_contextual = Mock(return_value=False)
+        with (
+            patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=True) as capex,
+            patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"),
+            patch.object(
+                financial_graph_helpers,
+                "operand_prefers_contextual_aggregate_match",
+                match_contextual,
+            ),
+        ):
+            self.assertIs(financial_graph_helpers._candidate_matches_operand(candidate, operand), True)
+        capex.assert_called_once_with(operand)
+        match_contextual.assert_not_called()
+
+        with (
+            patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=False) as capex,
+            patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False) as contextual,
+        ):
+            self.assertIs(financial_graph_helpers._candidate_matches_operand(candidate, operand), False)
+        capex.assert_called_once_with(operand)
+        contextual.assert_called_once_with(operand)
+
+        with (
+            patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=True) as capex,
+            patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"),
+            patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False),
+            patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", return_value=False),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._candidate_direct_match_strength(candidate, operand),
+                2.25,
+            )
+        capex.assert_called_once_with(operand)
+
+        with (
+            patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_helpers, target_name, return_value=False) as capex,
+            patch.object(financial_graph_helpers, "operand_prefers_contextual_aggregate_match", return_value=False) as contextual,
+            patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", return_value=False),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._candidate_direct_match_strength(candidate, operand),
+                0.0,
+            )
+        capex.assert_called_once_with(operand)
+        contextual.assert_called_once_with(operand)
+
+        class ResultTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("capex truth failed")
+
+        for failure, result in (
+            ("helper", RuntimeError("capex helper failed")),
+            ("truth", ResultTruthBomb()),
+        ):
+            with self.subTest(source_failure=failure):
+                with (
+                    patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False),
+                    patch.object(
+                        financial_graph_helpers,
+                        target_name,
+                        side_effect=result if isinstance(result, BaseException) else None,
+                        return_value=None if isinstance(result, BaseException) else result,
+                    ) as capex,
+                    patch.object(
+                        financial_graph_helpers,
+                        "operand_prefers_contextual_aggregate_match",
+                        side_effect=AssertionError("capex failure must stop contextual source work"),
+                    ) as stopped_contextual,
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "capex helper failed" if failure == "helper" else "capex truth failed",
+                    ):
+                        financial_graph_helpers._candidate_source_priority_bonus(
+                            candidate,
+                            operand=operand,
+                            statement_type="unknown",
+                            value_role="detail",
+                            aggregation_stage="none",
+                            local_heading="",
+                        )
+                capex.assert_called_once_with(operand)
+                stopped_contextual.assert_not_called()
+
+            with self.subTest(acceptance_failure=failure):
+                with ExitStack() as stack:
+                    stack.enter_context(
+                        patch.object(financial_graph_helpers, "_candidate_is_direct_grounding_candidate", return_value=True)
+                    )
+                    stack.enter_context(patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"))
+                    stack.enter_context(patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"))
+                    stack.enter_context(patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"))
+                    stack.enter_context(patch.object(financial_graph_helpers, "is_balance_sheet_aggregate_operand", return_value=False))
+                    if isinstance(result, BaseException):
+                        capex = stack.enter_context(
+                            patch.object(financial_graph_helpers, target_name, side_effect=result)
+                        )
+                        expected_message = "capex helper failed"
+                    else:
+                        capex = stack.enter_context(
+                            patch.object(financial_graph_helpers, target_name, return_value=result)
+                        )
+                        expected_message = "capex truth failed"
+                    stopped_years = stack.enter_context(
+                        patch.object(
+                            financial_graph_helpers,
+                            "operand_target_years",
+                            side_effect=AssertionError("capex failure must stop acceptance year work"),
+                        )
+                    )
+                    with self.assertRaisesRegex(RuntimeError, expected_message):
+                        financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                            candidate,
+                            operand=operand,
+                            constraints={},
+                            query_years=[],
+                        )
+                capex.assert_called_once_with(operand)
+                stopped_years.assert_not_called()
+
+            for caller_name, callback in (
+                (
+                    "match",
+                    lambda: financial_graph_helpers._candidate_matches_operand(candidate, operand),
+                ),
+                (
+                    "strength",
+                    lambda: financial_graph_helpers._candidate_direct_match_strength(candidate, operand),
+                ),
+            ):
+                with self.subTest(caller=caller_name, failure=failure):
+                    with ExitStack() as stack:
+                        stack.enter_context(
+                            patch.object(financial_graph_helpers, "candidate_conflicts_with_operand_concept", return_value=False)
+                        )
+                        stack.enter_context(patch.object(financial_graph_helpers, "_operand_text_match", return_value=False))
+                        if isinstance(result, BaseException):
+                            capex = stack.enter_context(
+                                patch.object(financial_graph_helpers, target_name, side_effect=result)
+                            )
+                            expected_message = "capex helper failed"
+                        else:
+                            capex = stack.enter_context(
+                                patch.object(financial_graph_helpers, target_name, return_value=result)
+                            )
+                            expected_message = "capex truth failed"
+                        stopped_contextual = stack.enter_context(
+                            patch.object(
+                                financial_graph_helpers,
+                                "operand_prefers_contextual_aggregate_match",
+                                side_effect=AssertionError("capex failure must stop contextual caller work"),
+                            )
+                        )
+                        with self.assertRaisesRegex(RuntimeError, expected_message):
+                            callback()
+                    capex.assert_called_once_with(operand)
+                    stopped_contextual.assert_not_called()
 
         self.assertEqual(operand, before_operand)
         self.assertEqual(candidate, before_candidate)

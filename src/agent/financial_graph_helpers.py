@@ -83,6 +83,7 @@ from src.agent.financial_surface_contracts import (
     candidate_segment_binding_bonus,
     candidate_selected_unit_family,
     is_balance_sheet_aggregate_operand,
+    is_capex_total_operand,
     operand_prefers_contextual_aggregate_match,
 )
 from src.agent.financial_row_surfaces import (
@@ -3967,21 +3968,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
-    concept = str(operand.get("concept") or "").strip()
-    if concept == "capital_expenditure_total":
-        return True
-    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
-    needles.discard("")
-    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-    capex_surfaces = {
-        re.sub(r"\s+", "", _normalise_spaces(str(surface)))
-        for surface in (scoring_policy.get("capex_total_surfaces") or ())
-        if str(surface).strip()
-    }
-    return any(needle in capex_surfaces for needle in needles)
-
-
 def _operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
     preferred_statement_types = {
         _normalise_spaces(str(item))
@@ -4038,7 +4024,7 @@ def _candidate_source_priority_bonus(
             if value_role == "detail":
                 score -= 1.25
 
-    if _is_capex_total_operand(operand):
+    if is_capex_total_operand(operand):
         scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
         capex_section_terms = tuple(str(item) for item in (scoring_policy.get("capex_priority_section_terms") or ()) if str(item))
         if any(token in local_heading for token in capex_section_terms):
@@ -4307,7 +4293,7 @@ def _candidate_satisfies_direct_acceptance_contract(
     if is_balance_sheet_aggregate_operand(operand):
         if statement_type == "notes" and value_role == "detail":
             return False
-    if _is_capex_total_operand(operand):
+    if is_capex_total_operand(operand):
         preferred_sections = [
             _normalise_spaces(str(item))
             for item in (operand.get("preferred_sections") or [])
@@ -4440,7 +4426,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
         return True
     if candidate_kind != "table_row" and _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
         return True
-    if _is_capex_total_operand(operand):
+    if is_capex_total_operand(operand):
         section_context = " ".join(
             part
             for part in (
@@ -4544,7 +4530,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             continue
         if _operand_text_match(normalized_surface, operand):
             best = max(best, exact_bonus * 0.5)
-    if _is_capex_total_operand(operand):
+    if is_capex_total_operand(operand):
         context_text = " ".join(
             part
             for part in (

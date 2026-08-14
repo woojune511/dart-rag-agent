@@ -8,9 +8,11 @@ from typing import Any, Dict, List, Optional
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.config.retrieval_policy import (
+    CAPEX_TOTAL_CONCEPT_KEY,
     CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER,
     CONSOLIDATION_SCOPE_POLICY,
     HELPER_RUNTIME_POLICY,
+    OPERAND_CANDIDATE_SCORING_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
 )
 
@@ -171,6 +173,21 @@ def is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
         if str(item)
     )
     return any(needle in aggregate_labels for needle in needles)
+
+
+def is_capex_total_operand(operand: Dict[str, Any]) -> bool:
+    concept = str(operand.get("concept") or "").strip()
+    if concept == CAPEX_TOTAL_CONCEPT_KEY:
+        return True
+    needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
+    needles.discard("")
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    capex_surfaces = {
+        re.sub(r"\s+", "", _normalise_spaces(str(surface)))
+        for surface in (scoring_policy.get("capex_total_surfaces") or ())
+        if str(surface).strip()
+    }
+    return any(needle in capex_surfaces for needle in needles)
 
 
 def operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:

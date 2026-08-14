@@ -291,6 +291,7 @@ EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
 }
 
 CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER = "부채"
+CAPEX_TOTAL_CONCEPT_KEY = "capital_expenditure_total"
 
 OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "note_context_markers": ("주석",),
