@@ -21,7 +21,7 @@ Last updated: 2026-08-15
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `cce5700` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `ae964b3` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -177,11 +177,19 @@ import 19/19, audit 217, full 2,023/2,023과 pycompile/body/caller/DAG parity가
 수렴시켰다. 13개 source call의 인자·laziness·fallback·stop은 유지됐고
 focused 4/4, graph owner 174/174, surface owner 1/1, operand owner 69/69,
 affected 1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217,
-full 2,027/2,027과 exact rename/body/caller/DAG parity가 통과했다. 다음
-characterize-only inventory는 같은 owner의 정확한 4줄 `_operand_needles(...)`을
-public `operand_needles(...)`로 이름 수렴시키는 private-API 정리를 선택한다.
-24개 source call과 9개 외부 import의 평가 순서·인자·adoption·stop은 유지하며
-네 CURRENT-SOURCE method와 projected gate는
+full 2,027/2,027과 exact rename/body/caller/DAG parity가 통과했다. `ae964b3`은
+이어 같은 owner의 정확한 4줄 `_operand_needles(...)`을 public
+`operand_needles(...)`로 이름 수렴시켰다. 24개 source call과 9개 외부 import의
+평가 순서·인자·adoption·stop은 유지했고, public 이름과 충돌한 한 local
+collection만 `normalized_operand_needles`로 명확히 바꿔 shadow를 제거했다.
+Focused 4/4, graph owner 178/178, surface owner 1/1, operand owner 69/69,
+affected 1,138/1,138, additional caller 17/17, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,031/2,031과 transform/body/identity/caller/DAG
+parity가 통과했다. 다음 characterize-only inventory는 같은 owner의 정확한
+3줄 `_text_has_negative_surface(...)`을 public `text_has_negative_surface(...)`로
+이름 수렴시키는 더 작은 private-API 정리를 선택한다. 10개 source call과 5개
+외부 import의 평가 순서·인자·short-circuit·stop을 보존하는 네
+CURRENT-SOURCE method와 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

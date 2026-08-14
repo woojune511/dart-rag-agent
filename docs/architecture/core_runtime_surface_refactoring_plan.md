@@ -1266,24 +1266,45 @@ check passed. The source diff SHA-256 is
 `416655cdf1c30a24afa9733cdeece140e43bf66016ad650af6ab8fb79808638e`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the next smaller private-API seam
-in the same correct owner: rename the exact 4-line
-`financial_surface_contracts._operand_needles(...)` in place to public
-`operand_needles(...)`, with no wrapper or alias. Preserve the three-statement
-label/alias get, truth, string, strip, eager-iteration, retained-alias double-
-conversion, final filtering, order, duplicate, immutability, and failure
-contract.
+Commit `ae964b3` completed that private-API seam. The exact former 4-line helper
+is public `financial_surface_contracts.operand_needles(...)`; its three-
+statement body is unchanged after definition-name normalization, all twenty-
+four calls/nine call modules and nine external bindings use the public name,
+and no private alias exists. One pre-existing same-name local list exposed by
+the public rename is now `normalized_operand_needles`; a static no-shadow
+contract prevents regression.
 
-Twenty-four one-positional-argument calls across nine source modules remain at
-caller `try` depth zero; external/local calls are 20/4. Nine external modules
-import the helper, including one graph-evidence import-only binding. Existing
-edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
-Projected surface-owner counts are 16/6 to 17/5, while graph and operand counts
-remain 9/71 and 54/37. The selected span contains zero of 217 reviewed runtime-
-domain records. Four required CURRENT-SOURCE methods and projected focused 4/4,
+Production source is `+36/-36`, tests are `+998/-113`, and the whole commit is
+`+1,034/-149`; all production physical line counts are unchanged. Focused 4/4,
 graph owner 178/178, surface owner 1/1, operand owner 69/69, affected semantic
-1,138/1,138, additional direct-caller modules 17/17, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,031/2,031 gates are defined only in
+1,138/1,138, additional caller 17/17, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,031/2,031, pycompile, production transform parity 10/10,
+selected-body/name-normalized-owner parity, public identity 9/9, all calls,
+zero public stores/private refs, unchanged acyclic 48-module/205-edge DAG,
+non-ASCII preservation 13/13, and diff check passed. The source diff SHA-256 is
+`22b638bd5e610ab14088510908c9c39539f977935589cf1c70a6cdac99a84ef0`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the next smaller private-API seam
+in the same correct owner: rename the exact 3-line
+`financial_surface_contracts._text_has_negative_surface(text, operand)` in
+place to public `text_has_negative_surface(...)`, with no wrapper or alias.
+Preserve the two-statement contract-owner call followed by one negative-list
+get/truth/fresh-list fallback, eager `list(...)` materialization, original text
+identity, exact term-helper result, immutability, and uncaught failure contract.
+
+Ten two-positional-argument calls across four source modules remain at caller
+`try` depth zero; external/local calls are 8/2. Five external modules import
+the helper, with graph calculation and graph helpers import-only. Existing
+edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
+Projected surface-owner counts are 17/5 to 18/4, while graph and operand counts
+remain 9/71 and 54/37. The selected span has body SHA-256
+`7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3`, no
+future public-name store, and zero of 217 reviewed runtime-domain records. Four
+required CURRENT-SOURCE methods and projected focused 4/4, graph owner 182/182,
+surface owner 1/1, operand owner 69/69, affected semantic 1,142/1,142,
+additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, and full 2,035/2,035 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection; it is the sole next
 priority and this plan maintains no competing queue.

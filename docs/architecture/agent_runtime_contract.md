@@ -4938,37 +4938,63 @@ rename parity 5/5, selected-body hash parity, public identity 4/4, caller parity
 retired-ref zero, non-ASCII preservation, and diff check. Benchmark refresh and
 remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 4-line
-`financial_surface_contracts._operand_needles(operand: Dict[str, Any]) -> List[str]`
-definition. It already belongs to the surface-contract owner; the authorized
-future batch only renames it in place to public `operand_needles(...)` and
-updates every import/caller without a private alias.
+Commit `ae964b3` completed the operand-needles public contract. The exact former
+4-line private definition is now public
+`financial_surface_contracts.operand_needles(...)`; its three-statement label/
+alias get, truth, string, strip, eager iteration, retained-alias second
+conversion, final filter, ordering, duplicate, immutability, and failure body is
+unchanged after name normalization. No private alias or bridge exists.
 
-Preserve the exact three statements and one return. Evaluate operand
-`get("label")` once, retain raw truth/fallback, call `str(...)` once, and call
-`.strip()` once. Only then evaluate operand `get("aliases")` once, retain raw
-truth/fallback to a new empty list, and iterate eagerly in order. The alias-list
-filter stringifies and strips each item once; its output expression stringifies
-and strips every retained item a second time. Preserve stateful-conversion
-effects, duplicates, label-before-alias ordering, the final
-`[label, *aliases]` truth filter, exact result order, input immutability, and all
-uncaught get/truth/string/strip/iteration/list-construction failures.
-
-All twenty-four direct source calls use one positional argument, no keywords,
-and caller `try` depth zero. Twenty external calls span graph calculation,
-reconciliation, lookup recovery, operand resolution, retrieval pipeline, row
-surfaces, structured cells, and task artifacts; four calls are owner-local.
-Graph evidence retains a ninth external import-only binding. Comprehension,
+All twenty-four calls across nine source modules bind the public owner with one
+positional argument, no keywords, and caller `try` depth zero. Comprehension,
 loop, starred-list, normalization, matching, scoring/adoption, later work, and
+exception stops remain caller-owned. The rename exposed one pre-existing local
+list named `operand_needles`; only that list became
+`normalized_operand_needles`, and a CURRENT-SOURCE no-shadow assertion now
+forbids any public-name store.
+
+Final counts are surface contracts 17/5, graph 9/71, and operand resolution
+54/37; the full DAG remains unchanged and acyclic at 48 modules/205 edges.
+Executed gates are focused 4/4, graph owner 178/178, surface owner 1/1, operand
+owner 69/69, affected semantic 1,138/1,138, additional caller 17/17,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,031/2,031, plus
+pycompile, production transform parity 10/10, selected-body SHA-256 and owner
+22/22 parity, public identity 9/9, all calls, zero public stores/private refs,
+non-ASCII preservation 13/13, and diff check. Benchmark refresh and remote CI
+were **NOT RUN**.
+
+The next private-API contract is the exact current 3-line
+`financial_surface_contracts._text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool`
+definition. It already belongs to the surface-contract owner; the authorized
+future batch only renames it in place to public
+`text_has_negative_surface(...)` and updates every import/caller without a
+private alias.
+
+Preserve the exact two statements and one return. Call
+`_operand_surface_contract(operand)` once with the original operand identity,
+retain its exact result, then call `contract.get("negative")` once. Preserve raw
+truth/fallback to a fresh empty list, eagerly materialize `list(...)` in order,
+and call `_text_has_contract_term(...)` with the original text identity and the
+new list. Preserve duplicates, element identities, exact helper result without
+new boolean coercion, input immutability, and all uncaught owner/get/truth/
+iteration/list/term-helper failures.
+
+All ten direct source calls use two positional arguments, no keywords, and
+caller `try` depth zero. Eight external calls span graph evidence, operand
+resolution, and retrieval pipeline; two calls are owner-local. Graph
+calculation and graph helpers retain import-only bindings. Boolean/generator
+short-circuiting, operand copies, surface preparation, later adoption, and
 exception stops remain caller-owned.
 
-No module edge changes, so the full DAG remains acyclic at 48 modules/205 edges.
-Projected counts are surface contracts 16/6 to 17/5, with graph 9/71 and operand
-resolution 54/37 unchanged; the selected span has zero of 217 reviewed records.
+No module edge changes, so the full DAG remains acyclic at 48 modules/205
+edges. Projected counts are surface contracts 17/5 to 18/4, with graph 9/71 and
+operand resolution 54/37 unchanged. The selected body SHA-256 is
+`7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3`; there
+is no future public-name store and the span has zero of 217 reviewed records.
 The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-178/178, surface owner 1/1, operand owner 69/69, affected semantic
-1,138/1,138, additional direct-caller modules 17/17, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,031/2,031 gates are governed only by
+182/182, surface owner 1/1, operand owner 69/69, affected semantic
+1,142/1,142, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,035/2,035 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

@@ -917,14 +917,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,134/1,134, reconciliation plan 51/51, import 19/19, audit 217, full
   2,027/2,027과 exact rename/body/caller/48-module/205-edge DAG parity가
   통과했다.
-- 새 characterize-only inventory는 같은 surface owner의 정확한 4줄
-  `_operand_needles(...)`을 public `operand_needles(...)`로 이름 수렴시키는
-  private-API batch를 선택한다. 외부 20/local 4 call은 모두 단일 positional
-  argument와 caller `try` depth zero를 유지하며, 9개 외부 import 중 graph
-  evidence 하나는 import-only다. 기존 edge만 사용하므로 48-module/205-edge
-  DAG는 그대로 비순환이고 projected surface public/private는 17/5다. 아직
-  source/test rename은 없으며 세 statement의 label/alias 반복 변환·순서·
-  failure contract, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `ae964b3` operand-needles API batch는 같은 surface owner의 정확한
+  4줄 private helper를 public `operand_needles(...)`로 이름 수렴시켰다. 외부
+  20/local 4 call과 9개 외부 binding은 모두 public API를 사용하며 exact
+  argument, 반복 변환, comprehension/loop/starred-list evaluation, adoption과
+  stop은 유지됐다. Public 이름과 충돌한 한 local list만
+  `normalized_operand_needles`로 명확히 바뀌었다. Surface/graph/operand
+  public/private는 17/5, 9/71, 54/37이다. Focused 4/4, graph owner 178/178,
+  surface owner 1/1, operand owner 69/69, semantic 1,138/1,138, additional
+  caller 17/17, reconciliation plan 51/51, import 19/19, audit 217, full
+  2,031/2,031과 transform/body/identity/caller/48-module/205-edge DAG parity가
+  통과했다.
+- 새 characterize-only inventory는 같은 surface owner의 정확한 3줄
+  `_text_has_negative_surface(...)`을 public `text_has_negative_surface(...)`로
+  이름 수렴시키는 private-API batch를 선택한다. 외부 8/local 2 call은 모두
+  두 positional argument와 caller `try` depth zero를 유지하며, 5개 외부
+  import 중 graph calculation과 graph helpers는 import-only다. 기존 edge만
+  사용하므로 48-module/205-edge DAG는 그대로 비순환이고 projected surface
+  public/private는 18/4다. 아직 source/test rename은 없으며 contract-owner/
+  negative-list copy/term-helper의 순서·identity·failure contract, 네
+  CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
