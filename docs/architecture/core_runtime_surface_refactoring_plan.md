@@ -998,31 +998,52 @@ by four CURRENT-SOURCE methods. Production source is `+23/-22`, tests are
 preservation, and diff check passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The new characterize-only inventory selects one follow-on: move only the
-current exact 9-line `_is_balance_sheet_aggregate_operand(...)` definition to
-public `is_balance_sheet_aggregate_operand(...)` in
-`financial_surface_contracts.py`. The predicate performs only prepared operand-
-needle normalization, whitespace removal, set dedupe/blank discard, and
-membership against the existing declarative
-`HELPER_RUNTIME_POLICY["balance_sheet_aggregate_labels"]` set. The owner already
-contains `_operand_needles(...)` and imports `re`, normalization, and the
-policy. Graph reaches it and it does not reach graph. Both calls remain
-positional exact `operand`, owner-external/local 2/0, at caller `try` depth zero
-and immediate `If` parents. The full 48-module/203-edge DAG remains unchanged;
-projected function counts are graph helpers 9/82 and surface contracts 13/7,
-and the selected span contains zero of 217 reviewed records.
+The completed `f35be1a` follow-on moved the exact former 9-line balance-sheet-
+aggregate-operand predicate from graph helpers to public
+`is_balance_sheet_aggregate_operand(...)` in
+`financial_surface_contracts.py`. Its two calls finish owner-external/local 2/0
+in source priority and direct acceptance. Exact operand-needle and policy-set
+materialization, whitespace removal, dedupe/blank-discard ordering, native-set
+membership, identities, uncaught failures, caller branches, and stops remain
+pinned by four CURRENT-SOURCE methods. Production source is `+14/-13`, tests
+are `+1,014/-34`, and the whole commit is `+1,028/-47`; graph helpers move from
+5,394 to 5,384 lines and surface contracts from 445 to 456. Focused 4/4, owner
+126/126, affected semantic 1,086/1,086, import 19/19, audit 217, full
+1,979/1,979, pycompile/fresh identity, body/retained/caller/full
+48-module/203-edge DAG parity, retired private refs zero, non-ASCII
+preservation, and diff check passed. The source diff SHA-256 is
+`e9e8b46382ecdb20982d1ec90c19343aec4a8b769d3812272a54da930dd00f51`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Moving policy values, operand-needle ownership, source-priority or direct-
-acceptance branches, capex/contextual/note predicates, candidate/evidence
-construction, broader matching/scoring/ranking/adoption, report-file I/O,
-retrieval, or plan/state/artifact/ledger work is rejected. Exact needle-set and
+The new characterize-only inventory selects one follow-on: classify the current
+inline `capital_expenditure_total` ontology identifier as declarative
+`CAPEX_TOTAL_CONCEPT_KEY` in retrieval policy, then move only the current exact
+13-line `_is_capex_total_operand(...)` definition to public
+`is_capex_total_operand(...)` in `financial_surface_contracts.py`. Apart from
+that one policy-name substitution, the predicate preserves the concept fast
+path and prepared operand-needle membership against
+`OPERAND_CANDIDATE_SCORING_POLICY["capex_total_surfaces"]`. The destination
+already owns `_operand_needles(...)`, imports `re` and normalization, and already
+reaches retrieval policy; adding the scoring-policy and concept-key names adds
+no module edge. Graph reaches the owner and the owner does not reach graph.
+
+All four direct calls remain positional exact `operand`, owner-external/local
+4/0, at caller `try` depth zero and immediate `If` parents in source priority,
+direct acceptance, candidate matching, and direct strength. The full
+48-module/203-edge DAG remains unchanged; projected function counts are graph
+helpers 9/81 and surface contracts 14/7, and the selected span contains zero of
+217 reviewed records. Moving CAPEX surface/section values, ontology contents,
+operand-needle ownership, any caller branch, source-priority scoring, direct
+acceptance, candidate matching/strength, candidate/evidence construction,
+broader scoring/ranking/adoption, report-file I/O, retrieval, or plan/state/
+artifact/ledger work is rejected. Exact concept short circuit, needle and
 policy-set construction, filter-versus-expression string conversion, native
-set membership, both caller gates/stops, four required CURRENT-SOURCE methods,
-and projected focused 4/4, owner 126/126, affected semantic 1,086/1,086, import
-19/19, audit 217, and full 1,979/1,979 gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this balance-sheet aggregate projection; it
-is the sole next priority and this plan maintains no competing queue.
+set membership, all four caller gates/stops, four required CURRENT-SOURCE
+methods, and projected focused 4/4, owner 130/130, affected semantic
+1,090/1,090, import 19/19, audit 217, and full 1,983/1,983 gates are defined only
+in [project_status.md#next-work](../overview/project_status.md#next-work). No
+source or test movement has occurred for this CAPEX-total projection; it is the
+sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

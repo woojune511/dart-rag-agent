@@ -4645,64 +4645,86 @@ focused 4/4, owner 122/122, affected semantic 1,082/1,082, import 19/19, audit
 18/18, callers, DAG parity, retired-ref zero, non-ASCII preservation, and diff
 check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active balance-sheet-aggregate-operand contract is characterized for the
-next bounded owner batch. Move the exact current 9-line
-`_is_balance_sheet_aggregate_operand(operand)` graph definition without a graph
-alias to public
-`financial_surface_contracts.is_balance_sheet_aggregate_operand(...)`. It is a
-policy-driven operand-surface classifier, not policy-vocabulary ownership,
-candidate construction, scoring, or acceptance.
+Commit `f35be1a` completed the balance-sheet-aggregate-operand contract, now
+owned by `financial_surface_contracts.is_balance_sheet_aggregate_operand(...)`.
+The exact former 9-line body, operand-needle and declarative-policy set
+materialization, whitespace removal, dedupe/blank-discard ordering, native-set
+membership, identities, input/policy immutability, and every uncaught failure
+remain unchanged and pinned by four CURRENT-SOURCE methods.
 
-Call `_operand_needles(operand)` exactly once with the original operand
-identity and consume its result eagerly in the current set comprehension. Each
-raw returned needle goes directly to `_normalise_spaces(needle)` without local
-truth filtering or string conversion. Pass the exact normalized result as the
-third positional argument to `re.sub(r"\s+", "", ...)`, then insert the result
-into the fresh set. Preserve hashing/equality, duplicate collapse, and full
-materialization. Only after completion call `needles.discard("")` once. The
-discard is not a comprehension filter and must not be moved or widened.
+Its two graph calls remain positional exact `operand`, without keywords, at
+caller `try` depth zero and immediate `If` parents. Source-priority scoring and
+direct-acceptance rejection retain their existing branches and later
+continuation/stop behavior. Final counts are graph 9/82 and surface owner 13/7;
+the 48-module/203-edge DAG is unchanged. Executed gates are focused 4/4, owner
+126/126, affected semantic 1,086/1,086, import 19/19, audit 217, and full
+1,979/1,979, plus pycompile, fresh identity 2/2, selected body 1/1, retained
+graph 91/91 after call normalization, retained surface owner 19/19, callers,
+DAG parity, retired-ref zero, non-ASCII preservation, and diff check. Benchmark
+refresh and remote CI were **NOT RUN**.
 
-Only then evaluate exact
-`HELPER_RUNTIME_POLICY.get("balance_sheet_aggregate_labels")`, raw `or ()`, and
-the generator passed to one `set(...)` call. The policy mapping is not copied
-or mutated. Each policy item first executes `str(item)` in the filter and tests
-that exact result without stripping. An empty string is dropped after one
-conversion. A retained item is stringified again, normalized once, then passed
-through exact positional `re.sub(r"\s+", "", ...)`. A whitespace-only value is
-therefore retained by the filter and may become an empty label; the second set
-does not discard it. Preserve eager full consumption by `set(...)`, hash/
-equality behavior, and duplicate collapse.
+The active CAPEX-total-operand contract is characterized for the next bounded
+policy-and-owner batch. First classify the inline canonical ontology identifier
+`capital_expenditure_total` as retrieval-policy constant
+`CAPEX_TOTAL_CONCEPT_KEY`; then move the current exact 13-line
+`_is_capex_total_operand(operand)` graph definition without a graph alias to
+public `financial_surface_contracts.is_capex_total_operand(...)`. The one
+literal-to-policy-name substitution is the only permitted body delta. The
+ontology artifact remains authoritative for the concept definition, while the
+named runtime policy declares which concept receives this candidate policy.
 
-After both sets are complete return exact
-`any(needle in aggregate_labels for needle in needles)`. The scan uses native
-needle-set iteration rather than source order; membership stops at the first
-hit. No extra boolean conversion, sort, list/tuple replacement, case folding,
-aliasing, or policy expansion is allowed. Empty sets return the built-in
-`any(...)` false result.
+Preserve the concept fast path first. Invoke `operand.get("concept")`, apply raw
+`or ""`, call `str(...)` once, then `.strip()` once. Compare the exact result,
+case-sensitively, to `CAPEX_TOTAL_CONCEPT_KEY`; equality truth returns exact
+`True` before operand-needle or scoring-policy access. A blank, falsey, or
+nonmatching concept continues; there is no aliasing, case folding, ontology
+lookup, or fallback coercion at this stage.
 
-There is no exception boundary. Operand-needle call/iteration, normalization,
-regex attribute/call, first-set hash/equality and discard, policy get/truth/
-iteration, string conversion/truth, `set` lookup/construction, second-set hash/
-equality, membership, and `any` lookup/call failures remain uncaught. Inputs
-and policy remain unmodified. The complete required test names, exact failure
-ordering, static counts, stop lines, and projected gates are governed only by
+On that continuation, call `_operand_needles(operand)` once with the original
+operand identity and consume it eagerly into a fresh set. Every returned needle
+goes directly through `_normalise_spaces(needle)` and positional
+`re.sub(r"\s+", "", ...)` without local string conversion or truth filter.
+Preserve hashing/equality, duplicate collapse, full materialization, then exact
+`needles.discard("")` once.
+
+Only after discard shallow-copy exact `OPERAND_CANDIDATE_SCORING_POLICY` with
+`dict(...)`. Read `capex_total_surfaces`, apply raw `or ()`, and eagerly build a
+second fresh set. Its filter calls `str(surface)` and `.strip()` once; blank and
+whitespace-only results are dropped. Each retained surface is stringified a
+second time, normalized once, and passed through positional whitespace-removal
+regex before insertion. Preserve policy iteration, hashing/equality, duplicate
+collapse, and no post-construction blank discard. Then return exact
+`any(needle in capex_surfaces for needle in needles)` using native set order and
+first-hit membership, without another boolean conversion.
+
+There is no exception boundary. Operand get/truth/string/strip/equality,
+operand-needle call/iteration, normalization, regex lookup/call, first-set hash/
+equality/discard, policy mapping copy/get/result-truth/iteration, surface string/strip,
+second-set hash/equality, membership, and `any` lookup/call failures remain
+uncaught. Inputs, nested identities, ontology data, and checked-in policy remain
+unmodified. Complete required test names, failure ordering, static counts,
+caller stops, and projected gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
-Two direct calls remain positional exact `operand`, without keywords, at caller
-`try` depth zero and immediate `If` parents. Source-priority scoring keeps the
-gate as body statement 1/6 after score initialization and before capex,
-contextual, and note work; truth enters only its existing balance-sheet branch.
-Direct acceptance keeps the gate as body statement 13/19 after grounding,
-period, binding, unit/strength, prepared candidate surfaces, and canonical
-guards but before capex, later period checks, and return. A truthy gate rejects
-only prepared `notes` plus `detail`; every other truthy or falsey path
-continues. Helper or result-truth failures stop all later caller work.
+Four direct calls remain positional exact `operand`, without keywords, at
+caller `try` depth zero and immediate `If` parents. Source priority keeps body
+statement 2/6 after score initialization and the balance-sheet branch, but
+before contextual and note work. Direct acceptance keeps statement 14/19 after
+the balance-sheet guard but before metadata-period and final-return work.
+Candidate matching keeps statement 15/19 after direct surface matches and
+before contextual matching and the structured-candidate stop. Direct strength
+keeps statement 8/15 after ordinary surface scoring and before contextual and
+aggregate-signal scoring. Their existing CAPEX source score, rejection,
+preferred-section/positive-surface match, and `2.25` strength branches remain
+caller-owned. Falsehood skips only those branches; helper or result-truth
+failures stop all later caller work.
 
-Policy values, operand-needle ownership, caller branches, capex/contextual/note
-predicates, source-priority scoring, direct grounding/acceptance preparation,
-period/unit/report/canonical policy, other matching/scoring/ranking, candidate/
-evidence construction or adoption, I/O, retrieval, graph state, artifact/
-ledger mutation, retry, and final sequencing remain outside this contract.
+CAPEX surface/section values, ontology content, operand-needle ownership, any
+caller branch, source-priority scoring, direct grounding/acceptance preparation,
+candidate matching/strength, other policy or predicates, broader score/rank,
+candidate/evidence construction or adoption, I/O, retrieval, graph state,
+artifact/ledger mutation, retry, and final sequencing remain outside this
+contract.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

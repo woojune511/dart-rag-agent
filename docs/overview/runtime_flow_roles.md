@@ -784,15 +784,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   parity가 통과했다. Caller contextual branches, other matching/scoring,
   candidate/evidence work와 state/artifact/ledger는 graph 또는 기존 owner에
   남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 9줄 balance-sheet
-  aggregate operand predicate를 선택했다. Prepared operand needles를
-  normalization/whitespace-removal set으로 만들고 declarative
-  `HELPER_RUNTIME_POLICY` label set과 비교하는 predicate만 같은 surface
-  owner의 public API로 옮긴다. 두 call은 source priority와 direct acceptance
-  에서 external 2/local 0으로 수렴하고 projected graph/surface public/private
-  는 9/82와 13/7이다. 아직 source/test 이동은 없으며 두 set의 materialize/
-  dedupe/discard, filter/string/normalization, native membership, caller gate/
-  branch/stop, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `f35be1a` balance-sheet-aggregate-operand batch는 graph helper의
+  정확한 9줄 predicate를 `financial_surface_contracts.py`의 public API로
+  옮겼다. 두 call은 source priority와 direct acceptance에서 external 2/local
+  0으로 수렴했다. Graph/surface public/private는 9/82와 13/7이다. Focused
+  4/4, owner 126/126, semantic 1,086/1,086, import 19/19, audit 217, full
+  1,979/1,979와 pycompile/fresh identity, body/caller/DAG parity가 통과했다.
+  Caller scoring/acceptance, other predicates, candidate/evidence work와 state/
+  artifact/ledger는 graph 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 13줄 CAPEX-total
+  operand predicate와 그 inline `capital_expenditure_total` ontology key를
+  선택했다. Key는 retrieval policy의 `CAPEX_TOTAL_CONCEPT_KEY`로 분류하고,
+  concept fast-path와 policy-driven surface fallback predicate만 같은 surface
+  owner의 public API로 옮긴다. 네 call은 source priority, direct acceptance,
+  candidate matching, direct strength에서 external 4/local 0으로 수렴하고
+  projected graph/surface public/private는 9/81과 14/7이다. 아직 source/test
+  이동은 없으며 concept short circuit, needle/policy materialization, 네 caller
+  gate/branch/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

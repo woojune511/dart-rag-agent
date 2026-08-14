@@ -5620,3 +5620,92 @@ Static definition/call/DAG/function-count and selected-body audit inspection,
 direct behavior probes 6/6, and caller gate/branch probes 3/3 passed. Benchmark
 refresh and remote CI were **NOT RUN**. This checkpoint is not a behavior,
 quality, performance, benchmark, schedule, or completion claim.
+
+### Balance-sheet-aggregate-operand ownership milestone
+
+- Commit `f35be1a` moves the exact former 9-line
+  `_is_balance_sheet_aggregate_operand(operand)` definition from
+  `financial_graph_helpers.py` to public
+  `financial_surface_contracts.is_balance_sheet_aggregate_operand(...)` with
+  its body unchanged. The graph imports the public owner; the old private
+  definition and every executable private reference are gone, with no alias or
+  compatibility bridge.
+- Operand-needle normalization/whitespace removal into a fresh set, full
+  materialization, dedupe, exact blank discard, declarative policy get/or and
+  second-set construction, filter-versus-expression string conversion, native
+  set membership, exact result, original identities, immutability, and every
+  uncaught failure remain pinned by four CURRENT-SOURCE methods.
+- The two graph calls finish external/local 2/0, positional exact `operand`,
+  without keywords, at caller `try` depth zero and immediate `If` parents.
+  Source-priority scoring and direct-acceptance notes-detail rejection plus all
+  later caller work are unchanged.
+- Production source is `+14/-13`, net `+1`: graph helpers are `+3/-13` and move
+  from 5,394 to 5,384 physical lines; surface contracts are `+11/-0` and move
+  from 445 to 456. Graph-helper tests are `+1,014/-34`, net `+980`, and move
+  from 26,356 to 27,336 lines. The whole commit is `+1,028/-47`, net `+981`,
+  and four methods move discovery from 1,975 to 1,979. Final public/private
+  counts are graph 9/82 and surface owner 13/7. The source diff SHA-256 is
+  `e9e8b46382ecdb20982d1ec90c19343aec4a8b769d3812272a54da930dd00f51`.
+- Focused 4/4, graph-helper owner 126/126, affected eleven-module semantic
+  1,086/1,086, import-side-effects 19/19, runtime-domain audit 217, and full
+  discovery 1,979/1,979 passed. Pycompile, fresh import/public identity 2/2,
+  selected-body parity 1/1, retained graph exact 89/91 and call-normalized
+  91/91, retained surface owner 19/19, both callers, full 48-module/203-edge DAG
+  parity, zero retired private refs, non-ASCII preservation, and diff check also
+  passed. The first full-suite attempt hit only the 60-second command wrapper;
+  the identical command rerun with a longer deadline passed in 104.415 seconds.
+  Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic balance-sheet-aggregate-operand
+ownership. Policy vocabulary, operand-needle ownership, caller scoring and
+acceptance, CAPEX/contextual/note predicates, other matching/scoring/ranking,
+candidate/evidence construction or adoption, I/O, retrieval, graph state,
+model invocation, artifact/ledger mutation, retry, and final sequencing remain
+outside. It proves no behavior, accuracy, ranking, performance, total-code or
+executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+### CAPEX-total-operand policy-and-owner characterization checkpoint
+
+- A docs-only inventory selects the current exact 13-line
+  `_is_capex_total_operand(operand)` graph definition for a future public move
+  to `financial_surface_contracts.is_capex_total_operand(...)`. It also selects
+  only the inline `capital_expenditure_total` ontology identifier for
+  declaration as retrieval-policy constant `CAPEX_TOTAL_CONCEPT_KEY`. No
+  production source or test moved for this projection.
+- The predicate stringifies and strips the operand concept first; exact concept
+  equality returns `True` before operand-needle or scoring-policy access. A
+  nonmatch prepares normalized/whitespace-removed operand needles in a fresh
+  set, discards exact blank, shallow-copies
+  `OPERAND_CANDIDATE_SCORING_POLICY`, eagerly prepares its configured
+  `capex_total_surfaces` in a second set, and returns native-set membership via
+  `any(...)`.
+- Concept get/or/string/strip and early-return precedence, no case folding,
+  direct needle normalization without local string/filter work, positional
+  regex substitution, set materialization/dedupe/discard, policy dict copy,
+  dropped/retained surface stringification and strip behavior, native set
+  iteration, exact result, identities, immutability, and every uncaught error
+  remain normative. Only the literal-to-policy-name substitution is allowed.
+- The surface owner already owns `_operand_needles(...)`, imports `re` and
+  `_normalise_spaces`, and reaches retrieval policy; graph reaches it and it
+  does not reach graph. Adding the two policy imports creates no module edge.
+  The full 48-module/203-edge DAG remains unchanged. Current/projected public/
+  private counts are graph 9/82 to 9/81 and surface owner 13/7 to 14/7; the
+  selected span has zero of 217 reviewed runtime-domain records.
+- Four direct calls project external/local 4/0, each positional exact `operand`,
+  with no keywords, caller `try` depth zero, and immediate `If` parent. Source
+  priority calls at body statement 2/6, direct acceptance at 14/19, candidate
+  matching at 15/19, and direct strength at 8/15. Existing score, reject,
+  preferred-section/positive-surface match, and strength branches remain
+  caller-owned; helper or result-truth failures stop later work.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 130/130,
+  affected semantic 1,090/1,090, import 19/19, audit 217, full 1,983/1,983,
+  public identity, policy-normalized body parity, retained graph 90/90,
+  retained surface owner 20/20, all four callers, full DAG parity, retired-ref
+  zero, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count and ontology/policy/selected-body
+audit inspection, direct behavior probes 6/6, and caller branch probes 4/4
+passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not
+a behavior, quality, performance, benchmark, schedule, or completion claim.
