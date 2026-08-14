@@ -4781,65 +4781,83 @@ selected-body and retained-function parity, all eight calls/six callers, retired
 ref zero, non-ASCII preservation, and diff check. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The active direct-candidate semantic-priority contract is characterized for the
-next bounded owner batch. Move only the current exact 53-line
-`_direct_candidate_semantic_priority(candidate, *, operand,
-preferred_statement_types, query_years)` graph definition without a graph alias
-to public
-`financial_operand_resolution.direct_candidate_semantic_priority(...)`. It
-projects one prepared candidate to a fixed five-integer priority tuple;
-collection sorting, winner selection, acceptance, adoption, retrieval, and graph
-state remain outside.
+Commit `1be4cad` completed the direct-candidate semantic-priority contract, now
+owned by
+`financial_operand_resolution.direct_candidate_semantic_priority(...)`. The
+exact former 53-line body, 19 statements, one return, no `try`, metadata and
+binding-policy shallow copies, three eager normalization comprehensions,
+repeated conversion/normalization, helper order, independent ranks,
+`len - first index` preference ranking, target-year/structured-value truth
+projection, tuple order, integer truncation, identities, immutability, and all
+uncaught failures remain unchanged and pinned by four CURRENT-SOURCE methods.
+No graph alias or bridge was added.
 
-Preserve the exact 19-statement body, one return, no `try`, required positional
-candidate, three required keyword-only inputs, and exact return annotation.
-Candidate metadata is shallow-copied before operand binding policy. Preferred
-statement types are consumed directly; preferred value roles and aggregation
-stages preserve their raw policy lookup plus `or []` fallback. All three list
-comprehensions remain eager and preserve filter-before-element evaluation, so a
-rejected item stringifies/normalizes once and a retained item twice.
+All three calls in `_deterministic_reconcile_task(...)` now bind the public
+owner with exact copied candidate mappings and keyword inputs. Sort-key order,
+reverse sorting, top/next recomputation, strict comparison, score fallback,
+collapse, and adoption remain graph-owned. Final counts are graph 9/76 and
+operand resolution 49/37; the full DAG is now 48 modules/204 edges and acyclic.
+Executed gates are focused 4/4, graph owner 150/150, operand owner 69/69,
+affected semantic 1,110/1,110, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,003/2,003, plus pycompile, fresh identity, selected-body and
+retained-function parity, all three calls/one caller, retired-ref zero, non-
+ASCII preservation, and diff check. Benchmark refresh and remote CI were
+**NOT RUN**.
 
-After list construction, normalize statement type, then evaluate candidate
-value role, aggregation stage, direct-match strength, and normalized candidate
-kind in exact order. Statement, value-role, and aggregation-stage ranks each
-start at zero and adopt exact `len(preferences) - preferences.index(value)` only
-on membership. This preserves first-index, duplicate, length, and ordering
-effects. Candidate target-year match projects truth to exact `1`/`0`, followed
-by exact candidate-kind equality with `structured_value`. Return order is
-aggregation-stage rank, value-role rank, statement rank, target-year match, and
-`structured_value_rank + int(direct_match_strength * 10)`. Integer truncation,
-arithmetic, comparison, and tuple behavior are normative.
+The active canonical-statement-winner contract is characterized for the next
+bounded owner batch. Move only the current exact 42-line
+`_candidate_is_canonical_statement_winner(candidate, *, operand, query_years)`
+graph definition without a graph alias to public
+`financial_operand_resolution.candidate_is_canonical_statement_winner(...)`.
+It classifies one prepared candidate against canonical statement, section,
+direct-strength, and period signals; direct-entry construction, collection
+sorting, winner adoption, acceptance, broad scoring, retrieval, and graph state
+remain outside.
 
-There is no exception boundary. Mapping/truth access, shallow copies, supplied
-iterables, conversion, normalization, list construction, membership/index/
-length, helper calls and result truth, multiplication, integer conversion,
-addition, tuple construction, and return failures remain uncaught in current
-order. Inputs, nested objects, and shallow-copy sources remain unmodified and
+Preserve the exact 17-statement body, seven returns, no `try`, required
+positional candidate, two required keyword-only inputs, and `bool` result.
+Canonical-row preference stays first and stops before candidate access. Then
+shallow-copy metadata, preserve statement-type fallback/string/strip and exact
+two-value canonical preference unpacking, reject a truthy type preference miss,
+and compute the canonical-type hit with explicit collection truth, repeated
+membership, and exact `notes`/`unknown` exclusion.
+
+Do not copy or materialize the returned canonical type/section objects.
+Repeated type truth/membership and section iteration or exhaustion across the
+two section scans are normative, including stateful-container, duplicate, and
+first-hit effects.
+
+Preserve lazy local-heading/table-context/section-path fallback, the separate
+section-path read, policy shallow copy, eager marker tuple, retained-marker
+double stringification, marker-outer heading-before-section membership,
+marker/section nested iteration, repeated filtered canonical-section
+normalization, and all `any(...)` short circuits. Note-context and canonical-
+section rejections remain before one direct-strength call and exact `< 2.5`
+comparison. A truthy target-year result returns before period work; otherwise
+normalize candidate period focus, call `operand_period_focus(operand,
+"unknown")`, and reject only an exact current/prior mismatch. Mapping/truth,
+copy, unpacking, conversion, normalization, iteration, membership, helper,
+comparison, and return failures remain uncaught in order. Inputs, supplied
+preference objects, nested values, and `query_years` remain unmodified and
 retain identity.
 
-The destination already holds every dependency except public
-`candidate_matches_operand_target_year(...)` from scope policy. Adding that one
-direct owner edge keeps the full DAG acyclic while moving it from 48 modules/203
-edges to 48/204. Projected counts are graph 9/76 and operand resolution 49/37;
-the selected span has zero of 217 reviewed records.
+The destination already owns all dependencies and already imports from scope
+policy; adding `operand_period_focus(...)` creates no edge. Projected counts are
+graph 9/75 and operand resolution 50/37, and the acyclic full DAG remains
+48/204. The selected span has zero of 217 reviewed records.
 
-Three direct calls remain in `_deterministic_reconcile_task(...)`, under body
-statement index 9/17 and caller `try` depth zero. The sorted-key lambda keeps
-`dict(entry.get("candidate") or {})` as the sole positional argument and exact
-`operand`, `preferred_statement_types`, and `query_years` keywords before the
-float score component with `reverse=True`. The next two calls recompute the
-same tuple from copied ranked entries zero and one before strict
-`top_priority > next_priority`. Preserve repeated evaluation, mapping copies,
-sort ordering, top/next recomputation, unique-winner collapse, tie fallback,
-adoption, and every failure stop.
-
-The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-150/150, operand owner 69/69, affected semantic 1,110/1,110, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,003/2,003 gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). Candidate
-construction, broad float scoring, collection sorting/fallback, direct/ratio
-acceptance, evidence adoption, I/O, retrieval, graph state, model invocation,
-artifact/ledger mutation, retry, and final sequencing remain hard stops.
+The sole call remains in `_deterministic_reconcile_task(...)`, under body
+statement index 9/17 and caller `try` depth zero. Preserve exact positional
+candidate, `operand=operand`, `query_years=years`, direct-entry dictionary
+evaluation order, storage under `canonical_winner`, later rank/collapse use,
+and every failure stop before append. The four required CURRENT-SOURCE methods
+and projected focused 4/4, graph owner 154/154, operand owner 69/69, affected
+semantic 1,114/1,114, reconciliation plan 51/51, import 19/19, audit 217, and
+full 2,007/2,007 gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). Entry
+construction, broad scoring, sorting/collapse, direct/ratio acceptance, evidence
+adoption, I/O, retrieval, graph state, model invocation, artifact/ledger
+mutation, retry, and final sequencing remain hard stops.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

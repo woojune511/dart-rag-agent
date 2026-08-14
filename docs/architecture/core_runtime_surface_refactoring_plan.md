@@ -1109,36 +1109,61 @@ preservation, and diff check passed. The source diff SHA-256 is
 `fb7cf8e1824f26bc4fd54a303602491f79956eb277d999e2fd45872c0e361de3`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
+The completed `1be4cad` follow-on moved the exact former 53-line direct-
+candidate semantic-priority projection from graph helpers to public
+`direct_candidate_semantic_priority(...)` in
+`financial_operand_resolution.py`. The exact 19-statement/one-return body,
+metadata and binding-policy shallow copies, three eager normalization
+comprehensions, helper order, independent ranks, target-year/structured-value
+truth projection, tuple order, integer truncation, identities, immutability,
+and uncaught failures remain pinned by four CURRENT-SOURCE methods. No graph
+alias was added.
+
+All three direct calls in one graph caller now bind the public owner while
+sort-key order, top/next recomputation, strict comparison, score fallback,
+collapse, and adoption remain graph-owned. Production source is `+60/-58`,
+tests are `+1,332/-109`, and the whole commit is `+1,392/-167`; graph helpers
+move from 5,055 to 5,001 lines and operand resolution from 4,057 to 4,113.
+Focused 4/4, graph owner 150/150, operand owner 69/69, affected semantic
+1,110/1,110, reconciliation plan 51/51, import 19/19, audit 217, full
+2,003/2,003, pycompile/fresh identity, body/retained/caller/full
+48-module/204-edge DAG parity, retired private refs zero, non-ASCII
+preservation, and diff check passed. The source diff SHA-256 is
+`6fe4cf715b6ea401a379f3ca40725ad7ea25e8b0bae16deb0752433f3937d304`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
 The new characterize-only inventory selects one follow-on: move only the
-current exact 53-line `_direct_candidate_semantic_priority(...)` definition
-from graph helpers to public `direct_candidate_semantic_priority(...)` in
-`financial_operand_resolution.py`. It owns a state-free five-integer priority
-tuple for one prepared candidate and operand, not collection sorting, winner
-selection, acceptance, or adoption.
+current exact 42-line `_candidate_is_canonical_statement_winner(...)`
+definition from graph helpers to public
+`candidate_is_canonical_statement_winner(...)` in
+`financial_operand_resolution.py`. It owns one state-free canonical
+statement/section/direct-strength/period predicate for one prepared candidate,
+not direct-entry construction, collection sorting, winner adoption, acceptance,
+or broad scoring.
 
-The destination already holds every dependency except public
-`candidate_matches_operand_target_year(...)` from scope policy. Adding that
-direct edge moves the acyclic full DAG from 48 modules/203 edges to 48/204;
-projected counts are graph helpers 9/76 and operand resolution 49/37, and the
-selected span contains zero of 217 reviewed records.
+The destination already owns every dependency and already reaches scope policy;
+adding `operand_period_focus(...)` to that existing import creates no module
+edge. The acyclic full DAG remains 48 modules/204 edges; projected counts are
+graph helpers 9/75 and operand resolution 50/37, and the selected span contains
+zero of 217 reviewed records.
 
-Preserve the exact 19-statement/one-return body, metadata and binding-policy
-shallow copies, all three eager normalization comprehensions, repeated
-conversion/normalization, helper order, independent zero ranks,
-`len - first index` preference ranking, target-year and structured-value truth
-projection, exact tuple order, integer truncation, identities, immutability, and
-uncaught failures. Three direct calls in one graph caller must retain their
-prepared mapping copies, exact three keywords, sort-key-first use, top/next
-recomputation, strict comparison, adoption, and failure stops at `try` depth
-zero. Broad scoring, collection sorting/fallback, direct/ratio acceptance,
-evidence adoption, I/O, retrieval, and plan/state/artifact/ledger work are
-rejected.
+Preserve the exact 17-statement/seven-return/no-`try` body, preference-first
+gate, metadata/policy shallow copies, statement-type and heading/section
+fallback order, repeated marker and canonical-section normalization, nested
+generator/`any` short circuits, `< 2.5` direct-strength rejection, target-year
+truth gate, period-focus fallback, exact booleans, identities, immutability,
+and uncaught failures. The sole call in `_deterministic_reconcile_task(...)`
+must retain exact candidate/operand/year arguments, direct-entry dictionary
+evaluation order, `canonical_winner` storage, later rank/collapse adoption, and
+failure stops at `try` depth zero. Entry construction, sorting, direct/ratio
+acceptance, broad scoring, evidence adoption, I/O, retrieval, and plan/state/
+artifact/ledger work are rejected.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-150/150, operand owner 69/69, affected semantic 1,110/1,110, reconciliation plan
-51/51, import 19/19, audit 217, and full 2,003/2,003 gates are defined only in
+154/154, operand owner 69/69, affected semantic 1,114/1,114, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,007/2,007 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this semantic-priority projection; it is the
+or test movement has occurred for this canonical-winner projection; it is the
 sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:

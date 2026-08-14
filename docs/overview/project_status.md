@@ -16,10 +16,10 @@ Last updated: 2026-08-15
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `91ceae7` moved the exact 122-line candidate direct-match-strength scorer to public operand-resolution ownership and updated all eight graph calls |
-| What passed? | Focused 4/4, graph owner 146/146, operand owner 69/69, affected eleven-module semantic set 1,106/1,106, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 1,999/1,999 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest direct-match-strength ownership change |
-| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 53-line direct-candidate semantic-priority projection to operand-resolution ownership |
+| What just changed? | `1be4cad` moved the exact 53-line direct-candidate semantic-priority projection to public operand-resolution ownership and updated all three graph calls |
+| What passed? | Focused 4/4, graph owner 150/150, operand owner 69/69, affected eleven-module semantic set 1,110/1,110, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,003/2,003 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest semantic-priority ownership change |
+| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 42-line canonical-statement-winner predicate to operand-resolution ownership |
 
 ## Product Boundary
 
@@ -716,7 +716,7 @@ Commit-level diffs and validation are kept in
 | Semantic planning normalization | `financial_graph_helpers.py`; state-free scope normalization, plan-shape predicates, segment-label projection, planner-task validation, and narrative-task policy projection, excluding model invocation and plan/state adoption |
 | Scope and structured-cell policy | `financial_scope_policies.py` owns report/consolidation and single-report-scope classification, public query/task and operand target-year/period-focus projection, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring; `financial_structured_cells.py` owns fiscal rank/period text, ordinary/aggregate selection, public scoring, candidate selected-cell preparation, and owner-private operand affinity |
 | Candidate and row surface contracts | `financial_surface_contracts.py` owns operand needles/segment labels, positive/negative term matching, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items; `financial_row_surfaces.py` owns row text matching/parsing, column-candidate and delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
-| Operand policy and resolution | `financial_operand_resolution.py`, including lookup-hint projection/matching, direct candidate logical/family signature projection, candidate-to-operand matching, candidate direct-match-strength scoring, candidate location/entity subject scoring, deterministic positional preference scoring, ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
+| Operand policy and resolution | `financial_operand_resolution.py`, including lookup-hint projection/matching, direct candidate logical/family signature projection, candidate-to-operand matching, candidate direct-match-strength scoring, direct-candidate semantic-priority projection, candidate location/entity subject scoring, deterministic positional preference scoring, ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py`, including base/runtime deterministic operation planning, ontology planning, plan guarding, execution, and value freshness |
 | Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, direct structured lookup-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over already supplied evidence |
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match, candidate-ID, and structured period-pair projection over already prepared mappings |
@@ -747,13 +747,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, candidate direct-match-strength ownership 4 / 4; graph owner 146 / 146; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,106 / 1,106 |
+| Latest focused owner checkpoint | PASS, direct-candidate semantic-priority ownership 4 / 4; graph owner 150 / 150; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,110 / 1,110 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 1,999 / 1,999 |
-| Benchmark refresh after latest direct-match-strength ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,003 / 2,003 |
+| Benchmark refresh after latest semantic-priority ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -787,7 +787,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference scoring, candidate-to-operand matching and direct-match-strength scoring, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, broad scoring/reconciliation, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference scoring, candidate-to-operand matching, direct-match-strength scoring and direct-candidate semantic-priority projection, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, broad scoring/reconciliation, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
 
@@ -797,6 +797,163 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The characterize-only inventory selects exactly one production follow-on. Add
+four CURRENT-SOURCE contracts, then move only the current exact 42-line
+`_candidate_is_canonical_statement_winner(candidate, *, operand, query_years)`
+definition from `financial_graph_helpers.py` to the existing
+`financial_operand_resolution.py` owner as public
+`candidate_is_canonical_statement_winner(...)`. Do not leave a graph alias or
+compatibility bridge.
+
+No production source or test has moved for this projection. The predicate
+classifies one already prepared candidate against canonical statement, section,
+direct-match, and period signals. It does not construct candidates, calculate
+the broad float score, sort or collapse a collection, select a winner, apply
+direct or ratio acceptance, adopt evidence, invoke a model, or read/write graph
+state.
+
+The destination already owns `_normalise_spaces`,
+`lookup_prefers_canonical_statement_rows(...)`,
+`lookup_canonical_statement_preferences(...)`,
+`candidate_direct_match_strength(...)`, and the scoring-policy constant. It
+also already imports `candidate_matches_operand_target_year(...)` from scope
+policy; add `operand_period_focus(...)` to that existing import. No module edge
+is added. The full DAG remains acyclic at 48 modules and 204 internal edges.
+Current public/private counts are graph helpers 9/76 and operand resolution
+49/37; projected counts are 9/75 and 50/37. The selected span contains zero of
+the 217 reviewed runtime-domain records.
+
+Preserve the exact 17-statement body, seven returns, no `try`, required
+positional `candidate`, two required keyword-only arguments, and `bool` result.
+Canonical-row preference is the first gate and returns exact `False` before
+candidate access when disabled. Then shallow-copy candidate metadata, preserve
+raw statement-type lookup/falsey fallback/string/strip order, obtain the exact
+two-value canonical preference result, and reject a truthy canonical-type
+collection that does not contain the stripped statement type.
+
+Do not copy or materialize either returned canonical preference object.
+Preserve repeated truth and membership against the exact canonical-type object,
+and preserve canonical-section iteration/consumption across the earlier
+marker/section scan and the later filtered section gate. Stateful containers,
+one-shot iterators, duplicates, and first-hit behavior therefore retain their
+current effects.
+
+The canonical-statement-type hit keeps explicit `bool(canonical_types)`, the
+second membership test, and exclusion of exact `notes` and `unknown`. Preserve
+lazy `local_heading -> table_context -> section_path -> ""` fallback before one
+string conversion and normalization, followed by the separate repeated
+section-path lookup and normalization. Shallow-copy
+`OPERAND_CANDIDATE_SCORING_POLICY`, then eagerly materialize the marker tuple in
+order: a rejected marker stringifies once and a retained marker twice. Marker
+duplicates and output identities remain unchanged.
+
+`note_context` keeps marker-outer order, heading membership before lazy section-
+path membership, and `any(...)` short-circuiting. `allows_note_canonical` keeps
+marker-outer/section-inner order, one normalization per visited pair, and its
+own short circuit. A note context without an allowed canonical section returns
+`False`. The later canonical-section gate remains lazy behind raw section
+truth and a canonical-type hit. Its filtered generator normalizes a rejected
+section once and a retained section two or three times depending on the first
+membership result; first hit stops the scan.
+
+Only after those gates call direct-match strength once and reject exact values
+`< 2.5`. Then call target-year matching once. A truthy result returns `True`
+without period-focus work. A falsey result normalizes candidate period focus,
+calls `operand_period_focus(operand, "unknown")` positionally, and rejects only
+when the desired focus is exact `current` or `prior` and differs from the
+candidate focus. All other paths return exact `True`.
+
+There is no exception boundary. Mapping access, raw truth, shallow copies,
+unpacking, conversion, strip, normalization, iteration, tuple construction,
+membership, generator/`any`, helper calls and result truth, comparison, and
+return failures remain uncaught in current order. Candidate, operand,
+canonical preference objects, metadata and policy sources, nested objects, and
+`query_years` remain unmodified and retain identity.
+
+The projection has one direct `ast.Name` call in graph caller
+`_deterministic_reconcile_task(...)`, under body statement index 9/17 and at
+caller `try` depth zero. It remains the value expression for exact key
+`"canonical_winner"` in the direct-entry dictionary, after candidate,
+logical/family signatures, selected value text, and broad score. Preserve the
+exact positional `candidate` and keyword `operand=operand,
+query_years=years`, their identities, dictionary evaluation order, and
+exception stop before append. The stored boolean continues to participate only
+in existing family/logical-signature ranking, canonical-entry collapse, and
+later semantic/score fallback. Entry construction, sorting, collapse, broad
+scoring, direct/ratio acceptance, candidate/evidence adoption, I/O, retrieval,
+graph state, model invocation, artifact/ledger mutation, retry, and final
+sequencing remain graph/existing-owner responsibilities and are rejected from
+this batch.
+
+Before production movement, add exactly these four CURRENT-SOURCE methods to
+`FinancialGraphHelperTests`:
+
+- `test_current_source_candidate_is_canonical_statement_winner_pins_precedence_markers_and_result`;
+- `test_current_source_candidate_is_canonical_statement_winner_pins_laziness_identity_immutability_and_exceptions`;
+- `test_current_source_candidate_is_canonical_statement_winner_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_candidate_is_canonical_statement_winner_caller_pins_args_projection_adoption_and_stops`.
+
+They must pin the exact definition/signature/body, all early gates and repeated
+reads, marker and section iteration/normalization order, threshold and period
+fallback, exact booleans, identities, immutability, every uncaught failure, the
+sole caller expression/arguments/dictionary order/adoption/stops,
+current/projected function counts, unchanged acyclic DAG, and zero selected-body
+runtime-domain records.
+
+Projected post-move gates are focused 4/4, graph-helper characterization owner
+154/154, operand-resolution owner 69/69, affected eleven-module semantic set
+1,114/1,114, reconciliation plan 51/51, import-side-effects 19/19, audit 217,
+and full discovery 2,007/2,007, plus pycompile/fresh import and public identity,
+selected-body parity 1/1, retained graph exact 83/84 and call-normalized 84/84,
+all 86 retained operand-resolution functions, the sole call/caller, full
+48-module/204-edge DAG parity, retired executable graph-private refs zero, non-
+ASCII preservation, and `git diff --check`. These are projections to verify,
+not completed results.
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection passed. Direct branch/laziness/identity probes passed 8/8 and related
+caller probes passed 3/3. Benchmark refresh and remote CI were **NOT RUN**. This
+characterization makes no behavior, accuracy, ranking, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+## Completed Direct-Candidate Semantic-Priority Ownership
+
+Commit `1be4cad` moved the exact former 53-line graph projection to public
+`financial_operand_resolution.direct_candidate_semantic_priority(...)` with its
+19-statement/one-return body unchanged. The old private definition and
+executable private refs are gone; no wrapper or compatibility bridge was added.
+
+All three direct calls in `_deterministic_reconcile_task(...)` now bind the
+public owner. The sort-key candidate copy before float score, reverse ordering,
+top/next recomputation, strict tuple comparison, score fallback, collapse, and
+adoption remain in their exact graph-owned positions. This milestone does not
+move collection sorting, broad scoring, acceptance, winner selection, or state
+ownership.
+
+Production source is `+60/-58`, net `+2`; tests are `+1,332/-109`, net
+`+1,223`; and the whole commit is `+1,392/-167`, net `+1,225`. Graph helpers
+moved from 5,055 to 5,001 physical lines, operand resolution from 4,057 to
+4,113, graph-helper tests from 32,466 to 33,689, and four methods moved discovery
+from 1,999 to 2,003. Final public/private counts are graph 9/76 and operand
+resolution 49/37. The source diff SHA-256 is
+`6fe4cf715b6ea401a379f3ca40725ad7ea25e8b0bae16deb0752433f3937d304`.
+
+Focused pre/post movement 4/4, graph owner 150/150, operand owner 69/69,
+affected eleven-module semantic 1,110/1,110, reconciliation plan 51/51,
+import-side-effects 19/19, runtime-domain audit 217, and full discovery
+2,003/2,003 passed. Pycompile, fresh public identity 1/1, exact 53-line body
+parity 1/1, retained graph exact 84/85 and call-normalized 85/85, all 85 retained
+operand-resolution functions, all three calls/one caller, full 48-module/
+204-edge acyclic DAG parity, retired private refs zero, non-ASCII preservation
+4/4, and `git diff --check` also passed. Benchmark refresh and remote CI were
+**NOT RUN**.
+
+This milestone changes only deterministic semantic-priority ownership. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
+
+## Historical Direct-Candidate Semantic-Priority Characterization Checkpoint
+
+The characterize-only inventory selected exactly one production follow-on. Add
 four CURRENT-SOURCE contracts, then move only the current exact 53-line
 `_direct_candidate_semantic_priority(candidate, *, operand,
 preferred_statement_types, query_years)` definition from
