@@ -85,7 +85,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         before_scope = deepcopy(report_scope)
         receipt_owner = Mock(return_value=["receipt-a"])
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "_report_scope_source_receipts",
             receipt_owner,
         ):
@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             (
@@ -1479,7 +1479,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         receipt_owner = Mock(side_effect=AssertionError("receipts accessed"))
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "_report_scope_source_receipts",
             receipt_owner,
         ):
@@ -1494,7 +1494,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         receipt_owner.assert_not_called()
 
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "_report_scope_source_receipts",
             return_value=["receipt-a", "receipt-b"],
         ):
@@ -1516,7 +1516,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual((prepended_companies, prepended_years), (["ScopeCo", "Existing"], [2024]))
 
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "_report_scope_source_receipts",
             side_effect=RuntimeError("receipt scan failed"),
         ):
@@ -1537,7 +1537,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         receipt_owner = Mock(side_effect=AssertionError("receipts accessed"))
         with patch.object(
-            financial_graph_helpers,
+            financial_scope_policies,
             "_report_scope_source_receipts",
             receipt_owner,
         ):
@@ -1876,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             (
@@ -2830,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 86))
+        self.assertEqual(graph_counts, (9, 85))
         self.assertEqual(row_counts, (11, 15))
 
         graph_row_imports = {
@@ -3872,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             (
@@ -4909,7 +4909,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             (
@@ -6628,7 +6628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 86))
+        self.assertEqual(current_graph_counts, (9, 85))
         self.assertEqual(current_operand_counts, (45, 37))
 
         def imported_names(module_name, imported_module):
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 86))
+        self.assertEqual(graph_counts, (9, 85))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,8 +9279,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 86))
-        self.assertEqual(owner_counts, (10, 9))
+        self.assertEqual(graph_counts, (9, 85))
+        self.assertEqual(owner_counts, (11, 9))
 
         def imported_names(module_name, imported_module):
             return {
@@ -10319,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 86))
+        self.assertEqual(graph_counts, (9, 85))
         self.assertEqual(row_counts, (11, 15))
 
         def imported_names(module_name, imported_module):
@@ -11173,6 +11173,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         module_paths = {
             "graph": repo_root / "src" / "agent" / "financial_graph_planning.py",
             "owner": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "scope": repo_root / "src" / "agent" / "financial_scope_policies.py",
         }
         module_sources = {
             name: path.read_text(encoding="utf-8-sig")
@@ -11180,7 +11181,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         }
         module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
         current_targets = {
-            "single_scope": "_has_single_report_scope",
+            "single_scope": "has_single_report_scope",
             "segment_shape": "llm_plan_preserves_segment_sum_shape",
             "roles": "_task_concept_role_families",
             "analysis_shape": "llm_plan_preserves_analysis_shape",
@@ -11279,7 +11280,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for name, (module_name, class_stack, node) in definitions.items()
             },
             {
-                "_has_single_report_scope": ("owner", (), 8),
+                "has_single_report_scope": ("scope", (), 8),
                 "llm_plan_preserves_segment_sum_shape": ("owner", (), 25),
                 "_task_concept_role_families": ("owner", (), 12),
                 "llm_plan_preserves_analysis_shape": ("owner", (), 24),
@@ -12877,7 +12878,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -13778,7 +13779,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (10, 9),
+            (11, 9),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -15746,7 +15747,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 86),
+                "financial_graph_helpers": (9, 85),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -17675,7 +17676,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (10, 9),
+            (11, 9),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -18718,7 +18719,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 86),
+            (9, 85),
         )
         self.assertEqual(
             (
@@ -19706,7 +19707,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 86),
+                "financial_graph_helpers": (9, 85),
                 "financial_surface_contracts": (10, 7),
             },
         )
@@ -20503,8 +20504,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 86),
-                "financial_scope_policies": (10, 9),
+                "financial_graph_helpers": (9, 85),
+                "financial_scope_policies": (11, 9),
             },
         )
 
@@ -21411,7 +21412,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 86),
+                "financial_graph_helpers": (9, 85),
                 "financial_operand_resolution": (45, 37),
             },
         )
@@ -22036,7 +22037,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 86), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 85), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -22880,7 +22881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 86), "financial_operand_resolution": (45, 37)},
+            {"financial_graph_helpers": (9, 85), "financial_operand_resolution": (45, 37)},
         )
 
         def imported_modules(tree):
@@ -23552,7 +23553,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 86), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 85), "financial_row_surfaces": (11, 15)},
         )
 
         def imported_modules(tree):
@@ -23810,6 +23811,596 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
         truth_call.assert_called_once_with(["Metric"])
         stopped_truth_format.assert_not_called()
+
+    def test_current_source_has_single_report_scope_pins_receipt_precedence_and_cardinality(self) -> None:
+        owner = financial_scope_policies
+        has_single_report_scope = owner.has_single_report_scope
+        nested = {"preserve": True}
+        events = []
+
+        class ReceiptNumber:
+            def __bool__(self):
+                events.append("receipt_truth")
+                return True
+
+            def __str__(self):
+                events.append("receipt_str")
+                return " 0001 "
+
+        explicit_scope = {"rcept_no": ReceiptNumber(), "nested": nested}
+        before_explicit_scope = dict(explicit_scope)
+        with patch.object(
+            owner,
+            "_report_scope_source_receipts",
+            side_effect=AssertionError("explicit receipt must skip source receipts"),
+        ) as skipped_receipts:
+            self.assertIs(has_single_report_scope(explicit_scope), True)
+        self.assertEqual(events, ["receipt_truth", "receipt_str"])
+        skipped_receipts.assert_not_called()
+        self.assertEqual(explicit_scope, before_explicit_scope)
+        self.assertIs(explicit_scope["nested"], nested)
+
+        for receipts, expected in (([], True), (["one"], True), (["one", "two"], False)):
+            report_scope = {"nested": nested}
+            before_scope = dict(report_scope)
+            observed_scopes = []
+
+            def project_receipts(scope, *, result=receipts):
+                observed_scopes.append(scope)
+                return result
+
+            with patch.object(
+                owner,
+                "_report_scope_source_receipts",
+                side_effect=project_receipts,
+            ) as receipt_projection:
+                self.assertIs(has_single_report_scope(report_scope), expected)
+
+            receipt_projection.assert_called_once()
+            self.assertEqual(len(observed_scopes), 1)
+            self.assertIsNot(observed_scopes[0], report_scope)
+            self.assertIs(observed_scopes[0]["nested"], nested)
+            self.assertEqual(report_scope, before_scope)
+            self.assertIs(report_scope["nested"], nested)
+
+        class FalseyScope(dict):
+            def __bool__(self):
+                events.append("scope_false")
+                return False
+
+        falsey_scope = FalseyScope({"rcept_no": "ignored", "nested": nested})
+        before_falsey_scope = dict(falsey_scope)
+        received = []
+        with patch.object(
+            owner,
+            "_report_scope_source_receipts",
+            side_effect=lambda scope: received.append(scope) or [],
+        ):
+            self.assertIs(has_single_report_scope(falsey_scope), True)
+        self.assertEqual(received, [{}])
+        self.assertIsNot(received[0], falsey_scope)
+        self.assertEqual(falsey_scope, before_falsey_scope)
+        self.assertIs(falsey_scope["nested"], nested)
+
+    def test_current_source_has_single_report_scope_pins_copy_laziness_identity_and_exception_boundary(self) -> None:
+        owner = financial_scope_policies
+        has_single_report_scope = owner.has_single_report_scope
+        nested = {"preserve": True}
+        events = []
+
+        class TruthyScope(dict):
+            def __bool__(self):
+                events.append("scope_truth")
+                return True
+
+        original = TruthyScope({"nested": nested})
+        before_original = dict(original)
+        copied_scopes = []
+        dict_owner = Mock(side_effect=lambda value: dict(value))
+
+        def receive_copy(scope):
+            events.append("receipt_projection")
+            copied_scopes.append(scope)
+            return ["one"]
+
+        with (
+            patch.object(owner, "dict", dict_owner, create=True),
+            patch.object(
+                owner,
+                "_report_scope_source_receipts",
+                side_effect=receive_copy,
+            ),
+        ):
+            self.assertIs(has_single_report_scope(original), True)
+
+        self.assertEqual(events, ["scope_truth", "receipt_projection"])
+        dict_owner.assert_called_once_with(original)
+        self.assertEqual(len(copied_scopes), 1)
+        self.assertIsNot(copied_scopes[0], original)
+        self.assertIs(copied_scopes[0]["nested"], nested)
+        self.assertEqual(original, before_original)
+        self.assertIs(original["nested"], nested)
+
+        class ScopeTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("scope truth failed")
+
+        with patch.object(
+            owner,
+            "_report_scope_source_receipts",
+            side_effect=AssertionError("scope truth failure must stop receipts"),
+        ) as stopped_receipts:
+            with self.assertRaisesRegex(RuntimeError, "scope truth failed"):
+                has_single_report_scope(ScopeTruthBomb())
+        stopped_receipts.assert_not_called()
+
+        with (
+            patch.object(owner, "dict", side_effect=RuntimeError("scope copy failed"), create=True),
+            patch.object(
+                owner,
+                "_report_scope_source_receipts",
+                side_effect=AssertionError("copy failure must stop receipts"),
+            ) as stopped_receipts,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "scope copy failed"):
+                has_single_report_scope({"value": True})
+        stopped_receipts.assert_not_called()
+
+        class GetBomb:
+            def get(self, _key):
+                raise RuntimeError("receipt get failed")
+
+        with (
+            patch.object(owner, "dict", return_value=GetBomb(), create=True),
+            patch.object(
+                owner,
+                "_report_scope_source_receipts",
+                side_effect=AssertionError("get failure must stop receipts"),
+            ) as stopped_receipts,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "receipt get failed"):
+                has_single_report_scope({})
+        stopped_receipts.assert_not_called()
+
+        class ReceiptTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("receipt truth failed")
+
+            def __str__(self):
+                raise AssertionError("receipt conversion must not run")
+
+        with self.assertRaisesRegex(RuntimeError, "receipt truth failed"):
+            has_single_report_scope({"rcept_no": ReceiptTruthBomb()})
+
+        class ReceiptStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("receipt conversion failed")
+
+        with self.assertRaisesRegex(RuntimeError, "receipt conversion failed"):
+            has_single_report_scope({"rcept_no": ReceiptStringBomb()})
+
+        class StripBomb:
+            def strip(self):
+                raise RuntimeError("receipt strip failed")
+
+        with patch.object(owner, "str", return_value=StripBomb(), create=True):
+            with self.assertRaisesRegex(RuntimeError, "receipt strip failed"):
+                has_single_report_scope({"rcept_no": object()})
+
+        class StrippedTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("stripped receipt truth failed")
+
+        class StripResult:
+            def strip(self):
+                return StrippedTruthBomb()
+
+        with patch.object(owner, "str", return_value=StripResult(), create=True):
+            with self.assertRaisesRegex(RuntimeError, "stripped receipt truth failed"):
+                has_single_report_scope({"rcept_no": object()})
+
+        with patch.object(
+            owner,
+            "_report_scope_source_receipts",
+            side_effect=RuntimeError("receipt projection failed"),
+        ):
+            self.assertIs(has_single_report_scope({}), False)
+
+        class LengthBomb:
+            def __len__(self):
+                raise RuntimeError("receipt length failed")
+
+        with patch.object(owner, "_report_scope_source_receipts", return_value=LengthBomb()):
+            self.assertIs(has_single_report_scope({}), False)
+
+        class ComparisonBomb:
+            def __le__(self, _other):
+                raise RuntimeError("receipt comparison failed")
+
+        with (
+            patch.object(owner, "_report_scope_source_receipts", return_value=object()),
+            patch.object(owner, "len", return_value=ComparisonBomb(), create=True) as length_owner,
+        ):
+            self.assertIs(has_single_report_scope({}), False)
+        length_owner.assert_called_once()
+
+        class ReceiptStop(BaseException):
+            pass
+
+        with patch.object(
+            owner,
+            "_report_scope_source_receipts",
+            side_effect=ReceiptStop("receipt stop"),
+        ):
+            with self.assertRaises(ReceiptStop):
+                has_single_report_scope({})
+
+    def test_current_source_has_single_report_scope_bindings_pin_def_call_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_scope_policies": repo_root / "src" / "agent" / "financial_scope_policies.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "has_single_report_scope"
+        definitions = []
+        calls = []
+
+        def parents_for(tree):
+            return {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+
+        for module_name, tree in module_trees.items():
+            parents = parents_for(tree)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name == target_name:
+                    definitions.append((module_name, node))
+                if not (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ):
+                    continue
+                current = node
+                caller = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current.name
+                        break
+                calls.append(
+                    (
+                        module_name,
+                        caller,
+                        tuple(ast.unparse(arg) for arg in node.args),
+                        tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                        try_depth,
+                        type(parents[node]).__name__,
+                    )
+                )
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual((owner_name, definition.name), ("financial_scope_policies", target_name))
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 8)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["report_scope"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(sum(isinstance(node, ast.Return) for node in ast.walk(definition)), 3)
+        tries = [node for node in ast.walk(definition) if isinstance(node, (ast.Try, ast.TryStar))]
+        self.assertEqual(len(tries), 1)
+        self.assertEqual([ast.unparse(handler.type) for handler in tries[0].handlers], ["Exception"])
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {
+                "dict": 1,
+                "get": 1,
+                "str": 1,
+                "strip": 1,
+                "_report_scope_source_receipts": 1,
+                "len": 1,
+            },
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_helpers",
+                    "align_scope_hints",
+                    ("report_scope",),
+                    (),
+                    0,
+                    "If",
+                )
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {"financial_graph_helpers": (9, 85), "financial_scope_policies": (11, 9)},
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        graph_imports = imported_modules(module_trees["financial_graph_helpers"])
+        scope_imports = imported_modules(module_trees["financial_scope_policies"])
+        self.assertIn("src.agent.financial_scope_policies", graph_imports)
+        self.assertNotIn("src.agent.financial_graph_helpers", scope_imports)
+        graph_scope_names = imported_names(
+            module_trees["financial_graph_helpers"],
+            "src.agent.financial_scope_policies",
+        )
+        self.assertNotIn("_report_scope_source_receipts", graph_scope_names)
+        self.assertIn("has_single_report_scope", graph_scope_names)
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        dependency_graph = {}
+        dependency_edges = set()
+        for path in agent_files:
+            relative = path.relative_to(repo_root).with_suffix("")
+            module_name = ".".join(relative.parts)
+            dependencies = {
+                dependency
+                for dependency in imported_modules(
+                    ast.parse(path.read_text(encoding="utf-8-sig"))
+                )
+                if dependency.startswith("src.agent.")
+            }
+            dependency_graph[module_name] = dependencies
+            dependency_edges.update((module_name, dependency) for dependency in dependencies)
+        self.assertEqual(len(dependency_edges), 203)
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            reachable(
+                "src.agent.financial_graph_helpers",
+                "src.agent.financial_scope_policies",
+            )
+        )
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_scope_policies",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == f"src/agent/{module_paths[owner_name].name}"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_has_single_report_scope_pins_receipt_precedence_and_cardinality",
+            "test_current_source_has_single_report_scope_pins_copy_laziness_identity_and_exception_boundary",
+            "test_current_source_has_single_report_scope_bindings_pin_def_call_dag_imports_and_baseline",
+            "test_current_source_has_single_report_scope_caller_pins_gate_order_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_has_single_report_scope_caller_pins_gate_order_adoption_and_stops(self) -> None:
+        target_name = "has_single_report_scope"
+        nested = {"preserve": True}
+        events = []
+
+        class TextValue:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return self.value
+
+        class YearValue:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __int__(self):
+                events.append(("int", self.name))
+                return self.value
+
+        report_scope = {
+            "company": TextValue("scope_company", " ScopeCo "),
+            "year": YearValue("scope_year", 2024),
+            "nested": nested,
+        }
+        companies = [TextValue("company", " Existing ")]
+        years = [YearValue("year", 2023)]
+        before_scope = dict(report_scope)
+        before_companies = list(companies)
+        before_years = list(years)
+
+        def choose_scope(scope):
+            events.append(("helper", scope))
+            self.assertIs(scope, report_scope)
+            return True
+
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            side_effect=choose_scope,
+        ) as scope_owner:
+            aligned = financial_graph_helpers.align_scope_hints(
+                companies=companies,
+                years=years,
+                report_scope=report_scope,
+            )
+        self.assertEqual(aligned, (["ScopeCo"], [2024, 2023]))
+        scope_owner.assert_called_once_with(report_scope)
+        helper_index = next(index for index, event in enumerate(events) if event[0] == "helper")
+        self.assertTrue(all(event[0] in {"str", "int"} for event in events[:helper_index]))
+        self.assertIn(("str", "scope_company"), events[:helper_index])
+        self.assertIn(("int", "scope_year"), events[:helper_index])
+        self.assertIn(("str", "company"), events[:helper_index])
+        self.assertIn(("int", "year"), events[:helper_index])
+        self.assertEqual(report_scope, before_scope)
+        self.assertEqual(companies, before_companies)
+        self.assertEqual(years, before_years)
+        self.assertIs(report_scope["nested"], nested)
+
+        skipped_owner = Mock(side_effect=AssertionError("falsey company must skip helper"))
+        with patch.object(financial_graph_helpers, target_name, skipped_owner):
+            self.assertEqual(
+                financial_graph_helpers.align_scope_hints(
+                    companies=["Existing"],
+                    years=[2023],
+                    report_scope={"company": " ", "year": 2024},
+                ),
+                (["Existing"], [2024, 2023]),
+            )
+        skipped_owner.assert_not_called()
+
+        false_cases = (
+            ([], ["ScopeCo"]),
+            (["Existing"], ["ScopeCo", "Existing"]),
+            (["Existing", "ScopeCo"], ["Existing", "ScopeCo"]),
+        )
+        for raw_companies, expected_companies in false_cases:
+            current_scope = {"company": "ScopeCo", "nested": nested}
+            before_current_scope = dict(current_scope)
+            before_raw_companies = list(raw_companies)
+            with patch.object(
+                financial_graph_helpers,
+                target_name,
+                return_value=False,
+            ) as false_owner:
+                self.assertEqual(
+                    financial_graph_helpers.align_scope_hints(
+                        companies=raw_companies,
+                        years=[],
+                        report_scope=current_scope,
+                    ),
+                    (expected_companies, []),
+                )
+            false_owner.assert_called_once_with(current_scope)
+            self.assertEqual(current_scope, before_current_scope)
+            self.assertEqual(raw_companies, before_raw_companies)
+            self.assertIs(current_scope["nested"], nested)
+
+        failure_scope = {"company": "ScopeCo", "year": 2024, "nested": nested}
+        failure_companies = ["Existing"]
+        failure_years = [2023]
+        before_failure_scope = dict(failure_scope)
+        before_failure_companies = list(failure_companies)
+        before_failure_years = list(failure_years)
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            side_effect=RuntimeError("single scope failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "single scope failed"):
+                financial_graph_helpers.align_scope_hints(
+                    companies=failure_companies,
+                    years=failure_years,
+                    report_scope=failure_scope,
+                )
+        self.assertEqual(failure_scope, before_failure_scope)
+        self.assertEqual(failure_companies, before_failure_companies)
+        self.assertEqual(failure_years, before_failure_years)
+        self.assertIs(failure_scope["nested"], nested)
+
+        class ResultTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("single scope truth failed")
+
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            return_value=ResultTruthBomb(),
+        ) as truth_owner:
+            with self.assertRaisesRegex(RuntimeError, "single scope truth failed"):
+                financial_graph_helpers.align_scope_hints(
+                    companies=["Existing"],
+                    years=[],
+                    report_scope={"company": "ScopeCo"},
+                )
+        truth_owner.assert_called_once_with({"company": "ScopeCo"})
 
 
 if __name__ == "__main__":

@@ -111,11 +111,11 @@ from src.agent.financial_scope_policies import (
     _desired_consolidation_scope,
     _extract_year_tokens,
     _metadata_period_match_strength,
-    _report_scope_source_receipts,
     candidate_matches_operand_target_year,
     candidate_matches_target_report_scope,
     candidate_period_table_coherence_bonus,
     candidate_report_scope_binding_bonus,
+    has_single_report_scope,
     operand_period_focus,
     operand_target_years,
     query_period_focus,
@@ -152,16 +152,6 @@ _UNIT_HINT_HTML_PATTERN = re.compile(r"\(\s*단위\s*:\s*([^)]+?)\s*\)")
 # ---------------------------------------------------------------------------
 # Semantic planning helpers
 # ---------------------------------------------------------------------------
-
-
-def _has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
-    scope = dict(report_scope or {})
-    if str(scope.get("rcept_no") or "").strip():
-        return True
-    try:
-        return len(_report_scope_source_receipts(scope)) <= 1
-    except Exception:
-        return False
 
 
 def llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
@@ -351,7 +341,7 @@ def align_scope_hints(
             normalized_years.append(value)
 
     if scope_company:
-        if _has_single_report_scope(report_scope):
+        if has_single_report_scope(report_scope):
             normalized_companies = [scope_company]
         elif not normalized_companies:
             normalized_companies = [scope_company]
