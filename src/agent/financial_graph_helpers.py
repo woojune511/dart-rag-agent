@@ -82,6 +82,7 @@ from src.agent.financial_surface_contracts import (
     candidate_matches_segment_binding,
     candidate_segment_binding_bonus,
     candidate_selected_unit_family,
+    operand_prefers_contextual_aggregate_match,
 )
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
@@ -3991,25 +3992,6 @@ def _is_capex_total_operand(operand: Dict[str, Any]) -> bool:
     return any(needle in capex_surfaces for needle in needles)
 
 
-def _operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
-    binding_policy = dict(operand.get("binding_policy") or {})
-    preferred_value_roles = [
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_value_roles") or [])
-        if str(item).strip()
-    ]
-    preferred_aggregation_stages = [
-        _normalise_spaces(str(item))
-        for item in (binding_policy.get("prefer_aggregation_stages") or [])
-        if str(item).strip()
-    ]
-    if "aggregate" not in preferred_value_roles:
-        return False
-    if not any(stage in {"final", "subtotal", "direct"} for stage in preferred_aggregation_stages):
-        return False
-    return bool(_operand_surface_contract(operand).get("positive"))
-
-
 def _operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
     preferred_statement_types = {
         _normalise_spaces(str(item))
@@ -4080,7 +4062,7 @@ def _candidate_source_priority_bonus(
             if value_role != "aggregate":
                 score -= 0.5
 
-    if _operand_prefers_contextual_aggregate_match(operand):
+    if operand_prefers_contextual_aggregate_match(operand):
         context_text = candidate_local_aggregate_context(candidate)
         if (
             value_role == "aggregate"
@@ -4491,7 +4473,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
                 and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 return True
-    if _operand_prefers_contextual_aggregate_match(operand):
+    if operand_prefers_contextual_aggregate_match(operand):
         section_context = candidate_local_aggregate_context(candidate)
         aggregate_surface = _normalise_spaces(
             " ".join(
@@ -4605,7 +4587,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
                 and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 best = max(best, 2.25)
-    if _operand_prefers_contextual_aggregate_match(operand):
+    if operand_prefers_contextual_aggregate_match(operand):
         context_text = candidate_local_aggregate_context(candidate)
         if (
             _text_has_positive_surface(context_text, operand)

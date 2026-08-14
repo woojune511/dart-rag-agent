@@ -162,6 +162,25 @@ def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand:
     return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
 
 
+def operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    preferred_value_roles = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    ]
+    if "aggregate" not in preferred_value_roles:
+        return False
+    if not any(stage in {"final", "subtotal", "direct"} for stage in preferred_aggregation_stages):
+        return False
+    return bool(_operand_surface_contract(operand).get("positive"))
+
+
 def candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:
     metadata = dict(candidate.get("metadata") or {})
     return " ".join(
