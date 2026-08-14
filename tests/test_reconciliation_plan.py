@@ -17,11 +17,13 @@ from src.agent.financial_graph_helpers import (
     _build_table_row_reconciliation_candidates,
     _build_lookup_producer_task_from_binding,
     _build_reconciliation_retry_queries,
-    _candidate_is_direct_grounding_candidate,
     _deterministic_reconcile_task,
     _score_operand_candidate,
 )
-from src.agent.financial_operand_resolution import candidate_matches_operand
+from src.agent.financial_operand_resolution import (
+    candidate_is_direct_grounding_candidate,
+    candidate_matches_operand,
+)
 
 
 class ReconciliationPlanTests(unittest.TestCase):
@@ -871,7 +873,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(prior_score, current_score)
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 current_candidate,
                 operand=operand,
                 constraints=constraints,
@@ -881,7 +883,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 prior_candidate,
                 operand=operand,
                 constraints=constraints,
@@ -949,7 +951,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(score, 0.0)
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 comparative_candidate,
                 operand=operand,
                 constraints=constraints,
@@ -2040,7 +2042,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             },
         }
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 direct_candidate,
                 operand=active_subtask["required_operands"][0],
                 constraints=active_subtask["constraints"],
@@ -2339,7 +2341,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertGreater(segment_score, total_score)
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 segment_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -2348,7 +2350,7 @@ class ReconciliationPlanTests(unittest.TestCase):
             )
         )
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 total_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -2672,7 +2674,7 @@ class ReconciliationPlanTests(unittest.TestCase):
 
         self.assertTrue(candidate_matches_operand(aggregate_row, operand))
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 aggregate_row,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},

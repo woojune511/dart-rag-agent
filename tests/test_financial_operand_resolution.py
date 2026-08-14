@@ -6480,7 +6480,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         source_lines, start_line = inspect.getsourcelines(
             operand_resolution.repair_krw_operand_units_from_table_metadata
         )
-        self.assertEqual((start_line, len(source_lines)), (809, 165))
+        self.assertEqual((start_line, len(source_lines)), (812, 165))
         tree = ast.parse(inspect.getsource(graph_calculation))
         graph_definitions = [
             node
@@ -7337,8 +7337,8 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "src/agent/financial_graph_helpers.py": {},
                 "src/agent/financial_graph_reconciliation.py": {},
                 "src/agent/financial_operand_resolution.py": {
-                    "candidate_row_block_signature": (4097, 4125, 29, ["candidate"]),
-                    "repair_note_operand_units_from_same_block": (4180, 4236, 57, ["operand_rows", "candidate_map"]),
+                    "candidate_row_block_signature": (4188, 4216, 29, ["candidate"]),
+                    "repair_note_operand_units_from_same_block": (4271, 4327, 57, ["operand_rows", "candidate_map"]),
                 },
             },
         )

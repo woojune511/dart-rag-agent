@@ -37,7 +37,6 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _candidate_is_direct_grounding_candidate,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
@@ -58,6 +57,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
     candidate_direct_match_strength,
+    candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
     table_label_metadata_lookup_score,
 )
@@ -4825,7 +4825,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 employee_benefits_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5817,7 +5817,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 separate_note_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5857,7 +5857,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 separate_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5897,7 +5897,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5969,7 +5969,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6009,7 +6009,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6261,7 +6261,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},

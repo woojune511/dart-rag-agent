@@ -98,7 +98,6 @@ from src.agent.financial_row_surfaces import (
     candidate_value_role,
     column_candidate_label,
     is_delta_like_row_label,
-    table_row_has_matching_structured_sibling,
 )
 from src.agent.financial_structured_cells import (
     _structured_cell_period_text,
@@ -131,6 +130,7 @@ from src.agent.financial_operand_resolution import (
     candidate_is_canonical_statement_winner,
     candidate_direct_match_strength,
     candidate_direct_family_signature,
+    candidate_is_direct_grounding_candidate,
     candidate_direct_logical_signature,
     candidate_location_entity_subject_score,
     candidate_matches_operand,
@@ -3868,94 +3868,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _candidate_is_direct_grounding_candidate(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    constraints: Dict[str, Any],
-    query_years: List[int],
-    operation_family: str = "",
-    report_scope: Optional[Dict[str, Any]] = None,
-) -> bool:
-    metadata = dict(candidate.get("metadata") or {})
-    candidate_kind = str(candidate.get("candidate_kind") or "").strip()
-    if candidate_kind not in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
-        return False
-    if candidate_is_descriptor_row(candidate):
-        return False
-    if not candidate_has_numeric_value_signal(candidate):
-        return False
-
-    direct_match_strength = candidate_direct_match_strength(candidate, operand)
-    if direct_match_strength < 1.0:
-        return False
-
-    operand_binding_policy = dict(operand.get("binding_policy") or {})
-    value_role = candidate_value_role(candidate)
-    aggregation_stage = candidate_aggregation_stage(candidate)
-    statement_type = str(metadata.get("statement_type") or "unknown").strip()
-    if not binding_policy_allows_candidate_shape(
-        value_role=value_role,
-        aggregation_stage=aggregation_stage,
-        operand_binding_policy=operand_binding_policy,
-    ):
-        return False
-
-    if lookup_prefers_canonical_statement_rows(operand) and candidate_kind == "table_row":
-        if statement_type not in {"income_statement", "summary_financials", "notes"}:
-            return False
-
-    desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
-    if desired_consolidation == "unknown":
-        desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
-    candidate_consolidation = candidate_consolidation_scope(metadata)
-    if (
-        desired_consolidation != "unknown"
-        and candidate_consolidation != "unknown"
-        and candidate_consolidation != desired_consolidation
-    ):
-        return False
-
-    desired_period_focus = operand_period_focus(
-        operand,
-        str((constraints or {}).get("period_focus") or "unknown").strip(),
-    )
-    if desired_period_focus == "unknown":
-        desired_period_focus = str(operand_binding_policy.get("prefer_period_focus") or "unknown").strip()
-    semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
-    if desired_period_focus in {"current", "prior"} and is_delta_like_row_label(semantic_label):
-        return False
-    if not candidate_matches_segment_binding(candidate, operand, strict=True):
-        return False
-    if not candidate_matches_target_report_scope(
-        candidate,
-        operand=operand,
-        query_years=query_years,
-        report_scope=dict(report_scope or {}),
-    ):
-        return False
-    candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
-    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-    trust_candidate_period_focus = (
-        candidate_period_focus in {"current", "prior"}
-        or not (candidate_kind == "table_row" and row_text)
-    )
-    target_year_match = candidate_matches_operand_target_year(candidate, operand, query_years)
-    if trust_candidate_period_focus:
-        if desired_period_focus == "current" and candidate_period_focus == "prior" and not target_year_match:
-            return False
-        if desired_period_focus == "prior" and candidate_period_focus == "current" and not target_year_match:
-            return False
-
-    if operation_family in {"lookup", "single_value"} and candidate_kind == "table_row":
-        if table_row_has_matching_structured_sibling(metadata, operand):
-            return False
-        if row_text and is_delta_like_row_label(row_text):
-            return False
-
-    return True
-
-
 def _candidate_satisfies_direct_acceptance_contract(
     candidate: Dict[str, Any],
     *,
@@ -3966,7 +3878,7 @@ def _candidate_satisfies_direct_acceptance_contract(
     selected_cell: Optional[Dict[str, Any]] = None,
     report_scope: Optional[Dict[str, Any]] = None,
 ) -> bool:
-    if not _candidate_is_direct_grounding_candidate(
+    if not candidate_is_direct_grounding_candidate(
         candidate,
         operand=operand,
         constraints=constraints,
@@ -4772,7 +4684,7 @@ def _deterministic_reconcile_task(
                 direct_candidates = [
                     candidate
                     for candidate in ranked
-                    if _candidate_is_direct_grounding_candidate(
+                    if candidate_is_direct_grounding_candidate(
                         candidate,
                         operand=operand,
                         constraints=constraints,

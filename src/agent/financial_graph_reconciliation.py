@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_helpers import (
     _build_reconciliation_candidate,
     _build_table_row_reconciliation_candidates,
-    _candidate_is_direct_grounding_candidate,
     _candidate_satisfies_direct_acceptance_contract,
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
@@ -30,6 +29,7 @@ from src.agent.financial_structured_cells import (
 )
 from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_operand_resolution import (
+    candidate_is_direct_grounding_candidate,
     candidate_matches_operand,
     candidate_row_block_signature,
     candidate_satisfies_ratio_component_acceptance_contract,
@@ -437,7 +437,7 @@ class FinancialAgentReconciliationMixin:
         def candidate_supports_operand(current: Dict[str, Any], operand: Dict[str, Any]) -> bool:
             if not operand:
                 return False
-            if _candidate_is_direct_grounding_candidate(
+            if candidate_is_direct_grounding_candidate(
                 current,
                 operand=operand,
                 constraints=constraints,
