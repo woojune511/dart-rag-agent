@@ -854,31 +854,50 @@ Eligibility/schema scoring, evidence/operand-row construction, direct/ratio
 acceptance, broader ranking, result adoption, and graph/artifact/ledger state
 remain hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 30-line `_candidate_period_table_coherence_bonus(...)` definition from
-graph helpers to public `candidate_period_table_coherence_bonus(...)` in
-`financial_scope_policies.py`. Its sole direct `AugAssign` call remains in
-`_score_operand_candidate(...)` at caller `try` depth zero, after source and
-metadata-period scoring and before report-scope/final-table scoring and return.
-The scope owner already owns both explicit-year and target-year dependencies,
-graph reaches it, and it does not reach graph helpers, so the agent-module DAG
-is unchanged. Projected function counts are graph helpers 9/90 and scope policy
-10/9; the call finishes owner-external/local 1/0, explicit-year calls project
-1/4 to 0/5, target-year calls project 9/5 to 8/6, and the selected span contains
-zero of 218 reviewed domain records.
+The completed `7ec0cc3` follow-on moved the exact former 30-line candidate
+period/table coherence projection from graph helpers to public
+`candidate_period_table_coherence_bonus(...)` in
+`financial_scope_policies.py`. Its sole direct `AugAssign` call remains owner-
+external/local 1/0 in `_score_operand_candidate(...)`; explicit-year calls
+finish external/local 0/5 and target-year calls 8/6. Source is `+34/-34`, tests
+`+788/-30`, and the whole commit `+822/-64`; graph helpers moved from 5,564 to
+5,532 lines and scope policy from 497 to 529. Focused 4/4, owner 94/94,
+affected semantic 1,054/1,054, import 19/19, audit 218, full 1,947/1,947,
+pycompile/fresh import/public identity, body/retained/caller/full 48-module DAG
+parity, retired executable private refs zero, and diff check passed. The source
+diff SHA-256 is
+`33d6fdd3e6216ab2e963fe6480484d7d7b59ee5d333c58b678479d0ed90c139d`.
+Candidate/year extraction, target-year policy, source/report/other scoring,
+matching/admission/acceptance, broader ranking/adoption, retrieval, and graph/
+artifact/ledger state remain hard stops.
 
-Moving candidate/year extraction, target-year policy, source/metadata-period/
-report-scope or other scoring, matching/admission/acceptance, broader ranking,
-candidate/evidence adoption, retrieval, or plan/state/artifact/ledger mutation
-is rejected. Exact metadata copy/year gate, target truth/iteration/membership,
-hit/miss score, role/unit/table/length laziness, identities, exception stops,
-four required CURRENT-SOURCE methods, and projected focused 4/4, owner 94/94,
-affected semantic 1,054/1,054, import 19/19, audit 218, and full 1,947/1,947
-gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 53-line `_candidate_location_entity_subject_score(...)` definition
+from graph helpers to public `candidate_location_entity_subject_score(...)` in
+`financial_operand_resolution.py`. Its sole direct `AugAssign` call remains in
+`_score_operand_candidate(...)` at caller `try` depth zero, after numeric-signal
+scoring and before descriptor/statement/scope/period/source/table scoring and
+return. The operand owner already imports regex, normalization, the candidate-
+scoring policy, and required types; graph reaches it and it does not reach graph
+helpers, so the full agent-module DAG remains unchanged. Projected function
+counts are graph helpers 9/89 and operand resolution 44/37; the call finishes
+owner-external/local 1/0 and the selected span contains zero of 218 reviewed
+domain records.
+
+Moving operand policy, candidate construction, concept/direct matching,
+descriptor/statement/scope/period/source/table or other scoring, direct/ratio
+acceptance, broader ranking, candidate/evidence adoption, retrieval, or plan/
+state/artifact/ledger mutation is rejected. Exact operand gate order, policy
+and metadata copies, five-part repeated surface projection, normalization,
+regex/match materialization, temporal classification, first non-temporal short
+circuit, lazy bonus/penalty access, selective numeric fallback, identities,
+exception stops, four required CURRENT-SOURCE methods, and projected focused
+4/4, owner 98/98, affected semantic 1,058/1,058, import 19/19, audit 218, and
+full 1,951/1,951 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this candidate period/table projection at the
-characterization checkpoint; it is the sole next priority, and this plan
-maintains no competing queue.
+or test movement has occurred for this candidate location/entity subject-score
+projection at the characterization checkpoint; it is the sole next priority,
+and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

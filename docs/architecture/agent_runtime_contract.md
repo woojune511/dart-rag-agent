@@ -4341,74 +4341,94 @@ expressions/bodies, full 48-module DAG parity, retired executable graph-private
 refs zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote
 CI remains unverified.
 
-The new characterize-only candidate period/table coherence inventory selects
-the current 30-line `_candidate_period_table_coherence_bonus(candidate, *,
-operand, query_years) -> float` graph definition for a future public move to
-`financial_scope_policies.py` as
-`candidate_period_table_coherence_bonus(...)`. No production source or test
-has moved for this projection at this checkpoint. It contributes only a
-bounded score over an already supplied candidate, operand, and query-year
-collection; candidate/year extraction, target-year policy, broader scoring,
-ranking, and adoption remain outside.
+Commit `7ec0cc3` moved the exact former 30-line candidate period/table
+coherence definition to public
+`financial_scope_policies.candidate_period_table_coherence_bonus(...)` without
+changing its body. It still shallow-copies metadata before calling
+`candidate_explicit_years(candidate)`, returns `0.0` on falsey years before
+operand/query-year access, and passes original operand/query-year objects to
+`operand_target_years(...)`. Truthy target years preserve ordered membership
+and first-hit short circuit, with exact `+1.0/-1.0`; falsey target years skip
+membership. Exact current/prior roles keep the first `len(years) >= 2`, `+0.75`,
+lazy table-source access and `+0.35`; exact uppercased `PERCENT` keeps its
+separate duplicate-sensitive length gate and `+0.5`. Full hit/miss surfaces
+remain `2.6/0.6`. All mapping, truth, copy, dependency-result, iteration,
+membership, string, length, score, identity, immutability, and uncaught-error
+behavior remains exact.
 
-The projection first evaluates `candidate.get("metadata") or {}` and shallow-
-copies it. Only then does it call `candidate_explicit_years(candidate)` with
-the original candidate. The returned years object is neither copied nor
-coerced; a falsey result returns `0.0` before operand or query-year access.
-Metadata access/truth/copy order, nested identity, and all errors remain exact.
+Its sole direct `AugAssign` remains owner-external/local 1/0 in
+`_score_operand_candidate(...)` at caller `try` depth zero, after source and
+metadata-period scoring and before report-scope/final-table scoring. Explicit-
+year calls finish external/local 0/5 and target-year calls 8/6. Source moved
+`+34/-34`, tests `+788/-30`, and the whole commit `+822/-64`; graph helpers
+finish at 5,532 lines and scope policy at 529. The source diff SHA-256 is
+`33d6fdd3e6216ab2e963fe6480484d7d7b59ee5d333c58b678479d0ed90c139d`.
+Focused 4/4, owner 94/94, affected semantic 1,054/1,054, import 19/19, audit
+218, full 1,947/1,947, pycompile/fresh import/public identity 1/1, selected-body
+1/1, retained graph 99/99, retained scope owner 18/18, caller/body, full
+48-module DAG parity, retired executable graph-private refs zero, and diff
+check passed. Benchmark refresh was **NOT RUN** and remote CI remains
+unverified. Candidate/year extraction, target-year policy, other scoring,
+matching/acceptance/ranking, adoption, retrieval, and graph/artifact/ledger
+state remain outside this owner.
 
-After initializing `score = 0.0`, it calls
-`operand_target_years(operand, query_years)` with both original objects. A
-truthy result is iterated in order through `any(year in years ...)`, with a
-first-hit short circuit, `+1.0` on a hit, and `-1.0` only after a full miss.
-A falsey target-years result skips membership and contributes nothing. Raw
-target iteration and years membership behavior remain unchanged.
+The new characterize-only candidate location/entity subject-score inventory
+selects the current 53-line
+`_candidate_location_entity_subject_score(candidate, *, operand) -> float`
+graph definition for a future public move to `financial_operand_resolution.py`
+as `candidate_location_entity_subject_score(...)`. No production source or
+test has moved for this projection at this checkpoint. It contributes only a
+bounded, policy-driven score over already supplied objects; candidate creation,
+admission, broader scoring/ranking, and adoption remain outside.
 
-Role projection occurs only after target scoring and remains
-`str(operand.get("role") or "").strip()`. Exact `current_period` or
-`prior_period` then evaluates `len(years) >= 2`, adds `0.75`, and only on that
-path evaluates the copied metadata's stripped `table_source_id`, adding `0.35`
-when nonblank. Other roles do not evaluate that length gate or table source.
-Unit projection follows as
-`str(operand.get("unit_family") or "").strip().upper()`; only exact `PERCENT`
-evaluates its separate `len(years) >= 2` and adds `0.5`. The separate length
-calls intentionally preserve raw and duplicate-sensitive container semantics.
-The full matching surface scores `2.6`; a target miss with the same remaining
-surface scores `0.6`.
+The projection must preserve eager unit-family, operation-family, and role
+access/normalization in that order, including operation/role access before a
+disqualifying nonblank non-`COUNT` unit return. Only exact supported operations
+or current/prior roles continue to policy access. It shallow-copies
+`OPERAND_CANDIDATE_SCORING_POLICY`, stringifies subject then temporal patterns,
+and accesses the temporal value before a falsey subject-pattern return. Only
+then does it shallow-copy candidate metadata.
 
-All current mapping access, `or` truth, shallow-copy, dependency call/result,
-iteration, membership, first-hit, length, string/strip/upper, exact comparison,
-score-addition, return, identity, immutability, and exception behavior must be
-preserved. No catch, wrapper, alias, callback, flag, trace, coercion, or
-fallback is allowed.
+The candidate text surface preserves eager retrieval of metadata `row_text`,
+`semantic_label`, `row_label`, `table_context`, then candidate `text`; repeated
+raw truth/string evaluation in filter and retained expressions; filter-only
+strip; one-space join; and one whole-surface normalization. Empty text returns
+`0.0`. Whitespace compaction remains one fixed `re.sub`, subject matches remain
+an eager `list(re.finditer(...))`, and no matches return `0.0`.
+
+Each match preserves ordered `groupdict().get("subject")`, raw `or`, and string
+projection. Blank subjects classify temporal without regex; truthy subjects
+require both a truthy temporal pattern and `re.search(...)`. `any(...)` stops
+at the first non-temporal subject. That path lazily accesses and converts only
+`location_entity_subject_bonus`; the all-temporal path accesses only
+`location_entity_context_penalty`. Each keeps `float(value or 0.0)` and only
+the existing `TypeError`/`ValueError` catch returning `0.0`. The checked-in
+policy's exact contributions remain `2.0/-1.0`; all other mapping, truth,
+string, normalization, join, regex, match/group, iteration, identity,
+immutability, and uncaught-error behavior remains exact.
 
 The sole direct call is an `AugAssign` in `_score_operand_candidate(...)` at
-caller `try` depth zero, with candidate positional and original operand/query-
-years objects as keywords. It remains after source-priority and metadata-period
-scoring and before report-scope binding, final table-source scoring, and
-return. Success adds the result; failure stops every later scorer and enclosing
-ranking/adoption step.
+caller `try` depth zero, with original candidate positional and original
+operand keyword. It remains after numeric-signal scoring and before descriptor,
+statement, scope/period, source/table, and return work. Failure stops every
+later contribution and enclosing ranking/adoption. The operand owner already
+imports every dependency, graph reaches it, and it does not reach graph; the
+full agent DAG remains unchanged. Projected counts are graph helpers 9/89 and
+operand resolution 44/37; the call finishes external/local 1/0 and the selected
+span has zero reviewed runtime-domain records.
 
-The scope owner already owns `candidate_explicit_years(...)` and
-`operand_target_years(...)`; graph reaches it and it does not reach graph.
-Projected counts are graph helpers 9/90 and scope policy 10/9. The selected
-call finishes external/local 1/0; explicit-year calls change 1/4 to 0/5 and
-target-year calls change 9/5 to 8/6. The selected span has zero reviewed
-runtime-domain records and the agent DAG is unchanged.
-
-Moving candidate/year extraction, target-year policy, source or metadata-
-period scoring, report-scope or final table-source scoring, other matching/
-admission/acceptance/ranking, candidate/evidence adoption, retrieval, or graph/
-artifact/ledger state is rejected. Four named CURRENT-SOURCE methods and exact
-contracts remain solely in
+Moving operand policy, candidate construction, concept/direct matching, other
+scoring, direct/ratio acceptance, broader ranking, candidate/evidence adoption,
+retrieval, or graph/artifact/ledger state is rejected. Four named CURRENT-
+SOURCE methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 94/94, affected semantic 1,054/1,054, import
-19/19, audit 218, full 1,947/1,947, pycompile/fresh import/public identity 1/1,
-selected-body 1/1, retained graph 99/99, retained scope owner 18/18, sole
-caller, full DAG parity, retired executable graph-private refs zero, and diff
-check. Static AST/call/DAG/function/dependency and selected-body baseline
-inventory, direct behavior probes 5/5, and four existing report/period caller
-probes passed; benchmark refresh and remote CI were **NOT RUN**.
+gates are focused 4/4, owner 98/98, affected semantic 1,058/1,058, import
+19/19, audit 218, full 1,951/1,951, pycompile/fresh import/public identity 1/1,
+selected-body 1/1, retained graph 98/98, retained operand owner 80/80, sole
+caller/body, full 48-module DAG parity, retired executable graph-private refs
+zero, and diff check. Static definition/call/DAG/function-count and selected-
+body baseline inventory, direct behavior probes 5/5, and four existing scorer/
+caller probes passed; benchmark refresh and remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
