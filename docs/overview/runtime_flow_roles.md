@@ -792,14 +792,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,979/1,979와 pycompile/fresh identity, body/caller/DAG parity가 통과했다.
   Caller scoring/acceptance, other predicates, candidate/evidence work와 state/
   artifact/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 13줄 CAPEX-total
-  operand predicate와 그 inline `capital_expenditure_total` ontology key를
-  선택했다. Key는 retrieval policy의 `CAPEX_TOTAL_CONCEPT_KEY`로 분류하고,
-  concept fast-path와 policy-driven surface fallback predicate만 같은 surface
-  owner의 public API로 옮긴다. 네 call은 source priority, direct acceptance,
-  candidate matching, direct strength에서 external 4/local 0으로 수렴하고
-  projected graph/surface public/private는 9/81과 14/7이다. 아직 source/test
-  이동은 없으며 concept short circuit, needle/policy materialization, 네 caller
+- 완료된 `cefde44` CAPEX-total-operand batch는 inline ontology key를 retrieval
+  policy의 `CAPEX_TOTAL_CONCEPT_KEY`로 명명하고 graph helper의 정확한 13줄
+  predicate를 `financial_surface_contracts.py`의 public API로 옮겼다. 네 call은
+  source priority, direct acceptance, candidate matching, direct strength에서
+  external 4/local 0으로 수렴했다. Graph/surface public/private는 9/81과
+  14/7이다. Focused 4/4, owner 130/130, semantic 1,090/1,090, import 19/19,
+  audit 217, full 1,983/1,983과 pycompile/fresh identity, policy-normalized
+  body/caller/DAG parity가 통과했다. Caller scoring/acceptance/matching/strength,
+  candidate/evidence work와 state/artifact/ledger는 graph 또는 기존 owner에
+  남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 23줄 note-aggregate
+  lookup-preference `_operand_prefers_note_aggregate_lookup(...)` predicate
+  하나를 선택했다.
+  Preferred statement type, value role, aggregation stage의 이미 준비된 schema
+  값만 판별하는 public surface contract로 옮기며, source-priority caller의
+  candidate scoring branch는 graph에 유지한다. 한 call은 external 1/local 0으로
+  수렴하고 projected graph/surface public/private는 9/80과 15/7이다. 아직
+  source/test 이동은 없으며 exact list/set materialization, laziness, caller
   gate/branch/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 

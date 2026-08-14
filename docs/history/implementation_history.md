@@ -5709,3 +5709,87 @@ Static definition/call/DAG/function-count and ontology/policy/selected-body
 audit inspection, direct behavior probes 6/6, and caller branch probes 4/4
 passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not
 a behavior, quality, performance, benchmark, schedule, or completion claim.
+
+### CAPEX-total-operand policy-and-owner milestone
+
+- Commit `cefde44` declares the inline canonical ontology key as retrieval-
+  policy `CAPEX_TOTAL_CONCEPT_KEY` and moves the exact former 13-line
+  `_is_capex_total_operand(operand)` definition from graph helpers to public
+  `financial_surface_contracts.is_capex_total_operand(...)`. The concept
+  literal-to-policy-name substitution is the only body delta. The old private
+  definition and executable private refs are gone without an alias or bridge.
+- Concept get/string/strip and early-return precedence, operand-needle set
+  preparation and blank discard, scoring-policy shallow copy and configured
+  surface-set preparation, filter-versus-expression stringification, native-
+  set membership, exact result, identities, immutability, and uncaught failures
+  remain pinned by four CURRENT-SOURCE methods.
+- Four graph calls finish external/local 4/0, positional exact `operand`, with
+  no keywords, caller `try` depth zero, and immediate `If` parents. Source-
+  priority scoring, direct acceptance, candidate matching, direct strength,
+  and every later caller branch remain unchanged and graph-owned.
+- Production source is `+23/-19`, net `+4`: graph helpers are `+5/-19` and move
+  from 5,384 to 5,370 physical lines; surface contracts are `+17/-0` and move
+  from 456 to 473; retrieval policy is `+1/-0` and moves from 2,070 to 2,071.
+  Graph-helper tests are `+1,364/-58`, net `+1,306`, and move from 27,336 to
+  28,642 lines. The whole commit is `+1,387/-77`, net `+1,310`, and four methods
+  move discovery from 1,979 to 1,983. Final public/private counts are graph
+  9/81 and surface owner 14/7. The source diff SHA-256 is
+  `3fcf523be5e9727cbc0b902beb30a899051d288a01459af8799da45071ec02d8`.
+- Focused 4/4, graph-helper owner 130/130, affected eleven-module semantic
+  1,090/1,090, import-side-effects 19/19, runtime-domain audit 217, and full
+  discovery 1,983/1,983 passed. Pycompile, fresh import/public identity 2/2,
+  policy-normalized selected-body parity 1/1, retained graph exact 86/90 and
+  call-normalized 90/90, retained surface owner 20/20, all four callers, full
+  48-module/203-edge DAG parity, zero retired private refs, non-ASCII
+  preservation, and diff check also passed. Benchmark refresh and remote CI
+  were **NOT RUN**.
+
+This milestone changes only deterministic policy naming and CAPEX-total-
+operand classification ownership. Policy values, ontology contents, operand-
+needle ownership, caller scoring/acceptance/matching/strength, other predicates,
+candidate/evidence construction or adoption, I/O, retrieval, graph state,
+model invocation, artifact/ledger mutation, retry, and final sequencing remain
+outside. It proves no behavior, accuracy, ranking, performance, benchmark,
+schedule, ledger completion, or Phase 3 completion.
+
+### Note-aggregate lookup-preference characterization checkpoint
+
+- A docs-only inventory selects the current exact 23-line
+  `_operand_prefers_note_aggregate_lookup(operand)` graph definition for a
+  future public move to
+  `financial_surface_contracts.operand_prefers_note_aggregate_lookup(...)`. No
+  production source or test moved for this projection.
+- The predicate eagerly builds a normalized preferred-statement-type set and
+  returns exact `False` before binding-policy access unless exact `notes` is
+  present. It then shallow-copies binding policy, eagerly builds preferred-
+  value-role and preferred-aggregation-stage sets in that order, and returns
+  exact aggregate-role membership combined with a boolean intersection against
+  exact final/subtotal/direct stages.
+- Raw get/or ordering, dropped-once and retained-twice stringification/strip,
+  one normalization per retained item, set hashing/equality/dedupe, complete
+  materialization, note-gate laziness, mapping-copy identities, role-before-
+  stage order, case-sensitive membership/intersection, input immutability, and
+  every uncaught failure remain normative.
+- The destination already imports `Dict`, `Any`, and `_normalise_spaces`; graph
+  reaches it and it does not reach graph. The full 48-module/203-edge DAG stays
+  unchanged. Current/projected public/private counts are graph 9/81 to 9/80 and
+  surface owner 14/7 to 15/7; the selected span has zero of 217 reviewed
+  runtime-domain records.
+- One direct call projects external/local 1/0, positional exact `operand`, with
+  no keywords, caller `try` depth zero, and immediate `If` parent at exact
+  `_candidate_source_priority_bonus` body index 4/6. The existing structured-
+  value and table-row score branch remains caller-owned; predicate falsehood
+  keeps candidate metadata untouched and helper/result-truth failure stops all
+  later work.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 134/134,
+  affected semantic 1,094/1,094, import 19/19, audit 217, full 1,987/1,987,
+  public identity, selected-body parity, retained graph call-normalized 89/89,
+  retained surface owner 21/21, sole caller, full DAG parity, retired-ref zero,
+  and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection, direct behavior probes 6/6, note-gate laziness 1/1, caller score
+probes 5/5, and caller-gate laziness 1/1 passed. Benchmark refresh and remote CI
+were **NOT RUN**. This checkpoint is not a behavior, quality, performance,
+benchmark, schedule, or completion claim.
