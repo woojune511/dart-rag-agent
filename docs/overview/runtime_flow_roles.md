@@ -288,7 +288,7 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, and canonical-statement-winner classification plus candidate merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature, location/entity subject-score projection, deterministic positional preference scoring, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
+| `financial_operand_resolution.py` | candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, and ratio-component-acceptance classification plus candidate merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature, location/entity subject-score projection, deterministic positional preference scoring, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
@@ -863,18 +863,28 @@ Aggregate/narrative row의 state-free answer policy owner다.
   2,007/2,007과 body/caller/48-module/204-edge DAG parity가 통과했다.
   Direct-entry construction, acceptance, broad scoring/ranking,
   candidate/evidence와 state/artifact/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper에 정의만 남고 reconciliation
-  owner가 세 번 호출하는 정확한 68줄
-  `_candidate_satisfies_ratio_component_acceptance_contract(...)`를 선택했다.
-  준비된 candidate/cell 하나의 shape/numeric/segment/report/aggregate/surface/
-  binding/period predicate만 public operand-resolution contract로 옮기며 cell
-  selection, direct acceptance, same-block fallback, candidate/cell adoption은
-  reconciliation caller에 유지한다. Projected graph/operand-resolution
-  public/private는 9/74와 51/37이고 기존 surface/scope-policy edge를
-  재사용하므로 48-module/204-edge DAG는 그대로 비순환이다. 아직 이 후속의
-  source/test 이동은 없으며 exact gate/laziness/materialization/threshold/
-  period/identity/failure, 세 caller의 adoption/fallback/stop, 네 CURRENT-SOURCE
-  method와 projected gate는
+- 완료된 `20feddc` ratio-component-acceptance batch는 graph helper의 정확한
+  68줄 predicate를 public
+  `financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(...)`로
+  옮겼다. 세 reconciliation call은 external 3/local 0으로 수렴했고 first-hit
+  return, combined-condition `continue`, later fallback assignment와 same-block/
+  candidate/cell adoption은 유지됐다. Graph/operand-resolution public/private는
+  9/74와 51/37이다. Focused 4/4, graph owner 158/158, operand owner 69/69,
+  semantic 1,118/1,118, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,011/2,011과 body/caller/48-module/204-edge DAG parity가 통과했다.
+  Cell preparation/selection, direct acceptance, sorting/scoring, evidence와
+  state/artifact/ledger는 reconciliation 또는 기존 owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 86줄
+  `_candidate_is_direct_grounding_candidate(...)`를 선택했다. 준비된 candidate
+  하나의 kind/numeric/direct-match/binding/canonical/consolidation/period/
+  segment/report/lookup-row predicate만 public operand-resolution contract로
+  옮기며 direct acceptance, non-lookup collection filtering과 unique/ambiguous
+  fallback, ratio-cell fallback, ranking/adoption은 caller에 유지한다. Projected
+  graph/operand-resolution public/private는 9/73과 52/37이고 기존 row/surface/
+  scope/operand edges를 재사용하므로 48-module/204-edge DAG는 그대로
+  비순환이다. 아직 이 후속의 source/test 이동은 없으며 exact gate/laziness/
+  threshold/consolidation/period/operation/identity/failure, 세 caller의
+  adoption/fallback/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -887,7 +897,7 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - `structured_result` / `resolved_calculation_trace` compatibility projection
 - source row/evidence id cleanup
 - numeric parsing and unit normalization helpers
-- caller-side direct/ratio acceptance and broad candidate-scoring helpers
+- caller-side direct acceptance and broad candidate-scoring helpers
 - semantic planner scope normalization, plan-shape validation, segment-label
   projection, and planner-task contract helpers
 - narrative-task predicate, construction, append, dependency-order, and

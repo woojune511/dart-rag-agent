@@ -6232,39 +6232,77 @@ This milestone changes only deterministic canonical-statement-winner ownership.
 It proves no behavior, accuracy, ranking, performance, benchmark, schedule,
 ledger, or Phase 3 completion claim.
 
-### Ratio-component-acceptance characterization checkpoint
+### Ratio-component-acceptance ownership milestone
 
-- A docs-only inventory selects the current exact 68-line
+- Commit `20feddc` moves the exact former 68-line
   `_candidate_satisfies_ratio_component_acceptance_contract(candidate, *,
   operand, constraints, query_years, selected_cell=None, report_scope=None)`
-  graph definition for a future public move to
-  `financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(...)`.
+  graph definition to public
+  `financial_operand_resolution.candidate_satisfies_ratio_component_acceptance_contract(...)`
+  with the 22-statement/twelve-return/no-`try` body unchanged. The old private
+  definition and executable references are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin metadata/report/binding shallow copies,
+  candidate-kind/descriptor/numeric/segment/report order, lazy direct-row truth,
+  aggregate precedence, eager positive-term materialization, selected-cell-aware
+  surface truth, both strength sites, period truth, identities, immutability,
+  and every uncaught failure.
+- All three reconciliation calls now bind the public owner. First-hit return,
+  combined-condition `continue`, later fallback assignment, same-block fallback,
+  candidate/cell adoption, evidence work, and state sequencing remain caller-
+  owned.
+- Production source is `+80/-74`, net `+6`: graph helpers move from 4,958 to
+  4,888 physical lines and operand resolution from 4,160 to 4,236. Tests are
+  `+1,325/-99`, net `+1,226`; graph-helper tests move from 35,215 to 36,441.
+  The whole commit is `+1,405/-173`, net `+1,232`, and four methods move full
+  discovery from 2,007 to 2,011. Final counts are graph 9/74 and operand
+  resolution 51/37. The source diff SHA-256 is
+  `f0e6496c26ea5ed85c50db99057911f149d4654690a833d09ff725125e0e2139`.
+- Focused pre/post movement 4/4, graph owner 158/158, operand owner 69/69,
+  affected eleven-module semantic 1,118/1,118, reconciliation plan 51/51,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  2,011/2,011 passed. Pycompile, fresh public identity 1/1, exact selected-body
+  parity 1/1, retained graph exact 83/83, all 87 retained operand functions,
+  all three calls/one caller module, full 48-module/204-edge acyclic DAG parity,
+  retired private refs zero, non-ASCII preservation 5/5, and diff check passed.
+  Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic ratio-component-acceptance ownership.
+It proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Direct-grounding characterization checkpoint
+
+- A docs-only inventory selects the current exact 86-line
+  `_candidate_is_direct_grounding_candidate(candidate, *, operand, constraints,
+  query_years, operation_family="", report_scope=None)` graph definition for a
+  future public move to
+  `financial_operand_resolution.candidate_is_direct_grounding_candidate(...)`.
   No production source or test moved for this projection.
-- The projection preserves 22 top-level statements, twelve returns, no `try`,
-  exact booleans, metadata/report-scope/binding-policy shallow copies, five-kind
-  and descriptor/numeric/segment/report gate order, lazy direct-row-like chain,
-  aggregate precedence, eager positive-term conversion/materialization,
-  selected-cell-aware surface truth versus `< 1.0` fallback, eager target-year
-  result, current/prior mismatch truth, identities, immutability, and every
-  uncaught failure.
-- Operand resolution already owns the local dependencies and already imports
-  the surface-contract and scope-policy modules that supply the remaining
-  public names. The full DAG stays acyclic at 48 modules/204 edges. Current/
-  projected counts are graph 9/75 to 9/74 and operand resolution 50/37 to
-  51/37; the selected span has zero of 217 reviewed runtime-domain records.
-- Three direct calls project external/local 3/0 in
-  `financial_graph_reconciliation.py`, all at caller `try` depth zero. The
-  nested support predicate keeps its first-hit return, the first extraction
-  call remains the ratio-only combined-condition fallback and `continue`, and
-  the second remains the `direct_accept` assignment before same-block fallback
-  and candidate/cell adoption. Cell preparation/selection, direct acceptance,
-  sorting/scoring, fallback, evidence work, and state sequencing remain outside.
+- The projection preserves 30 top-level statements, fifteen returns, no `try`,
+  exact booleans, metadata/binding/report shallow copies, four-kind/descriptor/
+  numeric/direct-strength order and `< 1.0`, binding/canonical/consolidation/
+  period precedence, both delta-label positions, segment/report order, eager
+  target-year result, trusted-period truth, lazy lookup-table structured-sibling/
+  row-delta tail, identities, immutability, and every uncaught failure.
+- Operand resolution already owns the local helpers and existing row/surface/
+  scope module edges. It needs only two row-surface names and one surface-
+  contract name. The full DAG stays acyclic at 48 modules/204 edges. Current/
+  projected counts are graph 9/74 to 9/73 and operand resolution 51/37 to 52/37;
+  the selected span has zero of 217 reviewed runtime-domain records.
+- Three direct calls project across graph helpers and reconciliation at caller
+  `try` depth zero. Direct acceptance keeps its first rejection, deterministic
+  reconciliation keeps ordered non-lookup filtering and unique/ambiguous
+  fallback/adoption, and nested reconciliation support keeps the empty operation
+  default, first-hit return, non-ratio stop, and ratio-cell fallback. Candidate/
+  cell construction, acceptance, scoring/collapse, evidence work, state, I/O,
+  retry, and final sequencing remain outside.
 - Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-  158/158, operand owner 69/69, affected semantic 1,118/1,118, reconciliation
-  plan 51/51, import 19/19, audit 217, full 2,011/2,011, public identity,
-  selected-body parity, retained graph 83/83, retained operand owner 87/87,
-  all three calls/one caller module, full acyclic DAG parity, retired-ref zero,
-  non-ASCII preservation, and diff check are governed only by
+  162/162, operand owner 69/69, affected semantic 1,122/1,122, reconciliation
+  plan 51/51, import 19/19, audit 217, full 2,015/2,015, public identity,
+  selected-body parity, retained graph exact 80/82 and call-normalized 82/82,
+  retained operand owner 88/88, all three calls/two caller modules, full acyclic
+  DAG parity, retired-ref zero, non-ASCII preservation, and diff check are
+  governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
 
 Static definition/call/DAG/function-count/import and selected-body audit
