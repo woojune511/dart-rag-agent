@@ -475,7 +475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             (
@@ -1876,7 +1876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             (
@@ -2830,7 +2830,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(graph_counts, (9, 87))
         self.assertEqual(row_counts, (10, 15))
 
         graph_row_imports = {
@@ -3872,7 +3872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             (
@@ -4909,14 +4909,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in operand_defs),
                 sum(node.name.startswith("_") for node in operand_defs),
             ),
-            (44, 37),
+            (45, 37),
         )
 
         def imported_names(module_name, imported_module):
@@ -6628,8 +6628,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 88))
-        self.assertEqual(current_operand_counts, (44, 37))
+        self.assertEqual(current_graph_counts, (9, 87))
+        self.assertEqual(current_operand_counts, (45, 37))
 
         def imported_names(module_name, imported_module):
             return {
@@ -8099,7 +8099,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(graph_counts, (9, 87))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -9279,7 +9279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(graph_counts, (9, 87))
         self.assertEqual(owner_counts, (10, 9))
 
         def imported_names(module_name, imported_module):
@@ -10319,7 +10319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 88))
+        self.assertEqual(graph_counts, (9, 87))
         self.assertEqual(row_counts, (10, 15))
 
         def imported_names(module_name, imported_module):
@@ -12877,7 +12877,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15746,7 +15746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (9, 88),
+                "financial_graph_helpers": (9, 87),
                 "financial_structured_cells": (4, 4),
             },
         )
@@ -18718,7 +18718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 88),
+            (9, 87),
         )
         self.assertEqual(
             (
@@ -19706,7 +19706,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (9, 88),
+                "financial_graph_helpers": (9, 87),
                 "financial_surface_contracts": (10, 7),
             },
         )
@@ -20503,7 +20503,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 88),
+                "financial_graph_helpers": (9, 87),
                 "financial_scope_policies": (10, 9),
             },
         )
@@ -21411,8 +21411,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (9, 88),
-                "financial_operand_resolution": (44, 37),
+                "financial_graph_helpers": (9, 87),
+                "financial_operand_resolution": (45, 37),
             },
         )
 
@@ -22036,7 +22036,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 88), "financial_row_surfaces": (10, 15)},
+            {"financial_graph_helpers": (9, 87), "financial_row_surfaces": (10, 15)},
         )
 
         def imported_modules(tree):
@@ -22428,6 +22428,719 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(semantic_candidate["metadata"]["nested"], nested)
         self.assertIs(row_candidate["metadata"]["nested"], nested)
         self.assertIs(score_candidate["metadata"]["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+        self.assertIs(constraints["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
+
+    def test_current_source_preference_bonus_pins_preferred_normalization_membership_index_and_score(self) -> None:
+        owner = financial_operand_resolution
+        preference_bonus = owner.preference_bonus
+        events = []
+
+        class Raw:
+            def __init__(self, name):
+                self.name = name
+
+            def __str__(self):
+                raise AssertionError("raw preference inputs must not be stringified")
+
+        class Gate:
+            def __init__(self, name, keep):
+                self.name = name
+                self.keep = keep
+
+            def __bool__(self):
+                events.append(("gate-bool", self.name))
+                return self.keep
+
+        class Entry:
+            def __init__(self, name, matches=False):
+                self.name = name
+                self.matches = matches
+
+            def __eq__(self, other):
+                events.append(("entry-eq", self.name, other))
+                return self.matches
+
+        class Target:
+            def __bool__(self):
+                events.append("target-bool")
+                return True
+
+        class Preferred:
+            def __init__(self, rows, nested):
+                self.rows = rows
+                self.nested = nested
+
+            def __iter__(self):
+                events.append("preferred-iter")
+                for row in self.rows:
+                    events.append(("preferred-yield", row.name))
+                    yield row
+
+        nested = {"preserve": True}
+        dropped = Raw("dropped")
+        miss = Raw("miss")
+        match = Raw("match")
+        later = Raw("later")
+        value = Raw("value")
+        rows = [dropped, miss, match, later]
+        preferred = Preferred(rows, nested)
+        before_rows = list(rows)
+        normalization_counts = {}
+        target = Target()
+
+        def normalize(raw):
+            events.append(("normalize", raw))
+            if raw is value:
+                return target
+            normalization_counts[raw.name] = normalization_counts.get(raw.name, 0) + 1
+            call = normalization_counts[raw.name]
+            if call == 1:
+                return Gate(raw.name, raw is not dropped)
+            return Entry(raw.name, matches=raw is match)
+
+        def tracked_len(ordered):
+            events.append(("len", tuple(entry.name for entry in ordered)))
+            return ordered.__len__()
+
+        def tracked_max(left, right):
+            events.append(("max", left, right))
+            return left if left >= right else right
+
+        product = object()
+
+        class Base:
+            def __mul__(self, factor):
+                events.append(("base-mul", factor))
+                return product
+
+        base = Base()
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(owner, "len", create=True, side_effect=tracked_len),
+            patch.object(owner, "max", create=True, side_effect=tracked_max),
+        ):
+            self.assertIs(preference_bonus(value, preferred, base=base), product)
+
+        self.assertEqual(normalization_counts, {"dropped": 1, "miss": 2, "match": 2, "later": 2})
+        normalized = [event for event in events if isinstance(event, tuple) and event[0] == "normalize"]
+        self.assertEqual(
+            [event[1] for event in normalized],
+            [dropped, miss, miss, match, match, later, later, value],
+        )
+        self.assertLess(events.index(("normalize", later)), events.index(("normalize", value)))
+        self.assertEqual(
+            [event[1] for event in events if isinstance(event, tuple) and event[0] == "entry-eq"],
+            ["miss", "match", "miss", "match"],
+        )
+        self.assertEqual(
+            [event for event in events if isinstance(event, tuple) and event[0] in {"len", "max", "base-mul"}],
+            [("len", ("miss", "match", "later")), ("max", 2, 1), ("base-mul", 2)],
+        )
+        self.assertEqual(rows, before_rows)
+        self.assertIs(preferred.rows, rows)
+        self.assertIs(preferred.nested, nested)
+
+        self.assertAlmostEqual(preference_bonus("first", ["first", "middle", "last"]), 1.2)
+        self.assertAlmostEqual(preference_bonus("middle", ["first", "middle", "last"]), 0.8)
+        self.assertAlmostEqual(preference_bonus("last", ["first", "middle", "last"]), 0.4)
+        self.assertAlmostEqual(preference_bonus("same", ["same", "other", "same"]), 1.2)
+        self.assertIs(type(preference_bonus("missing", ["first", "middle"])), float)
+        self.assertEqual(preference_bonus("missing", ["first", "middle"]), 0.0)
+        self.assertEqual(preference_bonus("", ["first", "middle"]), 0.0)
+
+    def test_current_source_preference_bonus_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        owner = financial_operand_resolution
+        preference_bonus = owner.preference_bonus
+
+        class Gate:
+            def __init__(self, keep=True, error=None):
+                self.keep = keep
+                self.error = error
+
+            def __bool__(self):
+                if self.error:
+                    raise self.error
+                return self.keep
+
+        class Raw:
+            def __init__(self, name, nested=None):
+                self.name = name
+                self.nested = nested
+
+            def __str__(self):
+                raise AssertionError("raw inputs must remain uncoerced")
+
+        nested = {"preserve": True}
+        first = Raw("first", nested)
+        second = Raw("second", nested)
+        value = Raw("value", nested)
+        preferred = [first, second]
+        before_preferred = list(preferred)
+        calls = {}
+
+        def identity_normalizer(raw):
+            if raw is value:
+                return "second"
+            calls[raw] = calls.get(raw, 0) + 1
+            return Gate() if calls[raw] == 1 else raw.name
+
+        with patch.object(owner, "_normalise_spaces", side_effect=identity_normalizer):
+            self.assertEqual(preference_bonus(value, preferred), 0.4)
+        self.assertEqual(preferred, before_preferred)
+        self.assertIs(preferred[0], first)
+        self.assertIs(preferred[1], second)
+        self.assertIs(first.nested, nested)
+        self.assertIs(second.nested, nested)
+        self.assertIs(value.nested, nested)
+
+        events = []
+
+        class FalseyTarget:
+            def __bool__(self):
+                events.append("target-bool")
+                return False
+
+        class EqualityBomb:
+            def __eq__(self, _other):
+                raise AssertionError("falsey target must stop membership")
+
+        raw_item = Raw("item")
+        raw_value = Raw("value")
+        item_calls = 0
+
+        def falsey_target_normalizer(raw):
+            nonlocal item_calls
+            if raw is raw_value:
+                events.append("value-normalize")
+                return FalseyTarget()
+            item_calls += 1
+            return Gate() if item_calls == 1 else EqualityBomb()
+
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=falsey_target_normalizer),
+            patch.object(owner, "len", create=True, side_effect=AssertionError("len must stay stopped")),
+            patch.object(owner, "max", create=True, side_effect=AssertionError("max must stay stopped")),
+        ):
+            self.assertEqual(preference_bonus(raw_value, [raw_item]), 0.0)
+        self.assertEqual(events, ["value-normalize", "target-bool"])
+
+        class IterationBomb:
+            def __iter__(self):
+                raise RuntimeError("preferred iteration failed")
+
+        stopped_value = Mock(side_effect=AssertionError("iteration failure must stop value normalization"))
+        with patch.object(owner, "_normalise_spaces", stopped_value):
+            with self.assertRaisesRegex(RuntimeError, "preferred iteration failed"):
+                preference_bonus(value, IterationBomb())
+        stopped_value.assert_not_called()
+
+        with patch.object(owner, "_normalise_spaces", side_effect=RuntimeError("filter normalization failed")):
+            with self.assertRaisesRegex(RuntimeError, "filter normalization failed"):
+                preference_bonus(value, [first])
+
+        def truth_bomb_normalizer(raw):
+            return Gate(error=RuntimeError("filter truth failed")) if raw is first else "value"
+
+        with patch.object(owner, "_normalise_spaces", side_effect=truth_bomb_normalizer):
+            with self.assertRaisesRegex(RuntimeError, "filter truth failed"):
+                preference_bonus(value, [first])
+
+        retained_calls = 0
+
+        def retained_bomb_normalizer(raw):
+            nonlocal retained_calls
+            if raw is first:
+                retained_calls += 1
+                if retained_calls == 1:
+                    return Gate()
+                raise RuntimeError("retained normalization failed")
+            return "value"
+
+        with patch.object(owner, "_normalise_spaces", side_effect=retained_bomb_normalizer):
+            with self.assertRaisesRegex(RuntimeError, "retained normalization failed"):
+                preference_bonus(value, [first])
+
+        value_events = []
+
+        def value_bomb_normalizer(raw):
+            if raw is value:
+                value_events.append("value")
+                raise RuntimeError("value normalization failed")
+            value_events.append("preferred")
+            return Gate() if value_events.count("preferred") % 2 else raw.name
+
+        with patch.object(owner, "_normalise_spaces", side_effect=value_bomb_normalizer):
+            with self.assertRaisesRegex(RuntimeError, "value normalization failed"):
+                preference_bonus(value, [first, second])
+        self.assertEqual(value_events, ["preferred", "preferred", "preferred", "preferred", "value"])
+
+        class TargetTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("target truth failed")
+
+        with patch.object(owner, "_normalise_spaces", return_value=TargetTruthBomb()):
+            with self.assertRaisesRegex(RuntimeError, "target truth failed"):
+                preference_bonus(value, [])
+
+        class MembershipBomb:
+            def __eq__(self, _other):
+                raise RuntimeError("membership failed")
+
+        membership_calls = 0
+
+        def membership_bomb_normalizer(raw):
+            nonlocal membership_calls
+            if raw is value:
+                return object()
+            membership_calls += 1
+            return Gate() if membership_calls == 1 else MembershipBomb()
+
+        with patch.object(owner, "_normalise_spaces", side_effect=membership_bomb_normalizer):
+            with self.assertRaisesRegex(RuntimeError, "membership failed"):
+                preference_bonus(value, [first])
+
+        class StatefulEntry:
+            def __init__(self):
+                self.calls = 0
+
+            def __eq__(self, _other):
+                self.calls += 1
+                return self.calls == 1
+
+        stateful = StatefulEntry()
+        index_calls = 0
+
+        def index_bomb_normalizer(raw):
+            nonlocal index_calls
+            if raw is value:
+                return object()
+            index_calls += 1
+            return Gate() if index_calls == 1 else stateful
+
+        with patch.object(owner, "_normalise_spaces", side_effect=index_bomb_normalizer):
+            with self.assertRaises(ValueError):
+                preference_bonus(value, [first])
+        self.assertEqual(stateful.calls, 2)
+
+        with patch.object(owner, "len", create=True, side_effect=RuntimeError("length failed")):
+            with self.assertRaisesRegex(RuntimeError, "length failed"):
+                preference_bonus("hit", ["hit"])
+
+        class LengthBomb:
+            def __sub__(self, _other):
+                raise RuntimeError("subtraction failed")
+
+        with patch.object(owner, "len", create=True, return_value=LengthBomb()):
+            with self.assertRaisesRegex(RuntimeError, "subtraction failed"):
+                preference_bonus("hit", ["hit"])
+
+        with patch.object(owner, "max", create=True, side_effect=RuntimeError("max failed")):
+            with self.assertRaisesRegex(RuntimeError, "max failed"):
+                preference_bonus("hit", ["hit"])
+
+        class BaseBomb:
+            def __mul__(self, _other):
+                raise RuntimeError("multiplication failed")
+
+        with self.assertRaisesRegex(RuntimeError, "multiplication failed"):
+            preference_bonus("hit", ["hit"], base=BaseBomb())
+
+    def test_current_source_preference_bonus_bindings_pin_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "financial_graph_helpers": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+            "financial_operand_resolution": repo_root / "src" / "agent" / "financial_operand_resolution.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        target_name = "preference_bonus"
+        definitions = []
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.augassign_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name == target_name:
+                    definitions.append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_AugAssign(self, node):
+                self.augassign_depth += 1
+                self.generic_visit(node)
+                self.augassign_depth -= 1
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name == target_name:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                            self.augassign_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(len(definitions), 1)
+        owner_name, definition = definitions[0]
+        self.assertEqual((owner_name, definition.name), ("financial_operand_resolution", target_name))
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 7)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["value", "preferred"])
+        self.assertEqual([arg.arg for arg in definition.args.kwonlyargs], ["base"])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual([ast.unparse(value) for value in definition.args.kw_defaults], ["0.4"])
+        self.assertEqual(ast.unparse(definition.returns), "float")
+        self.assertEqual(sum(isinstance(node, ast.Return) for node in ast.walk(definition)), 2)
+        self.assertEqual(
+            sum(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)),
+            0,
+        )
+        direct_calls = []
+        for node in ast.walk(definition):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Name):
+                direct_calls.append(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                direct_calls.append(node.func.attr)
+        self.assertEqual(
+            {name: direct_calls.count(name) for name in set(direct_calls)},
+            {"_normalise_spaces": 3, "index": 1, "len": 1, "max": 1},
+        )
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "financial_graph_helpers",
+                    "_score_operand_candidate",
+                    "Name",
+                    ("value_role", "preferred_value_roles"),
+                    (("base", "0.6"),),
+                    0,
+                    1,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "_score_operand_candidate",
+                    "Name",
+                    ("aggregation_stage", "preferred_aggregation_stages"),
+                    (("base", "0.5"),),
+                    0,
+                    1,
+                ),
+            ],
+        )
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in tree.body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name, tree in module_trees.items()
+            },
+            {"financial_graph_helpers": (9, 87), "financial_operand_resolution": (45, 37)},
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        graph_imports = imported_modules(module_trees["financial_graph_helpers"])
+        operand_imports = imported_modules(module_trees["financial_operand_resolution"])
+        self.assertIn("src.agent.financial_operand_resolution", graph_imports)
+        self.assertNotIn("src.agent.financial_graph_helpers", operand_imports)
+        self.assertIn("src.agent.financial_runtime_normalization", operand_imports)
+        self.assertIn(
+            target_name,
+            imported_names(
+                module_trees["financial_graph_helpers"],
+                "src.agent.financial_operand_resolution",
+            ),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        dependency_graph = {}
+        for path in agent_files:
+            relative = path.relative_to(repo_root).with_suffix("")
+            module_name = ".".join(relative.parts)
+            dependency_graph[module_name] = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_operand_resolution",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+
+        score_definition = next(
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef) and node.name == "_score_operand_candidate"
+        )
+        target_statements = [
+            (index, statement)
+            for index, statement in enumerate(score_definition.body)
+            if target_name in ast.unparse(statement)
+        ]
+        self.assertEqual(len(target_statements), 2)
+        self.assertEqual(target_statements[1][0], target_statements[0][0] + 1)
+        for _, statement in target_statements:
+            self.assertIsInstance(statement, ast.AugAssign)
+            self.assertIsInstance(statement.target, ast.Name)
+            self.assertEqual(statement.target.id, "score")
+            self.assertIsInstance(statement.op, ast.Add)
+        score_source = ast.unparse(score_definition)
+        self.assertLess(
+            score_source.index(f"{target_name}(value_role, preferred_value_roles, base=0.6)"),
+            score_source.index(f"{target_name}(aggregation_stage, preferred_aggregation_stages, base=0.5)"),
+        )
+        self.assertLess(
+            score_source.index(f"{target_name}(aggregation_stage, preferred_aggregation_stages, base=0.5)"),
+            score_source.index("_normalise_spaces(value_role) in avoid_value_roles"),
+        )
+        self.assertLess(
+            score_source.index("_normalise_spaces(aggregation_stage) in avoid_aggregation_stages"),
+            score_source.index("_candidate_source_priority_bonus"),
+        )
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == f"src/agent/{module_paths[owner_name].name}"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        required_methods = {
+            "test_current_source_preference_bonus_pins_preferred_normalization_membership_index_and_score",
+            "test_current_source_preference_bonus_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_preference_bonus_bindings_pin_def_calls_dag_imports_and_baseline",
+            "test_current_source_preference_bonus_caller_pins_order_args_adoption_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_preference_bonus_caller_pins_order_args_adoption_and_stops(self) -> None:
+        target_name = "preference_bonus"
+        nested = {"preserve": True}
+        candidate = {"candidate_kind": "", "metadata": {"nested": nested}, "nested": nested}
+        binding_policy = {
+            "prefer_value_roles": [" detail "],
+            "prefer_aggregation_stages": [" final "],
+            "nested": nested,
+        }
+        operand = {"binding_policy": binding_policy, "nested": nested}
+        constraints = {"nested": nested}
+        query_years = [2024]
+        report_scope = {"nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+        before_constraints = deepcopy(constraints)
+        before_report_scope = deepcopy(report_scope)
+
+        def run_score(*, returns=(0.0, 0.0), failure_at=0, event_sink=None):
+            events = [] if event_sink is None else event_sink
+            calls = 0
+
+            def preference(value, preferred, *, base=0.4):
+                nonlocal calls
+                calls += 1
+                events.append(("preference", value, preferred, base))
+                if calls == failure_at:
+                    raise RuntimeError(f"preference {calls} failed")
+                return returns[calls - 1]
+
+            with ExitStack() as stack:
+                for current_patch in (
+                    patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                    patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"),
+                    patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
+                    patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
+                    patch.object(financial_graph_helpers, "candidate_location_entity_subject_score", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                    patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                    patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                    patch.object(
+                        financial_graph_helpers,
+                        "operand_period_focus",
+                        side_effect=lambda *_args, **_kwargs: events.append("period") or "unknown",
+                    ),
+                    patch.object(
+                        financial_graph_helpers,
+                        "candidate_segment_binding_bonus",
+                        side_effect=lambda *_args, **_kwargs: events.append("segment") or 0.0,
+                    ),
+                    patch.object(financial_graph_helpers, target_name, side_effect=preference),
+                    patch.object(
+                        financial_graph_helpers,
+                        "_candidate_source_priority_bonus",
+                        side_effect=lambda *_args, **_kwargs: events.append("source") or 0.0,
+                    ),
+                    patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_period_table_coherence_bonus", return_value=0.0),
+                    patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
+                ):
+                    stack.enter_context(current_patch)
+                score = financial_graph_helpers._score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints=constraints,
+                    query_years=query_years,
+                    report_scope=report_scope,
+                )
+            return score, events
+
+        baseline, baseline_events = run_score()
+        boosted, boosted_events = run_score(returns=(2.0, 3.0))
+        self.assertEqual(boosted, baseline + 5.0)
+        expected_events = [
+            "period",
+            "segment",
+            ("preference", "detail", ["detail"], 0.6),
+            ("preference", "final", ["final"], 0.5),
+            "source",
+        ]
+        self.assertEqual(baseline_events, expected_events)
+        self.assertEqual(boosted_events, expected_events)
+        first_preferred = boosted_events[2][2]
+        second_preferred = boosted_events[3][2]
+        self.assertIsNot(first_preferred, binding_policy["prefer_value_roles"])
+        self.assertIsNot(second_preferred, binding_policy["prefer_aggregation_stages"])
+        self.assertIsNot(first_preferred, second_preferred)
+
+        first_failure_events = []
+        with self.assertRaisesRegex(RuntimeError, "preference 1 failed"):
+            run_score(failure_at=1, event_sink=first_failure_events)
+        self.assertEqual(
+            first_failure_events,
+            ["period", "segment", ("preference", "detail", ["detail"], 0.6)],
+        )
+
+        second_failure_events = []
+        with self.assertRaisesRegex(RuntimeError, "preference 2 failed"):
+            run_score(failure_at=2, event_sink=second_failure_events)
+        self.assertEqual(
+            second_failure_events,
+            [
+                "period",
+                "segment",
+                ("preference", "detail", ["detail"], 0.6),
+                ("preference", "final", ["final"], 0.5),
+            ],
+        )
+
+        addition_events = []
+
+        class AdditionBomb:
+            def __radd__(self, _other):
+                addition_events.append("add")
+                raise RuntimeError("caller addition failed")
+
+        with self.assertRaisesRegex(RuntimeError, "caller addition failed"):
+            run_score(returns=(AdditionBomb(), 0.0), event_sink=addition_events)
+        self.assertEqual(
+            addition_events,
+            ["period", "segment", ("preference", "detail", ["detail"], 0.6), "add"],
+        )
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertEqual(constraints, before_constraints)
+        self.assertEqual(report_scope, before_report_scope)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(binding_policy["nested"], nested)
         self.assertIs(operand["nested"], nested)
         self.assertIs(constraints["nested"], nested)
         self.assertIs(report_scope["nested"], nested)

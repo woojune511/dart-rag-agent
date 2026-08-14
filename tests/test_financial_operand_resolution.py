@@ -7337,8 +7337,8 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "src/agent/financial_graph_helpers.py": {},
                 "src/agent/financial_graph_reconciliation.py": {},
                 "src/agent/financial_operand_resolution.py": {
-                    "candidate_row_block_signature": (3611, 3639, 29, ["candidate"]),
-                    "repair_note_operand_units_from_same_block": (3694, 3750, 57, ["operand_rows", "candidate_map"]),
+                    "candidate_row_block_signature": (3620, 3648, 29, ["candidate"]),
+                    "repair_note_operand_units_from_same_block": (3703, 3759, 57, ["operand_rows", "candidate_map"]),
                 },
             },
         )

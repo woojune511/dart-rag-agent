@@ -2432,6 +2432,15 @@ def operand_prefers_aggregate_value_role(operand: Mapping[str, Any]) -> bool:
     )
 
 
+def preference_bonus(value: str, preferred: List[str], *, base: float = 0.4) -> float:
+    ordered = [_normalise_spaces(item) for item in preferred if _normalise_spaces(item)]
+    target = _normalise_spaces(value)
+    if not target or target not in ordered:
+        return 0.0
+    index = ordered.index(target)
+    return base * max(len(ordered) - index, 1)
+
+
 def direct_target_metric_row_conflicts_existing_units(
     target_metric_row: Mapping[str, Any],
     existing_rows: Sequence[Mapping[str, Any]],

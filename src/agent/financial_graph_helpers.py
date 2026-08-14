@@ -137,6 +137,7 @@ from src.agent.financial_operand_resolution import (
     lookup_query_surface_preferences,
     operand_lookup_surface_match,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
+    preference_bonus,
 )
 from src.routing import default_format_preference
 
@@ -4014,15 +4015,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _preference_bonus(value: str, preferred: List[str], *, base: float = 0.4) -> float:
-    ordered = [_normalise_spaces(item) for item in preferred if _normalise_spaces(item)]
-    target = _normalise_spaces(value)
-    if not target or target not in ordered:
-        return 0.0
-    index = ordered.index(target)
-    return base * max(len(ordered) - index, 1)
-
-
 def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
@@ -4971,8 +4963,8 @@ def _score_operand_candidate(
         for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
         if str(item).strip()
     }
-    score += _preference_bonus(value_role, preferred_value_roles, base=0.6)
-    score += _preference_bonus(aggregation_stage, preferred_aggregation_stages, base=0.5)
+    score += preference_bonus(value_role, preferred_value_roles, base=0.6)
+    score += preference_bonus(aggregation_stage, preferred_aggregation_stages, base=0.5)
     if _normalise_spaces(value_role) in avoid_value_roles:
         score -= 2.0
     if _normalise_spaces(aggregation_stage) in avoid_aggregation_stages:
