@@ -4753,57 +4753,93 @@ and call-normalized 87/87, all 83 retained operand functions, three normalized
 caller bodies, DAG parity, retired-ref zero, non-ASCII preservation, and diff
 check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active direct-match-strength contract is characterized for the next bounded
-owner batch. Move only the current exact 122-line
-`_candidate_direct_match_strength(candidate, operand)` graph definition without
-a graph alias to public
-`financial_operand_resolution.candidate_direct_match_strength(...)`. It scores
-one prepared candidate against one operand; collection ranking, acceptance
-thresholds, adoption, retrieval, and graph state remain outside.
+Commit `91ceae7` completed the direct-match-strength contract, now owned by
+`financial_operand_resolution.candidate_direct_match_strength(...)`. The exact
+former 122-line body, 15 statements, two returns, conflict-first `0.0`, shallow
+metadata copy, weighted surface order, non-table extension, exact/variant/half-
+weight fallback, CAPEX/contextual/aggregate-signal/lookup-context/segment branch
+order, materialization, repeated calls, short circuits, `max` accumulation,
+identities, immutability, exact float results, and all uncaught failures remain
+unchanged and pinned by four CURRENT-SOURCE methods. No graph alias or bridge
+was added.
 
-Preserve the exact 15-statement body, two returns, and docstring. Conflict truth
-returns `0.0` before metadata work. Shallow-copied metadata and normalized
-candidate kind feed an eagerly built weighted surface list in this order:
-semantic label `3.0`, row label `2.5`, joined semantic aliases `2.0`, joined row
-headers `1.5`, and aggregate label `1.0`; non-table rows then extend it with
-table-row-label text `1.25` and row text `1.0`.
+All eight calls across six graph callers now bind the public owner with
+positional exact `candidate, operand`, no keywords, and caller `try` depth zero.
+Canonical-winner `< 2.5`, semantic-priority `int(strength * 10)`, direct-
+grounding `< 1.0`, direct-acceptance `< 2.0`, ratio-acceptance `>= 1.0` and its
+later `< 1.0` rejection, broad-score immediate addition, and structured-
+candidate `>= 2.5`/`>= 1.5` bonuses remain in their exact lazy positions. The
+historical pre-move checkpoint in Project Status had misstated that later ratio
+rejection as `< 2.0`; live source and the completed static contract confirm
+`< 1.0`. This is a documentation correction, not a runtime change.
 
-Each surface preserves normalization before blank rejection, variant-set
-materialization, full-weight normalized exact match, full-weight variant match,
-then half-weight operand-text fallback. Repeated operand-needle and variant
-generation, ordered `any(...)` short circuits, `max(...)` accumulation, and
-loop continuation are normative.
+Final counts are graph 9/77 and operand resolution 48/37; the full 48-module/
+203-edge DAG is unchanged. Executed gates are focused 4/4, graph owner 146/146,
+operand owner 69/69, affected semantic 1,106/1,106, reconciliation plan 51/51,
+import 19/19, audit 217, and full 1,999/1,999, plus pycompile, fresh identity,
+selected-body and retained-function parity, all eight calls/six callers, retired-
+ref zero, non-ASCII preservation, and diff check. Benchmark refresh and remote
+CI were **NOT RUN**.
 
-Specialized scoring stays ordered. CAPEX preferred-section plus positive
-aggregate role/stage may raise `2.25`; contextual aggregate preference may
-raise `2.0`; direct aggregate-signal operand matching may raise `2.25`; lookup-
-surface plus candidate operand context may raise `2.25`; segment-metric
-combination is last and may raise `2.25`. Preserve every current mapping/truth,
-conversion, strip, normalization, list/set/join/extend, iteration, helper call
-and result truth, comparison, arithmetic, identity, immutability, and uncaught
-failure in current order.
+The active direct-candidate semantic-priority contract is characterized for the
+next bounded owner batch. Move only the current exact 53-line
+`_direct_candidate_semantic_priority(candidate, *, operand,
+preferred_statement_types, query_years)` graph definition without a graph alias
+to public
+`financial_operand_resolution.direct_candidate_semantic_priority(...)`. It
+projects one prepared candidate to a fixed five-integer priority tuple;
+collection sorting, winner selection, acceptance, adoption, retrieval, and graph
+state remain outside.
 
-The destination already holds all dependencies except public
-`candidate_has_operand_context_surface(...)` and
-`candidate_supports_segment_metric_combo(...)` from row surfaces. Adding them
-creates no edge. Projected counts are graph 9/77 and operand resolution 48/37;
+Preserve the exact 19-statement body, one return, no `try`, required positional
+candidate, three required keyword-only inputs, and exact return annotation.
+Candidate metadata is shallow-copied before operand binding policy. Preferred
+statement types are consumed directly; preferred value roles and aggregation
+stages preserve their raw policy lookup plus `or []` fallback. All three list
+comprehensions remain eager and preserve filter-before-element evaluation, so a
+rejected item stringifies/normalizes once and a retained item twice.
+
+After list construction, normalize statement type, then evaluate candidate
+value role, aggregation stage, direct-match strength, and normalized candidate
+kind in exact order. Statement, value-role, and aggregation-stage ranks each
+start at zero and adopt exact `len(preferences) - preferences.index(value)` only
+on membership. This preserves first-index, duplicate, length, and ordering
+effects. Candidate target-year match projects truth to exact `1`/`0`, followed
+by exact candidate-kind equality with `structured_value`. Return order is
+aggregation-stage rank, value-role rank, statement rank, target-year match, and
+`structured_value_rank + int(direct_match_strength * 10)`. Integer truncation,
+arithmetic, comparison, and tuple behavior are normative.
+
+There is no exception boundary. Mapping/truth access, shallow copies, supplied
+iterables, conversion, normalization, list construction, membership/index/
+length, helper calls and result truth, multiplication, integer conversion,
+addition, tuple construction, and return failures remain uncaught in current
+order. Inputs, nested objects, and shallow-copy sources remain unmodified and
+retain identity.
+
+The destination already holds every dependency except public
+`candidate_matches_operand_target_year(...)` from scope policy. Adding that one
+direct owner edge keeps the full DAG acyclic while moving it from 48 modules/203
+edges to 48/204. Projected counts are graph 9/76 and operand resolution 49/37;
 the selected span has zero of 217 reviewed records.
 
-Eight direct calls across six graph callers remain positional exact
-`candidate, operand`, without keywords and at caller `try` depth zero. Preserve
-canonical-winner `< 2.5`, semantic-priority `int(strength * 10)`, direct-
-grounding `< 1.0`, direct-acceptance `< 2.0`, ratio-acceptance `>= 1.0` and
-later `< 2.0`, broad-score immediate addition, and structured-candidate
-`>= 2.5`/`>= 1.5` bonuses in their exact lazy positions. Duplicate calls,
-threshold ownership, later caller work, and failure stops do not move.
+Three direct calls remain in `_deterministic_reconcile_task(...)`, under body
+statement index 9/17 and caller `try` depth zero. The sorted-key lambda keeps
+`dict(entry.get("candidate") or {})` as the sole positional argument and exact
+`operand`, `preferred_statement_types`, and `query_years` keywords before the
+float score component with `reverse=True`. The next two calls recompute the
+same tuple from copied ranked entries zero and one before strict
+`top_priority > next_priority`. Preserve repeated evaluation, mapping copies,
+sort ordering, top/next recomputation, unique-winner collapse, tie fallback,
+adoption, and every failure stop.
 
-The four required CURRENT-SOURCE methods and projected focused 4/4, owner
-146/146, affected semantic 1,106/1,106, import 19/19, audit 217, and full
-1,999/1,999 gates are governed only by
+The four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
+150/150, operand owner 69/69, affected semantic 1,110/1,110, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,003/2,003 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). Candidate
-construction, direct/ratio acceptance bodies, broad ranking, evidence adoption,
-I/O, retrieval, graph state, model invocation, artifact/ledger mutation, retry,
-and final sequencing remain hard stops.
+construction, broad float scoring, collection sorting/fallback, direct/ratio
+acceptance, evidence adoption, I/O, retrieval, graph state, model invocation,
+artifact/ledger mutation, retry, and final sequencing remain hard stops.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

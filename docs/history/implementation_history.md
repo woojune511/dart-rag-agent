@@ -6034,3 +6034,84 @@ Static definition/call/DAG/function-count/import and selected-body audit
 inspection passed. Benchmark refresh and remote CI were **NOT RUN**. This
 checkpoint is not a behavior, quality, performance, benchmark, schedule, or
 completion claim.
+
+### Candidate direct-match-strength ownership milestone
+
+- Commit `91ceae7` moves the exact former 122-line
+  `_candidate_direct_match_strength(candidate, operand)` graph definition to
+  public
+  `financial_operand_resolution.candidate_direct_match_strength(...)` with the
+  body unchanged. The old private definition and executable private references
+  are gone without a wrapper or compatibility bridge.
+- Four CURRENT-SOURCE methods pin the 15-statement/two-return body, conflict-
+  first stop, weighted base-surface order, non-table extension, exact/variant/
+  half-weight fallback, specialized branch order, repeated calls and eager
+  materialization, short circuits, exact float results, identities,
+  immutability, and every uncaught failure.
+- All eight direct calls across six graph callers now bind the public owner with
+  positional exact `candidate, operand`, no keywords, and caller `try` depth
+  zero. Their thresholds, additions, tuple conversion, duplicate evaluation,
+  acceptance, ranking, and adoption remain graph-owned. Live source confirms
+  the ratio-component fallback rejection is `< 1.0`; the historical pre-move
+  prose that recorded `< 2.0` was stale and is not a behavior change.
+- Production source is `+135/-138`, net `-3`: graph helpers move from 5,184 to
+  5,055 physical lines and operand resolution from 3,931 to 4,057. Tests are
+  `+1,078/-226`, net `+852`; graph-helper tests move from 31,614 to 32,466. The
+  whole commit is `+1,213/-364`, net `+849`, and four methods move full
+  discovery from 1,995 to 1,999. Final counts are graph 9/77 and operand
+  resolution 48/37. The source diff SHA-256 is
+  `fb7cf8e1824f26bc4fd54a303602491f79956eb277d999e2fd45872c0e361de3`.
+- Focused pre/post movement 4/4, graph owner 146/146, operand owner 69/69,
+  affected eleven-module semantic 1,106/1,106, reconciliation plan 51/51,
+  import-side-effects 19/19, runtime-domain audit 217, and full discovery
+  1,999/1,999 passed. Pycompile, fresh public identity 1/1, exact selected-body
+  parity 1/1, retained graph exact 80/86 and call-normalized 86/86, all 84
+  retained operand functions, all eight calls/six callers, full 48-module/
+  203-edge DAG parity, retired private refs zero, non-ASCII preservation 5/5,
+  and diff check passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic candidate direct-match-strength
+ownership. It proves no behavior, accuracy, ranking, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+### Direct-candidate semantic-priority characterization checkpoint
+
+- A docs-only inventory selects the current exact 53-line
+  `_direct_candidate_semantic_priority(candidate, *, operand,
+  preferred_statement_types, query_years)` graph definition for a future public
+  move to
+  `financial_operand_resolution.direct_candidate_semantic_priority(...)`. No
+  production source or test moved for this projection.
+- The projection preserves 19 top-level statements, one return, no `try`, the
+  exact five-integer return annotation, metadata and binding-policy shallow
+  copies, three eager normalization comprehensions, repeated conversion and
+  normalization, fixed value-role/stage/strength/year helper order, independent
+  zero ranks, `len - first index` preference ranking, target-year and structured-
+  value truth projection, exact tuple order, integer truncation, identities,
+  immutability, and every uncaught failure.
+- Operand resolution already owns all dependencies except public
+  `candidate_matches_operand_target_year(...)` from scope policy. Adding that
+  direct edge keeps the graph acyclic while moving the full DAG from 48 modules/
+  203 edges to 48/204. Current/projected counts are graph 9/77 to 9/76 and
+  operand resolution 48/37 to 49/37; the selected span has zero of 217 reviewed
+  runtime-domain records.
+- Three direct calls project external/local 3/0 in the sole
+  `_deterministic_reconcile_task(...)` caller, all under body statement index
+  9/17 and caller `try` depth zero. The sort-key call keeps the prepared entry
+  copy before score with reverse ordering; the other two recompute from ranked
+  entries zero and one before strict tuple comparison. Collection sorting,
+  fallback, collapse/adoption, broad scoring, acceptance, and later work remain
+  graph-owned; every call/helper/comparison failure keeps its current stop.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  150/150, operand owner 69/69, affected semantic 1,110/1,110, reconciliation
+  plan 51/51, import 19/19, audit 217, full 2,003/2,003, public identity,
+  selected-body parity, retained graph call-normalized 85/85, retained operand
+  owner 85/85, all three calls/one caller, full acyclic DAG parity, retired-ref
+  zero, non-ASCII preservation, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count/import and selected-body audit
+inspection, direct rank/order/identity/immutability, and failure-stop probes
+passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not
+a behavior, quality, ranking, performance, benchmark, schedule, or completion
+claim.

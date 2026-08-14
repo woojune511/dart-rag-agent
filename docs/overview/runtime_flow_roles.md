@@ -288,7 +288,7 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate-to-operand matching plus candidate merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature, location/entity subject-score projection, deterministic positional preference scoring, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
+| `financial_operand_resolution.py` | candidate-to-operand matching and direct-match-strength scoring plus candidate merge/adoption, lookup-hint projection/matching, direct candidate logical/family signature, location/entity subject-score projection, deterministic positional preference scoring, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, candidate-ID, and structured period-pair projection; full operand extraction, collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
@@ -830,15 +830,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,995/1,995와 body/caller/DAG parity가 통과했다. Candidate construction,
   direct/ratio acceptance, direct strength, broad ranking/adoption과 state/
   artifact/ledger는 graph 또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 122줄
-  `_candidate_direct_match_strength(candidate, operand)` 하나를 선택했다.
-  준비된 candidate/operand의 weighted surface strength만 public operand-
-  resolution contract로 옮기며 여섯 graph caller의 여덟 threshold/addition/
-  tuple 사용, direct/ratio acceptance, broad scoring/ranking과 adoption은
-  유지한다. Projected graph/operand-resolution public/private는 9/77과
-  48/37이고 48-module/203-edge DAG는 유지된다. 아직 source/test 이동은
-  없으며 exact weights/precedence/laziness/identity/failure, caller adoption/
-  stop, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `91ceae7` candidate direct-match-strength batch는 graph helper의
+  정확한 122줄 scorer를
+  `financial_operand_resolution.candidate_direct_match_strength(...)` public
+  API로 옮겼다. 여섯 graph caller의 여덟 call은 external 8/local 0으로
+  수렴했고 threshold/addition/tuple 위치는 유지됐다. Graph/operand-resolution
+  public/private는 9/77과 48/37이다. Focused 4/4, graph owner 146/146,
+  operand owner 69/69, semantic 1,106/1,106, reconciliation plan 51/51, import
+  19/19, audit 217, full 1,999/1,999와 body/caller/48-module/203-edge DAG
+  parity가 통과했다. Direct/ratio acceptance, semantic priority, broad scoring/
+  ranking, candidate/evidence와 state/artifact/ledger는 graph 또는 기존 owner에
+  남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 53줄
+  `_direct_candidate_semantic_priority(...)` 하나를 선택했다. 준비된 candidate
+  하나의 5-int tuple projection만 public operand-resolution contract로 옮기며
+  한 graph caller의 세 sort/recompute call과 strict compare/collapse/adoption은
+  유지한다. Projected graph/operand-resolution public/private는 9/76과
+  49/37이고, 새 operand-resolution-to-scope-policy edge를 포함한 48-module/
+  204-edge DAG는 비순환이다. 아직 source/test 이동은 없으며 exact
+  normalization/rank/tuple/laziness/identity/failure, caller adoption/stop, 네
+  CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -851,7 +862,7 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - `structured_result` / `resolved_calculation_trace` compatibility projection
 - source row/evidence id cleanup
 - numeric parsing and unit normalization helpers
-- caller-side direct-match strength, acceptance, and broad candidate-scoring helpers
+- caller-side canonical/semantic priority, acceptance, and broad candidate-scoring helpers
 - semantic planner scope normalization, plan-shape validation, segment-label
   projection, and planner-task contract helpers
 - narrative-task predicate, construction, append, dependency-order, and

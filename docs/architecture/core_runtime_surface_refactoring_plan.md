@@ -1088,36 +1088,58 @@ reranking and the ops ontology-shadow diagnostic. All three were migrated and
 the static contract now pins both agent list-comprehension callers and the ops
 filter. This corrects characterization coverage; it does not add a runtime path.
 
+The completed `91ceae7` follow-on moved the exact former 122-line direct-match-
+strength scorer from graph helpers to public
+`candidate_direct_match_strength(...)` in `financial_operand_resolution.py`.
+The exact 15-statement/two-return body, weighted surfaces, non-table extension,
+exact/variant/half-weight fallback, specialized branch order, materialization,
+short circuits, identities, immutability, float scores, and uncaught failures
+remain pinned by four CURRENT-SOURCE methods. No graph alias was added.
+
+All eight direct calls across six graph callers now bind the public owner while
+their thresholds, additions, tuple use, duplicate evaluation, acceptance,
+ranking, and adoption remain graph-owned. Production source is `+135/-138`,
+tests are `+1,078/-226`, and the whole commit is `+1,213/-364`; graph helpers
+move from 5,184 to 5,055 lines and operand resolution from 3,931 to 4,057.
+Focused 4/4, graph owner 146/146, operand owner 69/69, affected semantic
+1,106/1,106, reconciliation plan 51/51, import 19/19, audit 217, full
+1,999/1,999, pycompile/fresh identity, body/retained/caller/full
+48-module/203-edge DAG parity, retired private refs zero, non-ASCII
+preservation, and diff check passed. The source diff SHA-256 is
+`fb7cf8e1824f26bc4fd54a303602491f79956eb277d999e2fd45872c0e361de3`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
 The new characterize-only inventory selects one follow-on: move only the
-current exact 122-line `_candidate_direct_match_strength(candidate, operand)`
-definition from graph helpers to public `candidate_direct_match_strength(...)`
-in `financial_operand_resolution.py`. It owns state-free weighted surface
-matching for one prepared candidate and operand, not collection ranking or
-acceptance thresholds.
+current exact 53-line `_direct_candidate_semantic_priority(...)` definition
+from graph helpers to public `direct_candidate_semantic_priority(...)` in
+`financial_operand_resolution.py`. It owns a state-free five-integer priority
+tuple for one prepared candidate and operand, not collection sorting, winner
+selection, acceptance, or adoption.
 
-The destination already holds every dependency except the two public row-
-surface helpers `candidate_has_operand_context_surface(...)` and
-`candidate_supports_segment_metric_combo(...)`; adding them creates no module
-edge. The full 48-module/203-edge DAG remains unchanged; projected counts are
-graph helpers 9/77 and operand resolution 48/37, and the selected span contains
-zero of 217 reviewed records.
+The destination already holds every dependency except public
+`candidate_matches_operand_target_year(...)` from scope policy. Adding that
+direct edge moves the acyclic full DAG from 48 modules/203 edges to 48/204;
+projected counts are graph helpers 9/76 and operand resolution 49/37, and the
+selected span contains zero of 217 reviewed records.
 
-Preserve the exact 15-statement/two-return body, weighted base-surface order,
-non-table extension, exact/variant/half-weight fallback precedence, CAPEX,
-contextual, aggregate-signal, lookup-context, and segment-combination branches,
-all materialization and short-circuit behavior, identities, immutability, exact
-float scores, and uncaught failures. Eight direct calls across six graph callers
-must remain positional exact `candidate, operand`, outside `try`, at their
-current threshold/addition/tuple positions. Direct/ratio acceptance bodies,
-broad ranking, evidence adoption, I/O, retrieval, and plan/state/artifact/ledger
-work are rejected.
+Preserve the exact 19-statement/one-return body, metadata and binding-policy
+shallow copies, all three eager normalization comprehensions, repeated
+conversion/normalization, helper order, independent zero ranks,
+`len - first index` preference ranking, target-year and structured-value truth
+projection, exact tuple order, integer truncation, identities, immutability, and
+uncaught failures. Three direct calls in one graph caller must retain their
+prepared mapping copies, exact three keywords, sort-key-first use, top/next
+recomputation, strict comparison, adoption, and failure stops at `try` depth
+zero. Broad scoring, collection sorting/fallback, direct/ratio acceptance,
+evidence adoption, I/O, retrieval, and plan/state/artifact/ledger work are
+rejected.
 
-Four required CURRENT-SOURCE methods and projected focused 4/4, owner 146/146,
-affected semantic 1,106/1,106, import 19/19, audit 217, and full 1,999/1,999
-gates are defined only in
+Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
+150/150, operand owner 69/69, affected semantic 1,110/1,110, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,003/2,003 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this strength projection; it is the sole next
-priority and this plan maintains no competing queue.
+or test movement has occurred for this semantic-priority projection; it is the
+sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
