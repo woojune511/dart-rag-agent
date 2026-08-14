@@ -21,11 +21,11 @@ Last updated: 2026-08-15
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `4c422ed` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `6ebcf59` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
-| Phase 3 | OPEN; query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 broad candidate scoring, broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -62,9 +62,9 @@ Last updated: 2026-08-15
    projection/match, direct candidate
    logical/family signature, sibling-surface hit-count, candidate direct-match
    strength·direct candidate semantic priority·canonical-statement winner·ratio-
-   component acceptance·direct-grounding classification과 query-to-metric/
-   operand match ownership은 이동했고 graph-state lookup, direct acceptance,
-   broader evidence orchestration과
+   component acceptance·direct-grounding/direct-acceptance classification과
+   query-to-metric/operand match ownership은 이동했고 graph-state lookup,
+   broad candidate scoring과 broader evidence orchestration과
    주변 sequencing은 제외
 3. bounded read-only reconciliation artifact-reference projection까지만 진행된 broader
    task/artifact ledger synchronization; artifact mutation과 whole-ledger sync는 제외
@@ -160,14 +160,19 @@ reconciliation의 세 call에서 direct-acceptance first rejection, ordered
 non-lookup filtering/unique-ambiguous fallback, first-hit/ratio-cell fallback과
 candidate/cell adoption은 유지됐고 focused 4/4, graph owner 162/162, operand
 owner 69/69, affected 1,122/1,122, reconciliation plan 51/51, import 19/19,
-audit 217, full 2,015/2,015가 통과했다. 다음 characterize-only inventory는
-graph의 정확한 161줄
-`_candidate_satisfies_direct_acceptance_contract(...)`만 같은 operand-
-resolution owner의 public API로 옮길 수 있는 후속으로 선택한다. Selected-
-cell construction, ratio acceptance, scoring/ranking/pairing, fallback/
-adoption과 state sequencing은 caller에 유지하며 네 CURRENT-SOURCE method와
-projected gate는 [Next Work](docs/overview/project_status.md#next-work)가
-단일 기준이다.
+audit 217, full 2,015/2,015가 통과했다. `6ebcf59`는 이어 정확한 161줄
+direct-acceptance predicate를 public
+`candidate_satisfies_direct_acceptance_contract(...)`로 옮겼다. 다섯 call의
+direct-then-ratio laziness, rejection stop, pair score/append, fallback과
+candidate/cell adoption은 유지됐고 focused 4/4, graph owner 166/166, operand
+owner 69/69, affected 1,126/1,126, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,019/2,019가 통과했다. 다음 characterize-only inventory는
+graph의 정확한 315줄 `_score_operand_candidate(...)` 전체를 같은 operand-
+resolution owner의 public API로 옮길 수 있는 후속으로 선택한다. 인접한
+report-file/local-unit I/O helper는 범위 밖이며 일곱 production call의
+ranking/adoption/stop은 caller에 유지한다. 네 CURRENT-SOURCE method와
+projected gate는 [Next Work](docs/overview/project_status.md#next-work)가 단일
+기준이다.
 
 ## 구현 원칙
 
