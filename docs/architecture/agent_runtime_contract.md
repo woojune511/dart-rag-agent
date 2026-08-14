@@ -553,7 +553,8 @@ project owner results, but it must delegate state-free operand resolution and
 formula execution to their owner modules.
 
 `financial_operand_resolution.py` owns state-free candidate matching, grounding,
-generic candidate selection, and merge behavior. Candidate selection must be
+generic candidate selection, location/entity subject scoring, and merge
+behavior. Candidate selection must be
 invariant to input order. If equally ranked candidates carry conflicting
 normalized values, the resolver must abstain instead of selecting whichever
 candidate arrived first. If tied candidates are value-equivalent, it may select
@@ -4372,63 +4373,86 @@ unverified. Candidate/year extraction, target-year policy, other scoring,
 matching/acceptance/ranking, adoption, retrieval, and graph/artifact/ledger
 state remain outside this owner.
 
-The new characterize-only candidate location/entity subject-score inventory
-selects the current 53-line
-`_candidate_location_entity_subject_score(candidate, *, operand) -> float`
-graph definition for a future public move to `financial_operand_resolution.py`
-as `candidate_location_entity_subject_score(...)`. No production source or
-test has moved for this projection at this checkpoint. It contributes only a
-bounded, policy-driven score over already supplied objects; candidate creation,
-admission, broader scoring/ranking, and adoption remain outside.
+Commit `23f08b2` moved the exact former 53-line candidate location/entity
+subject-score definition to public
+`financial_operand_resolution.candidate_location_entity_subject_score(...)`
+without changing its body. It still eagerly accesses and normalizes unit,
+operation, and role before gates; shallow-copies the candidate-scoring policy;
+accesses and stringifies subject then temporal patterns; and only then shallow-
+copies metadata. Five source parts remain eager and ordered with repeated raw
+truth/string/filter evaluation, one-space join, and one whole-surface
+normalization. Whitespace compaction and match-list materialization remain
+eager. Ordered subject extraction, blank-temporal classification, first non-
+temporal short circuit, branch-lazy bonus/penalty access, exact checked-in
+`2.0/-1.0`, and `TypeError`/`ValueError`-only numeric fallback remain exact.
+Every other mapping, truth, string, normalization, join, regex, match/group,
+iteration, identity, immutability, and uncaught-error behavior is unchanged.
 
-The projection must preserve eager unit-family, operation-family, and role
-access/normalization in that order, including operation/role access before a
-disqualifying nonblank non-`COUNT` unit return. Only exact supported operations
-or current/prior roles continue to policy access. It shallow-copies
-`OPERAND_CANDIDATE_SCORING_POLICY`, stringifies subject then temporal patterns,
-and accesses the temporal value before a falsey subject-pattern return. Only
-then does it shallow-copy candidate metadata.
+Its sole direct `AugAssign` remains owner-external/local 1/0 in
+`_score_operand_candidate(...)` at caller `try` depth zero, after numeric-signal
+scoring and before descriptor, statement, scope/period, source/table, and return
+work. Failure stops all later scoring and enclosing ranking/adoption. Source
+moved `+57/-56`, tests `+890/-23`, and the whole commit `+947/-79`; graph
+helpers finish at 5,478 lines and operand resolution at 3,750. The source diff
+SHA-256 is
+`4d1144206071e440dbb5815904ab2f30cc5d955c8938fb767ea3673a6e31f105`.
+Focused 4/4, owner 98/98, affected semantic 1,058/1,058, import 19/19, audit
+218, full 1,951/1,951, pycompile/fresh import/public identity 1/1, selected-body
+1/1, retained graph 98/98, retained operand owner 80/80, caller/body, full
+48-module DAG parity, retired executable graph-private refs zero, and diff
+check passed. Benchmark refresh was **NOT RUN** and remote CI remains
+unverified. Operand policy, candidate construction, other scoring, matching/
+acceptance/ranking, adoption, retrieval, and graph/artifact/ledger state remain
+outside this owner.
 
-The candidate text surface preserves eager retrieval of metadata `row_text`,
-`semantic_label`, `row_label`, `table_context`, then candidate `text`; repeated
-raw truth/string evaluation in filter and retained expressions; filter-only
-strip; one-space join; and one whole-surface normalization. Empty text returns
-`0.0`. Whitespace compaction remains one fixed `re.sub`, subject matches remain
-an eager `list(re.finditer(...))`, and no matches return `0.0`.
+The new characterize-only delta-like row-label inventory selects the current
+7-line `_is_delta_like_row_label(label: str) -> bool` graph definition for a
+future public move to `financial_row_surfaces.py` as
+`is_delta_like_row_label(...)`. No production source or test has moved for this
+projection at this checkpoint. It classifies one already prepared label and
+does not own candidate construction, period-focus derivation, acceptance,
+broader score/rank, adoption, retrieval, or graph state.
 
-Each match preserves ordered `groupdict().get("subject")`, raw `or`, and string
-projection. Blank subjects classify temporal without regex; truthy subjects
-require both a truthy temporal pattern and `re.search(...)`. `any(...)` stops
-at the first non-temporal subject. That path lazily accesses and converts only
-`location_entity_subject_bonus`; the all-temporal path accesses only
-`location_entity_context_penalty`. Each keeps `float(value or 0.0)` and only
-the existing `TypeError`/`ValueError` catch returning `0.0`. The checked-in
-policy's exact contributions remain `2.0/-1.0`; all other mapping, truth,
-string, normalization, join, regex, match/group, iteration, identity,
-immutability, and uncaught-error behavior remains exact.
+The projection must preserve raw `label or ""` truth, one selected-value string
+conversion, and one `_normalise_spaces(...)` call. A falsey normalized result
+returns exact `False` before policy access. Only then does it shallow-copy
+`OPERAND_CANDIDATE_SCORING_POLICY`, access `delta_row_markers`, apply raw
+`or ()`, and eagerly build a tuple. The filter and retained expression keep
+their separate `str(item)` calls, so retained markers stringify twice and blank
+markers once. All markers are consumed before ordered `token in text`
+membership begins; `any(...)` stops at the first hit and returns its exact
+boolean. Checked-in increase/decrease/change markers classify true, while
+ordinary labels and blanks classify false. Policy/input immutability, nested
+identity, and all label, normalization, mapping, truth, iteration, string,
+tuple, membership, and `any(...)` errors remain exact and uncaught.
 
-The sole direct call is an `AugAssign` in `_score_operand_candidate(...)` at
-caller `try` depth zero, with original candidate positional and original
-operand keyword. It remains after numeric-signal scoring and before descriptor,
-statement, scope/period, source/table, and return work. Failure stops every
-later contribution and enclosing ranking/adoption. The operand owner already
-imports every dependency, graph reaches it, and it does not reach graph; the
-full agent DAG remains unchanged. Projected counts are graph helpers 9/89 and
-operand resolution 44/37; the call finishes external/local 1/0 and the selected
-span has zero reviewed runtime-domain records.
+Three direct `ast.Name` calls remain positional with no keywords and caller
+`try` depth zero. Direct grounding calls with prepared `semantic_label` only
+under current/prior focus before segment/report/target-period work; a hit
+rejects. Its second call with `row_text` occurs only for lookup/single-value
+table rows, after structured-sibling rejection; a falsey row text skips it and
+a hit rejects. Operand scoring calls with exact left-to-right
+`semantic_label or row_label` under current/prior focus; a hit subtracts `4.0`
+and scoring continues. Every uncaught failure stops later caller work and
+enclosing adoption.
 
-Moving operand policy, candidate construction, concept/direct matching, other
-scoring, direct/ratio acceptance, broader ranking, candidate/evidence adoption,
+The row owner already imports normalization and the policy module, graph
+reaches it, and it does not reach graph, so the full DAG remains unchanged.
+Projected counts are graph helpers 9/88 and row surfaces 10/15; calls finish
+external/local 3/0 and the selected span has zero reviewed runtime-domain
+records. Moving period-focus policy, candidate construction, concept/direct
+matching, acceptance, broader scoring/ranking, candidate/evidence adoption,
 retrieval, or graph/artifact/ledger state is rejected. Four named CURRENT-
 SOURCE methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 98/98, affected semantic 1,058/1,058, import
-19/19, audit 218, full 1,951/1,951, pycompile/fresh import/public identity 1/1,
-selected-body 1/1, retained graph 98/98, retained operand owner 80/80, sole
-caller/body, full 48-module DAG parity, retired executable graph-private refs
-zero, and diff check. Static definition/call/DAG/function-count and selected-
-body baseline inventory, direct behavior probes 5/5, and four existing scorer/
-caller probes passed; benchmark refresh and remote CI were **NOT RUN**.
+gates are focused 4/4, owner 102/102, affected semantic 1,062/1,062, import
+19/19, audit 218, full 1,955/1,955, pycompile/fresh import/public identity 1/1,
+selected-body 1/1, retained graph 97/97, retained row owner 24/24, all three
+callers/two caller bodies, full 48-module DAG parity, retired executable graph-
+private refs zero, and diff check. Static definition/call/DAG/function-count
+and selected-body baseline inventory, direct behavior probes 5/5, and four
+existing grounding/scorer caller probes passed; benchmark refresh and remote
+CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

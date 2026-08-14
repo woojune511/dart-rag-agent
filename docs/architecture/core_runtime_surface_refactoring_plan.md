@@ -191,7 +191,7 @@ Current ownership is intentionally split by state boundary:
 | Surface | Owner | Stop line |
 | --- | --- | --- |
 | Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
-| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, lookup-hint projection/matching, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, lookup-hint projection/matching, candidate location/entity subject scoring, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
@@ -871,33 +871,48 @@ Candidate/year extraction, target-year policy, source/report/other scoring,
 matching/admission/acceptance, broader ranking/adoption, retrieval, and graph/
 artifact/ledger state remain hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 53-line `_candidate_location_entity_subject_score(...)` definition
-from graph helpers to public `candidate_location_entity_subject_score(...)` in
-`financial_operand_resolution.py`. Its sole direct `AugAssign` call remains in
-`_score_operand_candidate(...)` at caller `try` depth zero, after numeric-signal
-scoring and before descriptor/statement/scope/period/source/table scoring and
-return. The operand owner already imports regex, normalization, the candidate-
-scoring policy, and required types; graph reaches it and it does not reach graph
-helpers, so the full agent-module DAG remains unchanged. Projected function
-counts are graph helpers 9/89 and operand resolution 44/37; the call finishes
-owner-external/local 1/0 and the selected span contains zero of 218 reviewed
-domain records.
+The completed `23f08b2` follow-on moved the exact former 53-line candidate
+location/entity subject-score projection from graph helpers to public
+`candidate_location_entity_subject_score(...)` in
+`financial_operand_resolution.py`. Its sole direct `AugAssign` remains owner-
+external/local 1/0 in `_score_operand_candidate(...)`, after numeric-signal and
+before descriptor/statement/scope/period/source/table work. Source is `+57/-56`,
+tests `+890/-23`, and the whole commit `+947/-79`; graph helpers moved from
+5,532 to 5,478 lines and operand resolution from 3,695 to 3,750. Focused 4/4,
+owner 98/98, affected semantic 1,058/1,058, import 19/19, audit 218, full
+1,951/1,951, pycompile/fresh import/public identity, body/retained/caller/full
+48-module DAG parity, retired executable private refs zero, and diff check
+passed. The source diff SHA-256 is
+`4d1144206071e440dbb5815904ab2f30cc5d955c8938fb767ea3673a6e31f105`.
+Operand policy, candidate construction, other scoring, matching/acceptance/
+ranking, adoption, retrieval, and graph/artifact/ledger state remain hard stops.
 
-Moving operand policy, candidate construction, concept/direct matching,
-descriptor/statement/scope/period/source/table or other scoring, direct/ratio
-acceptance, broader ranking, candidate/evidence adoption, retrieval, or plan/
-state/artifact/ledger mutation is rejected. Exact operand gate order, policy
-and metadata copies, five-part repeated surface projection, normalization,
-regex/match materialization, temporal classification, first non-temporal short
-circuit, lazy bonus/penalty access, selective numeric fallback, identities,
-exception stops, four required CURRENT-SOURCE methods, and projected focused
-4/4, owner 98/98, affected semantic 1,058/1,058, import 19/19, audit 218, and
-full 1,951/1,951 gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 7-line `_is_delta_like_row_label(label: str) -> bool` definition from
+graph helpers to public `is_delta_like_row_label(...)` in
+`financial_row_surfaces.py`. Its three direct `ast.Name` calls remain at caller
+`try` depth zero: two in direct grounding over prepared `semantic_label` and
+`row_text`, and one in operand scoring over `semantic_label or row_label`.
+Direct-grounding hits reject; the scorer hit subtracts `4.0` and continues.
+
+The row owner already imports normalization and the retrieval-policy module;
+adding the candidate-scoring policy name adds no module edge. Graph reaches the
+row owner and the owner does not reach graph. Projected function counts are
+graph helpers 9/88 and row surfaces 10/15; calls finish owner-external/local
+3/0 and the selected span contains zero of 218 reviewed domain records.
+
+Moving period-focus derivation, candidate construction, concept/direct matching,
+acceptance, broader scoring/ranking, candidate/evidence adoption, retrieval, or
+plan/state/artifact/ledger mutation is rejected. Exact raw label truth/string
+and normalization, blank stop, policy copy and marker fallback, eager marker
+tuple, repeated marker strings, policy-order membership and first-hit result,
+identities, immutability, exception stops, four required CURRENT-SOURCE methods,
+and projected focused 4/4, owner 102/102, affected semantic 1,062/1,062, import
+19/19, audit 218, and full 1,955/1,955 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this candidate location/entity subject-score
-projection at the characterization checkpoint; it is the sole next priority,
-and this plan maintains no competing queue.
+or test movement has occurred for this delta-like row-label projection at the
+characterization checkpoint; it is the sole next priority, and this plan
+maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

@@ -5008,3 +5008,84 @@ The characterization establishes no implementation or quality improvement.
 Static definition/call/DAG/function-count and selected-body baseline inspection,
 direct behavior probes 5/5, and four existing scorer/caller probes passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Candidate location/entity subject-score ownership milestone
+
+- Commit `23f08b2` moved the exact former 53-line
+  `_candidate_location_entity_subject_score(candidate, *, operand) -> float`
+  definition from `financial_graph_helpers.py` to public
+  `financial_operand_resolution.candidate_location_entity_subject_score(...)`.
+  Its sole direct `AugAssign` remains graph-external/owner-local 1/0 in
+  `_score_operand_candidate(...)` at caller `try` depth zero, after numeric-
+  signal scoring and before descriptor/statement/scope/period/source/table work.
+- Exact unit/operation/role access and gates, policy/metadata shallow copies,
+  subject/temporal access, eager five-part surface retrieval, repeated truth/
+  string/filter evaluation, joined normalization, regex compaction and eager
+  match list, ordered subject classification, first non-temporal stop, branch-
+  lazy bonus/penalty, exact `2.0/-1.0`, selective `TypeError`/`ValueError`
+  fallback, identities, immutability, and every other uncaught error remain
+  pinned by four CURRENT-SOURCE methods.
+- Source is `+57/-56`, net `+1`: graph helpers are `+2/-56` and move from
+  5,532 to 5,478 physical lines; operand resolution is `+55/-0` and moves from
+  3,695 to 3,750. Tests are `+890/-23`, net `+867`, moving graph-helper tests
+  from 20,784 to 21,651 while the operand-resolution test file stays at 7,535
+  lines. The whole commit is `+947/-79`, net `+868`, and four new methods move
+  full discovery from 1,947 to 1,951. Graph helper public/private counts finish
+  9/89 and operand-resolution counts finish 44/37. The source diff SHA-256 is
+  `4d1144206071e440dbb5815904ab2f30cc5d955c8938fb767ea3673a6e31f105`.
+- Focused 4/4, graph-helper owner 98/98, affected eleven-module semantic
+  1,058/1,058, import-side-effects 19/19, runtime-domain audit 218, and full
+  discovery 1,951/1,951 passed. Pycompile 4/4, fresh import 2/2, public identity
+  1/1, selected-body parity 1/1, retained graph 98/98, retained operand owner
+  80/80, sole caller expression/body, full 48-module DAG parity, zero selected-
+  body audit hits, zero retired executable private refs, and diff check also
+  passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only candidate location/entity subject-score ownership.
+Operand policy, candidate/evidence construction, all other score/rank work,
+matching/admission/acceptance, adoption, retrieval, graph state, model
+invocation, artifact/ledger mutation, retry assembly, and final sequencing
+remain outside. It proves no behavior, accuracy, ranking, performance, total-
+code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+### Delta-like row-label characterization checkpoint
+
+- A docs-only inventory selects the exact current 7-line
+  `_is_delta_like_row_label(label: str) -> bool` definition in
+  `financial_graph_helpers.py`. Its three direct `ast.Name` calls are
+  positional with no keywords and caller `try` depth zero. No production source
+  or test moves for this projection at this checkpoint.
+- The selected follow-on moves it as public `is_delta_like_row_label(...)` in
+  `financial_row_surfaces.py`. Current/projected public/private counts are graph
+  helpers 9/89 to 9/88 and row surfaces 9/15 to 10/15. Graph already reaches the
+  row owner, the owner does not reach graph, and the owner already imports
+  normalization and the retrieval-policy module, so the full agent DAG remains
+  unchanged. Calls project external/local 3/0 and the selected span contains
+  zero of the 218 reviewed runtime-domain records.
+- The projection preserves raw `label or ""` truth, one selected-value string,
+  one normalization, falsey-text return before policy, policy shallow copy,
+  raw falsey marker fallback, eager marker tuple, filter/expression repeated
+  stringification, policy-order membership, first-hit `any(...)`, checked-in
+  true/false examples, nested identity, immutability, and all current uncaught
+  label/normalization/mapping/truth/iteration/string/tuple/membership errors.
+- Direct grounding calls first with prepared `semantic_label` under current/
+  prior focus before segment/report/target-period gates, and later with truthy
+  `row_text` only for lookup/single-value table rows after structured-sibling
+  rejection; either hit rejects. Operand scoring calls with exact left-to-right
+  `semantic_label or row_label`; a hit subtracts `4.0` and continues. Failures
+  stop all later caller work and enclosing adoption.
+- Moving period-focus policy, candidate construction, concept/direct matching,
+  acceptance, broader scoring/ranking, evidence adoption, retrieval, or graph/
+  artifact/ledger state is rejected. Four named CURRENT-SOURCE methods and
+  projected focused 4/4, owner 102/102, affected semantic 1,062/1,062, import
+  19/19, audit 218, full 1,955/1,955, public identity 1/1, selected body 1/1,
+  retained graph 97/97, retained row owner 24/24, all three callers/two caller
+  bodies, full 48-module DAG parity, retired-ref zero, and diff check are
+  maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The characterization establishes no implementation or quality improvement.
+Static definition/call/DAG/function-count and selected-body baseline inspection,
+direct behavior probes 5/5, and four existing grounding/scorer caller probes
+passed; benchmark refresh and remote CI were **NOT RUN**.
