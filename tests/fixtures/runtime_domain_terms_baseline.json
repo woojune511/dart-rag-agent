@@ -458,13 +458,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "20\\d{2}(?:년)?",
       "category": "regex_or_pattern",
-      "fingerprint": "83911fa4e645ea8f",
+      "fingerprint": "280021759b03082c",
       "count": 1,
       "first_lines": [
-        6718
+        341
       ]
     },
     {

@@ -85,7 +85,6 @@ from src.agent.financial_surface_contracts import (
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
     _format_structured_candidate_row_text,
-    _generic_column_headers,
     _operand_text_match,
     _parse_unstructured_table_row_cells,
     _strip_financial_label_annotations,
@@ -98,6 +97,7 @@ from src.agent.financial_row_surfaces import (
     candidate_sibling_surface_hit_count,
     candidate_supports_segment_metric_combo,
     candidate_value_role,
+    column_candidate_label,
     is_delta_like_row_label,
     table_row_has_matching_structured_sibling,
 )
@@ -3653,18 +3653,6 @@ def _build_table_value_reconciliation_candidates(
     return candidates
 
 
-def _column_candidate_label(column_headers: List[str]) -> str:
-    cleaned = [_normalise_spaces(header) for header in column_headers if _normalise_spaces(header)]
-    if not cleaned:
-        return ""
-    generic_headers = _generic_column_headers()
-    filtered = [header for header in cleaned if header not in generic_headers]
-    target = filtered[-1] if filtered else cleaned[-1]
-    if re.fullmatch(r"20\d{2}(?:년)?", target):
-        return ""
-    return target
-
-
 def _build_table_column_reconciliation_candidates(
     *,
     candidate_id_prefix: str,
@@ -3697,7 +3685,7 @@ def _build_table_column_reconciliation_candidates(
                 for item in (cell.get("column_headers") or [])
                 if _normalise_spaces(str(item))
             ]
-            label = _column_candidate_label(original_headers)
+            label = column_candidate_label(original_headers)
             if not label:
                 continue
             key = tuple(original_headers) or (label,)
