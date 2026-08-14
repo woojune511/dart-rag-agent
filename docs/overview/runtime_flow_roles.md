@@ -299,7 +299,7 @@ State-free owner topology:
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, single-report-scope classification, public query/task and generic operand target-year/period-focus policy, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring |
-| `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
+| `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate concept-conflict, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
 | `financial_row_surfaces.py` | row/table text matching and parsing, column-candidate and delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
@@ -764,15 +764,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   parity가 통과했다. Company/year alignment, report inventory/selection,
   candidate/evidence construction, file I/O와 state/evidence/ledger는 graph
   또는 기존 owner에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 27줄 candidate
-  concept-conflict predicate를 선택했다. Inline exclusive-surface marker를
-  retrieval policy constant로 먼저 분류한 뒤
-  `financial_surface_contracts.py`의 public API로 옮긴다. 세 call은
+- 완료된 `4c8c89c` candidate-concept-conflict batch는 두 inline marker를
+  retrieval policy의 단일 constant로 분류하고 graph helper의 정확한 27줄
+  predicate를 `financial_surface_contracts.py`의 public API로 옮겼다. 세 call은
   candidate matching/direct strength/scoring에서 external 3/local 0으로
-  수렴하고 projected graph/surface public/private는 9/84와 11/7이다. 아직
-  source/test 이동은 없으며 marker와 negative/positive/text precedence,
-  caller gate/return/stop, 네 CURRENT-SOURCE method와 projected gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+  수렴했다. Graph/surface public/private는 9/84와 11/7이다. Focused 4/4,
+  owner 118/118, semantic 1,078/1,078, import 19/19, audit 217, full
+  1,971/1,971과 pycompile/fresh import/public identity, policy-normalized body,
+  caller/DAG parity가 통과했다. Marker grouped record가 runtime에서 제거되어
+  reviewed baseline은 218에서 217로 줄었다. Other matching, scoring,
+  acceptance, construction/adoption과 state/evidence/ledger는 graph 또는 기존
+  owner에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 17줄
+  contextual-aggregate preference predicate를 선택했다. Binding-policy
+  value-role/stage와 positive surface-contract만 판정하는 generic helper를
+  `financial_surface_contracts.py`의 public API로 옮긴다. 세 call은 source
+  priority, candidate matching, direct strength에서 external 3/local 0으로
+  수렴하고 projected graph/surface public/private는 9/83과 12/7이다. 아직
+  source/test 이동은 없으며 copy/stringification/normalization, role-stage-
+  contract precedence, caller gate/branch/stop, 네 CURRENT-SOURCE method와
+  projected gate는 [Project Status의 Next Work](project_status.md#next-work)가
+  단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

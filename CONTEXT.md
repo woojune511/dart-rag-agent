@@ -21,11 +21,11 @@ Last updated: 2026-08-14
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `471f6a5` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `4c8c89c` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus와 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
-| Phase 3 | OPEN; query/task/operand period-focus, single-report-scope, candidate period/table coherence와 location/entity subject score, deterministic positional preference bonus, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus와 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict, location/entity subject score, deterministic positional preference bonus, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -95,16 +95,16 @@ coherence projection을 `financial_scope_policies.py`의 public API로 이동했
 `financial_row_surfaces.py`의 public API로 이동했다. 이 이동에서 audit이
 기존 year-regex record의 경로 변경을 감지해 같은 literal의 reviewed
 baseline 경로·fingerprint·line만 교정했고 전체 218개는 불변이다.
-`471f6a5`는 정확한 8줄 single-report-scope predicate를
-`financial_scope_policies.py`의 public API로 이동했다. Receipt-number fast
-path, shallow-copy/cardinality/exception boundary와 유일 caller의
-gate/order/adoption/stop은 그대로이고, 48-module/203-edge DAG와 218개
-reviewed baseline도 불변이다. 새 characterize-only inventory는 정확한
-27줄 candidate concept-conflict predicate를 선택했다. 두 inline 금융 marker는
-먼저 retrieval policy의 declarative constant로 분류하고 runtime은 generic
-exclusive-surface marker만 소비한 뒤, 구현을
-`financial_surface_contracts.py`의 public API로 이동한다. 세 caller의
-gate/return/stop, contract negative/positive/text precedence와 projected gate는
+`4c8c89c`는 두 inline candidate concept-conflict marker를 retrieval policy의
+단일 declarative constant로 분류하고 정확한 27줄 predicate를
+`financial_surface_contracts.py`의 public API로 이동했다. 세 caller의
+gate/return/stop, contract negative/positive/text precedence와
+48-module/203-edge DAG는 그대로다. Inline marker 한 grouped record가 runtime
+scan에서 사라져 reviewed baseline은 218에서 217로 줄었고 audit와 exact-count
+contract를 함께 갱신했다. 새 characterize-only inventory는 정확한 17줄
+contextual-aggregate preference predicate만 같은 surface owner로 이동하는
+후속을 선택했다. Binding-policy role/stage/positive-contract precedence와 세
+caller gate/branch/stop, 네 CURRENT-SOURCE method와 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

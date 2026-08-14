@@ -4596,59 +4596,85 @@ ref zero, and diff check. Static inventory, direct behavior probes 6/6, and
 caller gate/order/adoption probes 3/3 passed; benchmark refresh and remote CI
 were **NOT RUN**.
 
-The active candidate-concept-conflict contract is characterized for the next
-bounded policy-and-owner batch. The checked-in exclusive marker currently
-appears twice inline in the 27-line graph helper. Before relocation, that exact
-value must become declarative
-`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in
-`src/config/retrieval_policy.py`; runtime code may consume the marker through a
-generic identifier but may not retain an inline financial term or add a new
-marker family. The implementation then moves without a graph alias to public
+Commit `4c8c89c` completed the candidate-concept-conflict contract, now owned by
 `financial_surface_contracts.candidate_conflicts_with_operand_concept(...)`.
+The exact exclusive marker is declarative
+`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in retrieval policy; runtime
+consumes it only through a generic identifier and contains no inline financial
+marker or added marker family.
 
-Operand needles are projected before any candidate work. The owner calls
-`_operand_needles(operand)` once, eagerly filters through
-`_normalise_spaces(...)`, and repeats normalization only for retained entries;
-the exact second results form the fresh ordered list. Ordered membership of the
-exact policy marker then determines whether the operand already expects that
-exclusive surface. Marker normalization, alias expansion, or ontology lookup
-at this point is not permitted.
+Operand needles remain prepared before candidate work with dropped-once and
+retained-twice normalization. Candidate metadata remains one shallow copy and
+authoritative surfaces remain semantic label, row label, aggregate label,
+joined aliases, then joined headers. The special marker gate remains before one
+surface-contract lookup and excludes candidate free text. A truthy contract
+still scans authoritative negative surfaces before positive surfaces and uses
+candidate text only as the final negative fallback. All input, normalization,
+mapping, truth, string, membership, contract, helper, and returned-result
+failures remain uncaught.
 
-Candidate metadata is obtained by exact get/raw-or and one shallow `dict`
-copy. Authoritative surfaces are prepared in fixed order: semantic label, row
-label, aggregate label, joined semantic aliases, joined row headers. Scalar
-get/or/string/strip ordering, eager alias/header iteration, dropped-once and
-retained-twice string/strip behavior, second-result retention, raw surface
-truth filtering, nested identities, and input immutability are normative.
+Three graph calls remain positional exact `candidate, operand`, with no
+keywords, caller `try` depth zero, and immediate `If` parents. Conflict truth
+returns `False` from candidate matching, `0.0` from direct strength, and
+`-10.0` from scoring after that caller's metadata copy. Final counts are graph
+9/84 and surface owner 11/7; the 48-module/203-edge DAG is unchanged. Four
+CURRENT-SOURCE methods pin the contract. Executed gates are focused 4/4, owner
+118/118, affected semantic 1,078/1,078, import 19/19, audit 217, and full
+1,971/1,971, plus public identity, policy-normalized body, retained functions,
+callers, DAG parity, retired-ref zero, and diff check. The removed marker formed
+one grouped reviewed record, so the exact audit baseline moved from 218 to 217.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-When the operand does not expect the marker, the first authoritative candidate
-surface containing it after one normalization returns exact `True` before any
-surface-contract lookup. An operand that expects the marker skips only this
-special conflict gate. Candidate free text is not eligible for that marker
-gate. Next, one `_operand_surface_contract(operand)` call controls the generic
-contract path: a falsey contract returns exact `False`; authoritative negative
-support is scanned first and wins with `True`; only a complete negative miss
-allows ordered positive support to return `False`; only both misses reach one
-final `_text_has_negative_surface(str(candidate.get("text") or ""), operand)`
-call, whose exact result is returned. Candidate text receives neither positive
-support nor exclusive-marker matching.
+The active contextual-aggregate-preference contract is characterized for the
+next bounded owner batch. Move the exact current 17-line
+`_operand_prefers_contextual_aggregate_match(operand)` graph definition without
+a graph alias to public
+`financial_surface_contracts.operand_prefers_contextual_aggregate_match(...)`.
+It is a generic binding-policy and surface-contract predicate, not candidate
+context construction or scoring.
 
-No exception boundary is added. All operand, normalization, marker membership,
-candidate/metadata mapping, truth, dictionary-copy, string/strip/join,
-authoritative-surface, contract, positive/negative helper, candidate-text, and
-returned-result failures remain uncaught. The complete required test names,
-failure ordering, static counts, stop lines, and projected gates are governed
-only by [Project Status Next Work](../overview/project_status.md#next-work).
+The owner must evaluate exact `operand.get("binding_policy")`, raw `or {}`, and
+one `dict(...)` shallow copy. A truthy raw mapping goes directly to `dict`; a
+falsey value selects the fresh empty literal first. The copy is fresh, nested
+identities are retained, and the input remains unmodified.
 
-Three direct calls remain positional exact `candidate, operand`, without
-keywords and at caller `try` depth zero. Conflict truth returns `False` from
-`_candidate_matches_operand(...)` before its later preparation, returns `0.0`
-from `_candidate_direct_match_strength(...)` before strength work, and returns
-`-10.0` from `_score_operand_candidate(...)` after that caller's metadata copy
-but before score initialization. Helper/truth failures stop all later caller
-work. Other matching, scoring, acceptance, candidate/evidence construction,
-adoption, report-file I/O, retrieval, graph state, artifact/ledger mutation,
-retry, and final sequencing remain outside the contract.
+Preferred value roles are materialized before preferred aggregation stages.
+Each source uses exact mapping `.get(...) or []` and eager ordered iteration.
+Each raw item first executes `str(item).strip()` in the filter. A blank item is
+dropped after one string/strip path. A retained item is stringified again and
+the exact second string enters one `_normalise_spaces(...)` call; that result is
+retained even when falsey. List order, duplicates, eager completion, and the
+separate filter/expression evaluations are normative.
+
+Only after both lists are complete may exact `"aggregate"` list membership
+return `False` on a miss. A hit enables ordered
+`any(stage in {"final", "subtotal", "direct"} ...)`; the first stage hit stops
+the scan and a complete miss returns `False`. These are exact, case-sensitive
+runtime schema values and receive no alias or normalization expansion. Both
+gates must pass before one `_operand_surface_contract(operand)` call with the
+original operand identity. The owner then calls `.get("positive")` directly on
+the exact returned contract, applies `bool(...)` once, and returns that boolean.
+It does not copy the contract, add a fallback, inspect negative terms, or infer
+support from candidate text.
+
+No exception boundary is added. Operand/mapping access and truth, dictionary
+copy, iterable access, iteration, string/strip, normalization, list membership
+and equality, stage membership, `any`, contract call/get, and final truth
+failures remain uncaught. The complete required test names, exact failure
+ordering, static counts, stop lines, and projected gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+Three direct calls remain positional exact `operand`, without keywords, at
+caller `try` depth zero and immediate `If` parents. Source-priority scoring
+keeps the gate after balance-sheet/capex work and before note-aggregate work;
+candidate matching keeps it after capex and before structured/free-text
+fallback; direct strength keeps it after capex and before aggregate-signal
+scoring. Truth enters only each existing contextual branch; falsehood skips the
+branch and continues. Helper or result-truth failures stop all later caller
+work. Candidate context, positive-surface matching, value-role/stage projection,
+domain-qualified predicates, other scoring/matching, candidate/evidence work,
+I/O, retrieval, graph state, artifact/ledger mutation, retry, and final
+sequencing remain outside this contract.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

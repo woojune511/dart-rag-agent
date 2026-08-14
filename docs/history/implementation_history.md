@@ -5445,3 +5445,91 @@ No production source or test moved for this characterization. Static
 definition/call/DAG/function-count and selected-body baseline inspection,
 direct behavior probes 8/8, and caller gate/order/return probes 3/3 passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Candidate-concept-conflict ownership milestone
+
+- Commit `4c8c89c` declares exact
+  `CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER = "부채"` in retrieval policy and
+  moves the former 27-line graph predicate to public
+  `financial_surface_contracts.candidate_conflicts_with_operand_concept(...)`.
+  The old private definition and every executable private reference are gone;
+  no graph alias or compatibility bridge was added.
+- Repeated operand normalization, ordered semantic/row/aggregate/alias/header
+  surface construction, shallow-copy identity, special-marker precedence and
+  candidate-text exclusion, negative-before-positive-before-text fallback,
+  exact returns, uncaught failures, input immutability, and caller stops remain
+  pinned by four CURRENT-SOURCE methods.
+- The three calls finish graph-external/owner-local 3/0, positional exact
+  `candidate, operand`, with no keywords, caller `try` depth zero, and immediate
+  `If` parents. Candidate matching still returns `False`, direct strength still
+  returns `0.0`, and scoring still returns `-10.0` after its metadata copy when
+  the conflict gate is truthy.
+- Production source is `+36/-32`, net `+4`: graph helpers are `+4/-32` and move
+  from 5,440 to 5,412 lines; surface contracts are `+30/-0` and move from 396
+  to 426; retrieval policy is `+2/-0`. Tests plus fixture are `+1,004/-118`,
+  net `+886`; graph-helper tests are `+962/-65`, net `+897`, and move from
+  24,407 to 25,304 lines. The whole commit is `+1,040/-150`, net `+890`, and
+  four methods move discovery from 1,967 to 1,971. Final public/private counts
+  are graph 9/84 and surface owner 11/7. The source diff SHA-256 is
+  `bf99e85d3326af212d057d1f6f6fff175768e71149fe44fdb6ae7e865a7b017a`.
+- The runtime audit corrected the characterization's stale line-derived zero-
+  hit claim. The two inline marker occurrences formed one grouped graph-path
+  record; moving their only literal to excluded config reduces the reviewed
+  baseline from 218 to 217. The fixture and every exact-count contract were
+  updated without weakening comparison behavior.
+- Focused 4/4, graph-helper owner 118/118, affected eleven-module semantic
+  1,078/1,078, import-side-effects 19/19, runtime-domain audit 217, and full
+  discovery 1,971/1,971 passed. Pycompile, fresh import/public identity,
+  policy-normalized target body, retained graph exact 90/93 and normalized
+  93/93, retained surface owner 17/17, all three callers, full
+  48-module/203-edge DAG parity, zero retired private refs, non-ASCII diff audit,
+  and diff check also passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only deterministic candidate concept-conflict ownership
+and vocabulary placement. Other matching, acceptance, scoring/ranking,
+candidate/evidence construction or adoption, report-file I/O, retrieval, graph
+state, model invocation, artifact/ledger mutation, retry, and final sequencing
+remain outside. It proves no behavior, accuracy, ranking, performance,
+executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+### Contextual-aggregate-preference characterization checkpoint
+
+- A docs-only inventory selects the current exact 17-line
+  `_operand_prefers_contextual_aggregate_match(operand)` graph definition for a
+  future public move to
+  `financial_surface_contracts.operand_prefers_contextual_aggregate_match(...)`.
+  No production source or test moved for this projection.
+- The function owns only one binding-policy shallow copy, eager preferred value-
+  role and aggregation-stage list preparation, exact `aggregate` and
+  `final`/`subtotal`/`direct` gates, and one positive surface-contract truth
+  result. The surface owner already contains normalization and contract
+  dependencies. Graph reaches it, it does not reach graph, and the full
+  48-module/203-edge DAG remains unchanged.
+- Current/projected public/private counts are graph 9/84 to 9/83 and surface
+  owner 11/7 to 12/7. Three direct calls project external/local 3/0, each with
+  exact positional `operand`, no keywords, caller `try` depth zero, and
+  immediate `If` parent. Their source-priority, candidate-match, and direct-
+  strength branches remain caller-owned.
+- The projection preserves get/or/copy ordering, dropped-once and retained-
+  twice stringification/strip behavior, one normalization per retained item,
+  eager list order and duplicates, role-before-stage-before-contract
+  precedence, exact case-sensitive membership, original operand identity at the
+  contract call, final boolean return, nested identities, input immutability,
+  and all uncaught failures.
+- Moving caller branches, candidate context, positive-surface matching,
+  value-role/stage projection, domain-qualified balance-sheet/capex/note
+  predicates, source-priority scoring, other matching/direct-strength work,
+  candidate/evidence construction or adoption, I/O, retrieval, or graph/
+  artifact/ledger state is rejected.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, owner 122/122,
+  affected semantic 1,082/1,082, import 19/19, audit 217, full 1,975/1,975,
+  public identity/body parity, retained graph 92/92, retained surface owner
+  18/18, all callers, full DAG parity, retired-ref zero, and diff check are
+  governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/call/DAG/function-count and selected-body audit inspection,
+direct behavior probes 8/8, and caller gate/argument probes 3/3 passed.
+Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
+behavior, quality, performance, benchmark, schedule, or completion claim.

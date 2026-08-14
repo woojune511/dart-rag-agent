@@ -962,32 +962,52 @@ The source diff SHA-256 is
 Company/year alignment, report inventory/selection, candidate/evidence work,
 report-file I/O, retrieval, and graph/artifact/ledger state remain hard stops.
 
-The new characterize-only inventory selects one follow-on: classify the exact
-inline candidate concept-conflict marker as declarative
-`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in retrieval policy, then move
-only the current 27-line `_candidate_conflicts_with_operand_concept(...)`
-definition to public `candidate_conflicts_with_operand_concept(...)` in
-`financial_surface_contracts.py`. The owner already contains every state-free
-dependency; graph already reaches it and it does not reach graph. All three
-calls remain positional `candidate, operand`, owner-external/local 3/0, at
-caller `try` depth zero and immediate `If` parents. The full
-48-module/203-edge DAG remains unchanged; projected function counts are graph
-helpers 9/84 and surface contracts 11/7, and the selected span contains zero of
-218 reviewed records.
+The completed `4c8c89c` follow-on classified the exact inline candidate
+concept-conflict marker as declarative
+`CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER` in retrieval policy and moved the
+former 27-line graph helper to public
+`candidate_conflicts_with_operand_concept(...)` in
+`financial_surface_contracts.py`. All three calls remain positional exact
+`candidate, operand`, owner-external/local 3/0, at caller `try` depth zero and
+immediate `If` parents. Marker precedence, ordered authoritative surfaces,
+negative/positive/text fallback, shallow-copy identity, uncaught failures, and
+caller returns/stops remain pinned by four CURRENT-SOURCE methods. Source is
+`+36/-32`; tests plus fixture are `+1,004/-118`; the whole commit is
+`+1,040/-150`. Graph helpers move from 5,440 to 5,412 lines and surface
+contracts from 396 to 426. Focused 4/4, owner 118/118, affected semantic
+1,078/1,078, import 19/19, audit 217, full 1,971/1,971, pycompile/fresh
+identity, policy-normalized body, retained-function/caller/full DAG parity,
+retired private refs zero, and diff check passed. The removed inline marker was
+one grouped reviewed record, so the exact baseline correctly moves from 218 to
+217 rather than retaining a synthetic runtime literal. Benchmark refresh and
+remote CI were **NOT RUN**.
 
-Moving other matching, direct/ratio acceptance, score/rank, candidate/evidence
-construction or adoption, report-file I/O, retrieval, or plan/state/artifact/
-ledger work is rejected. The balance-sheet/capex/source-priority cluster still
-requires separate policy classification; the candidate builder would still
-create a cycle, the year helper reads graph state, and the unit-hint cluster
-performs local file I/O. Exact marker classification, repeated operand and
-authoritative-surface preparation, negative/positive/text precedence, three
-caller returns/stops, four required CURRENT-SOURCE methods, and projected
-focused 4/4, owner 118/118, affected semantic 1,078/1,078, import 19/19, audit
-218, and full 1,971/1,971 gates are defined only in
+The new characterize-only inventory selects one follow-on: move only the
+current 17-line `_operand_prefers_contextual_aggregate_match(...)` definition
+to public `operand_prefers_contextual_aggregate_match(...)` in
+`financial_surface_contracts.py`. This generic predicate copies one supplied
+binding policy, prepares preferred value-role and aggregation-stage lists, and
+returns whether the operand's positive surface contract authorizes the
+callers' existing contextual aggregate branches. The owner already contains
+both state-free dependencies; graph reaches it and it does not reach graph.
+All three calls remain positional exact `operand`, owner-external/local 3/0,
+at caller `try` depth zero and immediate `If` parents. The full
+48-module/203-edge DAG remains unchanged; projected function counts are graph
+helpers 9/83 and surface contracts 12/7, and the selected span contains zero of
+217 reviewed records.
+
+Moving caller branches, candidate-context construction, positive-surface
+matching, value-role/stage projection, balance-sheet/capex/note predicates,
+source-priority scoring, other matching/direct-strength work, candidate/
+evidence construction or adoption, report-file I/O, retrieval, or plan/state/
+artifact/ledger work is rejected. Exact copy, repeated retained-item
+stringification, normalization, role-before-stage-before-contract precedence,
+three caller gates/stops, four required CURRENT-SOURCE methods, and projected
+focused 4/4, owner 122/122, affected semantic 1,082/1,082, import 19/19, audit
+217, and full 1,975/1,975 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this candidate-conflict projection; it is the
-sole next priority and this plan maintains no competing queue.
+or test movement has occurred for this contextual-preference projection; it is
+the sole next priority and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
