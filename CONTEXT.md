@@ -21,7 +21,7 @@ Last updated: 2026-08-15
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `786a356` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `472906e` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -226,10 +226,18 @@ call의 raw normalization·delimiter split/fallthrough·identity·stop은 유지
 focused 4/4, graph owner 202/202, surface owner 1/1, operand owner 69/69,
 affected 1,162/1,162, additional retrieval-pipeline 1/1, reconciliation plan
 51/51, import 19/19, audit 217, full 2,055/2,055 및 transform/body/identity/
-caller/DAG parity가 통과했다. 다음 characterize-only inventory는 같은 owner의
-정확한 9줄 `_strip_financial_label_annotations(...)`을 public
-`strip_financial_label_annotations(...)`로 이름 수렴시켜 graph-helper와
-operand-resolution의 private import를 제거한다. 정확한 계약과 projected gate는
+caller/DAG parity가 통과했다. 이어 정확한 9줄
+`_strip_financial_label_annotations(...)`은 `472906e`에서 public
+`strip_financial_label_annotations(...)`로 이름 수렴했다. Row-local 2/
+graph-helper 1/operand-resolution 2 call의 truth/normalization/annotation-
+regex/whitespace-strip, exact identity, adoption/stop은 유지됐고 focused 4/4,
+graph owner 206/206, surface owner 1/1, operand owner 69/69, affected
+1,166/1,166, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,059/2,059 및 transform/body/identity/caller/DAG
+parity가 통과했다. 다음 characterize-only inventory는 같은 owner의 정확한
+14줄 `_strip_leading_period_qualifiers(...)`을 public
+`strip_leading_period_qualifiers(...)`로 이름 수렴시켜 aggregate projection의
+private import를 제거한다. 정확한 계약과 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

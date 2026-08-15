@@ -1400,26 +1400,47 @@ gates passed. The source diff SHA-256 is
 `3406b381e79434e1f1b9550e568be93dff39fefd326dbb29a5dd01fab3804c0c`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact 9-line
-`financial_row_surfaces._strip_financial_label_annotations(text: str) -> str`
-projection for an in-place public rename to
-`strip_financial_label_annotations(...)`, with no wrapper or alias. Preserve
-raw `text or ""`, normalization and blank stop, exact annotation-regex removal,
-whitespace collapse/strip, identities, immutability, and uncaught failures.
+Commit `472906e` completed the financial-label-annotation private-API seam. The
+exact former 9-line helper is public
+`financial_row_surfaces.strip_financial_label_annotations(...)`; its raw truth,
+normalization/blank stop, annotation regex, whitespace collapse/strip, and exact
+result identities are unchanged after definition-name normalization. All five
+calls and both external imports use the public name and no alias exists.
 
-Its five one-positional-argument call sites finish external/local 3/2 across row
-surfaces, graph helpers, and operand resolution at caller `try` depth zero. Both
-external modules already reach row surfaces, so the full DAG remains acyclic at
-48 modules/205 edges. Projected row-owner counts are 13/13 to 14/12. The body
-SHA-256 is
-`bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05`, and no
+Production source is `+8/-8`, tests are `+1,308/-11`, and the whole commit is
+`+1,316/-19`, net `+1,297`; production physical lines are unchanged. Focused
+4/4, graph owner 206/206, surface owner 1/1, operand owner 69/69, affected
+semantic 1,166/1,166, additional retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,059/2,059, pycompile, production transform
+3/3, selected-body/three-caller parity, existing graph-test AST 202/202 plus
+four new methods, public identity 2/2, all-call, unchanged acyclic 48-module/
+205-edge DAG, retired-ref/public-store zero, UTF-8/non-ASCII preservation 4/4,
+and diff-check gates passed. The source diff SHA-256 is
+`fa6221e4d52b393bc3d6d7103a586bc9b09e55b4d8c2e23c153b7caa8057e5d3`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact 14-line
+`financial_row_surfaces._strip_leading_period_qualifiers(text: str) -> str`
+projection for an in-place public rename to
+`strip_leading_period_qualifiers(...)`, with no wrapper or alias. Preserve raw
+`text or ""`, normalization and blank stop, one exact regex compilation,
+one-prefix-at-a-time `sub(..., count=1)`/strip/equality looping, adopted-object
+identity, immutability, and uncaught failures.
+
+Its four one-positional-argument call sites finish external/local 1/3 across row
+surfaces and aggregate projection at caller `try` depth zero. Aggregate
+projection already reaches row surfaces, so the full DAG remains acyclic at 48
+modules/205 edges. Projected row-owner counts are 14/12 to 15/11; aggregate
+projection remains 76/12. The body SHA-256 is
+`a6b4dae69801793d0ce5bc58d281462c22ce99d4eb22d403b95e51a75fda0e47`, and no
 future public-name definition/store exists. Baseline fingerprint
-`04e17ed82b398fc3` has stale `first_lines: [29]` metadata but stores the distinct
-line-48 leading-period regex; the visibility rename changes neither literal nor
-line location. Four required CURRENT-SOURCE methods and projected focused 4/4,
-graph owner 206/206, surface owner 1/1, operand owner 69/69, affected semantic
-1,166/1,166, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,059/2,059 gates are defined only in
+`04e17ed82b398fc3` stores the selected line-48 regex but has stale
+`first_lines: [29]`, outside the current 43-56 span; the visibility rename
+changes neither literal nor line location. Four required CURRENT-SOURCE methods
+and projected focused 4/4, graph owner 210/210, surface owner 1/1, operand owner
+69/69, affected semantic 1,170/1,170, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,063/2,063 gates
+are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this follow-on; it is the sole next priority
 and this plan maintains no competing queue.

@@ -5109,52 +5109,69 @@ identity 3/3, all calls/bindings, zero public stores/retired exact private refs,
 unchanged DAG, UTF-8/non-ASCII preservation 5/5, and diff check. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 9-line
-`financial_row_surfaces._strip_financial_label_annotations(text: str) -> str`
-definition. It already belongs to the row-surface owner; the authorized future
-batch only renames it in place to public
-`strip_financial_label_annotations(...)` and updates two imports, five direct
-call sites, and test strings without a private alias.
+Commit `472906e` completes the financial-label-annotation visibility contract.
+The exact former 9-line definition is public
+`financial_row_surfaces.strip_financial_label_annotations(text: str) -> str`;
+no wrapper or private alias remains. Its five top-level statements, one `if`,
+two returns, raw truth/normalization/blank stop, annotation regex, whitespace
+collapse/strip, exact identities, immutability, and uncaught failure behavior
+are unchanged after definition-name normalization.
 
-Preserve the exact five top-level statements, one `if`, and two returns. Resolve
-raw `text or ""` first and pass the exact selected object to
-`_normalise_spaces(...)`. A falsey normalized result returns exact `""` before
-regex work. Otherwise execute exact annotation-pattern `re.sub(...)` with empty
-replacement, then whitespace `re.sub(r"\s+", " ", normalized)` and zero-
-argument `.strip()`. Return the exact strip result. Preserve global replacement,
-raw/normalized truth order, intermediate/result identities, input immutability,
-absence of string coercion, and every truth/normalization/regex/strip error as
-an uncaught failure.
-
-All five direct source call sites use one positional argument, no keywords, and
-caller `try` depth zero; external/local calls are 3/2. Row surfaces calls twice
-while eagerly constructing `_surface_match_variants(...)`, preserving direct
-adoption and nested leading-period stripping before truth-filtered dedupe. Graph
-helpers calls once per aggregate-preferred query surface and uses each exact
-truthy result in three ordered aggregate expansions. Operand scoring calls once
-for `row_label` and once per ordered `operand_needles(...)` item in a set
-comprehension under canonical-statement preference; exact results retain their
-truth/hash/dedupe/membership behavior and possible suffix penalty. Helper
-failure stops all later work, and no caller copies or coerces a result.
-
-Graph helpers and operand resolution already reach row surfaces, so no module
-edge changes. The full DAG remains acyclic at 48 modules/205 edges. Projected
-row counts are 13/13 to 14/12, while graph helpers remain 9/71 and operand
-resolution 54/37. The selected body SHA-256 is
-`bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05`; all
-three current caller-body hashes, no future public-name definition/store, eight
-source spelling occurrences across three files, and one exact existing test
-string are pinned by the four CURRENT-SOURCE methods.
-
-Baseline fingerprint `04e17ed82b398fc3` has stale `first_lines: [29]`
-metadata: its stored leading-period regex is the distinct literal in
-`_strip_leading_period_qualifiers(...)` at line 48, not the selected annotation
-regex at line 29. The rename changes neither line nor literal, so the baseline
-stays unchanged and the runtime audit remains projected at 217. Projected
+All five direct source calls use one positional argument, no keywords, and
+caller `try` depth zero; external/local calls finish 3/2. Row variants, graph
+retry-query expansion, and operand suffix scoring bind the public result under
+their existing adoption and stop contracts. Row counts finish 14/12; graph
+helpers and operand resolution remain 9/71 and 54/37. Executed gates are
 focused 4/4, graph owner 206/206, surface owner 1/1, operand owner 69/69,
 affected semantic 1,166/1,166, additional retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,059/2,059 gates
-are governed only by
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,059/2,059, plus
+pycompile, production transform 3/3, selected-body/three-caller parity,
+existing graph-test AST 202/202 plus four new methods, public identity 2/2,
+all-call/DAG/retired-ref/public-store and UTF-8/non-ASCII gates. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 14-line
+`financial_row_surfaces._strip_leading_period_qualifiers(text: str) -> str`
+definition. It already belongs to the row-surface owner; the authorized future
+batch only renames it in place to public
+`strip_leading_period_qualifiers(...)` and updates one import, four direct calls,
+and exact test references without a private alias.
+
+Preserve the exact six top-level statements, two `if` nodes, two returns, one
+`while`, and one `break`. Resolve raw `text or ""`, normalize once, and return
+exact `""` on a falsey normalized result before regex compilation. Otherwise
+compile the exact leading-period regex once, adopt the exact normalized object
+as `stripped`, then repeatedly call `pattern.sub("", stripped, count=1)` and
+zero-argument `.strip()`. Compare exact `updated == stripped`; equality breaks,
+while inequality adopts exact `updated` and repeats. Immediate stability returns
+the original normalized object; changed paths return the last adopted object.
+All truth, normalization, compile, sub, strip, and equality errors remain
+uncaught.
+
+All four direct source calls use one positional argument, no keywords, and
+caller `try` depth zero; external/local calls are 1/3. Row variants call twice
+with exact normalized and annotation-stripped values. Sibling-surface scoring
+calls once per deduplicated normalized surface before blank/compact/membership
+work. Aggregate answer-sentence projection calls once per nonblank lowered row
+label before stripped-label adoption and later sentence scoring. Helper failure
+stops all later caller work, and no caller copies a helper result.
+
+Aggregate projection already reaches row surfaces, so no module edge changes.
+The full DAG remains acyclic at 48 modules/205 edges. Projected row counts are
+14/12 to 15/11, while aggregate projection remains 76/12. The selected body
+SHA-256 is
+`a6b4dae69801793d0ce5bc58d281462c22ce99d4eb22d403b95e51a75fda0e47`;
+all three current caller-body hashes, no future public-name definition/store,
+and six production AST references are pinned by the four CURRENT-SOURCE
+methods.
+
+Baseline fingerprint `04e17ed82b398fc3` stores this helper's exact line-48
+regex but has stale `first_lines: [29]`, outside the current 43-56 definition
+span. The rename changes neither line nor literal, so the baseline stays
+unchanged and audit remains projected at 217. Projected focused 4/4, graph owner
+210/210, surface owner 1/1, operand owner 69/69, affected semantic 1,170/1,170,
+additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, and full 2,063/2,063 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

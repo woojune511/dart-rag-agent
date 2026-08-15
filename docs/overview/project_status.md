@@ -16,10 +16,10 @@ Last updated: 2026-08-15
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `786a356` renamed the exact 9-line table-row-label projection in its existing row-surface owner and updated all three calls plus three live external bindings without an alias |
-| What passed? | Focused 4/4, graph owner 202/202, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,162/1,162, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,055/2,055 |
+| What just changed? | `472906e` renamed the exact 9-line financial-label-annotation projection in its existing row-surface owner and updated all five calls plus two live external bindings without an alias |
+| What passed? | Focused 4/4, graph owner 206/206, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,166/1,166, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,059/2,059 |
 | Was the benchmark refreshed? | **NOT RUN**; this was an ownership-only move with exact selected-body parity, not a parser, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 9-line `_strip_financial_label_annotations(...)` projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 14-line `_strip_leading_period_qualifiers(...)` projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -747,13 +747,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, table-row-label public API 4 / 4; graph owner 202 / 202; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,162 / 1,162; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, financial-label-annotation public API 4 / 4; graph owner 206 / 206; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,166 / 1,166; additional retrieval-pipeline caller module 1 / 1 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,055 / 2,055 |
-| Benchmark refresh after latest table-row-label API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,059 / 2,059 |
+| Benchmark refresh after latest financial-label-annotation API change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -797,78 +797,120 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The characterize-only inventory selects one remaining cross-module private-API
-seam: rename the exact current 9-line
-`financial_row_surfaces._strip_financial_label_annotations(text: str) -> str`
-definition in place to public `strip_financial_label_annotations(...)`. Add no
+seam: rename the exact current 14-line
+`financial_row_surfaces._strip_leading_period_qualifiers(text: str) -> str`
+definition in place to public `strip_leading_period_qualifiers(...)`. Add no
 wrapper or private alias. Before the rename, add four CURRENT-SOURCE contracts
 and require them to pass. No production or test rename has occurred for this
 follow-on, and this document maintains no competing implementation queue.
 
-The five top-level statements, one `if`, and two returns are normative. Evaluate
-raw `text or ""` left to right and pass the exact selected object to one
-`_normalise_spaces(...)` call. A falsey normalized result returns exact `""`
-before regex work. Otherwise call
-`re.sub(r"\((?:주\s*\d+[^\)]*|\*)\)", "", normalized)` with no count or
-flags, then call `re.sub(r"\s+", " ", normalized)` and invoke zero-argument
-`.strip()` on that exact result. Return the exact strip result. Preserve raw and
-normalized truth order, global annotation removal, whitespace collapse, input
-immutability, absence of string coercion, intermediate/result identities, and
-all uncaught truth/normalization/regex/strip failures.
+The six top-level statements, two `if` nodes, two returns, one `while`, and one
+`break` are normative. Evaluate raw `text or ""` left to right and pass the
+exact selected object to one `_normalise_spaces(...)` call. A falsey normalized
+result returns exact `""` before compilation. Otherwise compile the exact
+leading-period regex once with no flags, assign the exact normalized object to
+`stripped`, and iterate. Each iteration calls
+`pattern.sub("", stripped, count=1)`, invokes zero-argument `.strip()` on that
+exact result, and compares exact `updated == stripped`. Equality stops by
+`break`; inequality assigns the exact updated object and repeats. Preserve
+one-prefix-at-a-time removal, raw/normalized truth order, compile/sub/strip/
+equality order, input immutability, absence of string coercion, and every
+uncaught truth/normalization/compile/sub/strip/equality failure. On immediate
+stability return the original normalized object, not the equal probe result;
+after changes return the last adopted updated object.
 
-There are five direct `ast.Name` calls across three source modules, all with one
+There are four direct `ast.Name` calls across two source modules, all with one
 positional argument, no keywords, and caller `try` depth zero. External/local
-calls are 3/2. Row-owner `_surface_match_variants(...)` eagerly calls the helper
-twice in list order, using one exact result directly and passing the second
-exact result to the leading-period stripper before later truth filtering and
-ordered dedupe. Graph-helper `_build_reconciliation_retry_queries(...)` calls
-once per snapshot query surface only under aggregate value-role preference;
-blank results skip expansion, while truthy results feed three ordered aggregate
-strings before later extension, normalization, truncation, and query synthesis.
-Operand-resolution `score_operand_candidate(...)` calls once for the exact row
-label and once per `operand_needles(...)` item inside a set comprehension, only
-under canonical-statement preference. Exact row/needle results feed truth,
-hash/dedupe, suffix membership, and the possible `-1.5` adjustment. No caller
-copies or coerces helper results; failures stop all later caller work.
+calls are 1/3. Row-owner `_surface_match_variants(...)` eagerly calls the helper
+twice in list order: once with exact `normalized`, and once with the exact
+financial-annotation result; both outputs enter later truth-filtered ordered
+dedupe. Row-owner `candidate_sibling_surface_hit_count(...)` calls once per
+deduplicated sibling after `str(surface or "")` and normalization; exact results
+feed blank filtering, compact regex, direct/compact membership, and hit count.
+Aggregate owner `select_aggregate_projection_answer_sentence(...)` calls once
+per nonblank normalized/lowercased row label, normalizes and lowercases the
+exact result, and appends it only when truthy and different before operation-
+family and sentence scoring. No caller copies the helper result; failures stop
+all later caller work.
 
-Graph helpers and operand resolution are the two live external importers and
-already reach row surfaces, so the rename changes no module edge and the full
-DAG remains acyclic at 48 modules/205 internal edges. Current/projected row-
-owner counts are 13/13 to 14/12; graph helpers remain 9/71 and operand
-resolution 54/37. No future public-name definition or `ast.Store` collision
-exists. The current body SHA-256 is
-`bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05`.
-The private spelling appears eight times across three production files and once
-as an exact graph-helper test string; those four files are the bounded pre-
-contract surface.
+Aggregate projection is the one live external importer and already reaches row
+surfaces, so the rename changes no module edge and the full DAG remains acyclic
+at 48 modules/205 internal edges. Current/projected row-owner counts are 14/12
+to 15/11; aggregate projection remains 76/12 with 19 top-level classes. No
+future public-name definition or `ast.Store` collision exists. The current body
+SHA-256 is
+`a6b4dae69801793d0ce5bc58d281462c22ce99d4eb22d403b95e51a75fda0e47`.
+The private identifier has six production AST references across the two source
+files. Existing exact test references are bounded to graph helpers and subtask
+loop, so the source/test transform surface is four files.
 
-Baseline fingerprint `04e17ed82b398fc3` reports `first_lines: [29]`, so a naive
-line-range lookup selects one of 217 records for this span. Its stored text is
-the distinct leading-period regex actually present in
-`_strip_leading_period_qualifiers(...)` at line 48, not the annotation regex at
-line 29. The rename moves no lines or literals, so the reviewed baseline must
-remain unchanged; the new binding test must pin this stale-location fact rather
-than misreport it as selected helper vocabulary.
+Baseline fingerprint `04e17ed82b398fc3` stores the selected helper's exact
+leading-period regex but reports stale `first_lines: [29]`; the literal is
+actually at line 48 inside the current 43-56 definition span. A naive span
+lookup therefore selects zero of 217 records even though literal ownership is
+exact. The rename moves no lines or literals, so the reviewed baseline must
+remain unchanged; the new binding test must pin this inverse stale-location
+fact.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_strip_financial_label_annotations_pins_truth_normalization_regex_order_identity_and_result`;
-- `test_current_source_strip_financial_label_annotations_pins_immutability_and_exceptions`;
-- `test_current_source_strip_financial_label_annotations_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops`.
+- `test_current_source_strip_leading_period_qualifiers_pins_truth_normalization_compile_loop_identity_and_result`;
+- `test_current_source_strip_leading_period_qualifiers_pins_immutability_and_exceptions`;
+- `test_current_source_strip_leading_period_qualifiers_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 206/206, surface-
+Projected post-rename gates are focused 4/4, graph owner 210/210, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,166/1,166, additional retrieval-pipeline caller module 1/1, reconciliation
+1,170/1,170, additional retrieval-pipeline caller module 1/1, reconciliation
 plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,059/2,059. Structural gates are exact production transform parity 3/3,
-selected-body and all three caller-body parity, fresh public identity 2/2, all
-five calls/three call modules, unchanged acyclic 48-module/205-edge DAG,
+2,063/2,063. Structural gates are exact production transform parity 2/2,
+selected-body and all three caller-body parity, fresh public identity 1/1, all
+four calls/two call modules, unchanged acyclic 48-module/205-edge DAG,
 retired exact private AST refs and future public stores zero, existing graph-
-test AST parity 202/202 plus four new methods, UTF-8/non-ASCII preservation 4/4,
-pycompile, and
-`git diff --check`. These are projections, not executed results. Static
+test AST parity 206/206 plus four new methods, existing subtask-loop test AST
+parity 252/252 after exact name normalization, UTF-8/non-ASCII preservation
+4/4, pycompile, and `git diff --check`. These are projections, not executed results. Static
 definition/signature/call/import/count/DAG/audit inspection passed; benchmark
 refresh and remote CI were **NOT RUN**.
+
+## Completed Financial-Label-Annotation Public API
+
+Commit `472906e` renamed the exact former 9-line private helper in place to
+public `financial_row_surfaces.strip_financial_label_annotations(...)`. Its
+five top-level statements, one `if`, and two returns are exact after
+definition-name normalization. The private definition and executable refs are
+gone; no wrapper or compatibility alias was added.
+
+All five calls across row surfaces, graph helpers, and operand resolution now
+bind the public API at caller `try` depth zero. External/local calls are 3/2,
+and both external bindings are live. Raw truth, normalization/blank stop,
+annotation regex, whitespace collapse/strip, exact result identities, eager
+variant order, aggregate query expansion, needle-set membership/scoring,
+caller adoption, and exception stops remain unchanged.
+
+Production source is `+8/-8`, net `0`; tests are `+1,308/-11`, net `+1,297`;
+and the whole commit is `+1,316/-19`, net `+1,297`. Production physical line
+counts are unchanged. Four methods moved discovery from 2,055 to 2,059. Final
+row-owner counts are 14/12; graph helpers remain 9/71 and operand resolution
+54/37. The source diff SHA-256 is
+`fa6221e4d52b393bc3d6d7103a586bc9b09e55b4d8c2e23c153b7caa8057e5d3`.
+
+Focused pre/post rename 4/4, graph owner 206/206, surface owner 1/1, operand
+owner 69/69, affected eleven-module semantic 1,166/1,166, additional retrieval-
+pipeline caller module 1/1, reconciliation plan 51/51, import-side-effects
+19/19, runtime-domain audit 217, and full discovery 2,059/2,059 passed.
+Pycompile, exact production transform parity 3/3, selected-body and three caller
+hashes, existing graph-test AST parity 202/202 plus four new methods, fresh
+public identity 2/2, all five calls/three modules, zero public-name stores and
+retired exact private refs, unchanged 48-module/205-edge acyclic DAG, UTF-8/
+non-ASCII preservation 4/4, and `git diff --check` also passed. The first graph-
+owner run reported only nine stale row public/private count baselines; their
+exact 14/12 updates produced the final 206/206 pass. Benchmark refresh and
+remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Table-Row-Label Public API
 
