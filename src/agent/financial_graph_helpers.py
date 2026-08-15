@@ -73,7 +73,7 @@ from src.agent.financial_surface_contracts import (
 from src.agent.financial_row_surfaces import (
     extract_table_row_label,
     format_structured_candidate_row_text,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
     strip_financial_label_annotations,
     aggregate_like_row_role,
     aggregate_like_row_stage,
@@ -3743,7 +3743,7 @@ def _build_table_row_reconciliation_candidates(
                     **metadata,
                     "row_text": row_text,
                     "row_context_text": str(table_text or ""),
-                    "structured_cells": _parse_unstructured_table_row_cells(row_text, metadata),
+                    "structured_cells": parse_unstructured_table_row_cells(row_text, metadata),
                     "aggregate_label": row_label if inferred_stage != "none" else str(metadata.get("aggregate_label") or "").strip(),
                     "aggregate_role": (
                         "subtotal"

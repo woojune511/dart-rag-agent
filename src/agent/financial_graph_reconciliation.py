@@ -65,7 +65,7 @@ from src.agent.financial_retrieval_hints import (
 from src.agent.financial_surface_contracts import candidate_is_descriptor_row, operand_needles
 from src.agent.financial_row_surfaces import (
     extract_table_row_label,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
 )
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
@@ -450,7 +450,7 @@ class FinancialAgentReconciliationMixin:
             metadata = dict(current.get("metadata") or {})
             cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
             if not cells and str(current.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
-                cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+                cells = parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
             period_focus = str(dict(active_subtask.get("constraints") or {}).get("period_focus") or "unknown").strip()
             for cell in cells:
                 enriched_cell = {**dict(cell), "_report_year": metadata.get("year")}
@@ -663,7 +663,7 @@ class FinancialAgentReconciliationMixin:
                     current_metadata = dict(current_candidate.get("metadata") or {})
                     cells = [dict(cell) for cell in (current_metadata.get("structured_cells") or []) if dict(cell)]
                     if not cells and str(current_candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
-                        cells = _parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
+                        cells = parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
                     if not cells:
                         continue
                     cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]
@@ -781,7 +781,7 @@ class FinancialAgentReconciliationMixin:
                         current_metadata = dict(current_candidate.get("metadata") or {})
                         cells = [dict(cell) for cell in (current_metadata.get("structured_cells") or []) if dict(cell)]
                         if not cells and str(current_candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
-                            cells = _parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
+                            cells = parse_unstructured_table_row_cells(str(current_metadata.get("row_text") or ""), current_metadata)
                         if not cells:
                             continue
                         cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]

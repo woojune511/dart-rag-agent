@@ -67,7 +67,7 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
 )
 from src.agent.financial_operation_policies import _label_implies_percent_metric, _requires_direct_numeric_grounding
 from src.agent.financial_scope_policies import _desired_consolidation_scope
@@ -1139,7 +1139,7 @@ class OperationContractTests(unittest.TestCase):
             "기업 전체 총계 / 영업부문 / DS 부문 111,065,950 백만원"
         )
 
-        cells = _parse_unstructured_table_row_cells(row_text, {})
+        cells = parse_unstructured_table_row_cells(row_text, {})
 
         self.assertEqual(cells[0]["value_text"], "174,887,683")
         self.assertEqual(cells[0]["unit_hint"], "백만원")

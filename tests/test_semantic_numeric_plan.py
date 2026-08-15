@@ -27,7 +27,7 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
 )
 from src.agent.financial_retrieval_hints import _active_preferred_sections
 from src.agent.financial_retrieval_pipeline import _ensure_period_count_operand_docs, _focused_operand_surface_queries
@@ -768,7 +768,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
 
     def test_parse_unstructured_row_uses_header_context(self) -> None:
-        cells = _parse_unstructured_table_row_cells(
+        cells = parse_unstructured_table_row_cells(
             "법인세비용차감전순이익 | 1,481,396,318 | 1,083,717,091",
             {
                 "table_header_context": "구분 | 2023년 | 2022년",

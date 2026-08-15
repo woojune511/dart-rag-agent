@@ -252,7 +252,7 @@ def extract_table_row_label(row_text: str) -> str:
     return normalized
 
 
-def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+def parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
     normalized_row = _normalise_spaces(str(row_text or ""))
     if "|" not in normalized_row:
         return []

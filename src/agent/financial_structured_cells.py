@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from src.agent.financial_row_surfaces import (
     generic_column_headers,
     operand_text_match,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
 )
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_target_years
@@ -76,7 +76,7 @@ def candidate_selected_cell_for_operand(
     candidate_kind = str(candidate.get("candidate_kind") or "").strip()
     cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
     if not cells and candidate_kind in {"table_row", "evidence_row"}:
-        cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+        cells = parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
     if not cells:
         return None
     cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]

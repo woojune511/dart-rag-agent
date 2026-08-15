@@ -61,7 +61,7 @@ from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
     extract_table_row_label,
     operand_text_match,
-    _parse_unstructured_table_row_cells,
+    parse_unstructured_table_row_cells,
 )
 from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
 if TYPE_CHECKING:
@@ -1401,7 +1401,7 @@ class FinancialAgentEvidenceMixin:
                     and period_count_location_context
                     and str(operand.get("role") or "").strip() in {"current_period", "prior_period"}
                 )
-                parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
+                parsed_cells = parse_unstructured_table_row_cells(raw_row, metadata)
                 target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
                 cell_context_match = any(
                     score_structured_cell(

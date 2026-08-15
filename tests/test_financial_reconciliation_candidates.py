@@ -697,7 +697,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
             patch.object(candidates, "find_reconciliation_match_entry", side_effect=match_owner),
             patch.object(candidates, "expand_structured_candidate_ids", side_effect=expand_owner),
             patch.object(candidates, "structured_candidate_from_id", side_effect=candidate_owner),
-            patch.object(candidates, "_parse_unstructured_table_row_cells", side_effect=parse_owner),
+            patch.object(candidates, "parse_unstructured_table_row_cells", side_effect=parse_owner),
             patch.object(candidates, "candidate_satisfies_direct_acceptance_contract", side_effect=acceptance_owner),
             patch.object(candidates, "pair_candidate_period_score") as stopped_score,
         ):
@@ -1224,7 +1224,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         expected_dependency_calls = {
             "candidate_satisfies_direct_acceptance_contract": 2,
-            "_parse_unstructured_table_row_cells": 1,
+            "parse_unstructured_table_row_cells": 1,
         }
         for dependency_name, expected_count in expected_dependency_calls.items():
             owner_calls = [

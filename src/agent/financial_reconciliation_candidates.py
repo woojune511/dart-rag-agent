@@ -12,7 +12,7 @@ from src.agent.financial_operand_resolution import (
     score_operand_candidate,
 )
 from src.agent.financial_operation_policies import _label_implies_percent_metric
-from src.agent.financial_row_surfaces import _parse_unstructured_table_row_cells
+from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus, operand_target_years
 from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
@@ -393,7 +393,7 @@ def extract_structured_period_pair_rows(
             metadata = dict(candidate.get("metadata") or {})
             cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
             if not cells and str(candidate.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
-                cells = _parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
+                cells = parse_unstructured_table_row_cells(str(metadata.get("row_text") or ""), metadata)
             if not cells:
                 continue
             enriched_cells: List[Dict[str, Any]] = []
