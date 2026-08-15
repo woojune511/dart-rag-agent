@@ -5086,46 +5086,75 @@ existing graph-test AST parity 194/194 plus four new methods, public identity
 unchanged DAG, UTF-8/non-ASCII preservation 3/3, and diff check. Benchmark
 refresh and remote CI were **NOT RUN**.
 
+Commit `786a356` completed the table-row-label public API. The exact former
+9-line private definition is now public
+`financial_row_surfaces.extract_table_row_label(...)`; its four top-level
+statements, three `if` nodes, three returns, raw normalization, blank stop,
+delimiter membership/split, falsey fallthrough, identities, immutability, and
+uncaught failures are unchanged after name normalization. No private alias or
+bridge exists.
+
+All three one-argument calls remain external and at caller `try` depth zero.
+Graph evidence, graph helpers, and graph reconciliation use the exact returned
+label for their existing stage/role/candidate paths without copy or coercion.
+Earlier mutations, later work, and exception stops remain caller-owned. Final
+row counts are 13/13 and the full DAG remains acyclic at 48 modules/205 edges.
+
+Executed gates are focused 4/4, graph owner 202/202, surface owner 1/1, operand
+owner 69/69, affected semantic 1,162/1,162, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,055/2,055, plus
+pycompile, production transform parity 4/4, selected-body and three caller
+hashes, existing graph-test AST parity 198/198 plus four new methods, public
+identity 3/3, all calls/bindings, zero public stores/retired exact private refs,
+unchanged DAG, UTF-8/non-ASCII preservation 5/5, and diff check. Benchmark
+refresh and remote CI were **NOT RUN**.
+
 The next private-API contract is the exact current 9-line
-`financial_row_surfaces._extract_table_row_label(row_text: str) -> str`
+`financial_row_surfaces._strip_financial_label_annotations(text: str) -> str`
 definition. It already belongs to the row-surface owner; the authorized future
-batch only renames it in place to public `extract_table_row_label(...)` and
-updates three imports, three calls, and test patch strings without a private
-alias. It is selected over the same-length annotation stripper because this
-batch removes three external private imports and has no owner-local call.
+batch only renames it in place to public
+`strip_financial_label_annotations(...)` and updates two imports, five direct
+call sites, and test strings without a private alias.
 
-Preserve the exact four top-level statements, three `if` nodes, and three
-returns. Pass raw `row_text` directly to `_normalise_spaces(...)`. A falsey
-result returns exact `""` before delimiter work. A truthy result reaches one
-`"|" in normalized` check. On a miss, return the exact normalized object. On a
-hit, evaluate `normalized.split("|", 1)[0]`, pass the exact element to the
-second `_normalise_spaces(...)` call, and return that exact result if truthy; a
-falsey first cell falls through to the exact initial normalized object. Input
-immutability, result identities, evaluation order, and all normalization,
-truth, containment, split, and index errors remain uncaught.
+Preserve the exact five top-level statements, one `if`, and two returns. Resolve
+raw `text or ""` first and pass the exact selected object to
+`_normalise_spaces(...)`. A falsey normalized result returns exact `""` before
+regex work. Otherwise execute exact annotation-pattern `re.sub(...)` with empty
+replacement, then whitespace `re.sub(r"\s+", " ", normalized)` and zero-
+argument `.strip()`. Return the exact strip result. Preserve global replacement,
+raw/normalized truth order, intermediate/result identities, input immutability,
+absence of string coercion, and every truth/normalization/regex/strip error as
+an uncaught failure.
 
-All three direct source calls use one positional argument, no keywords, and
-caller `try` depth zero. Graph evidence calls after raw-row normalization/truth
-and metadata copy, then adopts the exact result for aggregation-stage
-classification before later context and operand-row work. Graph helpers calls
-after normalized-row, nonempty, delimiter, and dedupe gates; the exact result
-feeds aggregate stage/role, composite text, metadata, and candidate row label.
-Graph reconciliation calls after raw-row truth and passes the exact result as
-the evidence-row candidate's `row_label` keyword. Existing earlier caller
-mutations remain; failures stop all later work, and no caller copies or coerces
-the returned label.
+All five direct source call sites use one positional argument, no keywords, and
+caller `try` depth zero; external/local calls are 3/2. Row surfaces calls twice
+while eagerly constructing `_surface_match_variants(...)`, preserving direct
+adoption and nested leading-period stripping before truth-filtered dedupe. Graph
+helpers calls once per aggregate-preferred query surface and uses each exact
+truthy result in three ordered aggregate expansions. Operand scoring calls once
+for `row_label` and once per ordered `operand_needles(...)` item in a set
+comprehension under canonical-statement preference; exact results retain their
+truth/hash/dedupe/membership behavior and possible suffix penalty. Helper
+failure stops all later work, and no caller copies or coerces a result.
 
-The three caller modules already reach row surfaces, so no module edge changes.
-The full DAG remains acyclic at 48 modules/205 edges. Projected row counts are
-12/14 to 13/13. The selected body SHA-256 is
-`b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1`; all
-three current caller-body hashes, no future public-name definition/store, seven
-source spelling occurrences across four files, one exact existing test patch
-string, and zero of 217 selected reviewed records are pinned by the four
-CURRENT-SOURCE methods. Projected focused 4/4, graph owner 202/202, surface
-owner 1/1, operand owner 69/69, affected semantic 1,162/1,162, additional
-retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and
-full 2,055/2,055 gates are governed only by
+Graph helpers and operand resolution already reach row surfaces, so no module
+edge changes. The full DAG remains acyclic at 48 modules/205 edges. Projected
+row counts are 13/13 to 14/12, while graph helpers remain 9/71 and operand
+resolution 54/37. The selected body SHA-256 is
+`bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05`; all
+three current caller-body hashes, no future public-name definition/store, eight
+source spelling occurrences across three files, and one exact existing test
+string are pinned by the four CURRENT-SOURCE methods.
+
+Baseline fingerprint `04e17ed82b398fc3` has stale `first_lines: [29]`
+metadata: its stored leading-period regex is the distinct literal in
+`_strip_leading_period_qualifiers(...)` at line 48, not the selected annotation
+regex at line 29. The rename changes neither line nor literal, so the baseline
+stays unchanged and the runtime audit remains projected at 217. Projected
+focused 4/4, graph owner 206/206, surface owner 1/1, operand owner 69/69,
+affected semantic 1,166/1,166, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,059/2,059 gates
+are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

@@ -6834,3 +6834,83 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 selected-span audit inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Table-row-label public-API milestone
+
+- Commit `786a356` renames the exact former 9-line private helper in its existing
+  row-surface owner to public `extract_table_row_label(...)`. Its four top-level
+  statements, three `if` nodes, and three returns are exact after definition-
+  name normalization; the private definition and executable refs are gone
+  without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin raw normalization, blank stop, delimiter
+  membership/split/index order, truthy first-cell and falsey initial-result
+  identity, immutability, uncaught failures, caller arguments/adoption/stops,
+  imports, DAG, audit, and public-name store absence.
+- All three calls across graph evidence, graph helpers, and graph reconciliation
+  now bind the public API at caller `try` depth zero. External/local calls are
+  3/0 and all external bindings are live. Earlier mutation, later work, and
+  exception stops remain caller-owned.
+- Production source is `+7/-7`, net `0`; tests are `+1,224/-9`, net `+1,215`;
+  and the whole commit is `+1,231/-16`, net `+1,215`. Production physical line
+  counts are unchanged. Four methods move discovery from 2,051 to 2,055. Final
+  row counts are 13/13. The source diff SHA-256 is
+  `3406b381e79434e1f1b9550e568be93dff39fefd326dbb29a5dd01fab3804c0c`.
+- Focused pre/post rename 4/4, graph owner 202/202, surface owner 1/1, operand
+  owner 69/69, affected eleven-module semantic 1,162/1,162, additional
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import-side-effects
+  19/19, runtime-domain audit 217, and full discovery 2,055/2,055 passed.
+  Pycompile, production transform parity 4/4, selected-body and three caller
+  hashes, existing graph-test AST parity 198/198 plus four new methods, public
+  identity 3/3, all three calls/importers, zero public stores/retired exact
+  private refs, unchanged acyclic 48-module/205-edge DAG, UTF-8/non-ASCII
+  preservation 5/5, and diff check passed. The first graph-owner run failed only
+  eight stale row public/private count baselines; their exact 13/13 updates
+  produced the final 202/202 pass. Benchmark refresh and remote CI were **NOT
+  RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Financial-label-annotation private-API characterization checkpoint
+
+- A docs-only inventory selects the current exact 9-line
+  `financial_row_surfaces._strip_financial_label_annotations(text: str) -> str`
+  definition for an in-place public rename to
+  `strip_financial_label_annotations(...)`. No source or test rename has
+  occurred.
+- The projection preserves five top-level statements, one `if`, two returns,
+  raw `text or ""`, normalization/blank stop, exact annotation-regex removal,
+  whitespace collapse/strip, exact intermediate/result identities,
+  immutability, absence of string coercion, and every uncaught truth/
+  normalization/regex/strip failure.
+- Five one-positional-argument direct calls across row surfaces, graph helpers,
+  and operand resolution remain at caller `try` depth zero; external/local calls
+  are 3/2. Exact result adoption, eager variant order, aggregate retry-query
+  expansion, needle-set hash/dedupe, generic-suffix scoring, later work, and
+  exception stops remain caller-owned. Existing edges keep the full DAG
+  unchanged and acyclic at 48 modules/205 edges.
+- Projected row counts are 13/13 to 14/12, while graph helpers remain 9/71 and
+  operand resolution 54/37. No future public-name definition/store exists. The
+  body SHA-256 is
+  `bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05`.
+  The private spelling appears eight times in three production files and once
+  as an exact existing graph-helper test string.
+- Baseline fingerprint `04e17ed82b398fc3` has stale `first_lines: [29]`
+  metadata: its stored text is the distinct leading-period regex at line 48,
+  not the selected annotation regex at line 29. The rename changes no line or
+  literal, so the baseline remains unchanged and audit stays projected at 217.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  206/206, surface owner 1/1, operand owner 69/69, affected semantic
+  1,166/1,166, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,059/2,059, public identity 2/2, production
+  transform/selected-body/three-caller parity, all five calls/three modules,
+  unchanged DAG, retired-ref/public-store zero, existing graph-test AST parity
+  202/202 plus four new methods, UTF-8/non-ASCII preservation 4/4, pycompile,
+  and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.
