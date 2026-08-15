@@ -7414,3 +7414,80 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Unstructured-table-row-cell parser public-API milestone
+
+- Commit `ac90a62` renames the exact former 47-line private helper in its
+  existing row-surface owner to public
+  `parse_unstructured_table_row_cells(...)`. Row/header/period fallback order,
+  repeated conversions, numeric filtering, labeled-value regex/group order,
+  fresh cell construction, immutability, and uncaught failures are unchanged.
+  No wrapper or private alias was added.
+- All seven calls across five importers now bind the public API at caller `try`
+  depth zero with two positional arguments and no keywords. External/local
+  calls are 7/0 across six caller definitions, and all five importers share the
+  exact row-owner function identity. Caller-owned gates, scoring, reconciliation,
+  selection, evidence/candidate adoption, state, artifacts, and ledgers did not
+  move.
+- Production source is `+13/-13`, tests are `+1,511/-48`, and the whole commit
+  is `+1,524/-61`, net `+1,463`. Production physical line counts are unchanged.
+  Four methods move discovery from 2,079 to 2,083; final row counts are 20/6.
+  The committed source/test diff SHA-256 is
+  `8faf60239bc6d907001d3144dadd2aa5201e7fb6e0c701b4a9c02e09439fef17`.
+- Focused pre/post rename 4/4, graph owner 230/230, surface owner 1/1, operand
+  owner 69/69, affected semantic 1,190/1,190, retrieval-pipeline 1/1,
+  reconciliation plan 51/51, import 19/19, runtime audit 217, and full
+  2,083/2,083 passed. Pycompile, production transform 6/6, source/test transform
+  10/10, selected-body/six-caller parity, existing graph-test AST 226/226 plus
+  four methods, public identity 6/6, all-call/DAG/retired-ref/public-store,
+  UTF-8 10/10, non-ASCII 9/9, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Structured-cell period-text private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 35-line
+  `financial_structured_cells._structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`
+  definition for an in-place public rename to
+  `structured_cell_period_text(...)`. No source or test rename has occurred and
+  no wrapper or private alias is authorized.
+- The body has 16 top-level statements, one annotated and 12 plain assignments,
+  two loops, eight `if` nodes, seven returns, one continue, one try, 33 calls,
+  one list, six tuples, one list comprehension, five generators, nine boolean
+  operations, 11 comparisons, one conditional expression, six comprehension
+  clauses, and no lambda or dict. It pins policy-copy and marker construction
+  order, repeated marker/header conversion, eager report-year lookup, narrow
+  integer-conversion handling, ordered query-year matching, current/prior
+  precedence, report-year/policy-hint projection, fiscal-rank fallback, final
+  header fallback, immutability, and every uncaught failure.
+- Four three-positional-argument calls in four importers remain at caller `try`
+  depth zero with no keywords; external/local calls are 4/0 across four caller
+  definitions. Cell scoring, operand/report gates, regex decisions, direct
+  acceptance, lookup realignment, reconciliation fallback/pairing, evidence
+  adoption, graph state, artifacts, ledgers, and final sequencing remain caller-
+  owned hard stops. The DAG remains acyclic at 48 modules/205 edges.
+- Projected structured-cell counts are 4/4 to 5/3. The body SHA-256 is
+  `52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44`.
+  The private identifier has nine production AST references. Twenty-five exact
+  test refs across four test files make the bounded transform nine files. Call
+  records hash to
+  `541b793fe8e0596a0d0271c2a87e373c1c88d12a34ffe549b641e6b67d7ffec1`;
+  the four-caller map hashes to
+  `0c001d08e2e10c64ad9dab82bf1ab50a892064e21341a3b6c2c42f5939875222`.
+- The current 328-362 span selects no reviewed runtime-domain record, so all
+  217 records remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  234/234, surface owner 1/1, operand owner 69/69, affected semantic
+  1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+  audit 217, full 2,087/2,087, public identity 5/5, production transform 5/5,
+  full transform 9/9, selected-body/four-caller parity, all four calls/modules,
+  unchanged DAG, retired-ref/public-store zero, existing graph-test AST 230/230
+  plus four methods, UTF-8 9/9, non-ASCII 7/7, pycompile, and diff check are
+  governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.

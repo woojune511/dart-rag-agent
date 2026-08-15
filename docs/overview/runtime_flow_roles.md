@@ -1049,15 +1049,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   operand owner 69/69, semantic 1,186/1,186, additional retrieval-pipeline 1/1,
   reconciliation plan 51/51, import 19/19, audit 217, full 2,079/2,079와
   transform/body/identity/caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 마지막 cross-module row private API인
-  정확한 47줄 `_parse_unstructured_table_row_cells(...)`을 public
-  `parse_unstructured_table_row_cells(...)`로 이름 수렴시키는 batch를
-  선택한다. 5개 importer의 7개 external call은 두 positional arguments,
-  no keyword, 6개 caller 정의 모두 `try` depth zero다. 기존 edge만
-  사용하므로 DAG는 48 modules/205 edges로 비순환이고 projected row public/
-  private는 20/6이다. 아직 parser source/test rename은 없으며 row/header/
-  period fallback, numeric/labeled-value parsing, caller gate/adoption/stop과
-  네 CURRENT-SOURCE method는
+- 완료된 `ac90a62` unstructured-table-row parser API batch는 같은 owner의
+  정확한 47줄 private helper를 public
+  `parse_unstructured_table_row_cells(...)`로 이름 수렴시켰다. 5개
+  importer의 7개 external call과 6개 caller 정의는 public API를 사용한다.
+  Row/header/period fallback, numeric/labeled-value parsing, caller gate/
+  adoption/stop은 유지됐고 row public/private는 20/6이다. Focused 4/4,
+  graph owner 230/230, surface owner 1/1, operand owner 69/69, semantic
+  1,190/1,190, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,083/2,083와 transform/body/identity/caller/
+  48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 structured-cell owner의 정확한 35줄
+  `_structured_cell_period_text(...)`을 public
+  `structured_cell_period_text(...)`로 이름 수렴시키는 batch를 선택한다.
+  4개 importer의 4개 external call은 세 positional arguments, no keyword,
+  4개 caller 정의 모두 `try` depth zero다. 기존 edge만 사용하므로 DAG는
+  48 modules/205 edges로 비순환이고 projected structured-cell public/private는
+  5/3이다. 아직 source/test rename은 없으며 policy marker, query/report year,
+  fiscal-rank fallback, caller gate/adoption/stop과 네 CURRENT-SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -5241,30 +5241,14 @@ two-caller parity, existing graph-test AST 222/222 plus four methods, public
 identity 2/2, all-call/DAG/public-store/retired-live-ref, and UTF-8/non-ASCII
 gates. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 47-line
-`financial_row_surfaces._parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`
-definition. It already belongs to the row-surface owner; the authorized future
-batch only renames it in place to public
-`parse_unstructured_table_row_cells(...)` and updates five imports, seven
-direct calls, and all live test bindings without a private alias.
-
-Preserve exact row raw truth/string/normalization, pipe gate, split/strip,
-truth-filtered row parts, and the `len <= 1` stop. Header context is read only
-after a usable row; retained header parts preserve two strip calls, while
-retained period labels preserve two string/strip passes. Keep exact header-
-suffix precedence, then period-label suffix fallback, then one-based
-`col_1 ... col_n` synthesis with the current repeated truth/length/slice/range
-evaluation order.
-
-For each zipped header/value pair, preserve value string/strip, blank-before-
-digit-search rejection, retained-header double conversion, per-accepted-cell
-unit lookup, and the exact anchored labeled-value regex with optional label,
-signed/parenthesized number, and optional `백만원|천원|억원|원|%|퍼센트` unit.
-On a truthy match, resolve and normalize label, value, then unit in that order;
-append the label only when truthy and append one fresh four-key cell dict with
-exact `row_parts[0]`. Inputs stay unchanged and all current mapping, truth,
-string, strip, split, membership, length, slice, range, zip, regex, group,
-normalization, append, and subscript failures remain uncaught.
+Commit `ac90a62` completes the unstructured-table-row parser visibility
+contract. The exact former 47-line definition is public
+`financial_row_surfaces.parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`;
+no wrapper or private alias remains. Exact row raw truth/string/normalization,
+pipe/split/filter gates, repeated header and period conversion, header/period/
+synthetic fallback precedence, digit filtering, labeled-value regex/group
+order, fresh four-key cell construction, immutability, and uncaught failure
+behavior are unchanged after definition-name normalization.
 
 All seven source calls use two positional arguments, no keywords, and caller
 `try` depth zero across five importers and six caller definitions. Parser
@@ -5273,32 +5257,75 @@ helpers embeds the result while constructing table-row metadata; reconciliation
 uses it only behind empty-structured-cell plus table/evidence-row gates in
 ratio support and primary/same-table operand extraction; reconciliation-
 candidate and structured-cell owners keep enrichment, scoring, selection, and
-adoption. Parser failure stops all later caller work. No caller gate,
-reconciliation, scoring, evidence, candidate construction, graph state,
-artifact, ledger, or final sequencing moves with this rename.
+adoption. Parser failure still stops all later caller work. Row counts finish
+20/6.
 
-The selected body has 15 top-level statements, one annotated and 17 plain
-assignments, one loop, seven `if` nodes, three returns, one continue, 44 calls,
-eight lists, one dict, five list comprehensions, nine boolean operations, five
-comparisons, three conditional expressions, five comprehension clauses, and no
-`try`, lambda, or generator. Its SHA-256 is
-`610ff588880f3945b2737923a0c6238b59c4b6e2b8f293c1914b1048fed84496`.
-The private identifier has 13 production AST references across six source
-files. Twenty-one existing exact test references across four test files make
-the bounded source/test transform ten files. The 255-301 span selects no
-reviewed runtime-domain record; its unit regex is parser-structure vocabulary
-and all 217 baseline records must remain unchanged. Existing edges keep the DAG
-acyclic at 48 modules/205 edges; projected row counts are 19/7 to 20/6.
+Executed gates are focused 4/4, graph owner 230/230, surface owner 1/1, operand
+owner 69/69, affected semantic 1,190/1,190, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,083/2,083, plus
+pycompile, production transform 6/6, source/test transform 10/10, selected-body/
+six-caller parity, existing graph-test AST 226/226 plus four methods, public
+identity 6/6, all-call/DAG/public-store/retired-live-ref, and UTF-8/non-ASCII
+gates. Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 35-line
+`financial_structured_cells._structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`
+definition. It already belongs to the structured-cell owner; the authorized
+future batch only renames it in place to public
+`structured_cell_period_text(...)` and updates four imports, four direct calls,
+and all live test bindings without a private alias.
+
+Preserve shallow policy copies in focus-then-generic order; eager current- then
+prior-marker tuple construction; exact `current` and `prior` hint fallbacks;
+and truth-filtered header construction. Retained marker and header values keep
+their separate filter/expression string conversions. Preserve eager three-key
+report-year lookup before iteration, blank skipping, first successful integer
+conversion, and the narrow `TypeError`/`ValueError` continuation handler.
+
+Query-year matching starts only after report-year recovery, preserves input
+order, and returns the first year found in any retained header. After exact
+header joining, current-marker handling precedes prior-marker handling. A
+marker hit returns the report year, report year minus one, or its policy hint.
+Only after both branches fall through does owner-private fiscal rank run. A
+rank derives from report year first, otherwise exact `max(query_years)`, and
+the final fallback is joined header text. Policy/input immutability and all
+mapping, iteration, truth, string, strip, tuple/list, membership, `any`, join,
+rank, max, arithmetic, and uncaught failure behavior remain exact.
+
+All four source calls use three positional arguments, no keywords, and caller
+`try` depth zero across four importers and four caller definitions. Graph
+evidence keeps selected-cell scoring, value/unit/period adoption, prose fallback,
+and operand construction. Lookup recovery keeps the operand-period and
+multi-cell gates, generator/regex/fast-row decision, selection, normalization,
+and row realignment. Operand resolution keeps direct-grounding admission,
+candidate-focus and explicit-year rejection, report-year repair, unit/surface
+policy, scoring, and final acceptance. Reconciliation candidates keep effective
+focus, period-presence repair, report/target fallback, scoring, pairing, and
+adoption. No fiscal helper, caller gate, selection, scoring, reconciliation,
+acceptance, evidence, state, artifact, ledger, or final sequencing moves.
+
+The selected body has 16 top-level statements, one annotated and 12 plain
+assignments, two loops, eight `if` nodes, seven returns, one continue, one try,
+33 calls, one list, six tuples, one list comprehension, five generators, nine
+boolean operations, 11 comparisons, one conditional expression, six
+comprehension clauses, and no lambda or dict. Its SHA-256 is
+`52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44`.
+The private identifier has nine production AST references across five source
+files. Twenty-five existing exact test references across four test files make
+the bounded source/test transform nine files. The 328-362 span selects no
+reviewed runtime-domain record and all 217 baseline records must remain
+unchanged. Existing edges keep the DAG acyclic at 48 modules/205 edges;
+projected structured-cell counts are 4/4 to 5/3.
 
 Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-230/230, surface owner 1/1, operand owner 69/69, affected semantic
-1,190/1,190, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
-audit 217, full 2,083/2,083, production transform 6/6, source/test transform
-10/10, public identity 6/6, seven-call/six-caller/DAG parity, existing graph-
-test AST 226/226 plus four methods, UTF-8 decode 10/10, non-ASCII preservation
-9/9, pycompile, and diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No parser
-source or test rename has occurred.
+234/234, surface owner 1/1, operand owner 69/69, affected semantic
+1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,087/2,087, production transform 5/5, source/test transform
+9/9, public identity 5/5, four-call/four-caller/DAG parity, existing graph-test
+AST 230/230 plus four methods, UTF-8 decode 9/9, non-ASCII preservation 7/7,
+pycompile, and diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No
+structured-cell period-text source or test rename has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

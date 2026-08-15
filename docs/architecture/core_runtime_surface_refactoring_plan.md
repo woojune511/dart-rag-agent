@@ -1527,38 +1527,58 @@ unchanged acyclic 48-module/205-edge DAG, retired live-ref/public-store zero,
 UTF-8/non-ASCII preservation 3/3, and diff-check gates passed. Benchmark refresh
 and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the sole remaining cross-module
-row-surface private API: the exact current 47-line
-`financial_row_surfaces._parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`
-projection for an in-place public rename to
-`parse_unstructured_table_row_cells(...)`, with no wrapper or alias. Preserve
-row normalization and pipe/split/filter gates; repeated header-context and
-period-label conversion; header suffix, period suffix, then one-based synthetic
-header precedence; numeric filtering; exact labeled-value regex/group order;
-fresh four-key cell append; input immutability; and every uncaught failure.
+Commit `ac90a62` completed the unstructured-table-row parser private-API seam.
+The exact former 47-line helper is public
+`financial_row_surfaces.parse_unstructured_table_row_cells(...)`; no wrapper or
+alias remains. All seven calls and five external imports use the public name.
+Row/header/period fallback order, repeated conversions, numeric filtering,
+labeled-value regex/group order, fresh four-key cell construction, caller gates,
+adoption, stops, and every uncaught failure are unchanged. Row counts finish
+20/6.
 
-Seven two-positional-argument call sites finish external/local 7/0 across six
-caller definitions in five importers, with no keywords and caller `try` depth
-zero. Existing structured cells, candidate-kind gates, cell enrichment,
-scoring, selection, reconciliation, evidence adoption, candidate construction,
-graph state, artifacts, ledgers, and final sequencing remain caller-owned hard
-stops. Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
-row counts are 19/7 to 20/6. The body SHA-256 is
-`610ff588880f3945b2737923a0c6238b59c4b6e2b8f293c1914b1048fed84496`;
-the private identifier has 13 production AST references and no future public-
-name definition/store exists. Twenty-one exact test refs across four test files
-make the bounded source/test transform ten files. The 255-301 span intersects
-no reviewed baseline record, so all 217 records remain unchanged.
+Production source is `+13/-13`, tests are `+1,511/-48`, and the whole commit is
+`+1,524/-61`, net `+1,463`; production physical lines are unchanged. Focused
+4/4, graph owner 230/230, surface owner 1/1, operand owner 69/69, affected
+semantic 1,190/1,190, retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,083/2,083, pycompile, production transform 6/6,
+source/test transform 10/10, selected-body/six-caller parity, public identity
+6/6, all-call/DAG/retired-ref/public-store, UTF-8 10/10, non-ASCII 9/9, and
+diff-check gates passed. The committed source/test diff SHA-256 is
+`8faf60239bc6d907001d3144dadd2aa5201e7fb6e0c701b4a9c02e09439fef17`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 35-line
+`financial_structured_cells._structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`
+projection for an in-place public rename to `structured_cell_period_text(...)`,
+with no wrapper or alias. Preserve focus/generic policy copy order, eager marker
+and header conversion, eager report-year source lookup, narrow integer-
+conversion handling, ordered query-year matching, current/prior marker
+precedence, report-year and policy-hint projection, owner-private fiscal-rank
+fallback, final header-text fallback, immutability, and every uncaught failure.
+
+Four three-positional-argument call sites finish external/local 4/0 across four
+caller definitions and four importers, with no keywords and caller `try` depth
+zero. Selected-cell scoring, operand/report gates, regex decisions, direct
+acceptance, lookup row realignment, reconciliation fallback, pairing, evidence
+adoption, graph state, artifacts, ledgers, and final sequencing remain caller-
+owned hard stops. Existing edges keep the DAG acyclic at 48 modules/205 edges.
+Projected structured-cell counts are 4/4 to 5/3. The body SHA-256 is
+`52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44`;
+the private identifier has nine production AST references and no future public-
+name definition/store exists. Twenty-five exact test refs across four test
+files make the bounded source/test transform nine files. The 328-362 span
+intersects no reviewed baseline record, so all 217 records remain unchanged.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-230/230, surface owner 1/1, operand owner 69/69, affected semantic
-1,190/1,190, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
-audit 217, full 2,083/2,083, production transform 6/6, full transform 10/10,
-public identity 6/6, all seven calls/six callers, unchanged DAG, retired-ref/
-public-store zero, existing graph-test AST 226/226 plus four methods, UTF-8
-10/10, non-ASCII 9/9, pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No parser
-source or test rename has occurred; it is the sole next priority.
+234/234, surface owner 1/1, operand owner 69/69, affected semantic
+1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,087/2,087, production transform 5/5, full transform 9/9,
+public identity 5/5, all four calls/four callers, unchanged DAG, retired-ref/
+public-store zero, existing graph-test AST 230/230 plus four methods, UTF-8 9/9,
+non-ASCII 7/7, pycompile, and diff-check gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No
+structured-cell period-text source or test rename has occurred; it is the sole
+next priority.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line
