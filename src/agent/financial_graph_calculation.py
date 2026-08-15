@@ -289,7 +289,7 @@ from src.agent.financial_surface_contracts import (
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     _operand_text_match,
-    _surface_match_variants,
+    surface_match_variants,
 )
 from src.agent.financial_lookup_recovery import (
     coerce_operand_value_from_direct_structured_evidence,
@@ -6932,12 +6932,12 @@ class FinancialAgentCalculationMixin:
         alias_variants = [
             variant
             for alias in operand_aliases
-            for variant in _surface_match_variants(alias)
+            for variant in surface_match_variants(alias)
             if variant
         ]
 
         def _label_match_score(label_text: str) -> int:
-            label_variants = _surface_match_variants(label_text)
+            label_variants = surface_match_variants(label_text)
             if not label_variants or not alias_variants:
                 return 0
             best = 0

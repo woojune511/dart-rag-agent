@@ -486,7 +486,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (15, 11),
+            (16, 10),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1900,7 +1900,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (15, 11),
+            (16, 10),
         )
 
         graph_row_imports = {
@@ -2872,7 +2872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (15, 11))
+        self.assertEqual(row_counts, (16, 10))
 
         graph_row_imports = {
             alias.name
@@ -3938,7 +3938,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (15, 11),
+            (16, 10),
         )
         graph_row_imports = {
             alias.name
@@ -4204,7 +4204,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for current_patch in (
                     patch.object(financial_operand_resolution, "candidate_conflicts_with_operand_concept", return_value=False),
                     patch.object(financial_operand_resolution, "operand_needles", return_value=[]),
-                    patch.object(financial_operand_resolution, "_surface_match_variants", side_effect=lambda text: [text]),
+                    patch.object(financial_operand_resolution, "surface_match_variants", side_effect=lambda text: [text]),
                     patch.object(financial_operand_resolution, "_operand_text_match", return_value=False),
                     patch.object(financial_operand_resolution, "is_capex_total_operand", return_value=False),
                     patch.object(financial_operand_resolution, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -10409,7 +10409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (15, 11))
+        self.assertEqual(row_counts, (16, 10))
 
         def imported_names(module_name, imported_module):
             return {
@@ -22186,7 +22186,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_row_surfaces": (15, 11),
+                "financial_row_surfaces": (16, 10),
             },
         )
 
@@ -23711,7 +23711,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (15, 11)},
+            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (16, 10)},
         )
 
         def imported_modules(tree):
@@ -30684,7 +30684,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with (
                 patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
                 patch.object(owner, "operand_needles", return_value=list(needles)),
-                patch.object(owner, "_surface_match_variants", side_effect=lambda value: [value]),
+                patch.object(owner, "surface_match_variants", side_effect=lambda value: [value]),
                 patch.object(owner, "_operand_text_match", side_effect=matcher),
                 patch.object(owner, "is_capex_total_operand", return_value=False),
                 patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -30745,7 +30745,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=["needle"]),
-            patch.object(owner, "_surface_match_variants", side_effect=variants),
+            patch.object(owner, "surface_match_variants", side_effect=variants),
             patch.object(owner, "_operand_text_match", return_value=False) as stopped_fallback,
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -30884,7 +30884,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", return_value=[]),
+            patch.object(owner, "surface_match_variants", return_value=[]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -30919,7 +30919,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", return_value=[]),
+            patch.object(owner, "surface_match_variants", return_value=[]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=True) as capex_gate,
             patch.object(owner, "text_has_positive_surface", return_value=True) as positive,
@@ -30942,7 +30942,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", return_value=[]),
+            patch.object(owner, "surface_match_variants", return_value=[]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=True),
@@ -30968,7 +30968,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", side_effect=lambda value: [value]),
+            patch.object(owner, "surface_match_variants", side_effect=lambda value: [value]),
             patch.object(owner, "_operand_text_match", side_effect=lambda surface, _: surface == "aggregate"),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -30987,7 +30987,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", side_effect=lambda value: [value]),
+            patch.object(owner, "surface_match_variants", side_effect=lambda value: [value]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -31007,7 +31007,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", return_value=[]),
+            patch.object(owner, "surface_match_variants", return_value=[]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -31039,7 +31039,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False) as conflict,
             patch.object(owner, "dict", side_effect=copy_mapping, create=True),
             patch.object(owner, "operand_needles", return_value=["needle"]),
-            patch.object(owner, "_surface_match_variants", side_effect=lambda value: [value]),
+            patch.object(owner, "surface_match_variants", side_effect=lambda value: [value]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -31068,7 +31068,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=["needle"]),
-            patch.object(owner, "_surface_match_variants", side_effect=RuntimeError("variants failed")),
+            patch.object(owner, "surface_match_variants", side_effect=RuntimeError("variants failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "variants failed"):
                 target({"candidate_kind": "structured_value", "metadata": {"row_label": "surface"}}, operand)
@@ -31076,7 +31076,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(owner, "operand_needles", return_value=[]),
-            patch.object(owner, "_surface_match_variants", return_value=[]),
+            patch.object(owner, "surface_match_variants", return_value=[]),
             patch.object(owner, "_operand_text_match", return_value=False),
             patch.object(owner, "is_capex_total_operand", return_value=False),
             patch.object(owner, "operand_prefers_contextual_aggregate_match", return_value=False),
@@ -31164,7 +31164,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "join": 4,
                 "extend": 1,
                 "set": 1,
-                "_surface_match_variants": 2,
+                "surface_match_variants": 2,
                 "any": 3,
                 "operand_needles": 2,
                 "max": 8,
@@ -39068,7 +39068,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 score_owner,
-                "_surface_match_variants",
+                "surface_match_variants",
                 side_effect=lambda value: (str(value),),
             ),
             patch.object(score_owner, "operand_needles", return_value=("Metric",)),
@@ -39292,7 +39292,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 stack.enter_context(
                     patch.object(
                         score_owner,
-                        "_surface_match_variants",
+                        "surface_match_variants",
                         surface_variants,
                     )
                 )
@@ -39602,7 +39602,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(body_dump.encode()).hexdigest(),
-            "3c65d727ae2213b4015505b84e0f98cf1bfe09fe9d4ad4ffe0e2505cf7a64d6f",
+            "e2f7a2a6745b528c3231914f41b674ae9299ee6f3209f2d07edfdb339d65166d",
         )
 
         name_call_counts = {}
@@ -39619,7 +39619,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "str": 55,
                 "_normalise_spaces": 20,
                 "set": 1,
-                "_surface_match_variants": 2,
+                "surface_match_variants": 2,
                 "operand_needles": 2,
                 "any": 11,
                 "_operand_text_match": 4,
@@ -46475,7 +46475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (15, 11) if target_name == future_public_name else (13, 13)
+            (16, 10) if target_name == future_public_name else (13, 13)
         )
         self.assertEqual(row_counts, expected_row_counts)
         structured_tree = module_trees["financial_structured_cells"]
@@ -47413,7 +47413,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (15, 11) if target_name == future_public_name else (13, 13)
+            (16, 10) if target_name == future_public_name else (13, 13)
         )
         self.assertEqual(row_counts, expected_row_counts)
 
@@ -48538,14 +48538,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 (
                     "financial_row_surfaces",
-                    "_surface_match_variants",
+                    "surface_match_variants",
                     ("normalized",),
                     (),
                     0,
                 ),
                 (
                     "financial_row_surfaces",
-                    "_surface_match_variants",
+                    "surface_match_variants",
                     ("normalized",),
                     (),
                     0,
@@ -48556,7 +48556,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             {
                 "financial_graph_helpers": "986d07edbcbba1ed2cbe14d8b4086aef5ffd4211eb8570fd6b9d1b84fae8250b",
-                "financial_operand_resolution": "91cbfbbf1cac68d3759a45f64a3f0db57d53e33428674b99571fae6929ebff37",
+                "financial_operand_resolution": "87b153f7245860ec5517aa98aa993bdc6abeb955cf3a29d3e9253213bdfdbe3f",
                 "financial_row_surfaces": "29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6",
             },
         )
@@ -48628,7 +48628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             row_counts,
-            (15, 11) if target_name == future_public_name else (13, 13),
+            (16, 10) if target_name == future_public_name else (13, 13),
         )
         caller_owner_counts = {}
         for module_name in {"financial_graph_helpers", "financial_operand_resolution"}:
@@ -48776,7 +48776,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 210)
+        self.assertEqual(len(graph_test_methods), 214)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -48829,7 +48829,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 side_effect=row_period_strip,
             ) as row_period_mock,
         ):
-            row_variants = financial_row_surfaces._surface_match_variants(row_raw)
+            row_variants = financial_row_surfaces.surface_match_variants(row_raw)
 
         self.assertEqual(len(row_variants), 4)
         for actual, expected in zip(
@@ -48871,7 +48871,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "first annotation failed"):
-                financial_row_surfaces._surface_match_variants(row_raw)
+                financial_row_surfaces.surface_match_variants(row_raw)
         failed_first_target.assert_called_once_with(row_normalized)
         stopped_first_period.assert_not_called()
 
@@ -48896,7 +48896,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "second annotation failed"):
-                financial_row_surfaces._surface_match_variants(row_raw)
+                financial_row_surfaces.surface_match_variants(row_raw)
         self.assertEqual(failed_second_target.call_count, 2)
         stopped_nested_period.assert_called_once_with(row_normalized)
 
@@ -49119,7 +49119,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 stack.enter_context(
                     patch.object(
                         financial_operand_resolution,
-                        "_surface_match_variants",
+                        "surface_match_variants",
                         return_value=[],
                     )
                 )
@@ -49902,14 +49902,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 (
                     "financial_row_surfaces",
-                    "_surface_match_variants",
+                    "surface_match_variants",
                     ("normalized",),
                     (),
                     0,
                 ),
                 (
                     "financial_row_surfaces",
-                    "_surface_match_variants",
+                    "surface_match_variants",
                     ("strip_financial_label_annotations(normalized)",),
                     (),
                     0,
@@ -49927,7 +49927,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             {
                 "select_aggregate_projection_answer_sentence": "896750ef2c139ac7ddc9951bd4f4d0c4f21871ee4e8b67618d670a0235574ce1",
-                "_surface_match_variants": "29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6",
+                "surface_match_variants": "29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6",
                 "candidate_sibling_surface_hit_count": "3c5e6637c36338f366837c48ca322a2dd9ed2cd91875f42cb64d9a60f35a3736",
             },
         )
@@ -49997,7 +49997,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             row_counts,
-            (15, 11) if target_name == future_public_name else (14, 12),
+            (16, 10) if target_name == future_public_name else (15, 11),
         )
         aggregate_tree = module_trees["financial_aggregate_projection"]
         aggregate_functions = [
@@ -50114,7 +50114,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 210)
+        self.assertEqual(len(graph_test_methods), 214)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50167,7 +50167,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 side_effect=strip_period,
             ) as period_mock,
         ):
-            variants = financial_row_surfaces._surface_match_variants(row_raw)
+            variants = financial_row_surfaces.surface_match_variants(row_raw)
         for actual, expected in zip(
             variants,
             (row_normalized, annotation_direct, period_direct, period_nested),
@@ -50207,7 +50207,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as failed_row_target,
         ):
             with self.assertRaisesRegex(RuntimeError, "row period failed"):
-                financial_row_surfaces._surface_match_variants(row_raw)
+                financial_row_surfaces.surface_match_variants(row_raw)
         failed_row_target.assert_called_once_with(row_normalized)
         stopped_annotation_mock.assert_called_once_with(row_normalized)
 
@@ -50430,6 +50430,1478 @@ class FinancialGraphHelperTests(unittest.TestCase):
         failed_aggregate_target.assert_called_once_with("2024 metric")
         stopped_family.assert_not_called()
         stopped_split.assert_not_called()
+
+    def test_current_source_surface_match_variants_pins_truth_normalization_eager_order_dedupe_identity_and_result(self) -> None:
+        target_name = (
+            "surface_match_variants"
+            if hasattr(financial_row_surfaces, "surface_match_variants")
+            else "_surface_match_variants"
+        )
+        target = getattr(financial_row_surfaces, target_name)
+
+        self.assertEqual(
+            target("  2024 Revenue (*)  "),
+            ["2024 Revenue (*)", "2024 Revenue", "Revenue (*)", "Revenue"],
+        )
+        first_blank = target(None)
+        second_blank = target("   ")
+        self.assertEqual(first_blank, [])
+        self.assertEqual(second_blank, [])
+        self.assertIsNot(first_blank, second_blank)
+        self.assertIs(type(first_blank), list)
+
+        events = []
+
+        class RawText:
+            def __bool__(self):
+                events.append(("truth", "raw"))
+                return True
+
+            def __str__(self):
+                raise AssertionError("surface variants must not coerce the raw input")
+
+        class Item:
+            def __init__(self, label, hash_value):
+                self.label = label
+                self.hash_value = hash_value
+
+            def __bool__(self):
+                events.append(("truth", self.label))
+                return True
+
+            def __hash__(self):
+                events.append(("hash", self.label))
+                return self.hash_value
+
+            def __eq__(self, other):
+                other_label = getattr(other, "label", None)
+                events.append(("equal", self.label, other_label))
+                return self.label == "annotation-direct" and other_label == "period-nested"
+
+        raw = RawText()
+        normalized = Item("normalized", 1)
+        annotation_direct = Item("annotation-direct", 2)
+        period_direct = Item("period-direct", 3)
+        annotation_nested = Item("annotation-nested", 4)
+        period_nested = Item("period-nested", 2)
+
+        def normalize(value):
+            events.append(("normalize", value))
+            self.assertIs(value, raw)
+            return normalized
+
+        annotation_results = iter((annotation_direct, annotation_nested))
+
+        def strip_annotation(value):
+            events.append(("annotation", value))
+            self.assertIs(value, normalized)
+            return next(annotation_results)
+
+        def strip_period(value):
+            events.append(("period", value))
+            if value is normalized:
+                return period_direct
+            self.assertIs(value, annotation_nested)
+            return period_nested
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ) as normalize_mock,
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                side_effect=strip_annotation,
+            ) as annotation_mock,
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                side_effect=strip_period,
+            ) as period_mock,
+        ):
+            variants = target(raw)
+
+        observed_events = list(events)
+        self.assertEqual(
+            observed_events,
+            [
+                ("truth", "raw"),
+                ("normalize", raw),
+                ("truth", "normalized"),
+                ("annotation", normalized),
+                ("period", normalized),
+                ("annotation", normalized),
+                ("period", annotation_nested),
+                ("truth", "normalized"),
+                ("hash", "normalized"),
+                ("truth", "annotation-direct"),
+                ("hash", "annotation-direct"),
+                ("truth", "period-direct"),
+                ("hash", "period-direct"),
+                ("truth", "period-nested"),
+                ("hash", "period-nested"),
+                ("equal", "annotation-direct", "period-nested"),
+            ],
+        )
+        self.assertEqual(len(variants), 3)
+        self.assertIs(variants[0], normalized)
+        self.assertIs(variants[1], annotation_direct)
+        self.assertIs(variants[2], period_direct)
+        normalize_mock.assert_called_once()
+        self.assertIs(normalize_mock.call_args.args[0], raw)
+        self.assertEqual(annotation_mock.call_count, 2)
+        self.assertIs(annotation_mock.call_args_list[0].args[0], normalized)
+        self.assertIs(annotation_mock.call_args_list[1].args[0], normalized)
+        self.assertEqual(period_mock.call_count, 2)
+        self.assertIs(period_mock.call_args_list[0].args[0], normalized)
+        self.assertIs(period_mock.call_args_list[1].args[0], annotation_nested)
+
+    def test_current_source_surface_match_variants_pins_immutability_and_exceptions(self) -> None:
+        target_name = (
+            "surface_match_variants"
+            if hasattr(financial_row_surfaces, "surface_match_variants")
+            else "_surface_match_variants"
+        )
+        target = getattr(financial_row_surfaces, target_name)
+
+        nested = ["kept"]
+        raw = {"nested": nested}
+        before = deepcopy(raw)
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ) as normalize_mock,
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                side_effect=["annotation", "annotation nested"],
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                side_effect=["period", "nested period"],
+            ),
+        ):
+            result = target(raw)
+        self.assertEqual(
+            result,
+            ["normalized", "annotation", "period", "nested period"],
+        )
+        self.assertEqual(raw, before)
+        self.assertIs(raw["nested"], nested)
+        self.assertIs(normalize_mock.call_args.args[0], raw)
+
+        class RawTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("raw truth failed")
+
+        stopped_normalize = Mock(
+            side_effect=AssertionError("raw truth failure must stop normalization")
+        )
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            stopped_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "raw truth failed"):
+                target(RawTruthBomb())
+        stopped_normalize.assert_not_called()
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalize failed"),
+        ) as failed_normalize:
+            with self.assertRaisesRegex(RuntimeError, "normalize failed"):
+                target(object())
+        failed_normalize.assert_called_once()
+
+        class NormalizedTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("normalized truth failed")
+
+        stopped_annotation = Mock(
+            side_effect=AssertionError("normalized truth failure must stop variants")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value=NormalizedTruthBomb(),
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                stopped_annotation,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalized truth failed"):
+                target(object())
+        stopped_annotation.assert_not_called()
+
+        stopped_period = Mock(
+            side_effect=AssertionError("annotation failure must stop period stripping")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                side_effect=RuntimeError("first annotation failed"),
+            ) as failed_annotation,
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                stopped_period,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "first annotation failed"):
+                target(object())
+        failed_annotation.assert_called_once_with("normalized")
+        stopped_period.assert_not_called()
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                return_value="annotation",
+            ) as first_annotation,
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                side_effect=RuntimeError("first period failed"),
+            ) as failed_period,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "first period failed"):
+                target(object())
+        first_annotation.assert_called_once_with("normalized")
+        failed_period.assert_called_once_with("normalized")
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                side_effect=["annotation", RuntimeError("second annotation failed")],
+            ) as failed_second_annotation,
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                return_value="period",
+            ) as first_period,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "second annotation failed"):
+                target(object())
+        self.assertEqual(failed_second_annotation.call_count, 2)
+        first_period.assert_called_once_with("normalized")
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                side_effect=["annotation", "annotation nested"],
+            ) as nested_annotations,
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                side_effect=["period", RuntimeError("nested period failed")],
+            ) as failed_nested_period,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "nested period failed"):
+                target(object())
+        self.assertEqual(nested_annotations.call_count, 2)
+        self.assertEqual(failed_nested_period.call_count, 2)
+        self.assertEqual(failed_nested_period.call_args_list[1].args, ("annotation nested",))
+
+        class ItemTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("item truth failed")
+
+        eager_annotations = Mock(side_effect=[ItemTruthBomb(), "annotation nested"])
+        eager_periods = Mock(side_effect=["period", "nested period"])
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                eager_annotations,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                eager_periods,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "item truth failed"):
+                target(object())
+        self.assertEqual(eager_annotations.call_count, 2)
+        self.assertEqual(eager_periods.call_count, 2)
+
+        class HashBomb:
+            def __bool__(self):
+                return True
+
+            def __hash__(self):
+                raise RuntimeError("hash failed")
+
+        hash_annotations = Mock(side_effect=[HashBomb(), "annotation nested"])
+        hash_periods = Mock(side_effect=["period", "nested period"])
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                hash_annotations,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                hash_periods,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "hash failed"):
+                target(object())
+        self.assertEqual(hash_annotations.call_count, 2)
+        self.assertEqual(hash_periods.call_count, 2)
+
+        class EqualityBomb:
+            def __bool__(self):
+                return True
+
+            def __hash__(self):
+                return 7
+
+            def __eq__(self, other):
+                raise RuntimeError("equality failed")
+
+        normalized_bomb = EqualityBomb()
+        equality_annotations = Mock(side_effect=[EqualityBomb(), "annotation nested"])
+        equality_periods = Mock(side_effect=["period", "nested period"])
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value=normalized_bomb,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                equality_annotations,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                equality_periods,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "equality failed"):
+                target(object())
+        self.assertEqual(equality_annotations.call_count, 2)
+        self.assertEqual(equality_periods.call_count, 2)
+
+        materialize_annotations = Mock(
+            side_effect=["annotation", "annotation nested"]
+        )
+        materialize_periods = Mock(side_effect=["period", "nested period"])
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_financial_label_annotations",
+                materialize_annotations,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "strip_leading_period_qualifiers",
+                materialize_periods,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "list",
+                side_effect=RuntimeError("list failed"),
+                create=True,
+            ) as failed_list,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "list failed"):
+                target(object())
+        self.assertEqual(materialize_annotations.call_count, 2)
+        self.assertEqual(materialize_periods.call_count, 2)
+        failed_list.assert_called_once()
+
+    def test_current_source_surface_match_variants_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "surface_match_variants"
+        retired_private_name = "_surface_match_variants"
+        owner_module = "src.agent.financial_row_surfaces"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_row_surfaces"]
+        owner_tree = module_trees["financial_row_surfaces"]
+        public_definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        target_name = (
+            future_public_name if public_definitions else retired_private_name
+        )
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 11)
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            ["Assign", "If", "Assign", "Return"],
+        )
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["text"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["str"],
+        )
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "List[str]")
+        self.assertEqual(
+            (
+                sum(isinstance(node, ast.Assign) for node in ast.walk(definition)),
+                sum(isinstance(node, ast.If) for node in ast.walk(definition)),
+                sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+                sum(isinstance(node, ast.GeneratorExp) for node in ast.walk(definition)),
+                sum(isinstance(node, ast.Call) for node in ast.walk(definition)),
+                sum(
+                    isinstance(node, (ast.Try, ast.TryStar))
+                    for node in ast.walk(definition)
+                ),
+            ),
+            (2, 1, 2, 1, 7, 0),
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[0]),
+            "normalized = _normalise_spaces(text or '')",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[1]),
+            "if not normalized:\n    return []",
+        )
+        variants_assignment = definition.body[2]
+        self.assertIsInstance(variants_assignment, ast.Assign)
+        self.assertIsInstance(variants_assignment.value, ast.List)
+        self.assertEqual(
+            [ast.unparse(element) for element in variants_assignment.value.elts],
+            [
+                "normalized",
+                "strip_financial_label_annotations(normalized)",
+                "strip_leading_period_qualifiers(normalized)",
+                "strip_leading_period_qualifiers(strip_financial_label_annotations(normalized))",
+            ],
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[3].value),
+            "list(dict.fromkeys((item for item in variants if item)))",
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        importer_names = {
+            name
+            for name, tree in module_trees.items()
+            if target_name in imported_names(tree, owner_module)
+        }
+        self.assertEqual(
+            importer_names,
+            {"financial_graph_calculation", "financial_operand_resolution"},
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+        for importer_name in importer_names:
+            self.assertIn(
+                owner_module,
+                imported_modules(module_trees[importer_name]),
+            )
+
+        call_records = []
+        caller_hashes = {}
+        for module_name in (
+            "financial_graph_calculation",
+            "financial_operand_resolution",
+            "financial_row_surfaces",
+        ):
+            tree = module_trees[module_name]
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            direct_calls = sorted(
+                (
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ),
+                key=lambda node: node.lineno,
+            )
+            for call in direct_calls:
+                cursor = parents.get(call)
+                caller = None
+                try_depth = 0
+                while cursor is not None:
+                    if isinstance(cursor, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if caller is None and isinstance(
+                        cursor,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = cursor
+                    cursor = parents.get(cursor)
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    (
+                        module_name,
+                        caller.name,
+                        tuple(ast.unparse(argument) for argument in call.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in call.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+                caller_body = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body.encode("utf-8")
+                ).hexdigest()
+        self.assertEqual(
+            call_records,
+            [
+                (
+                    "financial_graph_calculation",
+                    "_precision_cell_from_contextual_note_row",
+                    ("alias",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_label_match_score",
+                    ("label_text",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "_evidence_surface_contains_segment_label",
+                    ("segment_label",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "candidate_direct_match_strength",
+                    ("normalized_surface",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "candidate_direct_match_strength",
+                    ("needle",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "score_operand_candidate",
+                    ("row_label",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "score_operand_candidate",
+                    ("needle",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_row_surfaces",
+                    "_operand_text_match",
+                    ("text",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_row_surfaces",
+                    "_operand_text_match",
+                    ("needle",),
+                    (),
+                    0,
+                ),
+            ],
+        )
+        private_caller_hashes = {
+            (
+                "financial_graph_calculation",
+                "_precision_cell_from_contextual_note_row",
+            ): "598df78bef5cb33924deee78edae7c722a345a431b54350b3e8a99d66c90caa8",
+            (
+                "financial_graph_calculation",
+                "_label_match_score",
+            ): "170ec816834cff3dff92c8843c937ef8f8b2bd16602b7612450fa01c133ce3fb",
+            (
+                "financial_operand_resolution",
+                "_evidence_surface_contains_segment_label",
+            ): "313efc47c12f3ca9c06fbbcfc065c66ef0a3689e199ba5e482813f6d34ddf9e2",
+            (
+                "financial_operand_resolution",
+                "candidate_direct_match_strength",
+            ): "3cb2101d7247af8872b85dbab27075be0d005eebba438175735958cd4e71eb6f",
+            (
+                "financial_operand_resolution",
+                "score_operand_candidate",
+            ): "91cbfbbf1cac68d3759a45f64a3f0db57d53e33428674b99571fae6929ebff37",
+            (
+                "financial_row_surfaces",
+                "_operand_text_match",
+            ): "7ec0afdbec8ad0394700ad69d5e18064132afc94b9d5b9b0385ad2880ea39de4",
+        }
+        public_caller_hashes = {
+            (
+                "financial_graph_calculation",
+                "_precision_cell_from_contextual_note_row",
+            ): "4864a55f62b3cf30c8883498b2cc0a0eb3d8adcd201a68463f82a6563ac1610c",
+            (
+                "financial_graph_calculation",
+                "_label_match_score",
+            ): "ad01055d6b22d950013687cec1c2bbb92fd5c0f21b25078e6a380032f575ec06",
+            (
+                "financial_operand_resolution",
+                "_evidence_surface_contains_segment_label",
+            ): "5a97f20c87ab8dce966863512ecd4cce63518b6c60d45c92820076049d7f2705",
+            (
+                "financial_operand_resolution",
+                "candidate_direct_match_strength",
+            ): "265b58e37ec106a9f38804dcc4bbcf8673984912fc537c5aca666b7eb0bd1d60",
+            (
+                "financial_operand_resolution",
+                "score_operand_candidate",
+            ): "87b153f7245860ec5517aa98aa993bdc6abeb955cf3a29d3e9253213bdfdbe3f",
+            (
+                "financial_row_surfaces",
+                "_operand_text_match",
+            ): "08d56d35cbc7cf2256047e0c51fabc9d9fc37569cfed8ab349dd277989b930b0",
+        }
+        self.assertEqual(
+            caller_hashes,
+            (
+                public_caller_hashes
+                if target_name == future_public_name
+                else private_caller_hashes
+            ),
+        )
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        if target_name == future_public_name:
+            self.assertEqual(
+                future_public_definitions,
+                [("financial_row_surfaces", definition.lineno)],
+            )
+        else:
+            self.assertEqual(future_public_definitions, [])
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        def identifier_references(identifier):
+            return (
+                sum(
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                )
+                + sum(
+                    isinstance(node, ast.Name) and node.id == identifier
+                    for tree in module_trees.values()
+                    for node in ast.walk(tree)
+                )
+                + sum(
+                    alias.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                    if isinstance(node, ast.ImportFrom)
+                    for alias in node.names
+                )
+            )
+
+        self.assertEqual(identifier_references(target_name), 12)
+        self.assertEqual(
+            identifier_references(retired_private_name),
+            0 if target_name == future_public_name else 12,
+        )
+        row_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in row_functions),
+                sum(node.name.startswith("_") for node in row_functions),
+            ),
+            (16, 10) if target_name == future_public_name else (15, 11),
+        )
+        operand_tree = module_trees["financial_operand_resolution"]
+        operand_functions = [
+            node
+            for node in operand_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in operand_functions),
+                sum(node.name.startswith("_") for node in operand_functions),
+                sum(isinstance(node, ast.ClassDef) for node in operand_tree.body),
+            ),
+            (54, 37, 19),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_row_surfaces.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(
+            sorted(
+                (
+                    record.get("fingerprint"),
+                    tuple(record.get("first_lines") or []),
+                )
+                for record in selected_records
+            ),
+            [
+                ("25f17ac6aad50c38", (66,)),
+                ("29c0f2198b3be826", (66,)),
+            ],
+        )
+        selected_literals = {
+            node.value
+            for node in ast.walk(definition)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertEqual(selected_literals, {""})
+        self.assertTrue(
+            all(record.get("text") not in selected_literals for record in selected_records)
+        )
+
+        owner_target = getattr(financial_row_surfaces, target_name)
+        self.assertIs(
+            getattr(financial_graph_calculation, target_name),
+            owner_target,
+        )
+        self.assertIs(
+            getattr(financial_operand_resolution, target_name),
+            owner_target,
+        )
+
+        required_methods = {
+            "test_current_source_surface_match_variants_pins_truth_normalization_eager_order_dedupe_identity_and_result",
+            "test_current_source_surface_match_variants_pins_immutability_and_exceptions",
+            "test_current_source_surface_match_variants_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_surface_match_variants_callers_pin_args_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        test_class = next(
+            node
+            for node in current_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = {
+            node.name
+            for node in test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        }
+        self.assertEqual(len(graph_test_methods), 214)
+        self.assertEqual(graph_test_methods & required_methods, required_methods)
+
+        def exact_target_reference_count(method, identifier):
+            return sum(
+                (
+                    isinstance(node, ast.Constant)
+                    and node.value == identifier
+                )
+                or (
+                    isinstance(node, ast.Attribute)
+                    and node.attr == identifier
+                )
+                or (
+                    isinstance(node, ast.Name)
+                    and node.id == identifier
+                )
+                for node in ast.walk(method)
+            )
+
+        existing_reference_counts = {
+            method.name: exact_target_reference_count(method, target_name)
+            for method in test_class.body
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name not in required_methods
+            and exact_target_reference_count(method, target_name)
+        }
+        self.assertEqual(
+            existing_reference_counts,
+            {
+                "test_current_source_candidate_row_context_callers_pin_order_short_circuits_and_stops": 1,
+                "test_current_source_candidate_direct_match_strength_pins_surface_weights_iteration_and_fallback": 2,
+                "test_current_source_candidate_direct_match_strength_pins_specialized_laziness_identity_immutability_and_exceptions": 9,
+                "test_current_source_candidate_direct_match_strength_bindings_pin_owner_def_calls_dag_imports_and_baseline": 1,
+                "test_current_source_score_operand_candidate_pins_conflict_label_kind_numeric_role_statement_scope_period_source_and_result": 1,
+                "test_current_source_score_operand_candidate_pins_laziness_repeated_calls_identity_immutability_valueerror_and_exceptions": 1,
+                "test_current_source_score_operand_candidate_bindings_pin_owner_defs_calls_dag_imports_and_baseline": 1,
+                "test_current_source_strip_financial_label_annotations_bindings_pin_owner_def_calls_dag_imports_and_baseline": 2,
+                "test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops": 4,
+                "test_current_source_strip_leading_period_qualifiers_bindings_pin_owner_def_calls_dag_imports_and_baseline": 3,
+                "test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops": 2,
+            },
+        )
+        retired_existing_references = sum(
+            exact_target_reference_count(method, retired_private_name)
+            for method in test_class.body
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name not in required_methods
+        )
+        self.assertEqual(
+            retired_existing_references,
+            0 if target_name == future_public_name else 27,
+        )
+
+    def test_current_source_surface_match_variants_callers_pin_args_adoption_and_stops(self) -> None:
+        target_name = (
+            "surface_match_variants"
+            if hasattr(financial_row_surfaces, "surface_match_variants")
+            else "_surface_match_variants"
+        )
+
+        row_text = object()
+        row_needle = object()
+        row_calls = []
+
+        def row_variants(value):
+            row_calls.append(value)
+            return ["Metric"]
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=row_variants,
+            ) as row_target,
+            patch.object(
+                financial_row_surfaces,
+                "operand_needles",
+                return_value=[row_needle],
+            ) as row_needles,
+        ):
+            self.assertTrue(
+                financial_row_surfaces._operand_text_match(row_text, {"kept": True})
+            )
+        self.assertEqual(row_target.call_count, 2)
+        self.assertIs(row_calls[0], row_text)
+        self.assertIs(row_calls[1], row_needle)
+        row_needles.assert_called_once_with({"kept": True})
+
+        stopped_row_needles = Mock(
+            side_effect=AssertionError("first row variant failure must stop needles")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=RuntimeError("row variants failed"),
+            ) as failed_row_target,
+            patch.object(
+                financial_row_surfaces,
+                "operand_needles",
+                stopped_row_needles,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row variants failed"):
+                financial_row_surfaces._operand_text_match(row_text, {})
+        failed_row_target.assert_called_once()
+        self.assertIs(failed_row_target.call_args.args[0], row_text)
+        stopped_row_needles.assert_not_called()
+
+        graph_alias = object()
+        graph_calls = []
+
+        def graph_variants(value):
+            graph_calls.append(value)
+            if value is graph_alias:
+                return ["Metric"]
+            self.assertEqual(value, "Metric")
+            return ["Metric"]
+
+        graph_context = financial_graph_calculation._OperandPrecisionContext(
+            row={},
+            evidence_item=None,
+            metadata={"table_row_labels_text": "Metric"},
+            records=[],
+            operand_aliases=[graph_alias],
+            operand_spec={},
+            raw_unit="",
+            surface="",
+        )
+        with patch.object(
+            financial_graph_calculation,
+            target_name,
+            side_effect=graph_variants,
+        ) as graph_target:
+            graph_result = financial_graph_calculation.FinancialAgentCalculationMixin._precision_cell_from_contextual_note_row(
+                SimpleNamespace(),
+                graph_context,
+            )
+        self.assertIsNone(graph_result)
+        self.assertEqual(graph_target.call_count, 2)
+        self.assertIs(graph_calls[0], graph_alias)
+        self.assertEqual(graph_calls[1], "Metric")
+
+        with patch.object(
+            financial_graph_calculation,
+            target_name,
+            side_effect=RuntimeError("graph alias variants failed"),
+        ) as failed_graph_alias:
+            with self.assertRaisesRegex(RuntimeError, "graph alias variants failed"):
+                financial_graph_calculation.FinancialAgentCalculationMixin._precision_cell_from_contextual_note_row(
+                    SimpleNamespace(),
+                    graph_context,
+                )
+        failed_graph_alias.assert_called_once()
+        self.assertIs(failed_graph_alias.call_args.args[0], graph_alias)
+
+        graph_failure_calls = []
+
+        def fail_graph_label(value):
+            graph_failure_calls.append(value)
+            if value is graph_alias:
+                return ["Metric"]
+            raise RuntimeError("graph label variants failed")
+
+        stopped_graph_match = Mock(
+            side_effect=AssertionError("label variant failure must stop fallback matching")
+        )
+        with (
+            patch.object(
+                financial_graph_calculation,
+                target_name,
+                side_effect=fail_graph_label,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_operand_text_match",
+                stopped_graph_match,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "graph label variants failed"):
+                financial_graph_calculation.FinancialAgentCalculationMixin._precision_cell_from_contextual_note_row(
+                    SimpleNamespace(),
+                    graph_context,
+                )
+        self.assertEqual(len(graph_failure_calls), 2)
+        self.assertIs(graph_failure_calls[0], graph_alias)
+        self.assertEqual(graph_failure_calls[1], "Metric")
+        stopped_graph_match.assert_not_called()
+
+        segment_label = object()
+        with patch.object(
+            financial_operand_resolution,
+            target_name,
+            return_value=["Segment"],
+        ) as evidence_target:
+            self.assertTrue(
+                financial_operand_resolution._evidence_surface_contains_segment_label(
+                    segment_label,
+                    ["Segment"],
+                )
+            )
+        evidence_target.assert_called_once()
+        self.assertIs(evidence_target.call_args.args[0], segment_label)
+
+        stopped_evidence_normalize = Mock(
+            side_effect=AssertionError("segment variant failure must stop normalization")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=RuntimeError("segment variants failed"),
+            ) as failed_evidence_target,
+            patch.object(
+                financial_operand_resolution,
+                "_normalise_spaces",
+                stopped_evidence_normalize,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment variants failed"):
+                financial_operand_resolution._evidence_surface_contains_segment_label(
+                    segment_label,
+                    ["Segment"],
+                )
+        failed_evidence_target.assert_called_once()
+        self.assertIs(failed_evidence_target.call_args.args[0], segment_label)
+        stopped_evidence_normalize.assert_not_called()
+
+        class ExactText(str):
+            pass
+
+        direct_surface = ExactText("Surface")
+        direct_needle = ExactText("Needle")
+        direct_calls = []
+
+        def direct_variants(value):
+            direct_calls.append(value)
+            if value == direct_surface:
+                return ["SurfaceVariant"]
+            self.assertIs(value, direct_needle)
+            return ["SurfaceVariant"]
+
+        direct_candidate = {
+            "candidate_kind": "table_row",
+            "metadata": {"semantic_label": direct_surface},
+        }
+        direct_operand = {"label": direct_needle}
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=direct_variants,
+            ) as direct_target,
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                return_value=[direct_needle],
+            ) as direct_needles,
+            patch.object(
+                financial_operand_resolution,
+                "_operand_text_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "is_capex_total_operand",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "operand_prefers_contextual_aggregate_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "operand_lookup_surface_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "candidate_supports_segment_metric_combo",
+                return_value=False,
+            ),
+        ):
+            direct_score = financial_operand_resolution.candidate_direct_match_strength(
+                direct_candidate,
+                direct_operand,
+            )
+        self.assertEqual(direct_score, 3.0)
+        self.assertEqual(direct_target.call_count, 2)
+        self.assertEqual(direct_calls[0], direct_surface)
+        self.assertIs(type(direct_calls[0]), str)
+        self.assertIs(direct_calls[1], direct_needle)
+        self.assertEqual(direct_needles.call_count, 2)
+
+        stopped_direct_needles = Mock(
+            side_effect=AssertionError("surface variant failure must stop needles")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=RuntimeError("direct surface variants failed"),
+            ) as failed_direct_surface,
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                stopped_direct_needles,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "direct surface variants failed"):
+                financial_operand_resolution.candidate_direct_match_strength(
+                    direct_candidate,
+                    direct_operand,
+                )
+        failed_direct_surface.assert_called_once()
+        self.assertEqual(failed_direct_surface.call_args.args[0], direct_surface)
+        self.assertIs(type(failed_direct_surface.call_args.args[0]), str)
+        stopped_direct_needles.assert_not_called()
+
+        direct_failure_calls = []
+
+        def fail_direct_needle(value):
+            direct_failure_calls.append(value)
+            if value == direct_surface:
+                return ["SurfaceVariant"]
+            self.assertIs(value, direct_needle)
+            raise RuntimeError("direct needle variants failed")
+
+        stopped_direct_match = Mock(
+            side_effect=AssertionError("needle variant failure must stop text matching")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=fail_direct_needle,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                return_value=[direct_needle],
+            ) as failed_direct_needles,
+            patch.object(
+                financial_operand_resolution,
+                "_operand_text_match",
+                stopped_direct_match,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "direct needle variants failed"):
+                financial_operand_resolution.candidate_direct_match_strength(
+                    direct_candidate,
+                    direct_operand,
+                )
+        self.assertEqual(len(direct_failure_calls), 2)
+        self.assertEqual(direct_failure_calls[0], direct_surface)
+        self.assertIs(type(direct_failure_calls[0]), str)
+        self.assertIs(direct_failure_calls[1], direct_needle)
+        self.assertEqual(failed_direct_needles.call_count, 2)
+        stopped_direct_match.assert_not_called()
+
+        score_row = ExactText("Row")
+        score_needle = ExactText("Needle")
+        score_calls = []
+
+        def score_variants(value):
+            score_calls.append(value)
+            if value == score_row:
+                return ["RowVariant"]
+            self.assertIs(value, score_needle)
+            return ["RowVariant"]
+
+        score_candidate = {
+            "candidate_kind": "chunk",
+            "metadata": {"row_label": score_row},
+        }
+        score_operand = {"label": score_needle}
+        score_kwargs = {
+            "operand": score_operand,
+            "preferred_statement_types": [],
+            "constraints": {},
+            "query_years": [],
+        }
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=score_variants,
+            ) as score_target,
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                return_value=[score_needle],
+            ) as score_needles,
+            patch.object(
+                financial_operand_resolution,
+                "_operand_text_match",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "candidate_direct_match_strength",
+                return_value=0.0,
+            ) as direct_strength,
+        ):
+            candidate_score = financial_operand_resolution.score_operand_candidate(
+                score_candidate,
+                **score_kwargs,
+            )
+        self.assertEqual(candidate_score, 2.75)
+        self.assertEqual(score_target.call_count, 2)
+        self.assertEqual(score_calls[0], score_row)
+        self.assertIs(type(score_calls[0]), str)
+        self.assertIs(score_calls[1], score_needle)
+        score_needles.assert_called_once_with(score_operand)
+        direct_strength.assert_called_once_with(score_candidate, score_operand)
+
+        stopped_score_needles = Mock(
+            side_effect=AssertionError("row variant failure must stop score needles")
+        )
+        stopped_score_direct = Mock(
+            side_effect=AssertionError("row variant failure must stop direct scoring")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=RuntimeError("score row variants failed"),
+            ) as failed_score_row,
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                stopped_score_needles,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "candidate_direct_match_strength",
+                stopped_score_direct,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "score row variants failed"):
+                financial_operand_resolution.score_operand_candidate(
+                    score_candidate,
+                    **score_kwargs,
+                )
+        failed_score_row.assert_called_once()
+        self.assertEqual(failed_score_row.call_args.args[0], score_row)
+        self.assertIs(type(failed_score_row.call_args.args[0]), str)
+        stopped_score_needles.assert_not_called()
+        stopped_score_direct.assert_not_called()
+
+        score_failure_calls = []
+
+        def fail_score_needle(value):
+            score_failure_calls.append(value)
+            if value == score_row:
+                return ["RowVariant"]
+            self.assertIs(value, score_needle)
+            raise RuntimeError("score needle variants failed")
+
+        stopped_score_direct = Mock(
+            side_effect=AssertionError("needle variant failure must stop direct scoring")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_conflicts_with_operand_concept",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=fail_score_needle,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "operand_needles",
+                return_value=[score_needle],
+            ) as failed_score_needles,
+            patch.object(
+                financial_operand_resolution,
+                "candidate_direct_match_strength",
+                stopped_score_direct,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "score needle variants failed"):
+                financial_operand_resolution.score_operand_candidate(
+                    score_candidate,
+                    **score_kwargs,
+                )
+        self.assertEqual(len(score_failure_calls), 2)
+        self.assertEqual(score_failure_calls[0], score_row)
+        self.assertIs(type(score_failure_calls[0]), str)
+        self.assertIs(score_failure_calls[1], score_needle)
+        failed_score_needles.assert_called_once_with(score_operand)
+        stopped_score_direct.assert_not_called()
 
 
 if __name__ == "__main__":

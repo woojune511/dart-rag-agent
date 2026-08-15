@@ -22,7 +22,7 @@ from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     _operand_text_match,
     strip_financial_label_annotations,
-    _surface_match_variants,
+    surface_match_variants,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
     candidate_has_operand_context_surface,
@@ -1629,7 +1629,7 @@ def _evidence_surface_contains_segment_label(
 ) -> bool:
     segment_variants = [
         _normalise_spaces(re.sub(r"^\W+|\W+$", " ", variant))
-        for variant in _surface_match_variants(segment_label)
+        for variant in surface_match_variants(segment_label)
     ]
     segment_variants = list(dict.fromkeys(variant for variant in segment_variants if variant))
     if not segment_variants:
@@ -3819,14 +3819,14 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
         normalized_surface = _normalise_spaces(surface)
         if not normalized_surface:
             continue
-        surface_variants = set(_surface_match_variants(normalized_surface))
+        surface_variants = set(surface_match_variants(normalized_surface))
         if any(_normalise_spaces(needle) == normalized_surface for needle in operand_needles(operand)):
             best = max(best, exact_bonus)
             continue
         if any(
             needle_variant in surface_variants
             for needle in operand_needles(operand)
-            for needle_variant in _surface_match_variants(needle)
+            for needle_variant in surface_match_variants(needle)
         ):
             best = max(best, exact_bonus)
             continue
@@ -3926,11 +3926,11 @@ def score_operand_candidate(
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
     operand_binding_policy = dict(operand.get("binding_policy") or {})
     if row_label:
-        row_label_variants = set(_surface_match_variants(row_label))
+        row_label_variants = set(surface_match_variants(row_label))
         if any(
             needle_variant in row_label_variants
             for needle in operand_needles(operand)
-            for needle_variant in _surface_match_variants(needle)
+            for needle_variant in surface_match_variants(needle)
         ):
             score += 3.0
         elif _operand_text_match(row_label, operand):

@@ -56,7 +56,7 @@ def strip_leading_period_qualifiers(text: str) -> str:
     return stripped
 
 
-def _surface_match_variants(text: str) -> List[str]:
+def surface_match_variants(text: str) -> List[str]:
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return []
@@ -70,13 +70,13 @@ def _surface_match_variants(text: str) -> List[str]:
 
 
 def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
-    haystack_variants = _surface_match_variants(text)
+    haystack_variants = surface_match_variants(text)
     if not haystack_variants:
         return False
     for haystack in haystack_variants:
         haystack_compact = re.sub(r"\s+", "", haystack)
         for needle in operand_needles(operand):
-            for normalized_needle in _surface_match_variants(needle):
+            for normalized_needle in surface_match_variants(needle):
                 needle_compact = re.sub(r"\s+", "", normalized_needle)
                 if (
                     haystack == normalized_needle
