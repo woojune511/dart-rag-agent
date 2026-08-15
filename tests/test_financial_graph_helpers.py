@@ -750,7 +750,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=match_surface,
             ) as matcher,
         ):
@@ -789,7 +789,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_surface_contracts, "_operand_surface_contract", return_value={"positive": []}),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=AssertionError("matcher should stay lazy"),
             ) as matcher,
         ):
@@ -809,7 +809,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "_operand_surface_contract",
                 side_effect=RuntimeError("contract failed"),
             ),
-            patch.object(financial_surface_contracts, "_text_has_contract_term", stopped_matcher),
+            patch.object(financial_surface_contracts, "text_has_contract_term", stopped_matcher),
         ):
             with self.assertRaisesRegex(RuntimeError, "contract failed"):
                 financial_surface_contracts.candidate_has_required_surface_contract(candidate, operand)
@@ -823,7 +823,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=RuntimeError("surface failed"),
             ) as matcher,
         ):
@@ -1218,7 +1218,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
         self.assertEqual(
             (sum(not node.name.startswith("_") for node in owner_defs), sum(node.name.startswith("_") for node in owner_defs)),
-            (19, 3),
+            (20, 2),
         )
         self.assertEqual(
             {
@@ -4653,7 +4653,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as projection_owner,
             patch.object(
                 financial_operand_resolution,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 return_value=matcher_result,
             ) as matcher_owner,
         ):
@@ -4677,7 +4677,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as projection_owner,
             patch.object(
                 financial_operand_resolution,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=AssertionError("empty projection must stop matcher"),
             ) as stopped_matcher,
         ):
@@ -4698,7 +4698,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_operand_resolution,
-                "_text_has_contract_term",
+                "text_has_contract_term",
             ) as stopped_matcher,
         ):
             with self.assertRaisesRegex(RuntimeError, "projection failed"):
@@ -4716,7 +4716,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_operand_resolution,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=RuntimeError("matcher failed"),
             ),
         ):
@@ -4745,7 +4745,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         dependency_loads = {
             "operand_segment_label": [],
             "lookup_hints_for_concept_key": [],
-            "_text_has_contract_term": [],
+            "text_has_contract_term": [],
         }
 
         class BindingVisitor(ast.NodeVisitor):
@@ -4956,7 +4956,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                         (expected_owner, query_name),
                     ]
                 ),
-                "_text_has_contract_term": [
+                "text_has_contract_term": [
                     (expected_owner, match_name)
                 ],
             },
@@ -5011,9 +5011,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertNotIn("lookup_hints_for_concept_key", graph_operand_imports)
         self.assertTrue((target_names - {match_name}) <= graph_operand_imports)
         self.assertNotIn(match_name, graph_operand_imports)
-        self.assertNotIn("_text_has_contract_term", graph_surface_imports)
+        self.assertNotIn("text_has_contract_term", graph_surface_imports)
         self.assertIn("operand_segment_label", operand_surface_imports)
-        self.assertIn("_text_has_contract_term", operand_surface_imports)
+        self.assertIn("text_has_contract_term", operand_surface_imports)
 
         edges = {name: set() for name in module_trees}
         for module_name, tree in module_trees.items():
@@ -18844,7 +18844,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (19, 3),
+            (20, 2),
         )
 
         def imported_modules(tree):
@@ -19843,7 +19843,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "financial_graph_helpers": (9, 71),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -25143,7 +25143,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -26098,7 +26098,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -27109,7 +27109,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -28273,7 +28273,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -29549,7 +29549,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -40547,7 +40547,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -41459,7 +41459,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -41963,7 +41963,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_mock,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=term_owner,
             ) as term_mock,
         ):
@@ -42017,7 +42017,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=capture_empty_terms,
             ),
         ):
@@ -42051,7 +42051,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_owner,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -42074,7 +42074,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -42095,7 +42095,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -42118,7 +42118,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -42140,7 +42140,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -42162,7 +42162,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=term_bomb,
             ),
         ):
@@ -42193,7 +42193,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_owner,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=capture_term,
             ),
         ):
@@ -42260,7 +42260,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "_operand_surface_contract": 1,
-                "_text_has_contract_term": 2,
+                "text_has_contract_term": 2,
                 "list": 1,
                 "contract.get": 1,
             },
@@ -42272,7 +42272,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
-            "7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3",
+            "594445940a5e12a8400ed50d8eb4c58f8be6bf60d4afb6f4343a766f8eb19dbe",
         )
 
         def imported_modules(tree):
@@ -42376,7 +42376,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -42925,7 +42925,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_mock,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=term_owner,
             ) as term_mock,
         ):
@@ -42979,7 +42979,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=capture_empty_terms,
             ),
         ):
@@ -43013,7 +43013,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_owner,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -43036,7 +43036,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -43057,7 +43057,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -43080,7 +43080,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -43102,7 +43102,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 stopped_term,
             ),
         ):
@@ -43124,7 +43124,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=term_bomb,
             ),
         ):
@@ -43155,7 +43155,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as contract_owner,
             patch.object(
                 financial_surface_contracts,
-                "_text_has_contract_term",
+                "text_has_contract_term",
                 side_effect=capture_term,
             ),
         ):
@@ -43225,7 +43225,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "_operand_surface_contract": 1,
-                "_text_has_contract_term": 2,
+                "text_has_contract_term": 2,
                 "list": 1,
                 "contract.get": 1,
             },
@@ -43237,7 +43237,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
-            "88731ff3dbee812ca313fae1324f06cf72e994d7d2b0099a54aebd8b40b3df24",
+            "cd6b8a2713e709682c6b4ca6c9ffaaf639925ea407fe70bb266408b77d170563",
         )
 
         def imported_modules(tree):
@@ -43362,7 +43362,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (19, 3),
+                "financial_surface_contracts": (20, 2),
             },
         )
 
@@ -44028,6 +44028,924 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     owner_candidate,
                     operand,
                 )
+
+    def test_current_source_text_has_contract_term_pins_normalization_compact_order_and_result(self) -> None:
+        target = financial_surface_contracts.text_has_contract_term
+        real_sub = financial_surface_contracts.re.sub
+        events = []
+        text_value = object()
+        blank_term = object()
+        missing_term = object()
+        matching_term = object()
+        stopped_term = object()
+
+        class OrderedTerms:
+            def __iter__(self):
+                events.append("terms-iter")
+                events.append(("yield", blank_term))
+                yield blank_term
+                events.append(("yield", missing_term))
+                yield missing_term
+                events.append(("yield", matching_term))
+                yield matching_term
+                events.append(("yield", stopped_term))
+                raise AssertionError("matching term must stop later iteration")
+
+        normalized_values = {
+            text_value: "Prefix Target Term suffix",
+            blank_term: "",
+            missing_term: "Missing Term",
+            matching_term: "Target Term",
+        }
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return normalized_values[value]
+
+        def compact(pattern, replacement, value):
+            events.append(("sub", pattern, replacement, value))
+            return real_sub(pattern, replacement, value)
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ) as normalize_mock,
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=compact,
+            ) as sub_mock,
+        ):
+            result = target(text_value, OrderedTerms())
+
+        self.assertIs(result, True)
+        self.assertEqual(
+            events,
+            [
+                ("normalize", text_value),
+                ("sub", r"\s+", "", "Prefix Target Term suffix"),
+                "terms-iter",
+                ("yield", blank_term),
+                ("normalize", blank_term),
+                ("yield", missing_term),
+                ("normalize", missing_term),
+                ("sub", r"\s+", "", "Missing Term"),
+                ("yield", matching_term),
+                ("normalize", matching_term),
+                ("sub", r"\s+", "", "Target Term"),
+            ],
+        )
+        self.assertEqual(normalize_mock.call_count, 4)
+        self.assertEqual(sub_mock.call_count, 3)
+
+        class CompactMembershipBomb:
+            def __contains__(self, item):
+                raise AssertionError(
+                    "direct normalized match must stop compact membership"
+                )
+
+        direct_text = object()
+        direct_term = object()
+
+        def normalize_direct(value):
+            if value is direct_text:
+                return "Prefix Direct Term suffix"
+            self.assertIs(value, direct_term)
+            return "Direct Term"
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_direct,
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=[CompactMembershipBomb(), "DirectTerm"],
+            ) as direct_sub,
+        ):
+            self.assertIs(target(direct_text, [direct_term]), True)
+        self.assertEqual(direct_sub.call_count, 2)
+
+        self.assertIs(target("영 업   이 익", ["영업이익"]), True)
+        self.assertIs(target("Alpha Beta", ["Gamma", "Delta"]), False)
+
+    def test_current_source_text_has_contract_term_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        target = financial_surface_contracts.text_has_contract_term
+
+        class TextTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("text truth failed")
+
+        stopped_normalize = Mock(
+            side_effect=AssertionError("text truth failure must stop normalization")
+        )
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            stopped_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "text truth failed"):
+                target(TextTruthBomb(), [])
+        stopped_normalize.assert_not_called()
+
+        class IterationBomb:
+            def __iter__(self):
+                raise RuntimeError("term iteration failed")
+
+        fallback_values = []
+
+        def normalize_empty(value):
+            fallback_values.append(value)
+            return ""
+
+        stopped_sub = Mock(
+            side_effect=AssertionError("empty haystack must stop compaction")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_empty,
+            ),
+            patch.object(financial_surface_contracts.re, "sub", stopped_sub),
+        ):
+            self.assertIs(target(0, IterationBomb()), False)
+        self.assertEqual(fallback_values, [""])
+        stopped_sub.assert_not_called()
+
+        stopped_sub = Mock(
+            side_effect=AssertionError("normalization failure must stop compaction")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=RuntimeError("text normalization failed"),
+            ),
+            patch.object(financial_surface_contracts.re, "sub", stopped_sub),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "text normalization failed"):
+                target("text", IterationBomb())
+        stopped_sub.assert_not_called()
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                return_value="haystack",
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=RuntimeError("haystack compact failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "haystack compact failed"):
+                target("text", IterationBomb())
+
+        with self.assertRaisesRegex(RuntimeError, "term iteration failed"):
+            target("haystack", IterationBomb())
+
+        raw_term = object()
+        normalization_calls = []
+
+        def normalize_term_bomb(value):
+            normalization_calls.append(value)
+            if value == "text":
+                return "haystack"
+            self.assertIs(value, raw_term)
+            raise RuntimeError("term normalization failed")
+
+        with patch.object(
+            financial_surface_contracts,
+            "_normalise_spaces",
+            side_effect=normalize_term_bomb,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "term normalization failed"):
+                target("text", [raw_term])
+        self.assertEqual(normalization_calls, ["text", raw_term])
+
+        blank_term = object()
+
+        def normalize_blank(value):
+            if value == "text":
+                return "haystack"
+            self.assertIs(value, blank_term)
+            return ""
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_blank,
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                return_value="haystackcompact",
+            ) as blank_sub,
+        ):
+            self.assertIs(target("text", [blank_term]), False)
+        blank_sub.assert_called_once_with(r"\s+", "", "haystack")
+
+        class CompactTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("term compact truth failed")
+
+        compact_term = object()
+
+        def normalize_compact_term(value):
+            if value == "text":
+                return "haystack"
+            self.assertIs(value, compact_term)
+            return "needle"
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_compact_term,
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=["haystackcompact", CompactTruthBomb()],
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "term compact truth failed"):
+                target("text", [compact_term])
+
+        class DirectMembershipBomb:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                raise RuntimeError("direct membership failed")
+
+        direct_text = object()
+        direct_term = object()
+
+        def normalize_direct_bomb(value):
+            if value is direct_text:
+                return DirectMembershipBomb()
+            self.assertIs(value, direct_term)
+            return "needle"
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_direct_bomb,
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=["haystackcompact", "needle"],
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "direct membership failed"):
+                target(direct_text, [direct_term])
+
+        class CompactMembershipBomb:
+            def __contains__(self, item):
+                raise RuntimeError("compact membership failed")
+
+        compact_text = object()
+        compact_member_term = object()
+
+        def normalize_compact_bomb(value):
+            if value is compact_text:
+                return "haystack"
+            self.assertIs(value, compact_member_term)
+            return "needle"
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_normalise_spaces",
+                side_effect=normalize_compact_bomb,
+            ),
+            patch.object(
+                financial_surface_contracts.re,
+                "sub",
+                side_effect=[CompactMembershipBomb(), "needle"],
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "compact membership failed"):
+                target(compact_text, [compact_member_term])
+
+        terms = ["  First Term  ", "Second Term", "First Term"]
+        before_terms = list(terms)
+        self.assertIs(target("No matching surface", terms), False)
+        self.assertEqual(terms, before_terms)
+        self.assertIs(terms[0], before_terms[0])
+        self.assertIs(terms[1], before_terms[1])
+        self.assertIs(terms[2], before_terms[2])
+
+    def test_current_source_text_has_contract_term_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "text_has_contract_term"
+        future_public_name = "text_has_contract_term"
+        owner_module = "src.agent.financial_surface_contracts"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_surface_contracts"]
+        owner_tree = module_trees["financial_surface_contracts"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 13)
+        self.assertEqual(len(definition.body), 5)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["text", "terms"])
+        self.assertEqual(
+            [ast.unparse(arg.annotation) for arg in definition.args.args],
+            ["str", "List[str]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            3,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.For) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.If) for node in ast.walk(definition)),
+            3,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        calls = [node for node in ast.walk(definition) if isinstance(node, ast.Call)]
+        self.assertEqual(
+            sorted((ast.unparse(call.func), len(call.args)) for call in calls),
+            [
+                ("_normalise_spaces", 1),
+                ("_normalise_spaces", 1),
+                ("re.sub", 3),
+                ("re.sub", 3),
+            ],
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "38b5972892c2914ce30a86b9b85ca10156f0c1a9c587c9885c2f95b44a91c954",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        external_modules = {"financial_operand_resolution"}
+        self.assertEqual(
+            {
+                name
+                for name, tree in module_trees.items()
+                if target_name in imported_names(tree, owner_module)
+            },
+            external_modules,
+        )
+        self.assertIn(
+            owner_module,
+            imported_modules(module_trees["financial_operand_resolution"]),
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+
+        direct_calls_by_module = {
+            name: [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ]
+            for name, tree in module_trees.items()
+        }
+        self.assertEqual(
+            {
+                name: len(calls)
+                for name, calls in direct_calls_by_module.items()
+                if calls
+            },
+            {
+                "financial_operand_resolution": 1,
+                "financial_surface_contracts": 3,
+            },
+        )
+        self.assertEqual(sum(map(len, direct_calls_by_module.values())), 4)
+        self.assertEqual(len(direct_calls_by_module["financial_surface_contracts"]), 3)
+        self.assertTrue(direct_calls_by_module["financial_operand_resolution"])
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        if target_name == future_public_name:
+            self.assertEqual(
+                future_public_definitions,
+                [("financial_surface_contracts", definition.lineno)],
+            )
+        else:
+            self.assertEqual(future_public_definitions, [])
+
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in module_trees[module_name].body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in module_trees[module_name].body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name in {
+                    "financial_graph_helpers",
+                    "financial_operand_resolution",
+                    "financial_surface_contracts",
+                }
+            },
+            {
+                "financial_graph_helpers": (9, 71),
+                "financial_operand_resolution": (54, 37),
+                "financial_surface_contracts": (20, 2),
+            },
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_surface_contracts.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        required_methods = {
+            "test_current_source_text_has_contract_term_pins_normalization_compact_order_and_result",
+            "test_current_source_text_has_contract_term_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_text_has_contract_term_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_text_has_contract_term_callers_pin_args_short_circuit_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_text_has_contract_term_callers_pin_args_short_circuit_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "text_has_contract_term"
+        module_names = {
+            "financial_operand_resolution",
+            "financial_surface_contracts",
+        }
+        calls_by_module = {}
+        parent_kinds_by_module = {}
+        for module_name in sorted(module_names):
+            path = repo_root / "src" / "agent" / f"{module_name}.py"
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            parents = {}
+            for parent in ast.walk(tree):
+                for child in ast.iter_child_nodes(parent):
+                    parents[child] = parent
+            calls = []
+            parent_kinds = []
+            for call in sorted(
+                (
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ),
+                key=lambda node: (node.lineno, node.col_offset),
+            ):
+                current = call
+                function_name = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        function_name = current.name
+                        break
+                calls.append(
+                    (
+                        function_name,
+                        tuple(ast.unparse(arg) for arg in call.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in call.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+                parent_kinds.append(type(parents[call]).__name__)
+            calls_by_module[module_name] = calls
+            parent_kinds_by_module[module_name] = parent_kinds
+
+        self.assertEqual(
+            calls_by_module,
+            {
+                "financial_operand_resolution": [
+                    (
+                        "operand_lookup_surface_match",
+                        ("text", "surfaces"),
+                        (),
+                        0,
+                    )
+                ],
+                "financial_surface_contracts": [
+                    (
+                        "text_has_positive_surface",
+                        ("text", "list(contract.get('positive') or [])"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "text_has_negative_surface",
+                        ("text", "list(contract.get('negative') or [])"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "candidate_has_required_surface_contract",
+                        ("surface", "positive_terms"),
+                        (),
+                        0,
+                    ),
+                ],
+            },
+        )
+        self.assertEqual(
+            parent_kinds_by_module,
+            {
+                "financial_operand_resolution": ["Return"],
+                "financial_surface_contracts": [
+                    "Return",
+                    "Return",
+                    "GeneratorExp",
+                ],
+            },
+        )
+        self.assertEqual(sum(map(len, calls_by_module.values())), 4)
+        self.assertEqual(len(calls_by_module["financial_surface_contracts"]), 3)
+        self.assertEqual(len(calls_by_module["financial_operand_resolution"]), 1)
+        self.assertTrue(
+            all(
+                len(args) == 2 and not keywords and try_depth == 0
+                for calls in calls_by_module.values()
+                for _function_name, args, keywords, try_depth in calls
+            )
+        )
+
+        owner_target = getattr(financial_surface_contracts, target_name)
+        self.assertIs(
+            getattr(financial_operand_resolution, target_name),
+            owner_target,
+        )
+
+        text_value = object()
+        operand = {"label": "Metric"}
+        first_surface = object()
+        second_surface = object()
+        surfaces = [first_surface, second_surface]
+        exact_lookup_result = object()
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=surfaces,
+            ) as preference_owner,
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                return_value=exact_lookup_result,
+            ) as lookup_match,
+        ):
+            self.assertIs(
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text_value,
+                    operand,
+                ),
+                exact_lookup_result,
+            )
+        preference_owner.assert_called_once_with(operand)
+        lookup_match.assert_called_once_with(text_value, surfaces)
+
+        stopped_lookup_match = Mock(
+            side_effect=AssertionError("empty surfaces must stop term matching")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                stopped_lookup_match,
+            ),
+        ):
+            self.assertIs(
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text_value,
+                    operand,
+                ),
+                False,
+            )
+        stopped_lookup_match.assert_not_called()
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "lookup_query_surface_preferences",
+                return_value=surfaces,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=RuntimeError("lookup term matching failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "lookup term matching failed",
+            ):
+                financial_operand_resolution.operand_lookup_surface_match(
+                    text_value,
+                    operand,
+                )
+
+        positive_terms = ["Positive", "Positive"]
+        negative_terms = ["Negative"]
+        contract = {
+            "positive": positive_terms,
+            "negative": negative_terms,
+        }
+        exact_positive_result = object()
+        exact_negative_result = object()
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value=contract,
+            ) as contract_owner,
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                side_effect=[exact_positive_result, exact_negative_result],
+            ) as owner_match,
+        ):
+            self.assertIs(
+                financial_surface_contracts.text_has_positive_surface(
+                    text_value,
+                    operand,
+                ),
+                exact_positive_result,
+            )
+            self.assertIs(
+                financial_surface_contracts.text_has_negative_surface(
+                    text_value,
+                    operand,
+                ),
+                exact_negative_result,
+            )
+        self.assertEqual(contract_owner.call_count, 2)
+        self.assertEqual(owner_match.call_count, 2)
+        positive_call = owner_match.call_args_list[0]
+        negative_call = owner_match.call_args_list[1]
+        self.assertIs(positive_call.args[0], text_value)
+        self.assertEqual(positive_call.args[1], positive_terms)
+        self.assertIsNot(positive_call.args[1], positive_terms)
+        self.assertIs(negative_call.args[0], text_value)
+        self.assertEqual(negative_call.args[1], negative_terms)
+        self.assertIsNot(negative_call.args[1], negative_terms)
+
+        class CandidateAccessBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError(
+                    "empty positive contract must stop candidate access"
+                )
+
+        stopped_owner_match = Mock(
+            side_effect=AssertionError("empty positive contract must stop matching")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"positive": []},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                stopped_owner_match,
+            ),
+        ):
+            self.assertIs(
+                financial_surface_contracts.candidate_has_required_surface_contract(
+                    CandidateAccessBomb(),
+                    operand,
+                ),
+                True,
+            )
+        stopped_owner_match.assert_not_called()
+
+        candidate = {
+            "metadata": {
+                "semantic_label": "First Surface",
+                "row_label": "Second Surface",
+                "aggregate_label": "Stopped Surface",
+            },
+            "text": "Also Stopped",
+        }
+        required_terms = ["Required", "Required"]
+        surface_calls = []
+
+        def match_surface(surface, terms):
+            surface_calls.append((surface, terms))
+            if surface == "First Surface":
+                return False
+            if surface == "Second Surface":
+                return True
+            raise AssertionError("successful second surface must stop later matching")
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"positive": required_terms},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                side_effect=match_surface,
+            ),
+        ):
+            self.assertIs(
+                financial_surface_contracts.candidate_has_required_surface_contract(
+                    candidate,
+                    operand,
+                ),
+                True,
+            )
+        self.assertEqual(
+            [surface for surface, _terms in surface_calls],
+            ["First Surface", "Second Surface"],
+        )
+        self.assertEqual(surface_calls[0][1], required_terms)
+        self.assertIs(surface_calls[0][1], surface_calls[1][1])
+        self.assertIsNot(surface_calls[0][1], required_terms)
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"positive": ["Required"]},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                side_effect=RuntimeError("required surface matching failed"),
+            ) as failed_surface_match,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "required surface matching failed",
+            ):
+                financial_surface_contracts.candidate_has_required_surface_contract(
+                    candidate,
+                    operand,
+                )
+        failed_surface_match.assert_called_once_with("First Surface", ["Required"])
 
 
 if __name__ == "__main__":

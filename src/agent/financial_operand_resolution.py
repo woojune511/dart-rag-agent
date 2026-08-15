@@ -41,7 +41,7 @@ from src.agent.financial_surface_contracts import (
     operand_needles,
     operand_segment_label,
     _operand_surface_contract,
-    _text_has_contract_term,
+    text_has_contract_term,
     text_has_negative_surface,
     text_has_positive_surface,
     binding_policy_allows_candidate_shape,
@@ -3776,7 +3776,7 @@ def operand_lookup_surface_match(text: str, operand: Dict[str, Any]) -> bool:
     surfaces = lookup_query_surface_preferences(operand)
     if not surfaces:
         return False
-    return _text_has_contract_term(text, surfaces)
+    return text_has_contract_term(text, surfaces)
 
 
 def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str, Any]) -> float:

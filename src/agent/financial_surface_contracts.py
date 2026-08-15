@@ -110,7 +110,7 @@ def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
     return {}
 
 
-def _text_has_contract_term(text: str, terms: List[str]) -> bool:
+def text_has_contract_term(text: str, terms: List[str]) -> bool:
     haystack = _normalise_spaces(text or "")
     if not haystack:
         return False
@@ -127,12 +127,12 @@ def _text_has_contract_term(text: str, terms: List[str]) -> bool:
 
 def text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
-    return _text_has_contract_term(text, list(contract.get("positive") or []))
+    return text_has_contract_term(text, list(contract.get("positive") or []))
 
 
 def text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
-    return _text_has_contract_term(text, list(contract.get("negative") or []))
+    return text_has_contract_term(text, list(contract.get("negative") or []))
 
 
 def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
@@ -382,7 +382,7 @@ def candidate_has_required_surface_contract(
         str(metadata.get("row_text") or "").strip(),
         str(candidate.get("text") or "").strip(),
     ]
-    return any(_text_has_contract_term(surface, positive_terms) for surface in surfaces if surface)
+    return any(text_has_contract_term(surface, positive_terms) for surface in surfaces if surface)
 
 
 def candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
