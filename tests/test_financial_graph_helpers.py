@@ -485,7 +485,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (11, 15),
+            (12, 14),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1899,7 +1899,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (11, 15),
+            (12, 14),
         )
 
         graph_row_imports = {
@@ -2871,7 +2871,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (11, 15))
+        self.assertEqual(row_counts, (12, 14))
 
         graph_row_imports = {
             alias.name
@@ -3937,7 +3937,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (11, 15),
+            (12, 14),
         )
         graph_row_imports = {
             alias.name
@@ -10408,7 +10408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (11, 15))
+        self.assertEqual(row_counts, (12, 14))
 
         def imported_names(module_name, imported_module):
             return {
@@ -14664,7 +14664,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         before_cell = deepcopy(cell)
         before_operand = deepcopy(operand)
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value={"Generic"}),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value={"Generic"}),
             patch.object(financial_structured_cells, "operand_needles", return_value=["Revenue"]),
             patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
             patch.object(
@@ -14683,7 +14683,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(operand["nested"], nested)
 
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(financial_structured_cells, "operand_needles", return_value=["Metric"]),
             patch.object(financial_structured_cells, "_operand_text_match", return_value=True),
             patch.object(
@@ -14708,7 +14708,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "aggregate_tokens": (),
         }
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value={"Generic"}),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value={"Generic"}),
             patch.object(financial_structured_cells, "operand_needles", return_value=["Other"]),
             patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
             patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", entity_policy),
@@ -14724,7 +14724,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         generic_bomb = Mock(side_effect=AssertionError("blank headers skip generic policy"))
         needles_bomb = Mock(side_effect=AssertionError("blank headers skip operand needles"))
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", generic_bomb),
+            patch.object(financial_structured_cells, "generic_column_headers", generic_bomb),
             patch.object(financial_structured_cells, "operand_needles", needles_bomb),
         ):
             self.assertEqual(
@@ -14742,7 +14742,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 raise AssertionError(key)
 
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(financial_structured_cells, "operand_needles", return_value=[]),
             patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", PolicyBomb()),
         ):
@@ -14758,7 +14758,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_structured_cells,
-                "_generic_column_headers",
+                "generic_column_headers",
                 side_effect=RuntimeError("generic headers failed"),
             ),
             patch.object(financial_structured_cells, "operand_needles", stopped_needles),
@@ -14771,7 +14771,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_needles.assert_not_called()
 
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(
                 financial_structured_cells,
                 "operand_needles",
@@ -14792,7 +14792,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 raise AssertionError(key)
 
         with (
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(financial_structured_cells, "operand_needles", return_value=["Other"]),
             patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
             patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", CopyPolicyBomb()),
@@ -22185,7 +22185,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_row_surfaces": (11, 15),
+                "financial_row_surfaces": (12, 14),
             },
         )
 
@@ -23376,7 +23376,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=normalize),
-            patch.object(owner, "_generic_column_headers", side_effect=resolve_generic_headers),
+            patch.object(owner, "generic_column_headers", side_effect=resolve_generic_headers),
             patch.object(owner.re, "fullmatch", side_effect=fullmatch),
         ):
             result = column_candidate_label(headers)
@@ -23410,11 +23410,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(headers.nested, nested)
         self.assertEqual(rows, before_rows)
 
-        with patch.object(owner, "_generic_column_headers", return_value={"Generic"}):
+        with patch.object(owner, "generic_column_headers", return_value={"Generic"}):
             self.assertEqual(column_candidate_label([" Generic ", " Metric "]), "Metric")
-        with patch.object(owner, "_generic_column_headers", return_value={"Generic", "Other"}):
+        with patch.object(owner, "generic_column_headers", return_value={"Generic", "Other"}):
             self.assertEqual(column_candidate_label([" Generic ", " Other "]), "Other")
-        with patch.object(owner, "_generic_column_headers", return_value=set()):
+        with patch.object(owner, "generic_column_headers", return_value=set()):
             self.assertEqual(column_candidate_label(["2024", "Metric"]), "Metric")
             self.assertEqual(column_candidate_label(["Metric", "2024"]), "")
             self.assertEqual(column_candidate_label(["Metric", "Metric"]), "Metric")
@@ -23453,7 +23453,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=identity_normalizer),
-            patch.object(owner, "_generic_column_headers", return_value={generic}),
+            patch.object(owner, "generic_column_headers", return_value={generic}),
             patch.object(owner.re, "fullmatch", return_value=None),
         ):
             result = column_candidate_label(headers)
@@ -23482,7 +23482,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_regex = Mock(side_effect=AssertionError("blank headers must stop regex"))
         with (
             patch.object(owner, "_normalise_spaces", return_value=Falsey()) as normalize,
-            patch.object(owner, "_generic_column_headers", stopped_generic),
+            patch.object(owner, "generic_column_headers", stopped_generic),
             patch.object(owner.re, "fullmatch", stopped_regex),
         ):
             self.assertEqual(column_candidate_label([object()]), "")
@@ -23526,7 +23526,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
-            patch.object(owner, "_generic_column_headers", side_effect=RuntimeError("generic policy failed")),
+            patch.object(owner, "generic_column_headers", side_effect=RuntimeError("generic policy failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "generic policy failed"):
                 column_candidate_label(["Metric"])
@@ -23537,7 +23537,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
-            patch.object(owner, "_generic_column_headers", return_value=MembershipBomb()),
+            patch.object(owner, "generic_column_headers", return_value=MembershipBomb()),
         ):
             with self.assertRaisesRegex(RuntimeError, "membership failed"):
                 column_candidate_label(["Metric"])
@@ -23556,7 +23556,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=target_normalizer),
-            patch.object(owner, "_generic_column_headers", return_value=[EqualityBomb()]),
+            patch.object(owner, "generic_column_headers", return_value=[EqualityBomb()]),
         ):
             with self.assertRaisesRegex(RuntimeError, "equality failed"):
                 column_candidate_label([object()])
@@ -23575,14 +23575,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=hash_normalizer),
-            patch.object(owner, "_generic_column_headers", return_value=set()),
+            patch.object(owner, "generic_column_headers", return_value=set()),
         ):
             with self.assertRaisesRegex(RuntimeError, "hash failed"):
                 column_candidate_label([object()])
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
-            patch.object(owner, "_generic_column_headers", return_value=set()),
+            patch.object(owner, "generic_column_headers", return_value=set()),
             patch.object(owner.re, "fullmatch", side_effect=RuntimeError("regex failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "regex failed"):
@@ -23594,7 +23594,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: value),
-            patch.object(owner, "_generic_column_headers", return_value=set()),
+            patch.object(owner, "generic_column_headers", return_value=set()),
             patch.object(owner.re, "fullmatch", return_value=MatchTruthBomb()),
         ):
             with self.assertRaisesRegex(RuntimeError, "match truth failed"):
@@ -23678,7 +23678,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 direct_calls.append(node.func.attr)
         self.assertEqual(
             {name: direct_calls.count(name) for name in set(direct_calls)},
-            {"_normalise_spaces": 2, "_generic_column_headers": 1, "fullmatch": 1},
+            {"_normalise_spaces": 2, "generic_column_headers": 1, "fullmatch": 1},
         )
         self.assertEqual(
             calls,
@@ -23710,7 +23710,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (11, 15)},
+            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (12, 14)},
         )
 
         def imported_modules(tree):
@@ -23739,7 +23739,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             module_trees["financial_graph_helpers"],
             "src.agent.financial_row_surfaces",
         )
-        self.assertNotIn("_generic_column_headers", graph_row_names)
+        self.assertNotIn("generic_column_headers", graph_row_names)
         self.assertIn(target_name, graph_row_names)
 
         agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
@@ -41817,7 +41817,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 target_name,
                 return_value=["Metric"],
             ) as cell_owner,
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
         ):
             self.assertEqual(
@@ -41893,7 +41893,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         with (
             patch.object(financial_structured_cells, target_name, return_value=[]),
-            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "generic_column_headers", return_value=set()),
             patch.object(financial_structured_cells, "_operand_text_match", stopped_match),
         ):
             self.assertEqual(
@@ -46046,6 +46046,779 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 financial_surface_contracts.operand_prefers_contextual_aggregate_match(
                     contextual_operand
                 )
+
+    def test_current_source_generic_column_headers_pins_policy_projection_order_identity_and_result(self) -> None:
+        target = financial_row_surfaces.generic_column_headers
+        events = []
+        retained_result = "".join(["retained", "-", "second", "-", "value"])
+
+        class Item:
+            def __init__(self, name, outputs):
+                self.name = name
+                self.outputs = iter(outputs)
+
+            def __str__(self):
+                value = next(self.outputs)
+                events.append(("str", self.name, value))
+                return value
+
+        retained = Item("retained", ["retained-filter", retained_result])
+        blank = Item("blank", [""])
+        duplicate_a = Item("duplicate-a", ["duplicate", "duplicate"])
+        duplicate_b = Item("duplicate-b", ["duplicate", "duplicate"])
+        source_items = [retained, blank, duplicate_a, duplicate_b]
+
+        class OrderedItems:
+            def __iter__(self):
+                events.append(("iter", source_items))
+                for item in source_items:
+                    events.append(("yield", item.name))
+                    yield item
+                events.append(("done",))
+
+        ordered_items = OrderedItems()
+
+        class Policy:
+            def get(self, *args):
+                events.append(("get", args))
+                return ordered_items
+
+        policy = Policy()
+        with patch.object(financial_row_surfaces, "HELPER_RUNTIME_POLICY", policy):
+            result = target()
+
+        self.assertIs(type(result), set)
+        self.assertEqual(result, {retained_result, "duplicate"})
+        retained_from_result = next(item for item in result if item == retained_result)
+        self.assertIs(retained_from_result, retained_result)
+        self.assertEqual(
+            events,
+            [
+                ("get", ("generic_column_headers",)),
+                ("iter", source_items),
+                ("yield", "retained"),
+                ("str", "retained", "retained-filter"),
+                ("str", "retained", retained_result),
+                ("yield", "blank"),
+                ("str", "blank", ""),
+                ("yield", "duplicate-a"),
+                ("str", "duplicate-a", "duplicate"),
+                ("str", "duplicate-a", "duplicate"),
+                ("yield", "duplicate-b"),
+                ("str", "duplicate-b", "duplicate"),
+                ("str", "duplicate-b", "duplicate"),
+                ("done",),
+            ],
+        )
+
+        source = ["Header", "Header", "", 0, None]
+        policy_mapping = {
+            "generic_column_headers": source,
+            "unrelated": {"nested": True},
+        }
+        before = deepcopy(policy_mapping)
+        nested = policy_mapping["unrelated"]
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            policy_mapping,
+        ):
+            first = target()
+            second = target()
+        self.assertEqual(first, {"Header", "0", "None"})
+        self.assertEqual(second, first)
+        self.assertIsNot(first, second)
+        self.assertEqual(policy_mapping, before)
+        self.assertIs(policy_mapping["generic_column_headers"], source)
+        self.assertIs(policy_mapping["unrelated"], nested)
+
+        with patch.object(financial_row_surfaces, "HELPER_RUNTIME_POLICY", {}):
+            empty_first = target()
+            empty_second = target()
+        self.assertEqual(empty_first, set())
+        self.assertEqual(empty_second, set())
+        self.assertIsNot(empty_first, empty_second)
+
+    def test_current_source_generic_column_headers_pins_laziness_immutability_and_exceptions(self) -> None:
+        target = financial_row_surfaces.generic_column_headers
+
+        class GetBomb:
+            def get(self, *args):
+                self.args = args
+                raise RuntimeError("policy get failed")
+
+        get_bomb = GetBomb()
+        with patch.object(financial_row_surfaces, "HELPER_RUNTIME_POLICY", get_bomb):
+            with self.assertRaisesRegex(RuntimeError, "policy get failed"):
+                target()
+        self.assertEqual(get_bomb.args, ("generic_column_headers",))
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("policy truth failed")
+
+            def __iter__(self):
+                raise AssertionError("truth failure must stop iteration")
+
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            {"generic_column_headers": TruthBomb()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy truth failed"):
+                target()
+
+        class IterBomb:
+            def __iter__(self):
+                raise RuntimeError("policy iteration failed")
+
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            {"generic_column_headers": IterBomb()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy iteration failed"):
+                target()
+
+        events = []
+
+        class FirstStringBomb:
+            def __str__(self):
+                events.append("first-string")
+                raise RuntimeError("first string failed")
+
+        class LazyItems:
+            def __iter__(self):
+                events.append("yield-first")
+                yield FirstStringBomb()
+                events.append("yield-later")
+                raise AssertionError("string failure must stop later iteration")
+
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            {"generic_column_headers": LazyItems()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "first string failed"):
+                target()
+        self.assertEqual(events, ["yield-first", "first-string"])
+
+        class BlankOnce:
+            def __init__(self):
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                if self.calls > 1:
+                    raise AssertionError("blank item must not stringify twice")
+                return ""
+
+        blank_once = BlankOnce()
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            {"generic_column_headers": [blank_once]},
+        ):
+            self.assertEqual(target(), set())
+        self.assertEqual(blank_once.calls, 1)
+
+        class SecondStringBomb:
+            def __init__(self):
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                if self.calls == 1:
+                    return "retained"
+                raise RuntimeError("second string failed")
+
+        second_bomb = SecondStringBomb()
+        with patch.object(
+            financial_row_surfaces,
+            "HELPER_RUNTIME_POLICY",
+            {"generic_column_headers": [second_bomb, "later"]},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "second string failed"):
+                target()
+        self.assertEqual(second_bomb.calls, 2)
+
+        nested = {"preserve": [1, 2]}
+        source = ["Generic", "", "Generic"]
+        policy = {
+            "generic_column_headers": source,
+            "nested": nested,
+        }
+        before = deepcopy(policy)
+        with patch.object(financial_row_surfaces, "HELPER_RUNTIME_POLICY", policy):
+            self.assertEqual(target(), {"Generic"})
+        self.assertEqual(policy, before)
+        self.assertIs(policy["generic_column_headers"], source)
+        self.assertIs(policy["nested"], nested)
+
+    def test_current_source_generic_column_headers_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "generic_column_headers"
+        future_public_name = "generic_column_headers"
+        owner_module = "src.agent.financial_row_surfaces"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_row_surfaces"]
+        owner_tree = module_trees["financial_row_surfaces"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 2)
+        self.assertEqual(len(definition.body), 1)
+        self.assertEqual(definition.args.args, [])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "set[str]")
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.GeneratorExp) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        call_shapes = {}
+        for call in (
+            node for node in ast.walk(definition) if isinstance(node, ast.Call)
+        ):
+            key = (ast.unparse(call.func), len(call.args), len(call.keywords))
+            call_shapes[key] = call_shapes.get(key, 0) + 1
+        self.assertEqual(
+            call_shapes,
+            {
+                ("set", 1, 0): 1,
+                ("str", 1, 0): 2,
+                ("HELPER_RUNTIME_POLICY.get", 1, 0): 1,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        self.assertEqual(
+            {
+                name
+                for name, tree in module_trees.items()
+                if target_name in imported_names(tree, owner_module)
+            },
+            {"financial_structured_cells"},
+        )
+        self.assertIn(
+            owner_module,
+            imported_modules(module_trees["financial_structured_cells"]),
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+
+        direct_calls_by_module = {
+            name: [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ]
+            for name, tree in module_trees.items()
+        }
+        self.assertEqual(
+            {
+                name: len(calls)
+                for name, calls in direct_calls_by_module.items()
+                if calls
+            },
+            {
+                "financial_row_surfaces": 1,
+                "financial_structured_cells": 1,
+            },
+        )
+        for calls in direct_calls_by_module.values():
+            for call in calls:
+                self.assertEqual(call.args, [])
+                self.assertEqual(call.keywords, [])
+
+        caller_names = {}
+        caller_hashes = {}
+        for module_name in {"financial_row_surfaces", "financial_structured_cells"}:
+            tree = module_trees[module_name]
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in direct_calls_by_module[module_name]:
+                cursor = parents.get(call)
+                try_depth = 0
+                caller = None
+                while cursor is not None:
+                    if isinstance(cursor, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if caller is None and isinstance(
+                        cursor,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = cursor
+                    cursor = parents.get(cursor)
+                self.assertEqual(try_depth, 0)
+                self.assertIsNotNone(caller)
+                caller_names[module_name] = caller.name
+                caller_body = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[module_name] = hashlib.sha256(
+                    caller_body.encode("utf-8")
+                ).hexdigest()
+        self.assertEqual(
+            caller_names,
+            {
+                "financial_row_surfaces": "column_candidate_label",
+                "financial_structured_cells": "_structured_cell_operand_affinity",
+            },
+        )
+        self.assertEqual(
+            caller_hashes,
+            {
+                "financial_row_surfaces": "bea873b15c6d4b2ca85816416014ebeb0bee380ba04f1e3607ab0eba6a317792",
+                "financial_structured_cells": "8b670238564849d490140bedb0cebbeefcc94f98034b1f43f9e9625bf1da0b4f",
+            },
+        )
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        if target_name == future_public_name:
+            self.assertEqual(
+                future_public_definitions,
+                [("financial_row_surfaces", definition.lineno)],
+            )
+        else:
+            self.assertEqual(future_public_definitions, [])
+
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        row_counts = (
+            sum(
+                not node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+            sum(
+                node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+        )
+        expected_row_counts = (
+            (12, 14) if target_name == future_public_name else (12, 14)
+        )
+        self.assertEqual(row_counts, expected_row_counts)
+        structured_tree = module_trees["financial_structured_cells"]
+        self.assertEqual(
+            (
+                sum(
+                    not node.name.startswith("_")
+                    for node in structured_tree.body
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                ),
+                sum(
+                    node.name.startswith("_")
+                    for node in structured_tree.body
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                ),
+            ),
+            (4, 4),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_row_surfaces.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        self.assertIs(
+            getattr(financial_structured_cells, target_name),
+            getattr(financial_row_surfaces, target_name),
+        )
+        required_methods = {
+            "test_current_source_generic_column_headers_pins_policy_projection_order_identity_and_result",
+            "test_current_source_generic_column_headers_pins_laziness_immutability_and_exceptions",
+            "test_current_source_generic_column_headers_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_generic_column_headers_callers_pin_order_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_generic_column_headers_callers_pin_order_adoption_and_stops(self) -> None:
+        target_name = "generic_column_headers"
+        row_events = []
+
+        class MembershipRecorder:
+            def __init__(self, members, events):
+                self.members = set(members)
+                self.events = events
+
+            def __contains__(self, item):
+                self.events.append(("contains", item))
+                return item in self.members
+
+        row_membership = MembershipRecorder({"Generic"}, row_events)
+
+        def normalize(value):
+            row_events.append(("normalize", value))
+            return str(value).strip()
+
+        def resolve_headers():
+            row_events.append(("headers",))
+            return row_membership
+
+        def fullmatch(pattern, value):
+            row_events.append(("fullmatch", pattern, value))
+            return None
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=resolve_headers,
+            ) as row_target,
+            patch.object(
+                financial_row_surfaces.re,
+                "fullmatch",
+                side_effect=fullmatch,
+            ),
+        ):
+            self.assertEqual(
+                financial_row_surfaces.column_candidate_label(
+                    [" Generic ", " Metric "]
+                ),
+                "Metric",
+            )
+        row_target.assert_called_once_with()
+        self.assertEqual(
+            row_events,
+            [
+                ("normalize", " Generic "),
+                ("normalize", " Generic "),
+                ("normalize", " Metric "),
+                ("normalize", " Metric "),
+                ("headers",),
+                ("contains", "Generic"),
+                ("contains", "Metric"),
+                ("fullmatch", "20\\d{2}(?:\ub144)?", "Metric"),
+            ],
+        )
+
+        stopped_headers = Mock(
+            side_effect=AssertionError("blank headers must stop policy lookup")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                stopped_headers,
+            ),
+        ):
+            self.assertEqual(
+                financial_row_surfaces.column_candidate_label([" "]),
+                "",
+            )
+        stopped_headers.assert_not_called()
+
+        stopped_regex = Mock(
+            side_effect=AssertionError("policy failure must stop regex")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=lambda value: str(value).strip(),
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=RuntimeError("row header policy failed"),
+            ),
+            patch.object(
+                financial_row_surfaces.re,
+                "fullmatch",
+                stopped_regex,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row header policy failed"):
+                financial_row_surfaces.column_candidate_label(["Metric"])
+        stopped_regex.assert_not_called()
+
+        structured_events = []
+        structured_membership = MembershipRecorder(
+            {"Generic"},
+            structured_events,
+        )
+
+        def resolve_structured_headers():
+            structured_events.append(("headers",))
+            return structured_membership
+
+        def resolve_needles(operand):
+            structured_events.append(("needles", operand))
+            return []
+
+        operand = {"label": "Metric"}
+        with (
+            patch.object(
+                financial_structured_cells,
+                target_name,
+                side_effect=resolve_structured_headers,
+            ) as structured_target,
+            patch.object(
+                financial_structured_cells,
+                "operand_needles",
+                side_effect=resolve_needles,
+            ),
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Generic", "Metric"]},
+                    operand,
+                ),
+                0.0,
+            )
+        structured_target.assert_called_once_with()
+        self.assertEqual(
+            structured_events,
+            [
+                ("headers",),
+                ("contains", "Generic"),
+                ("contains", "Metric"),
+                ("needles", operand),
+            ],
+        )
+
+        stopped_structured_headers = Mock(
+            side_effect=AssertionError("empty headers must stop policy lookup")
+        )
+        with patch.object(
+            financial_structured_cells,
+            target_name,
+            stopped_structured_headers,
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": []},
+                    operand,
+                ),
+                0.0,
+            )
+        stopped_structured_headers.assert_not_called()
+
+        stopped_needles = Mock(
+            side_effect=AssertionError("policy failure must stop operand needles")
+        )
+        stopped_match = Mock(
+            side_effect=AssertionError("policy failure must stop matching")
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                target_name,
+                side_effect=RuntimeError("structured header policy failed"),
+            ),
+            patch.object(
+                financial_structured_cells,
+                "operand_needles",
+                stopped_needles,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_operand_text_match",
+                stopped_match,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "structured header policy failed",
+            ):
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Metric"]},
+                    operand,
+                )
+        stopped_needles.assert_not_called()
+        stopped_match.assert_not_called()
+
+        def affinity(generic_headers):
+            with (
+                patch.object(
+                    financial_structured_cells,
+                    target_name,
+                    return_value=generic_headers,
+                ),
+                patch.object(
+                    financial_structured_cells,
+                    "operand_needles",
+                    return_value=["Metric"],
+                ),
+                patch.object(
+                    financial_structured_cells,
+                    "_operand_text_match",
+                    return_value=False,
+                ),
+                patch.object(
+                    financial_structured_cells,
+                    "STRUCTURED_CELL_AFFINITY_POLICY",
+                    {},
+                ),
+            ):
+                return financial_structured_cells._structured_cell_operand_affinity(
+                    {
+                        "column_headers": ["Metric", "Generic"],
+                        "row_label": "",
+                    },
+                    operand,
+                )
+
+        self.assertEqual(affinity({"Generic"}), 4.75)
+        self.assertEqual(affinity(set()), 0.75)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from src.agent.financial_row_surfaces import (
-    _generic_column_headers,
+    generic_column_headers,
     _operand_text_match,
     _parse_unstructured_table_row_cells,
 )
@@ -183,7 +183,7 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
     if not headers:
         return 0.0
 
-    generic_headers = _generic_column_headers()
+    generic_headers = generic_column_headers()
     non_generic_headers = [header for header in headers if header not in generic_headers]
     last_header = non_generic_headers[-1] if non_generic_headers else headers[-1]
     needles = [_normalise_spaces(needle) for needle in operand_needles(operand) if _normalise_spaces(needle)]

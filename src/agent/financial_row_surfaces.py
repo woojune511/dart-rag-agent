@@ -327,7 +327,7 @@ def _format_structured_candidate_row_text(
     return " | ".join(row_parts)
 
 
-def _generic_column_headers() -> set[str]:
+def generic_column_headers() -> set[str]:
     return set(str(item) for item in (HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()) if str(item))
 
 
@@ -335,7 +335,7 @@ def column_candidate_label(column_headers: List[str]) -> str:
     cleaned = [_normalise_spaces(header) for header in column_headers if _normalise_spaces(header)]
     if not cleaned:
         return ""
-    generic_headers = _generic_column_headers()
+    generic_headers = generic_column_headers()
     filtered = [header for header in cleaned if header not in generic_headers]
     target = filtered[-1] if filtered else cleaned[-1]
     if re.fullmatch(r"20\d{2}(?:년)?", target):
