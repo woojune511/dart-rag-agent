@@ -63,7 +63,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_surface_contracts import (
     operand_segment_label,
-    _operand_surface_contract,
+    operand_surface_contract,
     text_has_negative_surface,
     binding_policy_allows_candidate_shape,
     candidate_matches_segment_binding,

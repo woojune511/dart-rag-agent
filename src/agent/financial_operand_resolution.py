@@ -40,7 +40,7 @@ from src.agent.financial_runtime_normalization import (
 from src.agent.financial_surface_contracts import (
     operand_needles,
     operand_segment_label,
-    _operand_surface_contract,
+    operand_surface_contract,
     text_has_contract_term,
     text_has_negative_surface,
     text_has_positive_surface,
@@ -1345,7 +1345,7 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
         return True
 
-    contract = _operand_surface_contract(operand)
+    contract = operand_surface_contract(operand)
     if not contract:
         return False
 
@@ -4619,7 +4619,7 @@ def candidate_satisfies_ratio_component_acceptance_contract(
     ):
         return False
 
-    surface_contract = _operand_surface_contract(operand)
+    surface_contract = operand_surface_contract(operand)
     positive_terms = [str(item).strip() for item in (surface_contract.get("positive") or []) if str(item).strip()]
     if positive_terms:
         if not candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell):

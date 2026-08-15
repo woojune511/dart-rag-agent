@@ -86,7 +86,7 @@ def scoped_surface_affinity_priority(
     return score
 
 
-def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
+def operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
     explicit_contract = dict(operand.get("surface_contract") or {})
     if explicit_contract:
         return {
@@ -126,12 +126,12 @@ def text_has_contract_term(text: str, terms: List[str]) -> bool:
 
 
 def text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
-    contract = _operand_surface_contract(operand)
+    contract = operand_surface_contract(operand)
     return text_has_contract_term(text, list(contract.get("positive") or []))
 
 
 def text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
-    contract = _operand_surface_contract(operand)
+    contract = operand_surface_contract(operand)
     return text_has_contract_term(text, list(contract.get("negative") or []))
 
 
@@ -151,7 +151,7 @@ def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand:
     if not expects_exclusive_marker and any(CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER in _normalise_spaces(surface) for surface in authoritative_surfaces):
         return True
 
-    contract = _operand_surface_contract(operand)
+    contract = operand_surface_contract(operand)
     if not contract:
         return False
 
@@ -206,7 +206,7 @@ def operand_prefers_contextual_aggregate_match(operand: Dict[str, Any]) -> bool:
         return False
     if not any(stage in {"final", "subtotal", "direct"} for stage in preferred_aggregation_stages):
         return False
-    return bool(_operand_surface_contract(operand).get("positive"))
+    return bool(operand_surface_contract(operand).get("positive"))
 
 
 def operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
@@ -364,7 +364,7 @@ def candidate_has_required_surface_contract(
     *,
     selected_cell: Optional[Dict[str, Any]] = None,
 ) -> bool:
-    contract = _operand_surface_contract(operand)
+    contract = operand_surface_contract(operand)
     positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
     if not positive_terms:
         return True
