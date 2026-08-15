@@ -1285,26 +1285,45 @@ non-ASCII preservation 13/13, and diff check passed. The source diff SHA-256 is
 `22b638bd5e610ab14088510908c9c39539f977935589cf1c70a6cdac99a84ef0`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the next smaller private-API seam
-in the same correct owner: rename the exact 3-line
-`financial_surface_contracts._text_has_negative_surface(text, operand)` in
-place to public `text_has_negative_surface(...)`, with no wrapper or alias.
-Preserve the two-statement contract-owner call followed by one negative-list
+Commit `83cf700` completed the next private-API seam. The exact former 3-line
+helper is public `financial_surface_contracts.text_has_negative_surface(...)`;
+its two-statement contract-owner/negative-list/term-helper body is unchanged
+after definition-name normalization, all ten calls/four call modules and five
+external bindings use the public name, and no private alias exists. Graph
+calculation and graph helpers retain import-only bindings.
+
+Production source is `+16/-16`, tests are `+990/-27`, and the whole commit is
+`+1,006/-43`; all production physical line counts are unchanged. Focused 4/4,
+graph owner 182/182, surface owner 1/1, operand owner 69/69, affected semantic
+1,142/1,142, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,035/2,035, pycompile, production transform
+parity 6/6, selected-body/name-normalized-owner parity, public identity 5/5,
+all calls, zero public stores/private executable refs, unchanged acyclic
+48-module/205-edge DAG, non-ASCII preservation 8/8, and diff check passed. The
+source diff SHA-256 is
+`69d56b303cee0619864af4d3b446b2c344c7f61e035e4f2bea3a54e7a5184991`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the symmetric remaining helper in
+the same correct owner: rename the exact 3-line
+`financial_surface_contracts._text_has_positive_surface(text, operand)` in
+place to public `text_has_positive_surface(...)`, with no wrapper or alias.
+Preserve the two-statement contract-owner call followed by one positive-list
 get/truth/fresh-list fallback, eager `list(...)` materialization, original text
 identity, exact term-helper result, immutability, and uncaught failure contract.
 
-Ten two-positional-argument calls across four source modules remain at caller
-`try` depth zero; external/local calls are 8/2. Five external modules import
-the helper, with graph calculation and graph helpers import-only. Existing
-edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
-Projected surface-owner counts are 17/5 to 18/4, while graph and operand counts
-remain 9/71 and 54/37. The selected span has body SHA-256
-`7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3`, no
-future public-name store, and zero of 217 reviewed runtime-domain records. Four
-required CURRENT-SOURCE methods and projected focused 4/4, graph owner 182/182,
-surface owner 1/1, operand owner 69/69, affected semantic 1,142/1,142,
-additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
-audit 217, and full 2,035/2,035 gates are defined only in
+Twenty-six two-positional-argument calls across seven source modules remain at
+caller `try` depth zero; external/local calls are 25/1. Six external modules
+import and call the helper, with no import-only binding. Existing edges keep the
+full DAG unchanged and acyclic at 48 modules/205 edges. Projected surface-owner
+counts are 18/4 to 19/3, while graph and operand counts remain 9/71 and 54/37.
+The selected span has body SHA-256
+`88731ff3dbee812ca313fae1324f06cf72e994d7d2b0099a54aebd8b40b3df24`, no
+future public-name definition/store, and zero of 217 reviewed runtime-domain
+records. Four required CURRENT-SOURCE methods and projected focused 4/4, graph
+owner 186/186, surface owner 1/1, operand owner 69/69, affected semantic
+1,146/1,146, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,039/2,039 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection; it is the sole next
 priority and this plan maintains no competing queue.

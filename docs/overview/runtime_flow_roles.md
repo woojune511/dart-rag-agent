@@ -928,16 +928,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   caller 17/17, reconciliation plan 51/51, import 19/19, audit 217, full
   2,031/2,031과 transform/body/identity/caller/48-module/205-edge DAG parity가
   통과했다.
-- 새 characterize-only inventory는 같은 surface owner의 정확한 3줄
-  `_text_has_negative_surface(...)`을 public `text_has_negative_surface(...)`로
-  이름 수렴시키는 private-API batch를 선택한다. 외부 8/local 2 call은 모두
-  두 positional argument와 caller `try` depth zero를 유지하며, 5개 외부
-  import 중 graph calculation과 graph helpers는 import-only다. 기존 edge만
-  사용하므로 48-module/205-edge DAG는 그대로 비순환이고 projected surface
-  public/private는 18/4다. 아직 source/test rename은 없으며 contract-owner/
-  negative-list copy/term-helper의 순서·identity·failure contract, 네
-  CURRENT-SOURCE method와 projected gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `83cf700` negative-surface API batch는 같은 surface owner의 정확한
+  3줄 private helper를 public `text_has_negative_surface(...)`로 이름
+  수렴시켰다. 외부 8/local 2 call과 5개 외부 binding은 모두 public API를
+  사용하며 graph calculation과 graph helpers는 import-only로 남았다. Exact
+  argument, boolean/generator short-circuit, adoption과 stop은 유지됐다.
+  Surface/graph/operand public/private는 18/4, 9/71, 54/37이다. Focused 4/4,
+  graph owner 182/182, surface owner 1/1, operand owner 69/69, semantic
+  1,142/1,142, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,035/2,035와 transform/body/identity/caller/
+  48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 대칭인 정확한 3줄
+  `_text_has_positive_surface(...)`을 public `text_has_positive_surface(...)`로
+  이름 수렴시키는 private-API batch를 선택한다. 외부 25/local 1 call은 모두
+  두 positional argument와 caller `try` depth zero를 유지하며 6개 외부
+  binding은 모두 live caller다. 기존 edge만 사용하므로 48-module/205-edge
+  DAG는 그대로 비순환이고 projected surface public/private는 19/3이다.
+  아직 source/test rename은 없으며 contract-owner/positive-list copy/term-
+  helper의 순서·identity·failure contract, 네 CURRENT-SOURCE method와
+  projected gate는 [Project Status의 Next Work](project_status.md#next-work)가
+  단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

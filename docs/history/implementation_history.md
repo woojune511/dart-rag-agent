@@ -6538,35 +6538,71 @@ changes only API visibility and one shadow-safe local name. It proves no
 behavior, quality, ranking, performance, benchmark, schedule, ledger, or Phase
 3 completion claim.
 
-### Negative-surface predicate private-API characterization checkpoint
+### Negative-surface predicate public-API milestone
+
+- Commit `83cf700` renames the exact former 3-line private helper in its existing
+  surface owner to public `text_has_negative_surface(...)`. Its two-statement
+  body is exact after definition-name normalization; the private definition and
+  executable refs are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin exact operand/text identity, contract-owner
+  call order, negative get/truth/fresh-list fallback, eager ordered copy,
+  duplicates, element identities, exact term-helper result, immutability,
+  exceptions, caller arguments/short-circuit/stops, and public-name store
+  absence.
+- All ten calls across graph evidence, operand resolution, retrieval pipeline,
+  and the surface owner now bind the public owner at caller `try` depth zero.
+  Five external modules retain the public binding; graph calculation and graph
+  helpers are import-only. Exact boolean/generator evaluation, operand copies,
+  surface preparation, later adoption, and exception stops remain caller-owned.
+- Production source is `+16/-16`, net `0`; tests are `+990/-27`, net `+963`;
+  and the whole commit is `+1,006/-43`, net `+963`. All production physical
+  line counts are unchanged. Four methods move discovery from 2,031 to 2,035.
+  Final counts are surface contracts 18/4, graph 9/71, and operand resolution
+  54/37. The source diff SHA-256 is
+  `69d56b303cee0619864af4d3b446b2c344c7f61e035e4f2bea3a54e7a5184991`.
+- Focused pre/post rename 4/4, graph owner 182/182, surface owner 1/1, operand
+  owner 69/69, affected eleven-module semantic 1,142/1,142, additional
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import-side-effects 19/19,
+  runtime-domain audit 217, and full discovery 2,035/2,035 passed. Pycompile,
+  exact production transform parity 6/6, selected-body SHA-256 parity, owner
+  name-normalized parity 22/22, public identity 5/5, all ten calls/four modules,
+  zero public stores/private executable refs, unchanged 48-module/205-edge
+  acyclic DAG, non-ASCII preservation 8/8, and diff check passed. Benchmark
+  refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility. It proves no behavior, quality,
+ranking, performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Positive-surface predicate private-API characterization checkpoint
 
 - A docs-only inventory selects the current exact 3-line
-  `financial_surface_contracts._text_has_negative_surface(text, operand)`
+  `financial_surface_contracts._text_has_positive_surface(text, operand)`
   definition with `str`, `Dict[str, Any] -> bool` typing for an in-place public
-  rename to `text_has_negative_surface(...)`. No source or test rename has
+  rename to `text_has_positive_surface(...)`. No source or test rename has
   occurred.
 - The projection preserves two statements, one return, exact operand identity
-  into `_operand_surface_contract`, one negative get/truth/fresh-list fallback,
+  into `_operand_surface_contract`, one positive get/truth/fresh-list fallback,
   eager ordered `list(...)` materialization, original text identity, exact
   `_text_has_contract_term` result, duplicates, immutability, and every uncaught
   owner/get/truth/iteration/list/term-helper failure.
-- Ten two-positional-argument calls across four source modules remain at caller
-  `try` depth zero; external/local calls are 8/2. Five external modules import
-  the helper, with graph calculation and graph helpers import-only. Existing
-  edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
-  Projected counts are surface contracts 17/5 to 18/4, with graph 9/71 and
-  operand resolution 54/37 unchanged. No future public-name store exists. The
-  selected body SHA-256 is
-  `7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3`
+- Twenty-six two-positional-argument calls across seven source modules remain at
+  caller `try` depth zero; external/local calls are 25/1. Six external modules
+  import and call the helper, so there is no import-only binding. Existing edges
+  keep the full DAG unchanged and acyclic at 48 modules/205 edges. Projected
+  counts are surface contracts 18/4 to 19/3, with graph 9/71 and operand
+  resolution 54/37 unchanged. No future public-name definition/store exists.
+  The selected body SHA-256 is
+  `88731ff3dbee812ca313fae1324f06cf72e994d7d2b0099a54aebd8b40b3df24`
   and its span has zero of 217 reviewed runtime-domain records.
 - Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-  182/182, surface owner 1/1, operand owner 69/69, affected semantic
-  1,142/1,142, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-  import 19/19, audit 217, full 2,035/2,035, public identity across five external
-  imports, selected-body and owner parity, all ten calls/four call modules with
-  two import-only bindings, unchanged acyclic DAG, retired-ref/public-store
-  zero, non-ASCII preservation 8/8, pycompile, and diff check are governed only
-  by [Project Status Next Work](../overview/project_status.md#next-work).
+  186/186, surface owner 1/1, operand owner 69/69, affected semantic
+  1,146/1,146, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,039/2,039, public identity across six external
+  imports, production transform/selected-body/owner parity, all twenty-six
+  calls/seven call modules with no import-only binding, unchanged acyclic DAG,
+  retired-ref/public-store zero, non-ASCII preservation 10/10, pycompile, and
+  diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
 
 Static definition/signature/call/DAG/function-count/import/public-store and
 selected-span audit inspection passed. Benchmark refresh and remote CI were
