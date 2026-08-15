@@ -41,7 +41,7 @@ from src.agent.financial_scope_policies import (
 )
 from src.agent.financial_surface_contracts import (
     operand_needles,
-    _text_has_negative_surface,
+    text_has_negative_surface,
     _text_has_positive_surface,
 )
 from src.agent.financial_text_surface import (
@@ -545,7 +545,7 @@ def _lookup_numeric_extraction_has_direct_support(
             continue
         operand_checks: List[Dict[str, Any]] = []
         for support_operand in support_operands:
-            negative_surface = _text_has_negative_surface(normalized, support_operand)
+            negative_surface = text_has_negative_surface(normalized, support_operand)
             surface_match = False if negative_surface else _lookup_line_matches_operand_surface(normalized, support_operand)
             operand_checks.append(
                 {

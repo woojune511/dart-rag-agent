@@ -282,7 +282,7 @@ from src.agent.financial_reflection_projection import (
 from src.agent.financial_surface_contracts import (
     operand_needles,
     operand_segment_label,
-    _text_has_negative_surface,
+    text_has_negative_surface,
     _text_has_positive_surface,
     scoped_surface_affinity_priority,
 )

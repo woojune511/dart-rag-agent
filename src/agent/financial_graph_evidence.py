@@ -53,7 +53,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_surface_contracts import (
     operand_needles,
-    _text_has_negative_surface,
+    text_has_negative_surface,
     _text_has_positive_surface,
     scoped_surface_affinity_priority,
 )
@@ -643,11 +643,11 @@ class FinancialAgentEvidenceMixin:
 
     def _evidence_item_conflicts_with_operand(self, item: Dict[str, Any], operand: Dict[str, Any]) -> bool:
         quote_surface = str(item.get("quote_span") or item.get("raw_row_text") or "").strip()
-        if quote_surface and _text_has_negative_surface(quote_surface, operand):
+        if quote_surface and text_has_negative_surface(quote_surface, operand):
             return True
 
         claim_surface = str(item.get("claim") or "").strip()
-        if claim_surface and _text_has_negative_surface(claim_surface, operand) and not _text_has_positive_surface(claim_surface, operand):
+        if claim_surface and text_has_negative_surface(claim_surface, operand) and not _text_has_positive_surface(claim_surface, operand):
             return True
         return False
 
@@ -1363,7 +1363,7 @@ class FinancialAgentEvidenceMixin:
                     )
                 surface_contract_match = (
                     _text_has_positive_surface(context_text or raw_row, operand)
-                    and not _text_has_negative_surface(context_text or raw_row, operand)
+                    and not text_has_negative_surface(context_text or raw_row, operand)
                 )
                 binding_policy = dict(operand.get("binding_policy") or {})
                 prefer_value_roles = {

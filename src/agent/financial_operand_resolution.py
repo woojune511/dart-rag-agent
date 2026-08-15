@@ -42,7 +42,7 @@ from src.agent.financial_surface_contracts import (
     operand_segment_label,
     _operand_surface_contract,
     _text_has_contract_term,
-    _text_has_negative_surface,
+    text_has_negative_surface,
     _text_has_positive_surface,
     binding_policy_allows_candidate_shape,
     candidate_conflicts_with_operand_concept,
@@ -1349,7 +1349,7 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     if not contract:
         return False
 
-    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
+    if any(text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
         return True
     return False
 
@@ -1519,7 +1519,7 @@ def _operand_row_has_direct_evidence_surface(
                 continue
             if raw_compact not in re.sub(r"[\s,()]", "", line):
                 continue
-            if _text_has_negative_surface(line, operand):
+            if text_has_negative_surface(line, operand):
                 continue
             if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
                 return True
@@ -1596,7 +1596,7 @@ def _llm_lookup_operand_has_direct_support(
             return False
         if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
             return False
-        if _text_has_negative_surface(evidence_text, surface_operand):
+        if text_has_negative_surface(evidence_text, surface_operand):
             return False
         for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", evidence_text):
             if re.sub(r"[\s,]", "", match.group(0)) == raw_compact:
@@ -1763,7 +1763,7 @@ def surface_contract_numeric_evidence_items(
             operand_dict = dict(operand or {})
             if not _text_has_positive_surface(surface, operand_dict):
                 continue
-            if _text_has_negative_surface(surface, operand_dict):
+            if text_has_negative_surface(surface, operand_dict):
                 continue
             if not _extract_numeric_value_after_operand_text(surface, operand_dict):
                 continue

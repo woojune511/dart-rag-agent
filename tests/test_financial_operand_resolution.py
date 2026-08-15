@@ -2564,7 +2564,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with (
             patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
-            patch.object(operand_resolution, "_text_has_negative_surface", side_effect=negative),
+            patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
                 "_extract_numeric_value_after_operand_text",
@@ -2602,7 +2602,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with (
             patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
-            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
                 "_extract_numeric_value_after_operand_text",
@@ -2665,7 +2665,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize),
             patch.object(operand_resolution.re, "search", side_effect=search),
             patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
-            patch.object(operand_resolution, "_text_has_negative_surface", side_effect=negative),
+            patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
                 "_extract_numeric_value_after_operand_text",
@@ -2745,7 +2745,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
             patch.object(
                 operand_resolution,
-                "_text_has_negative_surface",
+                "text_has_negative_surface",
                 side_effect=RuntimeError("negative failed"),
             ),
         ):
@@ -2753,7 +2753,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 select(row, requirement)
         with (
             patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
-            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
                 "_extract_numeric_value_after_operand_text",
@@ -2773,7 +2773,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with (
             patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
-            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
                 "_extract_numeric_value_after_operand_text",

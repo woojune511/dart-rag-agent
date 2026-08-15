@@ -1218,7 +1218,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
         self.assertEqual(
             (sum(not node.name.startswith("_") for node in owner_defs), sum(node.name.startswith("_") for node in owner_defs)),
-            (17, 5),
+            (18, 4),
         )
         self.assertEqual(
             {
@@ -18844,7 +18844,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (17, 5),
+            (18, 4),
         )
 
         def imported_modules(tree):
@@ -19843,7 +19843,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "financial_graph_helpers": (9, 71),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -24581,7 +24581,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "operand_needles", return_value=[dropped_needle, retained_needle]) as needles,
             patch.object(owner, "_normalise_spaces", side_effect=normalize_needle),
             patch.object(owner, "_operand_surface_contract", return_value={}) as contract,
-            patch.object(owner, "_text_has_negative_surface", side_effect=AssertionError("falsey contract must stop negative matching")),
+            patch.object(owner, "text_has_negative_surface", side_effect=AssertionError("falsey contract must stop negative matching")),
             patch.object(owner, "_text_has_positive_surface", side_effect=AssertionError("falsey contract must stop positive matching")),
         ):
             self.assertIs(target({"metadata": {}, "nested": nested}, {"nested": nested}), False)
@@ -24659,7 +24659,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "operand_needles", return_value=["target"]),
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: str(value).strip()),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": ["p"], "negative": ["n"]}),
-            patch.object(owner, "_text_has_negative_surface", side_effect=negative_until_row),
+            patch.object(owner, "text_has_negative_surface", side_effect=negative_until_row),
             patch.object(owner, "_text_has_positive_surface", positive),
         ):
             self.assertIs(target({"metadata": authoritative_metadata, "text": "text"}, operand), True)
@@ -24683,7 +24683,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "operand_needles", return_value=["target"]),
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: str(value).strip()),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": ["p"], "negative": ["n"]}),
-            patch.object(owner, "_text_has_negative_surface", side_effect=negative_miss),
+            patch.object(owner, "text_has_negative_surface", side_effect=negative_miss),
             patch.object(owner, "_text_has_positive_surface", side_effect=positive_until_aggregate),
         ):
             self.assertIs(target({"metadata": authoritative_metadata, "text": "must stay unread"}, operand), False)
@@ -24708,7 +24708,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "operand_needles", return_value=["target"]),
             patch.object(owner, "_normalise_spaces", side_effect=lambda value: str(value).strip()),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": ["p"], "negative": ["n"]}),
-            patch.object(owner, "_text_has_negative_surface", side_effect=negative_with_text_fallback),
+            patch.object(owner, "text_has_negative_surface", side_effect=negative_with_text_fallback),
             patch.object(owner, "_text_has_positive_surface", side_effect=positive_miss),
         ):
             result = target({"metadata": authoritative_metadata, "text": "fallback text"}, operand)
@@ -24792,7 +24792,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(owner, "_normalise_spaces", side_effect=normalize),
             patch.object(owner, "dict", side_effect=copy_mapping, create=True),
             patch.object(owner, "_operand_surface_contract", side_effect=lambda current: {"positive": ["p"], "negative": ["n"]} if current is operand else AssertionError("operand identity changed")) as contract,
-            patch.object(owner, "_text_has_negative_surface", side_effect=negative),
+            patch.object(owner, "text_has_negative_surface", side_effect=negative),
             patch.object(owner, "_text_has_positive_surface", side_effect=positive),
         ):
             self.assertIs(target(candidate, operand), False)
@@ -24937,7 +24937,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "operand_needles", return_value=[]),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": [], "negative": []}),
-            patch.object(owner, "_text_has_negative_surface", side_effect=RuntimeError("negative failed")),
+            patch.object(owner, "text_has_negative_surface", side_effect=RuntimeError("negative failed")),
             patch.object(owner, "_text_has_positive_surface", side_effect=AssertionError("negative failure must stop positive")) as stopped_positive,
         ):
             with self.assertRaisesRegex(RuntimeError, "negative failed"):
@@ -24951,7 +24951,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "operand_needles", return_value=[]),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": [], "negative": []}),
-            patch.object(owner, "_text_has_negative_surface", return_value=ResultTruthBomb()),
+            patch.object(owner, "text_has_negative_surface", return_value=ResultTruthBomb()),
         ):
             with self.assertRaisesRegex(RuntimeError, "negative truth failed"):
                 target({"metadata": {"semantic_label": "surface"}}, operand)
@@ -24959,7 +24959,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "operand_needles", return_value=[]),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": [], "negative": []}),
-            patch.object(owner, "_text_has_negative_surface", return_value=False),
+            patch.object(owner, "text_has_negative_surface", return_value=False),
             patch.object(owner, "_text_has_positive_surface", side_effect=RuntimeError("positive failed")),
         ):
             with self.assertRaisesRegex(RuntimeError, "positive failed"):
@@ -24974,7 +24974,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "operand_needles", return_value=[]),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": [], "negative": []}),
-            patch.object(owner, "_text_has_negative_surface", return_value=False),
+            patch.object(owner, "text_has_negative_surface", return_value=False),
             patch.object(owner, "_text_has_positive_surface", return_value=False),
         ):
             with self.assertRaisesRegex(RuntimeError, "text get failed"):
@@ -24987,7 +24987,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(owner, "operand_needles", return_value=[]),
             patch.object(owner, "_operand_surface_contract", return_value={"positive": [], "negative": []}),
-            patch.object(owner, "_text_has_negative_surface", return_value=False),
+            patch.object(owner, "text_has_negative_surface", return_value=False),
             patch.object(owner, "_text_has_positive_surface", return_value=False),
         ):
             with self.assertRaisesRegex(RuntimeError, "text conversion failed"):
@@ -25080,7 +25080,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "_normalise_spaces": 3,
                 "operand_needles": 1,
                 "_operand_surface_contract": 1,
-                "_text_has_negative_surface": 2,
+                "text_has_negative_surface": 2,
                 "_text_has_positive_surface": 1,
                 "any": 4,
                 "dict": 1,
@@ -25143,7 +25143,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -26098,7 +26098,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -27109,7 +27109,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -28273,7 +28273,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -29549,7 +29549,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -40547,7 +40547,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -41459,7 +41459,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_surface_contracts": (17, 5),
+                "financial_surface_contracts": (18, 4),
             },
         )
 
@@ -41904,6 +41904,969 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 0.0,
             )
         stopped_match.assert_not_called()
+
+    def test_current_source_text_has_negative_surface_pins_contract_negative_copy_order_and_result(self) -> None:
+        target = financial_surface_contracts.text_has_negative_surface
+        events = []
+        nested = {"preserve": True}
+        text_value = object()
+        operand = {"label": "Metric", "nested": nested}
+        first_item = object()
+        second_item = object()
+        source_items = [first_item, second_item, first_item]
+        exact_result = object()
+
+        class NegativeItems:
+            def __bool__(self):
+                events.append("negative-bool")
+                return True
+
+            def __iter__(self):
+                events.append("negative-iter")
+                return iter(source_items)
+
+        negative_items = NegativeItems()
+
+        class Contract:
+            def get(self, key, default=None):
+                events.append(("contract-get", key, default))
+                self.assert_key = key
+                return negative_items
+
+        contract = Contract()
+        captured_terms = []
+
+        def contract_owner(current_operand):
+            events.append("contract-owner")
+            self.assertIs(current_operand, operand)
+            return contract
+
+        def term_owner(current_text, terms):
+            events.append("term-owner")
+            self.assertIs(current_text, text_value)
+            self.assertIsInstance(terms, list)
+            self.assertIsNot(terms, source_items)
+            self.assertEqual(len(terms), 3)
+            self.assertIs(terms[0], first_item)
+            self.assertIs(terms[1], second_item)
+            self.assertIs(terms[2], first_item)
+            captured_terms.append(terms)
+            terms.append(object())
+            return exact_result
+
+        before_operand = dict(operand)
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                side_effect=contract_owner,
+            ) as contract_mock,
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                side_effect=term_owner,
+            ) as term_mock,
+        ):
+            result = target(text_value, operand)
+
+        self.assertIs(result, exact_result)
+        self.assertEqual(
+            events,
+            [
+                "contract-owner",
+                ("contract-get", "negative", None),
+                "negative-bool",
+                "negative-iter",
+                "term-owner",
+            ],
+        )
+        contract_mock.assert_called_once_with(operand)
+        term_mock.assert_called_once()
+        self.assertEqual(source_items, [first_item, second_item, first_item])
+        self.assertEqual(len(captured_terms[0]), 4)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(operand["nested"], nested)
+
+        false_events = []
+        fallback_lists = []
+
+        class FalseNegativeItems:
+            def __bool__(self):
+                false_events.append("negative-bool")
+                return False
+
+            def __iter__(self):
+                raise AssertionError("false negative terms must not be iterated")
+
+        class FalseContract:
+            def get(self, key, default=None):
+                false_events.append(("contract-get", key, default))
+                return FalseNegativeItems()
+
+        def capture_empty_terms(current_text, terms):
+            self.assertIs(current_text, text_value)
+            self.assertEqual(terms, [])
+            fallback_lists.append(terms)
+            return False
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value=FalseContract(),
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                side_effect=capture_empty_terms,
+            ),
+        ):
+            self.assertFalse(target(text_value, operand))
+            self.assertFalse(target(text_value, operand))
+        self.assertEqual(
+            false_events,
+            [
+                ("contract-get", "negative", None),
+                "negative-bool",
+                ("contract-get", "negative", None),
+                "negative-bool",
+            ],
+        )
+        self.assertEqual(len(fallback_lists), 2)
+        self.assertIsNot(fallback_lists[0], fallback_lists[1])
+
+    def test_current_source_text_has_negative_surface_pins_laziness_identity_immutability_and_exceptions(self) -> None:
+        target = financial_surface_contracts.text_has_negative_surface
+        text_value = object()
+        operand = {"label": "Metric", "nested": {"preserve": True}}
+        stopped_term = Mock(
+            side_effect=AssertionError("earlier failure must stop the term helper")
+        )
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                side_effect=RuntimeError("contract owner failed"),
+            ) as contract_owner,
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                stopped_term,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "contract owner failed"):
+                target(text_value, operand)
+        contract_owner.assert_called_once_with(operand)
+        stopped_term.assert_not_called()
+
+        class GetBomb:
+            def get(self, key, default=None):
+                self.key = key
+                raise RuntimeError("negative get failed")
+
+        get_bomb = GetBomb()
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value=get_bomb,
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                stopped_term,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative get failed"):
+                target(text_value, operand)
+        self.assertEqual(get_bomb.key, "negative")
+        stopped_term.assert_not_called()
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("negative truth failed")
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"negative": TruthBomb()},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                stopped_term,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative truth failed"):
+                target(text_value, operand)
+        stopped_term.assert_not_called()
+
+        class IterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("negative iteration failed")
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"negative": IterationBomb()},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                stopped_term,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative iteration failed"):
+                target(text_value, operand)
+        stopped_term.assert_not_called()
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"negative": ["blocked"]},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "list",
+                create=True,
+                side_effect=RuntimeError("negative list failed"),
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                stopped_term,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative list failed"):
+                target(text_value, operand)
+        stopped_term.assert_not_called()
+
+        term_calls = []
+
+        def term_bomb(current_text, terms):
+            term_calls.append((current_text, terms))
+            raise RuntimeError("term helper failed")
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"negative": ["one", "one"]},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                side_effect=term_bomb,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "term helper failed"):
+                target(text_value, operand)
+        self.assertEqual(len(term_calls), 1)
+        self.assertIs(term_calls[0][0], text_value)
+        self.assertEqual(term_calls[0][1], ["one", "one"])
+
+        nested = {"preserve": True}
+        immutable_operand = {
+            "label": "Metric",
+            "surface_contract": {"negative": ["blocked"]},
+            "nested": nested,
+        }
+        before = deepcopy(immutable_operand)
+        captured = []
+
+        def capture_term(current_text, terms):
+            captured.append((current_text, terms))
+            return True
+
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value=immutable_operand["surface_contract"],
+            ) as contract_owner,
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_contract_term",
+                side_effect=capture_term,
+            ),
+        ):
+            self.assertTrue(target(text_value, immutable_operand))
+        contract_owner.assert_called_once_with(immutable_operand)
+        self.assertIs(captured[0][0], text_value)
+        self.assertIsNot(
+            captured[0][1],
+            immutable_operand["surface_contract"]["negative"],
+        )
+        self.assertEqual(captured[0][1], ["blocked"])
+        self.assertEqual(immutable_operand, before)
+        self.assertIs(immutable_operand["nested"], nested)
+
+    def test_current_source_text_has_negative_surface_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "text_has_negative_surface"
+        future_public_name = "text_has_negative_surface"
+        owner_module = "src.agent.financial_surface_contracts"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_surface_contracts"]
+        owner_tree = module_trees["financial_surface_contracts"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 3)
+        self.assertEqual(len(definition.body), 2)
+        self.assertEqual([arg.arg for arg in definition.args.args], ["text", "operand"])
+        self.assertEqual(
+            [ast.unparse(arg.annotation) for arg in definition.args.args],
+            ["str", "Dict[str, Any]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(isinstance(node, (ast.Try, ast.TryStar)) for node in ast.walk(definition)),
+            0,
+        )
+        calls = [node for node in ast.walk(definition) if isinstance(node, ast.Call)]
+        self.assertEqual(
+            {
+                ast.unparse(call.func): len(call.args)
+                for call in calls
+            },
+            {
+                "_operand_surface_contract": 1,
+                "_text_has_contract_term": 2,
+                "list": 1,
+                "contract.get": 1,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "7e81c359055f9b64c040e2a498d3409bd29d89de541ca89fbb5277e8525b1fb3",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        external_modules = {
+            "financial_graph_calculation",
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_operand_resolution",
+            "financial_retrieval_pipeline",
+        }
+        self.assertEqual(
+            {
+                name
+                for name, tree in module_trees.items()
+                if target_name in imported_names(tree, owner_module)
+            },
+            external_modules,
+        )
+        for module_name in external_modules:
+            self.assertIn(owner_module, imported_modules(module_trees[module_name]))
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+
+        direct_calls_by_module = {
+            name: [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ]
+            for name, tree in module_trees.items()
+        }
+        self.assertEqual(
+            {
+                name: len(calls)
+                for name, calls in direct_calls_by_module.items()
+                if calls
+            },
+            {
+                "financial_graph_evidence": 3,
+                "financial_operand_resolution": 4,
+                "financial_retrieval_pipeline": 1,
+                "financial_surface_contracts": 2,
+            },
+        )
+        self.assertEqual(direct_calls_by_module["financial_graph_calculation"], [])
+        self.assertEqual(direct_calls_by_module["financial_graph_helpers"], [])
+        self.assertEqual(sum(map(len, direct_calls_by_module.values())), 10)
+
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        self.assertEqual(
+            {
+                module_name: (
+                    sum(
+                        not node.name.startswith("_")
+                        for node in module_trees[module_name].body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                    sum(
+                        node.name.startswith("_")
+                        for node in module_trees[module_name].body
+                        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    ),
+                )
+                for module_name in {
+                    "financial_graph_helpers",
+                    "financial_operand_resolution",
+                    "financial_surface_contracts",
+                }
+            },
+            {
+                "financial_graph_helpers": (9, 71),
+                "financial_operand_resolution": (54, 37),
+                "financial_surface_contracts": (18, 4),
+            },
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_surface_contracts.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        required_methods = {
+            "test_current_source_text_has_negative_surface_pins_contract_negative_copy_order_and_result",
+            "test_current_source_text_has_negative_surface_pins_laziness_identity_immutability_and_exceptions",
+            "test_current_source_text_has_negative_surface_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_text_has_negative_surface_callers_pin_args_short_circuit_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_text_has_negative_surface_callers_pin_args_short_circuit_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "text_has_negative_surface"
+        module_names = {
+            "financial_graph_evidence",
+            "financial_operand_resolution",
+            "financial_retrieval_pipeline",
+            "financial_surface_contracts",
+        }
+        calls_by_module = {}
+        parent_kinds_by_module = {}
+        for module_name in sorted(module_names):
+            path = repo_root / "src" / "agent" / f"{module_name}.py"
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            parents = {}
+            for parent in ast.walk(tree):
+                for child in ast.iter_child_nodes(parent):
+                    parents[child] = parent
+            calls = []
+            parent_kinds = []
+            for call in sorted(
+                (
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ),
+                key=lambda node: (node.lineno, node.col_offset),
+            ):
+                current = call
+                function_name = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        function_name = current.name
+                        break
+                calls.append(
+                    (
+                        function_name,
+                        tuple(ast.unparse(arg) for arg in call.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in call.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+                parent_kinds.append(type(parents[call]).__name__)
+            calls_by_module[module_name] = calls
+            parent_kinds_by_module[module_name] = parent_kinds
+
+        self.assertEqual(
+            calls_by_module,
+            {
+                "financial_graph_evidence": [
+                    (
+                        "_evidence_item_conflicts_with_operand",
+                        ("quote_surface", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_evidence_item_conflicts_with_operand",
+                        ("claim_surface", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_build_required_operands_from_candidates",
+                        ("context_text or raw_row", "operand"),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_operand_resolution": [
+                    (
+                        "_operand_row_conflicts_with_requirement",
+                        ("surface", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_surface_supports_operand_value",
+                        ("line", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "_text_supports_operand",
+                        ("evidence_text", "surface_operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "surface_contract_numeric_evidence_items",
+                        ("surface", "operand_dict"),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_retrieval_pipeline": [
+                    (
+                        "_lookup_numeric_extraction_has_direct_support",
+                        ("normalized", "support_operand"),
+                        (),
+                        0,
+                    ),
+                ],
+                "financial_surface_contracts": [
+                    (
+                        "candidate_conflicts_with_operand_concept",
+                        ("surface", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
+                        "candidate_conflicts_with_operand_concept",
+                        ("str(candidate.get('text') or '')", "operand"),
+                        (),
+                        0,
+                    ),
+                ],
+            },
+        )
+        self.assertEqual(
+            parent_kinds_by_module,
+            {
+                "financial_graph_evidence": ["BoolOp", "BoolOp", "UnaryOp"],
+                "financial_operand_resolution": [
+                    "GeneratorExp",
+                    "If",
+                    "If",
+                    "If",
+                ],
+                "financial_retrieval_pipeline": ["Assign"],
+                "financial_surface_contracts": ["GeneratorExp", "Return"],
+            },
+        )
+        self.assertEqual(sum(map(len, calls_by_module.values())), 10)
+        self.assertEqual(len(calls_by_module["financial_surface_contracts"]), 2)
+        self.assertEqual(
+            sum(
+                len(calls)
+                for module_name, calls in calls_by_module.items()
+                if module_name != "financial_surface_contracts"
+            ),
+            8,
+        )
+        self.assertTrue(
+            all(
+                len(args) == 2 and not keywords and try_depth == 0
+                for calls in calls_by_module.values()
+                for _function_name, args, keywords, try_depth in calls
+            )
+        )
+
+        external_modules = {
+            "financial_graph_calculation": financial_graph_calculation,
+            "financial_graph_evidence": financial_graph_evidence,
+            "financial_graph_helpers": financial_graph_helpers,
+            "financial_operand_resolution": financial_operand_resolution,
+            "financial_retrieval_pipeline": financial_retrieval_pipeline,
+        }
+        owner_target = getattr(financial_surface_contracts, target_name)
+        for module in external_modules.values():
+            self.assertIs(getattr(module, target_name), owner_target)
+
+        operand = {"label": "Metric"}
+
+        class QuoteOnlyItem(dict):
+            def get(self, key, default=None):
+                if key == "claim":
+                    raise AssertionError("quote conflict must stop claim access")
+                return super().get(key, default)
+
+        stopped_positive = Mock(
+            side_effect=AssertionError("quote conflict must stop positive matching")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=True,
+            ) as evidence_negative,
+            patch.object(
+                financial_graph_evidence,
+                "_text_has_positive_surface",
+                stopped_positive,
+            ),
+        ):
+            self.assertTrue(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._evidence_item_conflicts_with_operand(
+                    object(),
+                    QuoteOnlyItem(quote_span="blocked quote"),
+                    operand,
+                )
+            )
+        evidence_negative.assert_called_once_with("blocked quote", operand)
+        stopped_positive.assert_not_called()
+
+        evidence_events = []
+
+        def evidence_negative(current_text, current_operand):
+            evidence_events.append(("negative", current_text, current_operand))
+            return current_text == "claim surface"
+
+        def evidence_positive(current_text, current_operand):
+            evidence_events.append(("positive", current_text, current_operand))
+            return True
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=evidence_negative,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_text_has_positive_surface",
+                side_effect=evidence_positive,
+            ),
+        ):
+            self.assertFalse(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._evidence_item_conflicts_with_operand(
+                    object(),
+                    {
+                        "quote_span": "quote surface",
+                        "claim": "claim surface",
+                    },
+                    operand,
+                )
+            )
+        self.assertEqual(
+            evidence_events,
+            [
+                ("negative", "quote surface", operand),
+                ("negative", "claim surface", operand),
+                ("positive", "claim surface", operand),
+            ],
+        )
+
+        nested = {"preserve": True}
+        source_operand = {"label": "Metric", "nested": nested}
+        evidence_item = {
+            "evidence_id": "evidence-1",
+            "claim": "Metric 12",
+            "nested": nested,
+        }
+        captured_negative = []
+
+        def operand_negative(surface, current_operand):
+            captured_negative.append((surface, current_operand))
+            return False
+
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_positive_surface",
+                return_value=True,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=operand_negative,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                return_value="12",
+            ) as numeric_owner,
+        ):
+            preserved = (
+                financial_operand_resolution.surface_contract_numeric_evidence_items(
+                    [evidence_item],
+                    [source_operand],
+                )
+            )
+        self.assertEqual(preserved, [evidence_item])
+        self.assertEqual(len(captured_negative), 1)
+        self.assertEqual(captured_negative[0][0], "Metric 12")
+        self.assertIsNot(captured_negative[0][1], source_operand)
+        self.assertIs(captured_negative[0][1]["nested"], nested)
+        numeric_owner.assert_called_once_with("Metric 12", captured_negative[0][1])
+
+        stopped_numeric = Mock(
+            side_effect=AssertionError("negative surface must stop numeric extraction")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_positive_surface",
+                return_value=True,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                return_value=True,
+            ) as operand_negative_owner,
+            patch.object(
+                financial_operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                stopped_numeric,
+            ),
+        ):
+            self.assertEqual(
+                financial_operand_resolution.surface_contract_numeric_evidence_items(
+                    [evidence_item],
+                    [source_operand],
+                ),
+                [],
+            )
+        operand_negative_owner.assert_called_once()
+        stopped_numeric.assert_not_called()
+
+        stopped_negative = Mock(
+            side_effect=AssertionError("positive rejection must stop negative matching")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "_text_has_positive_surface",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                stopped_negative,
+            ),
+        ):
+            self.assertEqual(
+                financial_operand_resolution.surface_contract_numeric_evidence_items(
+                    [evidence_item],
+                    [source_operand],
+                ),
+                [],
+            )
+        stopped_negative.assert_not_called()
+
+        candidate = {
+            "metadata": {
+                "semantic_label": "first surface",
+                "row_label": "second surface",
+            },
+            "text": "fallback surface",
+        }
+        stopped_owner_positive = Mock(
+            side_effect=AssertionError("negative hit must stop owner positive matching")
+        )
+        with (
+            patch.object(
+                financial_surface_contracts,
+                "operand_needles",
+                return_value=[],
+            ),
+            patch.object(
+                financial_surface_contracts,
+                "_operand_surface_contract",
+                return_value={"negative": ["blocked"]},
+            ),
+            patch.object(
+                financial_surface_contracts,
+                target_name,
+                return_value=True,
+            ) as owner_negative,
+            patch.object(
+                financial_surface_contracts,
+                "_text_has_positive_surface",
+                stopped_owner_positive,
+            ),
+        ):
+            self.assertTrue(
+                financial_surface_contracts.candidate_conflicts_with_operand_concept(
+                    candidate,
+                    operand,
+                )
+            )
+        owner_negative.assert_called_once_with("first surface", operand)
+        stopped_owner_positive.assert_not_called()
+
+        stopped_evidence_positive = Mock(
+            side_effect=AssertionError("negative failure must stop positive matching")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("negative matching failed"),
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_text_has_positive_surface",
+                stopped_evidence_positive,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative matching failed"):
+                financial_graph_evidence.FinancialAgentEvidenceMixin._evidence_item_conflicts_with_operand(
+                    object(),
+                    {"claim": "claim surface"},
+                    operand,
+                )
+        stopped_evidence_positive.assert_not_called()
 
 
 if __name__ == "__main__":
