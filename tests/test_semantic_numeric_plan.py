@@ -26,7 +26,7 @@ from src.agent.financial_operand_resolution import (
     _missing_required_operands,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
+    extract_numeric_value_after_operand_text,
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_retrieval_hints import _active_preferred_sections
@@ -2093,7 +2093,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertGreaterEqual(len(operand_labels), 1)
 
     def test_extract_numeric_value_after_operand_text_handles_spaced_korean_text(self) -> None:
-        value = _extract_numeric_value_after_operand_text(
+        value = extract_numeric_value_after_operand_text(
             "회 사 채 | 13,189,950 | 7,467,594 | 5,722,356",
             {"label": "사채", "aliases": ["사채"]},
         )

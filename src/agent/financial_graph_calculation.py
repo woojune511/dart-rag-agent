@@ -287,7 +287,7 @@ from src.agent.financial_surface_contracts import (
     scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
+    extract_numeric_value_after_operand_text,
     operand_text_match,
     surface_match_variants,
 )
@@ -7238,7 +7238,7 @@ class FinancialAgentCalculationMixin:
             raw_unit=raw_unit,
             surface=surface,
         )
-        surface_value = _extract_numeric_value_after_operand_text(surface, operand_spec)
+        surface_value = extract_numeric_value_after_operand_text(surface, operand_spec)
         if surface_value:
             surface_normalized, surface_unit = _normalise_operand_value(surface_value, "")
             if surface_normalized is not None and surface_unit == "KRW":

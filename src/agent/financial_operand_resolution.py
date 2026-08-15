@@ -19,7 +19,7 @@ from src.agent.financial_operation_policies import (
     _label_implies_percent_metric,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
+    extract_numeric_value_after_operand_text,
     operand_text_match,
     strip_financial_label_annotations,
     surface_match_variants,
@@ -1765,7 +1765,7 @@ def surface_contract_numeric_evidence_items(
                 continue
             if text_has_negative_surface(surface, operand_dict):
                 continue
-            if not _extract_numeric_value_after_operand_text(surface, operand_dict):
+            if not extract_numeric_value_after_operand_text(surface, operand_dict):
                 continue
             key = str(evidence.get("evidence_id") or evidence.get("source_anchor") or surface[:120])
             if key in seen:

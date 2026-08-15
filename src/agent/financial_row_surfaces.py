@@ -223,7 +223,7 @@ def _numeric_operand_candidates_near_match(
     return candidates
 
 
-def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str:
+def extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str:
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""

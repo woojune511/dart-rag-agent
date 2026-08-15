@@ -2567,7 +2567,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
-                "_extract_numeric_value_after_operand_text",
+                "extract_numeric_value_after_operand_text",
                 side_effect=extract,
             ),
         ):
@@ -2605,7 +2605,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
-                "_extract_numeric_value_after_operand_text",
+                "extract_numeric_value_after_operand_text",
                 return_value="10",
             ),
         ):
@@ -2668,7 +2668,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
-                "_extract_numeric_value_after_operand_text",
+                "extract_numeric_value_after_operand_text",
                 side_effect=extract,
             ),
         ):
@@ -2756,7 +2756,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
-                "_extract_numeric_value_after_operand_text",
+                "extract_numeric_value_after_operand_text",
                 side_effect=RuntimeError("extract failed"),
             ),
         ):
@@ -2776,7 +2776,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
-                "_extract_numeric_value_after_operand_text",
+                "extract_numeric_value_after_operand_text",
                 return_value="10",
             ),
         ):

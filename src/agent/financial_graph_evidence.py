@@ -58,7 +58,7 @@ from src.agent.financial_surface_contracts import (
     scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
+    extract_numeric_value_after_operand_text,
     extract_table_row_label,
     operand_text_match,
     _parse_unstructured_table_row_cells,
@@ -1481,7 +1481,7 @@ class FinancialAgentEvidenceMixin:
                                 )
                                 if not line_matches_operand:
                                     continue
-                                line_value = _extract_numeric_value_after_operand_text(normalized_line, operand)
+                                line_value = extract_numeric_value_after_operand_text(normalized_line, operand)
                                 if line_value:
                                     matched_context_values.append(line_value)
                         if matched_context_values:
@@ -1500,7 +1500,7 @@ class FinancialAgentEvidenceMixin:
                                 inferred_value_role = "aggregate"
                                 inferred_aggregation_stage = "final"
                         if table_value_context_match and not raw_value:
-                            raw_value = _extract_numeric_value_after_operand_text(table_value_context, operand)
+                            raw_value = extract_numeric_value_after_operand_text(table_value_context, operand)
                         if raw_value and not raw_unit:
                             raw_unit = str(metadata.get("unit_hint") or "") or _fallback_unit(
                                 raw_value,
@@ -1571,7 +1571,7 @@ class FinancialAgentEvidenceMixin:
                     or surface_contract_match
                     or table_value_context_match
                 ):
-                    raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
+                    raw_value = extract_numeric_value_after_operand_text(raw_row, operand)
                     if raw_value and not raw_unit:
                         raw_unit = _fallback_unit(raw_value, context_text)
 

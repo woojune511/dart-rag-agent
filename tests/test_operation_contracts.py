@@ -66,7 +66,7 @@ from src.agent.financial_operand_resolution import (
     coerce_lookup_magnitude_value,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
+    extract_numeric_value_after_operand_text,
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_operation_policies import _label_implies_percent_metric, _requires_direct_numeric_grounding
@@ -3924,7 +3924,7 @@ class OperationContractTests(unittest.TestCase):
             "aliases": ["IRA Tax Credit"],
         }
 
-        value = _extract_numeric_value_after_operand_text(
+        value = extract_numeric_value_after_operand_text(
             "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
             operand,
         )
