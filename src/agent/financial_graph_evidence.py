@@ -59,7 +59,7 @@ from src.agent.financial_surface_contracts import (
 )
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
-    _extract_table_row_label,
+    extract_table_row_label,
     _operand_text_match,
     _parse_unstructured_table_row_cells,
 )
@@ -1326,7 +1326,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_row:
                     continue
                 metadata = dict(item.get("metadata") or {})
-                row_label = _extract_table_row_label(raw_row)
+                row_label = extract_table_row_label(raw_row)
                 context_text = _normalise_spaces(
                     " ".join(
                         part

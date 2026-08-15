@@ -241,7 +241,7 @@ def _extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]
     return ""
 
 
-def _extract_table_row_label(row_text: str) -> str:
+def extract_table_row_label(row_text: str) -> str:
     normalized = _normalise_spaces(row_text)
     if not normalized:
         return ""

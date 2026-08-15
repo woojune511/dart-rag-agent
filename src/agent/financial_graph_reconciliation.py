@@ -64,7 +64,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_surface_contracts import candidate_is_descriptor_row, operand_needles
 from src.agent.financial_row_surfaces import (
-    _extract_table_row_label,
+    extract_table_row_label,
     _parse_unstructured_table_row_cells,
 )
 if TYPE_CHECKING:
@@ -151,7 +151,7 @@ class FinancialAgentReconciliationMixin:
                     ),
                     metadata={**dict(item.get("metadata") or {}), "row_text": raw_row_text},
                     candidate_kind="evidence_row",
-                    row_label=_extract_table_row_label(raw_row_text),
+                    row_label=extract_table_row_label(raw_row_text),
                 )
                 row_candidate_id = str(row_candidate.get("candidate_id") or "").strip()
                 if row_candidate_id and row_candidate_id not in seen:

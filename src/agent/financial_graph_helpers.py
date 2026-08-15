@@ -71,7 +71,7 @@ from src.agent.financial_surface_contracts import (
     is_capex_total_operand,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_table_row_label,
+    extract_table_row_label,
     _format_structured_candidate_row_text,
     _parse_unstructured_table_row_cells,
     _strip_financial_label_annotations,
@@ -3718,7 +3718,7 @@ def _build_table_row_reconciliation_candidates(
             continue
         if row_text in seen_row_texts:
             continue
-        row_label = _extract_table_row_label(row_text)
+        row_label = extract_table_row_label(row_text)
         inferred_stage = aggregate_like_row_stage(row_label)
         inferred_role = aggregate_like_row_role(row_label)
         composite_text = " ".join(

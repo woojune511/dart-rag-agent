@@ -485,7 +485,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (12, 14),
+            (13, 13),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1899,7 +1899,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (12, 14),
+            (13, 13),
         )
 
         graph_row_imports = {
@@ -1997,7 +1997,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return "aggregate"
 
         with (
-            patch.object(financial_graph_helpers, "_extract_table_row_label", side_effect=extract_label),
+            patch.object(financial_graph_helpers, "extract_table_row_label", side_effect=extract_label),
             patch.object(financial_graph_helpers, "aggregate_like_row_stage", side_effect=infer_stage),
             patch.object(financial_graph_helpers, "aggregate_like_row_role", side_effect=infer_role),
             patch.object(financial_graph_helpers, "_parse_unstructured_table_row_cells", return_value=[]),
@@ -2871,7 +2871,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (12, 14))
+        self.assertEqual(row_counts, (13, 13))
 
         graph_row_imports = {
             alias.name
@@ -3937,7 +3937,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (12, 14),
+            (13, 13),
         )
         graph_row_imports = {
             alias.name
@@ -10408,7 +10408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (12, 14))
+        self.assertEqual(row_counts, (13, 13))
 
         def imported_names(module_name, imported_module):
             return {
@@ -22185,7 +22185,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_row_surfaces": (12, 14),
+                "financial_row_surfaces": (13, 13),
             },
         )
 
@@ -23710,7 +23710,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (12, 14)},
+            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (13, 13)},
         )
 
         def imported_modules(tree):
@@ -46474,7 +46474,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (12, 14) if target_name == future_public_name else (12, 14)
+            (13, 13) if target_name == future_public_name else (12, 14)
         )
         self.assertEqual(row_counts, expected_row_counts)
         structured_tree = module_trees["financial_structured_cells"]
@@ -46819,6 +46819,1221 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         self.assertEqual(affinity({"Generic"}), 4.75)
         self.assertEqual(affinity(set()), 0.75)
+
+
+    def test_current_source_extract_table_row_label_pins_normalization_delimiter_order_identity_and_result(self) -> None:
+        target = financial_row_surfaces.extract_table_row_label
+
+        self.assertEqual(target("  Exact Label  |  1 | 2  "), "Exact Label")
+        self.assertEqual(target("  No delimiter  "), "No delimiter")
+        self.assertEqual(target("  | 1  "), "| 1")
+        self.assertEqual(target(""), "")
+
+        no_pipe_events = []
+        raw_no_pipe = object()
+
+        class NoPipeNormalized:
+            def __bool__(self):
+                no_pipe_events.append(("truth", self))
+                return True
+
+            def __contains__(self, item):
+                no_pipe_events.append(("contains", self, item))
+                return False
+
+            def split(self, *args, **kwargs):
+                raise AssertionError("delimiter miss must stop split")
+
+        no_pipe_normalized = NoPipeNormalized()
+
+        def normalize_no_pipe(value):
+            no_pipe_events.append(("normalize", value))
+            return no_pipe_normalized
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=normalize_no_pipe,
+        ) as normalize_owner:
+            no_pipe_result = target(raw_no_pipe)
+
+        self.assertIs(no_pipe_result, no_pipe_normalized)
+        normalize_owner.assert_called_once_with(raw_no_pipe)
+        self.assertEqual(
+            no_pipe_events,
+            [
+                ("normalize", raw_no_pipe),
+                ("truth", no_pipe_normalized),
+                ("contains", no_pipe_normalized, "|"),
+            ],
+        )
+
+        pipe_events = []
+        raw_pipe = object()
+        first_piece = object()
+
+        class FirstCellResult:
+            def __bool__(self):
+                pipe_events.append(("truth", self))
+                return True
+
+        first_cell_result = FirstCellResult()
+
+        class SplitResult:
+            def __getitem__(self, index):
+                pipe_events.append(("index", self, index))
+                self.index = index
+                return first_piece
+
+        split_result = SplitResult()
+
+        class PipeNormalized:
+            def __bool__(self):
+                pipe_events.append(("truth", self))
+                return True
+
+            def __contains__(self, item):
+                pipe_events.append(("contains", self, item))
+                return True
+
+            def split(self, *args, **kwargs):
+                pipe_events.append(("split", self, args, kwargs))
+                return split_result
+
+        pipe_normalized = PipeNormalized()
+
+        def normalize_pipe(value):
+            pipe_events.append(("normalize", value))
+            if value is raw_pipe:
+                return pipe_normalized
+            self.assertIs(value, first_piece)
+            return first_cell_result
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=normalize_pipe,
+        ):
+            pipe_result = target(raw_pipe)
+
+        self.assertIs(pipe_result, first_cell_result)
+        self.assertEqual(split_result.index, 0)
+        self.assertEqual(
+            pipe_events,
+            [
+                ("normalize", raw_pipe),
+                ("truth", pipe_normalized),
+                ("contains", pipe_normalized, "|"),
+                ("split", pipe_normalized, ("|", 1), {}),
+                ("index", split_result, 0),
+                ("normalize", first_piece),
+                ("truth", first_cell_result),
+            ],
+        )
+
+        fallthrough_events = []
+        raw_fallthrough = object()
+        fallthrough_piece = object()
+
+        class FalseyFirstCell:
+            def __bool__(self):
+                fallthrough_events.append(("truth", self))
+                return False
+
+        falsey_first_cell = FalseyFirstCell()
+
+        class FallthroughNormalized:
+            def __bool__(self):
+                fallthrough_events.append(("truth", self))
+                return True
+
+            def __contains__(self, item):
+                fallthrough_events.append(("contains", self, item))
+                return True
+
+            def split(self, *args, **kwargs):
+                fallthrough_events.append(("split", self, args, kwargs))
+                return [fallthrough_piece, object()]
+
+        fallthrough_normalized = FallthroughNormalized()
+
+        def normalize_fallthrough(value):
+            fallthrough_events.append(("normalize", value))
+            if value is raw_fallthrough:
+                return fallthrough_normalized
+            self.assertIs(value, fallthrough_piece)
+            return falsey_first_cell
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=normalize_fallthrough,
+        ):
+            fallthrough_result = target(raw_fallthrough)
+
+        self.assertIs(fallthrough_result, fallthrough_normalized)
+        self.assertEqual(
+            fallthrough_events,
+            [
+                ("normalize", raw_fallthrough),
+                ("truth", fallthrough_normalized),
+                ("contains", fallthrough_normalized, "|"),
+                ("split", fallthrough_normalized, ("|", 1), {}),
+                ("normalize", fallthrough_piece),
+                ("truth", falsey_first_cell),
+            ],
+        )
+
+        class StringBomb:
+            def __str__(self):
+                raise AssertionError("raw row must not be stringified")
+
+        raw_string_bomb = StringBomb()
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=lambda value: "plain" if value is raw_string_bomb else value,
+        ) as normalize_owner:
+            self.assertEqual(target(raw_string_bomb), "plain")
+        normalize_owner.assert_called_once_with(raw_string_bomb)
+
+    def test_current_source_extract_table_row_label_pins_immutability_and_exceptions(self) -> None:
+        target = financial_row_surfaces.extract_table_row_label
+
+        nested = {"preserve": [1, 2]}
+        raw_input = {"nested": nested, "value": "row"}
+        before = deepcopy(raw_input)
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=lambda value: "label" if value is raw_input else value,
+        ) as normalize_owner:
+            self.assertEqual(target(raw_input), "label")
+        normalize_owner.assert_called_once_with(raw_input)
+        self.assertEqual(raw_input, before)
+        self.assertIs(raw_input["nested"], nested)
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=RuntimeError("initial normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "initial normalization failed"):
+                target(object())
+
+        class InitialTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("initial truth failed")
+
+            def __contains__(self, item):
+                raise AssertionError("initial truth failure must stop containment")
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value=InitialTruthBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "initial truth failed"):
+                target(object())
+
+        class ContainsBomb:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                raise RuntimeError("delimiter containment failed")
+
+            def split(self, *args, **kwargs):
+                raise AssertionError("containment failure must stop split")
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value=ContainsBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "delimiter containment failed"):
+                target(object())
+
+        class SplitBomb:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                return True
+
+            def split(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+                raise RuntimeError("split failed")
+
+        split_bomb = SplitBomb()
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value=split_bomb,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "split failed"):
+                target(object())
+        self.assertEqual(split_bomb.args, ("|", 1))
+        self.assertEqual(split_bomb.kwargs, {})
+
+        class IndexBomb:
+            def __getitem__(self, index):
+                self.index = index
+                raise RuntimeError("split index failed")
+
+        index_bomb = IndexBomb()
+
+        class IndexedNormalized:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                return True
+
+            def split(self, *args, **kwargs):
+                return index_bomb
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value=IndexedNormalized(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "split index failed"):
+                target(object())
+        self.assertEqual(index_bomb.index, 0)
+
+        raw_second_normalize = object()
+        first_piece = object()
+
+        class SecondNormalizeSource:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                return True
+
+            def split(self, *args, **kwargs):
+                return [first_piece]
+
+        def fail_second_normalize(value):
+            if value is raw_second_normalize:
+                return SecondNormalizeSource()
+            self.assertIs(value, first_piece)
+            raise RuntimeError("second normalization failed")
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=fail_second_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "second normalization failed"):
+                target(raw_second_normalize)
+
+        class FirstCellTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("first cell truth failed")
+
+        first_cell_truth_bomb = FirstCellTruthBomb()
+        raw_first_cell_truth = object()
+
+        class FirstCellTruthSource:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, item):
+                return True
+
+            def split(self, *args, **kwargs):
+                return [first_piece]
+
+        def fail_first_cell_truth(value):
+            if value is raw_first_cell_truth:
+                return FirstCellTruthSource()
+            self.assertIs(value, first_piece)
+            return first_cell_truth_bomb
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=fail_first_cell_truth,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "first cell truth failed"):
+                target(raw_first_cell_truth)
+
+    def test_current_source_extract_table_row_label_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "extract_table_row_label"
+        future_public_name = "extract_table_row_label"
+        owner_module = "src.agent.financial_row_surfaces"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_row_surfaces"]
+        owner_tree = module_trees["financial_row_surfaces"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 9)
+        self.assertEqual(len(definition.body), 4)
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["row_text"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["str"],
+        )
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "str")
+        self.assertEqual(
+            sum(isinstance(node, ast.If) for node in ast.walk(definition)),
+            3,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            3,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        call_shapes = {}
+        for call in (
+            node for node in ast.walk(definition) if isinstance(node, ast.Call)
+        ):
+            key = (ast.unparse(call.func), len(call.args), len(call.keywords))
+            call_shapes[key] = call_shapes.get(key, 0) + 1
+        self.assertEqual(
+            call_shapes,
+            {
+                ("_normalise_spaces", 1, 0): 2,
+                ("normalized.split", 2, 0): 1,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        importer_names = {
+            name
+            for name, tree in module_trees.items()
+            if target_name in imported_names(tree, owner_module)
+        }
+        self.assertEqual(
+            importer_names,
+            {
+                "financial_graph_evidence",
+                "financial_graph_helpers",
+                "financial_graph_reconciliation",
+            },
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+        for importer_name in importer_names:
+            self.assertIn(
+                owner_module,
+                imported_modules(module_trees[importer_name]),
+            )
+
+        direct_calls_by_module = {
+            name: [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ]
+            for name, tree in module_trees.items()
+        }
+        self.assertEqual(
+            {
+                name: len(calls)
+                for name, calls in direct_calls_by_module.items()
+                if calls
+            },
+            {
+                "financial_graph_evidence": 1,
+                "financial_graph_helpers": 1,
+                "financial_graph_reconciliation": 1,
+            },
+        )
+        self.assertEqual(
+            {
+                name: ast.unparse(calls[0].args[0])
+                for name, calls in direct_calls_by_module.items()
+                if calls
+            },
+            {
+                "financial_graph_evidence": "raw_row",
+                "financial_graph_helpers": "row_text",
+                "financial_graph_reconciliation": "raw_row_text",
+            },
+        )
+        for calls in direct_calls_by_module.values():
+            for call in calls:
+                self.assertEqual(len(call.args), 1)
+                self.assertEqual(call.keywords, [])
+
+        caller_names = {}
+        caller_hashes = {}
+        for module_name in {
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_graph_reconciliation",
+        }:
+            tree = module_trees[module_name]
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in direct_calls_by_module[module_name]:
+                cursor = parents.get(call)
+                try_depth = 0
+                caller = None
+                while cursor is not None:
+                    if isinstance(cursor, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if caller is None and isinstance(
+                        cursor,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = cursor
+                    cursor = parents.get(cursor)
+                self.assertEqual(try_depth, 0)
+                self.assertIsNotNone(caller)
+                caller_names[module_name] = caller.name
+                caller_body = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[module_name] = hashlib.sha256(
+                    caller_body.encode("utf-8")
+                ).hexdigest()
+        self.assertEqual(
+            caller_names,
+            {
+                "financial_graph_evidence": "_build_required_operands_from_candidates",
+                "financial_graph_helpers": "_build_table_row_reconciliation_candidates",
+                "financial_graph_reconciliation": "_build_reconciliation_candidates",
+            },
+        )
+        self.assertEqual(
+            caller_hashes,
+            {
+                "financial_graph_evidence": "d476ce1f122411890c83443b6f824272b23e1dee09038687ba716a463061c60f",
+                "financial_graph_helpers": "2ef9302c59726decfb3b9429850e54cf757923b56406c7a66b4ed10dc29b7443",
+                "financial_graph_reconciliation": "525fe48574d25c2a433d75a307bba11feb5de0b05e81a6668a04b1c6bfc36440",
+            },
+        )
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        if target_name == future_public_name:
+            self.assertEqual(
+                future_public_definitions,
+                [("financial_row_surfaces", definition.lineno)],
+            )
+        else:
+            self.assertEqual(future_public_definitions, [])
+
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        row_counts = (
+            sum(
+                not node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+            sum(
+                node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+        )
+        expected_row_counts = (
+            (13, 13) if target_name == future_public_name else (12, 14)
+        )
+        self.assertEqual(row_counts, expected_row_counts)
+
+        caller_owner_counts = {}
+        for module_name in {
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_graph_reconciliation",
+        }:
+            tree = module_trees[module_name]
+            functions = [
+                node
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ]
+            caller_owner_counts[module_name] = (
+                sum(not node.name.startswith("_") for node in functions),
+                sum(node.name.startswith("_") for node in functions),
+                sum(isinstance(node, ast.ClassDef) for node in tree.body),
+            )
+        self.assertEqual(
+            caller_owner_counts,
+            {
+                "financial_graph_evidence": (0, 2, 1),
+                "financial_graph_helpers": (9, 71, 0),
+                "financial_graph_reconciliation": (0, 0, 1),
+            },
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_row_surfaces.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        importer_modules = {
+            "financial_graph_evidence": financial_graph_evidence,
+            "financial_graph_helpers": financial_graph_helpers,
+            "financial_graph_reconciliation": financial_graph_reconciliation,
+        }
+        for module_name, module in importer_modules.items():
+            self.assertIn(module_name, importer_names)
+            self.assertIs(
+                getattr(module, target_name),
+                getattr(financial_row_surfaces, target_name),
+            )
+
+        required_methods = {
+            "test_current_source_extract_table_row_label_pins_normalization_delimiter_order_identity_and_result",
+            "test_current_source_extract_table_row_label_pins_immutability_and_exceptions",
+            "test_current_source_extract_table_row_label_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_extract_table_row_label_callers_pin_args_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef)
+                and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_extract_table_row_label_callers_pin_args_adoption_and_stops(self) -> None:
+        target_name = "extract_table_row_label"
+
+        class ExactText(str):
+            pass
+
+        evidence_events = []
+        evidence_raw_row = ExactText("normalized | 1")
+        evidence_row_label = ExactText("Exact Evidence Label")
+        evidence_items = [
+            {
+                "evidence_id": "evidence-1",
+                "source_anchor": "anchor-1",
+                "raw_row_text": " raw | 1",
+                "metadata": {},
+            }
+        ]
+        evidence_operand = {"label": "Metric"}
+
+        def evidence_normalize(value):
+            evidence_events.append(("normalize", value))
+            if value == " raw | 1":
+                return evidence_raw_row
+            if value is evidence_row_label:
+                return evidence_row_label
+            return str(value).strip()
+
+        def prioritize(items, **kwargs):
+            evidence_events.append(("prioritize", items, kwargs))
+            return items
+
+        def extract_evidence_label(row_text):
+            evidence_events.append(("extract", row_text))
+            self.assertIs(row_text, evidence_raw_row)
+            return evidence_row_label
+
+        def stop_after_evidence_adoption(text, operand):
+            evidence_events.append(("positive", text, operand))
+            raise RuntimeError("evidence adoption stop")
+
+        stopped_negative = Mock(
+            side_effect=AssertionError("positive failure must stop negative matching")
+        )
+        stopped_parse = Mock(
+            side_effect=AssertionError("positive failure must stop row parsing")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "REQUIRED_OPERAND_ASSEMBLY_POLICY",
+                {
+                    "ratio_year_pattern": r"(20\d{2}\ub144)",
+                    "aggregation_stage_labels": {},
+                },
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                side_effect=evidence_normalize,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                side_effect=prioritize,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=extract_evidence_label,
+            ) as evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "text_has_positive_surface",
+                side_effect=stop_after_evidence_adoption,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "text_has_negative_surface",
+                stopped_negative,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_parse_unstructured_table_row_cells",
+                stopped_parse,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence adoption stop"):
+                financial_graph_evidence.FinancialAgentEvidenceMixin._build_required_operands_from_candidates(
+                    SimpleNamespace(),
+                    evidence_items,
+                    required_operands=[evidence_operand],
+                    query="",
+                )
+
+        evidence_target.assert_called_once()
+        self.assertIs(evidence_target.call_args.args[0], evidence_raw_row)
+        self.assertTrue(
+            any(
+                event[0] == "normalize" and event[1] is evidence_row_label
+                for event in evidence_events
+            )
+        )
+        self.assertLess(
+            next(index for index, event in enumerate(evidence_events) if event[0] == "extract"),
+            next(
+                index
+                for index, event in enumerate(evidence_events)
+                if event[0] == "normalize" and event[1] is evidence_row_label
+            ),
+        )
+        self.assertLess(
+            next(
+                index
+                for index, event in enumerate(evidence_events)
+                if event[0] == "normalize" and event[1] is evidence_row_label
+            ),
+            next(index for index, event in enumerate(evidence_events) if event[0] == "positive"),
+        )
+        stopped_negative.assert_not_called()
+        stopped_parse.assert_not_called()
+
+        stopped_evidence_positive = Mock(
+            side_effect=AssertionError("helper failure must stop evidence matching")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "REQUIRED_OPERAND_ASSEMBLY_POLICY",
+                {
+                    "ratio_year_pattern": r"(20\d{2}\ub144)",
+                    "aggregation_stage_labels": {},
+                },
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                side_effect=evidence_normalize,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                side_effect=lambda items, **kwargs: items,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence label failed"),
+            ) as failed_evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "text_has_positive_surface",
+                stopped_evidence_positive,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence label failed"):
+                financial_graph_evidence.FinancialAgentEvidenceMixin._build_required_operands_from_candidates(
+                    SimpleNamespace(),
+                    evidence_items,
+                    required_operands=[evidence_operand],
+                    query="",
+                )
+        failed_evidence_target.assert_called_once()
+        self.assertIs(failed_evidence_target.call_args.args[0], evidence_raw_row)
+        stopped_evidence_positive.assert_not_called()
+
+        helper_events = []
+        filtered_row = ExactText("filtered | 1")
+        normalized_row = ExactText("normalized | 1")
+        helper_row_label = ExactText("Exact Helper Label")
+        raw_normalize_count = 0
+
+        def helper_normalize(value):
+            nonlocal raw_normalize_count
+            helper_events.append(("normalize", value))
+            if value == " raw | 1":
+                raw_normalize_count += 1
+                return filtered_row if raw_normalize_count == 1 else normalized_row
+            return str(value).strip()
+
+        def extract_helper_label(row_text):
+            helper_events.append(("extract", row_text))
+            self.assertIs(row_text, normalized_row)
+            return helper_row_label
+
+        def infer_stage(row_label):
+            helper_events.append(("stage", row_label))
+            self.assertIs(row_label, helper_row_label)
+            return "final"
+
+        def infer_role(row_label):
+            helper_events.append(("role", row_label))
+            self.assertIs(row_label, helper_row_label)
+            return "aggregate"
+
+        def parse_row(row_text, metadata):
+            helper_events.append(("parse", row_text, metadata))
+            self.assertIs(row_text, normalized_row)
+            return []
+
+        built_helper_kwargs = []
+
+        def build_helper_candidate(**kwargs):
+            helper_events.append(("build", kwargs))
+            built_helper_kwargs.append(kwargs)
+            return {
+                "candidate_id": kwargs["candidate_id"],
+                "metadata": kwargs["metadata"],
+            }
+
+        helper_metadata = {"nested": {"preserve": True}}
+        helper_before = deepcopy(helper_metadata)
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_value_reconciliation_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=helper_normalize,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=extract_helper_label,
+            ) as helper_target,
+            patch.object(
+                financial_graph_helpers,
+                "aggregate_like_row_stage",
+                side_effect=infer_stage,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "aggregate_like_row_role",
+                side_effect=infer_role,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_parse_unstructured_table_row_cells",
+                side_effect=parse_row,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                side_effect=build_helper_candidate,
+            ),
+        ):
+            helper_candidates = financial_graph_helpers._build_table_row_reconciliation_candidates(
+                candidate_id_prefix="candidate",
+                anchor="anchor",
+                table_text=" raw | 1",
+                metadata=helper_metadata,
+            )
+
+        helper_target.assert_called_once()
+        self.assertIs(helper_target.call_args.args[0], normalized_row)
+        self.assertEqual(raw_normalize_count, 2)
+        self.assertEqual(len(helper_candidates), 1)
+        self.assertEqual(len(built_helper_kwargs), 1)
+        helper_kwargs = built_helper_kwargs[0]
+        self.assertIs(helper_kwargs["row_label"], helper_row_label)
+        self.assertIs(helper_kwargs["metadata"]["aggregate_label"], helper_row_label)
+        self.assertIs(helper_kwargs["metadata"]["row_text"], normalized_row)
+        self.assertEqual(
+            [event[0] for event in helper_events],
+            [
+                "normalize",
+                "normalize",
+                "extract",
+                "stage",
+                "role",
+                "parse",
+                "build",
+            ],
+        )
+        self.assertEqual(helper_metadata, helper_before)
+        self.assertIs(
+            helper_metadata["nested"],
+            helper_candidates[0]["metadata"]["nested"],
+        )
+
+        stopped_helper_stage = Mock(
+            side_effect=AssertionError("helper failure must stop stage inference")
+        )
+        stopped_helper_role = Mock(
+            side_effect=AssertionError("helper failure must stop role inference")
+        )
+        stopped_helper_parse = Mock(
+            side_effect=AssertionError("helper failure must stop row parsing")
+        )
+        stopped_helper_build = Mock(
+            side_effect=AssertionError("helper failure must stop candidate build")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_value_reconciliation_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=lambda value: "row | 1",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=RuntimeError("helper label failed"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "aggregate_like_row_stage",
+                stopped_helper_stage,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "aggregate_like_row_role",
+                stopped_helper_role,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_parse_unstructured_table_row_cells",
+                stopped_helper_parse,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                stopped_helper_build,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "helper label failed"):
+                financial_graph_helpers._build_table_row_reconciliation_candidates(
+                    candidate_id_prefix="candidate",
+                    anchor="anchor",
+                    table_text="row | 1",
+                    metadata={},
+                )
+        stopped_helper_stage.assert_not_called()
+        stopped_helper_role.assert_not_called()
+        stopped_helper_parse.assert_not_called()
+        stopped_helper_build.assert_not_called()
+
+        stopped_no_pipe_target = Mock(
+            side_effect=AssertionError("no-pipe row must stop label extraction")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_value_reconciliation_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                stopped_no_pipe_target,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._build_table_row_reconciliation_candidates(
+                    candidate_id_prefix="candidate",
+                    anchor="anchor",
+                    table_text="plain row",
+                    metadata={},
+                ),
+                [],
+            )
+        stopped_no_pipe_target.assert_not_called()
+
+        reconciliation_events = []
+        reconciliation_raw_row = ExactText("reconciliation | 1")
+        reconciliation_row_label = ExactText("Exact Reconciliation Label")
+        reconciliation_state = {
+            "evidence_items": [
+                {
+                    "evidence_id": "evidence-1",
+                    "source_anchor": "anchor-1",
+                    "claim": "claim",
+                    "raw_row_text": " raw | 1",
+                    "metadata": {"nested": {"preserve": True}},
+                }
+            ],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+        }
+        reconciliation_before = deepcopy(reconciliation_state)
+
+        def reconciliation_normalize(value):
+            reconciliation_events.append(("normalize", value))
+            if value == " raw | 1":
+                return reconciliation_raw_row
+            return str(value).strip()
+
+        def extract_reconciliation_label(row_text):
+            reconciliation_events.append(("extract", row_text))
+            self.assertIs(row_text, reconciliation_raw_row)
+            return reconciliation_row_label
+
+        reconciliation_builds = []
+
+        def build_reconciliation_candidate(**kwargs):
+            reconciliation_events.append(("build", kwargs))
+            reconciliation_builds.append(kwargs)
+            candidate_id = kwargs["candidate_id"]
+            return {
+                "candidate_id": candidate_id,
+                "metadata": kwargs.get("metadata", {}),
+            }
+
+        with (
+            patch.object(
+                financial_graph_reconciliation,
+                "_normalise_spaces",
+                side_effect=reconciliation_normalize,
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                target_name,
+                side_effect=extract_reconciliation_label,
+            ) as reconciliation_target,
+            patch.object(
+                financial_graph_reconciliation,
+                "_build_reconciliation_candidate",
+                side_effect=build_reconciliation_candidate,
+            ),
+        ):
+            reconciliation_candidates = financial_graph_reconciliation.FinancialAgentReconciliationMixin._build_reconciliation_candidates(
+                SimpleNamespace(),
+                reconciliation_state,
+            )
+
+        reconciliation_target.assert_called_once()
+        self.assertIs(reconciliation_target.call_args.args[0], reconciliation_raw_row)
+        self.assertEqual(len(reconciliation_candidates), 2)
+        self.assertEqual(len(reconciliation_builds), 2)
+        self.assertNotIn("candidate_kind", reconciliation_builds[0])
+        self.assertEqual(reconciliation_builds[1]["candidate_kind"], "evidence_row")
+        self.assertIs(
+            reconciliation_builds[1]["row_label"],
+            reconciliation_row_label,
+        )
+        self.assertIs(
+            reconciliation_builds[1]["metadata"]["row_text"],
+            reconciliation_raw_row,
+        )
+        self.assertEqual(
+            [event[0] for event in reconciliation_events],
+            ["build", "normalize", "extract", "build"],
+        )
+        self.assertEqual(reconciliation_state, reconciliation_before)
+
+        failed_reconciliation_builds = []
+
+        def build_before_reconciliation_failure(**kwargs):
+            failed_reconciliation_builds.append(kwargs)
+            return {
+                "candidate_id": kwargs["candidate_id"],
+                "metadata": kwargs.get("metadata", {}),
+            }
+
+        stopped_document_rows = Mock(
+            side_effect=AssertionError("helper failure must stop document rows")
+        )
+        with (
+            patch.object(
+                financial_graph_reconciliation,
+                "_normalise_spaces",
+                side_effect=reconciliation_normalize,
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                target_name,
+                side_effect=RuntimeError("reconciliation label failed"),
+            ) as failed_reconciliation_target,
+            patch.object(
+                financial_graph_reconciliation,
+                "_build_reconciliation_candidate",
+                side_effect=build_before_reconciliation_failure,
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                "_build_table_row_reconciliation_candidates",
+                stopped_document_rows,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reconciliation label failed"):
+                financial_graph_reconciliation.FinancialAgentReconciliationMixin._build_reconciliation_candidates(
+                    SimpleNamespace(),
+                    reconciliation_state,
+                )
+        failed_reconciliation_target.assert_called_once()
+        self.assertIs(
+            failed_reconciliation_target.call_args.args[0],
+            reconciliation_raw_row,
+        )
+        self.assertEqual(len(failed_reconciliation_builds), 1)
+        self.assertNotIn("candidate_kind", failed_reconciliation_builds[0])
+        stopped_document_rows.assert_not_called()
 
 
 if __name__ == "__main__":
