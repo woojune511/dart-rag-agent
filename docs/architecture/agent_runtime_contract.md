@@ -5222,7 +5222,87 @@ pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and full
 four new methods, public identity 4/4, all-call/DAG/public-store/retired-live-
 ref and UTF-8/non-ASCII gates. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 24-line
+Commit `72eb1b8` completes the structured-candidate-row-text visibility
+contract. The exact former 24-line definition is public
+`financial_row_surfaces.format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`;
+no wrapper or private alias remains. Eager label/header expansion, ordered
+dedupe, repeated retained-header normalization, eager header/value/unit
+construction, exact slash/space/pipe joins, truth-gated cell append without
+dedupe, immutability, and uncaught failures are unchanged after definition-name
+normalization. Both graph-helper calls bind the public owner with three
+positional arguments, no keywords, and caller `try` depth zero. Row counts
+finish 19/7.
+
+Executed gates are focused 4/4, graph owner 226/226, surface owner 1/1, operand
+owner 69/69, affected semantic 1,186/1,186, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,079/2,079, plus
+pycompile, production transform 2/2, source/test transform 3/3, selected-body/
+two-caller parity, existing graph-test AST 222/222 plus four methods, public
+identity 2/2, all-call/DAG/public-store/retired-live-ref, and UTF-8/non-ASCII
+gates. Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 47-line
+`financial_row_surfaces._parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`
+definition. It already belongs to the row-surface owner; the authorized future
+batch only renames it in place to public
+`parse_unstructured_table_row_cells(...)` and updates five imports, seven
+direct calls, and all live test bindings without a private alias.
+
+Preserve exact row raw truth/string/normalization, pipe gate, split/strip,
+truth-filtered row parts, and the `len <= 1` stop. Header context is read only
+after a usable row; retained header parts preserve two strip calls, while
+retained period labels preserve two string/strip passes. Keep exact header-
+suffix precedence, then period-label suffix fallback, then one-based
+`col_1 ... col_n` synthesis with the current repeated truth/length/slice/range
+evaluation order.
+
+For each zipped header/value pair, preserve value string/strip, blank-before-
+digit-search rejection, retained-header double conversion, per-accepted-cell
+unit lookup, and the exact anchored labeled-value regex with optional label,
+signed/parenthesized number, and optional `백만원|천원|억원|원|%|퍼센트` unit.
+On a truthy match, resolve and normalize label, value, then unit in that order;
+append the label only when truthy and append one fresh four-key cell dict with
+exact `row_parts[0]`. Inputs stay unchanged and all current mapping, truth,
+string, strip, split, membership, length, slice, range, zip, regex, group,
+normalization, append, and subscript failures remain uncaught.
+
+All seven source calls use two positional arguments, no keywords, and caller
+`try` depth zero across five importers and six caller definitions. Parser
+results remain caller-owned: graph evidence performs cell scoring; graph
+helpers embeds the result while constructing table-row metadata; reconciliation
+uses it only behind empty-structured-cell plus table/evidence-row gates in
+ratio support and primary/same-table operand extraction; reconciliation-
+candidate and structured-cell owners keep enrichment, scoring, selection, and
+adoption. Parser failure stops all later caller work. No caller gate,
+reconciliation, scoring, evidence, candidate construction, graph state,
+artifact, ledger, or final sequencing moves with this rename.
+
+The selected body has 15 top-level statements, one annotated and 17 plain
+assignments, one loop, seven `if` nodes, three returns, one continue, 44 calls,
+eight lists, one dict, five list comprehensions, nine boolean operations, five
+comparisons, three conditional expressions, five comprehension clauses, and no
+`try`, lambda, or generator. Its SHA-256 is
+`610ff588880f3945b2737923a0c6238b59c4b6e2b8f293c1914b1048fed84496`.
+The private identifier has 13 production AST references across six source
+files. Twenty-one existing exact test references across four test files make
+the bounded source/test transform ten files. The 255-301 span selects no
+reviewed runtime-domain record; its unit regex is parser-structure vocabulary
+and all 217 baseline records must remain unchanged. Existing edges keep the DAG
+acyclic at 48 modules/205 edges; projected row counts are 19/7 to 20/6.
+
+Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+230/230, surface owner 1/1, operand owner 69/69, affected semantic
+1,190/1,190, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,083/2,083, production transform 6/6, source/test transform
+10/10, public identity 6/6, seven-call/six-caller/DAG parity, existing graph-
+test AST 226/226 plus four methods, UTF-8 decode 10/10, non-ASCII preservation
+9/9, pycompile, and diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No parser
+source or test rename has occurred.
+
+The following formatter paragraphs preserve the historical characterization
+checkpoint that preceded `72eb1b8`; they are not active work. The historical
+private-API contract was the exact 24-line
 `financial_row_surfaces._format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`
 definition. It already belongs to the row-surface owner; the authorized future
 batch only renames it in place to public
@@ -5277,8 +5357,9 @@ Projected focused 4/4, graph owner 226/226, surface owner 1/1, operand owner
 69/69, affected semantic 1,186/1,186, additional retrieval-pipeline 1/1,
 reconciliation plan 51/51, import 19/19, audit 217, and full 2,079/2,079 gates
 are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No source
-or test rename has occurred for this helper projection.
+[Project Status Next Work](../overview/project_status.md#next-work). At that
+historical checkpoint no source or test rename had occurred; `72eb1b8`
+supersedes its projected state.
 
 The following delta-like row-label paragraphs preserve the historical
 characterization checkpoint that preceded `e04a7bf`; they are not active work.

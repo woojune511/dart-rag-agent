@@ -1508,7 +1508,60 @@ committed source/test diff SHA-256 is
 `0c1e7bbee0516f8afcc9579c0d66837d586a25522b1e9bb05812e3b5b6daa763`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 24-line
+Commit `72eb1b8` completed the structured-candidate-row-text private-API seam.
+The exact former 24-line helper is public
+`financial_row_surfaces.format_structured_candidate_row_text(...)`; no wrapper
+or alias exists. Both graph-helper calls and the sole external import use the
+public name. Label/header ordering and dedupe, repeated retained-header
+normalization, exact cell-part joins, caller assignment/adoption/stops, and all
+uncaught failures are unchanged. Row counts finish 19/7.
+
+Production source is `+4/-4`, tests are `+1,150/-22`, and the whole commit is
+`+1,154/-26`, net `+1,128`; production physical lines are unchanged. Focused
+4/4, graph owner 226/226, surface owner 1/1, operand owner 69/69, affected
+semantic 1,186/1,186, additional retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,079/2,079, pycompile, production
+transform 2/2, source/test transform 3/3, selected-body/two-caller parity,
+existing graph-test AST 222/222 plus four methods, public identity 2/2,
+unchanged acyclic 48-module/205-edge DAG, retired live-ref/public-store zero,
+UTF-8/non-ASCII preservation 3/3, and diff-check gates passed. Benchmark refresh
+and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the sole remaining cross-module
+row-surface private API: the exact current 47-line
+`financial_row_surfaces._parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`
+projection for an in-place public rename to
+`parse_unstructured_table_row_cells(...)`, with no wrapper or alias. Preserve
+row normalization and pipe/split/filter gates; repeated header-context and
+period-label conversion; header suffix, period suffix, then one-based synthetic
+header precedence; numeric filtering; exact labeled-value regex/group order;
+fresh four-key cell append; input immutability; and every uncaught failure.
+
+Seven two-positional-argument call sites finish external/local 7/0 across six
+caller definitions in five importers, with no keywords and caller `try` depth
+zero. Existing structured cells, candidate-kind gates, cell enrichment,
+scoring, selection, reconciliation, evidence adoption, candidate construction,
+graph state, artifacts, ledgers, and final sequencing remain caller-owned hard
+stops. Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
+row counts are 19/7 to 20/6. The body SHA-256 is
+`610ff588880f3945b2737923a0c6238b59c4b6e2b8f293c1914b1048fed84496`;
+the private identifier has 13 production AST references and no future public-
+name definition/store exists. Twenty-one exact test refs across four test files
+make the bounded source/test transform ten files. The 255-301 span intersects
+no reviewed baseline record, so all 217 records remain unchanged.
+
+Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
+230/230, surface owner 1/1, operand owner 69/69, affected semantic
+1,190/1,190, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, full 2,083/2,083, production transform 6/6, full transform 10/10,
+public identity 6/6, all seven calls/six callers, unchanged DAG, retired-ref/
+public-store zero, existing graph-test AST 226/226 plus four methods, UTF-8
+10/10, non-ASCII 9/9, pycompile, and diff-check gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No parser
+source or test rename has occurred; it is the sole next priority.
+
+The following formatter inventory is the historical checkpoint that preceded
+`72eb1b8`; it is not active work. It selected the exact then-current 24-line
 `financial_row_surfaces._format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`
 projection for an in-place public rename to
 `format_structured_candidate_row_text(...)`, with no wrapper or alias. The
@@ -1542,9 +1595,9 @@ projected focused 4/4, graph owner 226/226, surface owner 1/1, operand owner
 69/69, affected semantic 1,186/1,186, additional retrieval-pipeline 1/1,
 reconciliation plan 51/51, import 19/19, audit 217, and full 2,079/2,079 gates
 are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test rename has occurred for this follow-on; it is the sole next priority
-and this plan maintains no competing queue.
+[project_status.md#next-work](../overview/project_status.md#next-work). At that
+historical checkpoint no source or test rename had occurred; `72eb1b8`
+supersedes its projected state and priority.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

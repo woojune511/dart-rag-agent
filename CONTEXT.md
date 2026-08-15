@@ -268,14 +268,21 @@ pattern, search, candidate distance sort, first result identity와 3개 caller�
 adoption/stop은 유지됐다. Focused 4/4, graph owner 222/222, surface owner 1/1,
 operand owner 69/69, affected 1,182/1,182, additional retrieval-pipeline 1/1,
 reconciliation plan 51/51, import 19/19, audit 217, full 2,075/2,075 및
-transform 8/8/body/identity/caller/DAG parity가 통과했다. 다음 characterize-
-only inventory는 남은 두 cross-module private helper 중 더 작은 정확한 24줄
-`_format_structured_candidate_row_text(...)`을 public
-`format_structured_candidate_row_text(...)`로 이름 수렴시켜 graph helpers의
-2개 call과 1개 private binding을 제거한다. Label/header dedupe, repeated
-header normalization, cell-part construction/join, caller assignment/adoption/
-stop은 유지해야 하며 47줄 unstructured-table parser는 이동하지 않는다.
-정확한 계약과 projected gate는
+transform 8/8/body/identity/caller/DAG parity가 통과했다. 이어 정확한 24줄
+`_format_structured_candidate_row_text(...)`은 `72eb1b8`에서 public
+`format_structured_candidate_row_text(...)`로 이름 수렴했다. Graph helpers의
+2개 call과 1개 external binding은 public API를 사용하며 label/header dedupe,
+repeated header normalization, cell-part construction/join, caller assignment/
+adoption/stop은 유지됐다. Focused 4/4, graph owner 226/226, surface owner 1/1,
+operand owner 69/69, affected 1,186/1,186, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,079/2,079 및
+transform 3/3/body/identity/caller/DAG parity가 통과했다. 다음 characterize-
+only inventory는 마지막 cross-module row private API인 정확한 47줄
+`_parse_unstructured_table_row_cells(...)`을 같은 owner에서 public
+`parse_unstructured_table_row_cells(...)`로 이름 수렴시킨다. 5개 importer의
+7개 call, 6개 caller 정의, row/header/period fallback, numeric/labeled-value
+parser, caller gate/adoption/stop은 유지해야 한다. 정확한 계약과 projected
+gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

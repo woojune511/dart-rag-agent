@@ -16,10 +16,10 @@ Last updated: 2026-08-16
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `05415ed` renamed the exact 11-line surface-match-variants projection in its existing row-surface owner and updated all nine calls plus both live external bindings without an alias |
-| What passed? | Focused 4/4, graph owner 214/214, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,174/1,174, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,067/2,067 |
+| What just changed? | `72eb1b8` renamed the exact 24-line structured-candidate-row formatter in its existing row-surface owner and updated both calls plus the sole live external binding without an alias |
+| What passed? | Focused 4/4, graph owner 226/226, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,186/1,186, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,079/2,079 |
 | Was the benchmark refreshed? | **NOT RUN**; this was an ownership-only move with exact selected-body parity, not a parser, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 16-line `_operand_text_match(...)` projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 47-line `_parse_unstructured_table_row_cells(...)` parser in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -796,15 +796,154 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects the smaller of the two remaining
+The characterize-only inventory selects the sole remaining cross-module private
+row-surface API: rename the exact current 47-line
+`financial_row_surfaces._parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]`
+definition in place to public `parse_unstructured_table_row_cells(...)`. Add no
+wrapper or private alias. This is a parser-structure visibility change, not an
+authorization to move reconciliation, scoring, evidence, or graph state. Before
+the rename, add exactly four CURRENT-SOURCE contracts and require them to pass.
+No production or test rename has occurred for this follow-on, and this document
+maintains no competing implementation queue.
+
+The body has 15 top-level statements, one annotated and 17 plain assignments,
+one `for`, seven `if` nodes, three returns, one `continue`, 44 calls, eight list
+nodes, one dict, five list comprehensions, nine boolean operations, five
+comparisons, three conditional expressions, five comprehension clauses, and no
+`try`, lambda, or generator expression. Preserve exact
+`_normalise_spaces(str(row_text or ""))`, the first pipe-membership gate, split
+and per-part strip, truth-filtered row-part retention, and the `len <= 1` fresh-
+empty-list stop. Raw truth precedes string conversion; split/strip/filter order,
+retained identities, input immutability, and every uncaught failure are
+normative.
+
+Read `table_header_context` only after a usable row exists. Preserve its raw
+`or ""`, string conversion, normalization, pipe-membership branch, and header-
+part comprehension. A retained header part is stripped once in the filter and
+again in the retained expression; a rejected part is stripped once. Then read
+`period_labels` through exact `metadata.get(...) or []`; a retained item is
+stringified and stripped twice while a rejected item is processed once.
+
+Preserve `value_parts = row_parts[1:]` and suffix alignment. Use the header-
+context suffix only when it is at least as long as the values, otherwise an
+empty list. If that result is falsey and the period labels are long enough, use
+their suffix. Only when both are unavailable synthesize exact one-based
+`col_1 ... col_n` headers. Keep the current repeated `len(...)`, truth,
+comparison, negative-slice, `range(1, len(value_parts) + 1)`, and short-circuit
+order without caching or alternate coercion.
+
+Iterate exact `zip(header_candidates, value_parts)`. For each pair, stringify
+and strip the value, reject blank or digit-free values through ordered raw truth
+then `re.search(r"[0-9]", raw_value)`, and only then build the header and read
+`unit_hint`. The conditional header list intentionally stringifies and strips a
+retained header twice. Match the exact anchored labeled-value parser regex with
+optional label, signed/parenthesized numeric value, and optional
+`백만원|천원|억원|원|%|퍼센트` unit. On a truthy match, resolve groups in exact
+label/value/unit order: normalize the label and append only when truthy, then
+normalize the matched value fallback and unit fallback. Append one fresh dict
+with exact keys `column_headers`, `row_label`, `value_text`, and `unit_hint`;
+`row_label` is exact `row_parts[0]`. Return the fresh cells list. Preserve all
+mapping, truth, string, strip, membership, split, length, slice, range, zip,
+regex, group, normalization, append, and subscript exceptions uncaught.
+
+There are seven direct external `ast.Name` calls across five importers and six
+caller definitions. Every call has two positional arguments, no keywords, and
+caller `try` depth zero. Graph evidence passes exact `raw_row, metadata`, then
+owns structured-cell scoring and all later matching/adoption. Graph helpers
+passes exact `row_text, metadata` while evaluating the table-row candidate
+metadata dict; failure stops candidate construction and append. Reconciliation
+uses fallback parsing only when copied structured cells are empty and the kind
+is `table_row` or `evidence_row`: once in ratio support and twice in the primary
+and same-table paths of structured operand extraction. Reconciliation-
+candidate period-pair extraction and structured-cell selection use the same
+fallback gates, exact `str(metadata.get("row_text") or "")` argument, empty-
+result stops, and caller-owned enrichment, scoring, selection, and adoption.
+Do not move any of that caller behavior.
+
+All five importers already reach row surfaces, so the rename changes no module
+edge and the full DAG remains acyclic at 48 modules/205 internal edges.
+Current/projected row-owner counts are 19/7 to 20/6. No future public-name
+definition or `ast.Store` collision exists. The selected body SHA-256 is
+`610ff588880f3945b2737923a0c6238b59c4b6e2b8f293c1914b1048fed84496`.
+The private identifier has 13 production AST references across six source
+files. Canonical call records hash to
+`56c133f9852c0e013747dfb6a625d7af13a5713f15dcc06974d6fafe0e9fc201`;
+the six unique caller-body map hashes to
+`d9baa809818738f83553b8eb486972848e9510c6a353ed4520b09164c9214e72`.
+Existing exact test references total 21 across graph helpers, reconciliation
+candidates, operation contracts, and semantic numeric plan, so the bounded
+source/test transform is ten files.
+
+The current 255-301 definition span selects no runtime-domain baseline record.
+Its financial-unit regex is parser-structure vocabulary permitted by
+`AGENTS.md`; the rename moves no line or literal, so all 217 reviewed records
+must remain unchanged.
+
+Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
+
+- `test_current_source_parse_unstructured_table_row_cells_pins_row_header_period_fallbacks_and_result`;
+- `test_current_source_parse_unstructured_table_row_cells_pins_laziness_repeated_conversion_immutability_and_exceptions`;
+- `test_current_source_parse_unstructured_table_row_cells_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_parse_unstructured_table_row_cells_callers_pin_gates_args_adoption_and_stops`.
+
+Projected post-rename gates are focused 4/4, graph owner 230/230, surface-
+contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
+1,190/1,190, additional retrieval-pipeline caller module 1/1, reconciliation
+plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
+2,083/2,083. Structural gates are production transform parity 6/6 and source/
+test transform parity 10/10, selected-body and six-caller-body parity, fresh
+public identity 6/6, all seven calls/five call modules, unchanged acyclic
+48-module/205-edge DAG, retired production and existing live-test refs plus
+future public stores zero, existing graph-test AST parity 226/226 plus four new
+methods, UTF-8 decode 10/10, non-ASCII preservation 9/9, pycompile, and
+`git diff --check`. These are projections, not executed results. Static
+definition/signature/call/import/count/DAG/audit inspection passed; benchmark
+refresh and remote CI were **NOT RUN**.
+
+## Completed Structured-Candidate-Row-Text Public API
+
+Commit `72eb1b8` renamed the exact former 24-line helper in place to public
+`financial_row_surfaces.format_structured_candidate_row_text(...)`. No wrapper
+or private alias remains. Label/header eager expansion, ordered dedupe,
+repeated retained-header normalization, eager header/value/unit construction,
+exact slash/space/pipe joins, truth-gated cell append without dedupe,
+immutability, and uncaught failures are unchanged after definition-name
+normalization.
+
+Both calls in graph helpers now bind the public owner with three positional
+arguments, no keywords, and caller `try` depth zero. External/local calls finish
+2/0 across two caller definitions, and the sole external importer shares the
+exact owner identity. Row counts finish 19/7. Production source is `+4/-4`,
+tests are `+1,150/-22`, and the whole commit is `+1,154/-26`, net `+1,128`;
+production physical lines are unchanged. Four methods moved discovery from
+2,075 to 2,079. The committed source/test diff SHA-256 is
+`c3cbf8676f4e5df9b66101acdaf05070adf07eb6a3e702de883e65f2557e6789`.
+
+Focused pre/post rename 4/4, graph owner 226/226, surface owner 1/1, operand
+owner 69/69, affected semantic 1,186/1,186, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,079/2,079 passed.
+Pycompile, production transform 2/2, source/test transform 3/3, selected-body/
+two-caller parity, existing graph-test AST 222/222 plus four methods, public
+identity 2/2, both calls/the sole call module, unchanged 48-module/205-edge DAG,
+retired live refs/public stores zero, UTF-8/non-ASCII preservation 3/3, and
+diff check passed. Benchmark refresh and remote CI were **NOT RUN**. This
+milestone changes only API visibility and structural baselines; it proves no
+behavior, quality, ranking, performance, benchmark, schedule, ledger, or Phase
+3 completion claim.
+
+### Structured-candidate-row-text characterization checkpoint
+
+The historical checkpoint below predates `72eb1b8`; it is retained only as an
+audit record and is not active or competing work.
+
+That historical inventory selected the smaller of the two remaining
 cross-module private-API seams: rename the exact current 24-line
 `financial_row_surfaces._format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`
 definition in place to public `format_structured_candidate_row_text(...)`.
 Add no wrapper or private alias. The 47-line unstructured-table parser remains
 private and outside this batch; this document maintains no competing
-implementation queue. Before the rename, add four CURRENT-SOURCE contracts and
-require them to pass. No production or test rename has occurred for this
-follow-on.
+implementation queue. It required four CURRENT-SOURCE contracts before the
+rename; no production or test rename had occurred at that checkpoint.
 
 The four top-level statements, one annotated assignment, three plain
 assignments, two `for` nodes, two `if` nodes, one return, 19 calls, four list
