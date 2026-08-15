@@ -16,10 +16,10 @@ Last updated: 2026-08-15
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `faf75a0` renamed the exact 13-line text contract-term helper in its existing surface owner and updated all four production calls plus the live external binding without an alias |
-| What passed? | Focused 4/4, graph owner 190/190, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,150/1,150, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,043/2,043 |
+| What just changed? | `5b71fd6` renamed the exact 22-line operand surface-contract helper in its existing surface owner and updated all seven calls plus two external bindings without an alias |
+| What passed? | Focused 4/4, graph owner 194/194, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,154/1,154, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,047/2,047 |
 | Was the benchmark refreshed? | **NOT RUN**; this was an ownership-only move with exact selected-body parity, not a parser, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 22-line `_operand_surface_contract(...)` helper in its existing surface-contract owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 2-line `_generic_column_headers()` policy projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -796,75 +796,106 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects one private-API convergence batch:
-rename the current exact 22-line
-`financial_surface_contracts._operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]`
-in place to public `operand_surface_contract(...)`. Add no wrapper or private
-alias. Before the rename, add four CURRENT-SOURCE contracts and require them to
-pass. No production or test rename has occurred for this follow-on.
+The characterize-only inventory selects one remaining cross-module private-API
+seam: rename the exact current 2-line
+`financial_row_surfaces._generic_column_headers() -> set[str]` definition in
+place to public `generic_column_headers()`. Add no wrapper or private alias.
+Before the rename, add four CURRENT-SOURCE contracts and require them to pass.
+No production or test rename has occurred for this follow-on. The sole remaining
+private helper in `financial_surface_contracts.py`,
+`_candidate_segment_surfaces(...)`, has only one owner-local call and therefore
+stays private; exposing it would expand rather than converge the public API.
 
-The eight top-level statements are normative. First shallow-copy
-`operand.get("surface_contract") or {}`. A truthy explicit contract returns a
-fresh two-key mapping whose positive and negative values are fresh ordered
-lists: each side preserves get/`or []` iteration, condition-before-result
-double `str(item).strip()` conversion for retained items, duplicate order, and
-blank filtering. No concept or policy work may run after this branch succeeds.
+The one-statement body is normative. Evaluate
+`HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()` once, then pass the
+generator directly to `set(...)`. For every item, preserve condition-before-
+result evaluation: a falsey `str(item)` is evaluated once and dropped, while a
+retained item is stringified again and the exact second result is inserted.
+Preserve lazy source iteration under set construction, duplicate collapse,
+fresh-set results for empty and nonempty inputs, policy/input immutability, and
+all uncaught mapping/get/truth/iteration/string/hash/equality/set failures.
 
-Without an explicit contract, normalize the stringified operand concept, then
-shallow-copy `HELPER_RUNTIME_POLICY["legacy_concept_surface_contracts"]` through
-the existing get/`or {}`/`dict(...).items()` sequence. Preserve ordered
-string-key and per-value dict conversion. A truthy exact concept-key hit returns
-a fresh dict before operand needles. Otherwise join `operand_needles(operand)`
-once, scan copied legacy contracts in insertion order, build each positive-term
-list with the same repeated string conversion, and let `any(...)` normalize
-each term and the joined needles lazily. Return a fresh dict for the first hit
-or a fresh empty dict after exhaustion. Preserve identities passed to callees,
-input/policy immutability, evaluation order, short-circuiting, and every
-uncaught mapping/truth/string/iteration/normalization/membership failure.
+There are two direct `ast.Name` calls across two source modules, both with zero
+positional arguments, no keywords, and caller `try` depth zero. The owner-local
+`column_candidate_label(...)` call occurs only after cleaned-header truth and
+before ordered generic-membership filtering, last-header selection, year-regex
+rejection, and return. The external `_structured_cell_operand_affinity(...)`
+call occurs only after normalized-header truth and before non-generic/last-
+header selection, operand needles, all score additions, policy reads, and
+return. Both callers use the exact returned collection without copy or
+coercion; all later adoption and exception stops remain caller-owned.
 
-There are seven direct `ast.Name` calls across two source modules, all with one
-positional argument, no keywords, and caller `try` depth zero. External/local
-calls are 2/5. Operand resolution uses the contract after existing row-conflict
-gates and after ratio-component aggregate/binding-policy gates. The surface
-owner uses it for positive/negative matching, concept conflict, contextual-
-aggregate preference, and required-surface acceptance. Preserve all contract-
-truth, list construction, negative/positive scans, direct-strength fallback,
-period gates, returned booleans, later work, and exception stops. Operand
-resolution is a live external caller; graph helpers retains an import-only
-binding.
-
-This is a rename in the existing owner. Both external modules already import
-that owner, so no edge is added or removed and the full DAG remains acyclic at
-48 modules/205 internal edges. Current/projected top-level counts are surface
-contracts 20/2 to 21/1; graph helpers remain 9/71 and operand resolution remains
-54/37. No future public-name definition or store collision exists, and the
-selected span contains zero of 217 reviewed runtime-domain records. Its current
-body SHA-256 is `bca087bf56ef092bc7487acb54c0de95b04d680f018eef95b3d231d9b18fd29b`.
-The checked-in private spelling appears ten times across three production files
-and 70 times in patch/assertion strings in the graph-helper test; all four files
-are in the bounded rename surface.
+`financial_structured_cells.py` is the sole live external importer. It already
+imports the row owner, so the rename adds or removes no module edge and the
+full DAG remains acyclic at 48 modules/205 internal edges. Current/projected
+top-level counts are row surfaces 11/15 to 12/14; structured cells remain 4/4,
+graph helpers 9/71, surface contracts 21/1, and operand resolution 54/37. No
+future public-name definition or `ast.Store` collision exists, and the selected
+span contains zero of 217 reviewed runtime-domain records. Its current body
+SHA-256 is `f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`.
+The private spelling appears four times across the two production files and as
+24 exact patch/assertion string constants in the graph-helper test; those three
+files are the bounded rename surface.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_operand_surface_contract_pins_explicit_copy_order_and_result`;
-- `test_current_source_operand_surface_contract_pins_legacy_lookup_laziness_identity_immutability_and_exceptions`;
-- `test_current_source_operand_surface_contract_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_operand_surface_contract_callers_pin_args_adoption_and_stops`.
+- `test_current_source_generic_column_headers_pins_policy_projection_order_identity_and_result`;
+- `test_current_source_generic_column_headers_pins_laziness_immutability_and_exceptions`;
+- `test_current_source_generic_column_headers_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_generic_column_headers_callers_pin_order_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 194/194, surface-
+Projected post-rename gates are focused 4/4, graph owner 198/198, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,154/1,154, additional retrieval-pipeline caller module 1/1, reconciliation
+1,158/1,158, additional retrieval-pipeline caller module 1/1, reconciliation
 plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,047/2,047. Structural gates are exact production transform parity 3/3,
-selected-body parity 1/1, name-normalized owner parity 22/22, fresh public
-identity across both external imports, all seven calls/two call modules plus the
-one import-only binding, all seven caller-body transforms, full unchanged
-acyclic 48-module/205-edge DAG, retired private AST references and future public
-stores zero across source/tests, existing graph-test AST parity 190/190 plus
-four new methods, non-ASCII preservation 4/4, pycompile, and
+2,051/2,051. Structural gates are exact production transform parity 2/2,
+selected-body and both caller-body parity, fresh public identity 1/1, both
+calls/two call modules, unchanged acyclic 48-module/205-edge DAG, retired exact
+private AST refs and future public stores zero, existing graph-test AST parity
+194/194 plus four new methods, UTF-8/non-ASCII preservation 3/3, pycompile, and
 `git diff --check`. These are projections, not executed results. Static
 definition/signature/call/import/count/DAG/audit inspection passed; benchmark
 refresh and remote CI were **NOT RUN**.
+
+## Completed Operand Surface-Contract Public API
+
+Commit `5b71fd6` renamed the exact former 22-line private helper in place to
+public `financial_surface_contracts.operand_surface_contract(...)`. Its eight-
+statement body is exact after definition-name normalization. The private
+definition and executable refs are gone; no wrapper or compatibility alias was
+added.
+
+All seven calls across operand resolution and the surface owner now bind the
+public API at caller `try` depth zero. External/local calls are 2/5. Operand
+resolution is a live caller and graph helpers remains an import-only binding.
+Explicit-contract priority, fresh positive/negative projection, copied legacy-
+policy concept lookup, ordered operand-needle fallback, exact identities,
+copies, laziness, later work, and exception stops remain unchanged.
+
+Production source is `+10/-10`, net `0`; tests are `+1,185/-85`, net `+1,100`;
+and the whole commit is `+1,195/-95`, net `+1,100`. All production physical
+line counts are unchanged. Four methods moved discovery from 2,043 to 2,047.
+Final public/private counts are surface contracts 21/1, graph helpers 9/71,
+and operand resolution 54/37. The source diff SHA-256 is
+`0e9efc0d6d5f8d131a762c1200b77e470f91e598d2db4d51d08da6dc096a866b`.
+
+Focused pre/post rename 4/4, graph owner 194/194, surface owner 1/1, operand
+owner 69/69, affected eleven-module semantic 1,154/1,154, additional retrieval-
+pipeline caller module 1/1, reconciliation plan 51/51, import-side-effects
+19/19, runtime-domain audit 217, and full discovery 2,047/2,047 passed.
+Pycompile, exact production transform parity 3/3, selected-body and two
+dependent-wrapper hashes, existing graph-test AST parity 190/190 plus four new
+methods, fresh public identity 2/2, all seven calls/two call modules plus the
+import-only binding, zero public-name stores and retired exact private refs,
+unchanged 48-module/205-edge acyclic DAG, UTF-8/non-ASCII preservation 4/4, and
+`git diff --check` also passed. The first graph-owner run reported only two
+stale raw wrapper-hash expectations; updating them to the exact renamed caller
+bodies produced the final 194/194 pass. Benchmark refresh and remote CI were
+**NOT RUN**.
+
+This milestone changes only API visibility and recorded caller-body hashes. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Text Contract-Term Public API
 

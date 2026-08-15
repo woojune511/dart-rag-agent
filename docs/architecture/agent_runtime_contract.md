@@ -5036,46 +5036,71 @@ public identity 1/1, all calls, zero public stores/private executable refs,
 non-ASCII preservation 3/3, and diff check. Benchmark refresh and remote CI
 were **NOT RUN**.
 
-The next private-API contract is the exact current 22-line
-`financial_surface_contracts._operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]`
-definition. It already belongs to the surface-contract owner; the authorized
-future batch only renames it in place to public `operand_surface_contract(...)`
-and updates its imports/callers/test patch strings without a private alias.
+Commit `5b71fd6` completed the operand surface-contract public API. The exact
+former 22-line private definition is now public
+`financial_surface_contracts.operand_surface_contract(...)`; its eight top-
+level statements, four returns, three `if` nodes, one loop, explicit-contract
+priority, fresh projections, copied legacy-policy concept lookup, ordered
+operand-needle fallback, repeated conversions, identities, immutability,
+laziness, and uncaught failures are unchanged after name normalization. No
+private alias or bridge exists.
 
-Preserve the exact eight top-level statements, four returns, three `if` nodes,
-and one loop. Shallow-copy `operand.get("surface_contract") or {}` first. A
-truthy explicit contract returns only fresh positive/negative lists in a fresh
-mapping, preserving each get/`or []`, ordered iteration, blank filtering, and
-condition-before-result repeated `str(item).strip()` calls. This return must
-stop concept, policy, and operand-needle work.
+All seven calls use one positional argument, no keywords, and caller `try`
+depth zero. External/local calls are 2/5. Operand resolution is a live external
+caller; graph helpers remains an import-only public binding. Caller contract-
+truth, list construction, negative/positive scans, direct-strength fallback,
+period gates, returned values, later work, and exception stops remain exact.
 
-Otherwise normalize the stringified operand concept, shallow-copy the policy's
-`legacy_concept_surface_contracts` outer mapping, stringify keys, and shallow-
-copy values in item order. A truthy exact concept-key membership returns a
-fresh contract dict before needle construction. On a miss, join
-`operand_needles(operand)` once, scan copied contracts in order, build each
-positive-term list with the same repeated conversion, and retain the current
-`any(_normalise_spaces(term) in _normalise_spaces(needles) ...)` laziness and
-first-hit return. Exhaustion returns a fresh empty dict. Input/policy
-immutability and all get/truth/mapping/string/iteration/normalization/
-membership errors remain uncaught.
+Final counts are surface contracts 21/1, graph 9/71, and operand resolution
+54/37; the full DAG remains unchanged and acyclic at 48 modules/205 edges.
+Executed gates are focused 4/4, graph owner 194/194, surface owner 1/1, operand
+owner 69/69, affected semantic 1,154/1,154, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,047/2,047, plus
+pycompile, production transform parity 3/3, selected-body and dependent-wrapper
+hashes, existing graph-test AST parity 190/190 plus four new methods, public
+identity 2/2, all calls/bindings, zero public stores/retired exact private refs,
+unchanged DAG, UTF-8/non-ASCII preservation 4/4, and diff check. Benchmark
+refresh and remote CI were **NOT RUN**.
 
-All seven direct source calls use one positional argument, no keywords, and
-caller `try` depth zero. Two external operand-resolution calls and five owner-
-local calls preserve their contract-truth, positive-list, negative/positive
-scan, direct-strength fallback, period-gate, return, later-work, and exception-
-stop behavior. Operand resolution is a live external caller; graph helpers is
-an import-only binding.
+The next private-API contract is the exact current 2-line
+`financial_row_surfaces._generic_column_headers() -> set[str]` definition. It
+already belongs to the row-surface owner; the authorized future batch only
+renames it in place to public `generic_column_headers()` and updates its import,
+two calls, and test patch strings without a private alias. The owner-local
+`financial_surface_contracts._candidate_segment_surfaces(...)` stays private
+because it has no external consumer.
 
-No module edge changes, so the full DAG remains acyclic at 48 modules/205
-edges. Projected counts are surface contracts 20/2 to 21/1, with graph 9/71 and
-operand resolution 54/37 unchanged. The selected body SHA-256 is
-`bca087bf56ef092bc7487acb54c0de95b04d680f018eef95b3d231d9b18fd29b`; there
-is no future public-name definition/store and the span has zero of 217 reviewed
-records. The four required CURRENT-SOURCE methods and projected focused 4/4,
-graph owner 194/194, surface owner 1/1, operand owner 69/69, affected semantic
-1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,047/2,047 gates are governed only by
+Preserve the exact single return statement. Evaluate
+`HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()` once and pass the
+generator directly to `set(...)`. Each item first reaches `str(item)` in the
+filter. A falsey result drops the item after one conversion; a truthy result
+causes a second conversion whose exact value enters the set. Preserve lazy
+source iteration during set construction, duplicate collapse, fresh empty and
+nonempty results, input/policy immutability, and all get/truth/iteration/string/
+hash/equality/set errors as uncaught failures.
+
+Both direct source calls use zero positional arguments, no keywords, and
+caller `try` depth zero. The owner-local `column_candidate_label(...)` call
+follows cleaned-header truth and precedes generic membership, last-header/year
+selection, and return. The external
+`financial_structured_cells._structured_cell_operand_affinity(...)` call
+follows normalized-header truth and precedes non-generic/last-header selection,
+operand-needle work, every score addition, later policy reads, and return. Both
+callers use the exact returned collection without copy or coercion; all later
+adoption and exception stops remain caller-owned.
+
+The structured-cell owner is the sole live external importer and already
+reaches row surfaces, so no module edge changes. The full DAG remains acyclic
+at 48 modules/205 edges. Projected counts are row surfaces 11/15 to 12/14 and
+structured cells 4/4 unchanged. The selected body SHA-256 is
+`f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`; both
+current caller-body hashes, no future public-name definition/store, four source
+spelling occurrences across two files, 24 exact test string constants, and
+zero of 217 selected reviewed records are pinned by the four CURRENT-SOURCE
+methods. Projected focused 4/4, graph owner 198/198, surface owner 1/1, operand
+owner 69/69, affected semantic 1,158/1,158, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,051/2,051 gates
+are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

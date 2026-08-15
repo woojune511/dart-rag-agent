@@ -1342,30 +1342,50 @@ calls, zero public stores/private executable refs, unchanged acyclic 48-module/
 SHA-256 is `cca5735d1b0f269dc5ce7b4e3701c3fb448d6a25c3e655376b5400bea462d7e1`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the remaining cross-module helper
-in the same correct owner: rename the exact 22-line
-`financial_surface_contracts._operand_surface_contract(operand)` in place to
-public `operand_surface_contract(...)`, with no wrapper or alias. Preserve the
-explicit-contract branch and fresh positive/negative projections first, exact
-concept-key lookup against a copied declarative legacy-policy mapping second,
-and ordered operand-needle fallback last, including repeated conversion,
-laziness, copying, immutability, and uncaught failures.
+Commit `5b71fd6` completed that remaining cross-module surface-owner seam. The
+exact former 22-line helper is public
+`financial_surface_contracts.operand_surface_contract(...)`; its eight-
+statement explicit-contract, copied legacy-policy concept lookup, and ordered
+operand-needle fallback body is unchanged after definition-name normalization.
+All seven calls/two call modules and both external bindings use the public name;
+operand resolution is live and graph helpers remains import-only. No wrapper or
+alias was added.
 
-Seven one-positional-argument calls across two source modules remain at caller
-`try` depth zero; external/local calls are 2/5. Operand resolution imports and
-calls the helper, while graph helpers retains an import-only binding. Existing
-edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
-Projected surface-owner counts are 20/2 to 21/1, while graph and operand counts
-remain 9/71 and 54/37. The selected span has body SHA-256
-`bca087bf56ef092bc7487acb54c0de95b04d680f018eef95b3d231d9b18fd29b`, no
-future public-name definition/store, and zero of 217 reviewed runtime-domain
-records. Four required CURRENT-SOURCE methods and projected focused 4/4, graph
-owner 194/194, surface owner 1/1, operand owner 69/69, affected semantic
-1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,047/2,047 gates are defined only in
+Production source is `+10/-10`, tests are `+1,185/-85`, and the whole commit is
+`+1,195/-95`, net `+1,100`; production physical lines are unchanged. Focused
+4/4, graph owner 194/194, surface owner 1/1, operand owner 69/69, affected
+semantic 1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,047/2,047, pycompile, production transform
+3/3, selected-body/dependent-wrapper, existing-test AST 190/190 plus four new
+methods, public identity 2/2, all-call, unchanged acyclic 48-module/205-edge DAG,
+retired-ref/public-store zero, UTF-8/non-ASCII preservation, and diff-check
+gates passed. The source diff SHA-256 is
+`0e9efc0d6d5f8d131a762c1200b77e470f91e598d2db4d51d08da6dc096a866b`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory leaves the sole owner-local
+`financial_surface_contracts._candidate_segment_surfaces(...)` helper private
+and selects an actual cross-module private seam instead: rename the exact
+2-line `financial_row_surfaces._generic_column_headers()` policy projection in
+place to public `generic_column_headers()`, with no wrapper or alias. Preserve
+the one get/`or ()` sequence, generator-under-set laziness, dropped-once and
+retained-twice stringification, duplicate collapse, fresh set, immutability,
+and uncaught failures.
+
+Its zero-argument calls finish row-owner-local/structured-cell-external 1/1 at
+caller `try` depth zero. The existing structured-cell-to-row edge is unchanged,
+so the full DAG remains acyclic at 48 modules/205 edges. Projected row-owner
+counts are 11/15 to 12/14 while structured cells remain 4/4. The body SHA-256 is
+`f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`, no
+future public-name definition/store exists, and the selected span has zero of
+217 reviewed runtime-domain records. Four required CURRENT-SOURCE methods and
+projected focused 4/4, graph owner 198/198, surface owner 1/1, operand owner
+69/69, affected semantic 1,158/1,158, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,051/2,051 gates
+are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test rename has occurred for this helper projection; it is the sole next
-priority and this plan maintains no competing queue.
+or test rename has occurred for this follow-on; it is the sole next priority
+and this plan maintains no competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 
