@@ -5152,53 +5152,71 @@ transform 2/2, selected-body/three-caller parity, existing graph-test AST
 1/1, all-call/DAG/retired-ref/public-store and UTF-8/non-ASCII gates. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 11-line
-`financial_row_surfaces._surface_match_variants(text: str) -> List[str]`
-definition. It already belongs to the row-surface owner; the authorized future
-batch only renames it in place to public `surface_match_variants(...)` and
-updates two imports, nine direct calls, and exact test references without a
-private alias.
-
-Preserve the exact four top-level statements, one `if`, two returns, one
-generator expression, and zero `try` nodes. Resolve raw `text or ""`, normalize
-once, and return a fresh exact plain empty list on a falsey normalized result.
-Otherwise evaluate the exact list eagerly in order: normalized; annotation-
-stripped normalized; period-stripped normalized; and period-stripped result of
-a fresh second annotation-strip call. Do not reuse the first annotation result.
-
-The final expression truth-filters the four exact items left to right inside
-`dict.fromkeys(...)`, preserving hash/equality order and the first equal
-representative identity, then materializes a new plain list in insertion order.
-All raw/normalized/item truth, normalization, annotation/period projection,
-hash, equality, and materialization failures remain uncaught. No input or
-returned nested object is coerced or mutated.
+Commit `05415ed` completes the surface-match-variants visibility contract. The
+exact former 11-line definition is public
+`financial_row_surfaces.surface_match_variants(text: str) -> List[str]`; no
+wrapper or private alias remains. Its four top-level statements, one `if`, two
+returns, one generator expression, raw truth/normalization/blank return, eager
+four-item annotation/period order, repeated annotation call, truth-filtered
+ordered dedupe, first-representative identity, immutability, and uncaught
+failure behavior are unchanged after definition-name normalization.
 
 All nine direct source calls use one positional argument, no keywords, and
-caller `try` depth zero; external/local calls are 7/2 across six caller
-definitions. `_operand_text_match(...)` assigns text variants then directly
-iterates a fresh result for each operand needle under each haystack. Graph
-calculation directly iterates alias results and assigns label results before
-exact/compact label scoring and operand-match fallback. Operand resolution
-directly iterates segment variants before trim/normalize/dedupe, while direct-
-match-strength and full scoring each convert a row/surface result to `set(...)`
-and directly iterate needle results inside lazy `any(...)`. Existing score
-adoption, fallback, later work, and failure stops remain caller-owned.
+caller `try` depth zero; external/local calls finish 7/2 across six caller
+definitions. Row matching, graph alias/label scoring, operand segment matching,
+direct-match strength, and full candidate scoring bind the public result under
+their existing assignment, iteration, set conversion, lazy `any(...)`, score
+adoption, fallback, and stop contracts. Row counts finish 16/10; operand
+resolution remains 54/37. Executed gates are focused 4/4, graph owner 214/214,
+surface owner 1/1, operand owner 69/69, affected semantic 1,174/1,174,
+additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+audit 217, and full 2,067/2,067, plus pycompile, production transform 3/3,
+selected-body/six-caller parity, existing graph-test AST 210/210 plus four new
+methods, public identity 3/3, all-call/DAG/retired-ref/public-store and
+UTF-8/non-ASCII gates. Benchmark refresh and remote CI were **NOT RUN**.
 
-Both external importers already reach row surfaces, so no module edge changes.
-The full DAG remains acyclic at 48 modules/205 edges. Projected row counts are
-15/11 to 16/10; operand resolution remains 54/37. The selected body SHA-256 is
-`29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6`;
-all six current caller-body hashes, no future public-name definition/store, and
-12 production AST references are pinned by the four CURRENT-SOURCE methods.
+The next private-API contract is the exact current 16-line
+`financial_row_surfaces._operand_text_match(text: str, operand: Dict[str, Any]) -> bool`
+definition. It already belongs to the row-surface owner; the authorized future
+batch only renames it in place to public `operand_text_match(...)` and updates
+nine imports, 62 direct calls, and exact test references without a private
+alias.
 
-Baseline fingerprints `25f17ac6aad50c38` and `29c0f2198b3be826` report stale
-`first_lines: [66]` inside the current 59-69 span, but their `억` and `조`
-literals are not owned by this helper; its only string literal is `""`. The
-rename changes no line or literal, so the baseline stays unchanged and audit
-remains projected at 217. Projected focused 4/4, graph owner 214/214, surface
-owner 1/1, operand owner 69/69, affected semantic 1,174/1,174, additional
-retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and
-full 2,067/2,067 gates are governed only by
+Preserve the exact four top-level statements, three assignments, two `if`
+nodes, three nested `for` loops, three returns, five calls, and zero `try` or
+comprehension nodes. Assign `surface_match_variants(text)` once, truth-test that
+exact result, and return exact `False` before operand access when it is falsey.
+For every haystack, compact it through exact `re.sub(r"\s+", "", haystack)`,
+then call `operand_needles(operand)` fresh for that haystack. For every needle,
+iterate a fresh `surface_match_variants(needle)` result and compact each exact
+normalized needle through the same regex.
+
+The match predicate evaluates left to right: exact surface equality; normalized
+needle containment in the haystack; then truth-gated compact containment. The
+first truthy predicate returns exact `True`; exhaustion returns exact `False`.
+Preserve haystack/needle/variant iteration and repeated-call order, condition
+short-circuiting, plain-bool results, input and nested-object immutability, lack
+of added coercion, and every uncaught helper/truth/iteration/regex/equality/
+containment failure. No caching or exception boundary is allowed.
+
+All 62 direct calls use two positional arguments, no keywords, and caller `try`
+depth zero; external/local calls are 59/3 across 36 caller definitions and ten
+source modules. Nine external importers already reach row surfaces, so no
+module edge changes and the full DAG remains acyclic at 48 modules/205 edges.
+Projected row counts are 16/10 to 17/9. The selected body SHA-256 is
+`08d56d35cbc7cf2256047e0c51fabc9d9fc37569cfed8ab349dd277989b930b0`;
+the private identifier has 72 production AST references. Existing exact test
+references are 103 references in 32 graph-helper methods, so the bounded
+source/test transform surface is eleven files.
+
+Baseline fingerprints `8d15177a51f8ea8a` and `508662ee99ee39e5` report stale
+`first_lines: [79]` and `[83]` inside the current 72-87 span. Their numeric-unit
+regexes are not literals owned by this helper, whose exact literals are `""`
+and `r"\s+"`. The rename changes no line or literal, so the 217-record baseline
+must stay unchanged. Projected focused 4/4, graph owner 218/218, surface owner
+1/1, operand owner 69/69, affected semantic 1,178/1,178, additional retrieval-
+pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and full
+2,071/2,071 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

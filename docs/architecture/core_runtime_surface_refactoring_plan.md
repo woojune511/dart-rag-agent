@@ -1441,28 +1441,57 @@ committed source diff SHA-256 is
 `5556c032ed6fde19f06863ab5833bb919ae1a90189e8b09c1adfa4f2bb2a5307`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact 11-line
-`financial_row_surfaces._surface_match_variants(text: str) -> List[str]`
-projection for an in-place public rename to `surface_match_variants(...)`, with
-no wrapper or alias. Preserve raw truth, normalization/blank list return, exact
-four-item eager helper-call order, repeated annotation stripping, truth-filtered
-ordered dictionary dedupe, first-representative identity, immutability, and all
-uncaught failures.
+Commit `05415ed` completed the surface-match-variants private-API seam. The
+exact former 11-line helper is public
+`financial_row_surfaces.surface_match_variants(...)`; raw truth,
+normalization/blank list return, exact four-item eager helper-call order,
+repeated annotation stripping, truth-filtered ordered dictionary dedupe,
+first-representative identity, immutability, and uncaught failures are unchanged
+after definition-name normalization. All nine calls and both external imports
+use the public name; no alias exists.
 
-Its nine one-positional-argument call sites finish external/local 7/2 across row
-surfaces, graph calculation, and operand resolution at caller `try` depth zero.
-Both external importers already reach row surfaces, so the full DAG remains
-acyclic at 48 modules/205 edges. Projected row-owner counts are 15/11 to 16/10;
-operand resolution remains 54/37. The body SHA-256 is
-`29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6`, the
-private identifier has 12 production AST references, and no future public-name
-definition/store exists. Baseline fingerprints `25f17ac6aad50c38` and
-`29c0f2198b3be826` have stale `first_lines: [66]` inside the current span but
-their `억`/`조` literals are not owned by this helper; all 217 records remain
-unchanged. Four required CURRENT-SOURCE methods and projected focused 4/4,
-graph owner 214/214, surface owner 1/1, operand owner 69/69, affected semantic
-1,174/1,174, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,067/2,067 gates are defined only in
+Production source is `+12/-12`, tests are `+1,514/-42`, and the whole commit is
+`+1,526/-54`, net `+1,472`; production physical lines are unchanged. Focused
+4/4, graph owner 214/214, surface owner 1/1, operand owner 69/69, affected
+semantic 1,174/1,174, additional retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,067/2,067, pycompile, production transform
+3/3, selected-body/six-caller parity, existing graph-test AST 210/210 plus four
+new methods, public identity 3/3, all-call, unchanged acyclic 48-module/205-edge
+DAG, retired-ref/public-store zero, UTF-8/non-ASCII preservation 4/4, and diff-
+check gates passed. The committed source diff SHA-256 is
+`a49845578a7a70c8479ac01921d75bc30bdd7631799a2ab0498a59511619e7d9`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact 16-line
+`financial_row_surfaces._operand_text_match(text: str, operand: Dict[str, Any]) -> bool`
+projection for an in-place public rename to `operand_text_match(...)`, with no
+wrapper or alias. Preserve its exact four top-level statements, three
+assignments, two `if` nodes, three nested loops, three returns, five calls, and
+absence of `try`/comprehension nodes. Preserve the initial variant assignment
+and blank stop; per-haystack compact regex and fresh `operand_needles(...)`
+call; per-needle fresh variant call; per-variant compact regex; exact,
+substring, then truth-gated compact matching; first-match `True`, exhausted
+`False`, short-circuiting, immutability, and all uncaught failures.
+
+Its 62 two-positional-argument call sites finish external/local 59/3 across 36
+caller definitions and ten source modules, with no keywords and caller `try`
+depth zero. The nine external importers already reach row surfaces, so the full
+DAG remains acyclic at 48 modules/205 edges. Projected row-owner counts are
+16/10 to 17/9. The body SHA-256 is
+`08d56d35cbc7cf2256047e0c51fabc9d9fc37569cfed8ab349dd277989b930b0`, the
+private identifier has 72 production AST references, and no future public-name
+definition/store exists. Existing exact tests contribute 103 references in 32
+graph-helper methods; the bounded source/test transform surface is eleven
+files.
+
+Baseline fingerprints `8d15177a51f8ea8a` and `508662ee99ee39e5` have stale
+`first_lines: [79]` and `[83]` inside the current span, but their numeric-unit
+regexes are not owned by this helper; its literals are only `""` and `r"\s+"`.
+All 217 records must remain unchanged. Four required CURRENT-SOURCE methods and
+projected focused 4/4, graph owner 218/218, surface owner 1/1, operand owner
+69/69, affected semantic 1,178/1,178, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,071/2,071 gates
+are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this follow-on; it is the sole next priority
 and this plan maintains no competing queue.
