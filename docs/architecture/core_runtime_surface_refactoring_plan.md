@@ -1363,25 +1363,45 @@ gates passed. The source diff SHA-256 is
 `0e9efc0d6d5f8d131a762c1200b77e470f91e598d2db4d51d08da6dc096a866b`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory leaves the sole owner-local
-`financial_surface_contracts._candidate_segment_surfaces(...)` helper private
-and selects an actual cross-module private seam instead: rename the exact
-2-line `financial_row_surfaces._generic_column_headers()` policy projection in
-place to public `generic_column_headers()`, with no wrapper or alias. Preserve
-the one get/`or ()` sequence, generator-under-set laziness, dropped-once and
-retained-twice stringification, duplicate collapse, fresh set, immutability,
-and uncaught failures.
+Commit `ea830ed` completed the generic-column-header private-API seam. The exact
+former 2-line helper is public
+`financial_row_surfaces.generic_column_headers()`; its one-return policy
+projection is unchanged after definition-name normalization. Both row-local
+and structured-cell-external calls use the public name and no alias exists.
 
-Its zero-argument calls finish row-owner-local/structured-cell-external 1/1 at
-caller `try` depth zero. The existing structured-cell-to-row edge is unchanged,
-so the full DAG remains acyclic at 48 modules/205 edges. Projected row-owner
-counts are 11/15 to 12/14 while structured cells remain 4/4. The body SHA-256 is
-`f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`, no
+Production source is `+4/-4`, tests are `+804/-31`, and the whole commit is
+`+808/-35`, net `+773`; production physical lines are unchanged. Focused 4/4,
+graph owner 198/198, surface owner 1/1, operand owner 69/69, affected semantic
+1,158/1,158, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,051/2,051, pycompile, production transform 2/2,
+selected-body/two-caller parity, existing-test AST 194/194 plus four new
+methods, public identity 1/1, all-call, unchanged acyclic 48-module/205-edge
+DAG, retired-ref/public-store zero, UTF-8/non-ASCII preservation 3/3, and diff-
+check gates passed. The source diff SHA-256 is
+`5b953b411edaf1fd53ac437179eb1a24dac17960398f6df64bfa6d50676cc37c`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact 9-line
+`financial_row_surfaces._extract_table_row_label(row_text: str) -> str`
+projection for an in-place public rename to `extract_table_row_label(...)`,
+with no wrapper or alias. It is preferred over the same-length annotation
+stripper because it removes three external private imports and has no owner-
+local call. Preserve raw-argument normalization, the blank stop, exact pipe
+membership, `split("|", 1)[0]`, second normalization, truthy first-cell return,
+falsey fallthrough to the exact initial normalized object, identities,
+immutability, and uncaught failures.
+
+Its three one-positional-argument calls are external across graph evidence,
+graph helpers, and graph reconciliation at caller `try` depth zero. All three
+modules already reach row surfaces, so the full DAG remains acyclic at 48
+modules/205 edges. Projected row-owner counts are 12/14 to 13/13. The body
+SHA-256 is
+`b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1`, no
 future public-name definition/store exists, and the selected span has zero of
 217 reviewed runtime-domain records. Four required CURRENT-SOURCE methods and
-projected focused 4/4, graph owner 198/198, surface owner 1/1, operand owner
-69/69, affected semantic 1,158/1,158, additional retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,051/2,051 gates
+projected focused 4/4, graph owner 202/202, surface owner 1/1, operand owner
+69/69, affected semantic 1,162/1,162, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,055/2,055 gates
 are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this follow-on; it is the sole next priority

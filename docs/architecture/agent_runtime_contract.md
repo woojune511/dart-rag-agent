@@ -5062,45 +5062,70 @@ identity 2/2, all calls/bindings, zero public stores/retired exact private refs,
 unchanged DAG, UTF-8/non-ASCII preservation 4/4, and diff check. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 2-line
-`financial_row_surfaces._generic_column_headers() -> set[str]` definition. It
-already belongs to the row-surface owner; the authorized future batch only
-renames it in place to public `generic_column_headers()` and updates its import,
-two calls, and test patch strings without a private alias. The owner-local
-`financial_surface_contracts._candidate_segment_surfaces(...)` stays private
-because it has no external consumer.
+Commit `ea830ed` completed the generic-column-header public API. The exact
+former 2-line private definition is now public
+`financial_row_surfaces.generic_column_headers()`; its single return, policy
+get/`or ()`, generator-under-set laziness, repeated stringification, exact
+second-result insertion, duplicate collapse, fresh results, immutability, and
+uncaught failures are unchanged after name normalization. No private alias or
+bridge exists.
 
-Preserve the exact single return statement. Evaluate
-`HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()` once and pass the
-generator directly to `set(...)`. Each item first reaches `str(item)` in the
-filter. A falsey result drops the item after one conversion; a truthy result
-causes a second conversion whose exact value enters the set. Preserve lazy
-source iteration during set construction, duplicate collapse, fresh empty and
-nonempty results, input/policy immutability, and all get/truth/iteration/string/
-hash/equality/set errors as uncaught failures.
+Both zero-argument calls remain at caller `try` depth zero. External/local calls
+are 1/1 and the structured-cell binding is live. Both callers still use the
+exact returned collection without copy or coercion, with generic filtering,
+target/header selection, scoring, policy reads, adoption, later work, and
+exception stops unchanged. Final counts are row surfaces 12/14 and structured
+cells 4/4; the full DAG remains acyclic at 48 modules/205 edges.
 
-Both direct source calls use zero positional arguments, no keywords, and
-caller `try` depth zero. The owner-local `column_candidate_label(...)` call
-follows cleaned-header truth and precedes generic membership, last-header/year
-selection, and return. The external
-`financial_structured_cells._structured_cell_operand_affinity(...)` call
-follows normalized-header truth and precedes non-generic/last-header selection,
-operand-needle work, every score addition, later policy reads, and return. Both
-callers use the exact returned collection without copy or coercion; all later
-adoption and exception stops remain caller-owned.
-
-The structured-cell owner is the sole live external importer and already
-reaches row surfaces, so no module edge changes. The full DAG remains acyclic
-at 48 modules/205 edges. Projected counts are row surfaces 11/15 to 12/14 and
-structured cells 4/4 unchanged. The selected body SHA-256 is
-`f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`; both
-current caller-body hashes, no future public-name definition/store, four source
-spelling occurrences across two files, 24 exact test string constants, and
-zero of 217 selected reviewed records are pinned by the four CURRENT-SOURCE
-methods. Projected focused 4/4, graph owner 198/198, surface owner 1/1, operand
+Executed gates are focused 4/4, graph owner 198/198, surface owner 1/1, operand
 owner 69/69, affected semantic 1,158/1,158, additional retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,051/2,051 gates
-are governed only by
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,051/2,051, plus
+pycompile, production transform parity 2/2, selected-body and two caller hashes,
+existing graph-test AST parity 194/194 plus four new methods, public identity
+1/1, both calls/bindings, zero public stores/retired exact private refs,
+unchanged DAG, UTF-8/non-ASCII preservation 3/3, and diff check. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 9-line
+`financial_row_surfaces._extract_table_row_label(row_text: str) -> str`
+definition. It already belongs to the row-surface owner; the authorized future
+batch only renames it in place to public `extract_table_row_label(...)` and
+updates three imports, three calls, and test patch strings without a private
+alias. It is selected over the same-length annotation stripper because this
+batch removes three external private imports and has no owner-local call.
+
+Preserve the exact four top-level statements, three `if` nodes, and three
+returns. Pass raw `row_text` directly to `_normalise_spaces(...)`. A falsey
+result returns exact `""` before delimiter work. A truthy result reaches one
+`"|" in normalized` check. On a miss, return the exact normalized object. On a
+hit, evaluate `normalized.split("|", 1)[0]`, pass the exact element to the
+second `_normalise_spaces(...)` call, and return that exact result if truthy; a
+falsey first cell falls through to the exact initial normalized object. Input
+immutability, result identities, evaluation order, and all normalization,
+truth, containment, split, and index errors remain uncaught.
+
+All three direct source calls use one positional argument, no keywords, and
+caller `try` depth zero. Graph evidence calls after raw-row normalization/truth
+and metadata copy, then adopts the exact result for aggregation-stage
+classification before later context and operand-row work. Graph helpers calls
+after normalized-row, nonempty, delimiter, and dedupe gates; the exact result
+feeds aggregate stage/role, composite text, metadata, and candidate row label.
+Graph reconciliation calls after raw-row truth and passes the exact result as
+the evidence-row candidate's `row_label` keyword. Existing earlier caller
+mutations remain; failures stop all later work, and no caller copies or coerces
+the returned label.
+
+The three caller modules already reach row surfaces, so no module edge changes.
+The full DAG remains acyclic at 48 modules/205 edges. Projected row counts are
+12/14 to 13/13. The selected body SHA-256 is
+`b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1`; all
+three current caller-body hashes, no future public-name definition/store, seven
+source spelling occurrences across four files, one exact existing test patch
+string, and zero of 217 selected reviewed records are pinned by the four
+CURRENT-SOURCE methods. Projected focused 4/4, graph owner 202/202, surface
+owner 1/1, operand owner 69/69, affected semantic 1,162/1,162, additional
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and
+full 2,055/2,055 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

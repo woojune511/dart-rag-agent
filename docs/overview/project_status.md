@@ -16,10 +16,10 @@ Last updated: 2026-08-15
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `5b71fd6` renamed the exact 22-line operand surface-contract helper in its existing surface owner and updated all seven calls plus two external bindings without an alias |
-| What passed? | Focused 4/4, graph owner 194/194, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,154/1,154, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,047/2,047 |
+| What just changed? | `ea830ed` renamed the exact 2-line generic-column-header policy projection in its existing row-surface owner and updated both calls plus the live external binding without an alias |
+| What passed? | Focused 4/4, graph owner 198/198, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,158/1,158, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,051/2,051 |
 | Was the benchmark refreshed? | **NOT RUN**; this was an ownership-only move with exact selected-body parity, not a parser, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 2-line `_generic_column_headers()` policy projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 9-line `_extract_table_row_label(...)` projection in its existing row-surface owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -747,25 +747,25 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, text contract-term public API 4 / 4; graph owner 190 / 190; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,150 / 1,150; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, generic-column-header public API 4 / 4; graph owner 198 / 198; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,158 / 1,158; additional retrieval-pipeline caller module 1 / 1 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,043 / 2,043 |
-| Benchmark refresh after latest text contract-term API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,051 / 2,051 |
+| Benchmark refresh after latest generic-column-header API change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
-`tests.test_semantic_numeric_plan`,
-`tests.test_financial_operand_resolution`,
-`tests.test_financial_surface_contracts`,
+`tests.test_semantic_numeric_plan`, `tests.test_operation_contracts`,
+`tests.test_subtask_loop`, `tests.test_aggregate_subtask_projection`,
+`tests.test_financial_aggregate_rank_dedupe`,
 `tests.test_financial_dependency_projection`,
-`tests.test_financial_reconciliation_candidates`,
-`tests.test_lookup_recovery_policy`, `tests.test_operation_contracts`,
-`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`, and
-`tests.test_financial_agent_run_projection`. `tests.test_import_side_effects`
-passed separately at 19 / 19.
+`tests.test_financial_calculation_execution`,
+`tests.test_lookup_recovery_policy`,
+`tests.test_financial_reconciliation_candidates`, and
+`tests.test_concept_runtime_contracts`. `tests.test_import_side_effects` passed
+separately at 19 / 19.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -797,65 +797,108 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The characterize-only inventory selects one remaining cross-module private-API
-seam: rename the exact current 2-line
-`financial_row_surfaces._generic_column_headers() -> set[str]` definition in
-place to public `generic_column_headers()`. Add no wrapper or private alias.
-Before the rename, add four CURRENT-SOURCE contracts and require them to pass.
-No production or test rename has occurred for this follow-on. The sole remaining
-private helper in `financial_surface_contracts.py`,
-`_candidate_segment_surfaces(...)`, has only one owner-local call and therefore
-stays private; exposing it would expand rather than converge the public API.
+seam: rename the exact current 9-line
+`financial_row_surfaces._extract_table_row_label(row_text: str) -> str`
+definition in place to public `extract_table_row_label(...)`. Add no wrapper or
+private alias. Before the rename, add four CURRENT-SOURCE contracts and require
+them to pass. No production or test rename has occurred for this follow-on.
+Among the two 9-line row-owner candidates, this helper closes three external
+imports with no owner-local call; `_strip_financial_label_annotations(...)`
+has only two external importers plus two owner-local calls and is not authorized
+by this batch. This document maintains no competing implementation queue.
 
-The one-statement body is normative. Evaluate
-`HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()` once, then pass the
-generator directly to `set(...)`. For every item, preserve condition-before-
-result evaluation: a falsey `str(item)` is evaluated once and dropped, while a
-retained item is stringified again and the exact second result is inserted.
-Preserve lazy source iteration under set construction, duplicate collapse,
-fresh-set results for empty and nonempty inputs, policy/input immutability, and
-all uncaught mapping/get/truth/iteration/string/hash/equality/set failures.
+The four top-level statements, three `if` nodes, and three returns are
+normative. Pass the raw `row_text` object directly to `_normalise_spaces(...)`
+once. A falsey normalized result returns exact `""` before delimiter work. For
+a truthy result, perform one exact `"|" in normalized` check. A miss returns
+the exact normalized object. A hit evaluates
+`normalized.split("|", 1)[0]`, passes that exact first element to a second
+`_normalise_spaces(...)` call, and returns the exact second result when truthy;
+a falsey first-cell result falls through and returns the exact initial
+normalized object. Preserve the two result identities, split/maxsplit/index
+order, input immutability, absence of string coercion, and every uncaught
+normalization/truth/containment/split/index failure.
 
-There are two direct `ast.Name` calls across two source modules, both with zero
-positional arguments, no keywords, and caller `try` depth zero. The owner-local
-`column_candidate_label(...)` call occurs only after cleaned-header truth and
-before ordered generic-membership filtering, last-header selection, year-regex
-rejection, and return. The external `_structured_cell_operand_affinity(...)`
-call occurs only after normalized-header truth and before non-generic/last-
-header selection, operand needles, all score additions, policy reads, and
-return. Both callers use the exact returned collection without copy or
-coercion; all later adoption and exception stops remain caller-owned.
+There are three direct `ast.Name` calls across three external source modules,
+all with one positional argument, no keywords, and caller `try` depth zero.
+`financial_graph_evidence._build_required_operands_from_candidates(...)` calls
+after raw-row normalization/truth and metadata copy, then passes the exact row
+label to aggregation-stage classification before later context, binding, and
+operand-row work. `financial_graph_helpers._build_table_row_reconciliation_candidates(...)`
+calls after row normalization, nonempty/pipe/dedupe gates and uses the exact
+result for aggregate stage/role, composite text, metadata, and candidate row
+label. `financial_graph_reconciliation._build_reconciliation_candidates(...)`
+passes the exact result directly as the evidence-row candidate's `row_label`
+keyword after raw-row truth. Existing earlier local mutations remain, while
+helper failure stops all later caller work; no caller copies or coerces the
+returned label.
 
-`financial_structured_cells.py` is the sole live external importer. It already
-imports the row owner, so the rename adds or removes no module edge and the
-full DAG remains acyclic at 48 modules/205 internal edges. Current/projected
-top-level counts are row surfaces 11/15 to 12/14; structured cells remain 4/4,
-graph helpers 9/71, surface contracts 21/1, and operand resolution 54/37. No
-future public-name definition or `ast.Store` collision exists, and the selected
-span contains zero of 217 reviewed runtime-domain records. Its current body
-SHA-256 is `f19ad20d15ac9e560aa70180155bc71dc55fa85770d185c43a07f7eb5f139660`.
-The private spelling appears four times across the two production files and as
-24 exact patch/assertion string constants in the graph-helper test; those three
-files are the bounded rename surface.
+All three callers already import the row owner, so the rename adds or removes
+no module edge and the full DAG remains acyclic at 48 modules/205 internal
+edges. Current/projected row-owner top-level counts are 12/14 to 13/13; graph
+helpers remain 9/71, graph evidence 0/2 plus its mixin, and graph reconciliation
+0/0 plus its mixin. No future public-name definition or `ast.Store` collision
+exists, and the selected span contains zero of 217 reviewed runtime-domain
+records. Its current body SHA-256 is
+`b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1`.
+The private spelling appears seven times across four production files and once
+as an exact patch string in the graph-helper test; those five files are the
+bounded pre-contract surface.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_generic_column_headers_pins_policy_projection_order_identity_and_result`;
-- `test_current_source_generic_column_headers_pins_laziness_immutability_and_exceptions`;
-- `test_current_source_generic_column_headers_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_generic_column_headers_callers_pin_order_adoption_and_stops`.
+- `test_current_source_extract_table_row_label_pins_normalization_delimiter_order_identity_and_result`;
+- `test_current_source_extract_table_row_label_pins_immutability_and_exceptions`;
+- `test_current_source_extract_table_row_label_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_extract_table_row_label_callers_pin_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 198/198, surface-
+Projected post-rename gates are focused 4/4, graph owner 202/202, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,158/1,158, additional retrieval-pipeline caller module 1/1, reconciliation
+1,162/1,162, additional retrieval-pipeline caller module 1/1, reconciliation
 plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,051/2,051. Structural gates are exact production transform parity 2/2,
-selected-body and both caller-body parity, fresh public identity 1/1, both
-calls/two call modules, unchanged acyclic 48-module/205-edge DAG, retired exact
-private AST refs and future public stores zero, existing graph-test AST parity
-194/194 plus four new methods, UTF-8/non-ASCII preservation 3/3, pycompile, and
+2,055/2,055. Structural gates are exact production transform parity 4/4,
+selected-body and all three caller-body parity, fresh public identity 3/3, all
+three calls/three call modules, unchanged acyclic 48-module/205-edge DAG,
+retired exact private AST refs and future public stores zero, existing graph-
+test AST parity 198/198 plus four new methods, UTF-8/non-ASCII preservation 5/5,
+pycompile, and
 `git diff --check`. These are projections, not executed results. Static
 definition/signature/call/import/count/DAG/audit inspection passed; benchmark
 refresh and remote CI were **NOT RUN**.
+
+## Completed Generic-Column-Header Public API
+
+Commit `ea830ed` renamed the exact former 2-line private helper in place to
+public `financial_row_surfaces.generic_column_headers()`. Its one-return body is
+exact after definition-name normalization. The private definition and
+executable refs are gone; no wrapper or compatibility alias was added.
+
+Both calls across the row and structured-cell owners now bind the public API at
+caller `try` depth zero. External/local calls are 1/1. The structured-cell
+binding is live. Policy get/`or ()`, generator-under-set laziness, dropped-once
+and retained-twice stringification, exact second-result insertion, duplicate
+collapse, fresh sets, caller adoption, and exception stops remain unchanged.
+
+Production source is `+4/-4`, net `0`; tests are `+804/-31`, net `+773`; and the
+whole commit is `+808/-35`, net `+773`. Production physical line counts are
+unchanged. Four methods moved discovery from 2,047 to 2,051. Final counts are
+row surfaces 12/14 and structured cells 4/4. The source diff SHA-256 is
+`5b953b411edaf1fd53ac437179eb1a24dac17960398f6df64bfa6d50676cc37c`.
+
+Focused pre/post rename 4/4, graph owner 198/198, surface owner 1/1, operand
+owner 69/69, affected eleven-module semantic 1,158/1,158, additional retrieval-
+pipeline caller module 1/1, reconciliation plan 51/51, import-side-effects
+19/19, runtime-domain audit 217, and full discovery 2,051/2,051 passed on the
+final bytes. Pycompile, exact production transform parity 2/2, selected-body
+and two caller hashes, existing graph-test AST parity 194/194 plus four new
+methods, fresh public identity 1/1, both calls/two modules, zero public-name
+stores and retired exact private refs, unchanged 48-module/205-edge acyclic DAG,
+UTF-8/non-ASCII preservation 3/3, and `git diff --check` also passed. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded caller-body hashes. It
+proves no behavior, accuracy, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Operand Surface-Contract Public API
 

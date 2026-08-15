@@ -968,16 +968,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   semantic 1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan
   51/51, import 19/19, audit 217, full 2,047/2,047와 transform/body/identity/
   caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 owner-local segment-surface assembler를
-  private로 유지하고, row-surface owner의 정확한 2줄
-  `_generic_column_headers()`을 public `generic_column_headers()`로 이름
-  수렴시키는 실제 cross-module private-API batch를 선택한다. Row-local 한
-  call과 structured-cell external 한 call은 zero arguments와 caller `try`
-  depth zero를 유지한다. 기존 structured-cell-to-row edge만 사용하므로
-  48-module/205-edge DAG는 그대로 비순환이고 projected row public/private는
-  12/14이다. 아직 source/test rename은 없으며 policy get/`or ()`, generator-
-  under-set laziness, repeated stringification, exact returned collection과
-  caller stop, 네 CURRENT-SOURCE method 및 projected gate는
+- 완료된 `ea830ed` generic-column-header API batch는 row-surface owner의
+  정확한 2줄 private helper를 public `generic_column_headers()`로 이름
+  수렴시켰다. Row-local 1/external 1 call과 structured-cell binding은 public
+  API를 사용하며 policy projection·laziness·identity·failure stop은 유지됐다.
+  Row/structured public/private는 12/14, 4/4이다. Focused 4/4, graph owner
+  198/198, surface owner 1/1, operand owner 69/69, semantic 1,158/1,158,
+  additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+  audit 217, full 2,051/2,051와 transform/body/identity/caller/48-module/
+  205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 9줄
+  `_extract_table_row_label(...)`을 public `extract_table_row_label(...)`로
+  이름 수렴시키는 cross-module private-API batch를 선택한다. Graph evidence,
+  graph helpers, graph reconciliation의 external call 3개는 각각 one
+  positional argument, no keyword, caller `try` depth zero를 유지한다. 기존
+  caller-to-row edge만 사용하므로 48-module/205-edge DAG는 그대로
+  비순환이고 projected row public/private는 13/13이다. 아직 source/test
+  rename은 없으며 raw normalization, delimiter split/fallthrough, exact result
+  identity와 caller adoption/stop, 네 CURRENT-SOURCE method 및 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -6762,3 +6762,75 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 selected-span audit inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Generic-column-header public-API milestone
+
+- Commit `ea830ed` renames the exact former 2-line private helper in its existing
+  row-surface owner to public `generic_column_headers()`. Its one-return body is
+  exact after definition-name normalization; the private definition and
+  executable refs are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin the policy get/`or ()`, generator-under-set
+  laziness, condition-before-result conversion, dropped-once and retained-twice
+  stringification, exact identities/results, duplicate collapse, fresh sets,
+  immutability, uncaught failures, caller order/adoption/stops, imports, DAG,
+  audit, and public-name store absence.
+- Both calls across row surfaces and structured cells now bind the public API at
+  caller `try` depth zero. External/local calls are 1/1 and the external binding
+  is live. Later work and exception stops remain caller-owned.
+- Production source is `+4/-4`, net `0`; tests are `+804/-31`, net `+773`; and
+  the whole commit is `+808/-35`, net `+773`. Production physical line counts
+  are unchanged. Four methods move discovery from 2,047 to 2,051. Final counts
+  are row surfaces 12/14 and structured cells 4/4. The source diff SHA-256 is
+  `5b953b411edaf1fd53ac437179eb1a24dac17960398f6df64bfa6d50676cc37c`.
+- Focused pre/post rename 4/4, graph owner 198/198, surface owner 1/1, operand
+  owner 69/69, affected eleven-module semantic 1,158/1,158, additional
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import-side-effects
+  19/19, runtime-domain audit 217, and full discovery 2,051/2,051 passed on the
+  final bytes. Pycompile, production transform parity 2/2, selected-body and
+  two caller hashes, existing graph-test AST parity 194/194 plus four new
+  methods, public identity 1/1, both calls/two modules, zero public stores/
+  retired exact private refs, unchanged acyclic 48-module/205-edge DAG,
+  UTF-8/non-ASCII preservation 3/3, and diff check passed. Benchmark refresh
+  and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded caller-body hashes. It
+proves no behavior, quality, ranking, performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
+
+### Table-row-label private-API characterization checkpoint
+
+- A docs-only inventory selects the current exact 9-line
+  `financial_row_surfaces._extract_table_row_label(row_text: str) -> str`
+  definition for an in-place public rename to `extract_table_row_label(...)`.
+  It removes three external private imports with no owner-local call. No source
+  or test rename has occurred.
+- The projection preserves four top-level statements, three `if` nodes, three
+  returns, raw-argument normalization, blank stop, exact pipe membership,
+  `split("|", 1)[0]`, second normalization, truthy first-cell return, falsey
+  fallthrough to the exact initial normalized object, identities, immutability,
+  and every uncaught normalization/truth/containment/split/index failure.
+- Three one-positional-argument calls across graph evidence, graph helpers, and
+  graph reconciliation remain at caller `try` depth zero; external/local calls
+  are 3/0. Exact result adoption, earlier mutation, later work, and exception
+  stops remain caller-owned. Existing edges keep the full DAG unchanged and
+  acyclic at 48 modules/205 edges.
+- Projected row counts are 12/14 to 13/13. No future public-name definition or
+  store exists. The body SHA-256 is
+  `b6cbee85add69ae9168ecedd1d70f84beedef859629797a6d0a8a34b041e6bd1`, and
+  its span has zero of 217 reviewed runtime-domain records. The private spelling
+  appears seven times in four production files and once as an exact existing
+  graph-helper test patch string.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  202/202, surface owner 1/1, operand owner 69/69, affected semantic
+  1,162/1,162, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,055/2,055, public identity 3/3, production
+  transform/selected-body/three-caller parity, all three calls/three modules,
+  unchanged DAG, retired-ref/public-store zero, existing graph-test AST parity
+  198/198 plus four new methods, UTF-8/non-ASCII preservation 5/5, pycompile,
+  and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+selected-span audit inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.
