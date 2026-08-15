@@ -20,7 +20,7 @@ from src.agent.financial_operation_policies import (
 )
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
-    _operand_text_match,
+    operand_text_match,
     strip_financial_label_annotations,
     surface_match_variants,
     aggregate_like_row_stage,
@@ -412,7 +412,7 @@ def _operand_slot_has_evidence_surface_match(
             if _normalise_spaces(str(value or ""))
         ]
         matched_compact = re.sub(r"\s+", "", matched_line_label)
-        if _operand_text_match(matched_line_label, operand) or any(
+        if operand_text_match(matched_line_label, operand) or any(
             matched_line_label in surface
             or (matched_compact and matched_compact in re.sub(r"\s+", "", surface))
             for surface in operand_surfaces
@@ -445,7 +445,7 @@ def _operand_slot_has_evidence_surface_match(
     evidence_surface = _normalise_spaces(" ".join(part for part in surface_parts if str(part).strip()))
     if not evidence_surface:
         return False
-    return _operand_text_match(evidence_surface, operand) or text_has_positive_surface(evidence_surface, operand)
+    return operand_text_match(evidence_surface, operand) or text_has_positive_surface(evidence_surface, operand)
 
 
 def operand_row_values_differ(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
@@ -891,7 +891,7 @@ def repair_krw_operand_units_from_table_metadata(
             surface = table_surface_text(evidence_item, metadata)
             if not surface or compact_value not in re.sub(r"[,\s()]", "", surface):
                 continue
-            if label and not _operand_text_match(surface, {"label": label, "aliases": []}):
+            if label and not operand_text_match(surface, {"label": label, "aliases": []}):
                 continue
             compact_surface = re.sub(r"[\s,()]", "", surface)
             for unit in krw_units:
@@ -1377,7 +1377,7 @@ def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any
         str(row.get("label") or "").strip(),
         str(row.get("source_anchor") or "").strip(),
     ]
-    return any(_operand_text_match(surface, operand) for surface in surfaces if surface)
+    return any(operand_text_match(surface, operand) for surface in surfaces if surface)
 
 
 def _missing_required_operands(
@@ -1521,7 +1521,7 @@ def _operand_row_has_direct_evidence_surface(
                 continue
             if text_has_negative_surface(line, operand):
                 continue
-            if text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+            if text_has_positive_surface(line, operand) or operand_text_match(line, operand):
                 return True
         return False
 
@@ -1580,7 +1580,7 @@ def _llm_lookup_operand_has_direct_support(
         positive_surface_match = text_has_positive_surface(evidence_text, surface_operand)
         if requires_surface_contract and not positive_surface_match:
             return False
-        if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
+        if not (positive_surface_match or operand_text_match(evidence_text, surface_operand)):
             periodless_label = _normalise_spaces(
                 re.sub(
                     rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
@@ -1594,7 +1594,7 @@ def _llm_lookup_operand_has_direct_support(
                 positive_surface_match = text_has_positive_surface(evidence_text, surface_operand)
         if requires_surface_contract and not positive_surface_match:
             return False
-        if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
+        if not (positive_surface_match or operand_text_match(evidence_text, surface_operand)):
             return False
         if text_has_negative_surface(evidence_text, surface_operand):
             return False
@@ -1822,7 +1822,7 @@ def ratio_context_has_metric_surface(
         normalized_surface = _normalise_spaces(surface)
         if not normalized_surface:
             continue
-        if any(_operand_text_match(normalized_surface, operand) for operand in metric_operands):
+        if any(operand_text_match(normalized_surface, operand) for operand in metric_operands):
             return True
     return False
 
@@ -2662,11 +2662,11 @@ def score_direct_structured_lookup_evidence(
     }
     if row_variants and needle_variants and row_variants & needle_variants:
         score += 8.0
-    elif row_label and _operand_text_match(row_label, operand):
+    elif row_label and operand_text_match(row_label, operand):
         score += 4.0
     if semantic_variants and needle_variants and semantic_variants & needle_variants:
         score += 3.0
-    elif semantic_label and semantic_label != row_label and _operand_text_match(semantic_label, operand):
+    elif semantic_label and semantic_label != row_label and operand_text_match(semantic_label, operand):
         score += 1.5
 
     numeric_cells = 0
@@ -2681,7 +2681,7 @@ def score_direct_structured_lookup_evidence(
         headers = _normalise_spaces(
             " ".join(str(header) for header in (cell.get("column_headers") or []) if str(header).strip())
         )
-        if headers and _operand_text_match(headers, operand):
+        if headers and operand_text_match(headers, operand):
             header_affinity = True
     if header_affinity:
         score += 1.0
@@ -3646,25 +3646,25 @@ def candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]
     }
     metadata = dict(candidate.get("metadata") or {})
     row_label = str(metadata.get("row_label") or "").strip()
-    if _operand_text_match(row_label, operand):
+    if operand_text_match(row_label, operand):
         return True
     semantic_label = str(metadata.get("semantic_label") or "").strip()
-    if _operand_text_match(semantic_label, operand):
+    if operand_text_match(semantic_label, operand):
         return True
     semantic_aliases = " ".join(
         str(item).strip()
         for item in (metadata.get("semantic_aliases") or [])
         if str(item).strip()
     )
-    if _operand_text_match(semantic_aliases, operand):
+    if operand_text_match(semantic_aliases, operand):
         return True
     row_headers = " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip())
-    if _operand_text_match(row_headers, operand):
+    if operand_text_match(row_headers, operand):
         return True
     aggregate_label = str(metadata.get("aggregate_label") or "").strip()
-    if _operand_text_match(aggregate_label, operand):
+    if operand_text_match(aggregate_label, operand):
         return True
-    if candidate_kind != "table_row" and _operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
+    if candidate_kind != "table_row" and operand_text_match(str(metadata.get("table_row_labels_text") or ""), operand):
         return True
     if is_capex_total_operand(operand):
         section_context = " ".join(
@@ -3714,7 +3714,7 @@ def candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]
             return True
     if structured_candidate:
         return False
-    return _operand_text_match(str(candidate.get("text") or ""), operand)
+    return operand_text_match(str(candidate.get("text") or ""), operand)
 
 
 def candidate_location_entity_subject_score(candidate: Dict[str, Any], *, operand: Dict[str, Any]) -> float:
@@ -3830,7 +3830,7 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
         ):
             best = max(best, exact_bonus)
             continue
-        if _operand_text_match(normalized_surface, operand):
+        if operand_text_match(normalized_surface, operand):
             best = max(best, exact_bonus * 0.5)
     if is_capex_total_operand(operand):
         context_text = " ".join(
@@ -3885,7 +3885,7 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
     )
     if (
         aggregate_signal
-        and _operand_text_match(aggregate_signal, operand)
+        and operand_text_match(aggregate_signal, operand)
         and candidate_value_role(candidate) == "aggregate"
         and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
     ):
@@ -3933,7 +3933,7 @@ def score_operand_candidate(
             for needle_variant in surface_match_variants(needle)
         ):
             score += 3.0
-        elif _operand_text_match(row_label, operand):
+        elif operand_text_match(row_label, operand):
             score += 1.5
     score += candidate_direct_match_strength(candidate, operand)
     candidate_kind = str(candidate.get("candidate_kind") or "")
@@ -3968,7 +3968,7 @@ def score_operand_candidate(
     if (
         bool(metadata.get("direct_row_from_table_value_labels"))
         and numeric_cell_count == 1
-        and _operand_text_match(" ".join(part for part in (row_label, semantic_label) if part), operand)
+        and operand_text_match(" ".join(part for part in (row_label, semantic_label) if part), operand)
     ):
         score += 4.0
 
@@ -3993,9 +3993,9 @@ def score_operand_candidate(
         )
         if part
     )
-    if value_role == "aggregate" and aggregation_stage in {"direct", "final"} and _operand_text_match(aggregate_signal, operand):
+    if value_role == "aggregate" and aggregation_stage in {"direct", "final"} and operand_text_match(aggregate_signal, operand):
         score += 2.0
-    elif value_role == "aggregate" and aggregation_stage == "subtotal" and _operand_text_match(aggregate_signal, operand):
+    elif value_role == "aggregate" and aggregation_stage == "subtotal" and operand_text_match(aggregate_signal, operand):
         score += 0.75
     preferred_value_roles = [
         _normalise_spaces(str(item)).lower()

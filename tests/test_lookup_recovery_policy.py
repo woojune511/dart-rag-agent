@@ -1700,7 +1700,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }
         }
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", side_effect=operand_match),
+            patch.object(financial_lookup_recovery, "operand_text_match", side_effect=operand_match),
             patch.object(financial_lookup_recovery, "text_has_positive_surface", side_effect=positive_match),
             patch.object(
                 financial_lookup_recovery,
@@ -1738,7 +1738,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             return {}
 
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(
                 financial_lookup_recovery,
                 "text_has_positive_surface",
@@ -1762,7 +1762,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(
                 financial_lookup_recovery,
-                "_operand_text_match",
+                "operand_text_match",
                 side_effect=RuntimeError("surface match failed"),
             ),
             patch.object(financial_lookup_recovery, "text_has_positive_surface") as later,
@@ -1795,7 +1795,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }
         }
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(
                 financial_lookup_recovery,
@@ -1840,7 +1840,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             return cells[0]
 
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "_structured_cell_period_text", side_effect=period_text),
@@ -1890,7 +1890,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             return cells[1]
 
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(
                 financial_lookup_recovery,
                 "operand_prefers_aggregate_value_role",
@@ -1935,7 +1935,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertIs(aggregate_row["nested"], nested)
 
         with (
-            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "select_structured_cell", return_value={"value_text": "bad"}),
             patch.object(

@@ -32,7 +32,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
     _desired_consolidation_scope,
     _metadata_period_match_strength,
@@ -321,7 +321,7 @@ def _lookup_retrieval_objective_signature(active_subtask: Dict[str, Any]) -> str
 
 
 def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
-    if text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+    if text_has_positive_surface(line, operand) or operand_text_match(line, operand):
         return True
     assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
     token_split_pattern = str(assembly_policy.get("lookup_surface_token_split_pattern") or r"[\s/|,()]+")

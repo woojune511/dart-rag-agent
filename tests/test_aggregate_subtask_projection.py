@@ -1084,7 +1084,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ) as primary_slot_owner,
             patch.object(
                 financial_aggregate_projection,
-                "_operand_text_match",
+                "operand_text_match",
                 side_effect=operand_match,
             ) as operand_match_owner,
             patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
@@ -3302,7 +3302,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="",
             ),
             patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", return_value="metric 10"),
-            patch.object(financial_aggregate_projection, "_operand_text_match", return_value=False),
+            patch.object(financial_aggregate_projection, "operand_text_match", return_value=False),
             patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
             patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=[]),
         ):
@@ -5345,7 +5345,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
         with patch.object(
             financial_aggregate_projection,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=RuntimeError("label match must stay lazy"),
         ) as label_match:
             selected = sync(component_row, [first, second])
@@ -5361,7 +5361,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         directional_slot = {"label": "lookup label", "raw_value": "3"}
         with patch.object(
             financial_aggregate_projection,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=directional_match,
         ):
             selected = sync(

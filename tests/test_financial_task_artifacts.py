@@ -437,7 +437,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             side_effect=normalise,
         ), patch.object(
             financial_task_artifacts,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=operand_match,
         ), patch.object(
             financial_task_artifacts,
@@ -485,7 +485,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             with self.subTest(surface=surface, needles=needles):
                 with patch.object(
                     financial_task_artifacts,
-                    "_operand_text_match",
+                    "operand_text_match",
                     return_value=False,
                 ), patch.object(
                     financial_task_artifacts,
@@ -514,14 +514,14 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 financial_task_artifacts._artifact_text_matches_operand_surface("surface", operand)
         with patch.object(
             financial_task_artifacts,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=RuntimeError("operand match failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "operand match failed"):
                 financial_task_artifacts._artifact_text_matches_operand_surface("surface", operand)
         with patch.object(
             financial_task_artifacts,
-            "_operand_text_match",
+            "operand_text_match",
             return_value=False,
         ), patch.object(
             financial_task_artifacts.re,
@@ -536,7 +536,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 financial_task_artifacts._artifact_text_matches_operand_surface("surface", operand)
         with patch.object(
             financial_task_artifacts,
-            "_operand_text_match",
+            "operand_text_match",
             return_value=False,
         ), patch.object(
             financial_task_artifacts,

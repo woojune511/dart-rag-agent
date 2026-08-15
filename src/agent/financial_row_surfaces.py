@@ -69,7 +69,7 @@ def surface_match_variants(text: str) -> List[str]:
     return list(dict.fromkeys(item for item in variants if item))
 
 
-def _operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
+def operand_text_match(text: str, operand: Dict[str, Any]) -> bool:
     haystack_variants = surface_match_variants(text)
     if not haystack_variants:
         return False
@@ -411,7 +411,7 @@ def candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Di
         )
         if str(part or "").strip()
     )
-    return text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
+    return text_has_positive_surface(context_text, operand) or operand_text_match(context_text, operand)
 
 
 def table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:
@@ -430,7 +430,7 @@ def table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand:
                 " ".join(str(item).strip() for item in (record.get("row_headers") or []) if str(item).strip()),
                 " ".join(str(item).strip() for item in (record.get("semantic_aliases") or []) if str(item).strip()),
             ]
-            if any(_operand_text_match(surface, operand) for surface in surfaces if surface):
+            if any(operand_text_match(surface, operand) for surface in surfaces if surface):
                 return True
     return False
 
@@ -458,7 +458,7 @@ def candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: 
         str(metadata.get("table_summary_text") or "").strip(),
         " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
     ]
-    return any(_operand_text_match(surface, operand) for surface in metric_surfaces if surface)
+    return any(operand_text_match(surface, operand) for surface in metric_surfaces if surface)
 
 
 def candidate_sibling_surface_hit_count(candidate: Dict[str, Any], sibling_surfaces: List[str]) -> int:

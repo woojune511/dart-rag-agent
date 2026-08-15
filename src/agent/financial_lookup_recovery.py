@@ -13,7 +13,7 @@ from src.agent.financial_operand_resolution import (
     operand_prefers_aggregate_value_role,
     score_direct_structured_lookup_evidence,
 )
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_structured_cells import (
@@ -596,7 +596,7 @@ def coerce_operand_value_from_direct_structured_evidence(
         )
     )
     if authoritative_surface and not (
-        _operand_text_match(authoritative_surface, operand_spec)
+        operand_text_match(authoritative_surface, operand_spec)
         or text_has_positive_surface(authoritative_surface, operand_spec)
     ):
         return row

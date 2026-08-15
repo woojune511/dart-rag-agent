@@ -60,7 +60,7 @@ from src.agent.financial_surface_contracts import (
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     extract_table_row_label,
-    _operand_text_match,
+    operand_text_match,
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
@@ -1359,7 +1359,7 @@ class FinancialAgentEvidenceMixin:
                     }
                     aggregate_context_match = (
                         ("aggregate" in prefer_value_roles or aggregate_stage in prefer_aggregation_stages)
-                        and _operand_text_match(context_text, operand)
+                        and operand_text_match(context_text, operand)
                     )
                 surface_contract_match = (
                     text_has_positive_surface(context_text or raw_row, operand)
@@ -1413,21 +1413,21 @@ class FinancialAgentEvidenceMixin:
                     > 0
                     for cell in parsed_cells
                 )
-                raw_row_direct_match = _operand_text_match(raw_row, operand) or text_has_positive_surface(raw_row, operand)
+                raw_row_direct_match = operand_text_match(raw_row, operand) or text_has_positive_surface(raw_row, operand)
                 table_value_context_raw = str(metadata.get("table_value_labels_text") or "")
                 table_value_context = _normalise_spaces(table_value_context_raw)
                 table_value_context_match = bool(table_value_context) and (
                     text_has_positive_surface(table_value_context, operand)
                     if requires_surface_contract
                     else (
-                        _operand_text_match(table_value_context, operand)
+                        operand_text_match(table_value_context, operand)
                         or text_has_positive_surface(table_value_context, operand)
                     )
                 )
                 raw_row_matches_other_required = any(
                     other_operand is not operand
                     and (
-                        _operand_text_match(raw_row, other_operand)
+                        operand_text_match(raw_row, other_operand)
                         or text_has_positive_surface(raw_row, other_operand)
                     )
                     for other_operand in required_operands
@@ -1435,7 +1435,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_row_direct_match and raw_row_matches_other_required and not table_value_context_match:
                     continue
                 if (
-                    not _operand_text_match(raw_row, operand)
+                    not operand_text_match(raw_row, operand)
                     and not aggregate_context_match
                     and not surface_contract_match
                     and not period_count_context_match
@@ -1475,7 +1475,7 @@ class FinancialAgentEvidenceMixin:
                                     text_has_positive_surface(normalized_line, operand)
                                     if requires_surface_contract
                                     else (
-                                        _operand_text_match(normalized_line, operand)
+                                        operand_text_match(normalized_line, operand)
                                         or text_has_positive_surface(normalized_line, operand)
                                     )
                                 )
@@ -1528,7 +1528,7 @@ class FinancialAgentEvidenceMixin:
                                 operand=operand,
                             )
                             selected_row_label = _normalise_spaces(str(selected_cell.get("row_label") or ""))
-                            if selected_score > 0 or _operand_text_match(selected_row_label, operand):
+                            if selected_score > 0 or operand_text_match(selected_row_label, operand):
                                 raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
                                 raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
                                 if not period:

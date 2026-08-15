@@ -50,7 +50,7 @@ from src.agent.financial_operand_resolution import (
     coerce_operand_unit_from_evidence,
     ratio_context_has_metric_surface,
 )
-from src.agent.financial_row_surfaces import _operand_text_match, strip_leading_period_qualifiers
+from src.agent.financial_row_surfaces import operand_text_match, strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -2576,7 +2576,7 @@ def append_uncovered_lookup_numeric_items(
             component_label = _normalise_spaces(str(component.get("label") or ""))
             if not component_label:
                 continue
-            if not _operand_text_match(component_label, {"label": lookup_label, "concept": ""}):
+            if not operand_text_match(component_label, {"label": lookup_label, "concept": ""}):
                 continue
             component_unit = _normalise_spaces(str(component.get("normalized_unit") or "")).upper()
             if lookup_unit and component_unit and lookup_unit != component_unit:
@@ -2615,7 +2615,7 @@ def append_uncovered_lookup_numeric_items(
         if (
             lookup_label
             and extract_numeric_surface_candidates(answer_text)
-            and _operand_text_match(answer_text, {"label": lookup_label, "aliases": []})
+            and operand_text_match(answer_text, {"label": lookup_label, "aliases": []})
         ):
             continue
         missing_items.append(item_answer)
@@ -2973,7 +2973,7 @@ def select_aggregate_projection_answer_sentence(
             required_overlap = len(label_tokens)
             if len(label_tokens) >= 3:
                 required_overlap = max(2, len(label_tokens) - 1)
-            if overlap >= required_overlap and _operand_text_match(normalized, {"label": label, "aliases": []}):
+            if overlap >= required_overlap and operand_text_match(normalized, {"label": label, "aliases": []}):
                 score = max(score, 1)
         return score
 
@@ -3293,8 +3293,8 @@ def _replacement_lookup_slot_for_component(
         if concept and slot_concept and concept == slot_concept:
             return slot
         if label and slot_label and (
-            _operand_text_match(label, {"label": slot_label, "aliases": []})
-            or _operand_text_match(slot_label, {"label": label, "aliases": []})
+            operand_text_match(label, {"label": slot_label, "aliases": []})
+            or operand_text_match(slot_label, {"label": label, "aliases": []})
         ):
             return slot
     return {}

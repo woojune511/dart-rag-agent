@@ -288,7 +288,7 @@ from src.agent.financial_surface_contracts import (
 )
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
-    _operand_text_match,
+    operand_text_match,
     surface_match_variants,
 )
 from src.agent.financial_lookup_recovery import (
@@ -1205,7 +1205,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 if normalized_surface == normalized_label:
                     return True
-                if _operand_text_match(normalized_label, {"label": normalized_surface}):
+                if operand_text_match(normalized_label, {"label": normalized_surface}):
                     return True
                 if re.search(rf"(?<!\w){re.escape(normalized_label)}(?!\w)", normalized_surface):
                     return True
@@ -1315,7 +1315,7 @@ class FinancialAgentCalculationMixin:
         selected = candidate_pool[0]
         operand_year = _operand_year_hint()
         report_year = str(metadata.get("year") or "")
-        row_label_matches_operand = _operand_text_match(
+        row_label_matches_operand = operand_text_match(
             _normalise_spaces(
                 " ".join(
                     str(value or "")
@@ -1345,7 +1345,7 @@ class FinancialAgentCalculationMixin:
                     aliases.append(alias_text)
             if aliases:
                 periodless_operand["aliases"] = aliases
-            row_label_matches_operand = _operand_text_match(
+            row_label_matches_operand = operand_text_match(
                 _normalise_spaces(
                     " ".join(
                         str(value or "")
@@ -1363,7 +1363,7 @@ class FinancialAgentCalculationMixin:
                 str(selected.get("_matched_line_label") or selected.get("_matched_surface") or "")
             )
             if selected_line_label:
-                row_label_matches_operand = _operand_text_match(selected_line_label, operand)
+                row_label_matches_operand = operand_text_match(selected_line_label, operand)
                 if not row_label_matches_operand:
                     periodless_selected_line_label = selected_line_label
                     slot_policy = dict(CALCULATION_SLOT_POLICY)
@@ -1372,7 +1372,7 @@ class FinancialAgentCalculationMixin:
                         periodless_selected_line_label = _normalise_spaces(
                             re.sub(leading_period_strip_pattern, " ", selected_line_label)
                         )
-                    row_label_matches_operand = _operand_text_match(
+                    row_label_matches_operand = operand_text_match(
                         periodless_selected_line_label,
                         periodless_operand if "periodless_operand" in locals() else operand,
                     )
@@ -1485,7 +1485,7 @@ class FinancialAgentCalculationMixin:
                     )
                 )
             )
-            return _operand_text_match(candidate_surface, operand)
+            return operand_text_match(candidate_surface, operand)
 
         def _context_scope_score(evidence: Dict[str, Any]) -> float:
             if state is None:
@@ -1570,7 +1570,7 @@ class FinancialAgentCalculationMixin:
                     needle in source_text or re.sub(r"\s+", "", needle) in source_compact
                     for needle in needle_surfaces
                 )
-                row_matches_operand = bool(row_surface and _operand_text_match(row_surface, operand))
+                row_matches_operand = bool(row_surface and operand_text_match(row_surface, operand))
                 if not claim_has_operand_label and not row_matches_operand:
                     return {}, 0.0
             best_candidate: Dict[str, Any] = {}
@@ -1616,7 +1616,7 @@ class FinancialAgentCalculationMixin:
                     if str(value or "").strip()
                 )
             )
-            return bool(row_surface and _operand_text_match(row_surface, operand))
+            return bool(row_surface and operand_text_match(row_surface, operand))
 
         for evidence_item in evidence_pool:
             evidence = dict(evidence_item or {})
@@ -2079,7 +2079,7 @@ class FinancialAgentCalculationMixin:
             operand_concept = _normalise_spaces(str(operand.get("concept") or ""))
             if candidate_concept and operand_concept and candidate_concept == operand_concept:
                 return True
-            return bool(candidate_label and _operand_text_match(candidate_label, operand))
+            return bool(candidate_label and operand_text_match(candidate_label, operand))
 
         _slot_differs_from_operand = dependency_projection_slot_differs_from_operand
         _source_task_id_for_operand = source_task_id_for_dependency_operand
@@ -5640,7 +5640,7 @@ class FinancialAgentCalculationMixin:
             compact_surface = re.sub(r"[,\s()]", "", surface)
             if not any(value in surface or value in compact_surface for value in raw_value_variants):
                 continue
-            if not _operand_text_match(surface, binding):
+            if not operand_text_match(surface, binding):
                 continue
             node_scope = _normalise_spaces(str(metadata.get("consolidation_scope") or ""))
             if desired_scope in {"consolidated", "separate"} and node_scope and node_scope != desired_scope:
@@ -6955,7 +6955,7 @@ class FinancialAgentCalculationMixin:
                         best = max(best, 3000 + len(alias_compact))
             if best:
                 return best
-            if _operand_text_match(label_text, operand_spec):
+            if operand_text_match(label_text, operand_spec):
                 return max(len(re.sub(r"\s+", "", variant)) for variant in label_variants)
             return 0
 
@@ -7015,7 +7015,7 @@ class FinancialAgentCalculationMixin:
         def _row_label_score(label: str) -> int:
             if not label:
                 return 0
-            if _operand_text_match(label, operand_spec):
+            if operand_text_match(label, operand_spec):
                 return 1000 + len(re.sub(r"\s+", "", label))
             affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
             metric_terms = tuple(str(item) for item in (affinity_policy.get("metric_terms") or ()) if str(item))
@@ -7517,7 +7517,7 @@ class FinancialAgentCalculationMixin:
                     )
                 )
             )
-            if candidate_identity_surface and not _operand_text_match(candidate_identity_surface, operand):
+            if candidate_identity_surface and not operand_text_match(candidate_identity_surface, operand):
                 aligned.append(current_row)
                 continue
             candidate_evidence = _evidence_item_for_operand_row(candidate_slot, evidence_by_id)
@@ -7907,7 +7907,7 @@ class FinancialAgentCalculationMixin:
             )
             for label in matched_labels:
                 if label and (
-                    _operand_text_match(direct_claim_surface, {"label": label, "concept": ""})
+                    operand_text_match(direct_claim_surface, {"label": label, "concept": ""})
                     or text_has_positive_surface(direct_claim_surface, {"label": label, "concept": ""})
                 ):
                     score += 6.0
@@ -11695,7 +11695,7 @@ class FinancialAgentCalculationMixin:
                             )
                         )
                     )
-                    slot_matches_binding = _operand_text_match(slot_surface, binding)
+                    slot_matches_binding = operand_text_match(slot_surface, binding)
                 if not slot_matches_binding:
                     continue
                 matched_operand_candidate: Dict[str, Any] = {}

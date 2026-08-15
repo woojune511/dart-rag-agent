@@ -25,7 +25,7 @@ from src.agent.financial_operand_resolution import (
     operand_row_values_materially_conflict,
     select_sibling_direct_operand_candidate,
 )
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -1282,7 +1282,7 @@ def dependency_lookup_slot_match_score(
     if lookup_label and arithmetic_label:
         if lookup_label == arithmetic_label:
             score += 6
-        elif _operand_text_match(lookup_label, {"label": arithmetic_label}):
+        elif operand_text_match(lookup_label, {"label": arithmetic_label}):
             score += 4
         elif arithmetic_label in lookup_label or lookup_label in arithmetic_label:
             score += 3

@@ -4720,7 +4720,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         matcher_calls.clear()
         with patch.object(graph_calculation, "dependency_slot_matches_input", side_effect=matcher), patch.object(
             graph_calculation,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=lambda *args, **kwargs: fallback_calls.append((args, kwargs)) or False,
         ):
             self.assertIs(agent._append_ratio_result_from_task_outputs(ordered, ratio_state), ordered)
@@ -4733,7 +4733,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         with patch.object(graph_calculation, "dependency_slot_matches_input", return_value=False), patch.object(
             graph_calculation,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=lambda *args, **kwargs: fallback_calls.append((args, kwargs)) or False,
         ):
             fallback_calls.clear()
@@ -4746,7 +4746,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=RuntimeError("ratio dependency match failed"),
         ), patch.object(
             graph_calculation,
-            "_operand_text_match",
+            "operand_text_match",
             side_effect=AssertionError("fallback must stop"),
         ):
             with self.assertRaisesRegex(RuntimeError, "ratio dependency match failed"):

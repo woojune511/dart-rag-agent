@@ -2205,7 +2205,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             calls.append((surface, operand))
             return surface == "surface six" and operand["label"] == "metric c"
 
-        with patch.object(operand_resolution, "_operand_text_match", side_effect=operand_match):
+        with patch.object(operand_resolution, "operand_text_match", side_effect=operand_match):
             self.assertTrue(matches(evidence_items, ordered_task))
 
         expected_surfaces = [
@@ -2306,7 +2306,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             },
             "task",
         )
-        real_match = operand_resolution._operand_text_match
+        real_match = operand_resolution.operand_text_match
 
         def tracked_match(surface, operand):
             events.append(f"match:{surface}:{operand['label']}")
@@ -2314,7 +2314,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with (
             patch.object(operand_resolution, "dict", RecordingDict, create=True),
-            patch.object(operand_resolution, "_operand_text_match", side_effect=tracked_match),
+            patch.object(operand_resolution, "operand_text_match", side_effect=tracked_match),
         ):
             self.assertTrue(matches([evidence], tracked_task))
 
@@ -2435,14 +2435,14 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             matches([], {"metric_label": "target", "aliases": IterBomb()})
         with self.assertRaisesRegex(RuntimeError, "iteration failed"):
             matches(IterBomb(), {"metric_label": "target"})  # type: ignore[arg-type]
-        with patch.object(operand_resolution, "_operand_text_match") as matcher:
+        with patch.object(operand_resolution, "operand_text_match") as matcher:
             with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
                 matches(
                     [{"claim": "target 10"}, CopyBomb()],
                     {"metric_label": "target"},
                 )
         matcher.assert_not_called()
-        with patch.object(operand_resolution, "_operand_text_match") as matcher:
+        with patch.object(operand_resolution, "operand_text_match") as matcher:
             with self.assertRaisesRegex(RuntimeError, "string failed"):
                 matches(
                     [{"claim": "target 10"}, {"claim": StringBomb()}],
@@ -2481,7 +2481,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 matches(context, task)
         for owner, patch_name in (
             ("normalizer", "_normalise_spaces"),
-            ("matcher", "_operand_text_match"),
+            ("matcher", "operand_text_match"),
         ):
             with self.subTest(owner=owner), patch.object(
                 operand_resolution,
@@ -5939,7 +5939,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 return_value=False,
             ),
-            patch.object(operand_resolution, "_operand_text_match", side_effect=match),
+            patch.object(operand_resolution, "operand_text_match", side_effect=match),
             patch.object(
                 operand_resolution,
                 "_normalise_operand_value",
@@ -5992,7 +5992,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 return_value=False,
             ),
-            patch.object(operand_resolution, "_operand_text_match", return_value=True),
+            patch.object(operand_resolution, "operand_text_match", return_value=True),
             patch.object(
                 operand_resolution,
                 "_normalise_operand_value",
@@ -6048,7 +6048,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     "dependency_task_output_has_consistent_krw_unit",
                     return_value=False,
                 ),
-                patch.object(operand_resolution, "_operand_text_match", side_effect=capture_requirement),
+                patch.object(operand_resolution, "operand_text_match", side_effect=capture_requirement),
                 patch.object(
                     operand_resolution,
                     "_normalise_operand_value",
@@ -6137,7 +6137,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     "dependency_task_output_has_consistent_krw_unit",
                     return_value=False,
                 ),
-                patch.object(operand_resolution, "_operand_text_match", return_value=True),
+                patch.object(operand_resolution, "operand_text_match", return_value=True),
                 patch.object(
                     operand_resolution,
                     "_normalise_operand_value",
@@ -6179,7 +6179,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 ),
                 patch.object(
                     operand_resolution,
-                    "_operand_text_match",
+                    "operand_text_match",
                     side_effect=RuntimeError("label failed") if stage == "label" else None,
                     return_value=True,
                 ),

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from src.agent.financial_row_surfaces import (
     generic_column_headers,
-    _operand_text_match,
+    operand_text_match,
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
@@ -152,7 +152,7 @@ def select_aggregate_structured_cell(
             score += 1.0
         if aggregate_label:
             score += 1.5
-        if _operand_text_match(aggregate_surface, operand):
+        if operand_text_match(aggregate_surface, operand):
             score += 4.0
         try:
             score += min(float(cell.get("column_index") or 0), 100.0) / 1000.0
@@ -193,12 +193,12 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
     score = 0.0
     if any(last_header == needle for needle in needles):
         score += 4.0
-    elif _operand_text_match(last_header, operand):
+    elif operand_text_match(last_header, operand):
         score += 2.0
 
     if any(header == needle for header in headers for needle in needles):
         score += 0.75
-    elif any(_operand_text_match(header, operand) for header in headers):
+    elif any(operand_text_match(header, operand) for header in headers):
         score += 0.35
 
     row_label = _normalise_spaces(str(cell.get("row_label") or ""))
@@ -223,7 +223,7 @@ def _structured_cell_operand_affinity(cell: Dict[str, Any], operand: Dict[str, A
             score += 3.0
 
     aggregate_tokens = tuple(str(item) for item in (affinity_policy.get("aggregate_tokens") or ()) if str(item))
-    if any(token in last_header for token in aggregate_tokens) and _operand_text_match(last_header, operand):
+    if any(token in last_header for token in aggregate_tokens) and operand_text_match(last_header, operand):
         score += 4.0
 
     return score
