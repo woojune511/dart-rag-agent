@@ -259,14 +259,23 @@ operand owner 69/69, affected 1,178/1,178, additional retrieval-pipeline 1/1,
 reconciliation plan 51/51, import 19/19, audit 217, full 2,071/2,071 및
 transform 16/16/body/identity/36-caller/DAG parity가 통과했다. Characterize
 checkpoint가 빠뜨린 5개 non-graph test module의 live ref 30개도 함께 public
-binding으로 갱신됐다. 다음 characterize-only inventory는 같은 owner의 정확한
-16줄 `_extract_numeric_value_after_operand_text(...)`을 public
-`extract_numeric_value_after_operand_text(...)`로 이름 수렴시켜 graph
-calculation/evidence와 operand resolution의 3개 외부 binding을 제거한다.
-5개 call/3개 caller의 normalization, needle compact, character-wise escaped
-pattern, search, candidate distance sort, first result identity와 stop은
-유지해야 하며 row-local candidate helpers는 이동하지 않는다. 정확한 계약과
-projected gate는
+binding으로 갱신됐다. 이어 정확한 16줄
+`_extract_numeric_value_after_operand_text(...)`은 `7739ab0`에서 public
+`extract_numeric_value_after_operand_text(...)`로 이름 수렴했다. Graph
+calculation/evidence와 operand resolution의 5개 call 및 3개 외부 binding은
+public API를 사용한다. Normalization, needle compact, character-wise escaped
+pattern, search, candidate distance sort, first result identity와 3개 caller의
+adoption/stop은 유지됐다. Focused 4/4, graph owner 222/222, surface owner 1/1,
+operand owner 69/69, affected 1,182/1,182, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,075/2,075 및
+transform 8/8/body/identity/caller/DAG parity가 통과했다. 다음 characterize-
+only inventory는 남은 두 cross-module private helper 중 더 작은 정확한 24줄
+`_format_structured_candidate_row_text(...)`을 public
+`format_structured_candidate_row_text(...)`로 이름 수렴시켜 graph helpers의
+2개 call과 1개 private binding을 제거한다. Label/header dedupe, repeated
+header normalization, cell-part construction/join, caller assignment/adoption/
+stop은 유지해야 하며 47줄 unstructured-table parser는 이동하지 않는다.
+정확한 계약과 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

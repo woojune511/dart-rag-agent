@@ -5200,50 +5200,82 @@ under-counted 30 live references in five additional test modules; execution
 migrated them and recorded the correction. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The next private-API contract is the exact current 16-line
-`financial_row_surfaces._extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`
+Commit `7739ab0` completes the numeric-value-after-operand-text visibility
+contract. The exact former 16-line definition is public
+`financial_row_surfaces.extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`;
+no wrapper or private alias remains. Its four top-level statements, five
+assignments, four `if` nodes, one loop, two continues, three returns, nine
+calls, one generator, one lambda, normalization, needle compaction, escaped
+spaced-pattern construction, search, candidate projection, stable distance
+sort, exact selected-value identity, immutability, and uncaught failure behavior
+are unchanged after definition-name normalization.
+
+All five direct source calls use two positional arguments, no keywords, and
+caller `try` depth zero; external/local calls finish 5/0 across three caller
+definitions in graph calculation, graph evidence, and operand resolution. The
+three external importers bind the same public owner identity. Row counts finish
+18/8. Executed gates are focused 4/4, graph owner 222/222, surface owner 1/1,
+operand owner 69/69, affected semantic 1,182/1,182, additional retrieval-
+pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and full
+2,075/2,075, plus pycompile, production transform 4/4, source/test transform
+8/8, selected-body/three-caller parity, existing graph-test AST 218/218 plus
+four new methods, public identity 4/4, all-call/DAG/public-store/retired-live-
+ref and UTF-8/non-ASCII gates. Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 24-line
+`financial_row_surfaces._format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`
 definition. It already belongs to the row-surface owner; the authorized future
 batch only renames it in place to public
-`extract_numeric_value_after_operand_text(...)` and updates three imports, five
-direct calls, and exact test references without a private alias. Adjacent
-parenthetical, numeric-match, and candidate-construction helpers remain
-row-local and private.
+`format_structured_candidate_row_text(...)` and updates one import, two direct
+calls, and exact test patch names without a private alias. The adjacent 47-line
+unstructured-table parser remains private and outside this batch.
 
-Preserve four top-level statements, five assignments, four `if` nodes, one
-`for`, two `continue` statements, three returns, nine calls, one generator, one
-lambda, and zero `try` or list-comprehension nodes. Normalize exact `text or ""`
-once and return `""` before operand access when falsey. Iterate a fresh
-`operand_needles(operand)` result left to right. For each needle, normalize it,
-compact it through exact `re.sub(r"\s+", "", ...)`, and skip falsey compacts.
-Build exact `r"\s*".join(re.escape(char) for char in compact)`, preserving
-character iteration, escape order, generator consumption, and join identity.
+Preserve four top-level statements, one annotated assignment, three plain
+assignments, two loops, two `if` nodes, one return, 19 calls, four list nodes,
+one starred item, two generators, five boolean operations, two comprehension
+clauses, and zero `try`, lambda, or list-comprehension nodes. Start with a fresh
+`row_parts` list and eagerly expand exact `[label, *headers]`. For each part,
+evaluate exact `_normalise_spaces(str(part or ""))`, then append only a truthy
+cleaned result absent from `row_parts`. Preserve raw truth before string
+conversion, full header expansion before normalization, ordered membership and
+equality, duplicate suppression, and the first cleaned representative.
 
-Call `re.search(spaced_pattern, normalized)` once and skip a falsey match. Pass
-a truthy match with the exact normalized string to
-`_numeric_operand_candidates_near_match(...)` once. A falsey candidates object
-continues; a truthy one is sorted through exact
-`sorted(candidates, key=lambda item: item[0])[0][1]`. Preserve stable distance
-ordering, key/subscript order, exact selected-value identity, first-success and
-exhaustion stops, input/nested-object immutability, absence of added coercion or
-cache, and every uncaught truth, iteration, normalization, regex, escape, join,
-search, candidate, sort, key, and subscript failure.
+For each cell, eagerly build the header, value, then unit entries of
+`cell_parts`. The header entry iterates exact
+`cell.get("column_headers") or []` and joins retained normalized headers through
+`" / "`. Its generator intentionally repeats `_normalise_spaces(str(item))` in
+the filter and retained expression, so retained headers stringify and normalize
+twice while rejected ones do so once. Value and unit each preserve exact
+mapping access, raw `or ""`, string conversion, and normalization order.
 
-All five direct calls use two positional arguments, no keywords, and caller
-`try` depth zero; external/local calls are 5/0 across three caller definitions
-in graph calculation, graph evidence, and operand resolution. All three
-importers already reach row surfaces, so the full DAG remains acyclic at 48
-modules/205 edges. Projected row counts are 17/9 to 18/8. The selected body
+Preserve exact `_normalise_spaces(" ".join(part for part in cell_parts if part))`,
+truth-gated append without cell dedupe, and final `" | ".join(row_parts)`.
+Inputs and nested objects remain unchanged; no cache or extra coercion is
+allowed. Header expansion, raw truth, string conversion, normalization,
+membership/equality, list/cell/header iteration, mapping access, generator
+filtering, and all three joins retain their exact uncaught failures.
+
+Both direct calls use three positional arguments, no keywords, and caller
+`try` depth zero; external/local calls are 2/0 across two caller definitions in
+the sole graph-helper importer. Table-value candidates pass exact
+`semantic_label`, `row_headers`, and
+`list(candidate["metadata"]["structured_cells"] or [])`, assign the result, and
+append only after success. Table-row candidates pass exact `row_label`,
+`row_headers`, and `cells`, assign the result, then keep normalization,
+seen-set adoption, append, and exception stops caller-owned.
+
+The importer already reaches row surfaces, so the full DAG remains acyclic at
+48 modules/205 edges. Projected row counts are 18/8 to 19/7. The selected body
 SHA-256 is
-`bdac2c1b9337a7d415b802d2af850ee5c9e4b1c242995310553e765e748fb8ab`;
-the private identifier has nine production AST references. Twelve exact test
-references across four test files make the bounded source/test transform eight
-files. The selected 226-241 span intersects no reviewed runtime-domain record;
-its string literals are `""`, `r"\s+"`, and `r"\s*"`, so the 217-record
-baseline must stay unchanged.
+`596e6a345e220615c487d56760d77ff26b1cac1ed5721301c16f7ddf15e0a127`;
+the private identifier has four production AST references. Two exact test
+patch-name references in one graph-helper method make the bounded source/test
+transform three files. The selected 304-327 span intersects no reviewed
+runtime-domain record; all 217 baseline records must stay unchanged.
 
-Projected focused 4/4, graph owner 222/222, surface owner 1/1, operand owner
-69/69, affected semantic 1,182/1,182, additional retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, and full 2,075/2,075 gates
+Projected focused 4/4, graph owner 226/226, surface owner 1/1, operand owner
+69/69, affected semantic 1,186/1,186, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,079/2,079 gates
 are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.

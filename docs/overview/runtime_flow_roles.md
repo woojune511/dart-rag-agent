@@ -1028,15 +1028,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   2,071/2,071와 transform 16/16/body/identity/caller/48-module/205-edge DAG
   parity가 통과했다. 최초 graph-only test inventory가 빠뜨린 5개 test
   module의 live ref 30개도 public binding으로 갱신됐다.
-- 새 characterize-only inventory는 같은 owner의 정확한 16줄
-  `_extract_numeric_value_after_operand_text(...)`을 public
-  `extract_numeric_value_after_operand_text(...)`로 이름 수렴시키는 batch를
-  선택한다. Graph calculation/evidence와 operand resolution의 5개 external
-  call은 two positional arguments, no keyword, caller `try` depth zero다.
-  기존 edge만 사용하므로 48-module/205-edge DAG는 비순환이고 projected row
-  public/private는 18/8이다. 아직 source/test rename은 없으며 normalization,
-  needle compact, escaped spaced-pattern, search, candidate distance sort, first
-  result identity, caller adoption/stop과 네 CURRENT-SOURCE method는
+- 완료된 `7739ab0` numeric-value-after-operand-text API batch는 같은 owner의
+  정확한 16줄 private helper를 public
+  `extract_numeric_value_after_operand_text(...)`로 이름 수렴시켰다. Graph
+  calculation/evidence와 operand resolution의 5개 call 및 3개 external
+  binding은 public API를 사용한다. Normalization, needle compact, escaped
+  spaced-pattern, search, candidate distance sort, first result identity와 3개
+  caller의 adoption/stop은 유지됐다. Row public/private는 18/8이다. Focused
+  4/4, graph owner 222/222, surface owner 1/1, operand owner 69/69, semantic
+  1,182/1,182, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,075/2,075와 transform 8/8/body/identity/
+  caller/48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 남은 두 cross-module private helper 중 더
+  작은 정확한 24줄 `_format_structured_candidate_row_text(...)`을 public
+  `format_structured_candidate_row_text(...)`로 이름 수렴시키는 batch를
+  선택한다. Graph helpers의 2개 external call은 세 positional arguments,
+  no keyword, caller `try` depth zero다. 기존 edge만 사용하므로 48-module/
+  205-edge DAG는 비순환이고 projected row public/private는 19/7이다. 아직
+  source/test rename은 없으며 label/header order와 dedupe, repeated header
+  normalization, cell-part construction/join, caller assignment/adoption/stop,
+  네 CURRENT-SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

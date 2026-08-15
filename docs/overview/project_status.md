@@ -747,13 +747,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, operand-text-match public API 4 / 4; graph owner 218 / 218; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,178 / 1,178; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, numeric-value-after-operand-text public API 4 / 4; graph owner 222 / 222; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,182 / 1,182; additional retrieval-pipeline caller module 1 / 1 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,071 / 2,071 |
-| Benchmark refresh after latest operand-text-match API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,075 / 2,075 |
+| Benchmark refresh after latest numeric-value-after-operand-text API change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -796,81 +796,131 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects one remaining cross-module private-API
-seam: rename the exact current 16-line
-`financial_row_surfaces._extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`
-definition in place to public `extract_numeric_value_after_operand_text(...)`.
-Add no wrapper or private alias. The row-local parenthetical, numeric-match, and
-candidate-construction helpers remain private; this batch does not expand their
-ownership. Before the rename, add four CURRENT-SOURCE contracts and require
-them to pass. No production or test rename has occurred for this follow-on, and
-this document maintains no competing implementation queue.
+The characterize-only inventory selects the smaller of the two remaining
+cross-module private-API seams: rename the exact current 24-line
+`financial_row_surfaces._format_structured_candidate_row_text(label: str, headers: List[str], cells: List[Dict[str, Any]]) -> str`
+definition in place to public `format_structured_candidate_row_text(...)`.
+Add no wrapper or private alias. The 47-line unstructured-table parser remains
+private and outside this batch; this document maintains no competing
+implementation queue. Before the rename, add four CURRENT-SOURCE contracts and
+require them to pass. No production or test rename has occurred for this
+follow-on.
 
-The four top-level statements, five assignments, four `if` nodes, one `for`,
-two `continue` statements, three returns, nine calls, one generator expression,
-one lambda, and absence of `try` and list-comprehension nodes are normative.
-Preserve exact `_normalise_spaces(text or "")`, its blank return before operand
-access, and left-to-right iteration of a fresh `operand_needles(operand)`
-result. For every needle, normalize it, compact it through exact
-`re.sub(r"\s+", "", ...)`, and continue before pattern construction when the
-compact value is falsey.
+The four top-level statements, one annotated assignment, three plain
+assignments, two `for` nodes, two `if` nodes, one return, 19 calls, four list
+nodes, one starred item, two generator expressions, five boolean operations,
+two comprehension clauses, and absence of `try`, lambda, and list-comprehension
+nodes are normative. Initialize one fresh `row_parts` list, then eagerly build
+and iterate exact `[label, *headers]`. For each item, preserve exact
+`_normalise_spaces(str(part or ""))`; append a cleaned result only when it is
+truthy and not already in `row_parts`. Preserve raw truth before string
+conversion, header expansion before the first normalization, left-to-right
+membership/equality behavior, duplicate suppression, and the first cleaned
+representative's identity.
 
-Build the spaced pattern through exact
-`r"\s*".join(re.escape(char) for char in compact)`, preserving compact-string
-iteration, per-character escape order, generator consumption, and join result.
-Call `re.search(spaced_pattern, normalized)` once and continue on a falsey
-match. Otherwise call `_numeric_operand_candidates_near_match(normalized,
-match)` once. A falsey candidate object continues to the next needle; a truthy
-one is passed unchanged to exact
-`sorted(candidates, key=lambda item: item[0])[0][1]`. Preserve stable distance
-ordering, key and subscript order, the selected value's exact identity, the
-first successful needle stop, exhausted blank return, input and nested-object
-immutability, absence of new coercion or caching, and every uncaught truth,
-iteration, normalization, regex, escape, join, search, candidate, sort, key,
-and subscript failure.
+Iterate `cells` left to right. Build each three-item `cell_parts` list eagerly:
+first exact `" / ".join(...)` over `cell.get("column_headers") or []`, then the
+normalized `value_text`, then the normalized `unit_hint`. The header generator
+keeps separate `_normalise_spaces(str(item))` calls in its filter and retained
+expression, so a retained item is stringified and normalized twice while a
+falsey normalized item is processed once. Preserve exact mapping access/truth,
+header iteration, slash join, and value-before-unit order.
 
-There are five direct `ast.Name` calls across graph calculation, graph evidence,
-and operand resolution. All use two positional arguments, no keywords, and
-caller `try` depth zero; external/local calls are 5/0 across three caller
-definitions, with graph evidence owning three calls. The rename changes only
-the imported/bound name. Precision-target accumulation, required-operand line/
-table/raw-row precedence, truth checks, fallback choice, evidence filtering,
-dedupe, later work, and exception stops remain caller-owned.
+For each cell, preserve exact
+`_normalise_spaces(" ".join(part for part in cell_parts if part))`, append every
+truthy cleaned cell without dedupe, and finally return exact
+`" | ".join(row_parts)`. Preserve generator truth/filter order, all join inputs,
+input and nested-object immutability, absence of new caching or coercion, and
+every uncaught header-expansion, truth, string, normalization, membership,
+iteration, mapping, generator, and join failure.
 
-All three external importers already reach row surfaces, so the rename changes
-no module edge and the full DAG remains acyclic at 48 modules/205 internal
-edges. Current/projected row-owner counts are 17/9 to 18/8. No future public-
-name definition or `ast.Store` collision exists. The current body SHA-256 is
-`bdac2c1b9337a7d415b802d2af850ee5c9e4b1c242995310553e765e748fb8ab`.
-The private identifier has nine production AST references across four source
-files. Existing exact test references total 12 across graph helpers, operand
-resolution, operation contracts, and semantic numeric plan; the bounded
-source/test transform surface is eight files.
+There are two direct external `ast.Name` calls in one importer and two caller
+definitions, both with three positional arguments, no keywords, and caller
+`try` depth zero. `_build_table_value_reconciliation_candidates(...)` passes
+exact `semantic_label`, `row_headers`, and a newly materialized
+`list(candidate["metadata"]["structured_cells"] or [])`, assigns the exact
+result to candidate metadata, and appends only after a successful call.
+`_build_table_row_reconciliation_candidates(...)` passes exact `row_label`,
+`row_headers`, and `cells`, assigns the result, then owns row-text
+normalization, seen-set adoption, candidate append, and every exception stop.
 
-The current 226-241 definition span selects no runtime-domain baseline record.
-Its exact string literals are `""`, `r"\s+"`, and `r"\s*"`; the integer
-literals are `0` and `1`. The rename moves no line or literal, so all 217
-reviewed records must remain unchanged.
+The sole importer already reaches row surfaces, so the rename changes no module
+edge and the full DAG remains acyclic at 48 modules/205 internal edges.
+Current/projected row-owner counts are 18/8 to 19/7. No future public-name
+definition or `ast.Store` collision exists. The selected body SHA-256 is
+`596e6a345e220615c487d56760d77ff26b1cac1ed5721301c16f7ddf15e0a127`.
+The private identifier has four production AST references across two source
+files. Its two call records hash to
+`94d6117e87e0b34cd34de7ba66388aa526ab2b6b0ff5655652c05fadf36ab407`;
+the two caller bodies currently hash to
+`86812eedef98ec6d9c26017312596c637872e898e3d9be1c86eeacec9fd28f9a`
+and `2ef9302c59726decfb3b9429850e54cf757923b56406c7a66b4ed10dc29b7443`.
+Existing exact test references are two patch-name constants in one graph-helper
+method, so the bounded source/test transform is three files.
+
+The current 304-327 definition span selects no runtime-domain baseline record.
+Its exact string literals are `""`, `" "`, `" / "`, `" | "`,
+`"column_headers"`, `"value_text"`, and `"unit_hint"`; it owns no integer
+literal. The rename moves no line or literal, so all 217 reviewed records must
+remain unchanged.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_extract_numeric_value_after_operand_text_pins_normalization_needle_pattern_candidate_order_and_result`;
-- `test_current_source_extract_numeric_value_after_operand_text_pins_immutability_and_exceptions`;
-- `test_current_source_extract_numeric_value_after_operand_text_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_extract_numeric_value_after_operand_text_callers_pin_args_adoption_and_stops`.
+- `test_current_source_format_structured_candidate_row_text_pins_label_header_cell_order_dedupe_and_result`;
+- `test_current_source_format_structured_candidate_row_text_pins_laziness_repeated_header_normalization_immutability_and_exceptions`;
+- `test_current_source_format_structured_candidate_row_text_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_format_structured_candidate_row_text_callers_pin_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 222/222, surface-
+Projected post-rename gates are focused 4/4, graph owner 226/226, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,182/1,182, additional retrieval-pipeline caller module 1/1, reconciliation
+1,186/1,186, additional retrieval-pipeline caller module 1/1, reconciliation
 plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,075/2,075. Structural gates are exact production transform parity 4/4,
-selected-body and three-caller parity, fresh public identity 4/4, all five
-calls/three call modules, unchanged acyclic 48-module/205-edge DAG, retired
-production/private live-test refs and future public stores zero, existing graph-
-test AST parity 218/218 plus four new methods, UTF-8/non-ASCII preservation 8/8,
+2,079/2,079. Structural gates are exact production transform parity 2/2 and
+source/test transform parity 3/3, selected-body and two-caller parity, fresh
+public identity 2/2, both calls/the sole call module, unchanged acyclic
+48-module/205-edge DAG, retired production/private live-test refs and future public
+stores zero, existing graph-test AST parity 222/222 plus four new methods,
+UTF-8/non-ASCII preservation 3/3,
 pycompile, and `git diff --check`. These are projections, not executed results.
 Static definition/signature/call/import/count/DAG/audit inspection passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+## Completed Numeric-Value-After-Operand-Text Public API
+
+Commit `7739ab0` renamed the exact former 16-line private helper in place to
+public `financial_row_surfaces.extract_numeric_value_after_operand_text(...)`.
+Its four top-level statements, five assignments, four `if` nodes, one loop, two
+continues, three returns, nine calls, one generator, one lambda, normalization,
+needle compaction, escaped spaced-pattern construction, search, candidate
+projection, stable distance sort, and first `[0][1]` result are unchanged after
+definition-name normalization. No wrapper or compatibility alias was added.
+
+All five calls across graph calculation, graph evidence, and operand resolution
+now bind the public API with two positional arguments, no keywords, and caller
+`try` depth zero. External/local calls finish 5/0 across three caller
+definitions, and all three external importers share the row-owner function
+identity. Caller accumulation, precedence, filtering, dedupe, later work, and
+exception stops remain caller-owned.
+
+Production source is `+9/-9`, net `0`; tests are `+1,418/-31`, net `+1,387`;
+and the whole commit is `+1,427/-40`, net `+1,387`. Production physical line
+counts are unchanged. Four methods moved discovery from 2,071 to 2,075. Final
+row counts are 18/8. The committed source/test diff SHA-256 is
+`0c1e7bbee0516f8afcc9579c0d66837d586a25522b1e9bb05812e3b5b6daa763`.
+
+Focused pre/post rename 4/4, graph owner 222/222, surface owner 1/1, operand
+owner 69/69, affected eleven-module semantic 1,182/1,182, additional retrieval-
+pipeline 1/1, reconciliation plan 51/51, import-side-effects 19/19, runtime audit
+217, and full discovery 2,075/2,075 passed. Pycompile, production transform
+4/4, source/test transform 8/8, selected-body/three-caller parity, existing
+graph-test AST 218/218 plus four new methods, public identity 4/4, all five
+calls/three modules, zero public stores and retired live refs, unchanged acyclic
+48-module/205-edge DAG, UTF-8/non-ASCII preservation 8/8, and diff check passed.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Operand-Text-Match Public API
 
