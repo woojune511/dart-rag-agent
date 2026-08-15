@@ -948,14 +948,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,039/2,039와 transform/body/identity/caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 13줄
-  `_text_has_contract_term(...)`을 public `text_has_contract_term(...)`로 이름
-  수렴시키는 private-API batch를 선택한다. 외부 1/local 3 call은 모두 두
-  positional argument와 caller `try` depth zero를 유지하며 한 외부 binding은
-  live caller다. 기존 edge만 사용하므로 48-module/205-edge DAG는 그대로
-  비순환이고 projected surface public/private는 20/2이다. 아직 source/test
-  rename은 없으며 normalization/compact matching/iteration/short-circuit/
-  failure contract, 네 CURRENT-SOURCE method와 projected gate는
+- 완료된 `faf75a0` text contract-term API batch는 같은 surface owner의 정확한
+  13줄 private helper를 public `text_has_contract_term(...)`로 이름
+  수렴시켰다. 외부 1/local 3 call과 한 외부 binding은 모두 public API를
+  사용하는 live caller다. Normalization, compact matching, ordered lazy
+  iteration, direct-before-compact short-circuit과 stop은 유지됐다. Surface/
+  graph/operand public/private는 20/2, 9/71, 54/37이다. Focused 4/4, graph
+  owner 190/190, surface owner 1/1, operand owner 69/69, semantic 1,150/1,150,
+  additional retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
+  audit 217, full 2,043/2,043와 transform/body/identity/caller/48-module/
+  205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 22줄
+  `_operand_surface_contract(...)`을 public `operand_surface_contract(...)`로
+  이름 수렴시키는 private-API batch를 선택한다. 외부 2/local 5 call은 모두
+  한 positional argument와 caller `try` depth zero를 유지한다. Operand
+  resolution은 live caller이고 graph helpers는 import-only binding이다. 기존
+  edge만 사용하므로 48-module/205-edge DAG는 그대로 비순환이고 projected
+  surface public/private는 21/1이다. 아직 source/test rename은 없으며 explicit-
+  contract/legacy-policy/needle-fallback의 순서·복사·laziness·failure contract,
+  네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -1323,26 +1323,46 @@ preservation 10/10, and diff check passed. The source diff SHA-256 is
 `fa6ec5508e044215963811971024a2dfe60b375dec46b1435e57a9914163b0cb`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the smallest remaining cross-module
-helper in the same correct owner: rename the exact 13-line
-`financial_surface_contracts._text_has_contract_term(text, terms)` in place to
-public `text_has_contract_term(...)`, with no wrapper or alias. Preserve text
-normalization and the empty-text stop, whitespace compaction, ordered lazy term
-iteration, blank-term skip, direct-before-compact membership short-circuit,
-exact boolean returns, immutability, and uncaught failure contract.
+Commit `faf75a0` completed the text contract-term private-API seam. The exact
+former 13-line helper is public
+`financial_surface_contracts.text_has_contract_term(...)`; its normalization,
+empty stop, whitespace compaction, ordered term scan, direct-before-compact
+membership, and exact-return body is unchanged after definition-name
+normalization. All four calls/two call modules and the live external binding use
+the public name, and no private alias exists.
 
-Four two-positional-argument calls across two source modules remain at caller
-`try` depth zero; external/local calls are 1/3. The sole external binding is a
-live operand-resolution caller, with no import-only binding. Existing edges keep
-the full DAG unchanged and acyclic at 48 modules/205 edges. Projected surface-
-owner counts are 19/3 to 20/2, while graph and operand counts remain 9/71 and
-54/37. The selected span has body SHA-256
-`38b5972892c2914ce30a86b9b85ca10156f0c1a9c587c9885c2f95b44a91c954`, no
+Production source is `+6/-6`, tests are `+964/-46`, and the whole commit is
+`+970/-52`; all production physical line counts are unchanged. Focused 4/4,
+graph owner 190/190, surface owner 1/1, operand owner 69/69, affected semantic
+1,150/1,150, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,043/2,043, pycompile, production transform
+parity 2/2, selected-body/dependent-wrapper parity, public identity 1/1, all
+calls, zero public stores/private executable refs, unchanged acyclic 48-module/
+205-edge DAG, non-ASCII preservation 3/3, and diff check passed. The source diff
+SHA-256 is `cca5735d1b0f269dc5ce7b4e3701c3fb448d6a25c3e655376b5400bea462d7e1`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the remaining cross-module helper
+in the same correct owner: rename the exact 22-line
+`financial_surface_contracts._operand_surface_contract(operand)` in place to
+public `operand_surface_contract(...)`, with no wrapper or alias. Preserve the
+explicit-contract branch and fresh positive/negative projections first, exact
+concept-key lookup against a copied declarative legacy-policy mapping second,
+and ordered operand-needle fallback last, including repeated conversion,
+laziness, copying, immutability, and uncaught failures.
+
+Seven one-positional-argument calls across two source modules remain at caller
+`try` depth zero; external/local calls are 2/5. Operand resolution imports and
+calls the helper, while graph helpers retains an import-only binding. Existing
+edges keep the full DAG unchanged and acyclic at 48 modules/205 edges.
+Projected surface-owner counts are 20/2 to 21/1, while graph and operand counts
+remain 9/71 and 54/37. The selected span has body SHA-256
+`bca087bf56ef092bc7487acb54c0de95b04d680f018eef95b3d231d9b18fd29b`, no
 future public-name definition/store, and zero of 217 reviewed runtime-domain
 records. Four required CURRENT-SOURCE methods and projected focused 4/4, graph
-owner 190/190, surface owner 1/1, operand owner 69/69, affected semantic
-1,150/1,150, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,043/2,043 gates are defined only in
+owner 194/194, surface owner 1/1, operand owner 69/69, affected semantic
+1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,047/2,047 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection; it is the sole next
 priority and this plan maintains no competing queue.

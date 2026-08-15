@@ -5011,38 +5011,71 @@ pycompile, production transform parity 7/7, untouched-test transform parity
 calls, zero public stores/private executable refs, non-ASCII preservation
 10/10, and diff check. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 13-line
-`financial_surface_contracts._text_has_contract_term(text: str, terms: List[str]) -> bool`
-definition. It already belongs to the surface-contract owner; the authorized
-future batch only renames it in place to public `text_has_contract_term(...)`
-and updates its import/callers/test patch strings without a private alias.
-
-Preserve the exact five top-level statements, three returns, and one loop.
-Normalize `text or ""` once and return `False` on a falsey normalized haystack
-before regex compaction or term iteration. Otherwise compact whitespace, scan
-`terms` in order, normalize each raw term once, skip a falsey result, then
-compact the term. Direct normalized membership must run before the truthy-
-compact-term membership branch; return `True` at the first hit and `False` only
-after exhaustion. Preserve `or` and membership short-circuiting, iteration
-laziness, input immutability, exact booleans, and all uncaught truth/
-normalization/regex/iteration/membership failures.
+Commit `faf75a0` completed the text contract-term public contract. The exact
+former 13-line private definition is now public
+`financial_surface_contracts.text_has_contract_term(...)`; its five top-level
+statements, three returns, one loop, normalization/compaction order, lazy term
+scan, direct-before-compact short-circuit, exact booleans, immutability, and
+uncaught failures are unchanged after name normalization. No private alias or
+bridge exists.
 
 All four direct source calls use two positional arguments, no keywords, and
 caller `try` depth zero. The one external operand-resolution call directly
 returns the helper result; three owner-local calls implement positive, negative,
-and required-surface matching. The sole external binding is live. Caller list
-construction, generator filtering/short-circuiting, later work, and exception
-stops remain caller-owned.
+and required-surface matching. Caller list construction, generator filtering/
+short-circuiting, later work, and exception stops remain caller-owned.
+
+Final counts are surface contracts 20/2, graph 9/71, and operand resolution
+54/37; the full DAG remains unchanged and acyclic at 48 modules/205 edges.
+Executed gates are focused 4/4, graph owner 190/190, surface owner 1/1, operand
+owner 69/69, affected semantic 1,150/1,150, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,043/2,043, plus
+pycompile, production transform parity 2/2, selected-body and two dependent-
+wrapper hashes, existing graph-test AST parity 186/186 plus four new methods,
+public identity 1/1, all calls, zero public stores/private executable refs,
+non-ASCII preservation 3/3, and diff check. Benchmark refresh and remote CI
+were **NOT RUN**.
+
+The next private-API contract is the exact current 22-line
+`financial_surface_contracts._operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]`
+definition. It already belongs to the surface-contract owner; the authorized
+future batch only renames it in place to public `operand_surface_contract(...)`
+and updates its imports/callers/test patch strings without a private alias.
+
+Preserve the exact eight top-level statements, four returns, three `if` nodes,
+and one loop. Shallow-copy `operand.get("surface_contract") or {}` first. A
+truthy explicit contract returns only fresh positive/negative lists in a fresh
+mapping, preserving each get/`or []`, ordered iteration, blank filtering, and
+condition-before-result repeated `str(item).strip()` calls. This return must
+stop concept, policy, and operand-needle work.
+
+Otherwise normalize the stringified operand concept, shallow-copy the policy's
+`legacy_concept_surface_contracts` outer mapping, stringify keys, and shallow-
+copy values in item order. A truthy exact concept-key membership returns a
+fresh contract dict before needle construction. On a miss, join
+`operand_needles(operand)` once, scan copied contracts in order, build each
+positive-term list with the same repeated conversion, and retain the current
+`any(_normalise_spaces(term) in _normalise_spaces(needles) ...)` laziness and
+first-hit return. Exhaustion returns a fresh empty dict. Input/policy
+immutability and all get/truth/mapping/string/iteration/normalization/
+membership errors remain uncaught.
+
+All seven direct source calls use one positional argument, no keywords, and
+caller `try` depth zero. Two external operand-resolution calls and five owner-
+local calls preserve their contract-truth, positive-list, negative/positive
+scan, direct-strength fallback, period-gate, return, later-work, and exception-
+stop behavior. Operand resolution is a live external caller; graph helpers is
+an import-only binding.
 
 No module edge changes, so the full DAG remains acyclic at 48 modules/205
-edges. Projected counts are surface contracts 19/3 to 20/2, with graph 9/71 and
+edges. Projected counts are surface contracts 20/2 to 21/1, with graph 9/71 and
 operand resolution 54/37 unchanged. The selected body SHA-256 is
-`38b5972892c2914ce30a86b9b85ca10156f0c1a9c587c9885c2f95b44a91c954`; there
+`bca087bf56ef092bc7487acb54c0de95b04d680f018eef95b3d231d9b18fd29b`; there
 is no future public-name definition/store and the span has zero of 217 reviewed
 records. The four required CURRENT-SOURCE methods and projected focused 4/4,
-graph owner 190/190, surface owner 1/1, operand owner 69/69, affected semantic
-1,150/1,150, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,043/2,043 gates are governed only by
+graph owner 194/194, surface owner 1/1, operand owner 69/69, affected semantic
+1,154/1,154, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,047/2,047 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 
