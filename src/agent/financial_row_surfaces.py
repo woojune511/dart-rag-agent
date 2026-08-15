@@ -20,7 +20,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _strip_financial_label_annotations(text: str) -> str:
+def strip_financial_label_annotations(text: str) -> str:
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""
@@ -62,9 +62,9 @@ def _surface_match_variants(text: str) -> List[str]:
         return []
     variants = [
         normalized,
-        _strip_financial_label_annotations(normalized),
+        strip_financial_label_annotations(normalized),
         _strip_leading_period_qualifiers(normalized),
-        _strip_leading_period_qualifiers(_strip_financial_label_annotations(normalized)),
+        _strip_leading_period_qualifiers(strip_financial_label_annotations(normalized)),
     ]
     return list(dict.fromkeys(item for item in variants if item))
 

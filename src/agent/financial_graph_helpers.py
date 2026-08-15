@@ -74,7 +74,7 @@ from src.agent.financial_row_surfaces import (
     extract_table_row_label,
     _format_structured_candidate_row_text,
     _parse_unstructured_table_row_cells,
-    _strip_financial_label_annotations,
+    strip_financial_label_annotations,
     aggregate_like_row_role,
     aggregate_like_row_stage,
     candidate_has_segment_local_binding,
@@ -3921,7 +3921,7 @@ def _build_reconciliation_retry_queries(
         if "aggregate" in preferred_value_roles:
             aggregate_expansions: List[str] = []
             for surface in list(query_surfaces):
-                normalized_surface = _strip_financial_label_annotations(surface)
+                normalized_surface = strip_financial_label_annotations(surface)
                 if not normalized_surface:
                     continue
                 aggregate_expansions.extend(

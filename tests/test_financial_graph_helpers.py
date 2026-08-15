@@ -485,7 +485,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (13, 13),
+            (14, 12),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1899,7 +1899,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (13, 13),
+            (14, 12),
         )
 
         graph_row_imports = {
@@ -2871,7 +2871,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (13, 13))
+        self.assertEqual(row_counts, (14, 12))
 
         graph_row_imports = {
             alias.name
@@ -3937,7 +3937,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (13, 13),
+            (14, 12),
         )
         graph_row_imports = {
             alias.name
@@ -10408,7 +10408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (13, 13))
+        self.assertEqual(row_counts, (14, 12))
 
         def imported_names(module_name, imported_module):
             return {
@@ -22185,7 +22185,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_row_surfaces": (13, 13),
+                "financial_row_surfaces": (14, 12),
             },
         )
 
@@ -23710,7 +23710,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (13, 13)},
+            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (14, 12)},
         )
 
         def imported_modules(tree):
@@ -39601,7 +39601,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(body_dump.encode()).hexdigest(),
-            "901f19664a702473011df731e21b6f43240e734518a3d5d65885dc2a62861a54",
+            "3c65d727ae2213b4015505b84e0f98cf1bfe09fe9d4ad4ffe0e2505cf7a64d6f",
         )
 
         name_call_counts = {}
@@ -39635,7 +39635,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "lookup_prefers_canonical_statement_rows": 1,
                 "lookup_canonical_statement_preferences": 1,
                 "tuple": 7,
-                "_strip_financial_label_annotations": 2,
+                "strip_financial_label_annotations": 2,
                 "candidate_consolidation_scope": 1,
                 "operand_period_focus": 1,
                 "is_delta_like_row_label": 1,
@@ -46474,7 +46474,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (13, 13) if target_name == future_public_name else (12, 14)
+            (14, 12) if target_name == future_public_name else (13, 13)
         )
         self.assertEqual(row_counts, expected_row_counts)
         structured_tree = module_trees["financial_structured_cells"]
@@ -47412,7 +47412,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (13, 13) if target_name == future_public_name else (12, 14)
+            (14, 12) if target_name == future_public_name else (13, 13)
         )
         self.assertEqual(row_counts, expected_row_counts)
 
@@ -48034,6 +48034,1303 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(len(failed_reconciliation_builds), 1)
         self.assertNotIn("candidate_kind", failed_reconciliation_builds[0])
         stopped_document_rows.assert_not_called()
+
+
+    def test_current_source_strip_financial_label_annotations_pins_truth_normalization_regex_order_identity_and_result(self) -> None:
+        target = financial_row_surfaces.strip_financial_label_annotations
+
+        self.assertEqual(
+            target("  Metric  (주 25 note)  (*)  (semantic)  "),
+            "Metric (semantic)",
+        )
+        self.assertEqual(target("(*)"), "")
+        self.assertEqual(target("Keep (주) qualifier"), "Keep (주) qualifier")
+        self.assertEqual(target(""), "")
+
+        events = []
+        final_result = object()
+
+        class RawText:
+            def __bool__(self):
+                events.append(("raw-truth", self))
+                return True
+
+            def __str__(self):
+                raise AssertionError("runtime must not coerce the raw object")
+
+        class NormalizedText:
+            def __bool__(self):
+                events.append(("normalized-truth", self))
+                return True
+
+        class SecondRegexResult:
+            def strip(self):
+                events.append(("strip", self))
+                return final_result
+
+        raw = RawText()
+        normalized = NormalizedText()
+        first_regex_result = object()
+        second_regex_result = SecondRegexResult()
+
+        def normalize(value):
+            events.append(("normalize", value))
+            self.assertIs(value, raw)
+            return normalized
+
+        def regex_sub(pattern, replacement, value, *args, **kwargs):
+            self.assertEqual(args, ())
+            self.assertEqual(kwargs, {})
+            if len([event for event in events if event[0].startswith("sub-")]) == 0:
+                events.append(("sub-annotation", pattern, replacement, value))
+                self.assertEqual(pattern, r"\((?:주\s*\d+[^\)]*|\*)\)")
+                self.assertEqual(replacement, "")
+                self.assertIs(value, normalized)
+                return first_regex_result
+            events.append(("sub-whitespace", pattern, replacement, value))
+            self.assertEqual(pattern, r"\s+")
+            self.assertEqual(replacement, " ")
+            self.assertIs(value, first_regex_result)
+            return second_regex_result
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=regex_sub),
+            ),
+        ):
+            result = target(raw)
+
+        self.assertIs(result, final_result)
+        self.assertEqual(
+            events,
+            [
+                ("raw-truth", raw),
+                ("normalize", raw),
+                ("normalized-truth", normalized),
+                (
+                    "sub-annotation",
+                    r"\((?:주\s*\d+[^\)]*|\*)\)",
+                    "",
+                    normalized,
+                ),
+                ("sub-whitespace", r"\s+", " ", first_regex_result),
+                ("strip", second_regex_result),
+            ],
+        )
+
+        false_events = []
+
+        class FalseRaw:
+            def __bool__(self):
+                false_events.append(("raw-truth", self))
+                return False
+
+        class FalseNormalized:
+            def __bool__(self):
+                false_events.append(("normalized-truth", self))
+                return False
+
+        false_raw = FalseRaw()
+        false_normalized = FalseNormalized()
+
+        def normalize_false(value):
+            false_events.append(("normalize", value))
+            self.assertIs(value, "")
+            return false_normalized
+
+        stopped_regex = Mock(
+            side_effect=AssertionError("false normalization must stop regex work")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=normalize_false,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=stopped_regex),
+            ),
+        ):
+            false_result = target(false_raw)
+
+        self.assertIs(false_result, "")
+        self.assertEqual(
+            false_events,
+            [
+                ("raw-truth", false_raw),
+                ("normalize", ""),
+                ("normalized-truth", false_normalized),
+            ],
+        )
+        stopped_regex.assert_not_called()
+
+    def test_current_source_strip_financial_label_annotations_pins_immutability_and_exceptions(self) -> None:
+        target = financial_row_surfaces.strip_financial_label_annotations
+        nested = {"preserve": True}
+        raw = {"nested": nested, "value": "untouched"}
+        before = deepcopy(raw)
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value="  Preserved (*)  ",
+        ) as normalize:
+            result = target(raw)
+
+        self.assertEqual(result, "Preserved")
+        self.assertEqual(raw, before)
+        self.assertIs(raw["nested"], nested)
+        self.assertIs(normalize.call_args.args[0], raw)
+
+        stopped_normalize = Mock(
+            side_effect=AssertionError("raw truth failure must stop normalization")
+        )
+
+        class RawTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("raw truth failed")
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            stopped_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "raw truth failed"):
+                target(RawTruthBomb())
+        stopped_normalize.assert_not_called()
+
+        stopped_regex = Mock(
+            side_effect=AssertionError("normalization failure must stop regex")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=stopped_regex),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                target(object())
+        stopped_regex.assert_not_called()
+
+        class NormalizedTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("normalized truth failed")
+
+        stopped_truth_regex = Mock(
+            side_effect=AssertionError("normalized truth failure must stop regex")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value=NormalizedTruthBomb(),
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=stopped_truth_regex),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalized truth failed"):
+                target(object())
+        stopped_truth_regex.assert_not_called()
+
+        first_regex = Mock(side_effect=RuntimeError("annotation regex failed"))
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=first_regex),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "annotation regex failed"):
+                target(object())
+        first_regex.assert_called_once_with(
+            r"\((?:주\s*\d+[^\)]*|\*)\)",
+            "",
+            "normalized",
+        )
+
+        first_result = object()
+        second_regex = Mock(
+            side_effect=[first_result, RuntimeError("whitespace regex failed")]
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=second_regex),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "whitespace regex failed"):
+                target(object())
+        self.assertEqual(second_regex.call_count, 2)
+        self.assertIs(second_regex.call_args_list[1].args[2], first_result)
+
+        strip_events = []
+
+        class StripBomb:
+            def strip(self):
+                strip_events.append(self)
+                raise RuntimeError("strip failed")
+
+        strip_bomb = StripBomb()
+        strip_regex = Mock(side_effect=[object(), strip_bomb])
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_row_surfaces,
+                "re",
+                SimpleNamespace(sub=strip_regex),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "strip failed"):
+                target(object())
+        self.assertEqual(strip_regex.call_count, 2)
+        self.assertEqual(strip_events, [strip_bomb])
+
+    def test_current_source_strip_financial_label_annotations_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        target_name = "strip_financial_label_annotations"
+        future_public_name = "strip_financial_label_annotations"
+        retired_private_name = "_strip_financial_label_annotations"
+        owner_module = "src.agent.financial_row_surfaces"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_row_surfaces"]
+        owner_tree = module_trees["financial_row_surfaces"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 9)
+        self.assertEqual(len(definition.body), 5)
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["text"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["str"],
+        )
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(ast.unparse(definition.returns), "str")
+        self.assertEqual(
+            sum(isinstance(node, ast.If) for node in ast.walk(definition)),
+            1,
+        )
+        self.assertEqual(
+            sum(isinstance(node, ast.Return) for node in ast.walk(definition)),
+            2,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, (ast.Try, ast.TryStar))
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        target_calls = [
+            node for node in ast.walk(definition) if isinstance(node, ast.Call)
+        ]
+        self.assertEqual(len(target_calls), 4)
+        self.assertEqual(
+            sum(
+                isinstance(call.func, ast.Name)
+                and call.func.id == "_normalise_spaces"
+                for call in target_calls
+            ),
+            1,
+        )
+        regex_calls = [
+            call
+            for call in target_calls
+            if isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == "re"
+            and call.func.attr == "sub"
+        ]
+        self.assertEqual(len(regex_calls), 2)
+        self.assertTrue(all(len(call.args) == 3 for call in regex_calls))
+        self.assertTrue(all(call.keywords == [] for call in regex_calls))
+        strip_calls = [
+            call
+            for call in target_calls
+            if isinstance(call.func, ast.Attribute) and call.func.attr == "strip"
+        ]
+        self.assertEqual(len(strip_calls), 1)
+        self.assertEqual(strip_calls[0].args, [])
+        self.assertEqual(strip_calls[0].keywords, [])
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "bd19becbc4292b4e25cd98722eb87276acb36da6cc58fb6261a58d9bbbec4d05",
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        importer_names = {
+            name
+            for name, tree in module_trees.items()
+            if target_name in imported_names(tree, owner_module)
+        }
+        self.assertEqual(
+            importer_names,
+            {"financial_graph_helpers", "financial_operand_resolution"},
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+        for importer_name in importer_names:
+            self.assertIn(
+                owner_module,
+                imported_modules(module_trees[importer_name]),
+            )
+
+        module_order = (
+            "financial_graph_helpers",
+            "financial_operand_resolution",
+            "financial_row_surfaces",
+        )
+        call_records = []
+        caller_hashes = {}
+        for module_name in module_order:
+            tree = module_trees[module_name]
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            calls = sorted(
+                (
+                    node
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == target_name
+                ),
+                key=lambda node: node.lineno,
+            )
+            for call in calls:
+                cursor = parents.get(call)
+                caller = None
+                try_depth = 0
+                while cursor is not None:
+                    if isinstance(cursor, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if caller is None and isinstance(
+                        cursor,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = cursor
+                    cursor = parents.get(cursor)
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    (
+                        module_name,
+                        caller.name,
+                        tuple(ast.unparse(argument) for argument in call.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in call.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+                caller_body = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[module_name] = hashlib.sha256(
+                    caller_body.encode("utf-8")
+                ).hexdigest()
+        self.assertEqual(
+            call_records,
+            [
+                (
+                    "financial_graph_helpers",
+                    "_build_reconciliation_retry_queries",
+                    ("surface",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "score_operand_candidate",
+                    ("row_label",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "score_operand_candidate",
+                    ("needle",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_row_surfaces",
+                    "_surface_match_variants",
+                    ("normalized",),
+                    (),
+                    0,
+                ),
+                (
+                    "financial_row_surfaces",
+                    "_surface_match_variants",
+                    ("normalized",),
+                    (),
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(
+            caller_hashes,
+            {
+                "financial_graph_helpers": "986d07edbcbba1ed2cbe14d8b4086aef5ffd4211eb8570fd6b9d1b84fae8250b",
+                "financial_operand_resolution": "91cbfbbf1cac68d3759a45f64a3f0db57d53e33428674b99571fae6929ebff37",
+                "financial_row_surfaces": "473ba5eb4384c3a5330d66985acdaeb02f8ad4ee6b7528259d2f9c4ca6d6a3f0",
+            },
+        )
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        if target_name == future_public_name:
+            self.assertEqual(
+                future_public_definitions,
+                [("financial_row_surfaces", definition.lineno)],
+            )
+        else:
+            self.assertEqual(future_public_definitions, [])
+
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        def identifier_references(identifier):
+            return (
+                sum(
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                )
+                + sum(
+                    isinstance(node, ast.Name) and node.id == identifier
+                    for tree in module_trees.values()
+                    for node in ast.walk(tree)
+                )
+                + sum(
+                    alias.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                    if isinstance(node, ast.ImportFrom)
+                    for alias in node.names
+                )
+            )
+
+        self.assertEqual(identifier_references(target_name), 8)
+        self.assertEqual(
+            identifier_references(retired_private_name),
+            0 if target_name == future_public_name else 8,
+        )
+
+        row_counts = (
+            sum(
+                not node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+            sum(
+                node.name.startswith("_")
+                for node in owner_tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+        )
+        self.assertEqual(
+            row_counts,
+            (14, 12) if target_name == future_public_name else (13, 13),
+        )
+        caller_owner_counts = {}
+        for module_name in {"financial_graph_helpers", "financial_operand_resolution"}:
+            functions = [
+                node
+                for node in module_trees[module_name].body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ]
+            caller_owner_counts[module_name] = (
+                sum(not node.name.startswith("_") for node in functions),
+                sum(node.name.startswith("_") for node in functions),
+            )
+        self.assertEqual(
+            caller_owner_counts,
+            {
+                "financial_graph_helpers": (9, 71),
+                "financial_operand_resolution": (54, 37),
+            },
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        stale_record = next(
+            record
+            for record in baseline["records"]
+            if record.get("fingerprint") == "04e17ed82b398fc3"
+        )
+        self.assertEqual(
+            stale_record,
+            next(
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_row_surfaces.py"
+                and record.get("first_lines") == [29]
+            ),
+        )
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_row_surfaces.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [stale_record])
+        selected_literals = {
+            node.value
+            for node in ast.walk(definition)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        period_definition = next(
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_strip_leading_period_qualifiers"
+        )
+        period_literals = {
+            node.value
+            for node in ast.walk(period_definition)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertNotIn(stale_record["text"], selected_literals)
+        self.assertIn(stale_record["text"], period_literals)
+
+        importer_modules = {
+            "financial_graph_helpers": financial_graph_helpers,
+            "financial_operand_resolution": financial_operand_resolution,
+        }
+        for module_name, module in importer_modules.items():
+            self.assertIn(module_name, importer_names)
+            self.assertIs(
+                getattr(module, target_name),
+                getattr(financial_row_surfaces, target_name),
+            )
+
+        required_methods = {
+            "test_current_source_strip_financial_label_annotations_pins_truth_normalization_regex_order_identity_and_result",
+            "test_current_source_strip_financial_label_annotations_pins_immutability_and_exceptions",
+            "test_current_source_strip_financial_label_annotations_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(Path(__file__).read_text(encoding="utf-8-sig"))
+        test_class = next(
+            node
+            for node in current_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = {
+            node.name
+            for node in test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        }
+        self.assertEqual(len(graph_test_methods), 206)
+        self.assertEqual(graph_test_methods & required_methods, required_methods)
+
+    def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
+        target_name = "strip_financial_label_annotations"
+
+        class ExactText(str):
+            pass
+
+        row_raw = object()
+        row_normalized = ExactText("normalized")
+        row_direct = ExactText("direct annotation result")
+        row_period = ExactText("period result")
+        row_nested = ExactText("nested annotation result")
+        row_nested_period = ExactText("nested period result")
+        row_events = []
+
+        def row_normalize(value):
+            row_events.append(("normalize", value))
+            self.assertIs(value, row_raw)
+            return row_normalized
+
+        target_results = iter((row_direct, row_nested))
+
+        def row_target(value):
+            row_events.append(("annotation", value))
+            self.assertIs(value, row_normalized)
+            return next(target_results)
+
+        def row_period_strip(value):
+            row_events.append(("period", value))
+            if value is row_normalized:
+                return row_period
+            self.assertIs(value, row_nested)
+            return row_nested_period
+
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                side_effect=row_normalize,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=row_target,
+            ) as row_target_mock,
+            patch.object(
+                financial_row_surfaces,
+                "_strip_leading_period_qualifiers",
+                side_effect=row_period_strip,
+            ) as row_period_mock,
+        ):
+            row_variants = financial_row_surfaces._surface_match_variants(row_raw)
+
+        self.assertEqual(len(row_variants), 4)
+        for actual, expected in zip(
+            row_variants,
+            (row_normalized, row_direct, row_period, row_nested_period),
+        ):
+            self.assertIs(actual, expected)
+        self.assertEqual(
+            row_events,
+            [
+                ("normalize", row_raw),
+                ("annotation", row_normalized),
+                ("period", row_normalized),
+                ("annotation", row_normalized),
+                ("period", row_nested),
+            ],
+        )
+        self.assertEqual(row_target_mock.call_count, 2)
+        self.assertEqual(row_period_mock.call_count, 2)
+
+        stopped_first_period = Mock(
+            side_effect=AssertionError("first helper failure must stop period work")
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value=row_normalized,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=RuntimeError("first annotation failed"),
+            ) as failed_first_target,
+            patch.object(
+                financial_row_surfaces,
+                "_strip_leading_period_qualifiers",
+                stopped_first_period,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "first annotation failed"):
+                financial_row_surfaces._surface_match_variants(row_raw)
+        failed_first_target.assert_called_once_with(row_normalized)
+        stopped_first_period.assert_not_called()
+
+        stopped_nested_period = Mock(
+            side_effect=[row_period, AssertionError("second failure must stop nested period")]
+        )
+        with (
+            patch.object(
+                financial_row_surfaces,
+                "_normalise_spaces",
+                return_value=row_normalized,
+            ),
+            patch.object(
+                financial_row_surfaces,
+                target_name,
+                side_effect=[row_direct, RuntimeError("second annotation failed")],
+            ) as failed_second_target,
+            patch.object(
+                financial_row_surfaces,
+                "_strip_leading_period_qualifiers",
+                stopped_nested_period,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "second annotation failed"):
+                financial_row_surfaces._surface_match_variants(row_raw)
+        self.assertEqual(failed_second_target.call_count, 2)
+        stopped_nested_period.assert_called_once_with(row_normalized)
+
+        graph_surface = ExactText("Metric")
+        graph_result = ExactText("Core")
+        graph_events = []
+        graph_spec = {
+            "label": "Metric",
+            "aliases": [],
+            "binding_policy": {"prefer_value_roles": ["aggregate"]},
+        }
+        graph_subtask = {
+            "metric_label": "",
+            "constraints": {},
+            "required_operands": [graph_spec],
+            "preferred_sections": [],
+        }
+
+        def graph_normalize(value):
+            graph_events.append(("normalize", value))
+            return str(value).strip()
+
+        def graph_target(value):
+            graph_events.append(("annotation", value))
+            self.assertIs(value, graph_surface)
+            return graph_result
+
+        graph_patches = (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=graph_normalize,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=graph_target,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {"year_suffix_template": "{year}"},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {"query_prefix_labels": {}},
+            ),
+        )
+        with graph_patches[0], graph_patches[1] as graph_target_mock, graph_patches[2], graph_patches[3], graph_patches[4], graph_patches[5]:
+            graph_queries = financial_graph_helpers._build_reconciliation_retry_queries(
+                active_subtask=graph_subtask,
+                missing_operands=[graph_surface],
+                years=[],
+            )
+        self.assertEqual(
+            graph_queries,
+            ["Metric", "Core 합계", "합계 Core", "Core 총계"],
+        )
+        graph_target_mock.assert_called_once()
+        self.assertIs(graph_target_mock.call_args.args[0], graph_surface)
+
+        nonaggregate_target = Mock(
+            side_effect=AssertionError("non-aggregate preference must skip helper")
+        )
+        nonaggregate_subtask = deepcopy(graph_subtask)
+        nonaggregate_subtask["required_operands"][0]["binding_policy"] = {}
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                nonaggregate_target,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {"year_suffix_template": "{year}"},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {"query_prefix_labels": {}},
+            ),
+        ):
+            nonaggregate_queries = financial_graph_helpers._build_reconciliation_retry_queries(
+                active_subtask=nonaggregate_subtask,
+                missing_operands=[graph_surface],
+                years=[],
+            )
+        self.assertEqual(nonaggregate_queries, ["Metric"])
+        nonaggregate_target.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                return_value="",
+            ) as blank_graph_target,
+            patch.object(
+                financial_graph_helpers,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {"year_suffix_template": "{year}"},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {"query_prefix_labels": {}},
+            ),
+        ):
+            blank_queries = financial_graph_helpers._build_reconciliation_retry_queries(
+                active_subtask=graph_subtask,
+                missing_operands=[graph_surface],
+                years=[],
+            )
+        self.assertEqual(blank_queries, ["Metric"])
+        self.assertIs(blank_graph_target.call_args.args[0], graph_surface)
+
+        failure_events = []
+
+        def failure_normalize(value):
+            failure_events.append(("normalize", value))
+            return str(value).strip()
+
+        def fail_graph_target(value):
+            failure_events.append(("annotation", value))
+            raise RuntimeError("graph annotation failed")
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=failure_normalize,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=fail_graph_target,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_query_surface_preferences",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "lookup_prefers_canonical_statement_rows",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {"year_suffix_template": "{year}"},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {"query_prefix_labels": {}},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "graph annotation failed"):
+                financial_graph_helpers._build_reconciliation_retry_queries(
+                    active_subtask=graph_subtask,
+                    missing_operands=[graph_surface],
+                    years=[],
+                )
+        self.assertEqual(failure_events[-1], ("annotation", graph_surface))
+
+        operand = {"label": "Metric", "binding_policy": {}}
+        needle_one = ExactText("Metric")
+        needle_two = ExactText("Other")
+        needles = [needle_one, needle_two]
+        stripped_row = ExactText("Metric total")
+        stripped_needle_one = ExactText("Metric")
+        stripped_needle_two = ExactText("Other")
+        candidate = {
+            "candidate_kind": "chunk",
+            "metadata": {"row_label": "Generic total"},
+        }
+
+        def score_with_patches(strip_mock, *, canonical, source_mock):
+            needles_mock = Mock(return_value=needles)
+            with ExitStack() as stack:
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_conflicts_with_operand_concept",
+                        return_value=False,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "_surface_match_variants",
+                        return_value=[],
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "operand_needles",
+                        needles_mock,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "_operand_text_match",
+                        return_value=False,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_direct_match_strength",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_value_role",
+                        return_value="",
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_aggregation_stage",
+                        return_value="",
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "operand_prefers_aggregate_value_role",
+                        return_value=False,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_has_numeric_value_signal",
+                        return_value=False,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_location_entity_subject_score",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_is_descriptor_row",
+                        return_value=False,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "lookup_prefers_canonical_statement_rows",
+                        return_value=canonical,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "lookup_canonical_statement_preferences",
+                        return_value=((), ()),
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        target_name,
+                        strip_mock,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "OPERAND_CANDIDATE_SCORING_POLICY",
+                        {
+                            "note_context_markers": (),
+                            "related_party_penalty_terms": (),
+                            "generic_suffix_penalty_terms": ("total",),
+                        },
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_consolidation_scope",
+                        return_value="unknown",
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "operand_period_focus",
+                        return_value="unknown",
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_segment_binding_bonus",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "preference_bonus",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_source_priority_bonus",
+                        source_mock,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "_metadata_period_match_strength",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_period_table_coherence_bonus",
+                        return_value=0.0,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        "candidate_report_scope_binding_bonus",
+                        return_value=0.0,
+                    )
+                )
+                score = financial_operand_resolution.score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints={},
+                    query_years=[],
+                    report_scope=None,
+                )
+            return score, needles_mock
+
+        def operand_strip(value):
+            if value == "Generic total":
+                return stripped_row
+            if value is needle_one:
+                return stripped_needle_one
+            self.assertIs(value, needle_two)
+            return stripped_needle_two
+
+        operand_target = Mock(side_effect=operand_strip)
+        operand_source = Mock(return_value=0.0)
+        operand_score, operand_needles_mock = score_with_patches(
+            operand_target,
+            canonical=True,
+            source_mock=operand_source,
+        )
+        self.assertEqual(operand_score, -1.75)
+        self.assertEqual(operand_needles_mock.call_count, 2)
+        self.assertEqual(operand_target.call_count, 3)
+        self.assertEqual(operand_target.call_args_list[0].args, ("Generic total",))
+        self.assertIs(operand_target.call_args_list[1].args[0], needle_one)
+        self.assertIs(operand_target.call_args_list[2].args[0], needle_two)
+        operand_source.assert_called_once()
+
+        noncanonical_target = Mock(
+            side_effect=AssertionError("non-canonical path must skip helper")
+        )
+        noncanonical_score, _needles_mock = score_with_patches(
+            noncanonical_target,
+            canonical=False,
+            source_mock=Mock(return_value=0.0),
+        )
+        self.assertEqual(noncanonical_score, -0.25)
+        noncanonical_target.assert_not_called()
+
+        failed_operand_target = Mock(
+            side_effect=RuntimeError("operand annotation failed")
+        )
+        stopped_operand_source = Mock(
+            side_effect=AssertionError("helper failure must stop later scoring")
+        )
+        with self.assertRaisesRegex(RuntimeError, "operand annotation failed"):
+            score_with_patches(
+                failed_operand_target,
+                canonical=True,
+                source_mock=stopped_operand_source,
+            )
+        failed_operand_target.assert_called_once_with("Generic total")
+        stopped_operand_source.assert_not_called()
 
 
 if __name__ == "__main__":

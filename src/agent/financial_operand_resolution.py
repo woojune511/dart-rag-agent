@@ -21,7 +21,7 @@ from src.agent.financial_operation_policies import (
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     _operand_text_match,
-    _strip_financial_label_annotations,
+    strip_financial_label_annotations,
     _surface_match_variants,
     aggregate_like_row_stage,
     candidate_aggregation_stage,
@@ -4090,8 +4090,8 @@ def score_operand_candidate(
         related_party_terms = tuple(str(item) for item in (scoring_policy.get("related_party_penalty_terms") or ()) if str(item))
         if any(token in related_party_context for token in related_party_terms):
             score -= 3.0
-        stripped_row_label = _strip_financial_label_annotations(row_label)
-        stripped_needles = {_strip_financial_label_annotations(needle) for needle in operand_needles(operand)}
+        stripped_row_label = strip_financial_label_annotations(row_label)
+        stripped_needles = {strip_financial_label_annotations(needle) for needle in operand_needles(operand)}
         generic_suffix_terms = tuple(str(item) for item in (scoring_policy.get("generic_suffix_penalty_terms") or ()) if str(item))
         if stripped_row_label and any(token in stripped_row_label for token in generic_suffix_terms) and stripped_row_label not in stripped_needles:
             score -= 1.5
