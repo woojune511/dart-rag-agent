@@ -6995,3 +6995,87 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Leading-period-qualifier public-API milestone
+
+- Commit `98aee5a` renames the exact former 14-line private helper in its
+  existing row-surface owner to public
+  `strip_leading_period_qualifiers(...)`. Its six top-level statements, two
+  `if` nodes, two returns, one `while`, and one `break` are exact after
+  definition-name normalization; the private definition and executable refs
+  are gone without a wrapper or bridge.
+- Four CURRENT-SOURCE methods pin raw truth, normalization/blank stop, exact
+  regex compilation, iterative one-prefix sub/strip/equality order,
+  immediate-stability and adopted-result identities, immutability, uncaught
+  failures, caller arguments/adoption/stops, imports, DAG, stale audit
+  provenance, and public-name store absence.
+- All four calls across row surfaces and aggregate projection now bind the
+  public API at caller `try` depth zero. External/local calls are 1/3 and the
+  aggregate binding is live. Earlier mutation, later work, result adoption,
+  and exception stops remain caller-owned.
+- Production source is `+6/-6`, net `0`; tests are `+1,124/-25`, net `+1,099`;
+  and the whole commit is `+1,130/-31`, net `+1,099`. Production physical line
+  counts are unchanged. Four methods move discovery from 2,059 to 2,063. Final
+  row counts are 15/11; aggregate projection remains 76/12 with 19 classes.
+  The committed source diff SHA-256 is
+  `5556c032ed6fde19f06863ab5833bb919ae1a90189e8b09c1adfa4f2bb2a5307`.
+- Focused pre/post rename 4/4, graph owner 210/210, surface owner 1/1, operand
+  owner 69/69, affected eleven-module semantic 1,170/1,170, additional
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import-side-effects
+  19/19, runtime-domain audit 217, and full discovery 2,063/2,063 passed.
+  Pycompile, production transform parity 2/2, selected-body and three caller
+  bodies, existing graph-test AST parity 206/206 plus four new methods,
+  existing subtask-loop AST parity 252/252, public identity 1/1, all four
+  calls/two modules, zero public stores/retired exact private refs, unchanged
+  acyclic 48-module/205-edge DAG, UTF-8/non-ASCII preservation 4/4, and diff
+  check passed. Intermediate graph-owner runs exposed only expected static
+  row-count, caller-hash, and prior method-count baselines before final pass.
+  Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Surface-match-variants private-API characterization checkpoint
+
+- A docs-only inventory selects the current exact 11-line
+  `financial_row_surfaces._surface_match_variants(text: str) -> List[str]`
+  definition for an in-place public rename to `surface_match_variants(...)`.
+  No source or test rename has occurred.
+- The projection preserves four top-level statements, one `if`, two returns,
+  one generator expression, raw truth, one normalization, fresh blank-list
+  return, exact four-item eager annotation/period projection order, the fresh
+  repeated annotation call, truth-filtered ordered-dictionary dedupe, first-
+  representative identity, immutability, absence of string coercion, and every
+  uncaught truth/normalization/helper/hash/equality/materialization failure.
+- Nine one-positional-argument direct calls across row surfaces, graph
+  calculation, and operand resolution remain at caller `try` depth zero;
+  external/local calls are 7/2 across six caller definitions. Exact result
+  assignment, direct iteration, set conversion, lazy `any(...)`, compact
+  matching, score adoption, later work, and exception stops remain caller-
+  owned. Existing edges keep the full DAG unchanged and acyclic at 48 modules/
+  205 edges.
+- Projected row counts are 15/11 to 16/10, while operand resolution remains
+  54/37. No future public-name definition/store exists. The body SHA-256 is
+  `29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6`.
+  The private identifier has 12 production AST references across three files;
+  27 exact references in 11 graph-helper test methods form the bounded test
+  transform surface.
+- A naive span lookup selects baseline fingerprints `25f17ac6aad50c38` and
+  `29c0f2198b3be826` at stale `first_lines: [66]`, but their `억`/`조` literals
+  are not owned by this helper; its only string literal is `""`. The rename
+  changes no line or literal, so all 217 records remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  214/214, surface owner 1/1, operand owner 69/69, affected semantic
+  1,174/1,174, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,067/2,067, public identity 3/3, production
+  transform 3/3, selected-body/six-caller parity, all nine calls/three modules,
+  unchanged DAG, retired-ref/public-store zero, existing graph-test AST parity
+  210/210 plus four new methods, UTF-8/non-ASCII preservation 4/4, pycompile,
+  and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.
