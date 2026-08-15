@@ -21,7 +21,7 @@ from src.agent.financial_structured_cells import (
     select_aggregate_structured_cell,
     select_structured_cell,
 )
-from src.agent.financial_surface_contracts import operand_needles, _text_has_positive_surface
+from src.agent.financial_surface_contracts import operand_needles, text_has_positive_surface
 from src.config.retrieval_policy import NUMERIC_UNIT_NORMALIZATION_POLICY, PLANNING_POLICY
 
 
@@ -597,7 +597,7 @@ def coerce_operand_value_from_direct_structured_evidence(
     )
     if authoritative_surface and not (
         _operand_text_match(authoritative_surface, operand_spec)
-        or _text_has_positive_surface(authoritative_surface, operand_spec)
+        or text_has_positive_surface(authoritative_surface, operand_spec)
     ):
         return row
 

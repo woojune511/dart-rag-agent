@@ -43,7 +43,7 @@ from src.agent.financial_surface_contracts import (
     _operand_surface_contract,
     _text_has_contract_term,
     text_has_negative_surface,
-    _text_has_positive_surface,
+    text_has_positive_surface,
     binding_policy_allows_candidate_shape,
     candidate_conflicts_with_operand_concept,
     candidate_consolidation_scope,
@@ -445,7 +445,7 @@ def _operand_slot_has_evidence_surface_match(
     evidence_surface = _normalise_spaces(" ".join(part for part in surface_parts if str(part).strip()))
     if not evidence_surface:
         return False
-    return _operand_text_match(evidence_surface, operand) or _text_has_positive_surface(evidence_surface, operand)
+    return _operand_text_match(evidence_surface, operand) or text_has_positive_surface(evidence_surface, operand)
 
 
 def operand_row_values_differ(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
@@ -1521,7 +1521,7 @@ def _operand_row_has_direct_evidence_surface(
                 continue
             if text_has_negative_surface(line, operand):
                 continue
-            if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+            if text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
                 return True
         return False
 
@@ -1577,7 +1577,7 @@ def _llm_lookup_operand_has_direct_support(
         if not evidence_text:
             return False
         surface_operand = matching_operand
-        positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
+        positive_surface_match = text_has_positive_surface(evidence_text, surface_operand)
         if requires_surface_contract and not positive_surface_match:
             return False
         if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
@@ -1591,7 +1591,7 @@ def _llm_lookup_operand_has_direct_support(
             if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
                 surface_operand = dict(matching_operand)
                 surface_operand["label"] = periodless_label
-                positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
+                positive_surface_match = text_has_positive_surface(evidence_text, surface_operand)
         if requires_surface_contract and not positive_surface_match:
             return False
         if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
@@ -1761,7 +1761,7 @@ def surface_contract_numeric_evidence_items(
             continue
         for operand in required_operands:
             operand_dict = dict(operand or {})
-            if not _text_has_positive_surface(surface, operand_dict):
+            if not text_has_positive_surface(surface, operand_dict):
                 continue
             if text_has_negative_surface(surface, operand_dict):
                 continue
@@ -2635,7 +2635,7 @@ def score_direct_structured_lookup_evidence(
                 )
             )
         )
-        if not _text_has_positive_surface(authoritative_surface, operand):
+        if not text_has_positive_surface(authoritative_surface, operand):
             return DirectStructuredLookupEvidenceScoreResult(
                 score=0.0,
                 reason="surface_contract_not_satisfied",
@@ -3604,10 +3604,10 @@ def candidate_source_priority_bonus(
         if (
             value_role == "aggregate"
             and aggregation_stage in {"final", "subtotal", "direct"}
-            and _text_has_positive_surface(context_text, operand)
+            and text_has_positive_surface(context_text, operand)
         ):
             score += 2.0
-        elif value_role == "detail" and _text_has_positive_surface(context_text, operand):
+        elif value_role == "detail" and text_has_positive_surface(context_text, operand):
             score -= 1.0
 
     if operand_prefers_note_aggregate_lookup(operand):
@@ -3685,7 +3685,7 @@ def candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]
         ]
         if preferred_sections and any(section in _normalise_spaces(section_context) for section in preferred_sections):
             if (
-                _text_has_positive_surface(section_context, operand)
+                text_has_positive_surface(section_context, operand)
                 and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 return True
@@ -3708,7 +3708,7 @@ def candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]
             or aggregate_like_row_stage(aggregate_surface) != "none"
         )
         if (
-            _text_has_positive_surface(section_context, operand)
+            text_has_positive_surface(section_context, operand)
             and aggregate_like
         ):
             return True
@@ -3861,14 +3861,14 @@ def candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[str
             if _normalise_spaces(surface)
         ):
             if (
-                _text_has_positive_surface(context_text, operand)
+                text_has_positive_surface(context_text, operand)
                 and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 best = max(best, 2.25)
     if operand_prefers_contextual_aggregate_match(operand):
         context_text = candidate_local_aggregate_context(candidate)
         if (
-            _text_has_positive_surface(context_text, operand)
+            text_has_positive_surface(context_text, operand)
             and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
         ):
             best = max(best, 2.0)

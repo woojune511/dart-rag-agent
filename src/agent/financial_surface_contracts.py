@@ -125,7 +125,7 @@ def _text_has_contract_term(text: str, terms: List[str]) -> bool:
     return False
 
 
-def _text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
+def text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
     return _text_has_contract_term(text, list(contract.get("positive") or []))
 
@@ -158,7 +158,7 @@ def candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand:
     if any(text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
         return True
 
-    if any(_text_has_positive_surface(surface, operand) for surface in authoritative_surfaces):
+    if any(text_has_positive_surface(surface, operand) for surface in authoritative_surfaces):
         return False
 
     return text_has_negative_surface(str(candidate.get("text") or ""), operand)

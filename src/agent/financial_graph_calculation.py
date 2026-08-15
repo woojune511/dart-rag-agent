@@ -283,7 +283,7 @@ from src.agent.financial_surface_contracts import (
     operand_needles,
     operand_segment_label,
     text_has_negative_surface,
-    _text_has_positive_surface,
+    text_has_positive_surface,
     scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
@@ -1545,7 +1545,7 @@ class FinancialAgentCalculationMixin:
                     if str(evidence.get(key) or "").strip()
                 )
             )
-            if not source_text or not _text_has_positive_surface(source_text, operand):
+            if not source_text or not text_has_positive_surface(source_text, operand):
                 return {}, 0.0
             metadata = dict(evidence.get("metadata") or {})
             if _normalise_spaces(str(metadata.get("table_value_labels_text") or "")):
@@ -7908,7 +7908,7 @@ class FinancialAgentCalculationMixin:
             for label in matched_labels:
                 if label and (
                     _operand_text_match(direct_claim_surface, {"label": label, "concept": ""})
-                    or _text_has_positive_surface(direct_claim_surface, {"label": label, "concept": ""})
+                    or text_has_positive_surface(direct_claim_surface, {"label": label, "concept": ""})
                 ):
                     score += 6.0
                     break

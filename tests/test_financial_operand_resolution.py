@@ -2563,7 +2563,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             return "" if operand["role"] == "extract-miss" else "10"
 
         with (
-            patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
+            patch.object(operand_resolution, "text_has_positive_surface", side_effect=positive),
             patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
@@ -2601,7 +2601,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 raise RuntimeError("anchor string accessed")
 
         with (
-            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "text_has_positive_surface", return_value=True),
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
@@ -2664,7 +2664,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         with (
             patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize),
             patch.object(operand_resolution.re, "search", side_effect=search),
-            patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
+            patch.object(operand_resolution, "text_has_positive_surface", side_effect=positive),
             patch.object(operand_resolution, "text_has_negative_surface", side_effect=negative),
             patch.object(
                 operand_resolution,
@@ -2729,7 +2729,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         requirement = [{"role": "current"}]
         for owner_name, patch_target in (
             ("normalizer", "_normalise_spaces"),
-            ("positive", "_text_has_positive_surface"),
+            ("positive", "text_has_positive_surface"),
         ):
             with self.subTest(propagates=owner_name), patch.object(
                 operand_resolution,
@@ -2742,7 +2742,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "regex failed"):
                 select(row, requirement)
         with (
-            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "text_has_positive_surface", return_value=True),
             patch.object(
                 operand_resolution,
                 "text_has_negative_surface",
@@ -2752,7 +2752,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "negative failed"):
                 select(row, requirement)
         with (
-            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "text_has_positive_surface", return_value=True),
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,
@@ -2772,7 +2772,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 return HashBombString("hash-bomb")
 
         with (
-            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "text_has_positive_surface", return_value=True),
             patch.object(operand_resolution, "text_has_negative_surface", return_value=False),
             patch.object(
                 operand_resolution,

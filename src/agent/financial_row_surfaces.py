@@ -10,7 +10,7 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_surface_contracts import (
     operand_needles,
     operand_segment_label,
-    _text_has_positive_surface,
+    text_has_positive_surface,
     candidate_matches_segment_binding,
 )
 from src.config.retrieval_policy import (
@@ -411,7 +411,7 @@ def candidate_has_operand_context_surface(candidate: Dict[str, Any], operand: Di
         )
         if str(part or "").strip()
     )
-    return _text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
+    return text_has_positive_surface(context_text, operand) or _operand_text_match(context_text, operand)
 
 
 def table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:

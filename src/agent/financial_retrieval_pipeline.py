@@ -42,7 +42,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_surface_contracts import (
     operand_needles,
     text_has_negative_surface,
-    _text_has_positive_surface,
+    text_has_positive_surface,
 )
 from src.agent.financial_text_surface import (
     _strip_rerank_metadata,
@@ -321,7 +321,7 @@ def _lookup_retrieval_objective_signature(active_subtask: Dict[str, Any]) -> str
 
 
 def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
-    if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+    if text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
         return True
     assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
     token_split_pattern = str(assembly_policy.get("lookup_surface_token_split_pattern") or r"[\s/|,()]+")

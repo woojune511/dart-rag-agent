@@ -54,7 +54,7 @@ from src.agent.financial_retrieval_hints import (
 from src.agent.financial_surface_contracts import (
     operand_needles,
     text_has_negative_surface,
-    _text_has_positive_surface,
+    text_has_positive_surface,
     scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
@@ -647,7 +647,7 @@ class FinancialAgentEvidenceMixin:
             return True
 
         claim_surface = str(item.get("claim") or "").strip()
-        if claim_surface and text_has_negative_surface(claim_surface, operand) and not _text_has_positive_surface(claim_surface, operand):
+        if claim_surface and text_has_negative_surface(claim_surface, operand) and not text_has_positive_surface(claim_surface, operand):
             return True
         return False
 
@@ -1362,7 +1362,7 @@ class FinancialAgentEvidenceMixin:
                         and _operand_text_match(context_text, operand)
                     )
                 surface_contract_match = (
-                    _text_has_positive_surface(context_text or raw_row, operand)
+                    text_has_positive_surface(context_text or raw_row, operand)
                     and not text_has_negative_surface(context_text or raw_row, operand)
                 )
                 binding_policy = dict(operand.get("binding_policy") or {})
@@ -1413,22 +1413,22 @@ class FinancialAgentEvidenceMixin:
                     > 0
                     for cell in parsed_cells
                 )
-                raw_row_direct_match = _operand_text_match(raw_row, operand) or _text_has_positive_surface(raw_row, operand)
+                raw_row_direct_match = _operand_text_match(raw_row, operand) or text_has_positive_surface(raw_row, operand)
                 table_value_context_raw = str(metadata.get("table_value_labels_text") or "")
                 table_value_context = _normalise_spaces(table_value_context_raw)
                 table_value_context_match = bool(table_value_context) and (
-                    _text_has_positive_surface(table_value_context, operand)
+                    text_has_positive_surface(table_value_context, operand)
                     if requires_surface_contract
                     else (
                         _operand_text_match(table_value_context, operand)
-                        or _text_has_positive_surface(table_value_context, operand)
+                        or text_has_positive_surface(table_value_context, operand)
                     )
                 )
                 raw_row_matches_other_required = any(
                     other_operand is not operand
                     and (
                         _operand_text_match(raw_row, other_operand)
-                        or _text_has_positive_surface(raw_row, other_operand)
+                        or text_has_positive_surface(raw_row, other_operand)
                     )
                     for other_operand in required_operands
                 )
@@ -1472,11 +1472,11 @@ class FinancialAgentEvidenceMixin:
                                 if not normalized_line:
                                     continue
                                 line_matches_operand = (
-                                    _text_has_positive_surface(normalized_line, operand)
+                                    text_has_positive_surface(normalized_line, operand)
                                     if requires_surface_contract
                                     else (
                                         _operand_text_match(normalized_line, operand)
-                                        or _text_has_positive_surface(normalized_line, operand)
+                                        or text_has_positive_surface(normalized_line, operand)
                                     )
                                 )
                                 if not line_matches_operand:

@@ -1701,7 +1701,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         }
         with (
             patch.object(financial_lookup_recovery, "_operand_text_match", side_effect=operand_match),
-            patch.object(financial_lookup_recovery, "_text_has_positive_surface", side_effect=positive_match),
+            patch.object(financial_lookup_recovery, "text_has_positive_surface", side_effect=positive_match),
             patch.object(
                 financial_lookup_recovery,
                 "select_structured_cell",
@@ -1741,7 +1741,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
             patch.object(
                 financial_lookup_recovery,
-                "_text_has_positive_surface",
+                "text_has_positive_surface",
                 side_effect=AssertionError("positive fallback must be lazy after operand match"),
             ),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
@@ -1765,7 +1765,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "_operand_text_match",
                 side_effect=RuntimeError("surface match failed"),
             ),
-            patch.object(financial_lookup_recovery, "_text_has_positive_surface") as later,
+            patch.object(financial_lookup_recovery, "text_has_positive_surface") as later,
             patch.object(financial_lookup_recovery, "select_structured_cell") as selector,
         ):
             with self.assertRaisesRegex(RuntimeError, "surface match failed"):
