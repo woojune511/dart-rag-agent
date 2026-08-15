@@ -7162,3 +7162,96 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Operand-text-match public-API milestone
+
+- Commit `6f28f8b` renames the exact former 16-line private helper in its
+  existing row-surface owner to public `operand_text_match(...)`. Its four top-
+  level statements, three assignments, two `if` nodes, three loops, three
+  returns, five calls, initial variant/blank stop, per-haystack fresh needle
+  lookup, per-needle fresh variants, and exact/substring/compact short-circuit
+  order are exact after definition-name normalization. No wrapper or private
+  alias was added.
+- Four CURRENT-SOURCE methods pin variant/needle/normalized-needle iteration,
+  regex and predicate order, exact bool results, immutability, uncaught
+  failures, caller arguments/adoption/stops, imports, DAG, stale audit
+  provenance, and public-name store absence.
+- All 62 calls across ten source modules now bind the public API at caller
+  `try` depth zero with two positional arguments and no keywords. External/
+  local calls are 59/3 across 36 caller definitions, and all nine external
+  importers share the exact row-owner function identity.
+- The checkpoint counted 103 exact references in 32 graph-helper methods.
+  Broader owner/semantic runs exposed another 30 live patch/import references
+  across operand resolution, aggregate subtask projection, dependency
+  projection, task artifacts, and lookup recovery tests. Those live bindings
+  were migrated; the verified source/test transform is 16 files, not the
+  projected 11. One task-artifact negative source-text assertion and the four
+  transition contracts retain the retired spelling only as non-executable
+  evidence.
+- Production source is `+72/-72`, net `0`; tests are `+1,630/-158`, net
+  `+1,472`; and the whole commit is `+1,702/-230`, net `+1,472`. Production
+  physical line counts are unchanged. Four methods move discovery from 2,067
+  to 2,071. Final row counts are 17/9. The committed source diff SHA-256 is
+  `994ebce19f931072d564b7e12678100b79648799b0c09342b4d5e50c65c80a08`.
+- Focused pre/post rename 4/4, graph owner 218/218, surface owner 1/1, operand
+  owner 69/69, affected eleven-module semantic 1,178/1,178, additional
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import-side-effects
+  19/19, runtime audit 217, and full discovery 2,071/2,071 passed. The
+  additional changed-consumer union passed 246/246. Pycompile, production
+  transform 10/10, full transform 16/16, selected-body/36-caller parity,
+  existing graph-test AST 214/214 plus four new methods, public identity 10/10,
+  all 62 calls/ten modules, zero public stores and retired production refs,
+  unchanged acyclic 48-module/205-edge DAG, UTF-8 decode 16/16, non-ASCII
+  preservation 12/12, and diff check passed. Intermediate runs exposed only
+  expected structural baseline updates and the additional stale test patch
+  points. Benchmark refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+### Numeric-value-after-operand-text private-API characterization checkpoint
+
+- A docs-only inventory selects the current exact 16-line
+  `financial_row_surfaces._extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`
+  definition for an in-place public rename to
+  `extract_numeric_value_after_operand_text(...)`. No source or test rename has
+  occurred. Parenthetical, numeric-match, and candidate-construction helpers
+  remain private and row-local.
+- The projection preserves four top-level statements, five assignments, four
+  `if` nodes, one loop, two `continue` statements, three returns, nine calls,
+  one generator, one lambda, and no `try` or list comprehension. It pins raw
+  normalization/blank stop, fresh needle iteration, needle normalization and
+  compaction, falsey continue, character-wise escaped spaced-pattern
+  construction, one search, one candidate projection, stable distance sort,
+  first `[0][1]` result identity, exhausted blank return, immutability, and
+  every uncaught failure.
+- Five two-positional-argument calls across graph calculation, graph evidence,
+  and operand resolution remain at caller `try` depth zero with no keywords;
+  external/local calls are 5/0 across three caller definitions. The three
+  importers already reach row surfaces, so the full DAG remains unchanged and
+  acyclic at 48 modules/205 edges.
+- Projected row counts are 17/9 to 18/8. No future public-name definition/store
+  exists. The body SHA-256 is
+  `bdac2c1b9337a7d415b802d2af850ee5c9e4b1c242995310553e765e748fb8ab`.
+  The private identifier has nine production AST references. Twelve exact test
+  references across graph helpers, operand resolution, operation contracts,
+  and semantic numeric plan make the bounded source/test transform eight
+  files.
+- The current 226-241 span selects no reviewed runtime-domain record. Its
+  string literals are `""`, `r"\s+"`, and `r"\s*"`, so the rename moves no
+  reviewed literal and all 217 records remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  222/222, surface owner 1/1, operand owner 69/69, affected semantic
+  1,182/1,182, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+  import 19/19, audit 217, full 2,075/2,075, public identity 4/4, production
+  transform 4/4, selected-body/three-caller parity, all five calls/three
+  modules, unchanged DAG, retired-ref/public-store zero, existing graph-test
+  AST parity 218/218 plus four new methods, UTF-8/non-ASCII preservation 8/8,
+  pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.

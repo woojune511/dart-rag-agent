@@ -747,13 +747,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, surface-match-variants public API 4 / 4; graph owner 214 / 214; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,174 / 1,174; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, operand-text-match public API 4 / 4; graph owner 218 / 218; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,178 / 1,178; additional retrieval-pipeline caller module 1 / 1 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,067 / 2,067 |
-| Benchmark refresh after latest surface-match-variants API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,071 / 2,071 |
+| Benchmark refresh after latest operand-text-match API change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -798,76 +798,124 @@ may split or close only after caller, test, and stop-line characterization.
 
 The characterize-only inventory selects one remaining cross-module private-API
 seam: rename the exact current 16-line
-`financial_row_surfaces._operand_text_match(text: str, operand: Dict[str, Any]) -> bool`
-definition in place to public `operand_text_match(...)`. Add no wrapper or
-private alias. Before the rename, add four CURRENT-SOURCE contracts and require
+`financial_row_surfaces._extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`
+definition in place to public `extract_numeric_value_after_operand_text(...)`.
+Add no wrapper or private alias. The row-local parenthetical, numeric-match, and
+candidate-construction helpers remain private; this batch does not expand their
+ownership. Before the rename, add four CURRENT-SOURCE contracts and require
 them to pass. No production or test rename has occurred for this follow-on, and
 this document maintains no competing implementation queue.
 
-The four top-level statements, three assignments, two `if` nodes, three nested
-`for` loops, three returns, five calls, and absence of `try` and comprehension
-nodes are normative. Assign the exact `surface_match_variants(text)` result,
-truth-test that same object, and return exact plain `False` before operand access
-when it is falsey. Otherwise iterate its haystacks left to right. For every
-haystack, call exact `re.sub(r"\s+", "", haystack)`, then call
-`operand_needles(operand)` fresh for that haystack rather than caching it.
+The four top-level statements, five assignments, four `if` nodes, one `for`,
+two `continue` statements, three returns, nine calls, one generator expression,
+one lambda, and absence of `try` and list-comprehension nodes are normative.
+Preserve exact `_normalise_spaces(text or "")`, its blank return before operand
+access, and left-to-right iteration of a fresh `operand_needles(operand)`
+result. For every needle, normalize it, compact it through exact
+`re.sub(r"\s+", "", ...)`, and continue before pattern construction when the
+compact value is falsey.
 
-For every needle, call `surface_match_variants(needle)` fresh and iterate its
-exact results left to right. Compact every normalized needle through the same
-regex, then evaluate the match predicate in exact short-circuit order: exact
-`haystack == normalized_needle`; `normalized_needle in haystack`; and finally
-`needle_compact and needle_compact in haystack_compact`. The first match returns
-exact plain `True`; complete exhaustion returns exact plain `False`. Preserve
-all variant/needle/normalized-needle iteration and repeated-call order,
-condition short-circuiting, input and nested-object immutability, absence of any
-new coercion or cache, and every uncaught helper/truth/iteration/regex/equality/
-containment failure.
+Build the spaced pattern through exact
+`r"\s*".join(re.escape(char) for char in compact)`, preserving compact-string
+iteration, per-character escape order, generator consumption, and join result.
+Call `re.search(spaced_pattern, normalized)` once and continue on a falsey
+match. Otherwise call `_numeric_operand_candidates_near_match(normalized,
+match)` once. A falsey candidate object continues to the next needle; a truthy
+one is passed unchanged to exact
+`sorted(candidates, key=lambda item: item[0])[0][1]`. Preserve stable distance
+ordering, key and subscript order, the selected value's exact identity, the
+first successful needle stop, exhausted blank return, input and nested-object
+immutability, absence of new coercion or caching, and every uncaught truth,
+iteration, normalization, regex, escape, join, search, candidate, sort, key,
+and subscript failure.
 
-There are 62 direct `ast.Name` calls across ten source modules, all with two
-positional arguments, no keywords, and caller `try` depth zero. External/local
-calls are 59/3 across 36 caller definitions. Module counts are operand
-resolution 24, graph calculation 15, graph evidence 7, aggregate projection 5,
-structured cells 4, row surfaces 3, and one each in dependency projection,
-lookup recovery, retrieval pipeline, and task artifacts. The rename changes
-only the imported/bound name; every gate, score, append, fallback, result
-adoption, later operation, and exception stop remains owned by those callers.
+There are five direct `ast.Name` calls across graph calculation, graph evidence,
+and operand resolution. All use two positional arguments, no keywords, and
+caller `try` depth zero; external/local calls are 5/0 across three caller
+definitions, with graph evidence owning three calls. The rename changes only
+the imported/bound name. Precision-target accumulation, required-operand line/
+table/raw-row precedence, truth checks, fallback choice, evidence filtering,
+dedupe, later work, and exception stops remain caller-owned.
 
-All nine external importers already reach row surfaces, so the rename changes
+All three external importers already reach row surfaces, so the rename changes
 no module edge and the full DAG remains acyclic at 48 modules/205 internal
-edges. Current/projected row-owner counts are 16/10 to 17/9. No future public-
+edges. Current/projected row-owner counts are 17/9 to 18/8. No future public-
 name definition or `ast.Store` collision exists. The current body SHA-256 is
-`08d56d35cbc7cf2256047e0c51fabc9d9fc37569cfed8ab349dd277989b930b0`.
-The private identifier has 72 production AST references across the ten source
-files. Existing exact test references are 103 references in 32 graph-helper test
-methods, so the bounded source/test transform surface is eleven files.
+`bdac2c1b9337a7d415b802d2af850ee5c9e4b1c242995310553e765e748fb8ab`.
+The private identifier has nine production AST references across four source
+files. Existing exact test references total 12 across graph helpers, operand
+resolution, operation contracts, and semantic numeric plan; the bounded
+source/test transform surface is eight files.
 
-A naive current-span lookup selects baseline fingerprints
-`8d15177a51f8ea8a` and `508662ee99ee39e5` at stale `first_lines: [79]` and
-`[83]`. Their numeric-unit regexes are not literals owned by the current 72-87
-helper; its exact string literals are `""` and `r"\s+"`. The rename moves no
-line or literal, so all 217 reviewed records must remain unchanged and the new
-binding test must pin this false-positive stale-location fact.
+The current 226-241 definition span selects no runtime-domain baseline record.
+Its exact string literals are `""`, `r"\s+"`, and `r"\s*"`; the integer
+literals are `0` and `1`. The rename moves no line or literal, so all 217
+reviewed records must remain unchanged.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_operand_text_match_pins_variant_needle_loop_order_short_circuits_and_result`;
-- `test_current_source_operand_text_match_pins_immutability_and_exceptions`;
-- `test_current_source_operand_text_match_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_operand_text_match_callers_pin_args_adoption_and_stops`.
+- `test_current_source_extract_numeric_value_after_operand_text_pins_normalization_needle_pattern_candidate_order_and_result`;
+- `test_current_source_extract_numeric_value_after_operand_text_pins_immutability_and_exceptions`;
+- `test_current_source_extract_numeric_value_after_operand_text_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_extract_numeric_value_after_operand_text_callers_pin_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 218/218, surface-
+Projected post-rename gates are focused 4/4, graph owner 222/222, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,178/1,178, additional retrieval-pipeline caller module 1/1, reconciliation
+1,182/1,182, additional retrieval-pipeline caller module 1/1, reconciliation
 plan 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,071/2,071. Structural gates are exact production transform parity 10/10,
-selected-body and all 36 caller-body parity, fresh public identity 10/10, all
-62 calls/ten call modules, unchanged acyclic 48-module/205-edge DAG,
-retired exact private AST refs and future public stores zero, existing graph-
-test AST parity 214/214 plus four new methods, UTF-8 decode 11/11 and non-ASCII
-preservation 9/9, pycompile, and `git diff --check`. These are projections, not
-executed results.
+2,075/2,075. Structural gates are exact production transform parity 4/4,
+selected-body and three-caller parity, fresh public identity 4/4, all five
+calls/three call modules, unchanged acyclic 48-module/205-edge DAG, retired
+production/private live-test refs and future public stores zero, existing graph-
+test AST parity 218/218 plus four new methods, UTF-8/non-ASCII preservation 8/8,
+pycompile, and `git diff --check`. These are projections, not executed results.
 Static definition/signature/call/import/count/DAG/audit inspection passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+## Completed Operand-Text-Match Public API
+
+Commit `6f28f8b` renamed the exact former 16-line private helper in place to public
+`financial_row_surfaces.operand_text_match(...)`. Its four top-level statements,
+three assignments, two `if` nodes, three loops, three returns, five calls,
+variant/needle iteration, per-haystack fresh needle lookup, exact/substring/
+compact short-circuit order, exact bool results, and selected body are unchanged
+after definition-name normalization. No wrapper or compatibility alias was
+added.
+
+All 62 calls across ten source modules now bind the public API with two
+positional arguments, no keywords, and caller `try` depth zero. External/local
+calls finish 59/3 across 36 caller definitions, and all nine external importers
+share the row-owner function identity. Caller gates, scoring, append/fallback,
+result adoption, later work, and exception stops remain caller-owned.
+
+The characterize checkpoint counted the 103 exact references in 32 existing
+graph-helper methods. Execution additionally found 30 live patch/import
+references across five non-graph test modules; those were migrated too. Thus
+the verified source/test transform surface is 16 files, not the projected 11.
+One task-artifact test keeps the retired spelling only as a negative source-text
+assertion, and the four new contracts retain it only for transition checks;
+production executable refs and existing live test bindings are zero.
+
+Production source is `+72/-72`, net `0`; tests are `+1,630/-158`, net `+1,472`;
+and the whole commit is `+1,702/-230`, net `+1,472`. Production physical line
+counts are unchanged. Four methods moved discovery from 2,067 to 2,071. Final
+row counts are 17/9. The committed source diff SHA-256 is
+`994ebce19f931072d564b7e12678100b79648799b0c09342b4d5e50c65c80a08`.
+
+Focused pre/post rename 4/4, graph owner 218/218, surface owner 1/1, operand
+owner 69/69, affected eleven-module semantic 1,178/1,178, additional retrieval-
+pipeline 1/1, reconciliation plan 51/51, import-side-effects 19/19, runtime audit
+217, and full discovery 2,071/2,071 passed. The additional changed-consumer
+union passed 246/246. Pycompile, production transform 10/10, full transform
+16/16, selected-body/36-caller parity, existing graph-test AST 214/214 plus four
+new methods, public identity 10/10, all 62 calls/ten modules, zero public stores
+and retired production refs, unchanged acyclic 48-module/205-edge DAG, UTF-8
+decode 16/16, non-ASCII preservation 12/12, and diff check passed. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+This milestone changes only API visibility and recorded structural baselines.
+It proves no behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Surface-Match-Variants Public API
 

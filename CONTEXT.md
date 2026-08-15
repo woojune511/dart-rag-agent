@@ -249,12 +249,24 @@ eager helper order, ordered dedupe, first-representative identity와 caller
 adoption/stop은 유지됐고 focused 4/4, graph owner 214/214, surface owner 1/1,
 operand owner 69/69, affected 1,174/1,174, additional retrieval-pipeline 1/1,
 reconciliation plan 51/51, import 19/19, audit 217, full 2,067/2,067 및
-transform/body/identity/caller/DAG parity가 통과했다. 다음 characterize-only
-inventory는 같은 owner의 정확한 16줄 `_operand_text_match(...)`을 public
-`operand_text_match(...)`로 이름 수렴시켜 9개 외부 importer의 private
-binding을 제거한다. 10개 모듈의 62개 call과 36개 caller를 가진 큰 visibility
-batch이므로 source rename 전에 네 CURRENT-SOURCE 계약이 먼저 통과해야 한다.
-정확한 계약과 projected gate는
+transform/body/identity/caller/DAG parity가 통과했다. 이어 정확한 16줄
+`_operand_text_match(...)`은 `6f28f8b`에서 public
+`operand_text_match(...)`로 이름 수렴했다. 10개 모듈의 62 call과 9개 외부
+binding은 public API를 사용하며 variant/needle 반복, per-haystack fresh
+needle lookup, exact/substring/compact short-circuit, exact bool result와 caller
+adoption/stop은 유지됐다. Focused 4/4, graph owner 218/218, surface owner 1/1,
+operand owner 69/69, affected 1,178/1,178, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,071/2,071 및
+transform 16/16/body/identity/36-caller/DAG parity가 통과했다. Characterize
+checkpoint가 빠뜨린 5개 non-graph test module의 live ref 30개도 함께 public
+binding으로 갱신됐다. 다음 characterize-only inventory는 같은 owner의 정확한
+16줄 `_extract_numeric_value_after_operand_text(...)`을 public
+`extract_numeric_value_after_operand_text(...)`로 이름 수렴시켜 graph
+calculation/evidence와 operand resolution의 3개 외부 binding을 제거한다.
+5개 call/3개 caller의 normalization, needle compact, character-wise escaped
+pattern, search, candidate distance sort, first result identity와 stop은
+유지해야 하며 row-local candidate helpers는 이동하지 않는다. 정확한 계약과
+projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

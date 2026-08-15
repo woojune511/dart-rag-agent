@@ -5175,48 +5175,76 @@ selected-body/six-caller parity, existing graph-test AST 210/210 plus four new
 methods, public identity 3/3, all-call/DAG/retired-ref/public-store and
 UTF-8/non-ASCII gates. Benchmark refresh and remote CI were **NOT RUN**.
 
+Commit `6f28f8b` completes the operand-text-match visibility contract. The
+exact former 16-line definition is public
+`financial_row_surfaces.operand_text_match(text: str, operand: Dict[str, Any]) -> bool`;
+no wrapper or private alias remains. Its four top-level statements, three
+assignments, two `if` nodes, three loops, three returns, five calls, initial
+variant/blank stop, per-haystack compact and fresh needle lookup, per-needle
+fresh variants, exact/substring/compact predicate order, exact bool results,
+immutability, and uncaught failure behavior are unchanged after definition-name
+normalization.
+
+All 62 direct source calls use two positional arguments, no keywords, and
+caller `try` depth zero; external/local calls finish 59/3 across 36 caller
+definitions and ten modules. Nine external importers bind the same public owner
+identity. Row counts finish 17/9. Executed gates are focused 4/4, graph owner
+218/218, surface owner 1/1, operand owner 69/69, affected semantic
+1,178/1,178, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,071/2,071, plus changed-consumer 246/246,
+pycompile, production transform 10/10, full source/test transform 16/16,
+selected-body/36-caller parity, existing graph-test AST 214/214 plus four new
+methods, public identity 10/10, all-call/DAG/public-store/retired-production-ref
+and UTF-8/non-ASCII gates. The characterization's graph-only test inventory
+under-counted 30 live references in five additional test modules; execution
+migrated them and recorded the correction. Benchmark refresh and remote CI were
+**NOT RUN**.
+
 The next private-API contract is the exact current 16-line
-`financial_row_surfaces._operand_text_match(text: str, operand: Dict[str, Any]) -> bool`
+`financial_row_surfaces._extract_numeric_value_after_operand_text(text: str, operand: Dict[str, Any]) -> str`
 definition. It already belongs to the row-surface owner; the authorized future
-batch only renames it in place to public `operand_text_match(...)` and updates
-nine imports, 62 direct calls, and exact test references without a private
-alias.
+batch only renames it in place to public
+`extract_numeric_value_after_operand_text(...)` and updates three imports, five
+direct calls, and exact test references without a private alias. Adjacent
+parenthetical, numeric-match, and candidate-construction helpers remain
+row-local and private.
 
-Preserve the exact four top-level statements, three assignments, two `if`
-nodes, three nested `for` loops, three returns, five calls, and zero `try` or
-comprehension nodes. Assign `surface_match_variants(text)` once, truth-test that
-exact result, and return exact `False` before operand access when it is falsey.
-For every haystack, compact it through exact `re.sub(r"\s+", "", haystack)`,
-then call `operand_needles(operand)` fresh for that haystack. For every needle,
-iterate a fresh `surface_match_variants(needle)` result and compact each exact
-normalized needle through the same regex.
+Preserve four top-level statements, five assignments, four `if` nodes, one
+`for`, two `continue` statements, three returns, nine calls, one generator, one
+lambda, and zero `try` or list-comprehension nodes. Normalize exact `text or ""`
+once and return `""` before operand access when falsey. Iterate a fresh
+`operand_needles(operand)` result left to right. For each needle, normalize it,
+compact it through exact `re.sub(r"\s+", "", ...)`, and skip falsey compacts.
+Build exact `r"\s*".join(re.escape(char) for char in compact)`, preserving
+character iteration, escape order, generator consumption, and join identity.
 
-The match predicate evaluates left to right: exact surface equality; normalized
-needle containment in the haystack; then truth-gated compact containment. The
-first truthy predicate returns exact `True`; exhaustion returns exact `False`.
-Preserve haystack/needle/variant iteration and repeated-call order, condition
-short-circuiting, plain-bool results, input and nested-object immutability, lack
-of added coercion, and every uncaught helper/truth/iteration/regex/equality/
-containment failure. No caching or exception boundary is allowed.
+Call `re.search(spaced_pattern, normalized)` once and skip a falsey match. Pass
+a truthy match with the exact normalized string to
+`_numeric_operand_candidates_near_match(...)` once. A falsey candidates object
+continues; a truthy one is sorted through exact
+`sorted(candidates, key=lambda item: item[0])[0][1]`. Preserve stable distance
+ordering, key/subscript order, exact selected-value identity, first-success and
+exhaustion stops, input/nested-object immutability, absence of added coercion or
+cache, and every uncaught truth, iteration, normalization, regex, escape, join,
+search, candidate, sort, key, and subscript failure.
 
-All 62 direct calls use two positional arguments, no keywords, and caller `try`
-depth zero; external/local calls are 59/3 across 36 caller definitions and ten
-source modules. Nine external importers already reach row surfaces, so no
-module edge changes and the full DAG remains acyclic at 48 modules/205 edges.
-Projected row counts are 16/10 to 17/9. The selected body SHA-256 is
-`08d56d35cbc7cf2256047e0c51fabc9d9fc37569cfed8ab349dd277989b930b0`;
-the private identifier has 72 production AST references. Existing exact test
-references are 103 references in 32 graph-helper methods, so the bounded
-source/test transform surface is eleven files.
+All five direct calls use two positional arguments, no keywords, and caller
+`try` depth zero; external/local calls are 5/0 across three caller definitions
+in graph calculation, graph evidence, and operand resolution. All three
+importers already reach row surfaces, so the full DAG remains acyclic at 48
+modules/205 edges. Projected row counts are 17/9 to 18/8. The selected body
+SHA-256 is
+`bdac2c1b9337a7d415b802d2af850ee5c9e4b1c242995310553e765e748fb8ab`;
+the private identifier has nine production AST references. Twelve exact test
+references across four test files make the bounded source/test transform eight
+files. The selected 226-241 span intersects no reviewed runtime-domain record;
+its string literals are `""`, `r"\s+"`, and `r"\s*"`, so the 217-record
+baseline must stay unchanged.
 
-Baseline fingerprints `8d15177a51f8ea8a` and `508662ee99ee39e5` report stale
-`first_lines: [79]` and `[83]` inside the current 72-87 span. Their numeric-unit
-regexes are not literals owned by this helper, whose exact literals are `""`
-and `r"\s+"`. The rename changes no line or literal, so the 217-record baseline
-must stay unchanged. Projected focused 4/4, graph owner 218/218, surface owner
-1/1, operand owner 69/69, affected semantic 1,178/1,178, additional retrieval-
-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and full
-2,071/2,071 gates are governed only by
+Projected focused 4/4, graph owner 222/222, surface owner 1/1, operand owner
+69/69, affected semantic 1,182/1,182, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,075/2,075 gates
+are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 

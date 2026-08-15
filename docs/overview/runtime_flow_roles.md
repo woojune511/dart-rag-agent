@@ -1017,16 +1017,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   operand owner 69/69, semantic 1,174/1,174, additional retrieval-pipeline 1/1,
   reconciliation plan 51/51, import 19/19, audit 217, full 2,067/2,067와
   transform/body/identity/caller/48-module/205-edge DAG parity가 통과했다.
+- 완료된 `6f28f8b` operand-text-match API batch는 같은 owner의 정확한 16줄
+  private helper를 public `operand_text_match(...)`로 이름 수렴시켰다. 10개
+  module의 62 call과 9개 external binding은 public API를 사용한다. Variant/
+  needle 반복, per-haystack fresh needle lookup, exact/substring/compact
+  short-circuit, exact bool result와 36 caller의 adoption/stop은 유지됐다.
+  Row public/private는 17/9이다. Focused 4/4, graph owner 218/218, surface
+  owner 1/1, operand owner 69/69, semantic 1,178/1,178, additional retrieval-
+  pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+  2,071/2,071와 transform 16/16/body/identity/caller/48-module/205-edge DAG
+  parity가 통과했다. 최초 graph-only test inventory가 빠뜨린 5개 test
+  module의 live ref 30개도 public binding으로 갱신됐다.
 - 새 characterize-only inventory는 같은 owner의 정확한 16줄
-  `_operand_text_match(...)`을 public `operand_text_match(...)`로 이름
-  수렴시키는 cross-module private-API batch를 선택한다. 10개 module의 62
-  two-positional-argument calls은 no keyword, caller `try` depth zero이고
-  external/local은 59/3, external importer는 9개다. 기존 edge만 사용하므로
-  48-module/205-edge DAG는 비순환이고 projected row public/private는 17/9다.
-  아직 source/test rename은 없으며 variant/needle 반복 순서, per-haystack
-  needle lookup, exact/substring/compact short-circuit, exact bool result,
-  caller adoption/stop, stale audit-line provenance, 네 CURRENT-SOURCE method와
-  projected gate는
+  `_extract_numeric_value_after_operand_text(...)`을 public
+  `extract_numeric_value_after_operand_text(...)`로 이름 수렴시키는 batch를
+  선택한다. Graph calculation/evidence와 operand resolution의 5개 external
+  call은 two positional arguments, no keyword, caller `try` depth zero다.
+  기존 edge만 사용하므로 48-module/205-edge DAG는 비순환이고 projected row
+  public/private는 18/8이다. 아직 source/test rename은 없으며 normalization,
+  needle compact, escaped spaced-pattern, search, candidate distance sort, first
+  result identity, caller adoption/stop과 네 CURRENT-SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
