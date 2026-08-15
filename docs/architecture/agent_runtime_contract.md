@@ -4987,41 +4987,62 @@ pycompile, production transform parity 6/6, selected-body SHA-256 and owner
 executable refs, non-ASCII preservation 8/8, and diff check. Benchmark refresh
 and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 3-line
-`financial_surface_contracts._text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool`
-definition. It already belongs to the surface-contract owner; the authorized
-future batch only renames it in place to public
-`text_has_positive_surface(...)` and updates every import/caller/test patch
-string without a private alias.
-
-Preserve the exact two statements and one return. Call
-`_operand_surface_contract(operand)` once with the original operand identity,
-retain its exact result, then call `contract.get("positive")` once. Preserve raw
-truth/fallback to a fresh empty list, eagerly materialize `list(...)` in order,
-and call `_text_has_contract_term(...)` with the original text identity and the
-new list. Preserve duplicates, element identities, exact helper result without
-new boolean coercion, input immutability, and all uncaught owner/get/truth/
-iteration/list/term-helper failures.
+Commit `a0c9a84` completed the positive-surface public contract. The exact
+former 3-line private definition is now public
+`financial_surface_contracts.text_has_positive_surface(...)`; its two-statement
+owner call, positive get/truth/fresh-list fallback, eager list materialization,
+text/list identity, exact term-helper result, immutability, and uncaught failure
+body is unchanged after name normalization. No private alias or bridge exists.
 
 All twenty-six direct source calls use two positional arguments, no keywords,
 and caller `try` depth zero. Twenty-five external calls span graph calculation,
 graph evidence, lookup recovery, operand resolution, retrieval pipeline, and
 row surfaces; one call is owner-local. All six external bindings are live
-callers. Lookup visibility, evidence conflict/required-operand matching, direct
-structured lookup eligibility, operand evidence/support/scoring/matching,
-retrieval-line and row-context fallback matching, and the owner conflict veto
-remain caller-owned together with their boolean/generator/conditional
-short-circuiting, later work, and exception stops.
+callers. Boolean/generator/conditional short-circuiting, operand copies, surface
+preparation, later adoption, and exception stops remain caller-owned.
+
+Final counts are surface contracts 19/3, graph 9/71, and operand resolution
+54/37; the full DAG remains unchanged and acyclic at 48 modules/205 edges.
+Executed gates are focused 4/4, graph owner 186/186, surface owner 1/1, operand
+owner 69/69, affected semantic 1,146/1,146, additional retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, and full 2,039/2,039, plus
+pycompile, production transform parity 7/7, untouched-test transform parity
+2/2, selected-body SHA-256 and owner 22/22 parity, public identity 6/6, all
+calls, zero public stores/private executable refs, non-ASCII preservation
+10/10, and diff check. Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 13-line
+`financial_surface_contracts._text_has_contract_term(text: str, terms: List[str]) -> bool`
+definition. It already belongs to the surface-contract owner; the authorized
+future batch only renames it in place to public `text_has_contract_term(...)`
+and updates its import/callers/test patch strings without a private alias.
+
+Preserve the exact five top-level statements, three returns, and one loop.
+Normalize `text or ""` once and return `False` on a falsey normalized haystack
+before regex compaction or term iteration. Otherwise compact whitespace, scan
+`terms` in order, normalize each raw term once, skip a falsey result, then
+compact the term. Direct normalized membership must run before the truthy-
+compact-term membership branch; return `True` at the first hit and `False` only
+after exhaustion. Preserve `or` and membership short-circuiting, iteration
+laziness, input immutability, exact booleans, and all uncaught truth/
+normalization/regex/iteration/membership failures.
+
+All four direct source calls use two positional arguments, no keywords, and
+caller `try` depth zero. The one external operand-resolution call directly
+returns the helper result; three owner-local calls implement positive, negative,
+and required-surface matching. The sole external binding is live. Caller list
+construction, generator filtering/short-circuiting, later work, and exception
+stops remain caller-owned.
 
 No module edge changes, so the full DAG remains acyclic at 48 modules/205
-edges. Projected counts are surface contracts 18/4 to 19/3, with graph 9/71 and
+edges. Projected counts are surface contracts 19/3 to 20/2, with graph 9/71 and
 operand resolution 54/37 unchanged. The selected body SHA-256 is
-`88731ff3dbee812ca313fae1324f06cf72e994d7d2b0099a54aebd8b40b3df24`; there
+`38b5972892c2914ce30a86b9b85ca10156f0c1a9c587c9885c2f95b44a91c954`; there
 is no future public-name definition/store and the span has zero of 217 reviewed
 records. The four required CURRENT-SOURCE methods and projected focused 4/4,
-graph owner 186/186, surface owner 1/1, operand owner 69/69, affected semantic
-1,146/1,146, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
-import 19/19, audit 217, and full 2,039/2,039 gates are governed only by
+graph owner 190/190, surface owner 1/1, operand owner 69/69, affected semantic
+1,150/1,150, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,043/2,043 gates are governed only by
 [Project Status Next Work](../overview/project_status.md#next-work). No source
 or test rename has occurred for this helper projection.
 
