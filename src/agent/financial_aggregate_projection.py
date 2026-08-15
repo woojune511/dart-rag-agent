@@ -50,7 +50,7 @@ from src.agent.financial_operand_resolution import (
     coerce_operand_unit_from_evidence,
     ratio_context_has_metric_surface,
 )
-from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
+from src.agent.financial_row_surfaces import _operand_text_match, strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -2947,7 +2947,7 @@ def select_aggregate_projection_answer_sentence(
         if not normalized:
             continue
         row_labels.append(normalized)
-        stripped = _normalise_spaces(_strip_leading_period_qualifiers(normalized)).lower()
+        stripped = _normalise_spaces(strip_leading_period_qualifiers(normalized)).lower()
         if stripped and stripped != normalized:
             row_labels.append(stripped)
     row_labels = list(dict.fromkeys(row_labels))

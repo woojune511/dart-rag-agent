@@ -5489,7 +5489,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 with (
                     patch.object(
                         financial_aggregate_projection,
-                        "_strip_leading_period_qualifiers",
+                        "strip_leading_period_qualifiers",
                         return_value=stripped_label,
                     ) as stripper,
                     patch.object(
@@ -5564,7 +5564,7 @@ class SubtaskLoopTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_strip_leading_period_qualifiers",
+                "strip_leading_period_qualifiers",
                 side_effect=record_strip,
             ),
             patch.object(

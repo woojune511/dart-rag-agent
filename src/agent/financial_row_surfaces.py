@@ -40,7 +40,7 @@ def is_delta_like_row_label(label: str) -> bool:
     return any(token in text for token in delta_markers)
 
 
-def _strip_leading_period_qualifiers(text: str) -> str:
+def strip_leading_period_qualifiers(text: str) -> str:
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""
@@ -63,8 +63,8 @@ def _surface_match_variants(text: str) -> List[str]:
     variants = [
         normalized,
         strip_financial_label_annotations(normalized),
-        _strip_leading_period_qualifiers(normalized),
-        _strip_leading_period_qualifiers(strip_financial_label_annotations(normalized)),
+        strip_leading_period_qualifiers(normalized),
+        strip_leading_period_qualifiers(strip_financial_label_annotations(normalized)),
     ]
     return list(dict.fromkeys(item for item in variants if item))
 
@@ -484,7 +484,7 @@ def candidate_sibling_surface_hit_count(candidate: Dict[str, Any], sibling_surfa
     compact_haystack = re.sub(r"\s+", "", haystack)
     hits = 0
     for surface in list(dict.fromkeys(sibling_surfaces)):
-        normalized = _strip_leading_period_qualifiers(_normalise_spaces(str(surface or "")))
+        normalized = strip_leading_period_qualifiers(_normalise_spaces(str(surface or "")))
         if not normalized:
             continue
         compact_surface = re.sub(r"\s+", "", normalized)
