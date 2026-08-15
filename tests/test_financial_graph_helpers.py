@@ -486,7 +486,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (18, 8),
+            (19, 7),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1900,7 +1900,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (18, 8),
+            (19, 7),
         )
 
         graph_row_imports = {
@@ -2872,7 +2872,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (18, 8))
+        self.assertEqual(row_counts, (19, 7))
 
         graph_row_imports = {
             alias.name
@@ -3938,7 +3938,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (18, 8),
+            (19, 7),
         )
         graph_row_imports = {
             alias.name
@@ -10409,7 +10409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in row_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(row_counts, (18, 8))
+        self.assertEqual(row_counts, (19, 7))
 
         def imported_names(module_name, imported_module):
             return {
@@ -22186,7 +22186,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_row_surfaces": (18, 8),
+                "financial_row_surfaces": (19, 7),
             },
         )
 
@@ -23711,7 +23711,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (18, 8)},
+            {"financial_graph_helpers": (9, 71), "financial_row_surfaces": (19, 7)},
         )
 
         def imported_modules(tree):
@@ -23928,7 +23928,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_format = Mock(side_effect=AssertionError("helper failure must stop final synthesis"))
         with (
             patch.object(financial_graph_helpers, target_name, side_effect=fail_second),
-            patch.object(financial_graph_helpers, "_format_structured_candidate_row_text", stopped_format),
+            patch.object(financial_graph_helpers, "format_structured_candidate_row_text", stopped_format),
         ):
             with self.assertRaisesRegex(RuntimeError, "column label failed"):
                 financial_graph_helpers._build_table_column_reconciliation_candidates(
@@ -23956,7 +23956,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, target_name, return_value=LabelTruthBomb()) as truth_call,
             patch.object(
                 financial_graph_helpers,
-                "_format_structured_candidate_row_text",
+                "format_structured_candidate_row_text",
                 stopped_truth_format,
             ),
         ):
@@ -46475,7 +46475,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (18, 8) if target_name == future_public_name else (14, 12)
+            (19, 7) if target_name == future_public_name else (15, 11)
         )
         self.assertEqual(row_counts, expected_row_counts)
         structured_tree = module_trees["financial_structured_cells"]
@@ -47370,7 +47370,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             {
                 "financial_graph_evidence": "ecf33030b321d3a3fe32bf893d7a2c81cfc7af71e6f562efc0673503cc31eac2",
-                "financial_graph_helpers": "2ef9302c59726decfb3b9429850e54cf757923b56406c7a66b4ed10dc29b7443",
+                "financial_graph_helpers": "9660b5e44e611406acbb6f0e06514d1b7644215acecd7aa222006469eac5bb97",
                 "financial_graph_reconciliation": "525fe48574d25c2a433d75a307bba11feb5de0b05e81a6668a04b1c6bfc36440",
             },
         )
@@ -47413,7 +47413,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         expected_row_counts = (
-            (18, 8) if target_name == future_public_name else (14, 12)
+            (19, 7) if target_name == future_public_name else (15, 11)
         )
         self.assertEqual(row_counts, expected_row_counts)
 
@@ -48628,7 +48628,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             row_counts,
-            (18, 8) if target_name == future_public_name else (14, 12),
+            (19, 7) if target_name == future_public_name else (15, 11),
         )
         caller_owner_counts = {}
         for module_name in {"financial_graph_helpers", "financial_operand_resolution"}:
@@ -48776,7 +48776,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 222)
+        self.assertEqual(len(graph_test_methods), 226)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -49997,7 +49997,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             row_counts,
-            (18, 8) if target_name == future_public_name else (16, 10),
+            (19, 7) if target_name == future_public_name else (17, 9),
         )
         aggregate_tree = module_trees["financial_aggregate_projection"]
         aggregate_functions = [
@@ -50114,7 +50114,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 222)
+        self.assertEqual(len(graph_test_methods), 226)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51248,7 +51248,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_functions),
                 sum(node.name.startswith("_") for node in row_functions),
             ),
-            (18, 8) if target_name == future_public_name else (16, 10),
+            (19, 7) if target_name == future_public_name else (17, 9),
         )
         operand_tree = module_trees["financial_operand_resolution"]
         operand_functions = [
@@ -51380,7 +51380,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 222)
+        self.assertEqual(len(graph_test_methods), 226)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52745,7 +52745,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_functions),
                 sum(node.name.startswith("_") for node in row_functions),
             ),
-            (18, 8) if target_name == future_public_name else (17, 9),
+            (19, 7) if target_name == future_public_name else (18, 8),
         )
 
         agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
@@ -52883,7 +52883,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 222)
+        self.assertEqual(len(graph_test_methods), 226)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54117,7 +54117,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in row_functions),
                 sum(node.name.startswith("_") for node in row_functions),
             ),
-            (18, 8) if target_name == future_public_name else (17, 9),
+            (19, 7) if target_name == future_public_name else (18, 8),
         )
 
         agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
@@ -54216,7 +54216,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 222)
+        self.assertEqual(len(graph_test_methods), 226)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54761,6 +54761,1134 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     [source_operand],
                 )
         failed_numeric_owner.assert_called_once()
+
+    def test_current_source_format_structured_candidate_row_text_pins_label_header_cell_order_dedupe_and_result(self) -> None:
+        target_name = (
+            "format_structured_candidate_row_text"
+            if hasattr(
+                financial_row_surfaces,
+                "format_structured_candidate_row_text",
+            )
+            else "_format_structured_candidate_row_text"
+        )
+        target = getattr(financial_row_surfaces, target_name)
+
+        label = " Metric "
+        headers = ["Metric", " Period "]
+        cells = [
+            {
+                "column_headers": [" Header ", " Detail "],
+                "value_text": " 10 ",
+                "unit_hint": " KRW ",
+            },
+            {
+                "column_headers": [" Header ", " Detail "],
+                "value_text": " 10 ",
+                "unit_hint": " KRW ",
+            },
+        ]
+        before_headers = deepcopy(headers)
+        before_cells = deepcopy(cells)
+        result = target(label, headers, cells)
+        self.assertEqual(
+            result,
+            "Metric | Period | Header / Detail 10 KRW | Header / Detail 10 KRW",
+        )
+        self.assertIs(type(result), str)
+        self.assertEqual(headers, before_headers)
+        self.assertEqual(cells, before_cells)
+
+        events = []
+
+        class RawPart:
+            def __init__(self, name, text):
+                self.name = name
+                self.text = text
+
+            def __bool__(self):
+                events.append(("truth", self.name))
+                return True
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return self.text
+
+        class ExpandedHeaders:
+            def __iter__(self):
+                events.append(("iter", "headers"))
+                return iter(
+                    [
+                        RawPart("duplicate-label", "Metric"),
+                        RawPart("period", " Period "),
+                    ]
+                )
+
+        class HeaderItems:
+            def __bool__(self):
+                events.append(("truth", "column-headers"))
+                return True
+
+            def __iter__(self):
+                events.append(("iter", "column-headers"))
+                return iter(
+                    [
+                        RawPart("header", " Header "),
+                        RawPart("detail", " Detail "),
+                        RawPart("blank-header", "   "),
+                    ]
+                )
+
+        value = RawPart("value", " 10 ")
+        unit = RawPart("unit", " KRW ")
+
+        class Cell:
+            def get(self, key):
+                events.append(("get", key))
+                return {
+                    "column_headers": HeaderItems(),
+                    "value_text": value,
+                    "unit_hint": unit,
+                }[key]
+
+        class Cells:
+            def __iter__(self):
+                events.append(("iter", "cells"))
+                return iter([Cell()])
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=normalize,
+        ):
+            logged_result = target(
+                RawPart("label", " Metric "),
+                ExpandedHeaders(),
+                Cells(),
+            )
+
+        self.assertEqual(logged_result, "Metric | Period | Header / Detail 10 KRW")
+        self.assertEqual(
+            events,
+            [
+                ("iter", "headers"),
+                ("truth", "label"),
+                ("str", "label"),
+                ("normalize", " Metric "),
+                ("truth", "duplicate-label"),
+                ("str", "duplicate-label"),
+                ("normalize", "Metric"),
+                ("truth", "period"),
+                ("str", "period"),
+                ("normalize", " Period "),
+                ("iter", "cells"),
+                ("get", "column_headers"),
+                ("truth", "column-headers"),
+                ("iter", "column-headers"),
+                ("str", "header"),
+                ("normalize", " Header "),
+                ("str", "header"),
+                ("normalize", " Header "),
+                ("str", "detail"),
+                ("normalize", " Detail "),
+                ("str", "detail"),
+                ("normalize", " Detail "),
+                ("str", "blank-header"),
+                ("normalize", "   "),
+                ("get", "value_text"),
+                ("truth", "value"),
+                ("str", "value"),
+                ("normalize", " 10 "),
+                ("get", "unit_hint"),
+                ("truth", "unit"),
+                ("str", "unit"),
+                ("normalize", " KRW "),
+                ("normalize", "Header / Detail 10 KRW"),
+            ],
+        )
+
+    def test_current_source_format_structured_candidate_row_text_pins_laziness_repeated_header_normalization_immutability_and_exceptions(self) -> None:
+        target_name = (
+            "format_structured_candidate_row_text"
+            if hasattr(
+                financial_row_surfaces,
+                "format_structured_candidate_row_text",
+            )
+            else "_format_structured_candidate_row_text"
+        )
+        target = getattr(financial_row_surfaces, target_name)
+
+        nested = {"items": ["kept"]}
+        headers = ["Metric", "Period"]
+        cells = [
+            {
+                "column_headers": ["Header"],
+                "value_text": "10",
+                "unit_hint": "KRW",
+                "nested": nested,
+            }
+        ]
+        before_headers = deepcopy(headers)
+        before_cells = deepcopy(cells)
+        self.assertEqual(
+            target("Metric", headers, cells),
+            "Metric | Period | Header 10 KRW",
+        )
+        self.assertEqual(headers, before_headers)
+        self.assertEqual(cells, before_cells)
+        self.assertIs(cells[0]["nested"], nested)
+
+        stopped_normalize = Mock(
+            side_effect=AssertionError("header expansion must precede normalization")
+        )
+
+        class HeaderIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("header expansion failed")
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            stopped_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "header expansion failed"):
+                target("Metric", HeaderIterationBomb(), [])
+        stopped_normalize.assert_not_called()
+
+        class CellsIterationBomb:
+            def __iter__(self):
+                raise AssertionError("part failure must stop cell iteration")
+
+        class PartTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("part truth failed")
+
+        stopped_normalize = Mock(
+            side_effect=AssertionError("part truth failure must stop normalization")
+        )
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            stopped_normalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "part truth failed"):
+                target(PartTruthBomb(), [], CellsIterationBomb())
+        stopped_normalize.assert_not_called()
+
+        stopped_cells = CellsIterationBomb()
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=RuntimeError("part normalization failed"),
+        ) as failed_part_normalize:
+            with self.assertRaisesRegex(RuntimeError, "part normalization failed"):
+                target("Metric", [], stopped_cells)
+        failed_part_normalize.assert_called_once_with("Metric")
+
+        class EqualityBomb(str):
+            def __eq__(self, other):
+                raise RuntimeError("duplicate comparison failed")
+
+        normalization_results = iter((EqualityBomb("Metric"), "Period"))
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=lambda value: next(normalization_results),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "duplicate comparison failed"):
+                target("Metric", ["Period"], CellsIterationBomb())
+
+        cell_events = []
+
+        class CellGetBomb:
+            def get(self, key):
+                cell_events.append(("get", key))
+                raise RuntimeError("cell mapping failed")
+
+        with self.assertRaisesRegex(RuntimeError, "cell mapping failed"):
+            target("", [], [CellGetBomb()])
+        self.assertEqual(cell_events, [("get", "column_headers")])
+
+        class RepeatedHeaderCell:
+            def get(self, key):
+                cell_events.append(("repeat-get", key))
+                if key == "column_headers":
+                    return ["Header"]
+                raise AssertionError("second header normalization must stop later keys")
+
+        header_normalizations = 0
+
+        def fail_second_header_normalization(value):
+            nonlocal header_normalizations
+            if value == "Header":
+                header_normalizations += 1
+                if header_normalizations == 2:
+                    raise RuntimeError("second header normalization failed")
+            return str(value).strip()
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=fail_second_header_normalization,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "second header normalization failed",
+            ):
+                target("", [], [RepeatedHeaderCell()])
+        self.assertEqual(header_normalizations, 2)
+        self.assertEqual(
+            [event for event in cell_events if event[0] == "repeat-get"],
+            [("repeat-get", "column_headers")],
+        )
+
+        class ValueTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("value truth failed")
+
+        class ValueCell:
+            def get(self, key):
+                cell_events.append(("value-get", key))
+                if key == "column_headers":
+                    return []
+                if key == "value_text":
+                    return ValueTruthBomb()
+                raise AssertionError("value truth failure must stop unit access")
+
+        with self.assertRaisesRegex(RuntimeError, "value truth failed"):
+            target("", [], [ValueCell()])
+        self.assertEqual(
+            [event for event in cell_events if event[0] == "value-get"],
+            [("value-get", "column_headers"), ("value-get", "value_text")],
+        )
+
+        joined_value_normalizations = 0
+
+        def fail_joined_cell_normalization(value):
+            nonlocal joined_value_normalizations
+            if value == "10":
+                joined_value_normalizations += 1
+                if joined_value_normalizations == 2:
+                    raise RuntimeError("joined cell normalization failed")
+            return str(value).strip()
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            side_effect=fail_joined_cell_normalization,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "joined cell normalization failed",
+            ):
+                target(
+                    "",
+                    [],
+                    [
+                        {
+                            "column_headers": [],
+                            "value_text": "10",
+                            "unit_hint": "",
+                        }
+                    ],
+                )
+        self.assertEqual(joined_value_normalizations, 2)
+
+        class NonStringResult:
+            def __bool__(self):
+                return True
+
+        with patch.object(
+            financial_row_surfaces,
+            "_normalise_spaces",
+            return_value=NonStringResult(),
+        ):
+            with self.assertRaisesRegex(TypeError, "sequence item 0"):
+                target("Metric", [], [])
+
+    def test_current_source_format_structured_candidate_row_text_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        owner_module = "src.agent.financial_row_surfaces"
+        future_public_name = "format_structured_candidate_row_text"
+        retired_private_name = "_format_structured_candidate_row_text"
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_row_surfaces"]
+        owner_tree = module_trees["financial_row_surfaces"]
+        public_definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        target_name = (
+            future_public_name if public_definitions else retired_private_name
+        )
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 24)
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["label", "headers", "cells"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["str", "List[str]", "List[Dict[str, Any]]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "str")
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertIsNone(definition.args.vararg)
+        self.assertIsNone(definition.args.kwarg)
+        self.assertEqual(definition.args.defaults, [])
+        self.assertEqual(definition.args.kw_defaults, [])
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            ["AnnAssign", "For", "For", "Return"],
+        )
+        self.assertEqual(
+            {
+                node_type.__name__: sum(
+                    isinstance(node, node_type)
+                    for node in ast.walk(definition)
+                )
+                for node_type in (
+                    ast.AnnAssign,
+                    ast.Assign,
+                    ast.For,
+                    ast.If,
+                    ast.Return,
+                    ast.Call,
+                    ast.List,
+                    ast.Starred,
+                    ast.GeneratorExp,
+                    ast.BoolOp,
+                    ast.comprehension,
+                    ast.ListComp,
+                    ast.Lambda,
+                    ast.Try,
+                )
+            },
+            {
+                "AnnAssign": 1,
+                "Assign": 3,
+                "For": 2,
+                "If": 2,
+                "Return": 1,
+                "Call": 19,
+                "List": 4,
+                "Starred": 1,
+                "GeneratorExp": 2,
+                "BoolOp": 5,
+                "comprehension": 2,
+                "ListComp": 0,
+                "Lambda": 0,
+                "Try": 0,
+            },
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[0]),
+            "row_parts: List[str] = []",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[1].iter),
+            "[label, *headers]",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[1].body[0].value),
+            "_normalise_spaces(str(part or ''))",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[1].body[1].test),
+            "cleaned and cleaned not in row_parts",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[2].iter),
+            "cells",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[2].body[0].value),
+            "[' / '.join((_normalise_spaces(str(item)) for item in cell.get('column_headers') or [] if _normalise_spaces(str(item)))), _normalise_spaces(str(cell.get('value_text') or '')), _normalise_spaces(str(cell.get('unit_hint') or ''))]",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[2].body[1].value),
+            "_normalise_spaces(' '.join((part for part in cell_parts if part)))",
+        )
+        self.assertEqual(
+            ast.unparse(definition.body[3]),
+            "return ' | '.join(row_parts)",
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "596e6a345e220615c487d56760d77ff26b1cac1ed5721301c16f7ddf15e0a127",
+        )
+        self.assertEqual(
+            {
+                node.value
+                for node in ast.walk(definition)
+                if isinstance(node, ast.Constant)
+                and isinstance(node.value, str)
+            },
+            {
+                "",
+                " ",
+                " / ",
+                " | ",
+                "column_headers",
+                "value_text",
+                "unit_hint",
+            },
+        )
+
+        def imported_modules(tree):
+            modules = {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.Import)
+                for alias in node.names
+            }
+            modules.update(
+                node.module
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module
+            )
+            return modules
+
+        def imported_names(tree, module_name):
+            return {
+                alias.name
+                for node in tree.body
+                if isinstance(node, ast.ImportFrom) and node.module == module_name
+                for alias in node.names
+            }
+
+        importer_names = {
+            name
+            for name, tree in module_trees.items()
+            if target_name in imported_names(tree, owner_module)
+        }
+        self.assertEqual(importer_names, {"financial_graph_helpers"})
+        self.assertIn(
+            owner_module,
+            imported_modules(module_trees["financial_graph_helpers"]),
+        )
+        self.assertNotIn(owner_module, imported_modules(owner_tree))
+        direct_call_counts = {
+            name: sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+                for node in ast.walk(tree)
+            )
+            for name, tree in module_trees.items()
+        }
+        direct_call_counts = {
+            name: count
+            for name, count in direct_call_counts.items()
+            if count
+        }
+        self.assertEqual(direct_call_counts, {"financial_graph_helpers": 2})
+
+        future_public_definitions = [
+            (module_name, node.lineno)
+            for module_name, tree in module_trees.items()
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == future_public_name
+        ]
+        self.assertEqual(
+            future_public_definitions,
+            (
+                [("financial_row_surfaces", definition.lineno)]
+                if target_name == future_public_name
+                else []
+            ),
+        )
+        future_public_stores = [
+            (module_name, node.lineno, node.col_offset)
+            for module_name, tree in module_trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Store)
+            and node.id == future_public_name
+        ]
+        self.assertEqual(future_public_stores, [])
+
+        def identifier_references(identifier):
+            return (
+                sum(
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                )
+                + sum(
+                    isinstance(node, ast.Name) and node.id == identifier
+                    for tree in module_trees.values()
+                    for node in ast.walk(tree)
+                )
+                + sum(
+                    alias.name == identifier
+                    for tree in module_trees.values()
+                    for node in tree.body
+                    if isinstance(node, ast.ImportFrom)
+                    for alias in node.names
+                )
+            )
+
+        self.assertEqual(identifier_references(target_name), 4)
+        self.assertEqual(
+            identifier_references(retired_private_name),
+            0 if target_name == future_public_name else 4,
+        )
+        row_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in row_functions),
+                sum(node.name.startswith("_") for node in row_functions),
+            ),
+            (19, 7) if target_name == future_public_name else (18, 8),
+        )
+
+        agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
+        self.assertEqual(len(agent_files), 48)
+        module_file_map = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): path
+            for path in agent_files
+        }
+        dependency_graph = {}
+        edges = set()
+        for module_name, path in module_file_map.items():
+            dependencies = imported_modules(
+                ast.parse(path.read_text(encoding="utf-8-sig"))
+            )
+            internal_dependencies = {
+                dependency
+                for dependency in dependencies
+                if dependency in module_file_map
+            }
+            dependency_graph[module_name] = internal_dependencies
+            edges.update(
+                (module_name, dependency)
+                for dependency in internal_dependencies
+            )
+        self.assertEqual(len(edges), 205)
+
+        def has_cycle():
+            visiting = set()
+            visited = set()
+
+            def visit(module_name):
+                if module_name in visiting:
+                    return True
+                if module_name in visited:
+                    return False
+                visiting.add(module_name)
+                for dependency in dependency_graph[module_name]:
+                    if visit(dependency):
+                        return True
+                visiting.remove(module_name)
+                visited.add(module_name)
+                return False
+
+            return any(visit(module_name) for module_name in dependency_graph)
+
+        self.assertFalse(has_cycle())
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_row_surfaces.py"
+            and any(
+                definition.lineno <= line <= definition.end_lineno
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_records, [])
+
+        owner_target = getattr(financial_row_surfaces, target_name)
+        self.assertIs(
+            getattr(financial_graph_helpers, target_name),
+            owner_target,
+        )
+        required_methods = {
+            "test_current_source_format_structured_candidate_row_text_pins_label_header_cell_order_dedupe_and_result",
+            "test_current_source_format_structured_candidate_row_text_pins_laziness_repeated_header_normalization_immutability_and_exceptions",
+            "test_current_source_format_structured_candidate_row_text_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_format_structured_candidate_row_text_callers_pin_args_adoption_and_stops",
+        }
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        test_class = next(
+            node
+            for node in current_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = {
+            node.name
+            for node in test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        }
+        self.assertEqual(len(graph_test_methods), 226)
+        self.assertEqual(graph_test_methods & required_methods, required_methods)
+
+        def exact_target_reference_count(method, identifier):
+            return sum(
+                (
+                    isinstance(node, ast.Constant)
+                    and node.value == identifier
+                )
+                or (
+                    isinstance(node, ast.Attribute)
+                    and node.attr == identifier
+                )
+                or (
+                    isinstance(node, ast.Name)
+                    and node.id == identifier
+                )
+                for node in ast.walk(method)
+            )
+
+        existing_reference_counts = {
+            method.name: exact_target_reference_count(method, target_name)
+            for method in test_class.body
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name not in required_methods
+            and exact_target_reference_count(method, target_name)
+        }
+        self.assertEqual(
+            existing_reference_counts,
+            {
+                "test_current_source_column_candidate_label_caller_pins_order_args_adoption_and_stops": 2,
+            },
+        )
+        retired_existing_references = sum(
+            exact_target_reference_count(method, retired_private_name)
+            for method in test_class.body
+            if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name not in required_methods
+        )
+        self.assertEqual(
+            retired_existing_references,
+            0 if target_name == future_public_name else 2,
+        )
+
+        production_transform_modules = {
+            module_name
+            for module_name, tree in module_trees.items()
+            if any(
+                (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == target_name
+                )
+                or (
+                    isinstance(node, ast.Name)
+                    and node.id == target_name
+                )
+                or (
+                    isinstance(node, ast.ImportFrom)
+                    and any(alias.name == target_name for alias in node.names)
+                )
+                for node in ast.walk(tree)
+            )
+        }
+        self.assertEqual(
+            production_transform_modules,
+            {"financial_row_surfaces", "financial_graph_helpers"},
+        )
+        transform_paths = [
+            module_paths[module_name]
+            for module_name in sorted(production_transform_modules)
+        ] + [Path(__file__)]
+        decoded_sources = [
+            path.read_bytes().decode("utf-8-sig")
+            for path in transform_paths
+        ]
+        self.assertEqual(len(decoded_sources), 3)
+        self.assertEqual(
+            sum(
+                any(ord(character) > 127 for character in source)
+                for source in decoded_sources
+            ),
+            3,
+        )
+
+    def test_current_source_format_structured_candidate_row_text_callers_pin_args_adoption_and_stops(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "format_structured_candidate_row_text"
+        retired_private_name = "_format_structured_candidate_row_text"
+        target_name = (
+            future_public_name
+            if hasattr(financial_row_surfaces, future_public_name)
+            else retired_private_name
+        )
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        call_records = []
+        caller_hashes = {}
+        for module_name in sorted(module_paths):
+            source = module_paths[module_name].read_text(encoding="utf-8-sig")
+            tree = ast.parse(source)
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            direct_calls = [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+            ]
+            for call in direct_calls:
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                parent = parents[call]
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "args": [ast.unparse(argument) for argument in call.args],
+                        "keywords": [keyword.arg for keyword in call.keywords],
+                        "parent": ast.unparse(parent),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    source.splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        call_records.sort(key=lambda record: record["caller"])
+        self.assertEqual(
+            call_records,
+            [
+                {
+                    "module": "financial_graph_helpers",
+                    "caller": "_build_table_row_reconciliation_candidates",
+                    "args": ["row_label", "row_headers", "cells"],
+                    "keywords": [],
+                    "parent": "candidate['metadata']['row_text'] = "
+                    f"{target_name}(row_label, row_headers, cells)",
+                    "try_depth": 0,
+                },
+                {
+                    "module": "financial_graph_helpers",
+                    "caller": "_build_table_value_reconciliation_candidates",
+                    "args": [
+                        "semantic_label",
+                        "row_headers",
+                        "list(candidate['metadata']['structured_cells'] or [])",
+                    ],
+                    "keywords": [],
+                    "parent": "candidate['metadata']['row_text'] = "
+                    f"{target_name}(semantic_label, row_headers, list(candidate['metadata']['structured_cells'] or []))",
+                    "try_depth": 0,
+                },
+            ],
+        )
+        self.assertEqual(
+            caller_hashes,
+            (
+                {
+                    (
+                        "financial_graph_helpers",
+                        "_build_table_row_reconciliation_candidates",
+                    ): "9660b5e44e611406acbb6f0e06514d1b7644215acecd7aa222006469eac5bb97",
+                    (
+                        "financial_graph_helpers",
+                        "_build_table_value_reconciliation_candidates",
+                    ): "f7373919ee7ec6c0d68e0944f9b191726d919f88b084bb240a25fdd78536b7df",
+                }
+                if target_name == future_public_name
+                else {
+                    (
+                        "financial_graph_helpers",
+                        "_build_table_row_reconciliation_candidates",
+                    ): "2ef9302c59726decfb3b9429850e54cf757923b56406c7a66b4ed10dc29b7443",
+                    (
+                        "financial_graph_helpers",
+                        "_build_table_value_reconciliation_candidates",
+                    ): "86812eedef98ec6d9c26017312596c637872e898e3d9be1c86eeacec9fd28f9a",
+                }
+            ),
+        )
+
+        value_records = [
+            {
+                "row_index": 0,
+                "semantic_label": " Metric ",
+                "value_text": " 10 ",
+                "row_headers": [" Header "],
+                "column_headers": [" Period "],
+                "period_text": " 2024 ",
+                "unit_hint": " KRW ",
+            }
+        ]
+        value_metadata = {
+            "table_value_records_json": json.dumps(value_records),
+            "nested": {"preserve": True},
+        }
+        value_before = deepcopy(value_metadata)
+        value_candidate = {"candidate_id": "candidate::value:0", "metadata": {}}
+        value_row_text = object()
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                return_value=value_candidate,
+            ) as value_builder,
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                return_value=value_row_text,
+            ) as value_target,
+        ):
+            value_candidates = financial_graph_helpers._build_table_value_reconciliation_candidates(
+                candidate_id_prefix="candidate",
+                anchor="anchor",
+                metadata=value_metadata,
+            )
+
+        self.assertEqual(value_candidates, [value_candidate])
+        self.assertIs(value_candidates[0], value_candidate)
+        self.assertIs(value_candidate["metadata"]["row_text"], value_row_text)
+        value_builder.assert_called_once()
+        value_target.assert_called_once()
+        value_label, value_headers, value_cells = value_target.call_args.args
+        self.assertEqual(value_label, "Metric")
+        self.assertEqual(value_headers, ["Header"])
+        self.assertEqual(len(value_cells), 1)
+        stored_value_cells = value_candidate["metadata"]["structured_cells"]
+        self.assertIsNot(value_cells, stored_value_cells)
+        self.assertEqual(value_cells, stored_value_cells)
+        self.assertIs(value_cells[0], stored_value_cells[0])
+        self.assertEqual(value_metadata, value_before)
+
+        failed_value_candidate = {"metadata": {}}
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                return_value=failed_value_candidate,
+            ) as failed_value_builder,
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=RuntimeError("value row formatting failed"),
+            ) as failed_value_target,
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "value row formatting failed",
+            ):
+                financial_graph_helpers._build_table_value_reconciliation_candidates(
+                    candidate_id_prefix="candidate",
+                    anchor="anchor",
+                    metadata=value_metadata,
+                )
+        failed_value_builder.assert_called_once()
+        failed_value_target.assert_called_once()
+        self.assertNotIn("row_text", failed_value_candidate["metadata"])
+
+        row_records = [
+            {
+                "row_label": " Metric ",
+                "row_headers": [" Metric ", " Header "],
+                "cells": [
+                    {
+                        "column_headers": [" 2024 "],
+                        "value_text": " 10 ",
+                        "unit_hint": " KRW ",
+                    }
+                ],
+            }
+        ]
+        row_metadata = {
+            "table_row_records_json": json.dumps(row_records),
+            "nested": {"preserve": True},
+        }
+        row_before = deepcopy(row_metadata)
+        row_events = []
+        real_normalize = financial_graph_helpers._normalise_spaces
+
+        class RowTextResult:
+            def __bool__(self):
+                row_events.append("row-text-truth")
+                return True
+
+            def __str__(self):
+                row_events.append("row-text-str")
+                return "Formatted Row"
+
+        row_text_result = RowTextResult()
+        row_candidate = {"candidate_id": "candidate::rowrec:0", "metadata": {}}
+
+        def format_row(*args):
+            row_events.append(("target", args))
+            return row_text_result
+
+        def normalize_row(value):
+            if value == "Formatted Row":
+                row_events.append("row-text-normalize")
+            return real_normalize(value)
+
+        def build_columns(**kwargs):
+            row_events.append("column-build")
+            return []
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_value_reconciliation_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                return_value=row_candidate,
+            ) as row_builder,
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=format_row,
+            ) as row_target,
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=normalize_row,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_column_reconciliation_candidates",
+                side_effect=build_columns,
+            ) as column_builder,
+        ):
+            row_candidates = financial_graph_helpers._build_table_row_reconciliation_candidates(
+                candidate_id_prefix="candidate",
+                anchor="anchor",
+                table_text="",
+                metadata=row_metadata,
+            )
+
+        self.assertEqual(row_candidates, [row_candidate])
+        self.assertIs(row_candidates[0], row_candidate)
+        self.assertIs(row_candidate["metadata"]["row_text"], row_text_result)
+        row_builder.assert_called_once()
+        row_target.assert_called_once()
+        row_label, row_headers, row_cells = row_target.call_args.args
+        self.assertEqual(row_label, "Metric")
+        self.assertEqual(row_headers, ["Metric", "Header"])
+        self.assertIs(row_cells, row_candidate["metadata"]["structured_cells"])
+        self.assertEqual(
+            row_events,
+            [
+                ("target", (row_label, row_headers, row_cells)),
+                "row-text-truth",
+                "row-text-str",
+                "row-text-normalize",
+                "column-build",
+            ],
+        )
+        column_builder.assert_called_once()
+        self.assertEqual(row_metadata, row_before)
+
+        failed_row_candidate = {"metadata": {}}
+        stopped_column_builder = Mock(
+            side_effect=AssertionError("row formatter failure must stop columns")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_value_reconciliation_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_reconciliation_candidate",
+                return_value=failed_row_candidate,
+            ) as failed_row_builder,
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=RuntimeError("structured row formatting failed"),
+            ) as failed_row_target,
+            patch.object(
+                financial_graph_helpers,
+                "_build_table_column_reconciliation_candidates",
+                stopped_column_builder,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "structured row formatting failed",
+            ):
+                financial_graph_helpers._build_table_row_reconciliation_candidates(
+                    candidate_id_prefix="candidate",
+                    anchor="anchor",
+                    table_text="",
+                    metadata=row_metadata,
+                )
+        failed_row_builder.assert_called_once()
+        failed_row_target.assert_called_once()
+        stopped_column_builder.assert_not_called()
+        self.assertIn("structured_cells", failed_row_candidate["metadata"])
+        self.assertNotIn("row_text", failed_row_candidate["metadata"])
 
 
 if __name__ == "__main__":

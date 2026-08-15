@@ -72,7 +72,7 @@ from src.agent.financial_surface_contracts import (
 )
 from src.agent.financial_row_surfaces import (
     extract_table_row_label,
-    _format_structured_candidate_row_text,
+    format_structured_candidate_row_text,
     _parse_unstructured_table_row_cells,
     strip_financial_label_annotations,
     aggregate_like_row_role,
@@ -3483,7 +3483,7 @@ def _build_table_value_reconciliation_candidates(
                 "unit_hint": str(record.get("unit_hint") or metadata.get("unit_hint") or "").strip(),
             }
         ]
-        candidate["metadata"]["row_text"] = _format_structured_candidate_row_text(
+        candidate["metadata"]["row_text"] = format_structured_candidate_row_text(
             semantic_label,
             row_headers,
             list(candidate["metadata"]["structured_cells"] or []),
@@ -3692,7 +3692,7 @@ def _build_table_row_reconciliation_candidates(
                 item for item in row_headers if _normalise_spaces(item) and _normalise_spaces(item) != _normalise_spaces(row_label)
             ]
             candidate["metadata"]["structured_cells"] = cells
-            candidate["metadata"]["row_text"] = _format_structured_candidate_row_text(row_label, row_headers, cells)
+            candidate["metadata"]["row_text"] = format_structured_candidate_row_text(row_label, row_headers, cells)
             row_text = _normalise_spaces(str(candidate["metadata"].get("row_text") or ""))
             if row_text:
                 seen_row_texts.add(row_text)

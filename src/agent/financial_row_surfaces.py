@@ -301,7 +301,7 @@ def _parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any])
     return cells
 
 
-def _format_structured_candidate_row_text(
+def format_structured_candidate_row_text(
     label: str,
     headers: List[str],
     cells: List[Dict[str, Any]],
