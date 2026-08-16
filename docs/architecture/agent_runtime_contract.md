@@ -5268,64 +5268,84 @@ six-caller parity, existing graph-test AST 226/226 plus four methods, public
 identity 6/6, all-call/DAG/public-store/retired-live-ref, and UTF-8/non-ASCII
 gates. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 35-line
-`financial_structured_cells._structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`
-definition. It already belongs to the structured-cell owner; the authorized
-future batch only renames it in place to public
-`structured_cell_period_text(...)` and updates four imports, four direct calls,
-and all live test bindings without a private alias.
+Commit `89227aa` completes the structured-cell period-text visibility contract.
+The exact former 35-line definition is public
+`financial_structured_cells.structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`;
+no wrapper or private alias remains. Policy-copy/marker construction order,
+repeated marker/header conversion, eager report-year recovery, ordered query-
+year matching, current/prior precedence, fiscal-rank/header fallback,
+immutability, and uncaught failure behavior are unchanged after definition-name
+normalization.
 
-Preserve shallow policy copies in focus-then-generic order; eager current- then
-prior-marker tuple construction; exact `current` and `prior` hint fallbacks;
-and truth-filtered header construction. Retained marker and header values keep
-their separate filter/expression string conversions. Preserve eager three-key
-report-year lookup before iteration, blank skipping, first successful integer
-conversion, and the narrow `TypeError`/`ValueError` continuation handler.
+All four calls use three positional arguments, no keywords, and caller `try`
+depth zero across four importers and four caller definitions. Cell scoring,
+direct acceptance, lookup realignment, reconciliation fallback/pairing,
+evidence adoption, state, artifacts, ledgers, and final sequencing remain
+caller-owned. Structured-cell counts finish 5/3. Executed gates are focused
+4/4, graph owner 234/234, surface owner 1/1, operand owner 69/69, affected
+semantic 1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, and full 2,087/2,087, plus pycompile, production transform
+5/5, source/test transform 9/9, selected-body/four-caller parity, existing graph-
+test AST 230/230 plus four methods, public identity 5/5, all-call/DAG/public-
+store/retired-live-ref, and UTF-8/non-ASCII gates. Benchmark refresh and remote
+CI were **NOT RUN**.
 
-Query-year matching starts only after report-year recovery, preserves input
-order, and returns the first year found in any retained header. After exact
-header joining, current-marker handling precedes prior-marker handling. A
-marker hit returns the report year, report year minus one, or its policy hint.
-Only after both branches fall through does owner-private fiscal rank run. A
-rank derives from report year first, otherwise exact `max(query_years)`, and
-the final fallback is joined header text. Policy/input immutability and all
-mapping, iteration, truth, string, strip, tuple/list, membership, `any`, join,
-rank, max, arithmetic, and uncaught failure behavior remain exact.
+The next private-API contract is the exact current 3-line
+`financial_operation_policies._is_ratio_percent_query(text: str) -> bool`
+definition. It already belongs to the operation-policy owner; the authorized
+future batch only renames it in place to public `is_ratio_percent_query(...)`
+and updates four imports, seven direct calls, and all live test bindings without
+a private alias. Dependency-loader adapters, shared normalization internals,
+marker policy data, ratio evidence/fallback behavior, and caller exception
+scopes are outside this batch.
 
-All four source calls use three positional arguments, no keywords, and caller
-`try` depth zero across four importers and four caller definitions. Graph
-evidence keeps selected-cell scoring, value/unit/period adoption, prose fallback,
-and operand construction. Lookup recovery keeps the operand-period and
-multi-cell gates, generator/regex/fast-row decision, selection, normalization,
-and row realignment. Operand resolution keeps direct-grounding admission,
-candidate-focus and explicit-year rejection, report-year repair, unit/surface
-policy, scoring, and final acceptance. Reconciliation candidates keep effective
-focus, period-presence repair, report/target fallback, scoring, pairing, and
-adoption. No fiscal helper, caller gate, selection, scoring, reconciliation,
-acceptance, evidence, state, artifact, ledger, or final sequencing moves.
+Preserve exact `_normalise_spaces(text)` with no input coercion, followed by
+exact `RATIO_PERCENT_QUERY_POLICY.get("markers")`. Preserve truth evaluation of
+the returned marker container for `or ()`, the empty-tuple fallback, lazy
+generator iteration, exact marker membership against the normalized object,
+and `any(...)` first-truthy short circuit. Do not stringify, copy, dedupe,
+reorder, or mutate marker data or input. The two-statement body has one
+assignment, one return, three calls, one generator/comprehension, one boolean
+operation, one comparison, and one tuple, with no branch or internal exception
+handler. Every normalization, policy, truth, iteration, membership, and result
+failure remains uncaught by this owner.
 
-The selected body has 16 top-level statements, one annotated and 12 plain
-assignments, two loops, eight `if` nodes, seven returns, one continue, one try,
-33 calls, one list, six tuples, one list comprehension, five generators, nine
-boolean operations, 11 comparisons, one conditional expression, six
-comprehension clauses, and no lambda or dict. Its SHA-256 is
-`52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44`.
-The private identifier has nine production AST references across five source
-files. Twenty-five existing exact test references across four test files make
-the bounded source/test transform nine files. The 328-362 span selects no
-reviewed runtime-domain record and all 217 baseline records must remain
-unchanged. Existing edges keep the DAG acyclic at 48 modules/205 edges;
-projected structured-cell counts are 4/4 to 5/3.
+Every source call uses one positional argument and no keywords across four
+importers and seven caller definitions. Six calls remain outside caller `try`
+blocks. Evidence row/component paths keep combined-query normalization and
+false-result empty-list stops; component extraction keeps its later percent-
+point exclusion. Operation-family inference keeps all earlier configured and
+difference gates and later ontology cues. Reconciliation keeps supplemental-
+seed scoring, missing-info projection, and reflection-objective selection. A
+classifier failure in these six callers stops later work.
+
+The calculation call alone remains inside the existing broad structured-output
+`try`: short-circuit gates require missing operands and no direct numeric
+grounding before invocation, a true result enables ratio fallback, and a
+classifier exception is converted by the existing `except Exception` into the
+current missing/debug-state return. No caller gate, fallback, evidence,
+ontology, retrieval, state, artifact, ledger, or final sequencing moves.
+
+The selected body SHA-256 is
+`012a658abd30affb03148f954237974188e5b7d64ad10c522753a1cfe803d09e`.
+The private identifier has 12 production AST references across five source
+files; three exact live test references are in one reflection-capability file.
+The live rename spans six files, and the new graph contract file makes the
+complete transform seven. The 31-33 span selects no reviewed runtime-domain
+record, so all 217 records remain unchanged. Existing edges keep the DAG
+acyclic at 48 modules/205 edges; projected operation-policy counts are 0/7 to
+1/6.
 
 Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-234/234, surface owner 1/1, operand owner 69/69, affected semantic
-1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
-audit 217, full 2,087/2,087, production transform 5/5, source/test transform
-9/9, public identity 5/5, four-call/four-caller/DAG parity, existing graph-test
-AST 230/230 plus four methods, UTF-8 decode 9/9, non-ASCII preservation 7/7,
-pycompile, and diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No
-structured-cell period-text source or test rename has occurred.
+238/238, surface owner 1/1, operand owner 69/69, affected semantic
+1,198/1,198, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,091/2,091,
+production transform 5/5, complete transform 7/7, public identity 5/5, seven-
+call/seven-caller/DAG parity, existing graph-test AST 234/234 plus four methods,
+UTF-8 decode 7/7, non-ASCII preservation 6/6, pycompile, and diff-check gates
+are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No ratio-
+percent-query source or test rename has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

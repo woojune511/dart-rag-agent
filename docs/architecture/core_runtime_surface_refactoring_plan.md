@@ -1547,38 +1547,62 @@ diff-check gates passed. The committed source/test diff SHA-256 is
 `8faf60239bc6d907001d3144dadd2aa5201e7fb6e0c701b4a9c02e09439fef17`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 35-line
-`financial_structured_cells._structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str`
-projection for an in-place public rename to `structured_cell_period_text(...)`,
-with no wrapper or alias. Preserve focus/generic policy copy order, eager marker
-and header conversion, eager report-year source lookup, narrow integer-
-conversion handling, ordered query-year matching, current/prior marker
-precedence, report-year and policy-hint projection, owner-private fiscal-rank
-fallback, final header-text fallback, immutability, and every uncaught failure.
+Commit `89227aa` completed the structured-cell period-text private-API seam. The
+exact former 35-line helper is public
+`financial_structured_cells.structured_cell_period_text(...)`; no wrapper or
+alias remains. All four calls and four external imports use the public name.
+Policy-copy/marker order, report/query-year precedence, current/prior and fiscal-
+rank/header fallback, caller gates, adoption, stops, and every uncaught failure
+are unchanged. Structured-cell counts finish 5/3.
 
-Four three-positional-argument call sites finish external/local 4/0 across four
-caller definitions and four importers, with no keywords and caller `try` depth
-zero. Selected-cell scoring, operand/report gates, regex decisions, direct
-acceptance, lookup row realignment, reconciliation fallback, pairing, evidence
-adoption, graph state, artifacts, ledgers, and final sequencing remain caller-
-owned hard stops. Existing edges keep the DAG acyclic at 48 modules/205 edges.
-Projected structured-cell counts are 4/4 to 5/3. The body SHA-256 is
-`52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44`;
-the private identifier has nine production AST references and no future public-
-name definition/store exists. Twenty-five exact test refs across four test
-files make the bounded source/test transform nine files. The 328-362 span
-intersects no reviewed baseline record, so all 217 records remain unchanged.
+Production source is `+9/-9`, tests are `+1,670/-45`, and the whole commit is
+`+1,679/-54`, net `+1,625`; production physical lines are unchanged. Focused
+4/4, graph owner 234/234, surface owner 1/1, operand owner 69/69, affected
+semantic 1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, full 2,087/2,087, pycompile, production transform 5/5,
+source/test transform 9/9, selected-body/four-caller parity, public identity
+5/5, all-call/DAG/retired-ref/public-store, UTF-8 9/9, non-ASCII 7/7, and diff-
+check gates passed. The committed source/test diff SHA-256 is
+`ce057382b96c939e60bd0e2f6d14d1773e0c4cd2f759c7bc8983cc65847ed938`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 3-line
+`financial_operation_policies._is_ratio_percent_query(text: str) -> bool`
+classifier for an in-place public rename to `is_ratio_percent_query(...)`, with
+no wrapper or alias. Loader adapters and shared normalization internals remain
+private. Preserve exact input identity into `_normalise_spaces`, subsequent
+policy-marker lookup, marker-container truth and empty-tuple fallback, lazy
+membership iteration, first-truthy `any(...)` stop, immutability, and every
+owner-uncaught failure.
+
+Seven one-positional-argument calls span seven caller definitions and four
+importers with no keywords. Six are caller `try` depth zero. The calculation
+call stays at depth one behind missing-operand/no-direct-grounding short-circuit
+gates, and its existing broad handler preserves the current missing/debug-state
+fallback on classifier failure. Evidence admission, operation-family inference,
+supplemental scoring, missing-info projection, reflection objective, ratio
+operand fallback, state, artifacts, ledgers, and final sequencing remain caller-
+owned hard stops.
+
+Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
+operation-policy counts are 0/7 to 1/6. The body SHA-256 is
+`012a658abd30affb03148f954237974188e5b7d64ad10c522753a1cfe803d09e`;
+the private identifier has 12 production AST references and no future public-
+name definition/store exists. Three live test refs in one reflection-capability
+file make the live rename six files; the new graph contract file makes the
+complete transform seven. The 31-33 span intersects no reviewed baseline record,
+so all 217 records remain unchanged.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-234/234, surface owner 1/1, operand owner 69/69, affected semantic
-1,194/1,194, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19,
-audit 217, full 2,087/2,087, production transform 5/5, full transform 9/9,
-public identity 5/5, all four calls/four callers, unchanged DAG, retired-ref/
-public-store zero, existing graph-test AST 230/230 plus four methods, UTF-8 9/9,
-non-ASCII 7/7, pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No
-structured-cell period-text source or test rename has occurred; it is the sole
-next priority.
+238/238, surface owner 1/1, operand owner 69/69, affected semantic
+1,198/1,198, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,091/2,091,
+production transform 5/5, complete transform 7/7, public identity 5/5, all
+seven calls/seven callers, unchanged DAG, retired-ref/public-store zero,
+existing graph-test AST 234/234 plus four methods, UTF-8 7/7, non-ASCII 6/6,
+pycompile, and diff-check gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work). No ratio-
+percent-query source or test rename has occurred; it is the sole next priority.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

@@ -299,6 +299,7 @@ State-free owner topology:
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, single-report-scope classification, public query/task and generic operand target-year/period-focus policy, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring |
+| `financial_operation_policies.py` | state-free operation-family and numeric-grounding policy over supplied query/task data; marker vocabulary remains in retrieval policy/config while public API visibility is still converging |
 | `financial_surface_contracts.py` | operand needles/public segment-label projection, positive/negative surface-term contracts, candidate concept-conflict, contextual-aggregate preference, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
 | `financial_row_surfaces.py` | row/table text matching and parsing, column-candidate and delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
@@ -1059,14 +1060,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   1,190/1,190, additional retrieval-pipeline 1/1, reconciliation plan 51/51,
   import 19/19, audit 217, full 2,083/2,083와 transform/body/identity/caller/
   48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 structured-cell owner의 정확한 35줄
-  `_structured_cell_period_text(...)`을 public
-  `structured_cell_period_text(...)`로 이름 수렴시키는 batch를 선택한다.
-  4개 importer의 4개 external call은 세 positional arguments, no keyword,
-  4개 caller 정의 모두 `try` depth zero다. 기존 edge만 사용하므로 DAG는
-  48 modules/205 edges로 비순환이고 projected structured-cell public/private는
-  5/3이다. 아직 source/test rename은 없으며 policy marker, query/report year,
-  fiscal-rank fallback, caller gate/adoption/stop과 네 CURRENT-SOURCE method는
+- 완료된 `89227aa` structured-cell period-text API batch는 같은 owner의
+  정확한 35줄 private helper를 public `structured_cell_period_text(...)`로
+  이름 수렴시켰다. 4개 importer의 4개 external call과 4개 caller 정의는
+  public API를 사용한다. Policy marker, query/report year, fiscal-rank/header
+  fallback과 caller gate/adoption/stop은 유지됐고 structured-cell public/
+  private는 5/3이다. Focused 4/4, graph owner 234/234, surface owner 1/1,
+  operand owner 69/69, semantic 1,194/1,194, additional retrieval-pipeline 1/1,
+  reconciliation plan 51/51, import 19/19, audit 217, full 2,087/2,087와
+  transform/body/identity/caller/48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 operation-policy owner의 정확한 3줄
+  `_is_ratio_percent_query(...)`을 public `is_ratio_percent_query(...)`로
+  이름 수렴시키는 batch를 선택한다. 4개 importer의 7개 external call은 한
+  positional argument와 no keyword를 유지하며, 6개 caller는 `try` depth
+  zero이고 calculation caller 하나만 기존 broad handler 내부의 depth one을
+  유지한다. 기존 edge만 사용하므로 DAG는 48 modules/205 edges로 비순환이고
+  projected operation-policy public/private는 1/6이다. 아직 source/test
+  rename은 없으며 normalization, marker iteration/short-circuit, caller gate/
+  adoption/exception scope와 네 CURRENT-SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
