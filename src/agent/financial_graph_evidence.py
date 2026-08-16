@@ -70,7 +70,7 @@ if TYPE_CHECKING:
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
-    _is_ratio_percent_query,
+    is_ratio_percent_query,
     _query_requests_narrative_context,
     _requires_direct_numeric_grounding,
 )
@@ -836,7 +836,7 @@ class FinancialAgentEvidenceMixin:
         topic: str,
     ) -> List[Dict[str, Any]]:
         combined_query = _normalise_spaces(f"{query} {topic}")
-        if not _is_ratio_percent_query(combined_query):
+        if not is_ratio_percent_query(combined_query):
             return []
 
         metric_patterns: List[str] = get_financial_ontology().row_patterns(query, topic, "comparison")
@@ -921,7 +921,7 @@ class FinancialAgentEvidenceMixin:
         topic: str,
     ) -> List[Dict[str, Any]]:
         combined_query = _normalise_spaces(f"{query} {topic}")
-        if not _is_ratio_percent_query(combined_query):
+        if not is_ratio_percent_query(combined_query):
             return []
         if _is_percent_point_difference_query(combined_query):
             return []

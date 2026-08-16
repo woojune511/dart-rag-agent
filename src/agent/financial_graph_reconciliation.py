@@ -83,7 +83,7 @@ from src.agent.financial_reflection_projection import (
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
-    _is_ratio_percent_query,
+    is_ratio_percent_query,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config import get_financial_ontology
@@ -1047,7 +1047,7 @@ class FinancialAgentReconciliationMixin:
         companies = {str(company).lower() for company in (state.get("companies") or [])}
         years = [int(year) for year in (state.get("years") or [])]
         multi_period = intent in {"comparison", "trend"} and len(years) > 1
-        ratio_query = _is_ratio_percent_query(f"{query} {topic}")
+        ratio_query = is_ratio_percent_query(f"{query} {topic}")
         ontology = get_financial_ontology()
         metric_patterns = ontology.row_patterns(query, topic, intent)
         for spec in ontology.component_specs(query, topic, intent):
@@ -1201,7 +1201,7 @@ class FinancialAgentReconciliationMixin:
         inferred: List[str] = []
         if metric_info:
             display_name = str(metric_info.get("display_name") or "").strip()
-            if display_name and _is_ratio_percent_query(query):
+            if display_name and is_ratio_percent_query(query):
                 if years:
                     year_template = str(RECONCILIATION_POLICY.get("missing_info_year_template") or "{year} {label}")
                     inferred.extend(year_template.format(year=year, label=display_name) for year in years)
@@ -1328,7 +1328,7 @@ class FinancialAgentReconciliationMixin:
             failure_status=failure_status,
         )
 
-        ratio_query = _is_ratio_percent_query(query)
+        ratio_query = is_ratio_percent_query(query)
         percent_point_query = _is_percent_point_difference_query(query)
         sum_markers = tuple(
             str(item)

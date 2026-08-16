@@ -99,7 +99,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     _label_implies_percent_metric,
-    _is_ratio_percent_query,
+    is_ratio_percent_query,
     _is_single_metric_period_comparison,
     _query_requests_narrative_context,
 )
@@ -1218,7 +1218,7 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         return "difference"
     if _is_single_metric_period_comparison(query, generic_operand_labels):
         return "difference"
-    if _is_ratio_percent_query(query):
+    if is_ratio_percent_query(query):
         return "ratio"
     if any(cue.lower() in text for cue in _planner_intent_cues(ontology, "growth_rate")):
         return "growth_rate"

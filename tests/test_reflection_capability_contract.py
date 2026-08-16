@@ -1257,7 +1257,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
-            "_is_ratio_percent_query",
+            "is_ratio_percent_query",
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1338,7 +1338,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
-            "_is_ratio_percent_query",
+            "is_ratio_percent_query",
             downstream_ratio,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1381,7 +1381,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
-            "_is_ratio_percent_query",
+            "is_ratio_percent_query",
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,

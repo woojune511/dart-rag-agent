@@ -28,7 +28,7 @@ def _is_percent_point_difference_query(text: str) -> bool:
     return any(marker in normalized for marker in comparison_markers)
 
 
-def _is_ratio_percent_query(text: str) -> bool:
+def is_ratio_percent_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
     return any(keyword in normalized for keyword in (RATIO_PERCENT_QUERY_POLICY.get("markers") or ()))
 

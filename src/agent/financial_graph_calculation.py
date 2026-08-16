@@ -247,7 +247,7 @@ from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
-    _is_ratio_percent_query,
+    is_ratio_percent_query,
     _query_requests_narrative_context,
     _requires_direct_numeric_grounding,
     _should_coerce_percent_point_unit,
@@ -9637,7 +9637,7 @@ class FinancialAgentCalculationMixin:
                     operation_family=operation_family,
                     fallback_label="generic",
                 )
-            if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
+            if missing_required and not direct_numeric_grounding and is_ratio_percent_query(query):
                 fallback_rows = self._build_ratio_operands_from_candidates(
                     [item for item in evidence_items if item.get("raw_row_text")],
                     query,
