@@ -100,7 +100,7 @@ from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     label_implies_percent_metric,
     is_ratio_percent_query,
-    _is_single_metric_period_comparison,
+    is_single_metric_period_comparison,
     query_requests_narrative_context,
 )
 from src.agent.financial_operand_resolution import (
@@ -917,7 +917,7 @@ def _build_generic_required_operands(
             return rows
 
     operand_labels = _extract_generic_operand_labels(query)
-    if _is_single_metric_period_comparison(query, operand_labels):
+    if is_single_metric_period_comparison(query, operand_labels):
         period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
         current_hint = str(period_policy.get("current_period_hint") or "current")
         prior_hint = str(period_policy.get("prior_period_hint") or "prior")
@@ -1216,7 +1216,7 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
             return str(policy.get("operation_family") or "single_value")
     if _is_percent_point_difference_query(query):
         return "difference"
-    if _is_single_metric_period_comparison(query, generic_operand_labels):
+    if is_single_metric_period_comparison(query, generic_operand_labels):
         return "difference"
     if is_ratio_percent_query(query):
         return "ratio"
@@ -1623,7 +1623,7 @@ def _build_concept_required_operands(
     if (
         len(ordered_specs) == 1
         and not raw_explicit_roles
-        and _is_single_metric_period_comparison(query, [str(ordered_specs[0].get("name") or "").strip()])
+        and is_single_metric_period_comparison(query, [str(ordered_specs[0].get("name") or "").strip()])
     ):
         expanded_single = _expand_group_concept_specs(ordered_specs, raw_explicit_roles)
         if len(expanded_single) == 1:

@@ -41,7 +41,7 @@ def query_requests_narrative_context(query: str) -> bool:
     return any(token in normalized for token in narrative_hints)
 
 
-def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
+def is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
     text = _normalise_spaces(query)
     period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
     comparison_markers = tuple(str(item) for item in (period_policy.get("comparison_markers") or ()) if str(item))
@@ -103,7 +103,7 @@ def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
         return True
 
     operand_labels = [str(item.get("label") or "").strip() for item in required_operands if str(item.get("label") or "").strip()]
-    return _is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
+    return is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
 
 
 def _should_coerce_percent_point_unit(
