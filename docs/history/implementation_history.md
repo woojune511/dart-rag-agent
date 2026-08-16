@@ -6915,6 +6915,7 @@ baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
 
+
 ### Financial-label-annotation public-API milestone
 
 - Commit `472906e` renames the exact former 9-line private helper in its
@@ -7721,6 +7722,95 @@ benchmark, schedule, or completion claim.
   four-caller parity, all five calls/four modules, unchanged DAG, retired-ref/
   public-store zero, existing graph-test AST 242/242 plus four methods, UTF-8
   8/8, non-ASCII 5/5, pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.
+
+### Percent-metric-label public-API milestone
+
+- Commit `1c8400f` renames the exact former 8-line private classifier in its
+  existing operation-policy owner to public
+  `label_implies_percent_metric(...)`. Input truth/empty-string fallback,
+  string conversion, normalization, blank early return, eager configured-
+  marker plus `"%"`/`"%p"` tuple construction, marker order/duplicates/
+  identity, lazy membership, first-truthy stop, immutability, and owner-
+  uncaught failures are unchanged. No wrapper or private alias was added.
+- All five calls across four importers now bind the public API with one
+  positional argument, no keywords, and caller `try` depth zero. Graph unit-
+  family inference, operand conflict detection's two short-circuited calls,
+  reconciliation unit hinting, and candidate selected-unit projection retain
+  their exact gates, arguments, true/false adoption, and failure stops.
+  Normalization, unit policy/selection, conflict/adoption, reconciliation,
+  candidate/evidence, state, artifacts, and ledgers did not move.
+- Production source is `+10/-10`, tests are `+1,196/-28`, and the whole commit
+  is `+1,206/-38`; production physical line counts are unchanged. Four methods
+  move discovery from 2,095 to 2,099; final operation-policy counts are 3/4.
+  The committed source/test diff SHA-256 is
+  `0f772a3b30a68ebfeb08ef66c4ebcef6778d59d0a457040c341927981e421917`.
+- Focused pre/post rename 4/4, graph owner 246/246, surface owner 1/1, operand
+  owner 69/69, affected semantic 1,206/1,206, reflection promotion 15/15,
+  reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+  51/51, import 19/19, runtime audit 217, and full 2,099/2,099 passed.
+  Pycompile, production transform 5/5, complete transform 8/8, selected-body/
+  four-caller parity, existing graph-test AST 242/242 plus four methods, public
+  identity 5/5, all-call/DAG/retired-production-ref/public-store, UTF-8 8/8,
+  non-ASCII 5/5, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Single-metric-period-comparison private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 11-line
+  `financial_operation_policies._is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`
+  definition for an in-place public rename to
+  `is_single_metric_period_comparison(...)`. No source or test rename has
+  occurred and no wrapper or private alias is authorized. Loader adapters and
+  shared normalization internals remain intentionally outside this batch.
+- The body has five assignments, two `if` nodes, three returns, ten calls, one
+  list comprehension, two generators, three comprehension clauses, one boolean
+  operation, two comparisons, one tuple, two attributes, and no `try`, loop,
+  lambda, list literal, dict literal, or conditional expression. It pins raw
+  query identity into normalization, shallow policy snapshotting, configured-
+  marker lookup, eager ordered tuple construction with retained-item double
+  conversion, lazy membership, first-truthy stop, and the no-marker return
+  before operand access.
+- After a marker hit, raw-truth operand-label filtering retains original
+  objects; `list(dict.fromkeys(...))` keeps stable native hash/equality dedupe;
+  at most one distinct truthy label returns true. Inputs remain immutable and
+  every normalization, policy, marker, operand iteration/truth, hash/equality,
+  materialization, comparison, and result failure remains uncaught.
+- Three two-positional-argument calls in one graph-helper importer plus one
+  owner-local call use no keywords across four caller definitions, all at
+  caller `try` depth zero. Generic required-operand building, operation-family
+  inference, concept required-operand building, and direct-grounding
+  classification retain their current gates, exact arguments, result adoption,
+  and exception stops. Operand construction, operation precedence, grounding,
+  state, artifacts, ledgers, and sequencing remain caller-owned hard stops.
+  The DAG remains acyclic at 48 modules/205 edges.
+- Projected operation-policy counts are 3/4 to 4/3. The body SHA-256 is
+  `0f482ee880c12e58fa61e1f2eebe8f106076206ddb28e5f1b82762678cd92654`.
+  The private identifier has six production AST references across two files.
+  Three exact live test refs in one file make the complete source/test transform
+  three files. Current/projected call-record hashes are
+  `8d669d2335fe20a683a7f2cc5ece357bfb67b05e10f9b79dafbe89bb613fc55c` /
+  `fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`;
+  current/projected four-caller-map hashes are
+  `d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd` /
+  `3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`.
+- The current 44-54 span selects no reviewed runtime-domain record, so all 217
+  records remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  250/250, surface owner 1/1, operand owner 69/69, affected semantic
+  1,210/1,210, reflection capability 24/24, retrieval-pipeline 1/1,
+  reconciliation plan 51/51, import 19/19, audit 217, full 2,103/2,103, public
+  identity 2/2, production transform 2/2, complete transform 3/3, selected-body/
+  four-caller parity, all four calls/two modules, unchanged DAG, retired-ref/
+  public-store zero, existing graph-test AST 246/246 plus four methods, UTF-8
+  3/3, non-ASCII 2/2, pycompile, and diff check are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
 
 Static definition/signature/call/DAG/function-count/import/public-store and

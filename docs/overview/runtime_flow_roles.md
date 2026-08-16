@@ -1093,17 +1093,31 @@ Aggregate/narrative row의 state-free answer policy owner다.
   text surface 30/30, reflection capability 24/24, retrieval-pipeline 1/1,
   reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095와
   transform/body/identity/caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 8줄
-  `_label_implies_percent_metric(...)`을 public
-  `label_implies_percent_metric(...)`로 이름 수렴시키는 batch를 선택한다. 4개
-  importer의 5개 external call은 한 positional argument/no keyword와 caller
-  `try` depth zero를 유지한다. 입력 truth/string/normalization, blank early
-  return, configured marker와 `%`/`%p` tuple construction, membership short-
-  circuit 및 unit-family/operand-conflict/reconciliation/candidate-surface
-  caller gate/adoption/stop은 유지해야 한다. 기존 edge만 사용하므로 DAG는
-  48 modules/205 edges로 비순환이고 projected operation-policy public/private는
-  3/4이다. 아직 source/test rename은 없으며 정확한 계약과 네 CURRENT-SOURCE
-  method는
+- 완료된 `1c8400f` percent-metric-label API batch는 같은 operation-policy
+  owner의 정확한 8줄 private classifier를 public
+  `label_implies_percent_metric(...)`로 이름 수렴시켰다. 4개 importer의 5개
+  external call은 한 positional argument/no keyword와 caller `try` depth
+  zero를 유지한다. 입력 truth/string/normalization, blank early return,
+  configured marker와 `%`/`%p` tuple construction, membership short-circuit 및
+  unit-family/operand-conflict/reconciliation/candidate-surface caller gate/
+  adoption/stop은 유지됐고 operation-policy public/private는 3/4이다.
+  Focused 4/4, graph owner 246/246, surface owner 1/1, operand owner 69/69,
+  semantic 1,206/1,206, reflection promotion 15/15, reflection capability
+  24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+  217, full 2,099/2,099와 transform/body/identity/caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 11줄
+  `_is_single_metric_period_comparison(...)`을 public
+  `is_single_metric_period_comparison(...)`로 이름 수렴시키는 batch를
+  선택한다. Graph-helper importer의 3개 external call과 owner-local 1개
+  call은 두 positional arguments/no keyword와 caller `try` depth zero를
+  유지한다. Query normalization, period-policy snapshot, marker tuple/
+  membership short-circuit, truthy-label filtering, stable hash/equality
+  dedupe와 generic/concept operand, operation-family, direct-grounding caller
+  gate/adoption/stop은 유지해야 한다. 기존 edge만 사용하므로 DAG는 48
+  modules/205 edges로 비순환이고 projected operation-policy public/private는
+  4/3이다. 아직 source/test rename은 없으며 정확한 계약과 네 CURRENT-
+  SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

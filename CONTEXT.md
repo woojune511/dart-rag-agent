@@ -310,13 +310,23 @@ adoption/stop은 유지됐다. Focused 4/4, graph owner 242/242, surface owner 1
 operand owner 69/69, affected 1,202/1,202, answer projection 23/23, retrieval
 hints 5/5, text surface 30/30, reflection capability 24/24, retrieval-pipeline
 1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095 및
-transform/body/identity/caller/DAG parity가 통과했다. 다음 characterize-only
-inventory는 같은 owner의 정확한 8줄 `_label_implies_percent_metric(...)`을
-public `label_implies_percent_metric(...)`로 이름 수렴시킨다. 4개 importer의
-5개 call, input truth/string/normalization, blank early return, configured
-marker와 `%`/`%p` tuple construction, membership short-circuit, unit-family/
-operand-conflict/reconciliation/candidate-surface caller gate와 adoption/stop은
-유지해야 한다. 정확한 계약과 projected gate는
+transform/body/identity/caller/DAG parity가 통과했다. 이어 같은 owner의 정확한
+8줄 `_label_implies_percent_metric(...)`은 `1c8400f`에서 public
+`label_implies_percent_metric(...)`로 이름 수렴했다. 4개 importer의 5개
+call은 public API를 사용하며 input truth/string/normalization, blank early
+return, configured marker와 `%`/`%p` tuple construction, membership short-
+circuit, unit-family/operand-conflict/reconciliation/candidate-surface caller
+gate와 adoption/stop은 유지됐다. Focused 4/4, graph owner 246/246, surface
+owner 1/1, operand owner 69/69, affected 1,206/1,206, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,099/2,099 및 transform/body/identity/
+caller/DAG parity가 통과했다. 다음 characterize-only inventory는 같은
+owner의 정확한 11줄 `_is_single_metric_period_comparison(...)`을 public
+`is_single_metric_period_comparison(...)`로 이름 수렴시킨다. 1개 importer의
+3개 external call과 owner-local 1개 call, query normalization, policy-marker
+snapshot/tuple construction, marker short-circuit, truthy-label filtering,
+stable hash/equality dedupe, four caller gate/adoption/stop은 유지해야 한다.
+정확한 계약과 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

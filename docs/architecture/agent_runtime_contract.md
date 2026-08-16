@@ -5346,66 +5346,113 @@ methods, public identity 6/6, all-call/DAG/public-store/retired-live-ref, UTF-8
 `653a3d7733bb763cb69a1163293a20bbb6171a022c99ceb80d1375260021bcb4`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 8-line
-`financial_operation_policies._label_implies_percent_metric(label: str) -> bool`
+Commit `1c8400f` completes the percent-metric-label visibility contract. The
+exact former 8-line definition is public
+`financial_operation_policies.label_implies_percent_metric(label: str) -> bool`;
+no wrapper or private alias remains. Raw input truth/empty-string fallback,
+string conversion, normalization, blank early return, eager configured-marker
+plus `"%"`/`"%p"` tuple construction, marker order/duplicates/identity, lazy
+membership, first-truthy stop, immutability, and owner-uncaught failures are
+unchanged after definition-name normalization.
+
+All five calls use one positional argument and no keywords across four
+importers and four caller definitions, all at caller `try` depth zero. Unit-
+family inference, the operand-conflict caller's two short-circuited
+classifications, reconciliation unit hinting, and candidate selected-unit
+projection retain their exact gates, true/false adoption, and failure stops.
+Normalization, unit policy/selection, conflict/adoption, reconciliation,
+candidate/evidence, state, artifacts, ledgers, and final sequencing remain
+caller-owned. Operation-policy counts finish 3/4.
+
+Executed gates are focused 4/4, graph owner 246/246, surface owner 1/1,
+operand owner 69/69, affected semantic 1,206/1,206, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,099/2,099, plus pycompile,
+production transform 5/5, complete transform 8/8, selected-body/four-caller
+parity, existing graph-test AST 242/242 plus four methods, public identity 5/5,
+all-call/DAG/public-store/retired-production-ref, UTF-8 8/8, non-ASCII 5/5,
+and diff-check gates. Production source is `+10/-10`, tests are `+1,196/-28`,
+and the whole commit is `+1,206/-38`; production physical lines are unchanged.
+The committed source/test diff SHA-256 is
+`0f772a3b30a68ebfeb08ef66c4ebcef6778d59d0a457040c341927981e421917`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 11-line
+`financial_operation_policies._is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`
 definition. It already belongs to the operation-policy owner; the authorized
 future batch only renames it in place to public
-`label_implies_percent_metric(...)` and updates four imports, five direct calls,
-and all live test bindings without a private alias. Dependency-loader adapters,
-shared normalization internals, marker policy data, unit inference, operand
-conflict decisions, reconciliation fallback, candidate surface projection, and
-caller exception scopes are outside this batch.
+`is_single_metric_period_comparison(...)` and updates one external import,
+three external calls, one owner-local call, and three live test bindings without
+a private alias. Shared normalization internals, period policy data, generic or
+concept operand construction, operation-family precedence, direct-grounding
+decisions, and caller exception scopes are outside this batch.
 
-Preserve raw `label or ""` truth evaluation followed by exact `str(...)` and
-`_normalise_spaces(...)` order. A false normalized value returns exact `False`
-before marker-source access. Only afterward eagerly build a fresh tuple by
-starred expansion of exact `KOREAN_PERCENT_METRIC_HINT_TERMS`, followed by
-literal `"%"` and `"%p"`. Preserve marker-source iteration, order, duplicates,
-raw marker identity, and full tuple completion before membership. Do not
-stringify, lowercase, copy, dedupe, reorder, or mutate markers or input.
-Preserve lazy `token in normalized` and `any(...)` first-truthy stop.
+Preserve exact raw `query` identity into `_normalise_spaces(...)`, then the
+shallow `dict(GENERIC_PERIOD_OPERAND_POLICY)` snapshot. Access exact
+`comparison_markers`, apply raw `or ()`, and eagerly build a fresh ordered tuple
+whose filter and retained expression keep separate `str(item)` calls. Preserve
+marker iteration, order, duplicates, string-conversion multiplicity, and full
+tuple completion before lazy `marker in text` membership and first-truthy
+`any(...)` stop. A no-marker result returns exact `False` before
+`operand_labels` is touched.
 
-The three-statement body has one assignment, one `if`, and one final return;
-the branch adds a second return. It has three calls, one generator and
-comprehension, one boolean operation, one comparison, one tuple, one starred
-element, and no `try`, loop, lambda, list, dict, or attribute. Input truth,
-conversion, normalization, normalized truth, marker-source iteration/unpacking,
-tuple construction, membership, and result failures remain uncaught by this
-owner.
+Only after a marker hit, eagerly filter `operand_labels` by raw truth while
+retaining each original object. Preserve `list(dict.fromkeys(distinct))` stable
+dedupe with native hash/equality semantics and exceptions. At most one distinct
+truthy label returns exact `True`; two or more returns exact `False`. Do not
+stringify, normalize, reorder, or mutate labels or inputs. Query normalization,
+policy snapshot/access/truth, marker iteration/conversion/membership, operand
+iteration/truth, hashing/equality, list materialization, length/comparison, and
+result failures remain uncaught by this owner.
 
-Every source call uses one positional argument and no keywords across four
-importers and four caller definitions, all at caller `try` depth zero. Graph
-unit-family inference calls after normalization/blank gates; true returns
-`PERCENT`, while false continues count-marker inference. Operand conflict
-detection keeps its row/operand-unit gates, its first operand-label call, and
-lazy authoritative-surface call sequence; a first true skips surface calls,
-while a later true marks conflict. Reconciliation unit hinting calls only in its
-desired-percent branch after direct raw-unit return; true returns the configured
-percent unit, while false continues local-unit fallback. Candidate selected-
-unit projection calls only after known raw units return; true returns `PERCENT`,
-while false returns empty. Every classifier failure stops later caller work. No
-normalization, unit policy/selection, conflict/adoption, reconciliation,
-candidate/evidence, state, artifact, ledger, or final sequencing moves.
+The eight-statement body has five assignments, two `if` nodes, and one final
+return; the branches bring the return count to three. It has ten calls, one list
+comprehension, two generators, three comprehension clauses, one boolean
+operation, two comparisons, one tuple, two attributes, and no `try`, loop,
+lambda, list literal, dict literal, or conditional expression. The selected
+body SHA-256 is
+`0f482ee880c12e58fa61e1f2eebe8f106076206ddb28e5f1b82762678cd92654`.
 
-The selected body SHA-256 is
-`fe788855f6051ae481b30f779b4a0ecb56cd06d57ccb6b6f03eb0819f83405d2`.
-The private identifier has 10 production AST references across five source
-files. Thirteen exact live test references across three test files make the
-complete source/test transform eight files; the new graph contracts add no
-path. The 57-64 span selects no reviewed runtime-domain record, so all 217
-records remain unchanged. Existing edges keep the DAG acyclic at 48 modules/
-205 edges; projected operation-policy counts are 2/5 to 3/4.
+All four calls use two positional arguments, no keywords, and caller `try`
+depth zero across four caller definitions. Generic required-operand building
+calls after ratio-row return and exact operand-label extraction; true adopts a
+current/prior period pair, while false continues its existing fallback.
+Operation-family inference calls only after blank, configured-family, and
+percent-point gates; true returns `difference`, while false continues ratio and
+ontology-cue inference. Concept required-operand building calls only for one
+ordered spec without explicit roles after the earlier difference/growth branch;
+true attempts period expansion, while false continues role assignment. Direct-
+grounding classification calls only after its lookup/single-value, missing-
+operand, ratio/sum, operation-family, and explicit current/prior-role gates;
+its exact arguments are `str(task.get("query") or "")` and the prepared label
+list, and its result is returned unchanged. Every classifier failure stops
+later caller work.
+
+The private identifier has six production AST references across two source
+files: one definition, one import, three external calls, and one local call.
+Three exact live test references in one graph test file make the complete
+source/test transform three files. Current canonical call records hash to
+`8d669d2335fe20a683a7f2cc5ece357bfb67b05e10f9b79dafbe89bb613fc55c`
+and project to
+`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`;
+the four-caller map hashes from
+`d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd`
+to
+`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`.
+The 44-54 span selects no reviewed runtime-domain record, so all 217 records
+remain unchanged. Existing edges keep the DAG acyclic at 48 modules/205 edges;
+projected operation-policy counts are 3/4 to 4/3.
 
 Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-246/246, surface owner 1/1, operand owner 69/69, affected semantic
-1,206/1,206, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,099/2,099,
-production transform 5/5, complete transform 8/8, public identity 5/5, five-
-call/four-caller/DAG parity, existing graph-test AST 242/242 plus four methods,
-UTF-8 decode 8/8, non-ASCII preservation 5/5, pycompile, and diff-check gates
+250/250, surface owner 1/1, operand owner 69/69, affected semantic
+1,210/1,210, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,103/2,103,
+production transform 2/2, complete transform 3/3, public identity 2/2, four-
+call/four-caller/DAG parity, existing graph-test AST 246/246 plus four methods,
+UTF-8 decode 3/3, non-ASCII preservation 2/2, pycompile, and diff-check gates
 are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No percent-
-metric-label source or test rename has occurred.
+[Project Status Next Work](../overview/project_status.md#next-work). No single-
+metric-period-comparison source or test rename has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical
