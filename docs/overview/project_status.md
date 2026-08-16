@@ -16,10 +16,10 @@ Last updated: 2026-08-16
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `1c8400f` renamed the exact 8-line percent-metric-label classifier in its existing operation-policy owner and updated all five calls plus four live external bindings without an alias |
-| What passed? | Focused 4/4, graph owner 246/246, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,206/1,206, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,099/2,099 |
+| What just changed? | `f0fae1f` renamed the exact 11-line single-metric-period-comparison classifier in its existing operation-policy owner and updated all four source calls plus three live test bindings without an alias; its contracts also proved one graph call is runtime-unreachable |
+| What passed? | Focused 4/4, graph owner 250/250, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,210/1,210, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,103/2,103 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only move with exact selected-body parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 11-line `_is_single_metric_period_comparison(...)` classifier in its existing operation-policy owner; no source rename is authorized until its four CURRENT-SOURCE contracts pass |
+| What is next? | Delete the exact runtime-unreachable 9-line single-metric concept branch in `_build_concept_required_operands(...)` without replacement, after four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -748,14 +748,14 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, narrative-context-query public API 4 / 4; graph owner 242 / 242; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,202 / 1,202; answer-projection 23 / 23; retrieval-hints 5 / 5; text-surface 30 / 30; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, single-metric-period-comparison public API 4 / 4; graph owner 250 / 250; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,210 / 1,210; additional retrieval-pipeline caller module 1 / 1 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,095 / 2,095 |
-| Benchmark refresh after latest narrative-context-query API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,103 / 2,103 |
+| Benchmark refresh after latest single-metric-period-comparison API change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -798,102 +798,119 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects the smallest remaining cross-module
-state-free policy definition after dependency-loader adapters and shared
-normalization internals remain private: rename the exact current 11-line
-`financial_operation_policies._is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`
-definition in place to public `is_single_metric_period_comparison(...)`. Add no
-wrapper or private alias. This is a visibility-only change for an already owned
-generic period-comparison policy, not authorization to change period-marker
-data, generic or concept operand construction, operation-family precedence,
-direct-grounding decisions, or caller exception scopes. Before the rename, add
-exactly four CURRENT-SOURCE contracts and require them to pass. No production
-or test rename has occurred for this follow-on, and this document maintains no
-competing implementation queue.
+The characterize-only inventory selects the exact current 9-line branch at
+lines 1623-1631 of
+`financial_graph_helpers._build_concept_required_operands(...)` for deletion
+without replacement. No API rename, helper move, policy change, or adjacent
+cleanup is authorized. Before deletion, add exactly four CURRENT-SOURCE
+contracts and require them to pass. No production deletion has occurred for
+this follow-on, and this document maintains no competing implementation queue.
 
-The body has eight top-level statements: five assignments, two `if` nodes, and
-one final return; the branches bring the return count to three. Its AST has ten
-calls, one list comprehension, two generator expressions, three comprehension
-clauses, one boolean operation, two comparisons, one tuple, two attributes, and
-no `try`, loop, lambda, list literal, dict literal, or conditional expression.
-Preserve exact raw `query` identity into `_normalise_spaces(...)`, followed by
-the shallow `dict(GENERIC_PERIOD_OPERAND_POLICY)` snapshot.
+The branch is runtime-unreachable. `ordered_specs` starts as
+`list(concept_specs)`. After the only possible reordering, `raw_explicit_roles`
+is rebuilt one-to-one from `ordered_specs`. Therefore
+`len(ordered_specs) == 1` implies `len(raw_explicit_roles) == 1`, even when the
+sole contained role is `""`; the list itself remains truthy, so
+`not raw_explicit_roles` cannot also be true. The earlier single-spec
+`difference`/`growth` branch returns before this condition and does not weaken
+the invariant.
 
-Access exact `comparison_markers`, apply raw `or ()`, and eagerly construct a
-fresh ordered tuple. Preserve marker-source iteration, order, duplicates, and
-the separate `str(item)` calls in the filter and retained expression: retained
-items stringify twice and rejected items once. The tuple must finish before
-lazy `marker in text` membership begins; `any(...)` stops at the first truthy
-membership. A no-marker result returns exact `False` before
-`operand_labels` is touched.
+Delete only the outer `if`, its period-expansion assignment, nested truth gate,
+and two returns. Preserve concept-spec materialization, ordering, raw-role
+recomputation, the earlier difference/growth return, downstream `role_hints`,
+all operand construction and dedupe, input immutability, and every existing
+exception boundary. The selected branch has one assignment, two `if` nodes
+including the outer branch, two returns, eight calls, two list literals, two
+boolean operations, one unary operation, two comparisons, and two attributes;
+it has no list comprehension or generator expression. Its SHA-256 is
+`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
 
-After a marker hit, eagerly filter `operand_labels` by raw truth while retaining
-the original objects. Preserve exact `list(dict.fromkeys(distinct))` stable
-dedupe with native hash/equality behavior and exceptions. At most one distinct
-truthy label returns exact `True`; two or more returns exact `False`. Do not
-stringify, normalize, reorder, or mutate labels, markers, policy data, or
-inputs. Normalization, policy snapshot/access/truth, marker iteration/
-conversion/membership, operand iteration/truth, hashing/equality, list
-materialization, length/comparison, and result failures remain uncaught.
+The current owner spans lines 1590-1729 with 19 top-level statements and body
+SHA-256
+`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`.
+Exact deletion projects lines 1590-1720, 18 top-level statements, and body
+SHA-256
+`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+The bounded production transform is one file; the complete transform is the
+graph helper plus its test file. UTF-8/non-ASCII preservation is 2/2.
 
-There are four direct `ast.Name` calls across two source modules and four
-caller definitions. Three are external calls in the sole graph-helper importer;
-one is owner-local. Every call has two positional arguments, no keywords, and
-caller `try` depth zero. Generic required-operand building calls after its
-ratio-row return and exact label extraction; true adopts current/prior period
-operands, while false continues fallback. Operation-family inference calls
-after blank, configured-family, and percent-point gates; true returns
-`difference`, while false continues ratio and ontology-cue inference.
-
-Concept required-operand building calls only for one ordered spec without
-explicit roles after its earlier difference/growth branch; true attempts period
-expansion, while false continues role assignment. Direct-grounding
-classification calls after its lookup/single-value, missing-operand, ratio/sum,
-operation-family, and explicit current/prior-role gates; it passes exact
-`str(task.get("query") or "")` and the prepared label list, then returns the
-classifier result unchanged. A classifier failure in any caller stops later
-work. Operand construction, operation precedence, grounding, state, artifact,
-ledger, and final sequencing remain caller-owned.
-
-The existing importer edge keeps the full DAG acyclic at 48 modules/205
-internal edges. Current/projected operation-policy-owner counts are 3/4 to 4/3.
-No future public-name definition, executable reference, or `ast.Store`
-collision exists. The selected 44-54 body SHA-256 is
-`0f482ee880c12e58fa61e1f2eebe8f106076206ddb28e5f1b82762678cd92654`.
-The private identifier has six production AST references across two source
-files: one definition, one import, three external calls, and one local call.
-Three exact live test references occur in one graph test file, so the complete
-source/test rename spans three files; the new graph contracts add no path.
+The deletion removes only the unreachable concept caller of
+`is_single_metric_period_comparison(...)`. Public helper production references
+project 6 to 5, graph-helper references 4 to 3, and direct calls/caller
+definitions 4/4 to 3/3. The import remains and the three reachable calls stay
+unchanged: `_build_generic_required_operands(...)`,
+`_infer_operation_family_from_query(...)`, and owner-local
+`_requires_direct_numeric_grounding(...)`. Their body hashes remain
+`0192cd49c8f530fb46580e3e78fbb01489cf6da16a2ed7dd75ee44dfc10cc6be`,
+`948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741`,
+and
+`85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746`.
 
 Canonical current/projected call-record hashes are
-`8d669d2335fe20a683a7f2cc5ece357bfb67b05e10f9b79dafbe89bb613fc55c` /
-`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`.
-Current/projected four-caller-map hashes are
-`d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd` /
-`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`.
-The current 44-54 definition span selects no runtime-domain baseline record, so
-all 217 reviewed records must remain unchanged.
+`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e` /
+`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`.
+Current/projected caller-map hashes are
+`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035` /
+`fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+Operation-policy public/private counts stay 4/3, public identity stays 2/2,
+and existing edges keep the DAG acyclic at 48 modules/205 internal edges. The
+deleted span intersects no reviewed runtime-domain record, so all 217 records
+must remain unchanged.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_is_single_metric_period_comparison_pins_normalization_policy_markers_operand_dedupe_and_result`;
-- `test_current_source_is_single_metric_period_comparison_pins_laziness_immutability_and_exceptions`;
-- `test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops`.
+- `test_current_source_unreachable_single_metric_concept_branch_pins_cardinality_and_non_entry`;
+- `test_current_source_unreachable_single_metric_concept_branch_pins_fallthrough_outputs_side_effects_and_exceptions`;
+- `test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline`;
+- `test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 250/250, surface-
+Projected post-deletion gates are focused 4/4, graph owner 254/254, surface-
 contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,210/1,210, reflection-capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import side effects 19/19, runtime audit 217, and
-full discovery 2,103/2,103. Structural gates are production transform parity
-2/2 and complete transform parity 3/3, selected-body and four-caller-body
-parity, fresh public identity 2/2, all four calls/two source modules, unchanged
-acyclic 48-module/205-edge DAG, retired production and existing live-test refs
-plus future public stores zero, existing graph-test AST parity 246/246 plus four
-new methods, UTF-8 decode 3/3, non-ASCII preservation 2/2, pycompile, and
-`git diff --check`. These are projections, not executed results. Static
-definition/signature/call/import/count/DAG/audit inspection passed; benchmark
-refresh and remote CI were **NOT RUN**.
+1,214/1,214, reflection-promotion 15/15, reflection-capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import side effects 19/19,
+runtime audit 217, and full discovery 2,107/2,107. Structural gates are exact
+one-file production/two-file complete transform, selected-branch removal,
+projected owner-body hash/count/span, three remaining caller-body hashes and
+3/3 call parity, unchanged public identity and DAG, graph-test AST 250/250 plus
+four new methods, UTF-8/non-ASCII 2/2, pycompile, and `git diff --check`. These
+are projections, not executed results. Static branch/cardinality/call/DAG/audit
+inspection passed; benchmark refresh and remote CI were **NOT RUN**.
+
+## Completed Single-Metric-Period-Comparison Public API
+
+Commit `f0fae1f` renamed the exact former 11-line classifier in place to public
+`financial_operation_policies.is_single_metric_period_comparison(...)`. No
+wrapper or private alias remains. Query identity/normalization, the shallow
+period-policy snapshot, eager marker tuple construction, lazy marker
+membership, truthy-label filtering, stable native hash/equality dedupe,
+immutability, return values, and uncaught owner failures are unchanged after
+definition-name normalization.
+
+All four source calls across two modules now bind the public owner with two
+positional arguments, no keywords, and caller `try` depth zero. Three calls are
+runtime-reachable and retain their exact generic-operand, operation-family, and
+direct-grounding gates, adoption, and stops. The concept-operand call was also
+renamed, but its CURRENT-SOURCE contract proved the surrounding cardinality
+guard is contradictory, so neither the classifier nor that branch body can run.
+Operand construction, operation precedence, grounding, state, artifacts, and
+ledgers did not move. Operation-policy counts finish 4/3.
+
+Production source is `+6/-6`, tests are `+1,627/-23`, and the whole commit is
+`+1,633/-29`; production physical lines are unchanged. Four new methods moved
+discovery from 2,099 to 2,103. The committed source/test diff SHA-256 is
+`190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
+
+Focused pre/post rename 4/4, graph owner 250/250, surface owner 1/1, operand
+owner 69/69, affected semantic 1,210/1,210, reflection promotion 15/15,
+reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, runtime audit 217, and full 2,103/2,103 passed. Pycompile,
+production transform 2/2, complete transform 3/3, selected-body/four-caller
+parity, graph-test AST 246/246 plus four methods, public identity 2/2, all four
+calls/two modules, unchanged 48-module/205-edge DAG, retired production refs/
+public stores zero, UTF-8 3/3, non-ASCII 2/2, and diff check passed. Benchmark
+refresh and remote CI were **NOT RUN**. This visibility-only milestone proves no
+quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Percent-Metric-Label Public API
 

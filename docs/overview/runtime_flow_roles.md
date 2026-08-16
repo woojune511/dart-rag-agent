@@ -1106,18 +1106,28 @@ Aggregate/narrative row의 state-free answer policy owner다.
   24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
   217, full 2,099/2,099와 transform/body/identity/caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 11줄
-  `_is_single_metric_period_comparison(...)`을 public
-  `is_single_metric_period_comparison(...)`로 이름 수렴시키는 batch를
-  선택한다. Graph-helper importer의 3개 external call과 owner-local 1개
+- 완료된 `f0fae1f` single-metric-period-comparison API batch는 같은 owner의
+  정확한 11줄 private classifier를 public
+  `is_single_metric_period_comparison(...)`로 이름 수렴시켰다. 소스의 4개
   call은 두 positional arguments/no keyword와 caller `try` depth zero를
   유지한다. Query normalization, period-policy snapshot, marker tuple/
   membership short-circuit, truthy-label filtering, stable hash/equality
-  dedupe와 generic/concept operand, operation-family, direct-grounding caller
-  gate/adoption/stop은 유지해야 한다. 기존 edge만 사용하므로 DAG는 48
-  modules/205 edges로 비순환이고 projected operation-policy public/private는
-  4/3이다. 아직 source/test rename은 없으며 정확한 계약과 네 CURRENT-
-  SOURCE method는
+  dedupe와 도달 가능한 generic-operand, operation-family, direct-grounding
+  caller gate/adoption/stop은 유지됐다. CURRENT-SOURCE 계약은 concept-
+  operand call이 앞선 cardinality invariant 때문에 runtime-unreachable임도
+  고정했다. Operation-policy public/private는 4/3이다. Focused 4/4, graph
+  owner 250/250, surface owner 1/1, operand owner 69/69, semantic
+  1,210/1,210, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,103/2,103와 transform/body/identity/caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는
+  `_build_concept_required_operands(...)`의 정확한 도달 불가능 9줄 분기만
+  replacement 없이 삭제한다. `ordered_specs`와 one-to-one으로 다시 만든
+  `raw_explicit_roles` 때문에 single-spec 조건과 empty-list 조건은 동시에
+  참일 수 없다. Ordering, earlier difference/growth return, downstream role-
+  hint와 operand construction은 유지해야 한다. 정확한 네 CURRENT-SOURCE
+  method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

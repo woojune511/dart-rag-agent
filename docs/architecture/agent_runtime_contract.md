@@ -5377,15 +5377,14 @@ The committed source/test diff SHA-256 is
 `0f772a3b30a68ebfeb08ef66c4ebcef6778d59d0a457040c341927981e421917`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 11-line
-`financial_operation_policies._is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`
-definition. It already belongs to the operation-policy owner; the authorized
-future batch only renames it in place to public
-`is_single_metric_period_comparison(...)` and updates one external import,
-three external calls, one owner-local call, and three live test bindings without
-a private alias. Shared normalization internals, period policy data, generic or
-concept operand construction, operation-family precedence, direct-grounding
-decisions, and caller exception scopes are outside this batch.
+Commit `f0fae1f` completes the single-metric-period-comparison visibility
+contract. The exact former 11-line definition is public
+`financial_operation_policies.is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`;
+no wrapper or private alias remains. One external import, three graph-helper
+calls, one owner-local call, and three existing test bindings now use the public
+name. Shared normalization internals, period policy data, operand construction,
+operation-family precedence, direct-grounding decisions, and caller exception
+scopes did not move.
 
 Preserve exact raw `query` identity into `_normalise_spaces(...)`, then the
 shallow `dict(GENERIC_PERIOD_OPERAND_POLICY)` snapshot. Access exact
@@ -5413,46 +5412,85 @@ lambda, list literal, dict literal, or conditional expression. The selected
 body SHA-256 is
 `0f482ee880c12e58fa61e1f2eebe8f106076206ddb28e5f1b82762678cd92654`.
 
-All four calls use two positional arguments, no keywords, and caller `try`
-depth zero across four caller definitions. Generic required-operand building
-calls after ratio-row return and exact operand-label extraction; true adopts a
-current/prior period pair, while false continues its existing fallback.
-Operation-family inference calls only after blank, configured-family, and
-percent-point gates; true returns `difference`, while false continues ratio and
-ontology-cue inference. Concept required-operand building calls only for one
-ordered spec without explicit roles after the earlier difference/growth branch;
-true attempts period expansion, while false continues role assignment. Direct-
-grounding classification calls only after its lookup/single-value, missing-
-operand, ratio/sum, operation-family, and explicit current/prior-role gates;
-its exact arguments are `str(task.get("query") or "")` and the prepared label
-list, and its result is returned unchanged. Every classifier failure stops
-later caller work.
+All four source calls use two positional arguments, no keywords, and caller
+`try` depth zero across four caller definitions. Generic required-operand
+building calls after ratio-row return and exact operand-label extraction; true
+adopts a current/prior period pair, while false continues fallback. Operation-
+family inference calls after blank, configured-family, and percent-point gates;
+true returns `difference`, while false continues ratio and ontology-cue
+inference. Direct-grounding classification retains its lookup/single-value,
+missing-operand, ratio/sum, operation-family, and explicit-role gates, exact
+arguments, returned result, and failure stop.
 
-The private identifier has six production AST references across two source
-files: one definition, one import, three external calls, and one local call.
-Three exact live test references in one graph test file make the complete
-source/test transform three files. Current canonical call records hash to
-`8d669d2335fe20a683a7f2cc5ece357bfb67b05e10f9b79dafbe89bb613fc55c`
-and project to
+The fourth source call in concept required-operand building is not a runtime
+caller. `raw_explicit_roles` is rebuilt one-to-one from `ordered_specs`
+immediately before a guard requiring both `len(ordered_specs) == 1` and
+`not raw_explicit_roles`. A one-element list remains truthy even when its sole
+role is `""`; therefore the classifier and branch body are unreachable. The
+CURRENT-SOURCE caller contract pins this fact rather than treating the source
+call as adopted behavior.
+
+The public identifier has six production AST references across two source
+files: one definition, one import, three graph calls, and one local call. The
+canonical call-record hash is
 `fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`;
-the four-caller map hashes from
-`d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd`
-to
+the four-caller map hash is
 `3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`.
 The 44-54 span selects no reviewed runtime-domain record, so all 217 records
 remain unchanged. Existing edges keep the DAG acyclic at 48 modules/205 edges;
-projected operation-policy counts are 3/4 to 4/3.
+operation-policy counts finish 4/3.
 
-Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-250/250, surface owner 1/1, operand owner 69/69, affected semantic
-1,210/1,210, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,103/2,103,
-production transform 2/2, complete transform 3/3, public identity 2/2, four-
-call/four-caller/DAG parity, existing graph-test AST 246/246 plus four methods,
-UTF-8 decode 3/3, non-ASCII preservation 2/2, pycompile, and diff-check gates
-are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No single-
-metric-period-comparison source or test rename has occurred.
+Executed gates are focused pre/post 4/4, graph owner 250/250, surface owner
+1/1, operand owner 69/69, affected semantic 1,210/1,210, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,103/2,103, plus pycompile,
+production transform 2/2, complete transform 3/3, selected-body/four-caller
+parity, graph-test AST 246/246 plus four methods, public identity 2/2, all-call/
+DAG/public-store/retired-production-ref, UTF-8 3/3, non-ASCII 2/2, and diff-
+check gates. Production source is `+6/-6`, tests are `+1,627/-23`, and the
+whole commit is `+1,633/-29`; production physical lines are unchanged. The
+committed source/test diff SHA-256 is
+`190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next contract deletes only the exact current 9-line unreachable branch at
+lines 1623-1631 of
+`financial_graph_helpers._build_concept_required_operands(...)`, without a
+replacement. Preserve spec materialization and ordering, raw-role
+recomputation, the earlier difference/growth return, downstream role hints and
+operand construction, inputs, and all exception boundaries. No API, policy,
+state, artifact, ledger, or sequencing ownership changes are authorized.
+
+The branch SHA-256 is
+`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
+It has one assignment, two `if` nodes, two returns, eight calls, two list
+literals, two boolean operations, one unary operation, two comparisons, and
+two attributes. The current owner spans lines 1590-1729 with 19 top-level
+statements and body SHA-256
+`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`;
+exact deletion projects lines 1590-1720, 18 statements, and body SHA-256
+`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+
+The public helper's source calls/callers project 4/4 to 3/3. Only the
+unreachable concept record disappears; the import and three reachable caller
+bodies remain unchanged. Current/projected call-record hashes are
+`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e` /
+`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`;
+caller-map hashes are
+`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035` /
+`fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+Operation-policy counts remain 4/3, public identity remains 2/2, audit remains
+217, and the DAG remains 48 modules/205 edges.
+
+The four named CURRENT-SOURCE contracts and projected focused 4/4, graph owner
+254/254, surface owner 1/1, operand owner 69/69, affected semantic
+1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+2,107/2,107, exact one-file production/two-file complete transform, branch
+removal, owner/caller hash parity, graph-test AST 250/250 plus four methods,
+UTF-8/non-ASCII 2/2, pycompile, and diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No branch
+deletion has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

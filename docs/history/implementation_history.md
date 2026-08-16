@@ -7817,3 +7817,80 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Single-metric-period-comparison public-API milestone
+
+- Commit `f0fae1f` renames the exact former 11-line classifier in its existing
+  operation-policy owner to public
+  `is_single_metric_period_comparison(...)`. Query identity/normalization,
+  shallow policy snapshotting, eager marker tuple creation, lazy membership,
+  truthy-label filtering, stable native hash/equality dedupe, return values,
+  immutability, and owner-uncaught failures are unchanged. No wrapper or private
+  alias was added.
+- All four source calls across two modules now bind the public API with two
+  positional arguments, no keywords, and caller `try` depth zero. Generic-
+  operand, operation-family, and direct-grounding calls retain their exact
+  gates, arguments, adoption, and stops. The renamed concept-operand call is
+  source-visible but runtime-unreachable: its condition requires one
+  `ordered_specs` element and an empty `raw_explicit_roles` list after that list
+  was rebuilt one-to-one from `ordered_specs`. The new CURRENT-SOURCE caller
+  contract corrects the earlier characterization without changing behavior.
+- Production source is `+6/-6`, tests are `+1,627/-23`, and the whole commit is
+  `+1,633/-29`; production physical lines are unchanged. Four methods move
+  discovery from 2,099 to 2,103. Final operation-policy public/private counts
+  are 4/3. The committed source/test diff SHA-256 is
+  `190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
+- Focused pre/post rename 4/4, graph owner 250/250, surface owner 1/1, operand
+  owner 69/69, affected semantic 1,210/1,210, reflection promotion 15/15,
+  reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+  51/51, import 19/19, runtime audit 217, and full 2,103/2,103 passed.
+  Pycompile, production transform 2/2, complete transform 3/3, selected-body/
+  four-caller parity, graph-test AST 246/246 plus four methods, public identity
+  2/2, all four calls/two modules, unchanged 48-module/205-edge DAG, retired
+  production refs/public stores zero, UTF-8 3/3, non-ASCII 2/2, and diff check
+  passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a quality, ranking, performance, benchmark, schedule,
+  ledger, or Phase 3 completion claim.
+
+### Unreachable single-metric concept branch deletion characterization checkpoint
+
+- The next docs-only inventory selects only the exact current 9-line branch at
+  graph-helper lines 1623-1631 inside
+  `_build_concept_required_operands(...)` for deletion without replacement. No
+  adjacent API, helper, policy, state, artifact, ledger, or sequencing change is
+  authorized.
+- The branch cannot execute. `raw_explicit_roles` is rebuilt one-to-one from
+  `ordered_specs`, so `len(ordered_specs) == 1` implies a truthy one-element
+  roles list even if that element is `""`; the same guard's
+  `not raw_explicit_roles` operand is false. The earlier single-spec
+  difference/growth path returns before this condition.
+- The branch has one assignment, two `if` nodes, two returns, eight calls, two
+  list literals, two boolean operations, one unary operation, two comparisons,
+  and two attributes. Its SHA-256 is
+  `6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
+  The current 1590-1729 owner body has 19 top-level statements and hashes to
+  `97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`;
+  exact deletion projects lines 1590-1720, 18 statements, and
+  `dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+- The public helper's current/projected call-record hashes are
+  `fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e` /
+  `76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`;
+  caller-map hashes are
+  `3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035` /
+  `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+  Calls/callers project 4/4 to 3/3. Public identity 2/2, operation-policy 4/3,
+  audit 217, and the 48-module/205-edge DAG remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  254/254, surface owner 1/1, operand owner 69/69, affected semantic
+  1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,107/2,107, one-file production/two-file complete transform, branch/
+  owner/caller hash parity, graph-test AST 250/250 plus four methods, UTF-8/non-
+  ASCII 2/2, pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static branch/cardinality/call/DAG/audit inspection passed. Benchmark refresh
+and remote CI were **NOT RUN**. No source deletion has occurred; this checkpoint
+is not a behavior, quality, ranking, performance, benchmark, schedule, or
+completion claim.

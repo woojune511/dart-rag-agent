@@ -1634,44 +1634,66 @@ check gates passed. The committed source/test diff SHA-256 is
 `0f772a3b30a68ebfeb08ef66c4ebcef6778d59d0a457040c341927981e421917`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 11-line
-`financial_operation_policies._is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool`
-classifier for an in-place public rename to
-`is_single_metric_period_comparison(...)`, with no wrapper or alias. Loader
-adapters and shared normalization internals remain private. Preserve raw query
-identity into normalization, the shallow period-policy snapshot, eager ordered
-marker tuple construction with retained-item double conversion, lazy marker
-membership/first-truthy stop, and the no-marker return before operand access.
+Commit `f0fae1f` completed the single-metric-period-comparison private-API
+seam. The exact former 11-line classifier is public
+`financial_operation_policies.is_single_metric_period_comparison(...)`; no
+wrapper or alias remains. All four source calls and three existing test
+bindings use the public name. Query normalization, the shallow period-policy
+snapshot, eager marker tuple construction, lazy marker membership, truthy-
+label filtering, stable native hash/equality dedupe, immutability, and owner-
+uncaught failures are unchanged. Operation-policy counts finish 4/3.
 
-After a marker hit, preserve raw-truth label filtering, original label identity,
-stable `dict.fromkeys(...)` hash/equality dedupe, the at-most-one-distinct-label
-result, immutability, and every owner-uncaught failure. Three two-positional-
-argument external calls in the graph helper and one owner-local call use no
-keywords and caller `try` depth zero. Generic operand building, operation-family
-inference, concept operand building, and direct-grounding classification retain
-their current gates, exact arguments, true/false adoption, and exception stops.
-Operand construction, operation precedence, grounding, state, artifacts,
-ledgers, and final sequencing do not move.
+Three source calls remain runtime-reachable and preserve generic-operand,
+operation-family, and direct-grounding gates, arguments, adoption, and failure
+stops. The renamed concept-operand call is source-visible but runtime-
+unreachable: its guard requires both one `ordered_specs` element and an empty
+`raw_explicit_roles` list, although that list was just rebuilt one-to-one from
+`ordered_specs`. The CURRENT-SOURCE contract pins this corrected
+characterization.
 
-Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
-operation-policy counts are 3/4 to 4/3. The body SHA-256 is
-`0f482ee880c12e58fa61e1f2eebe8f106076206ddb28e5f1b82762678cd92654`;
-the private identifier has six production AST references across two source
-files and no future public-name definition/store exists. Three live test refs
-in one file make the complete rename three files. The 44-54 span intersects no
-reviewed baseline record, so all 217 records remain unchanged.
+Production source is `+6/-6`, tests are `+1,627/-23`, and the whole commit is
+`+1,633/-29`; production physical lines are unchanged. Focused 4/4, graph owner
+250/250, surface owner 1/1, operand owner 69/69, affected semantic
+1,210/1,210, reflection promotion 15/15, reflection capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+2,103/2,103, pycompile, production transform 2/2, complete transform 3/3,
+selected-body/four-caller parity, graph-test AST 246/246 plus four methods,
+public identity 2/2, unchanged acyclic 48-module/205-edge DAG, retired-
+production-ref/public-store zero, UTF-8 3/3, non-ASCII 2/2, and diff-check gates
+passed. The committed source/test diff SHA-256 is
+`190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory deletes exactly the runtime-unreachable
+9-line branch at current graph-helper lines 1623-1631, with no replacement.
+Spec ordering, raw-role recomputation, the earlier difference/growth return,
+downstream role hints and operand construction, exception boundaries, and all
+API/policy/state/artifact/ledger ownership remain unchanged. The selected
+branch SHA-256 is
+`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
+
+The current `_build_concept_required_operands(...)` body hashes to
+`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`
+over lines 1590-1729 and 19 top-level statements. Exact deletion projects
+`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`,
+lines 1590-1720, and 18 statements. The public helper's call/caller inventory
+projects 4/4 to 3/3; its call-record hash projects
+`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`
+to `76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`,
+and its caller-map hash projects
+`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`
+to `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-250/250, surface owner 1/1, operand owner 69/69, affected semantic
-1,210/1,210, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,103/2,103,
-production transform 2/2, complete transform 3/3, public identity 2/2, all four
-calls/four callers, unchanged DAG, retired-ref/public-store zero, existing
-graph-test AST 246/246 plus four methods, UTF-8 3/3, non-ASCII 2/2, pycompile,
-and diff-check gates are defined only in
+254/254, surface owner 1/1, operand owner 69/69, affected semantic
+1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+2,107/2,107, exact one-file production/two-file complete transform, branch and
+owner-body hash parity, three remaining caller hashes/calls, unchanged public
+identity/owner count/DAG, graph-test AST 250/250 plus four methods, UTF-8/non-
+ASCII 2/2, pycompile, and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-single-metric-period-comparison source or test rename has occurred; it is the
-sole next priority.
+branch deletion has occurred; it is the sole next priority.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

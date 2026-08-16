@@ -21,7 +21,7 @@ Last updated: 2026-08-16
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `1883395` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `f0fae1f` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -320,13 +320,20 @@ gate와 adoption/stop은 유지됐다. Focused 4/4, graph owner 246/246, surface
 owner 1/1, operand owner 69/69, affected 1,206/1,206, reflection promotion
 15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
 51/51, import 19/19, audit 217, full 2,099/2,099 및 transform/body/identity/
-caller/DAG parity가 통과했다. 다음 characterize-only inventory는 같은
-owner의 정확한 11줄 `_is_single_metric_period_comparison(...)`을 public
-`is_single_metric_period_comparison(...)`로 이름 수렴시킨다. 1개 importer의
-3개 external call과 owner-local 1개 call, query normalization, policy-marker
-snapshot/tuple construction, marker short-circuit, truthy-label filtering,
-stable hash/equality dedupe, four caller gate/adoption/stop은 유지해야 한다.
-정확한 계약과 projected gate는
+caller/DAG parity가 통과했다. 이어 같은 owner의 정확한 11줄
+`_is_single_metric_period_comparison(...)`은 `f0fae1f`에서 public
+`is_single_metric_period_comparison(...)`로 이름 수렴했다. 소스의 4개 call은
+public API를 사용하고 query normalization, policy snapshot/marker short-
+circuit, truthy-label filtering, stable hash/equality dedupe와 도달 가능한
+3개 caller의 gate/adoption/stop은 유지됐다. 네 CURRENT-SOURCE 계약은 concept-
+operand caller의 네 번째 call이 `len(ordered_specs) == 1`과 truthy
+`raw_explicit_roles`의 모순 때문에 런타임 도달 불가임도 고정했다. Focused
+4/4, graph owner 250/250, surface owner 1/1, operand owner 69/69, affected
+1,210/1,210, reflection promotion 15/15, reflection capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+2,103/2,103 및 transform/body/identity/caller/DAG parity가 통과했다. 다음
+작업은 `_build_concept_required_operands(...)`의 정확한 도달 불가능 9줄
+분기를 replacement 없이 삭제하는 것이다. 정확한 계약과 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
