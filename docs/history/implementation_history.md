@@ -7647,3 +7647,83 @@ Static definition/signature/call/DAG/function-count/import/public-store and
 baseline-provenance inspection passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Narrative-context-query public-API milestone
+
+- Commit `1883395` renames the exact former 6-line private classifier in its
+  existing operation-policy owner to public
+  `query_requests_narrative_context(...)`. Raw input truth/empty-string
+  fallback, conversion/normalization/lowercase order, blank early return,
+  policy lookup/container truth, eager ordered tuple construction with retained-
+  item double conversion, lazy membership, first-truthy stop, immutability, and
+  owner-uncaught failures are unchanged. No wrapper or private alias was added.
+- All 18 calls across five importers now bind the public API with one positional
+  argument, no keywords, and caller `try` depth zero. Nine calculation and five
+  evidence callers plus hybrid-task admission, compression guidance, and two
+  text-surface projections retain their exact gates, assignments, adoption,
+  false-result returns, and failure stops. Evidence/result mutation, retrieval,
+  calculation, state, artifacts, and ledgers did not move.
+- Production source is `+24/-24`, tests are `+1,467/-76`, and the whole commit
+  is `+1,491/-100`, net `+1,391`. Production physical line counts are
+  unchanged. Four methods move discovery from 2,091 to 2,095; final operation-
+  policy counts are 2/5. The committed source/test diff SHA-256 is
+  `653a3d7733bb763cb69a1163293a20bbb6171a022c99ceb80d1375260021bcb4`.
+- Focused pre/post rename 4/4, graph owner 242/242, surface owner 1/1, operand
+  owner 69/69, affected semantic 1,202/1,202, answer-projection 23/23,
+  retrieval-hints 5/5, text-surface 30/30, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, runtime audit
+  217, and full 2,095/2,095 passed. Pycompile, production transform 6/6,
+  complete transform 12/12, selected-body/18-caller parity, existing graph-test
+  AST 238/238 plus four methods, public identity 6/6, all-call/DAG/retired-ref/
+  public-store, UTF-8 12/12, non-ASCII 9/9, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Percent-metric-label private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 8-line
+  `financial_operation_policies._label_implies_percent_metric(label: str) -> bool`
+  definition for an in-place public rename to
+  `label_implies_percent_metric(...)`. No source or test rename has occurred and
+  no wrapper or private alias is authorized. Loader adapters and shared
+  normalization internals remain intentionally outside this batch.
+- The body has one assignment, one `if`, two returns, three calls, one
+  generator/comprehension, one boolean operation, one comparison, one tuple,
+  one starred element, and no `try`, loop, lambda, list, dict, or attribute. It
+  pins raw input truth/empty-string fallback, conversion/normalization order,
+  blank early return, eager configured-marker plus `"%"`/`"%p"` tuple
+  construction, marker order/duplicates/identity, lazy membership, first-
+  truthy stop, immutability, and every owner-uncaught failure.
+- Five one-positional-argument calls in four importers use no keywords across
+  four caller definitions, all at caller `try` depth zero. Graph unit-family
+  inference, operand conflict detection's two short-circuited classifications,
+  reconciliation unit hinting, and candidate selected-unit projection retain
+  their current gates, arguments, true/false adoption, and exception stops.
+  Normalization, unit policy/selection, conflict/adoption, reconciliation,
+  candidate/evidence, state, artifacts, ledgers, and sequencing remain caller-
+  owned hard stops. The DAG remains acyclic at 48 modules/205 edges.
+- Projected operation-policy counts are 2/5 to 3/4. The body SHA-256 is
+  `fe788855f6051ae481b30f779b4a0ecb56cd06d57ccb6b6f03eb0819f83405d2`.
+  The private identifier has 10 production AST references. Thirteen exact live
+  test refs across three files make the complete source/test transform eight
+  files. Call records hash to
+  `56a5c0f15d8617534785b8c7f3f91751203bfe4a6e6306840cc6cd5e7e460bb4`;
+  the four-caller map hashes to
+  `4890717f6ee4921092ee3eb2b7c84de31a4efc7846ee54c3ef07e52f6c880706`.
+- The current 57-64 span selects no reviewed runtime-domain record, so all 217
+  records remain unchanged.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  246/246, surface owner 1/1, operand owner 69/69, affected semantic
+  1,206/1,206, reflection capability 24/24, retrieval-pipeline 1/1,
+  reconciliation plan 51/51, import 19/19, audit 217, full 2,099/2,099, public
+  identity 5/5, production transform 5/5, complete transform 8/8, selected-body/
+  four-caller parity, all five calls/four modules, unchanged DAG, retired-ref/
+  public-store zero, existing graph-test AST 242/242 plus four methods, UTF-8
+  8/8, non-ASCII 5/5, pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/DAG/function-count/import/public-store and
+baseline-provenance inspection passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.

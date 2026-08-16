@@ -1588,46 +1588,70 @@ source/test diff SHA-256 is
 `53eea332fd2447c3ccde0c16e20ae1ccb5c2a5cb48a82a11f3c64746636d044c`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 6-line
-`financial_operation_policies._query_requests_narrative_context(query: str) -> bool`
-classifier for an in-place public rename to
-`query_requests_narrative_context(...)`, with no wrapper or alias. Loader
-adapters and shared normalization internals remain private. Preserve raw input
-truth/empty-string fallback, string conversion, normalization, lowercase and
-blank-result gate order; later policy-hint lookup and container truth; eager
-ordered tuple construction with retained-item double conversion; lazy
-membership and first-truthy `any(...)` stop; immutability; and every owner-
-uncaught failure.
+Commit `1883395` completed the narrative-context-query private-API seam. The
+exact former 6-line classifier is public
+`financial_operation_policies.query_requests_narrative_context(...)`; no
+wrapper or alias remains. All 18 calls and five external imports use the public
+name. Input truth/empty-string fallback, conversion/normalization/lowercase,
+blank early return, policy-hint lookup/container truth, eager ordered tuple
+construction with retained-item double conversion, lazy membership, first-
+truthy stop, caller gates/adoption, and all depth-zero failure stops are
+unchanged. Operation-policy counts finish 2/5.
 
-Eighteen one-positional-argument calls span 18 caller definitions and five
-importers with no keywords and caller `try` depth zero. Calculation keeps nine
-query/docs/answer/result/sentence/direct-grounding gates and its existing
-narrative preservation/adoption. Evidence keeps five admission,
-supplementation, augmentation, claim-expansion, and direct-grounding decisions.
-Hybrid-task admission, compression guidance, and two text-surface projections
-retain their existing caller-owned adoption and stops. Evidence/result mutation,
-retrieval, calculation, state, artifacts, ledgers, and final sequencing do not
-move.
+Production source is `+24/-24`, tests are `+1,467/-76`, and the whole commit is
+`+1,491/-100`, net `+1,391`; production physical lines are unchanged. Focused
+4/4, graph owner 242/242, surface owner 1/1, operand owner 69/69, affected
+semantic 1,202/1,202, answer-projection 23/23, retrieval-hints 5/5, text-
+surface 30/30, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095,
+pycompile, production transform 6/6, complete transform 12/12, selected-body/
+18-caller parity, existing graph-test AST 238/238 plus four methods, public
+identity 6/6, unchanged acyclic 48-module/205-edge DAG, retired live-ref/public-
+store zero, UTF-8 12/12, non-ASCII 9/9, and diff-check gates passed. The
+committed source/test diff SHA-256 is
+`653a3d7733bb763cb69a1163293a20bbb6171a022c99ceb80d1375260021bcb4`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 8-line
+`financial_operation_policies._label_implies_percent_metric(label: str) -> bool`
+classifier for an in-place public rename to
+`label_implies_percent_metric(...)`, with no wrapper or alias. Loader adapters
+and shared normalization internals remain private. Preserve raw input truth/
+empty-string fallback, string conversion, normalization, blank-result gate,
+then eager starred expansion of exact configured markers followed by `"%"` and
+`"%p"`; marker order/duplicates/identity; tuple completion before lazy
+membership; first-truthy `any(...)` stop; immutability; and every owner-uncaught
+failure.
+
+Five one-positional-argument calls span four caller definitions and four
+importers with no keywords and caller `try` depth zero. Graph unit-family
+inference retains its normalization/blank gate and percent-versus-count
+adoption. Operand conflict detection retains its row/operand-unit gates, first
+operand-label classification, short-circuit, and lazy authoritative-surface
+classification. Reconciliation unit hinting retains its desired-percent/direct-
+raw-unit gates and percent-versus-local fallback. Candidate selected-unit
+projection retains its known-unit early return and percent-versus-empty result.
+Normalization, unit policy/selection, conflict/adoption, reconciliation,
+candidate/evidence, state, artifacts, ledgers, and final sequencing do not move.
 
 Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
-operation-policy counts are 1/6 to 2/5. The body SHA-256 is
-`e3ab908fe08a56dd67a302d8fd9f28c20413136e58ab33832e4d858cc9ecf9a9`;
-the private identifier has 24 production AST references across six source
-files and no future public-name definition/store exists. Sixty-one live test
-refs across six files make the complete rename 12 files. The 36-41 span
+operation-policy counts are 2/5 to 3/4. The body SHA-256 is
+`fe788855f6051ae481b30f779b4a0ecb56cd06d57ccb6b6f03eb0819f83405d2`;
+the private identifier has 10 production AST references across five source
+files and no future public-name definition/store exists. Thirteen live test
+refs across three files make the complete rename eight files. The 57-64 span
 intersects no reviewed baseline record, so all 217 records remain unchanged.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-242/242, surface owner 1/1, operand owner 69/69, affected semantic
-1,202/1,202, additional answer-projection 23/23, retrieval-hints 5/5, text-
-surface 30/30, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095,
-production transform 6/6, complete transform 12/12, public identity 6/6, all
-18 calls/18 callers, unchanged DAG, retired-ref/public-store zero, existing
-graph-test AST 238/238 plus four methods, UTF-8 12/12, non-ASCII 9/9,
-pycompile, and diff-check gates are defined only in
+246/246, surface owner 1/1, operand owner 69/69, affected semantic
+1,206/1,206, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,099/2,099,
+production transform 5/5, complete transform 8/8, public identity 5/5, all five
+calls/four callers, unchanged DAG, retired-ref/public-store zero, existing
+graph-test AST 242/242 plus four methods, UTF-8 8/8, non-ASCII 5/5, pycompile,
+and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-narrative-context-query source or test rename has occurred; it is the sole next
+percent-metric-label source or test rename has occurred; it is the sole next
 priority.
 
 The following formatter inventory is the historical checkpoint that preceded
