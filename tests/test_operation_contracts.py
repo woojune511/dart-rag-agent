@@ -10677,7 +10677,7 @@ class OperationContractTests(unittest.TestCase):
                 "_evidence_items_from_reconciliation_matches",
                 return_value=reconciliation_evidence,
             ),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=False),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "surface_contract_numeric_evidence_items",
@@ -10739,7 +10739,7 @@ class OperationContractTests(unittest.TestCase):
             ) as failing_owner,
             patch.object(
                 financial_graph_calculation,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
             ) as later_narrative_gate,
             patch.object(agent, "_merge_required_operand_fallback_rows") as later_merge,
         ):

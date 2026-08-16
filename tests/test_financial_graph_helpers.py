@@ -28,6 +28,7 @@ import src.agent.financial_scope_policies as financial_scope_policies
 import src.agent.financial_structured_cells as financial_structured_cells
 import src.agent.financial_surface_contracts as financial_surface_contracts
 import src.agent.financial_task_artifacts as financial_task_artifacts
+import src.agent.financial_text_surface as financial_text_surface
 
 from src.agent.financial_runtime_normalization import _display_operand_label
 from src.agent.financial_retrieval_hints import (
@@ -12362,7 +12363,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         gate = Mock(return_value=True)
         with patch.object(
             financial_graph_helpers,
-            "_query_requests_narrative_context",
+            "query_requests_narrative_context",
             gate,
         ):
             self.assertFalse(
@@ -12396,7 +12397,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         downstream = Mock(side_effect=RuntimeError("narrative gate failed"))
         with patch.object(
             financial_graph_helpers,
-            "_query_requests_narrative_context",
+            "query_requests_narrative_context",
             downstream,
         ):
             with self.assertRaisesRegex(RuntimeError, "narrative gate failed"):
@@ -13085,7 +13086,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         }
         dead_after_move = {
             "query_period_focus",
-            "_query_requests_narrative_context",
+            "query_requests_narrative_context",
             "_desired_consolidation_scope",
             "NARRATIVE_BASE_RETRIEVAL_SUFFIXES",
             "active_narrative_policies",
@@ -48778,7 +48779,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50116,7 +50117,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51382,7 +51383,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52885,7 +52886,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -53189,7 +53190,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "7461bc130c94d6199c1c6e64a69f080d36149301997630a0cb7efcb239115bf5"
+                "b7c523e332f7e160994bfb7f3f6b8156c054c8a2d731f1322a4442f42beec20b"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -54218,7 +54219,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55470,7 +55471,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56733,7 +56734,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58431,7 +58432,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(
             {
                 method.name
@@ -58448,7 +58449,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            234,
+            238,
         )
 
         baseline = json.loads(
@@ -59378,7 +59379,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (1, 6) if target_name == future_public_name else (0, 7),
+            (2, 5) if target_name == future_public_name else (1, 6),
         )
         self.assertEqual(
             [
@@ -59575,7 +59576,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "ca460e9bd4ef93e4d6c0a8e2049b41fa9ac802c8680d152e12a7025166b55787",
+                    ): "75b93c2334ede4ad4ef4241c402d8c436dd7ed2ffb38e54dff3671169aa211be",
                     (
                         "financial_graph_evidence",
                         "_extract_ratio_row_candidates",
@@ -59647,7 +59648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "bda5d722c4162de0c66acca1f805c2b7cfa0a90b56bd5c10b6fb1260952e3d21"
+                "a21aeb59f91f239f1f42c14d8b7ba6754fffe108362b897d49f5c813b29a79b5"
                 if target_name == future_public_name
                 else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
             ),
@@ -59800,7 +59801,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 238)
+        self.assertEqual(len(graph_test_methods), 242)
         self.assertEqual(
             {
                 method.name
@@ -59817,7 +59818,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            234,
+            238,
         )
 
         baseline = json.loads(
@@ -60411,6 +60412,1396 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(len(try_nodes[0].handlers), 1)
         self.assertIsInstance(try_nodes[0].handlers[0].type, ast.Name)
         self.assertEqual(try_nodes[0].handlers[0].type.id, "Exception")
+
+    def test_current_source_query_requests_narrative_context_pins_coercion_normalization_policy_marker_order_and_result(self) -> None:
+        future_public_name = "query_requests_narrative_context"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else "_query_requests_narrative_context"
+        )
+        target = getattr(financial_operation_policies, target_name)
+        events = []
+
+        class QueryProbe:
+            def __bool__(self):
+                events.append("query.bool")
+                return True
+
+            def __str__(self):
+                events.append("query.str")
+                return "RAW QUERY"
+
+        query = QueryProbe()
+
+        class LoweredText:
+            def __bool__(self):
+                events.append("lowered.bool")
+                return True
+
+            def __contains__(self, token):
+                events.append(("contains", token))
+                return token == "hit"
+
+        lowered = LoweredText()
+
+        class NormalizedText:
+            def lower(self):
+                events.append("normalized.lower")
+                return lowered
+
+        normalized = NormalizedText()
+
+        class Marker:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("marker.str", self.name))
+                return self.value
+
+        markers = [
+            Marker("blank", ""),
+            Marker("miss", "miss"),
+            Marker("hit", "hit"),
+            Marker("stopped", "stopped"),
+        ]
+
+        class MarkerSource:
+            def __bool__(self):
+                events.append("markers.bool")
+                return True
+
+            def __iter__(self):
+                events.append("markers.iter")
+                return iter(markers)
+
+        marker_source = MarkerSource()
+
+        class Policy:
+            def get(self, key, default=None):
+                events.append(("policy.get", key, default))
+                return marker_source
+
+        def normalize(value):
+            events.append(("normalize", value))
+            self.assertEqual(value, "RAW QUERY")
+            return normalized
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                Policy(),
+            ),
+        ):
+            self.assertIs(target(query), True)
+
+        self.assertEqual(
+            events,
+            [
+                "query.bool",
+                "query.str",
+                ("normalize", "RAW QUERY"),
+                "normalized.lower",
+                "lowered.bool",
+                ("policy.get", "narrative_context_hints", None),
+                "markers.bool",
+                "markers.iter",
+                ("marker.str", "blank"),
+                ("marker.str", "miss"),
+                ("marker.str", "miss"),
+                ("marker.str", "hit"),
+                ("marker.str", "hit"),
+                ("marker.str", "stopped"),
+                ("marker.str", "stopped"),
+                ("contains", "miss"),
+                ("contains", "hit"),
+            ],
+        )
+
+        class StoppedPolicy:
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("blank normalized text must stop policy lookup")
+
+        blank_events = []
+
+        class BlankLowered:
+            def __bool__(self):
+                blank_events.append("lowered.bool")
+                return False
+
+        class BlankNormalized:
+            def lower(self):
+                blank_events.append("normalized.lower")
+                return BlankLowered()
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=lambda value: blank_events.append(("normalize", value))
+                or BlankNormalized(),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                StoppedPolicy(),
+            ),
+        ):
+            self.assertIs(target("input"), False)
+        self.assertEqual(
+            blank_events,
+            [("normalize", "input"), "normalized.lower", "lowered.bool"],
+        )
+
+        falsey_events = []
+
+        class FalseyQuery:
+            def __bool__(self):
+                falsey_events.append("query.bool")
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsey query must use the empty-string fallback")
+
+        normalizer = Mock(return_value="")
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                normalizer,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                StoppedPolicy(),
+            ),
+        ):
+            self.assertIs(target(FalseyQuery()), False)
+        self.assertEqual(falsey_events, ["query.bool"])
+        normalizer.assert_called_once_with("")
+
+    def test_current_source_query_requests_narrative_context_pins_laziness_immutability_and_exceptions(self) -> None:
+        future_public_name = "query_requests_narrative_context"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else "_query_requests_narrative_context"
+        )
+        target = getattr(financial_operation_policies, target_name)
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("query truth failed")
+
+            def __str__(self):
+                raise AssertionError("query truth failure must stop conversion")
+
+        with self.assertRaisesRegex(RuntimeError, "query truth failed"):
+            target(TruthBomb())
+
+        class StringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("query conversion failed")
+
+        stopped_normalizer = Mock(
+            side_effect=AssertionError("query conversion failure must stop normalization")
+        )
+        with patch.object(
+            financial_operation_policies,
+            "_normalise_spaces",
+            stopped_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "query conversion failed"):
+                target(StringBomb())
+        stopped_normalizer.assert_not_called()
+
+        with patch.object(
+            financial_operation_policies,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                target("input")
+
+        class LowerBomb:
+            def lower(self):
+                raise RuntimeError("lowercase failed")
+
+        with patch.object(
+            financial_operation_policies,
+            "_normalise_spaces",
+            return_value=LowerBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "lowercase failed"):
+                target("input")
+
+        class LoweredTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("normalized truth failed")
+
+        class NormalizedTruthBomb:
+            def lower(self):
+                return LoweredTruthBomb()
+
+        with patch.object(
+            financial_operation_policies,
+            "_normalise_spaces",
+            return_value=NormalizedTruthBomb(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalized truth failed"):
+                target("input")
+
+        class FailedPolicy:
+            def get(self, key, default=None):
+                self_outer.assertEqual(
+                    (key, default),
+                    ("narrative_context_hints", None),
+                )
+                raise RuntimeError("policy lookup failed")
+
+        self_outer = self
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                FailedPolicy(),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy lookup failed"):
+                target("input")
+
+        class MarkerTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("marker truth failed")
+
+            def __iter__(self):
+                raise AssertionError("marker truth failure must stop iteration")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": MarkerTruthBomb()},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker truth failed"):
+                target("input")
+
+        class MarkerIterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("marker iteration failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": MarkerIterBomb()},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker iteration failed"):
+                target("input")
+
+        class FilterStringBomb:
+            def __str__(self):
+                raise RuntimeError("marker filter conversion failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": [FilterStringBomb()]},
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "marker filter conversion failed",
+            ):
+                target("input")
+
+        class RetainedStringBomb:
+            def __init__(self):
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                if self.calls == 1:
+                    return "retained"
+                raise RuntimeError("marker retained conversion failed")
+
+        retained_bomb = RetainedStringBomb()
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": [retained_bomb]},
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "marker retained conversion failed",
+            ):
+                target("input")
+        self.assertEqual(retained_bomb.calls, 2)
+
+        class MembershipBomb(str):
+            def lower(self):
+                return self
+
+            def __contains__(self, _token):
+                raise RuntimeError("membership failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=MembershipBomb("normalized"),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": ["first", "stopped"]},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "membership failed"):
+                target("input")
+
+        eager_events = []
+
+        class EagerMarker:
+            def __init__(self, value):
+                self.value = value
+
+            def __str__(self):
+                eager_events.append(("str", self.value))
+                return self.value
+
+        class ShortCircuitText(str):
+            def lower(self):
+                return self
+
+            def __contains__(self, token):
+                eager_events.append(("contains", token))
+                if token == "hit":
+                    return True
+                raise AssertionError("a matching token must stop later membership")
+
+        marker_values = [EagerMarker("hit"), EagerMarker("stopped")]
+        policy = {
+            "narrative_context_hints": marker_values,
+            "nested": {"keep": True},
+        }
+        query = {"value": ["keep"]}
+        before_marker_values = tuple(marker_values)
+        before_nested_policy = deepcopy(policy["nested"])
+        before_query = deepcopy(query)
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=ShortCircuitText("MATCH"),
+            ) as normalize,
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                policy,
+            ),
+        ):
+            self.assertIs(target(query), True)
+        normalize.assert_called_once_with(str(query))
+        self.assertEqual(
+            eager_events,
+            [
+                ("str", "hit"),
+                ("str", "hit"),
+                ("str", "stopped"),
+                ("str", "stopped"),
+                ("contains", "hit"),
+            ],
+        )
+        self.assertIs(policy["narrative_context_hints"], marker_values)
+        self.assertEqual(tuple(marker_values), before_marker_values)
+        for observed, expected in zip(marker_values, before_marker_values):
+            self.assertIs(observed, expected)
+        self.assertEqual(policy["nested"], before_nested_policy)
+        self.assertEqual(query, before_query)
+
+        class FalseyMarkers:
+            def __bool__(self):
+                return False
+
+            def __iter__(self):
+                raise AssertionError("falsey markers must use the empty tuple")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "HELPER_RUNTIME_POLICY",
+                {"narrative_context_hints": FalseyMarkers()},
+            ),
+        ):
+            self.assertIs(target("input"), False)
+
+    def test_current_source_query_requests_narrative_context_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "query_requests_narrative_context"
+        retired_private_name = "_query_requests_narrative_context"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_operation_policies"]
+        owner_tree = module_trees["financial_operation_policies"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (36, 41))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["query"],
+        )
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertIsInstance(definition.returns, ast.Name)
+        self.assertEqual(definition.returns.id, "bool")
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            ["Assign", "If", "Assign", "Return"],
+        )
+        node_counts = {}
+        for node in ast.walk(definition):
+            node_name = type(node).__name__
+            node_counts[node_name] = node_counts.get(node_name, 0) + 1
+        self.assertEqual(
+            {
+                name: node_counts.get(name, 0)
+                for name in (
+                    "AnnAssign",
+                    "Assign",
+                    "For",
+                    "If",
+                    "Return",
+                    "Try",
+                    "TryStar",
+                    "Call",
+                    "List",
+                    "Tuple",
+                    "Dict",
+                    "ListComp",
+                    "GeneratorExp",
+                    "BoolOp",
+                    "Compare",
+                    "IfExp",
+                    "comprehension",
+                    "Lambda",
+                    "Attribute",
+                )
+            },
+            {
+                "AnnAssign": 0,
+                "Assign": 2,
+                "For": 0,
+                "If": 1,
+                "Return": 2,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 8,
+                "List": 0,
+                "Tuple": 1,
+                "Dict": 0,
+                "ListComp": 0,
+                "GeneratorExp": 2,
+                "BoolOp": 2,
+                "Compare": 1,
+                "IfExp": 0,
+                "comprehension": 2,
+                "Lambda": 0,
+                "Attribute": 2,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "e3ab908fe08a56dd67a302d8fd9f28c20413136e58ab33832e4d858cc9ecf9a9",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (2, 5) if target_name == future_public_name else (1, 6),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and node.id == other_name
+                and isinstance(node.ctx, ast.Store)
+                for node in ast.walk(owner_tree)
+            )
+        )
+
+        expected_importers = {
+            "financial_graph_calculation",
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_retrieval_hints",
+            "financial_text_surface",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    == "src.agent.financial_operation_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = (
+                        import_counts.get(module_name, 0) + count
+                    )
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(
+                        current,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [
+                            ast.unparse(argument) for argument in call.args
+                        ],
+                        "keywords": [
+                            keyword.arg for keyword in call.keywords
+                        ],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query", ["query_text"], [], 0),
+                ("financial_graph_calculation", "_preserve_policy_required_realized_context", ["query"], [], 0),
+                ("financial_graph_calculation", "_prune_nonfocus_numeric_narrative_sentences", ["query"], [], 0),
+                ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results", ["query"], [], 0),
+                ("financial_graph_calculation", "_compose_growth_narrative_answer", ["query"], [], 0),
+                ("financial_graph_calculation", "_answer_satisfies_growth_narrative_intent", ["query_text"], [], 0),
+                ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences", ["query"], [], 0),
+                ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context", ["query"], [], 0),
+                ("financial_graph_calculation", "_extract_calculation_operands", ["str(state.get('query') or '')"], [], 0),
+                ("financial_graph_evidence", "_is_narrative_supporting_evidence_item", ["merged"], [], 0),
+                ("financial_graph_evidence", "_supplement_policy_realized_evidence", ["query"], [], 0),
+                ("financial_graph_evidence", "_augment_narrative_answer_with_supported_drivers", ["query"], [], 0),
+                ("financial_graph_evidence", "_expand_selected_claim_ids_for_narrative_drivers", ["query"], [], 0),
+                ("financial_graph_evidence", "_extract_evidence", ["str(state.get('query') or '')"], [], 0),
+                ("financial_graph_helpers", "_needs_hybrid_narrative_subtask", ["query"], [], 0),
+                ("financial_retrieval_hints", "compression_guidance", ["query"], [], 0),
+                ("financial_text_surface", "narrative_context_sentence_from_evidence", ["query"], [], 0),
+                ("financial_text_surface", "include_narrative_context_if_needed", ["query"], [], 0),
+            ],
+        )
+        call_payload = [
+            {
+                "args": record["args"],
+                "caller": record["caller"],
+                "keywords": record["keywords"],
+                "line": record["line"],
+                "module": record["module"],
+                "parent": record["parent"],
+                "try_depth": record["try_depth"],
+            }
+            for record in call_records
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "92a9f2be15378e809e953dba52be9968546f69952da7040b2449581aa1623c71"
+                if target_name == future_public_name
+                else "ef07a28d7d4fd72951c8814b810062cb60e49922590f83d0f6585986aa3fb063"
+            ),
+        )
+        self.assertEqual(
+            caller_hashes,
+            (
+                {
+                    ("financial_graph_calculation", "_answer_satisfies_growth_narrative_intent"): "04dc5e415d0c644826b47ecd53785efa5e48eb655c7a4af609b8feacc912d867",
+                    ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query"): "c30b4b84c3c1c37d977b85ae86a9944984ca181e43ded4d625233097a4539460",
+                    ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context"): "92d6a14434df6de4679e37e7b07e19bb99f089ffdb6430a07491d74bd65c19e9",
+                    ("financial_graph_calculation", "_compose_growth_narrative_answer"): "f41c46b3696afb83b0d1be67e9459a5859c81b941aa51b107bb4b4e97e94d520",
+                    ("financial_graph_calculation", "_extract_calculation_operands"): "75b93c2334ede4ad4ef4241c402d8c436dd7ed2ffb38e54dff3671169aa211be",
+                    ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results"): "d1432c5be02a6a66805f50b621b4d108dd1b326912d8ace0584bd437880714f6",
+                    ("financial_graph_calculation", "_preserve_policy_required_realized_context"): "30cf4dd145889c7f60e4925a07a58fd9829fe63a3f5e14193f237412e1d60d85",
+                    ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences"): "0d2662df66118668e6cc5f44ece4d512d4305741453d707c48ce8d5064fa9a5d",
+                    ("financial_graph_calculation", "_prune_nonfocus_numeric_narrative_sentences"): "ff188a0647dc272b629960b29febce595cc355dbf6f0537b03e7b159d4589363",
+                    ("financial_graph_evidence", "_augment_narrative_answer_with_supported_drivers"): "11bb6f9d5a54ced825d8082221af1058758a2f74531cc352e381f929e8f7d46f",
+                    ("financial_graph_evidence", "_expand_selected_claim_ids_for_narrative_drivers"): "234f90d3980628f2ac4f35284214ac4ba5905d84e4ff58c1a4697f4c242eb49f",
+                    ("financial_graph_evidence", "_extract_evidence"): "78cfcc79f4fe7eea30abe356bcb3b522187f9d66141d653795def1a51039d7c1",
+                    ("financial_graph_evidence", "_is_narrative_supporting_evidence_item"): "989b93762218ea89a5d934f042fb1be7d1a0dcf49e94f0561ac156ed9ffb8c38",
+                    ("financial_graph_evidence", "_supplement_policy_realized_evidence"): "48ab56c5528d2499fe5dfd27a491079d7eb771954ce02c3739a0926137b52423",
+                    ("financial_graph_helpers", "_needs_hybrid_narrative_subtask"): "da0b4604d12fce60ed2cda9449d439946f19dd158dcafa2ff3ec651ec4a28b91",
+                    ("financial_retrieval_hints", "compression_guidance"): "d05f005924650c6597e0e551c512db107fdb980d13683d9213b7c73f127e1777",
+                    ("financial_text_surface", "include_narrative_context_if_needed"): "68d8ccec489fc29e357901b464a32e643648d43ef2a510188a692b0440ae2115",
+                    ("financial_text_surface", "narrative_context_sentence_from_evidence"): "d22fe7cb8e0b1b211ed5115496a6e5da0bf50a05d33d640c7e2f126b8ba55bfa",
+                }
+                if target_name == future_public_name
+                else {
+                    ("financial_graph_calculation", "_answer_satisfies_growth_narrative_intent"): "fe5ef737add0a07a5162f09d6cb7122770d7a85e5f6c9e59699e9c1f0ccadd3c",
+                    ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query"): "d7b815cc117d12cf6bae576a5b699be367ea23be644db0dce5fdb11f41fa969a",
+                    ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context"): "1b18dcc561abc49c832c0680f538ce1456f27842791495bfc1162a985620dca9",
+                    ("financial_graph_calculation", "_compose_growth_narrative_answer"): "efb79e1bc257f35e5934dadcd1c99f9ad4d53970e8a09ecd8f424bc5bf7a13e4",
+                    ("financial_graph_calculation", "_extract_calculation_operands"): "ca460e9bd4ef93e4d6c0a8e2049b41fa9ac802c8680d152e12a7025166b55787",
+                    ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results"): "5f3b8c3edd2036d0f87a04513a3db4b18a5e3606c164a6ece33d0b2bb2965c5f",
+                    ("financial_graph_calculation", "_preserve_policy_required_realized_context"): "ef6cf5c9804ba40cf3c7ae82d9a0df27d69219cadc34afe14b2124fdc93445d2",
+                    ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences"): "8003984e0b8d7523649020005d8c9793d377b75628f2b06660a8656db3578409",
+                    ("financial_graph_calculation", "_prune_nonfocus_numeric_narrative_sentences"): "7dc0257de2734b9b168b261e871f71085ec337f6553ef0b3356c558b488e099e",
+                    ("financial_graph_evidence", "_augment_narrative_answer_with_supported_drivers"): "0a53b1eb02e38c654847297d9a9cb709e5cfa4878cae8b253c804d8c5e1552c0",
+                    ("financial_graph_evidence", "_expand_selected_claim_ids_for_narrative_drivers"): "264d9faed7f2f0d31091eeb5629881dc28a732488359f538d10740aea7fdb87c",
+                    ("financial_graph_evidence", "_extract_evidence"): "8c39f6363d2477210767c98e77c9f6e71eaca40fa2914f0d03451fc983ac2abd",
+                    ("financial_graph_evidence", "_is_narrative_supporting_evidence_item"): "9af36b85a412fe845ed7789fbed80a936061e4ca07cd0ad0d76a1503c286c819",
+                    ("financial_graph_evidence", "_supplement_policy_realized_evidence"): "ceca819318b0e179615e30aaa17c8ccc065da4d9b61d285e12aab2f337979db7",
+                    ("financial_graph_helpers", "_needs_hybrid_narrative_subtask"): "e71b10806219827141f9c0af0c84467a3107d45a7bf506cd94cc1e93aa62f3bc",
+                    ("financial_retrieval_hints", "compression_guidance"): "dd207236e421e32d18d137d08bad4c67d87758b6de3628539124966856d4ec59",
+                    ("financial_text_surface", "include_narrative_context_if_needed"): "f06b49f330c19b8e02e7b33a8035a1fa8a07d39d623e89029162373291eb1e66",
+                    ("financial_text_surface", "narrative_context_sentence_from_evidence"): "718b7895406dac60aaeaf19bcb961828dc722631d6973dea7f0e0a59135d1ef2",
+                }
+            ),
+        )
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "df81e1e10da238e555b9ae88705a42c4c667d69e27fc476a3d1642666c67619a"
+                if target_name == future_public_name
+                else "12c5fb354fe3d80dace6e5d38276d171deb84780820a33c41b3577a7e2aa938a"
+            ),
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): tree
+            for path, tree in (
+                (
+                    path,
+                    ast.parse(path.read_text(encoding="utf-8-sig")),
+                )
+                for path in (repo_root / "src" / "agent").rglob("*.py")
+            )
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for source, dependency in edges:
+                    if source != current:
+                        continue
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            all(
+                reaches(
+                    f"src.agent.{module_name}",
+                    "src.agent.financial_operation_policies",
+                )
+                for module_name in expected_importers
+            )
+        )
+        self.assertTrue(
+            all(
+                not reaches(
+                    "src.agent.financial_operation_policies",
+                    f"src.agent.{module_name}",
+                )
+                for module_name in expected_importers
+            )
+        )
+
+        def reference_count(tree, name):
+            count = 0
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and node.id == name:
+                    count += 1
+                elif isinstance(node, ast.Attribute) and node.attr == name:
+                    count += 1
+                elif isinstance(node, ast.alias):
+                    if node.name == name:
+                        count += 1
+                    if node.asname == name:
+                        count += 1
+                elif isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ) and node.name == name:
+                    count += 1
+                elif isinstance(node, ast.Constant) and node.value == name:
+                    count += 1
+            return count
+
+        production_ref_counts = {
+            module_name: reference_count(tree, target_name)
+            for module_name, tree in module_trees.items()
+            if reference_count(tree, target_name)
+        }
+        self.assertEqual(
+            production_ref_counts,
+            {
+                "financial_graph_calculation": 10,
+                "financial_graph_evidence": 6,
+                "financial_graph_helpers": 2,
+                "financial_operation_policies": 1,
+                "financial_retrieval_hints": 2,
+                "financial_text_surface": 3,
+            },
+        )
+        self.assertEqual(
+            sum(
+                reference_count(tree, other_name)
+                for tree in module_trees.values()
+            ),
+            0,
+        )
+
+        new_method_names = {
+            "test_current_source_query_requests_narrative_context_pins_coercion_normalization_policy_marker_order_and_result",
+            "test_current_source_query_requests_narrative_context_pins_laziness_immutability_and_exceptions",
+            "test_current_source_query_requests_narrative_context_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_query_requests_narrative_context_callers_pin_gates_args_adoption_and_stops",
+        }
+        existing_test_ref_counts = {}
+        other_existing_test_ref_counts = {}
+        for path in (repo_root / "tests").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            current_count = reference_count(tree, target_name)
+            other_count = reference_count(tree, other_name)
+            if path.name == "test_financial_graph_helpers.py":
+                for class_node in (
+                    node for node in tree.body if isinstance(node, ast.ClassDef)
+                ):
+                    for method in class_node.body:
+                        if (
+                            isinstance(method, ast.FunctionDef)
+                            and method.name in new_method_names
+                        ):
+                            current_count -= reference_count(method, target_name)
+                            other_count -= reference_count(method, other_name)
+            if current_count:
+                existing_test_ref_counts[path.name] = current_count
+            if other_count:
+                other_existing_test_ref_counts[path.name] = other_count
+        self.assertEqual(
+            existing_test_ref_counts,
+            {
+                "test_financial_aggregate_rank_dedupe.py": 7,
+                "test_financial_answer_projection.py": 2,
+                "test_financial_graph_helpers.py": 3,
+                "test_financial_retrieval_hints.py": 5,
+                "test_financial_text_surface.py": 42,
+                "test_operation_contracts.py": 2,
+            },
+        )
+        self.assertEqual(other_existing_test_ref_counts, {})
+        self.assertEqual(sum(existing_test_ref_counts.values()), 61)
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        graph_test_methods = [
+            method
+            for class_node in current_test_tree.body
+            if isinstance(class_node, ast.ClassDef)
+            and class_node.name == "FinancialGraphHelperTests"
+            for method in class_node.body
+            if isinstance(method, ast.FunctionDef)
+            and method.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 242)
+        self.assertEqual(
+            {
+                method.name
+                for method in graph_test_methods
+                if method.name in new_method_names
+            },
+            new_method_names,
+        )
+        self.assertEqual(
+            len(
+                [
+                    method
+                    for method in graph_test_methods
+                    if method.name not in new_method_names
+                ]
+            ),
+            238,
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == "src/agent/financial_operation_policies.py"
+                and str(record.get("text") or "") in body_source
+            ],
+            [],
+        )
+
+        importer_objects = {
+            "financial_graph_calculation": financial_graph_calculation,
+            "financial_graph_evidence": financial_graph_evidence,
+            "financial_graph_helpers": financial_graph_helpers,
+            "financial_retrieval_hints": financial_retrieval_hints,
+            "financial_text_surface": financial_text_surface,
+        }
+        owner_target = getattr(financial_operation_policies, target_name)
+        for module_name, module in importer_objects.items():
+            with self.subTest(module_name=module_name):
+                self.assertIs(getattr(module, target_name), owner_target)
+
+        transform_paths = {
+            module_paths[module_name]
+            for module_name in expected_importers
+            | {"financial_operation_policies"}
+        } | {
+            repo_root / "tests" / test_name
+            for test_name in existing_test_ref_counts
+        }
+        self.assertEqual(len(transform_paths), 12)
+        self.assertEqual(
+            sum(
+                path.read_bytes().decode("utf-8-sig") is not None
+                for path in transform_paths
+            ),
+            12,
+        )
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in path.read_text(encoding="utf-8-sig")
+                )
+                for path in transform_paths
+            ),
+            9,
+        )
+
+    def test_current_source_query_requests_narrative_context_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "query_requests_narrative_context"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else "_query_requests_narrative_context"
+        )
+
+        stopped_hybrid_target = Mock(
+            side_effect=AssertionError("unsupported intent must stop classification")
+        )
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            stopped_hybrid_target,
+        ):
+            self.assertIs(
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "qa",
+                ),
+                False,
+            )
+        stopped_hybrid_target.assert_not_called()
+
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            return_value=True,
+        ) as hybrid_target:
+            self.assertIs(
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "comparison",
+                ),
+                True,
+            )
+        hybrid_target.assert_called_once_with("query")
+
+        with patch.object(
+            financial_graph_helpers,
+            target_name,
+            side_effect=RuntimeError("hybrid narrative failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "hybrid narrative failed"):
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "trend",
+                )
+
+        guidance_policy = {
+            "trend_instruction": "base instruction",
+            "trend_output_style": "base style",
+            "trend_context_instruction": "context instruction",
+            "trend_context_output_style": "context style",
+            "instructions": {"qa": "qa instruction"},
+            "output_styles": {"qa": "qa style"},
+            "coverage_notes": {"sufficient": "coverage"},
+        }
+        with (
+            patch.object(
+                financial_retrieval_hints,
+                "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
+                guidance_policy,
+            ),
+            patch.object(
+                financial_retrieval_hints,
+                target_name,
+                return_value=True,
+            ) as guidance_target,
+        ):
+            self.assertEqual(
+                financial_retrieval_hints.compression_guidance(
+                    "trend",
+                    "query",
+                    "sufficient",
+                ),
+                {
+                    "instruction": "context instruction",
+                    "output_style": "context style",
+                    "coverage_note": "coverage",
+                },
+            )
+        guidance_target.assert_called_once_with("query")
+
+        with (
+            patch.object(
+                financial_retrieval_hints,
+                "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
+                guidance_policy,
+            ),
+            patch.object(
+                financial_retrieval_hints,
+                target_name,
+                return_value=False,
+            ),
+        ):
+            self.assertEqual(
+                financial_retrieval_hints.compression_guidance(
+                    "trend",
+                    "query",
+                    "sufficient",
+                )["instruction"],
+                "base instruction",
+            )
+
+        stopped_terms = Mock(
+            side_effect=AssertionError("classifier failure must stop text terms")
+        )
+        with (
+            patch.object(
+                financial_text_surface,
+                target_name,
+                side_effect=RuntimeError("text surface classification failed"),
+            ),
+            patch.object(
+                financial_text_surface,
+                "narrative_context_terms",
+                stopped_terms,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "text surface classification failed",
+            ):
+                financial_text_surface.include_narrative_context_if_needed(
+                    "answer",
+                    query="query",
+                    narrative_context="context",
+                )
+        stopped_terms.assert_not_called()
+
+        with patch.object(
+            financial_text_surface,
+            target_name,
+            return_value=False,
+        ) as include_target:
+            answer = financial_text_surface.include_narrative_context_if_needed(
+                " answer ",
+                query="query",
+                narrative_context=" context ",
+            )
+        self.assertEqual(answer, "answer")
+        include_target.assert_called_once_with("query")
+
+        with (
+            patch.object(
+                financial_text_surface,
+                target_name,
+                return_value=True,
+            ) as adopted_include_target,
+            patch.object(
+                financial_text_surface,
+                "narrative_context_terms",
+                return_value=[],
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.include_narrative_context_if_needed(
+                    "answer",
+                    query="query",
+                    narrative_context="context",
+                ),
+                "context answer",
+            )
+        adopted_include_target.assert_called_once_with("query")
+
+        stopped_sentence_terms = Mock(
+            side_effect=AssertionError("false classifier must stop sentence terms")
+        )
+        with (
+            patch.object(
+                financial_text_surface,
+                target_name,
+                return_value=False,
+            ) as sentence_target,
+            patch.object(
+                financial_text_surface,
+                "narrative_context_terms",
+                stopped_sentence_terms,
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.narrative_context_sentence_from_evidence(
+                    "query",
+                    [],
+                ),
+                "",
+            )
+        sentence_target.assert_called_once_with("query")
+        stopped_sentence_terms.assert_not_called()
+
+        evidence_agent = SimpleNamespace(
+            _is_direct_numeric_table_backed_evidence_item=lambda _item: False
+        )
+        evidence_item = {"claim": "claim", "metadata": {}}
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="merged",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=True,
+            ) as evidence_target,
+        ):
+            self.assertIs(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._is_narrative_supporting_evidence_item(
+                    evidence_agent,
+                    evidence_item,
+                ),
+                True,
+            )
+        evidence_target.assert_called_once_with("merged")
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="merged",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=False,
+            ),
+        ):
+            self.assertIs(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._is_narrative_supporting_evidence_item(
+                    evidence_agent,
+                    evidence_item,
+                ),
+                False,
+            )
+
+        stopped_growth_regex = Mock(
+            side_effect=AssertionError("classifier failure must stop growth regex")
+        )
+        calculation_agent = SimpleNamespace()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_normalise_spaces",
+                side_effect=lambda value: str(value).strip(),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                target_name,
+                side_effect=RuntimeError("calculation classification failed"),
+            ) as calculation_target,
+            patch.object(
+                financial_graph_calculation.re,
+                "search",
+                stopped_growth_regex,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "calculation classification failed",
+            ):
+                financial_graph_calculation.FinancialAgentCalculationMixin._answer_satisfies_growth_narrative_intent(
+                    calculation_agent,
+                    query="query",
+                    answer="answer",
+                    ordered_results=[],
+                )
+        calculation_target.assert_called_once_with("query")
+        stopped_growth_regex.assert_not_called()
+
+        repo_root = Path(__file__).resolve().parents[1]
+        expected_callers = {
+            "financial_graph_calculation": {
+                "_append_retrieved_growth_driver_evidence_for_query",
+                "_preserve_policy_required_realized_context",
+                "_prune_nonfocus_numeric_narrative_sentences",
+                "_preserve_policy_required_context_in_narrative_results",
+                "_compose_growth_narrative_answer",
+                "_answer_satisfies_growth_narrative_intent",
+                "_prune_irrelevant_growth_narrative_sentences",
+                "_build_period_comparison_operands_from_table_label_context",
+                "_extract_calculation_operands",
+            },
+            "financial_graph_evidence": {
+                "_is_narrative_supporting_evidence_item",
+                "_supplement_policy_realized_evidence",
+                "_augment_narrative_answer_with_supported_drivers",
+                "_expand_selected_claim_ids_for_narrative_drivers",
+                "_extract_evidence",
+            },
+            "financial_graph_helpers": {"_needs_hybrid_narrative_subtask"},
+            "financial_retrieval_hints": {"compression_guidance"},
+            "financial_text_surface": {
+                "narrative_context_sentence_from_evidence",
+                "include_narrative_context_if_needed",
+            },
+        }
+        observed_callers = {module_name: set() for module_name in expected_callers}
+        for module_name in expected_callers:
+            source = (
+                repo_root / "src" / "agent" / f"{module_name}.py"
+            ).read_text(encoding="utf-8-sig")
+            tree = ast.parse(source)
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                self.assertEqual(len(call.args), 1)
+                self.assertEqual(call.keywords, [])
+                current = call
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(
+                        current,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        observed_callers[module_name].add(current.name)
+                        break
+                self.assertEqual(try_depth, 0)
+        self.assertEqual(observed_callers, expected_callers)
+        self.assertEqual(
+            sum(len(callers) for callers in observed_callers.values()),
+            18,
+        )
 
 
 if __name__ == "__main__":

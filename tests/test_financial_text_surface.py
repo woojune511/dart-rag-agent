@@ -739,7 +739,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", prune_policy),
             patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["Focus impact", "irrelevant"]),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "row_is_narrative_summary", side_effect=lambda row: row is narrative_row),
             patch.object(financial_graph_calculation, "growth_sentence_has_untraced_material_numeric", return_value=False),
             patch.object(agent, "_aggregate_result_operation_family", side_effect=operation_family),
@@ -777,7 +777,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         query_gate = Mock(side_effect=RuntimeError("query gate must remain lazy"))
         with (
             patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["single"]),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", query_gate),
             patch.object(financial_graph_calculation, "narrative_focus_variants", focus),
         ):
             self.assertEqual(
@@ -798,7 +798,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", prune_policy),
             patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["Focus impact", "irrelevant"]),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "row_is_narrative_summary", side_effect=lambda row: row is narrative_row),
             patch.object(financial_graph_calculation, "growth_sentence_has_untraced_material_numeric", return_value=False),
             patch.object(agent, "_aggregate_result_operation_family", side_effect=operation_family),
@@ -836,7 +836,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         candidates = Mock(return_value=[])
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", intent_policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(agent, "_aggregate_result_operation_family", side_effect=operation_family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -865,7 +865,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         candidates = Mock(side_effect=RuntimeError("candidates must remain lazy"))
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", intent_policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(agent, "_aggregate_result_operation_family", side_effect=operation_family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -886,7 +886,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms = Mock()
         parenthetical = Mock()
         with (
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=False),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=False),
             patch.object(financial_graph_calculation, "narrative_context_terms", terms),
             patch.object(financial_graph_calculation, "parenthetical_focus_variants", parenthetical),
         ):
@@ -905,7 +905,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         parenthetical = Mock(side_effect=RuntimeError("parenthetical caller failed"))
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", intent_policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(agent, "_aggregate_result_operation_family", side_effect=operation_family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -936,7 +936,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         terms = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=False) as query_gate,
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=False) as query_gate,
             patch.object(financial_text_surface, "narrative_context_terms", terms),
         ):
             self.assertEqual(
@@ -947,7 +947,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms.assert_not_called()
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=[] ) as terms,
         ):
             self.assertEqual(
@@ -1005,7 +1005,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         original_evidence = deepcopy(evidence_items)
         splitter = Mock(return_value=["chosen first", "ignored second"])
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=query_terms),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy),
             patch.object(financial_text_surface, "split_narrative_sentences", splitter),
@@ -1020,7 +1020,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         self.assertIs(evidence_items[0]["nested"], evidence_items[0]["nested"])
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1059,7 +1059,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             context_support_levels=("context",),
         )
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", support_policy),
             patch.object(
@@ -1088,7 +1088,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         )
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1113,7 +1113,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 raise RuntimeError("fallback string accessed")
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1137,7 +1137,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             )
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1199,7 +1199,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 return iter([TraceEvidence()])
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1226,7 +1226,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         long_sentence = "x" * 218 + "  " + "tail"
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1247,7 +1247,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         with (
             patch.object(
                 financial_text_surface,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 side_effect=RuntimeError("query gate failed"),
             ),
             patch.object(financial_text_surface, "narrative_context_terms", downstream),
@@ -1258,7 +1258,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         splitter = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(
                 financial_text_surface,
                 "narrative_context_terms",
@@ -1285,7 +1285,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         splitter = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(financial_text_surface, "split_narrative_sentences", splitter),
         ):
@@ -1308,7 +1308,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         splitter = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", PolicyBomb()),
             patch.object(financial_text_surface, "split_narrative_sentences", splitter),
@@ -1337,7 +1337,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         splitter = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", SupportPolicyBomb()),
             patch.object(financial_text_surface, "split_narrative_sentences", splitter),
@@ -1354,7 +1354,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         splitter.assert_not_called()
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["focus"]),
             patch.object(
                 financial_text_surface,
@@ -1385,7 +1385,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms = Mock()
         with (
             patch.object(financial_text_surface, "_normalise_spaces", side_effect=normalize),
-            patch.object(financial_text_surface, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_text_surface, "query_requests_narrative_context", query_gate),
             patch.object(financial_text_surface, "narrative_context_terms", terms),
         ):
             self.assertEqual(
@@ -1405,7 +1405,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms.reset_mock()
         with (
             patch.object(financial_text_surface, "_normalise_spaces", side_effect=normalize),
-            patch.object(financial_text_surface, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_text_surface, "query_requests_narrative_context", query_gate),
             patch.object(financial_text_surface, "narrative_context_terms", terms),
         ):
             self.assertEqual(
@@ -1423,7 +1423,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         query = object()
         query_gate = Mock(return_value=False)
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_text_surface, "query_requests_narrative_context", query_gate),
             patch.object(financial_text_surface, "narrative_context_terms", terms),
         ):
             self.assertEqual(
@@ -1453,7 +1453,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         original_policy = deepcopy(policy)
         terms = Mock(return_value=["skip", "Focus", "Focus"])
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", terms),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy),
         ):
@@ -1476,7 +1476,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         policy = RecordingPolicy(context_reuse_excluded_terms=())
         with (
             patch.object(financial_text_surface, "_normalise_spaces", side_effect=normalize),
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["Focus"]),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy),
         ):
@@ -1497,7 +1497,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         events.clear()
         with (
             patch.object(financial_text_surface, "_normalise_spaces", side_effect=normalize),
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["Absent"]),
             patch.object(
                 financial_text_surface,
@@ -1519,7 +1519,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         )
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["skip"]),
             patch.object(
                 financial_text_surface,
@@ -1537,7 +1537,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             )
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["Focus"]),
             patch.object(
                 financial_text_surface,
@@ -1555,7 +1555,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             )
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=[]),
         ):
             self.assertEqual(
@@ -1580,7 +1580,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         context = StringBomb("context string accessed")
         query_gate = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_text_surface, "query_requests_narrative_context", query_gate),
             patch.object(financial_text_surface, "narrative_context_terms") as terms,
         ):
             with self.assertRaisesRegex(RuntimeError, "answer string failed"):
@@ -1594,7 +1594,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         query_gate = Mock()
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", query_gate),
+            patch.object(financial_text_surface, "query_requests_narrative_context", query_gate),
             patch.object(financial_text_surface, "narrative_context_terms") as terms,
         ):
             with self.assertRaisesRegex(RuntimeError, "context string failed"):
@@ -1610,7 +1610,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         with (
             patch.object(
                 financial_text_surface,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 side_effect=RuntimeError("query gate failed"),
             ),
             patch.object(financial_text_surface, "narrative_context_terms", terms),
@@ -1631,7 +1631,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 raise RuntimeError("reuse policy failed")
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(
                 financial_text_surface,
                 "narrative_context_terms",
@@ -1648,7 +1648,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         policy_access.assert_not_called()
 
         with (
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=["Focus"]),
             patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", PolicyBomb()),
         ):
@@ -1670,7 +1670,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         with (
             patch.object(financial_text_surface, "_normalise_spaces", side_effect=fail_final_normalize),
-            patch.object(financial_text_surface, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_text_surface, "query_requests_narrative_context", return_value=True),
             patch.object(financial_text_surface, "narrative_context_terms", return_value=[]),
         ):
             with self.assertRaisesRegex(RuntimeError, "prefix normalization failed"):
@@ -3071,7 +3071,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             return list(policy.get(key) or ())
 
         with (
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True) as query_gate,
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True) as query_gate,
             patch.object(financial_graph_calculation, "narrative_policy_terms", side_effect=policy_terms),
             patch.object(
                 financial_graph_calculation,
@@ -3121,7 +3121,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms = Mock(side_effect=AssertionError("policy terms accessed"))
         with (
             patch.object(financial_graph_calculation, "narrative_policy_terms", terms),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True) as query_gate,
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True) as query_gate,
             patch.object(
                 financial_graph_calculation,
                 "policy_required_realized_snippet_from_doc",
@@ -3153,7 +3153,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 return_value=False,
             ) as query_gate,
             patch.object(
@@ -3195,7 +3195,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         failing_snippet = Mock(side_effect=fail_snippet)
         with (
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "narrative_policy_terms", side_effect=policy_terms),
             patch.object(
                 financial_graph_calculation,

@@ -8,7 +8,7 @@ from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
     text_supports_numeric_candidates,
 )
-from src.agent.financial_operation_policies import _query_requests_narrative_context
+from src.agent.financial_operation_policies import query_requests_narrative_context
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import (
     CALCULATION_NARRATIVE_POLICY,
@@ -342,7 +342,7 @@ def narrative_context_sentence_from_evidence(
     query: str,
     evidence_items: List[Dict[str, Any]],
 ) -> str:
-    if not _query_requests_narrative_context(query):
+    if not query_requests_narrative_context(query):
         return ""
     query_terms = narrative_context_terms(query)
     if not query_terms:
@@ -405,7 +405,7 @@ def include_narrative_context_if_needed(
 ) -> str:
     answer_text = _normalise_spaces(str(answer or ""))
     context = _normalise_spaces(str(narrative_context or ""))
-    if not answer_text or not context or not _query_requests_narrative_context(query):
+    if not answer_text or not context or not query_requests_narrative_context(query):
         return answer_text
     key_terms = [
         term

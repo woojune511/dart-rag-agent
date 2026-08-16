@@ -71,7 +71,7 @@ from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     is_ratio_percent_query,
-    _query_requests_narrative_context,
+    query_requests_narrative_context,
     _requires_direct_numeric_grounding,
 )
 from src.agent.financial_runtime_normalization import (
@@ -690,7 +690,7 @@ class FinancialAgentEvidenceMixin:
         )
         if not merged:
             return False
-        if _query_requests_narrative_context(merged):
+        if query_requests_narrative_context(merged):
             return True
         return block_type in {"paragraph", "parent_context", "section_lead", "described_by_paragraph"} or graph_relation in {
             "parent_context",
@@ -1925,7 +1925,7 @@ class FinancialAgentEvidenceMixin:
         if not active_policies:
             return evidence_items
         exclusive_narrative_policy = any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies)
-        if not exclusive_narrative_policy and not _query_requests_narrative_context(query):
+        if not exclusive_narrative_policy and not query_requests_narrative_context(query):
             return evidence_items
 
         supplemented = [dict(item) for item in evidence_items]
@@ -2259,7 +2259,7 @@ class FinancialAgentEvidenceMixin:
             return draft
         active_policies = self._active_narrative_policies_for_query(query)
         exclusive_policies = [policy for policy in active_policies if bool(policy.get("exclusive_narrative_task"))]
-        narrative_context_query = _query_requests_narrative_context(query)
+        narrative_context_query = query_requests_narrative_context(query)
         if exclusive_policies:
             draft_lower = draft.lower()
             for policy in exclusive_policies:
@@ -3230,7 +3230,7 @@ class FinancialAgentEvidenceMixin:
         query: str,
     ) -> List[str]:
         selected = [str(value).strip() for value in selected_claim_ids if str(value).strip()]
-        if not selected or not evidence_items or not _query_requests_narrative_context(query):
+        if not selected or not evidence_items or not query_requests_narrative_context(query):
             return selected
 
         selected_evidence = self._filter_evidence_by_ids(evidence_items, selected)
@@ -3445,7 +3445,7 @@ class FinancialAgentEvidenceMixin:
         direct_numeric_grounding = _requires_direct_numeric_grounding(state.get("active_subtask") or {})
         preserve_narrative_context = (
             direct_numeric_grounding
-            and _query_requests_narrative_context(str(state.get("query") or ""))
+            and query_requests_narrative_context(str(state.get("query") or ""))
         )
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()

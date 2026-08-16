@@ -259,7 +259,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             patch.object(financial_retrieval_hints, "EVIDENCE_COMPRESSION_GUIDANCE_POLICY", policy),
             patch.object(
                 financial_retrieval_hints,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 side_effect=narrative_gate,
             ),
         ):
@@ -300,7 +300,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             patch.object(financial_retrieval_hints, "EVIDENCE_COMPRESSION_GUIDANCE_POLICY", policy),
             patch.object(
                 financial_retrieval_hints,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 side_effect=RuntimeError("narrative gate failed"),
             ),
             patch.object(
@@ -325,7 +325,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             ),
             patch.object(
                 financial_retrieval_hints,
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 side_effect=AssertionError("policy copy must happen before the query gate"),
             ),
         ):
@@ -493,7 +493,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
         self.assertTrue(
             {
                 "FinancialAgentState",
-                "_query_requests_narrative_context",
+                "query_requests_narrative_context",
                 "EVIDENCE_EXTRACTION_POLICY",
                 "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
             }.issubset(owner_imports)
@@ -503,7 +503,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             "_normalise_spaces",
             "EVIDENCE_EXTRACTION_POLICY",
             "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
-            "_query_requests_narrative_context",
+            "query_requests_narrative_context",
         ):
             outside = [
                 node

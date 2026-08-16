@@ -248,7 +248,7 @@ from src.agent.financial_langchain_loaders import _chat_prompt_template_from_tem
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     is_ratio_percent_query,
-    _query_requests_narrative_context,
+    query_requests_narrative_context,
     _requires_direct_numeric_grounding,
     _should_coerce_percent_point_unit,
 )
@@ -4877,7 +4877,7 @@ class FinancialAgentCalculationMixin:
         docs: List[Any],
     ) -> List[Dict[str, Any]]:
         query_text = _normalise_spaces(str(query or ""))
-        if not query_text or not docs or not _query_requests_narrative_context(query_text):
+        if not query_text or not docs or not query_requests_narrative_context(query_text):
             return [dict(item or {}) for item in (evidence_items or [])]
 
         driver_groups = self._narrative_driver_groups(query_text)
@@ -5986,7 +5986,7 @@ class FinancialAgentCalculationMixin:
         docs: List[Any],
     ) -> str:
         answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text or not docs or not _query_requests_narrative_context(query):
+        if not answer_text or not docs or not query_requests_narrative_context(query):
             return answer_text
         active_policies = self._active_narrative_policies_for_query(query)
         if not active_policies:
@@ -6051,7 +6051,7 @@ class FinancialAgentCalculationMixin:
         evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text or not ordered_results or not _query_requests_narrative_context(query):
+        if not answer_text or not ordered_results or not query_requests_narrative_context(query):
             return answer_text
         if not any(row_is_narrative_summary(row) for row in ordered_results):
             return answer_text
@@ -6128,7 +6128,7 @@ class FinancialAgentCalculationMixin:
         docs: List[Any],
         evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
-        if not ordered_results or not docs or not _query_requests_narrative_context(query):
+        if not ordered_results or not docs or not query_requests_narrative_context(query):
             return ordered_results
         changed = False
         updated_results: List[Dict[str, Any]] = []
@@ -6303,7 +6303,7 @@ class FinancialAgentCalculationMixin:
         existing_answer: str,
         evidence_items: List[Dict[str, Any]],
     ) -> Optional[Dict[str, Any]]:
-        if not _query_requests_narrative_context(query):
+        if not query_requests_narrative_context(query):
             return None
         existing_answer_text = _normalise_spaces(str(existing_answer or ""))
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
@@ -6580,7 +6580,7 @@ class FinancialAgentCalculationMixin:
     ) -> bool:
         query_text = _normalise_spaces(str(query or ""))
         answer_text = _normalise_spaces(str(answer or ""))
-        if not query_text or not answer_text or not _query_requests_narrative_context(query_text):
+        if not query_text or not answer_text or not query_requests_narrative_context(query_text):
             return False
         if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("growth_query_pattern") or r"$^"), query_text):
             return False
@@ -6675,7 +6675,7 @@ class FinancialAgentCalculationMixin:
     ) -> str:
         answer_text = _normalise_spaces(str(answer or ""))
         sentences = _split_narrative_sentences(answer_text)
-        if len(sentences) < 2 or not _query_requests_narrative_context(query):
+        if len(sentences) < 2 or not query_requests_narrative_context(query):
             return answer_text
         if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("growth_query_pattern") or r"$^"), query):
             return answer_text
@@ -7765,7 +7765,7 @@ class FinancialAgentCalculationMixin:
         if not ({"current_period", "prior_period"} <= role_names or {"minuend", "subtrahend"} <= role_names):
             return []
 
-        query_requests_narrative = _query_requests_narrative_context(query)
+        query_requests_narrative = query_requests_narrative_context(query)
         query_terms = narrative_context_terms(query) if query_requests_narrative else []
 
         grouped_items: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
@@ -9042,7 +9042,7 @@ class FinancialAgentCalculationMixin:
         )
         preserve_narrative_context = (
             direct_numeric_grounding
-            and _query_requests_narrative_context(str(state.get("query") or ""))
+            and query_requests_narrative_context(str(state.get("query") or ""))
         )
         if direct_numeric_grounding and reconciliation_evidence:
             if preserve_narrative_context:

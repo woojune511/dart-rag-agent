@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from src.agent.financial_operation_policies import _query_requests_narrative_context
+from src.agent.financial_operation_policies import query_requests_narrative_context
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -278,7 +278,7 @@ def compression_guidance(query_type: str, query: str, coverage: str) -> Dict[str
     policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
     trend_instruction = str(policy.get("trend_instruction") or "")
     trend_output_style = str(policy.get("trend_output_style") or "")
-    if _query_requests_narrative_context(query):
+    if query_requests_narrative_context(query):
         trend_instruction = str(policy.get("trend_context_instruction") or trend_instruction)
         trend_output_style = str(policy.get("trend_context_output_style") or trend_output_style)
     instructions = dict(policy.get("instructions") or {})

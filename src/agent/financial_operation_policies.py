@@ -33,7 +33,7 @@ def is_ratio_percent_query(text: str) -> bool:
     return any(keyword in normalized for keyword in (RATIO_PERCENT_QUERY_POLICY.get("markers") or ()))
 
 
-def _query_requests_narrative_context(query: str) -> bool:
+def query_requests_narrative_context(query: str) -> bool:
     normalized = _normalise_spaces(str(query or "")).lower()
     if not normalized:
         return False

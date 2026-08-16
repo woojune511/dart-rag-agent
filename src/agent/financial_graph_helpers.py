@@ -101,7 +101,7 @@ from src.agent.financial_operation_policies import (
     _label_implies_percent_metric,
     is_ratio_percent_query,
     _is_single_metric_period_comparison,
-    _query_requests_narrative_context,
+    query_requests_narrative_context,
 )
 from src.agent.financial_operand_resolution import (
     candidate_is_canonical_statement_winner,
@@ -415,7 +415,7 @@ def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
 
 
 def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
-    return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
+    return intent in {"comparison", "trend", "numeric_fact"} and query_requests_narrative_context(query)
 
 
 def build_hybrid_narrative_subtask(

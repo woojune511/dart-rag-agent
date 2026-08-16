@@ -3223,7 +3223,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     "answer_looks_truncated",
                     truncation_owner,
                 ),
-                patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+                patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
                 patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
                 patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
                 patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", narrative_policy),
@@ -3298,7 +3298,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 "answer_looks_truncated",
                 truncation_owner,
             ),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             self.assertRaisesRegex(RuntimeError, "truncation owner"),
         ):
             compose_agent._compose_growth_narrative_answer(

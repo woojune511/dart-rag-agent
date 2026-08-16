@@ -3827,7 +3827,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     "growth_required_display_values",
                     return_value=["10%", "200", "100"],
                 ),
-                patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+                patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
                 patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
                 patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
                 patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
@@ -3887,7 +3887,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "growth_required_display_values",
                 return_value=["10%", "200", "100"],
             ),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
@@ -3938,7 +3938,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         groups = Mock(return_value=[])
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(self.agent, "_aggregate_result_operation_family", side_effect=family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -3979,7 +3979,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         coverage = Mock(return_value=False)
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(self.agent, "_aggregate_result_operation_family", side_effect=family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -4003,7 +4003,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         operation_family = Mock(side_effect=("growth_rate", AssertionError("final scan continued")))
         with (
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(self.agent, "_aggregate_result_operation_family", operation_family),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
@@ -4929,7 +4929,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         recover_owner = Mock(return_value={"display": "RECOVERED", "period": "2022"})
         with (
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=[]),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
@@ -4964,7 +4964,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         downstream_required = Mock()
         with (
             patch.object(financial_graph_calculation, "growth_required_display_values", downstream_required),
-            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=True),
             patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
