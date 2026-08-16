@@ -1745,7 +1745,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 side_effect=AssertionError("positive fallback must be lazy after operand match"),
             ),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
-            patch.object(financial_lookup_recovery, "_structured_cell_period_text", return_value=""),
+            patch.object(financial_lookup_recovery, "structured_cell_period_text", return_value=""),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=select),
         ):
@@ -1843,7 +1843,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
-            patch.object(financial_lookup_recovery, "_structured_cell_period_text", side_effect=period_text),
+            patch.object(financial_lookup_recovery, "structured_cell_period_text", side_effect=period_text),
             patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=ordinary),
             patch.object(
                 financial_lookup_recovery,

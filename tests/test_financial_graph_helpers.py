@@ -14069,7 +14069,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_reconciliation_candidates,
-                "_structured_cell_period_text",
+                "structured_cell_period_text",
                 side_effect=period_text_owner,
             ),
             patch.object(
@@ -14104,7 +14104,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_reconciliation_candidates,
-                "_structured_cell_period_text",
+                "structured_cell_period_text",
                 stopped_period_text,
             ),
             patch.object(
@@ -15839,7 +15839,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "financial_graph_helpers": (9, 71),
-                "financial_structured_cells": (4, 4),
+                "financial_structured_cells": (5, 3),
             },
         )
 
@@ -16422,7 +16422,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in structured_functions),
                 sum(name.startswith("_") for name in structured_functions),
             ),
-            (4, 4),
+            (5, 3),
         )
         self.assertTrue(target_names.issubset(structured_functions))
 
@@ -16483,14 +16483,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for node in ast.walk(helper_tree)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
-            and node.func.id == "_structured_cell_period_text"
+            and node.func.id == "structured_cell_period_text"
         ]
         operand_period_calls = [
             node
             for node in ast.walk(operand_tree)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
-            and node.func.id == "_structured_cell_period_text"
+            and node.func.id == "structured_cell_period_text"
         ]
         self.assertEqual(len(fiscal_calls), 0)
         self.assertEqual(len(helper_period_calls), 0)
@@ -37694,7 +37694,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             values = {
                 "candidate_is_direct_grounding_candidate": True,
                 "operand_period_focus": "current",
-                "_structured_cell_period_text": "2024",
+                "structured_cell_period_text": "2024",
                 "operand_target_years": [2024],
                 "candidate_has_required_surface_contract": True,
                 "candidate_selected_unit_family": "KRW",
@@ -37758,7 +37758,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertIs(result, False)
         probes["operand_period_focus"].assert_not_called()
-        probes["_structured_cell_period_text"].assert_not_called()
+        probes["structured_cell_period_text"].assert_not_called()
 
         prior_candidate = {
             **base_candidate,
@@ -37769,7 +37769,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         }
         result, probes = invoke(candidate=prior_candidate)
         self.assertIs(result, False)
-        probes["_structured_cell_period_text"].assert_called_once_with(
+        probes["structured_cell_period_text"].assert_called_once_with(
             base_cell,
             query_years,
             "current",
@@ -37785,14 +37785,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertTrue(prior_markers)
         result, probes = invoke(
-            overrides={"_structured_cell_period_text": prior_markers[0]}
+            overrides={"structured_cell_period_text": prior_markers[0]}
         )
         self.assertIs(result, False)
         probes["operand_target_years"].assert_not_called()
 
         result, probes = invoke(
             overrides={
-                "_structured_cell_period_text": "2023",
+                "structured_cell_period_text": "2023",
                 "operand_target_years": [2024],
             }
         )
@@ -37998,7 +37998,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
         )
         self.assertIs(result, False)
-        probes["_structured_cell_period_text"].assert_not_called()
+        probes["structured_cell_period_text"].assert_not_called()
 
     def test_current_source_candidate_satisfies_direct_acceptance_contract_pins_laziness_identity_immutability_soft_year_and_exceptions(self) -> None:
         owner = financial_operand_resolution
@@ -38055,7 +38055,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             values = {
                 "candidate_is_direct_grounding_candidate": True,
                 "operand_period_focus": "current",
-                "_structured_cell_period_text": period_text,
+                "structured_cell_period_text": period_text,
                 "operand_target_years": [2024],
                 "candidate_has_required_surface_contract": True,
                 "candidate_selected_unit_family": "KRW",
@@ -38107,7 +38107,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(grounding.call_args.kwargs["query_years"], query_years)
         self.assertIs(grounding.call_args.kwargs["report_scope"], report_scope)
         self.assertNotIn("selected_cell", grounding.call_args.kwargs)
-        probes["_structured_cell_period_text"].assert_called_once_with(
+        probes["structured_cell_period_text"].assert_called_once_with(
             selected_cell,
             query_years,
             "current",
@@ -38195,7 +38195,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         falsey_cell = {}
         result, probes = run(
             current_cell=falsey_cell,
-            overrides={"_structured_cell_period_text": stopped_cell_period},
+            overrides={"structured_cell_period_text": stopped_cell_period},
         )
         self.assertIs(result, True)
         stopped_cell_period.assert_not_called()
@@ -38255,7 +38255,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_period.assert_not_called()
 
         failure_names = (
-            "_structured_cell_period_text",
+            "structured_cell_period_text",
             "operand_target_years",
             "candidate_has_required_surface_contract",
             "candidate_selected_unit_family",
@@ -38367,7 +38367,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "candidate_is_direct_grounding_candidate": 1,
                 "operand_period_focus": 1,
-                "_structured_cell_period_text": 1,
+                "structured_cell_period_text": 1,
                 "_normalise_spaces": 10,
                 "str": 20,
                 "tuple": 3,
@@ -38561,7 +38561,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         self.assertNotIn(
-            "_structured_cell_period_text",
+            "structured_cell_period_text",
             imported_names(
                 "financial_graph_helpers",
                 "src.agent.financial_structured_cells",
@@ -38599,7 +38599,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
         )
         self.assertIn(
-            "_structured_cell_period_text",
+            "structured_cell_period_text",
             imported_names(
                 "financial_operand_resolution",
                 "src.agent.financial_structured_cells",
@@ -46492,7 +46492,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
                 ),
             ),
-            (4, 4),
+            (5, 3),
         )
 
         agent_files = sorted((repo_root / "src" / "agent").rglob("*.py"))
@@ -47369,7 +47369,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hashes,
             {
-                "financial_graph_evidence": "b2a2c640235dfbd889b556f1f27647b46a1ce80d335015e3b59603dcf5e17acd",
+                "financial_graph_evidence": "21a54e330544f254ff780c5ee9864ef2e7178276adf84593cbe412d42611e0ad",
                 "financial_graph_helpers": "82d4d0686211475edd75a212d4874c21bfdae7af20c7fa4f1378aa0740302996",
                 "financial_graph_reconciliation": "525fe48574d25c2a433d75a307bba11feb5de0b05e81a6668a04b1c6bfc36440",
             },
@@ -48776,7 +48776,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50114,7 +50114,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51380,7 +51380,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52883,7 +52883,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52910,8 +52910,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             and method.name not in required_methods
             and exact_target_reference_count(method, target_name)
         }
-        self.assertEqual(len(existing_reference_counts), 32)
-        self.assertEqual(sum(existing_reference_counts.values()), 103)
+        self.assertEqual(len(existing_reference_counts), 33)
+        self.assertEqual(sum(existing_reference_counts.values()), 107)
         self.assertEqual(
             hashlib.sha256(
                 json.dumps(
@@ -52920,7 +52920,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "429d0fe7efaf9824b8b84565f30b9bec003547d4696b93b56a3d06c96491f8d4",
+            "0f5ab59110f8b9ea31449cee4a47dc54461c822ba0139798700cd5fe08058c7c",
         )
         retired_existing_references = sum(
             exact_target_reference_count(method, retired_private_name)
@@ -53187,7 +53187,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "0c64daef32a9242e160d1658605034162bab34b5a94fdf7ce859a350c3c7cb03"
+                "7461bc130c94d6199c1c6e64a69f080d36149301997630a0cb7efcb239115bf5"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -54216,7 +54216,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54549,7 +54549,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_build_required_operands_from_candidates",
-                    ): "b2a2c640235dfbd889b556f1f27647b46a1ce80d335015e3b59603dcf5e17acd",
+                    ): "21a54e330544f254ff780c5ee9864ef2e7178276adf84593cbe412d42611e0ad",
                     (
                         "financial_operand_resolution",
                         "surface_contract_numeric_evidence_items",
@@ -54585,7 +54585,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "b3bab7cca8e282ff2889319c7f7b22bc652e1eed57c427693e2d56c187af98ba"
+                "fbd0df8d012c32bf0e72cd77fcb788b0425a1a7ddd7aa2ab6954b8784f7a5b2d"
                 if target_name == future_public_name
                 else "c989a345e8d1dd065db8cfb2427b244a650f174cf39cba5aa84f0d2a2c47bc0a"
             ),
@@ -55468,7 +55468,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56731,7 +56731,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 230)
+        self.assertEqual(len(graph_test_methods), 234)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -56772,9 +56772,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "test_current_source_candidate_selected_cell_projection_pins_parser_fallback_enrichment_and_stops": 5,
                 "test_current_source_candidate_selected_cell_projection_pins_structured_copy_order_identity_and_exceptions": 2,
                 "test_current_source_extract_table_row_label_callers_pin_args_adoption_and_stops": 3,
+                "test_current_source_structured_cell_period_text_callers_pin_gates_args_adoption_and_stops": 2,
             },
         )
-        self.assertEqual(sum(existing_graph_references.values()), 15)
+        self.assertEqual(sum(existing_graph_references.values()), 17)
         additional_test_paths = {
             "test_financial_reconciliation_candidates": (
                 repo_root / "tests" / "test_financial_reconciliation_candidates.py"
@@ -57025,7 +57026,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_build_required_operands_from_candidates",
-                    ): "b2a2c640235dfbd889b556f1f27647b46a1ce80d335015e3b59603dcf5e17acd",
+                    ): "21a54e330544f254ff780c5ee9864ef2e7178276adf84593cbe412d42611e0ad",
                     (
                         "financial_graph_helpers",
                         "_build_table_row_reconciliation_candidates",
@@ -57089,7 +57090,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "fb1954976dd4582f7c07ed569134027fed03cfb15b1277567e54fc2d8274a778"
+                "0450954e3364f4a1abf86f7f47c86d3d60c704124e64be8166857d0ae177b4c9"
                 if target_name == future_public_name
                 else "d9baa809818738f83553b8eb486972848e9510c6a353ed4520b09164c9214e72"
             ),
@@ -57352,6 +57353,1630 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
         failed_selected_target.assert_called_once()
         stopped_failed_selector.assert_not_called()
+
+    def test_current_source_structured_cell_period_text_pins_year_marker_fiscal_fallbacks_and_result(self) -> None:
+        future_public_name = "structured_cell_period_text"
+        target_name = (
+            future_public_name
+            if hasattr(financial_structured_cells, future_public_name)
+            else "_structured_cell_period_text"
+        )
+        target = getattr(financial_structured_cells, target_name)
+        nested = {"preserve": True}
+        focus_policy = {
+            "current_markers": ("CURRENT",),
+            "prior_markers": ("PRIOR",),
+            "nested": nested,
+        }
+        period_policy = {
+            "current_period_hint": "CURRENT_HINT",
+            "prior_period_hint": "PRIOR_HINT",
+            "nested": nested,
+        }
+        focus_before = deepcopy(focus_policy)
+        period_before = deepcopy(period_policy)
+
+        explicit_cell = {
+            "column_headers": ["2024 CURRENT", "2023 PRIOR"],
+            "_report_year": 2025,
+            "nested": nested,
+        }
+        explicit_before = deepcopy(explicit_cell)
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                side_effect=AssertionError(
+                    "explicit query-year match must stop fiscal fallback"
+                ),
+            ) as stopped_rank,
+        ):
+            self.assertEqual(
+                target(explicit_cell, [2023, 2024], "current"),
+                "2023",
+            )
+        stopped_rank.assert_not_called()
+        self.assertEqual(explicit_cell, explicit_before)
+        self.assertIs(explicit_cell["nested"], nested)
+
+        current_cell = {
+            "column_headers": ["CURRENT"],
+            "_report_year": 2025,
+            "report_year": 2024,
+            "year": 2023,
+        }
+        prior_cell = {
+            "column_headers": ["PRIOR"],
+            "report_year": 2025,
+        }
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                side_effect=AssertionError(
+                    "marker match must stop fiscal fallback"
+                ),
+            ) as stopped_rank,
+        ):
+            self.assertEqual(target(current_cell, [], "current"), "2025")
+            self.assertEqual(target(prior_cell, [], "prior"), "2024")
+            self.assertEqual(
+                target({"column_headers": ["CURRENT"]}, [], "current"),
+                "CURRENT_HINT",
+            )
+            self.assertEqual(
+                target({"column_headers": ["PRIOR"]}, [], "prior"),
+                "PRIOR_HINT",
+            )
+        stopped_rank.assert_not_called()
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                return_value=2,
+            ) as report_rank,
+        ):
+            report_rank_cell = {
+                "column_headers": ["Fiscal period"],
+                "report_year": 2025,
+            }
+            self.assertEqual(
+                target(report_rank_cell, [2021, 2024], "unknown"),
+                "2023",
+            )
+        report_rank.assert_called_once_with(report_rank_cell)
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                return_value=1,
+            ) as query_rank,
+        ):
+            query_rank_cell = {"column_headers": ["Fiscal period"]}
+            self.assertEqual(
+                target(query_rank_cell, [2021, 2024], "unknown"),
+                "2023",
+            )
+        query_rank.assert_called_once_with(query_rank_cell)
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                return_value=None,
+            ) as fallback_rank,
+        ):
+            fallback_cell = {
+                "column_headers": ["  First  ", "", "Second"],
+            }
+            self.assertEqual(
+                target(fallback_cell, [], "unknown"),
+                "First Second",
+            )
+        fallback_rank.assert_called_once_with(fallback_cell)
+
+        zero_report_cell = {
+            "column_headers": ["CURRENT"],
+            "_report_year": 0,
+        }
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                side_effect=AssertionError("zero is still a recovered year"),
+            ),
+        ):
+            self.assertEqual(target(zero_report_cell, [], "current"), "0")
+
+        self.assertEqual(focus_policy, focus_before)
+        self.assertEqual(period_policy, period_before)
+        self.assertIs(focus_policy["nested"], nested)
+        self.assertIs(period_policy["nested"], nested)
+
+    def test_current_source_structured_cell_period_text_pins_laziness_conversion_immutability_and_exceptions(self) -> None:
+        future_public_name = "structured_cell_period_text"
+        target_name = (
+            future_public_name
+            if hasattr(financial_structured_cells, future_public_name)
+            else "_structured_cell_period_text"
+        )
+        target = getattr(financial_structured_cells, target_name)
+        events = []
+
+        class MappingProbe:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def keys(self):
+                events.append((self.name, "keys"))
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                events.append((self.name, "getitem", key))
+                return self.values[key]
+
+        class TextProbe:
+            def __init__(self, name, value, error=None):
+                self.name = name
+                self.value = value
+                self.error = error
+
+            def __str__(self):
+                events.append(("str", self.name))
+                if self.error is not None:
+                    raise self.error
+                return self.value
+
+        class CellProbe(dict):
+            def get(self, key, default=None):
+                events.append(("cell.get", key))
+                return super().get(key, default)
+
+        focus_policy = MappingProbe(
+            "focus",
+            {
+                "current_markers": (
+                    TextProbe("current", "CURRENT"),
+                    TextProbe("current_blank", ""),
+                ),
+                "prior_markers": (TextProbe("prior", "PRIOR"),),
+            },
+        )
+        period_policy = MappingProbe(
+            "period",
+            {
+                "current_period_hint": "CURRENT_HINT",
+                "prior_period_hint": "PRIOR_HINT",
+            },
+        )
+        header = TextProbe("header", "HEADER")
+        blank_header = TextProbe("header_blank", "")
+        year = TextProbe("query_year", "2099")
+        cell = CellProbe(
+            column_headers=[header, blank_header],
+            _report_year="",
+            report_year="",
+            year="",
+        )
+        before_headers = list(cell["column_headers"])
+
+        def no_rank(current_cell):
+            events.append(("rank", current_cell))
+            return None
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                focus_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                period_policy,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                side_effect=no_rank,
+            ),
+        ):
+            self.assertEqual(target(cell, [year], "unknown"), "HEADER")
+
+        self.assertEqual(
+            events,
+            [
+                ("focus", "keys"),
+                ("focus", "getitem", "current_markers"),
+                ("focus", "getitem", "prior_markers"),
+                ("period", "keys"),
+                ("period", "getitem", "current_period_hint"),
+                ("period", "getitem", "prior_period_hint"),
+                ("str", "current"),
+                ("str", "current"),
+                ("str", "current_blank"),
+                ("str", "prior"),
+                ("str", "prior"),
+                ("cell.get", "column_headers"),
+                ("str", "header"),
+                ("str", "header"),
+                ("str", "header_blank"),
+                ("cell.get", "_report_year"),
+                ("cell.get", "report_year"),
+                ("cell.get", "year"),
+                ("str", "query_year"),
+                ("rank", cell),
+            ],
+        )
+        self.assertEqual(cell["column_headers"], before_headers)
+        self.assertIs(cell["column_headers"][0], header)
+        self.assertIs(cell["column_headers"][1], blank_header)
+
+        conversion_events = []
+
+        class YearProbe:
+            def __init__(self, name, value=None, error=None):
+                self.name = name
+                self.value = value
+                self.error = error
+
+            def __int__(self):
+                conversion_events.append(("int", self.name))
+                if self.error is not None:
+                    raise self.error
+                return self.value
+
+        class YearCell(dict):
+            def get(self, key, default=None):
+                if key in {"_report_year", "report_year", "year"}:
+                    conversion_events.append(("get", key))
+                return super().get(key, default)
+
+        soft_cell = YearCell(
+            column_headers=["CURRENT"],
+            _report_year=YearProbe(
+                "type",
+                error=TypeError("soft type"),
+            ),
+            report_year=YearProbe(
+                "value",
+                error=ValueError("soft value"),
+            ),
+            year=YearProbe("ok", value=2024),
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                {"current_markers": ("CURRENT",), "prior_markers": ()},
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {
+                    "current_period_hint": "CURRENT_HINT",
+                    "prior_period_hint": "PRIOR_HINT",
+                },
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                side_effect=AssertionError(
+                    "recovered report year plus marker must stop rank"
+                ),
+            ) as stopped_rank,
+        ):
+            self.assertEqual(target(soft_cell, [], "current"), "2024")
+        self.assertEqual(
+            conversion_events,
+            [
+                ("get", "_report_year"),
+                ("get", "report_year"),
+                ("get", "year"),
+                ("int", "type"),
+                ("int", "value"),
+                ("int", "ok"),
+            ],
+        )
+        stopped_rank.assert_not_called()
+
+        hard_query = TextProbe(
+            "stopped_query",
+            "2099",
+            error=AssertionError("hard year must stop query conversion"),
+        )
+        hard_cell = {
+            "column_headers": ["CURRENT"],
+            "_report_year": YearProbe(
+                "hard",
+                error=RuntimeError("hard integer conversion"),
+            ),
+            "report_year": 2024,
+        }
+        stopped_rank = Mock(
+            side_effect=AssertionError("hard year must stop fiscal rank")
+        )
+        with (
+            patch.object(
+                financial_structured_cells,
+                "PERIOD_FOCUS_POLICY",
+                {"current_markers": ("CURRENT",), "prior_markers": ()},
+            ),
+            patch.object(
+                financial_structured_cells,
+                "GENERIC_PERIOD_OPERAND_POLICY",
+                {},
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_rank",
+                stopped_rank,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "hard integer conversion",
+            ):
+                target(hard_cell, [hard_query], "current")
+        stopped_rank.assert_not_called()
+
+        class MappingBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def keys(self):
+                raise RuntimeError(self.message)
+
+        failure_cases = (
+            (
+                "focus copy",
+                MappingBomb("focus copy failed"),
+                {},
+                {"column_headers": []},
+                None,
+                "focus copy failed",
+            ),
+            (
+                "period copy",
+                {},
+                MappingBomb("period copy failed"),
+                {"column_headers": []},
+                None,
+                "period copy failed",
+            ),
+            (
+                "marker conversion",
+                {
+                    "current_markers": (
+                        TextProbe(
+                            "bad_marker",
+                            "",
+                            error=RuntimeError("marker conversion failed"),
+                        ),
+                    ),
+                    "prior_markers": (),
+                },
+                {},
+                {"column_headers": []},
+                None,
+                "marker conversion failed",
+            ),
+            (
+                "header conversion",
+                {"current_markers": (), "prior_markers": ()},
+                {},
+                {
+                    "column_headers": [
+                        TextProbe(
+                            "bad_header",
+                            "",
+                            error=RuntimeError("header conversion failed"),
+                        )
+                    ]
+                },
+                None,
+                "header conversion failed",
+            ),
+            (
+                "fiscal rank",
+                {"current_markers": (), "prior_markers": ()},
+                {},
+                {"column_headers": ["header"]},
+                RuntimeError("fiscal rank failed"),
+                "fiscal rank failed",
+            ),
+        )
+        for (
+            label,
+            current_focus_policy,
+            current_period_policy,
+            current_cell,
+            rank_error,
+            message,
+        ) in failure_cases:
+            with self.subTest(label=label):
+                rank = Mock(
+                    side_effect=rank_error
+                    if rank_error is not None
+                    else AssertionError("earlier failure must stop fiscal rank")
+                )
+                with (
+                    patch.object(
+                        financial_structured_cells,
+                        "PERIOD_FOCUS_POLICY",
+                        current_focus_policy,
+                    ),
+                    patch.object(
+                        financial_structured_cells,
+                        "GENERIC_PERIOD_OPERAND_POLICY",
+                        current_period_policy,
+                    ),
+                    patch.object(
+                        financial_structured_cells,
+                        "_structured_cell_fiscal_rank",
+                        rank,
+                    ),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        target(current_cell, [], "unknown")
+                if rank_error is None:
+                    rank.assert_not_called()
+                else:
+                    rank.assert_called_once_with(current_cell)
+
+    def test_current_source_structured_cell_period_text_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "structured_cell_period_text"
+        retired_private_name = "_structured_cell_period_text"
+        target_name = (
+            future_public_name
+            if hasattr(financial_structured_cells, future_public_name)
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_structured_cells"]
+        owner_tree = module_trees["financial_structured_cells"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (328, 362))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["cell", "query_years", "period_focus"],
+        )
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertIsInstance(definition.returns, ast.Name)
+        self.assertEqual(definition.returns.id, "str")
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            [
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "Assign",
+                "AnnAssign",
+                "For",
+                "If",
+                "Assign",
+                "If",
+                "If",
+                "Assign",
+                "If",
+                "Return",
+            ],
+        )
+        node_counts = {}
+        for node in ast.walk(definition):
+            node_name = type(node).__name__
+            node_counts[node_name] = node_counts.get(node_name, 0) + 1
+        self.assertEqual(
+            {
+                name: node_counts.get(name, 0)
+                for name in (
+                    "AnnAssign",
+                    "Assign",
+                    "For",
+                    "If",
+                    "Return",
+                    "Continue",
+                    "Try",
+                    "TryStar",
+                    "Call",
+                    "List",
+                    "Tuple",
+                    "Dict",
+                    "ListComp",
+                    "GeneratorExp",
+                    "BoolOp",
+                    "Compare",
+                    "IfExp",
+                    "comprehension",
+                    "Lambda",
+                )
+            },
+            {
+                "AnnAssign": 1,
+                "Assign": 12,
+                "For": 2,
+                "If": 8,
+                "Return": 7,
+                "Continue": 1,
+                "Try": 1,
+                "TryStar": 0,
+                "Call": 33,
+                "List": 1,
+                "Tuple": 6,
+                "Dict": 0,
+                "ListComp": 1,
+                "GeneratorExp": 5,
+                "BoolOp": 9,
+                "Compare": 11,
+                "IfExp": 1,
+                "comprehension": 6,
+                "Lambda": 0,
+            },
+        )
+        try_nodes = [
+            node for node in ast.walk(definition) if isinstance(node, ast.Try)
+        ]
+        self.assertEqual(len(try_nodes), 1)
+        self.assertEqual(len(try_nodes[0].handlers), 1)
+        handler_type = try_nodes[0].handlers[0].type
+        self.assertIsInstance(handler_type, ast.Tuple)
+        self.assertEqual(
+            [item.id for item in handler_type.elts],
+            ["TypeError", "ValueError"],
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "52ce9a60948e6d2e3d57f080f4e0577f7c782b99900bd62839f256057be40c44",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (5, 3) if target_name == future_public_name else (4, 4),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and node.id == other_name
+                and isinstance(node.ctx, ast.Store)
+                for node in ast.walk(owner_tree)
+            )
+        )
+
+        expected_importers = {
+            "financial_graph_evidence",
+            "financial_lookup_recovery",
+            "financial_operand_resolution",
+            "financial_reconciliation_candidates",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    == "src.agent.financial_structured_cells"
+                ):
+                    continue
+                count = sum(
+                    alias.name == target_name for alias in node.names
+                )
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = (
+                        import_counts.get(module_name, 0) + count
+                    )
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(
+                        current,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [
+                            ast.unparse(argument) for argument in call.args
+                        ],
+                        "keywords": [
+                            keyword.arg for keyword in call.keywords
+                        ],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                (
+                    "financial_graph_evidence",
+                    "_build_required_operands_from_candidates",
+                    ["selected_cell", "target_years", "'unknown'"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_lookup_recovery",
+                    "coerce_operand_value_from_direct_structured_evidence",
+                    [
+                        "cell",
+                        "query_years",
+                        "operand_period_focus(operand_spec, 'unknown')",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "candidate_satisfies_direct_acceptance_contract",
+                    [
+                        "selected_cell",
+                        "query_years",
+                        "desired_period_focus",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_reconciliation_candidates",
+                    "_resolved_period_text_for_operand",
+                    ["cell", "query_years", "effective_period_focus"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+        call_payload = [
+            {
+                "args": record["args"],
+                "caller": record["caller"],
+                "keywords": record["keywords"],
+                "line": record["line"],
+                "module": record["module"],
+                "parent": record["parent"],
+                "try_depth": record["try_depth"],
+            }
+            for record in call_records
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "a0ddee2afcc9bc97ce2f4bc6471e1021508e589fd68d87d3a0893831e7e0e2b5"
+                if target_name == future_public_name
+                else "541b793fe8e0596a0d0271c2a87e373c1c88d12a34ffe549b641e6b67d7ffec1"
+            ),
+        )
+        self.assertEqual(
+            caller_hashes,
+            (
+                {
+                    (
+                        "financial_graph_evidence",
+                        "_build_required_operands_from_candidates",
+                    ): "21a54e330544f254ff780c5ee9864ef2e7178276adf84593cbe412d42611e0ad",
+                    (
+                        "financial_lookup_recovery",
+                        "coerce_operand_value_from_direct_structured_evidence",
+                    ): "2747491e6cbf847319cbb6211bc4b344082de6d13735eac7d1a6814d060c4d76",
+                    (
+                        "financial_operand_resolution",
+                        "candidate_satisfies_direct_acceptance_contract",
+                    ): "4136f81e09e2ce4646d7be0e69737e91e3ae12b8678bb66b1d8f097839534985",
+                    (
+                        "financial_reconciliation_candidates",
+                        "_resolved_period_text_for_operand",
+                    ): "33bdf9423f7c1e08d7ccb0e1b204b69a8a7757557307d1526a6f07d59f01b486",
+                }
+                if target_name == future_public_name
+                else {
+                    (
+                        "financial_graph_evidence",
+                        "_build_required_operands_from_candidates",
+                    ): "b2a2c640235dfbd889b556f1f27647b46a1ce80d335015e3b59603dcf5e17acd",
+                    (
+                        "financial_lookup_recovery",
+                        "coerce_operand_value_from_direct_structured_evidence",
+                    ): "1a3a44cd0d60a07984a2152f34fb3f9c23f42d45cb6decd743fb14daeba45db0",
+                    (
+                        "financial_operand_resolution",
+                        "candidate_satisfies_direct_acceptance_contract",
+                    ): "c7d653994360ad7a53261fcf722c48b5071673359d74e583b0b3e328e65a0f74",
+                    (
+                        "financial_reconciliation_candidates",
+                        "_resolved_period_text_for_operand",
+                    ): "5173ca3f25934f4e9ac16bf97f525e8975fb7de791d69c8035094b3efbdaddd0",
+                }
+            ),
+        )
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "66c830921e5f816f10a73738be5c105650149a8ee6968429243a4f7c99146062"
+                if target_name == future_public_name
+                else "0c001d08e2e10c64ad9dab82bf1ab50a892064e21341a3b6c2c42f5939875222"
+            ),
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): tree
+            for path, tree in (
+                (
+                    path,
+                    ast.parse(path.read_text(encoding="utf-8-sig")),
+                )
+                for path in (repo_root / "src" / "agent").rglob("*.py")
+            )
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for source, dependency in edges:
+                    if source != current:
+                        continue
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            all(
+                reaches(
+                    f"src.agent.{module_name}",
+                    "src.agent.financial_structured_cells",
+                )
+                for module_name in expected_importers
+            )
+        )
+        self.assertTrue(
+            all(
+                not reaches(
+                    "src.agent.financial_structured_cells",
+                    f"src.agent.{module_name}",
+                )
+                for module_name in expected_importers
+            )
+        )
+
+        def reference_count(tree, name):
+            count = 0
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and node.id == name:
+                    count += 1
+                elif isinstance(node, ast.Attribute) and node.attr == name:
+                    count += 1
+                elif isinstance(node, ast.alias):
+                    if node.name == name:
+                        count += 1
+                    if node.asname == name:
+                        count += 1
+                elif isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ) and node.name == name:
+                    count += 1
+                elif isinstance(node, ast.Constant) and node.value == name:
+                    count += 1
+            return count
+
+        production_ref_counts = {
+            module_name: reference_count(tree, target_name)
+            for module_name, tree in module_trees.items()
+            if reference_count(tree, target_name)
+        }
+        self.assertEqual(
+            production_ref_counts,
+            {
+                "financial_graph_evidence": 2,
+                "financial_lookup_recovery": 2,
+                "financial_operand_resolution": 2,
+                "financial_reconciliation_candidates": 2,
+                "financial_structured_cells": 1,
+            },
+        )
+        self.assertEqual(
+            sum(
+                reference_count(tree, other_name)
+                for tree in module_trees.values()
+            ),
+            0,
+        )
+
+        new_method_names = {
+            "test_current_source_structured_cell_period_text_pins_year_marker_fiscal_fallbacks_and_result",
+            "test_current_source_structured_cell_period_text_pins_laziness_conversion_immutability_and_exceptions",
+            "test_current_source_structured_cell_period_text_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_structured_cell_period_text_callers_pin_gates_args_adoption_and_stops",
+        }
+        existing_test_ref_counts = {}
+        other_existing_test_ref_counts = {}
+        for path in (repo_root / "tests").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            current_count = reference_count(tree, target_name)
+            other_count = reference_count(tree, other_name)
+            if path.name == "test_financial_graph_helpers.py":
+                for class_node in (
+                    node for node in tree.body if isinstance(node, ast.ClassDef)
+                ):
+                    for method in class_node.body:
+                        if (
+                            isinstance(method, ast.FunctionDef)
+                            and method.name in new_method_names
+                        ):
+                            current_count -= reference_count(method, target_name)
+                            other_count -= reference_count(method, other_name)
+            if current_count:
+                existing_test_ref_counts[path.name] = current_count
+            if other_count:
+                other_existing_test_ref_counts[path.name] = other_count
+        self.assertEqual(
+            existing_test_ref_counts,
+            {
+                "test_financial_graph_helpers.py": 17,
+                "test_financial_reconciliation_candidates.py": 3,
+                "test_lookup_recovery_policy.py": 2,
+                "test_operation_contracts.py": 3,
+            },
+        )
+        self.assertEqual(other_existing_test_ref_counts, {})
+        self.assertEqual(sum(existing_test_ref_counts.values()), 25)
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        graph_test_methods = [
+            method
+            for class_node in current_test_tree.body
+            if isinstance(class_node, ast.ClassDef)
+            and class_node.name == "FinancialGraphHelperTests"
+            for method in class_node.body
+            if isinstance(method, ast.FunctionDef)
+            and method.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 234)
+        self.assertEqual(
+            {
+                method.name
+                for method in graph_test_methods
+                if method.name in new_method_names
+            },
+            new_method_names,
+        )
+        self.assertEqual(
+            len(
+                [
+                    method
+                    for method in graph_test_methods
+                    if method.name not in new_method_names
+                ]
+            ),
+            230,
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == "src/agent/financial_structured_cells.py"
+                and str(record.get("text") or "") in body_source
+            ],
+            [],
+        )
+
+        importer_objects = {
+            "financial_graph_evidence": financial_graph_evidence,
+            "financial_lookup_recovery": financial_lookup_recovery,
+            "financial_operand_resolution": financial_operand_resolution,
+            "financial_reconciliation_candidates": financial_reconciliation_candidates,
+        }
+        owner_target = getattr(financial_structured_cells, target_name)
+        for module_name, module in importer_objects.items():
+            with self.subTest(module_name=module_name):
+                self.assertIs(getattr(module, target_name), owner_target)
+
+        transform_paths = {
+            module_paths[module_name]
+            for module_name in expected_importers
+            | {"financial_structured_cells"}
+        } | {
+            repo_root / "tests" / test_name
+            for test_name in existing_test_ref_counts
+        }
+        self.assertEqual(len(transform_paths), 9)
+        self.assertEqual(
+            sum(
+                path.read_bytes().decode("utf-8-sig") is not None
+                for path in transform_paths
+            ),
+            9,
+        )
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in path.read_text(encoding="utf-8-sig")
+                )
+                for path in transform_paths
+            ),
+            7,
+        )
+
+    def test_current_source_structured_cell_period_text_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "structured_cell_period_text"
+        target_name = (
+            future_public_name
+            if hasattr(financial_structured_cells, future_public_name)
+            else "_structured_cell_period_text"
+        )
+        selected_cell = {
+            "row_label": "Metric",
+            "value_text": "100",
+            "unit_hint": "KRW",
+        }
+        candidate_item = {
+            "raw_row_text": "Metric | 100",
+            "metadata": {},
+            "evidence_id": "evidence-1",
+            "source_anchor": "anchor-1",
+        }
+        operand = {"label": "Metric", "binding_policy": {}}
+        evidence_events = []
+
+        def evidence_period(cell, years, focus):
+            evidence_events.append(("period", cell, years, focus))
+            return "2024"
+
+        evidence_agent = SimpleNamespace(
+            _coerce_operand_row_from_evidence=lambda row, _item: row
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                side_effect=lambda items, **_kwargs: items,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "extract_table_row_label",
+                return_value="Metric",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "parse_unstructured_table_row_cells",
+                return_value=[selected_cell],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "score_structured_cell",
+                return_value=1.0,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "operand_text_match",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "text_has_positive_surface",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "text_has_negative_surface",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=evidence_period,
+            ) as evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "coerce_operand_unit_from_evidence",
+                side_effect=lambda **kwargs: kwargs["raw_unit"],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_operand_row_matches_requirement",
+                return_value=True,
+            ),
+        ):
+            rows = financial_graph_evidence.FinancialAgentEvidenceMixin._build_required_operands_from_candidates(
+                evidence_agent,
+                [candidate_item],
+                required_operands=[operand],
+                query="",
+                topic="",
+                report_scope={},
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["period"], "2024")
+        self.assertEqual(rows[0]["label"], "2024 Metric")
+        evidence_target.assert_called_once()
+        self.assertIs(evidence_target.call_args.args[0], selected_cell)
+        self.assertEqual(evidence_target.call_args.args[1], [])
+        self.assertEqual(evidence_target.call_args.args[2], "unknown")
+        self.assertEqual([event[0] for event in evidence_events], ["period"])
+
+        stopped_normalizer = Mock(
+            side_effect=AssertionError("period failure must stop normalization")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                side_effect=lambda items, **_kwargs: items,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "extract_table_row_label",
+                return_value="Metric",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "parse_unstructured_table_row_cells",
+                return_value=[selected_cell],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "score_structured_cell",
+                return_value=1.0,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "operand_text_match",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "text_has_positive_surface",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "text_has_negative_surface",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence period failed"),
+            ) as failed_evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_operand_value",
+                stopped_normalizer,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "evidence period failed",
+            ):
+                financial_graph_evidence.FinancialAgentEvidenceMixin._build_required_operands_from_candidates(
+                    evidence_agent,
+                    [candidate_item],
+                    required_operands=[operand],
+                    query="",
+                    topic="",
+                    report_scope={},
+                )
+        failed_evidence_target.assert_called_once()
+        stopped_normalizer.assert_not_called()
+
+        reconciliation_events = []
+        reconciliation_cell = {
+            "column_headers": ["undated"],
+            "report_year": 2024,
+        }
+        reconciliation_operand = {
+            "label": "Metric",
+            "period_hint": "current",
+        }
+        reconciliation_years = [2024]
+
+        def reconciliation_focus(current_operand, default_focus):
+            reconciliation_events.append(("focus", current_operand, default_focus))
+            return "current"
+
+        def reconciliation_period(cell, years, focus):
+            reconciliation_events.append(("period", cell, years, focus))
+            return "undated"
+
+        def reconciliation_targets(current_operand, years):
+            reconciliation_events.append(("targets", current_operand, years))
+            return [2024]
+
+        with (
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_period_focus",
+                side_effect=reconciliation_focus,
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                target_name,
+                side_effect=reconciliation_period,
+            ) as reconciliation_target,
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_target_years",
+                side_effect=reconciliation_targets,
+            ) as target_years_owner,
+        ):
+            self.assertEqual(
+                financial_reconciliation_candidates._resolved_period_text_for_operand(
+                    operand=reconciliation_operand,
+                    cell=reconciliation_cell,
+                    query_years=reconciliation_years,
+                    period_focus="unknown",
+                ),
+                "2024",
+            )
+        reconciliation_target.assert_called_once_with(
+            reconciliation_cell,
+            reconciliation_years,
+            "current",
+        )
+        target_years_owner.assert_called_once_with(
+            reconciliation_operand,
+            reconciliation_years,
+        )
+        self.assertEqual(
+            [event[0] for event in reconciliation_events],
+            ["focus", "period", "targets"],
+        )
+
+        stopped_targets = Mock(
+            side_effect=AssertionError("period failure must stop target years")
+        )
+        with (
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_period_focus",
+                return_value="current",
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                target_name,
+                side_effect=RuntimeError("reconciliation period failed"),
+            ) as failed_reconciliation_target,
+            patch.object(
+                financial_reconciliation_candidates,
+                "operand_target_years",
+                stopped_targets,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "reconciliation period failed",
+            ):
+                financial_reconciliation_candidates._resolved_period_text_for_operand(
+                    operand=reconciliation_operand,
+                    cell=reconciliation_cell,
+                    query_years=reconciliation_years,
+                    period_focus="unknown",
+                )
+        failed_reconciliation_target.assert_called_once()
+        stopped_targets.assert_not_called()
+
+        direct_candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "statement_type": "income_statement",
+                "local_heading": "Main",
+                "section_path": "Main",
+                "period_focus": "current",
+            },
+        }
+        direct_operand = {"label": "Metric", "binding_policy": {}}
+        direct_constraints = {"period_focus": "current"}
+        direct_cell = {"value_text": "100"}
+        direct_years = [2024]
+        direct_period = Mock(return_value="2024")
+        direct_replacements = {
+            "candidate_is_direct_grounding_candidate": Mock(return_value=True),
+            "operand_period_focus": Mock(return_value="current"),
+            target_name: direct_period,
+            "operand_target_years": Mock(return_value=[2024]),
+            "candidate_has_required_surface_contract": Mock(return_value=True),
+            "candidate_value_role": Mock(return_value="aggregate"),
+            "candidate_aggregation_stage": Mock(return_value="final"),
+            "is_balance_sheet_aggregate_operand": Mock(return_value=False),
+            "is_capex_total_operand": Mock(return_value=False),
+        }
+        with ExitStack() as stack:
+            for name, replacement in direct_replacements.items():
+                stack.enter_context(
+                    patch.object(
+                        financial_operand_resolution,
+                        name,
+                        replacement,
+                    )
+                )
+            direct_result = financial_operand_resolution.candidate_satisfies_direct_acceptance_contract(
+                direct_candidate,
+                operand=direct_operand,
+                constraints=direct_constraints,
+                query_years=direct_years,
+                operation_family="comparison",
+                selected_cell=direct_cell,
+                report_scope={},
+            )
+        self.assertIs(direct_result, True)
+        direct_period.assert_called_once_with(
+            direct_cell,
+            direct_years,
+            "current",
+        )
+
+        stopped_direct_period = Mock(
+            side_effect=AssertionError("grounding rejection must stop period")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_is_direct_grounding_candidate",
+                return_value=False,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                stopped_direct_period,
+            ),
+        ):
+            self.assertIs(
+                financial_operand_resolution.candidate_satisfies_direct_acceptance_contract(
+                    direct_candidate,
+                    operand=direct_operand,
+                    constraints=direct_constraints,
+                    query_years=direct_years,
+                    operation_family="comparison",
+                    selected_cell=direct_cell,
+                    report_scope={},
+                ),
+                False,
+            )
+        stopped_direct_period.assert_not_called()
+
+        row = {
+            "label": "Metric",
+            "period": "2024",
+            "raw_value": "100",
+            "normalized_value": 100.0,
+            "value_role": "detail",
+        }
+        first_cell = {"value_text": "100", "unit_hint": "KRW"}
+        second_cell = {"value_text": "200", "unit_hint": "KRW"}
+        evidence_item = {
+            "metadata": {
+                "row_label": "Metric",
+                "semantic_label": "Metric",
+                "year": 2024,
+                "structured_cells": [first_cell, second_cell],
+            }
+        }
+        lookup_events = []
+
+        def lookup_period(cell, years, focus):
+            lookup_events.append(("period", cell, years, focus))
+            return "2024"
+
+        def select_lookup_cell(cells, **kwargs):
+            lookup_events.append(("select", cells, kwargs))
+            return cells[1]
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "operand_text_match",
+                return_value=True,
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_prefers_aggregate_value_role",
+                return_value=False,
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_period_focus",
+                return_value="current",
+            ) as lookup_focus,
+            patch.object(
+                financial_lookup_recovery,
+                target_name,
+                side_effect=lookup_period,
+            ) as lookup_target,
+            patch.object(
+                financial_lookup_recovery,
+                "select_aggregate_structured_cell",
+                side_effect=AssertionError(
+                    "detail row must skip aggregate selection"
+                ),
+            ) as stopped_aggregate_selector,
+            patch.object(
+                financial_lookup_recovery,
+                "select_structured_cell",
+                side_effect=select_lookup_cell,
+            ) as lookup_selector,
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                return_value=(200.0, "KRW"),
+            ),
+        ):
+            updated_row = financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                row,
+                evidence_item,
+            )
+        self.assertIsNot(updated_row, row)
+        self.assertEqual(updated_row["raw_value"], "200")
+        self.assertEqual(updated_row["normalized_value"], 200.0)
+        self.assertIs(updated_row["structured_evidence_cell_realigned"], True)
+        lookup_target.assert_called_once()
+        lookup_cell, lookup_years, lookup_period_focus = (
+            lookup_target.call_args.args
+        )
+        self.assertEqual(lookup_cell["value_text"], "100")
+        self.assertEqual(lookup_cell["_report_year"], 2024)
+        self.assertEqual(len(lookup_cell["_sibling_cells"]), 2)
+        self.assertEqual(lookup_years, [2024])
+        self.assertEqual(lookup_period_focus, "current")
+        self.assertEqual(lookup_focus.call_count, 2)
+        stopped_aggregate_selector.assert_not_called()
+        lookup_selector.assert_called_once()
+        self.assertEqual(
+            [event[0] for event in lookup_events],
+            ["period", "select"],
+        )
+
+        stopped_lookup_selector = Mock(
+            side_effect=AssertionError("period failure must stop selection")
+        )
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "operand_text_match",
+                return_value=True,
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_prefers_aggregate_value_role",
+                return_value=False,
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_period_focus",
+                return_value="current",
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                target_name,
+                side_effect=RuntimeError("lookup period failed"),
+            ) as failed_lookup_target,
+            patch.object(
+                financial_lookup_recovery,
+                "select_structured_cell",
+                stopped_lookup_selector,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "lookup period failed"):
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                    row,
+                    evidence_item,
+                )
+        failed_lookup_target.assert_called_once()
+        stopped_lookup_selector.assert_not_called()
 
 
 if __name__ == "__main__":

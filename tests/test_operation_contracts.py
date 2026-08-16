@@ -87,7 +87,7 @@ from src.agent.financial_retrieval_hints import (
     _infer_statement_and_section_hints,
 )
 from src.agent.financial_structured_cells import (
-    _structured_cell_period_text,
+    structured_cell_period_text,
     candidate_selected_cell_for_operand,
 )
 from src.config.ontology import FinancialOntologyManager
@@ -1247,7 +1247,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertFalse(_label_implies_percent_metric("NIM"))
 
     def test_structured_cell_period_text_uses_report_year_for_current_fiscal_cell(self) -> None:
-        period = _structured_cell_period_text(
+        period = structured_cell_period_text(
             {
                 "column_headers": ["제54기"],
                 "_report_year": 2022,
@@ -1262,7 +1262,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(period, "2022")
 
     def test_structured_cell_period_text_uses_report_year_for_prior_fiscal_cell(self) -> None:
-        period = _structured_cell_period_text(
+        period = structured_cell_period_text(
             {
                 "column_headers": ["제53기"],
                 "_report_year": 2022,

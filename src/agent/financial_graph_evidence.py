@@ -63,7 +63,7 @@ from src.agent.financial_row_surfaces import (
     operand_text_match,
     parse_unstructured_table_row_cells,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
+from src.agent.financial_structured_cells import score_structured_cell, structured_cell_period_text
 if TYPE_CHECKING:
     from src.agent.financial_graph_models import EvidenceItem
     from src.agent.financial_graph_state import FinancialAgentState
@@ -1532,7 +1532,7 @@ class FinancialAgentEvidenceMixin:
                                 raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
                                 raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
                                 if not period:
-                                    period = _structured_cell_period_text(
+                                    period = structured_cell_period_text(
                                         selected_cell,
                                         target_years,
                                         "unknown",

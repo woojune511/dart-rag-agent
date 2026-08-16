@@ -15,7 +15,7 @@ from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus, operand_target_years
-from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
+from src.agent.financial_structured_cells import score_structured_cell, structured_cell_period_text
 from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     RECONCILIATION_POLICY,
@@ -133,7 +133,7 @@ def _resolved_period_text_for_operand(
 ) -> str:
     effective_period_focus = operand_period_focus(operand, period_focus)
     operand_with_period_focus = {**operand, "_effective_period_focus": effective_period_focus}
-    period = _structured_cell_period_text(cell, query_years, effective_period_focus)
+    period = structured_cell_period_text(cell, query_years, effective_period_focus)
     period_presence_pattern = str(RECONCILIATION_POLICY.get("period_presence_pattern") or "")
     if period_presence_pattern and not re.search(period_presence_pattern, period):
         report_year: Optional[int] = None

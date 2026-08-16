@@ -68,7 +68,7 @@ from src.agent.financial_scope_policies import (
     operand_period_focus,
     operand_target_years,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import structured_cell_period_text
 from src.agent.financial_text_surface import _strip_rerank_metadata
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -4438,7 +4438,7 @@ def candidate_satisfies_direct_acceptance_contract(
         current_markers = tuple(str(item) for item in (period_policy.get("current_markers") or ()) if str(item))
         prior_markers = tuple(str(item) for item in (period_policy.get("prior_markers") or ()) if str(item))
         explicit_year_pattern = str(period_policy.get("explicit_year_pattern") or r"20\d{2}")
-        period_text = _structured_cell_period_text(
+        period_text = structured_cell_period_text(
             selected_cell,
             query_years,
             desired_period_focus,

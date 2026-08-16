@@ -325,7 +325,7 @@ def _structured_cell_fiscal_rank(cell: Dict[str, Any]) -> Optional[int]:
         return None
 
 
-def _structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str:
+def structured_cell_period_text(cell: Dict[str, Any], query_years: List[int], period_focus: str) -> str:
     focus_policy = dict(PERIOD_FOCUS_POLICY)
     period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
     current_markers = tuple(str(item) for item in (focus_policy.get("current_markers") or ()) if str(item))

@@ -17,7 +17,7 @@ from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_structured_cells import (
-    _structured_cell_period_text,
+    structured_cell_period_text,
     select_aggregate_structured_cell,
     select_structured_cell,
 )
@@ -636,7 +636,7 @@ def coerce_operand_value_from_direct_structured_evidence(
         and any(
             re.search(
                 r"(?:19|20)\d{2}|current|prior",
-                _structured_cell_period_text(
+                structured_cell_period_text(
                     cell,
                     query_years,
                     operand_period_focus(operand_spec, "unknown"),

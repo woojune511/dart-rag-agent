@@ -132,7 +132,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         events = []
         with (
             patch.object(candidates, "operand_period_focus", side_effect=lambda operand, focus: events.append("focus") or "prior"),
-            patch.object(candidates, "_structured_cell_period_text", side_effect=lambda cell, years, focus: events.append("period") or "unknown"),
+            patch.object(candidates, "structured_cell_period_text", side_effect=lambda cell, years, focus: events.append("period") or "unknown"),
             patch.object(candidates, "RECONCILIATION_POLICY", {"period_presence_pattern": r"\d{4}"}),
             patch.object(candidates, "operand_target_years", side_effect=lambda operand, years: events.append("targets") or [2023]),
             patch.object(candidates, "_fallback_period_text_for_operand", side_effect=lambda operand, years: events.append("fallback") or "2022") as fallback,
@@ -149,7 +149,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         with (
             patch.object(candidates, "operand_period_focus", return_value="current"),
-            patch.object(candidates, "_structured_cell_period_text", return_value="not-present"),
+            patch.object(candidates, "structured_cell_period_text", return_value="not-present"),
             patch.object(candidates, "RECONCILIATION_POLICY", {"period_presence_pattern": r"\d{4}"}),
             patch.object(candidates, "operand_target_years", return_value=[2024]),
             patch.object(candidates, "_fallback_period_text_for_operand", return_value="2024") as fallback,
@@ -177,7 +177,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         with (
             patch.object(candidates, "operand_period_focus", side_effect=RuntimeError("focus failed")),
-            patch.object(candidates, "_structured_cell_period_text") as stopped_period,
+            patch.object(candidates, "structured_cell_period_text") as stopped_period,
             self.assertRaisesRegex(RuntimeError, "focus failed"),
         ):
             candidates._resolved_period_text_for_operand(operand={}, cell={}, query_years=[], period_focus="unknown")
