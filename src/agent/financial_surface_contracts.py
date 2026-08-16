@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from src.agent.financial_operation_policies import _label_implies_percent_metric
+from src.agent.financial_operation_policies import label_implies_percent_metric
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.config.retrieval_policy import (
     CAPEX_TOTAL_CONCEPT_KEY,
@@ -353,7 +353,7 @@ def candidate_selected_unit_family(
             if str(part or "").strip()
         )
     )
-    if _label_implies_percent_metric(label_text):
+    if label_implies_percent_metric(label_text):
         return "PERCENT"
     return ""
 

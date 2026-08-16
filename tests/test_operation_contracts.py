@@ -69,7 +69,7 @@ from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
     parse_unstructured_table_row_cells,
 )
-from src.agent.financial_operation_policies import _label_implies_percent_metric, _requires_direct_numeric_grounding
+from src.agent.financial_operation_policies import label_implies_percent_metric, _requires_direct_numeric_grounding
 from src.agent.financial_scope_policies import _desired_consolidation_scope
 from src.agent.financial_graph_models import (
     CalculationPlan,
@@ -1242,9 +1242,9 @@ class OperationContractTests(unittest.TestCase):
         self.ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
 
     def test_percent_label_inference_uses_generic_surface_markers_only(self) -> None:
-        self.assertTrue(_label_implies_percent_metric("순이자마진"))
-        self.assertTrue(_label_implies_percent_metric("부채비율"))
-        self.assertFalse(_label_implies_percent_metric("NIM"))
+        self.assertTrue(label_implies_percent_metric("순이자마진"))
+        self.assertTrue(label_implies_percent_metric("부채비율"))
+        self.assertFalse(label_implies_percent_metric("NIM"))
 
     def test_structured_cell_period_text_uses_report_year_for_current_fiscal_cell(self) -> None:
         period = structured_cell_period_text(

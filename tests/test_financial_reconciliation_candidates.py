@@ -63,7 +63,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         }
         with (
             patch.object(candidates, "RECONCILIATION_POLICY", policy),
-            patch.object(candidates, "_label_implies_percent_metric", return_value=True) as percent_match,
+            patch.object(candidates, "label_implies_percent_metric", return_value=True) as percent_match,
             patch.object(candidates, "_resolve_candidate_local_unit_hint", return_value="억원") as local_unit,
         ):
             self.assertEqual(
@@ -81,7 +81,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
 
         with (
             patch.object(candidates, "RECONCILIATION_POLICY", policy),
-            patch.object(candidates, "_label_implies_percent_metric", return_value=False),
+            patch.object(candidates, "label_implies_percent_metric", return_value=False),
             patch.object(candidates, "_resolve_candidate_local_unit_hint", return_value="억원") as local_unit,
         ):
             self.assertEqual(

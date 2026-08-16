@@ -11,7 +11,7 @@ from src.agent.financial_operand_resolution import (
     coerce_lookup_magnitude_value,
     score_operand_candidate,
 )
-from src.agent.financial_operation_policies import _label_implies_percent_metric
+from src.agent.financial_operation_policies import label_implies_percent_metric
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus, operand_target_years
@@ -85,7 +85,7 @@ def _structured_candidate_unit_hint(
             )
             if part
         )
-        if _label_implies_percent_metric(label_surfaces):
+        if label_implies_percent_metric(label_surfaces):
             return percent_unit
     candidate_metadata = dict(candidate.get("metadata") or {})
     statement_type = str(candidate_metadata.get("statement_type") or "").strip().lower()

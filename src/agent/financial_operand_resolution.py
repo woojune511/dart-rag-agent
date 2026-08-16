@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, FrozenSet, List, Literal, Mapping, Optio
 from src.agent.financial_answer_slots import period_match_key
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
-    _label_implies_percent_metric,
+    label_implies_percent_metric,
 )
 from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
@@ -1337,8 +1337,8 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     if (
         row_unit_family == "PERCENT"
         and operand_unit_family != "PERCENT"
-        and not _label_implies_percent_metric(operand_label)
-        and any(_label_implies_percent_metric(surface) for surface in authoritative_surfaces)
+        and not label_implies_percent_metric(operand_label)
+        and any(label_implies_percent_metric(surface) for surface in authoritative_surfaces)
     ):
         return True
 

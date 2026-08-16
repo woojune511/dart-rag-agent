@@ -54,7 +54,7 @@ def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -
     return False
 
 
-def _label_implies_percent_metric(label: str) -> bool:
+def label_implies_percent_metric(label: str) -> bool:
     normalized = _normalise_spaces(str(label or ""))
     if not normalized:
         return False

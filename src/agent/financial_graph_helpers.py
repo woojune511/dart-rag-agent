@@ -98,7 +98,7 @@ from src.agent.financial_scope_policies import (
 )
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
-    _label_implies_percent_metric,
+    label_implies_percent_metric,
     is_ratio_percent_query,
     _is_single_metric_period_comparison,
     query_requests_narrative_context,
@@ -732,7 +732,7 @@ def _infer_generic_unit_family(label: str) -> str:
     normalized = _normalise_spaces(str(label or ""))
     if not normalized:
         return ""
-    if _label_implies_percent_metric(normalized):
+    if label_implies_percent_metric(normalized):
         return "PERCENT"
     compact = re.sub(r"\s+", "", normalized)
     unit_policy = dict(GENERIC_UNIT_FAMILY_POLICY)
