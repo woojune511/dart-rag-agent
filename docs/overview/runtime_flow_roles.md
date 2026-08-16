@@ -1069,15 +1069,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   operand owner 69/69, semantic 1,194/1,194, additional retrieval-pipeline 1/1,
   reconciliation plan 51/51, import 19/19, audit 217, full 2,087/2,087와
   transform/body/identity/caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 operation-policy owner의 정확한 3줄
-  `_is_ratio_percent_query(...)`을 public `is_ratio_percent_query(...)`로
-  이름 수렴시키는 batch를 선택한다. 4개 importer의 7개 external call은 한
-  positional argument와 no keyword를 유지하며, 6개 caller는 `try` depth
-  zero이고 calculation caller 하나만 기존 broad handler 내부의 depth one을
-  유지한다. 기존 edge만 사용하므로 DAG는 48 modules/205 edges로 비순환이고
-  projected operation-policy public/private는 1/6이다. 아직 source/test
-  rename은 없으며 normalization, marker iteration/short-circuit, caller gate/
-  adoption/exception scope와 네 CURRENT-SOURCE method는
+- 완료된 `f010b6f` ratio-percent-query API batch는 operation-policy owner의
+  정확한 3줄 private classifier를 public `is_ratio_percent_query(...)`로 이름
+  수렴시켰다. 4개 importer의 7개 external call은 public API를 사용한다. 한
+  positional argument/no keyword, 6개 depth-zero caller와 기존 broad handler
+  내부 calculation depth-one caller, normalization/policy-marker iteration/
+  short-circuit, caller gate/adoption/exception scope는 유지됐고 operation-
+  policy public/private는 1/6이다. Focused 4/4, graph owner 238/238, surface
+  owner 1/1, operand owner 69/69, semantic 1,198/1,198, reflection capability
+  24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+  217, full 2,091/2,091와 transform/body/identity/caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는 같은 operation-policy owner의 정확한 6줄
+  `_query_requests_narrative_context(...)`을 public
+  `query_requests_narrative_context(...)`로 이름 수렴시키는 batch를 선택한다.
+  5개 importer의 18개 external call은 한 positional argument와 no keyword,
+  caller `try` depth zero를 유지한다. 입력 truth/string/normalization/lowercase,
+  blank early return, policy-hint tuple construction, membership short-circuit와
+  calculation/evidence/hybrid-task/compression/text-surface caller gate/adoption/
+  stop은 유지해야 한다. 기존 edge만 사용하므로 DAG는 48 modules/205 edges로
+  비순환이고 projected operation-policy public/private는 2/5이다. 아직
+  source/test rename은 없으며 정확한 계약과 네 CURRENT-SOURCE method는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

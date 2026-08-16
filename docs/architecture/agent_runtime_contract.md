@@ -5290,62 +5290,94 @@ test AST 230/230 plus four methods, public identity 5/5, all-call/DAG/public-
 store/retired-live-ref, and UTF-8/non-ASCII gates. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The next private-API contract is the exact current 3-line
-`financial_operation_policies._is_ratio_percent_query(text: str) -> bool`
+Commit `f010b6f` completes the ratio-percent-query visibility contract. The
+exact former 3-line definition is public
+`financial_operation_policies.is_ratio_percent_query(text: str) -> bool`; no
+wrapper or private alias remains. Exact input identity into normalization,
+subsequent policy-marker lookup, marker-container truth and empty-tuple
+fallback, lazy membership, first-truthy short circuit, immutability, and owner-
+uncaught failures are unchanged after definition-name normalization.
+
+All seven calls use one positional argument and no keywords across four
+importers and seven caller definitions. Six calls remain at caller `try` depth
+zero. The calculation call remains inside the existing broad structured-output
+`try`, behind missing-operand/no-direct-grounding gates, and its classifier
+failure still becomes the current missing/debug-state return. Evidence
+admission, operation-family inference, supplemental scoring, missing-info
+projection, reflection objective, ratio fallback, state, artifacts, ledgers,
+and final sequencing remain caller-owned. Operation-policy counts finish 1/6.
+
+Executed gates are focused 4/4, graph owner 238/238, surface owner 1/1,
+operand owner 69/69, affected semantic 1,198/1,198, reflection capability
+24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,091/2,091, plus pycompile, production transform 5/5, complete
+transform 7/7, selected-body/seven-caller parity, existing graph-test AST
+234/234 plus four methods, public identity 5/5, all-call/DAG/public-store/
+retired-live-ref, UTF-8 7/7, and non-ASCII 6/6 gates. The committed source/test
+diff SHA-256 is
+`53eea332fd2447c3ccde0c16e20ae1ccb5c2a5cb48a82a11f3c64746636d044c`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 6-line
+`financial_operation_policies._query_requests_narrative_context(query: str) -> bool`
 definition. It already belongs to the operation-policy owner; the authorized
-future batch only renames it in place to public `is_ratio_percent_query(...)`
-and updates four imports, seven direct calls, and all live test bindings without
-a private alias. Dependency-loader adapters, shared normalization internals,
-marker policy data, ratio evidence/fallback behavior, and caller exception
-scopes are outside this batch.
+future batch only renames it in place to public
+`query_requests_narrative_context(...)` and updates five imports, 18 direct
+calls, and all live test bindings without a private alias. Dependency-loader
+adapters, shared normalization internals, hint policy data, narrative evidence/
+composition behavior, and caller exception scopes are outside this batch.
 
-Preserve exact `_normalise_spaces(text)` with no input coercion, followed by
-exact `RATIO_PERCENT_QUERY_POLICY.get("markers")`. Preserve truth evaluation of
-the returned marker container for `or ()`, the empty-tuple fallback, lazy
-generator iteration, exact marker membership against the normalized object,
-and `any(...)` first-truthy short circuit. Do not stringify, copy, dedupe,
-reorder, or mutate marker data or input. The two-statement body has one
-assignment, one return, three calls, one generator/comprehension, one boolean
-operation, one comparison, and one tuple, with no branch or internal exception
-handler. Every normalization, policy, truth, iteration, membership, and result
-failure remains uncaught by this owner.
+Preserve raw `query or ""` truth evaluation followed by exact `str(...)`,
+`_normalise_spaces(...)`, and `.lower()` order. A false normalized value returns
+exact `False` before policy lookup. Only afterward read exact
+`HELPER_RUNTIME_POLICY.get("narrative_context_hints")`, preserve the returned
+container's truth evaluation for `or ()`, and eagerly build a fresh tuple. A
+retained item keeps separate filter and expression string conversions; a
+rejected item is converted only for the filter. Preserve item order and
+duplicates, tuple completion before membership, lazy `token in normalized`,
+and `any(...)` first-truthy stop. Do not copy or mutate policy data or input.
 
-Every source call uses one positional argument and no keywords across four
-importers and seven caller definitions. Six calls remain outside caller `try`
-blocks. Evidence row/component paths keep combined-query normalization and
-false-result empty-list stops; component extraction keeps its later percent-
-point exclusion. Operation-family inference keeps all earlier configured and
-difference gates and later ontology cues. Reconciliation keeps supplemental-
-seed scoring, missing-info projection, and reflection-objective selection. A
-classifier failure in these six callers stops later work.
+The four-statement body has two assignments, one `if`, and one final return;
+the branch adds a second return. It has eight calls, two generators and
+comprehensions, two boolean operations, one comparison, one tuple, and no
+`try`, loop, lambda, list, or dict. Input truth, conversion, normalization,
+lowercase, normalized truth, policy lookup, marker-container truth/iteration,
+item conversion, tuple construction, membership, and result failures remain
+uncaught by this owner.
 
-The calculation call alone remains inside the existing broad structured-output
-`try`: short-circuit gates require missing operands and no direct numeric
-grounding before invocation, a true result enables ratio fallback, and a
-classifier exception is converted by the existing `except Exception` into the
-current missing/debug-state return. No caller gate, fallback, evidence,
-ontology, retrieval, state, artifact, ledger, or final sequencing moves.
+Every source call uses one positional argument and no keywords across five
+importers and 18 caller definitions, all at caller `try` depth zero. The nine
+calculation calls preserve query/docs/answer/result/sentence/direct-grounding
+short-circuit gates, narrative evidence/result preservation, comparison-
+operand flag adoption, and operand-extraction context selection. The five
+evidence calls preserve supporting-item admission, policy-realized evidence,
+answer augmentation, selected-claim expansion, and direct-grounding context.
+Hybrid narrative-task admission remains intent-gated. Compression guidance
+changes only on true. The two text-surface calls keep their false-result empty
+or passthrough returns. Every classifier failure stops later caller work. No
+evidence construction, answer/result mutation, retrieval, calculation, state,
+artifact, ledger, or final sequencing moves.
 
 The selected body SHA-256 is
-`012a658abd30affb03148f954237974188e5b7d64ad10c522753a1cfe803d09e`.
-The private identifier has 12 production AST references across five source
-files; three exact live test references are in one reflection-capability file.
-The live rename spans six files, and the new graph contract file makes the
-complete transform seven. The 31-33 span selects no reviewed runtime-domain
-record, so all 217 records remain unchanged. Existing edges keep the DAG
-acyclic at 48 modules/205 edges; projected operation-policy counts are 0/7 to
-1/6.
+`e3ab908fe08a56dd67a302d8fd9f28c20413136e58ab33832e4d858cc9ecf9a9`.
+The private identifier has 24 production AST references across six source
+files. Sixty-one exact live test references across six test files make the
+complete source/test transform 12 files; the new graph contracts add no path.
+The 36-41 span selects no reviewed runtime-domain record, so all 217 records
+remain unchanged. Existing edges keep the DAG acyclic at 48 modules/205 edges;
+projected operation-policy counts are 1/6 to 2/5.
 
 Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
-238/238, surface owner 1/1, operand owner 69/69, affected semantic
-1,198/1,198, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,091/2,091,
-production transform 5/5, complete transform 7/7, public identity 5/5, seven-
-call/seven-caller/DAG parity, existing graph-test AST 234/234 plus four methods,
-UTF-8 decode 7/7, non-ASCII preservation 6/6, pycompile, and diff-check gates
+242/242, surface owner 1/1, operand owner 69/69, affected semantic
+1,202/1,202, additional answer-projection 23/23, retrieval-hints 5/5, text-
+surface 30/30, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095,
+production transform 6/6, complete transform 12/12, public identity 6/6, 18-
+call/18-caller/DAG parity, existing graph-test AST 238/238 plus four methods,
+UTF-8 decode 12/12, non-ASCII preservation 9/9, pycompile, and diff-check gates
 are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No ratio-
-percent-query source or test rename has occurred.
+[Project Status Next Work](../overview/project_status.md#next-work). No
+narrative-context-query source or test rename has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

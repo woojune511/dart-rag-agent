@@ -1566,43 +1566,69 @@ check gates passed. The committed source/test diff SHA-256 is
 `ce057382b96c939e60bd0e2f6d14d1773e0c4cd2f759c7bc8983cc65847ed938`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 3-line
-`financial_operation_policies._is_ratio_percent_query(text: str) -> bool`
-classifier for an in-place public rename to `is_ratio_percent_query(...)`, with
-no wrapper or alias. Loader adapters and shared normalization internals remain
-private. Preserve exact input identity into `_normalise_spaces`, subsequent
-policy-marker lookup, marker-container truth and empty-tuple fallback, lazy
-membership iteration, first-truthy `any(...)` stop, immutability, and every
-owner-uncaught failure.
+Commit `f010b6f` completed the ratio-percent-query private-API seam. The exact
+former 3-line classifier is public
+`financial_operation_policies.is_ratio_percent_query(...)`; no wrapper or alias
+remains. All seven calls and four external imports use the public name. Input
+identity, normalization, policy-marker lookup, marker-container truth, empty-
+tuple fallback, lazy membership, first-truthy stop, caller gates, the sole
+depth-one calculation exception boundary, and six depth-zero failure stops are
+unchanged. Operation-policy counts finish 1/6.
 
-Seven one-positional-argument calls span seven caller definitions and four
-importers with no keywords. Six are caller `try` depth zero. The calculation
-call stays at depth one behind missing-operand/no-direct-grounding short-circuit
-gates, and its existing broad handler preserves the current missing/debug-state
-fallback on classifier failure. Evidence admission, operation-family inference,
-supplemental scoring, missing-info projection, reflection objective, ratio
-operand fallback, state, artifacts, ledgers, and final sequencing remain caller-
-owned hard stops.
+Production source is `+12/-12`, tests are `+1,446/-12`, and the whole commit is
+`+1,458/-24`, net `+1,434`; production physical lines are unchanged. Focused
+4/4, graph owner 238/238, surface owner 1/1, operand owner 69/69, affected
+semantic 1,198/1,198, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,091/2,091,
+pycompile, production transform 5/5, complete transform 7/7, selected-body/
+seven-caller parity, existing graph-test AST 234/234 plus four methods, public
+identity 5/5, unchanged acyclic 48-module/205-edge DAG, retired live-ref/public-
+store zero, UTF-8 7/7, non-ASCII 6/6, and diff-check gates passed. The committed
+source/test diff SHA-256 is
+`53eea332fd2447c3ccde0c16e20ae1ccb5c2a5cb48a82a11f3c64746636d044c`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 6-line
+`financial_operation_policies._query_requests_narrative_context(query: str) -> bool`
+classifier for an in-place public rename to
+`query_requests_narrative_context(...)`, with no wrapper or alias. Loader
+adapters and shared normalization internals remain private. Preserve raw input
+truth/empty-string fallback, string conversion, normalization, lowercase and
+blank-result gate order; later policy-hint lookup and container truth; eager
+ordered tuple construction with retained-item double conversion; lazy
+membership and first-truthy `any(...)` stop; immutability; and every owner-
+uncaught failure.
+
+Eighteen one-positional-argument calls span 18 caller definitions and five
+importers with no keywords and caller `try` depth zero. Calculation keeps nine
+query/docs/answer/result/sentence/direct-grounding gates and its existing
+narrative preservation/adoption. Evidence keeps five admission,
+supplementation, augmentation, claim-expansion, and direct-grounding decisions.
+Hybrid-task admission, compression guidance, and two text-surface projections
+retain their existing caller-owned adoption and stops. Evidence/result mutation,
+retrieval, calculation, state, artifacts, ledgers, and final sequencing do not
+move.
 
 Existing edges keep the DAG acyclic at 48 modules/205 edges. Projected
-operation-policy counts are 0/7 to 1/6. The body SHA-256 is
-`012a658abd30affb03148f954237974188e5b7d64ad10c522753a1cfe803d09e`;
-the private identifier has 12 production AST references and no future public-
-name definition/store exists. Three live test refs in one reflection-capability
-file make the live rename six files; the new graph contract file makes the
-complete transform seven. The 31-33 span intersects no reviewed baseline record,
-so all 217 records remain unchanged.
+operation-policy counts are 1/6 to 2/5. The body SHA-256 is
+`e3ab908fe08a56dd67a302d8fd9f28c20413136e58ab33832e4d858cc9ecf9a9`;
+the private identifier has 24 production AST references across six source
+files and no future public-name definition/store exists. Sixty-one live test
+refs across six files make the complete rename 12 files. The 36-41 span
+intersects no reviewed baseline record, so all 217 records remain unchanged.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-238/238, surface owner 1/1, operand owner 69/69, affected semantic
-1,198/1,198, reflection capability 24/24, retrieval-pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,091/2,091,
-production transform 5/5, complete transform 7/7, public identity 5/5, all
-seven calls/seven callers, unchanged DAG, retired-ref/public-store zero,
-existing graph-test AST 234/234 plus four methods, UTF-8 7/7, non-ASCII 6/6,
+242/242, surface owner 1/1, operand owner 69/69, affected semantic
+1,202/1,202, additional answer-projection 23/23, retrieval-hints 5/5, text-
+surface 30/30, reflection capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import 19/19, audit 217, full 2,095/2,095,
+production transform 6/6, complete transform 12/12, public identity 6/6, all
+18 calls/18 callers, unchanged DAG, retired-ref/public-store zero, existing
+graph-test AST 238/238 plus four methods, UTF-8 12/12, non-ASCII 9/9,
 pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No ratio-
-percent-query source or test rename has occurred; it is the sole next priority.
+[project_status.md#next-work](../overview/project_status.md#next-work). No
+narrative-context-query source or test rename has occurred; it is the sole next
+priority.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line
