@@ -250,7 +250,7 @@ from src.agent.financial_operation_policies import (
     is_ratio_percent_query,
     query_requests_narrative_context,
     _requires_direct_numeric_grounding,
-    _should_coerce_percent_point_unit,
+    should_coerce_percent_point_unit,
 )
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
@@ -10129,7 +10129,7 @@ class FinancialAgentCalculationMixin:
                 plan_data["status"] = "incomplete"
                 if not plan_data.get("missing_info"):
                     plan_data["missing_info"] = self._infer_missing_info(state, operands)
-            if _should_coerce_percent_point_unit(query_text, operands, plan_data):
+            if should_coerce_percent_point_unit(query_text, operands, plan_data):
                 plan_data["result_unit"] = "%p"
             guarded_plan = guard_operation_plan(
                 plan=plan_data,

@@ -106,7 +106,7 @@ def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
     return is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
 
 
-def _should_coerce_percent_point_unit(
+def should_coerce_percent_point_unit(
     query: str,
     operands: List[Dict[str, Any]],
     plan_data: Dict[str, Any],

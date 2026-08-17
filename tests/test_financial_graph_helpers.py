@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 import src.agent.financial_graph_helpers as financial_graph_helpers
 import src.agent.financial_aggregate_projection as financial_aggregate_projection
+import src.agent.financial_calculation_execution as financial_calculation_execution
 import src.agent.financial_graph_calculation as financial_graph_calculation
 import src.agent.financial_graph_evidence as financial_graph_evidence
 import src.agent.financial_graph_planning as financial_graph_planning
@@ -48779,7 +48780,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50117,7 +50118,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51383,7 +51384,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52886,7 +52887,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54219,7 +54220,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55471,7 +55472,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56734,7 +56735,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58432,7 +58433,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -58449,7 +58450,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         baseline = json.loads(
@@ -59379,7 +59380,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 2) if target_name == future_public_name else (4, 3),
+            (6, 1) if target_name == future_public_name else (5, 2),
         )
         self.assertEqual(
             [
@@ -59804,7 +59805,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -59821,7 +59822,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         baseline = json.loads(
@@ -61009,7 +61010,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 2) if target_name == future_public_name else (4, 3),
+            (6, 1) if target_name == future_public_name else (5, 2),
         )
         self.assertEqual(
             [
@@ -61390,7 +61391,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -61407,7 +61408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         baseline = json.loads(
@@ -62222,7 +62223,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 2) if target_name == future_public_name else (4, 3),
+            (6, 1) if target_name == future_public_name else (5, 2),
         )
         self.assertEqual(
             [
@@ -62496,7 +62497,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_label_implies_percent_metric_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_label_implies_percent_metric_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -62513,7 +62514,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         importer_objects = {
@@ -63567,7 +63568,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 2) if target_name == future_public_name else (4, 3),
+            (6, 1) if target_name == future_public_name else (5, 2),
         )
         self.assertEqual(
             [
@@ -63843,7 +63844,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -63860,7 +63861,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         owner_target = getattr(financial_operation_policies, target_name)
@@ -64933,7 +64934,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in policy_functions),
                 sum(node.name.startswith("_") for node in policy_functions),
             ),
-            (5, 2),
+            (6, 1),
         )
         imported_by = set()
         direct_calls = []
@@ -65301,7 +65302,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline",
             "test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -65880,7 +65881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 2) if target_name == future_public_name else (4, 3),
+            (6, 1) if target_name == future_public_name else (5, 2),
         )
         self.assertEqual(
             [
@@ -66044,7 +66045,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 (
                     "financial_operation_policies",
-                    "_should_coerce_percent_point_unit",
+                    "should_coerce_percent_point_unit",
                     ["query"],
                     [],
                     0,
@@ -66073,7 +66074,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444"
+                "2e395ec24f0b8c280c1a86744ea34d67e9361907cb004f3f548dc2b898250a55"
                 if target_name == future_public_name
                 else "6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab"
             ),
@@ -66108,7 +66109,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ): "837da702ca73fbab5972dbe7dd36329dcfb4e60903231403da89401adc47a789",
                     (
                         "financial_operation_policies",
-                        "_should_coerce_percent_point_unit",
+                        "should_coerce_percent_point_unit",
                     ): "0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1",
                 }
                 if target_name == future_public_name
@@ -66139,7 +66140,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ): "cce1c7419f7528212b2bf6f40421b033e492e841ae0ed9cd6b6016f73e0f0037",
                     (
                         "financial_operation_policies",
-                        "_should_coerce_percent_point_unit",
+                        "should_coerce_percent_point_unit",
                     ): "33641c756be63626d6e8cf659996dd1c9f5f0e8e30fd5d7ce82ecd99e7a25e69",
                 }
             ),
@@ -66157,7 +66158,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21"
+                "8ccdb658b0f465b6008e3580ba3cd6e76eb8af16f4af9cc467255487f80ffcd8"
                 if target_name == future_public_name
                 else "bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad"
             ),
@@ -66297,12 +66298,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             existing_test_ref_counts,
             {
-                "test_financial_graph_helpers.py": 10,
+                "test_financial_graph_helpers.py": 21,
                 "test_reflection_capability_contract.py": 2,
                 "test_semantic_numeric_plan.py": 3,
             },
         )
-        self.assertEqual(sum(existing_test_ref_counts.values()), 15)
+        self.assertEqual(sum(existing_test_ref_counts.values()), 26)
         self.assertEqual(other_existing_test_ref_counts, {})
 
         current_test_tree = ast.parse(
@@ -66317,7 +66318,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(len(graph_test_methods), 262)
         self.assertEqual(
             {
                 method.name
@@ -66334,7 +66335,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            254,
+            258,
         )
 
         baseline = json.loads(
@@ -66531,7 +66532,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         owner_caller_source = function_source(
             "src/agent/financial_operation_policies.py",
-            "_should_coerce_percent_point_unit",
+            "should_coerce_percent_point_unit",
         )
         self.assertLess(
             owner_caller_source.index(f"{target_name}(query)"),
@@ -67052,7 +67053,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return_value=False,
         ) as owner_target:
             self.assertIs(
-                financial_operation_policies._should_coerce_percent_point_unit(
+                financial_operation_policies.should_coerce_percent_point_unit(
                     "owner query",
                     [],
                     StoppedPlan(),
@@ -67077,7 +67078,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return_value=True,
         ) as true_owner_target:
             self.assertIs(
-                financial_operation_policies._should_coerce_percent_point_unit(
+                financial_operation_policies.should_coerce_percent_point_unit(
                     "owner query",
                     operands,
                     plan_data,
@@ -67092,7 +67093,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             side_effect=RuntimeError("owner classifier failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "owner classifier failed"):
-                financial_operation_policies._should_coerce_percent_point_unit(
+                financial_operation_policies.should_coerce_percent_point_unit(
                     "owner query",
                     operands,
                     plan_data,
@@ -67253,6 +67254,1546 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     reflection_state,
                 )
         stopped_reflection_heuristic.assert_not_called()
+    def test_current_source_should_coerce_percent_point_unit_pins_gates_order_identity_and_result(self) -> None:
+        future_public_name = "should_coerce_percent_point_unit"
+        retired_private_name = "_should_coerce_percent_point_unit"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_operation_policies, target_name)
+        events = []
+        raw_query = object()
+
+        class Identifier:
+            def __init__(self, name, rendered):
+                self.name = name
+                self.rendered = rendered
+
+            def __str__(self):
+                events.append(("identifier-str", self.name))
+                return self.rendered
+
+        class Unit:
+            def __init__(self, name, rendered):
+                self.name = name
+                self.rendered = rendered
+
+            def __str__(self):
+                events.append(("unit-str", self.name))
+                return self.rendered
+
+        class OperandRow(dict):
+            def __init__(self, name, **values):
+                super().__init__(values)
+                self.name = name
+
+            def get(self, key, default=None):
+                events.append(("row-get", self.name, key))
+                return super().get(key, default)
+
+        class PlanData(dict):
+            def get(self, key, default=None):
+                events.append(("plan-get", key))
+                return super().get(key, default)
+
+        class Operation:
+            def __str__(self):
+                events.append(("operation-str",))
+                return " SUBTRACT "
+
+        class Formula:
+            def __str__(self):
+                events.append(("formula-str",))
+                return " A - B "
+
+        class StoppedFormulaMembership:
+            def __contains__(self, _item):
+                raise AssertionError(
+                    "subtract operation must stop final formula membership"
+                )
+
+        identifiers = [
+            Identifier("left", " left "),
+            Identifier("blank", "   "),
+            Identifier("right", "right"),
+        ]
+        stale_row = OperandRow(
+            "stale-left",
+            operand_id=" left ",
+            normalized_unit=Unit("stale-left", "KRW"),
+        )
+        left_row = OperandRow(
+            "left",
+            operand_id=" left ",
+            normalized_unit=Unit("left", "percent"),
+        )
+        right_row = OperandRow(
+            "right",
+            operand_id="right",
+            normalized_unit=Unit("right", "PERCENT"),
+        )
+        operands = [stale_row, left_row, right_row]
+        plan_data = PlanData(
+            mode="single_value",
+            ordered_operand_ids=identifiers,
+            operation=Operation(),
+            formula=Formula(),
+        )
+
+        def classify(query):
+            events.append(("classify", query))
+            self.assertIs(query, raw_query)
+            return True
+
+        def normalize_formula(value):
+            events.append(("normalize-formula", value))
+            self.assertEqual(value, " A - B ")
+            return StoppedFormulaMembership()
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "is_percent_point_difference_query",
+                side_effect=classify,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=normalize_formula,
+            ),
+        ):
+            self.assertIs(target(raw_query, operands, plan_data), True)
+
+        self.assertEqual(
+            events,
+            [
+                ("classify", raw_query),
+                ("plan-get", "mode"),
+                ("plan-get", "ordered_operand_ids"),
+                ("identifier-str", "left"),
+                ("identifier-str", "left"),
+                ("identifier-str", "blank"),
+                ("identifier-str", "right"),
+                ("identifier-str", "right"),
+                ("row-get", "stale-left", "operand_id"),
+                ("row-get", "left", "operand_id"),
+                ("row-get", "right", "operand_id"),
+                ("row-get", "left", "normalized_unit"),
+                ("unit-str", "left"),
+                ("row-get", "right", "normalized_unit"),
+                ("unit-str", "right"),
+                ("plan-get", "operation"),
+                ("operation-str",),
+                ("plan-get", "formula"),
+                ("formula-str",),
+                ("normalize-formula", " A - B "),
+            ],
+        )
+        self.assertNotIn(
+            ("row-get", "stale-left", "normalized_unit"),
+            events,
+        )
+
+        class PlanBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("false query classification must stop plan access")
+
+        stopped_operands = Mock(
+            side_effect=AssertionError("false query classification must stop operands")
+        )
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=False,
+        ) as classifier:
+            self.assertIs(target(raw_query, stopped_operands, PlanBomb()), False)
+        classifier.assert_called_once_with(raw_query)
+        stopped_operands.assert_not_called()
+
+        mode_events = []
+
+        class ModePlan(dict):
+            def get(self, key, default=None):
+                mode_events.append(key)
+                if key != "mode":
+                    raise AssertionError("mode mismatch must stop later plan access")
+                return "SINGLE_VALUE"
+
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=True,
+        ):
+            self.assertIs(target("query", [], ModePlan()), False)
+        self.assertEqual(mode_events, ["mode"])
+
+        class OperandIterationBomb:
+            def __iter__(self):
+                raise AssertionError("short ID list must stop operand-map construction")
+
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=True,
+        ):
+            self.assertIs(
+                target(
+                    "query",
+                    OperandIterationBomb(),
+                    {
+                        "mode": "single_value",
+                        "ordered_operand_ids": ["only"],
+                    },
+                ),
+                False,
+            )
+
+        class UnitBomb:
+            def __str__(self):
+                raise AssertionError("missing operand must stop unit inspection")
+
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=True,
+        ):
+            self.assertIs(
+                target(
+                    "query",
+                    [
+                        {
+                            "operand_id": "present",
+                            "normalized_unit": UnitBomb(),
+                        }
+                    ],
+                    {
+                        "mode": "single_value",
+                        "ordered_operand_ids": ["present", "missing"],
+                    },
+                ),
+                False,
+            )
+
+        class LaterUnitBomb(dict):
+            def get(self, key, default=None):
+                if key == "normalized_unit":
+                    raise AssertionError("all() must stop after the first unit miss")
+                return super().get(key, default)
+
+        class OperationAccessBomb(dict):
+            def get(self, key, default=None):
+                if key in {"operation", "formula"}:
+                    raise AssertionError("unit miss must stop operation/formula access")
+                return super().get(key, default)
+
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=True,
+        ):
+            self.assertIs(
+                target(
+                    "query",
+                    [
+                        {
+                            "operand_id": "left",
+                            "normalized_unit": "percent ",
+                        },
+                        LaterUnitBomb(
+                            operand_id="right",
+                            normalized_unit="PERCENT",
+                        ),
+                    ],
+                    OperationAccessBomb(
+                        mode="single_value",
+                        ordered_operand_ids=["left", "right"],
+                    ),
+                ),
+                False,
+            )
+
+        formula_events = []
+
+        class FormulaText:
+            def __contains__(self, item):
+                formula_events.append(("contains", item))
+                return item == "-"
+
+        formula_plan = {
+            "mode": "single_value",
+            "ordered_operand_ids": ["left", "right"],
+            "operation": "divide",
+            "formula": "A minus B",
+        }
+        percent_operands = [
+            {"operand_id": "left", "normalized_unit": "PERCENT"},
+            {"operand_id": "right", "normalized_unit": "PERCENT"},
+        ]
+        with (
+            patch.object(
+                financial_operation_policies,
+                "is_percent_point_difference_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=lambda value: formula_events.append(
+                    ("normalize", value)
+                )
+                or FormulaText(),
+            ),
+        ):
+            self.assertIs(
+                target("query", percent_operands, formula_plan),
+                True,
+            )
+        self.assertEqual(
+            formula_events,
+            [("normalize", "A minus B"), ("contains", "-")],
+        )
+
+    def test_current_source_should_coerce_percent_point_unit_pins_immutability_laziness_and_exceptions(self) -> None:
+        future_public_name = "should_coerce_percent_point_unit"
+        retired_private_name = "_should_coerce_percent_point_unit"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_operation_policies, target_name)
+
+        nested = {"preserve": ["identity"]}
+        operands = [
+            {
+                "operand_id": "left",
+                "normalized_unit": "percent",
+                "nested": nested,
+            },
+            {
+                "operand_id": "right",
+                "normalized_unit": "PERCENT",
+                "nested": nested,
+            },
+        ]
+        plan_data = {
+            "mode": "single_value",
+            "ordered_operand_ids": ["left", "right"],
+            "operation": "other",
+            "formula": "A - B",
+            "nested": nested,
+        }
+        operands_before = deepcopy(operands)
+        plan_before = deepcopy(plan_data)
+        with patch.object(
+            financial_operation_policies,
+            "is_percent_point_difference_query",
+            return_value=True,
+        ):
+            self.assertIs(target("query", operands, plan_data), True)
+        self.assertEqual(operands, operands_before)
+        self.assertEqual(plan_data, plan_before)
+        self.assertIs(operands[0]["nested"], nested)
+        self.assertIs(operands[1]["nested"], nested)
+        self.assertIs(plan_data["nested"], nested)
+
+        class PlanAccessBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("classifier failure must stop plan access")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "is_percent_point_difference_query",
+                side_effect=RuntimeError("classification failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "classification failed"),
+        ):
+            target("query", [], PlanAccessBomb())
+
+        class ModeGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "mode":
+                    raise RuntimeError("mode lookup failed")
+                return super().get(key, default)
+
+        class StringBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("ordered source truth failed")
+
+        class IterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("ordered source iteration failed")
+
+        class OperandIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("operand iteration failed")
+
+        class RowGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "operand_id":
+                    raise RuntimeError("operand id lookup failed")
+                return super().get(key, default)
+
+        valid_plan = {
+            "mode": "single_value",
+            "ordered_operand_ids": ["left", "right"],
+            "operation": "other",
+            "formula": "A - B",
+        }
+        valid_operands = [
+            {"operand_id": "left", "normalized_unit": "PERCENT"},
+            {"operand_id": "right", "normalized_unit": "PERCENT"},
+        ]
+        exception_cases = [
+            (
+                "mode lookup failed",
+                [],
+                ModeGetBomb(),
+                None,
+            ),
+            (
+                "mode conversion failed",
+                [],
+                {"mode": StringBomb("mode conversion failed")},
+                None,
+            ),
+            (
+                "ordered source truth failed",
+                [],
+                {
+                    "mode": "single_value",
+                    "ordered_operand_ids": TruthBomb(),
+                },
+                None,
+            ),
+            (
+                "ordered source iteration failed",
+                [],
+                {
+                    "mode": "single_value",
+                    "ordered_operand_ids": IterationBomb(),
+                },
+                None,
+            ),
+            (
+                "identifier conversion failed",
+                [],
+                {
+                    "mode": "single_value",
+                    "ordered_operand_ids": [
+                        StringBomb("identifier conversion failed"),
+                        "right",
+                    ],
+                },
+                None,
+            ),
+            (
+                "operand iteration failed",
+                OperandIterationBomb(),
+                valid_plan,
+                None,
+            ),
+            (
+                "operand id lookup failed",
+                [RowGetBomb()],
+                valid_plan,
+                None,
+            ),
+            (
+                "unit conversion failed",
+                [
+                    {
+                        "operand_id": "left",
+                        "normalized_unit": StringBomb(
+                            "unit conversion failed"
+                        ),
+                    },
+                    valid_operands[1],
+                ],
+                valid_plan,
+                None,
+            ),
+            (
+                "operation conversion failed",
+                valid_operands,
+                {
+                    **valid_plan,
+                    "operation": StringBomb("operation conversion failed"),
+                },
+                None,
+            ),
+            (
+                "formula conversion failed",
+                valid_operands,
+                {
+                    **valid_plan,
+                    "operation": "other",
+                    "formula": StringBomb("formula conversion failed"),
+                },
+                None,
+            ),
+            (
+                "formula normalization failed",
+                valid_operands,
+                valid_plan,
+                RuntimeError("formula normalization failed"),
+            ),
+        ]
+        for message, case_operands, case_plan, normalization_error in exception_cases:
+            with self.subTest(message=message):
+                normalization_patch = patch.object(
+                    financial_operation_policies,
+                    "_normalise_spaces",
+                    side_effect=normalization_error,
+                )
+                with (
+                    patch.object(
+                        financial_operation_policies,
+                        "is_percent_point_difference_query",
+                        return_value=True,
+                    ),
+                    normalization_patch,
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    target("query", case_operands, case_plan)
+
+        class MembershipBomb:
+            def __contains__(self, _item):
+                raise RuntimeError("formula membership failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "is_percent_point_difference_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=MembershipBomb(),
+            ),
+            self.assertRaisesRegex(RuntimeError, "formula membership failed"),
+        ):
+            target("query", valid_operands, valid_plan)
+
+    def test_current_source_should_coerce_percent_point_unit_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "should_coerce_percent_point_unit"
+        retired_private_name = "_should_coerce_percent_point_unit"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_operation_policies"]
+        owner_tree = module_trees["financial_operation_policies"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (109, 129))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["query", "operands", "plan_data"],
+        )
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertIsInstance(definition.returns, ast.Name)
+        self.assertEqual(definition.returns.id, "bool")
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            [
+                "If",
+                "If",
+                "Assign",
+                "If",
+                "Assign",
+                "Assign",
+                "If",
+                "If",
+                "Assign",
+                "Assign",
+                "Return",
+            ],
+        )
+        node_counts = {}
+        for node in ast.walk(definition):
+            node_name = type(node).__name__
+            node_counts[node_name] = node_counts.get(node_name, 0) + 1
+        self.assertEqual(
+            {
+                name: node_counts.get(name, 0)
+                for name in (
+                    "AnnAssign",
+                    "Assign",
+                    "For",
+                    "If",
+                    "Return",
+                    "Try",
+                    "TryStar",
+                    "Call",
+                    "List",
+                    "Tuple",
+                    "Dict",
+                    "ListComp",
+                    "DictComp",
+                    "GeneratorExp",
+                    "SetComp",
+                    "BoolOp",
+                    "Compare",
+                    "IfExp",
+                    "comprehension",
+                    "Lambda",
+                    "Starred",
+                )
+            },
+            {
+                "AnnAssign": 0,
+                "Assign": 5,
+                "For": 0,
+                "If": 5,
+                "Return": 6,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 23,
+                "List": 1,
+                "Tuple": 2,
+                "Dict": 1,
+                "ListComp": 2,
+                "DictComp": 1,
+                "GeneratorExp": 2,
+                "SetComp": 0,
+                "BoolOp": 10,
+                "Compare": 6,
+                "IfExp": 0,
+                "comprehension": 5,
+                "Lambda": 0,
+                "Starred": 0,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (6, 1) if target_name == future_public_name else (5, 2),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and node.id == other_name
+                and isinstance(node.ctx, ast.Store)
+                for node in ast.walk(owner_tree)
+            )
+        )
+
+        expected_importers = {
+            "financial_calculation_execution",
+            "financial_graph_calculation",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    == "src.agent.financial_operation_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = (
+                        import_counts.get(module_name, 0) + count
+                    )
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(
+                        current,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [
+                            ast.unparse(argument) for argument in call.args
+                        ],
+                        "keywords": [
+                            keyword.arg for keyword in call.keywords
+                        ],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                (
+                    "financial_calculation_execution",
+                    "build_runtime_deterministic_operation_plan",
+                    [
+                        "str(resolved_active_subtask.get('query') or state['query'])",
+                        "operands",
+                        "plan",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_plan_formula_calculation_from_operation_decision",
+                    ["query_text", "operands", "plan_data"],
+                    [],
+                    1,
+                ),
+            ],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_records,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5"
+                if target_name == future_public_name
+                else "ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b"
+            ),
+        )
+        self.assertEqual(
+            caller_hashes,
+            (
+                {
+                    (
+                        "financial_calculation_execution",
+                        "build_runtime_deterministic_operation_plan",
+                    ): "d104f548bada290e8bdf9bcbd76ff3b0f2637b7606028561a535e3346526fdde",
+                    (
+                        "financial_graph_calculation",
+                        "_plan_formula_calculation_from_operation_decision",
+                    ): "07c6914ef228431cab77a0c4d3bcee01d4c468fd00eb212b7d460060f642e9c7",
+                }
+                if target_name == future_public_name
+                else {
+                    (
+                        "financial_calculation_execution",
+                        "build_runtime_deterministic_operation_plan",
+                    ): "662b15317d47b5b96935ca8645ad16cbe2adca5348f5b096d665d82ba1a4fe04",
+                    (
+                        "financial_graph_calculation",
+                        "_plan_formula_calculation_from_operation_decision",
+                    ): "2e34e777c9aa675a3398b621569c93a79390a45d2666d407d96de7fc2be671a5",
+                }
+            ),
+        )
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d"
+                if target_name == future_public_name
+                else "c7bb14e756091352fbb8fcb55be5e3dea34244652a32ac7edcd0903d3eae1c26"
+            ),
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): tree
+            for path, tree in (
+                (
+                    path,
+                    ast.parse(path.read_text(encoding="utf-8-sig")),
+                )
+                for path in (repo_root / "src" / "agent").rglob("*.py")
+            )
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for source, dependency in edges:
+                    if source != current:
+                        continue
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            all(
+                reaches(
+                    f"src.agent.{module_name}",
+                    "src.agent.financial_operation_policies",
+                )
+                for module_name in expected_importers
+            )
+        )
+        self.assertTrue(
+            all(
+                not reaches(
+                    "src.agent.financial_operation_policies",
+                    f"src.agent.{module_name}",
+                )
+                for module_name in expected_importers
+            )
+        )
+
+        def reference_count(tree, name):
+            count = 0
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and node.id == name:
+                    count += 1
+                elif isinstance(node, ast.Attribute) and node.attr == name:
+                    count += 1
+                elif isinstance(node, ast.alias):
+                    if node.name == name:
+                        count += 1
+                    if node.asname == name:
+                        count += 1
+                elif isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ) and node.name == name:
+                    count += 1
+                elif isinstance(node, ast.Constant) and node.value == name:
+                    count += 1
+            return count
+
+        production_ref_counts = {
+            module_name: reference_count(tree, target_name)
+            for module_name, tree in module_trees.items()
+            if reference_count(tree, target_name)
+        }
+        self.assertEqual(
+            production_ref_counts,
+            {
+                "financial_calculation_execution": 2,
+                "financial_graph_calculation": 2,
+                "financial_operation_policies": 1,
+            },
+        )
+        self.assertEqual(sum(production_ref_counts.values()), 5)
+        self.assertEqual(
+            sum(
+                reference_count(tree, other_name)
+                for tree in module_trees.values()
+            ),
+            0,
+        )
+
+        new_method_names = {
+            "test_current_source_should_coerce_percent_point_unit_pins_gates_order_identity_and_result",
+            "test_current_source_should_coerce_percent_point_unit_pins_immutability_laziness_and_exceptions",
+            "test_current_source_should_coerce_percent_point_unit_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_should_coerce_percent_point_unit_callers_pin_gates_args_adoption_and_stops",
+        }
+        existing_test_ref_counts = {}
+        other_existing_test_ref_counts = {}
+        for path in (repo_root / "tests").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            current_count = reference_count(tree, target_name)
+            other_count = reference_count(tree, other_name)
+            if path.name == "test_financial_graph_helpers.py":
+                for class_node in (
+                    node for node in tree.body if isinstance(node, ast.ClassDef)
+                ):
+                    for method in class_node.body:
+                        if (
+                            isinstance(method, ast.FunctionDef)
+                            and method.name in new_method_names
+                        ):
+                            current_count -= reference_count(method, target_name)
+                            other_count -= reference_count(method, other_name)
+            if current_count:
+                existing_test_ref_counts[path.name] = current_count
+            if other_count:
+                other_existing_test_ref_counts[path.name] = other_count
+        self.assertEqual(
+            existing_test_ref_counts,
+            {
+                "test_financial_calculation_execution.py": 9,
+                "test_financial_graph_helpers.py": 7,
+                "test_math_parsing.py": 2,
+            },
+        )
+        self.assertEqual(sum(existing_test_ref_counts.values()), 18)
+        self.assertEqual(other_existing_test_ref_counts, {})
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        graph_test_methods = [
+            method
+            for class_node in current_test_tree.body
+            if isinstance(class_node, ast.ClassDef)
+            and class_node.name == "FinancialGraphHelperTests"
+            for method in class_node.body
+            if isinstance(method, ast.FunctionDef)
+            and method.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 262)
+        self.assertEqual(
+            {
+                method.name
+                for method in graph_test_methods
+                if method.name in new_method_names
+            },
+            new_method_names,
+        )
+        self.assertEqual(
+            len(
+                [
+                    method
+                    for method in graph_test_methods
+                    if method.name not in new_method_names
+                ]
+            ),
+            258,
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == "src/agent/financial_operation_policies.py"
+                and str(record.get("text") or "") in body_source
+            ],
+            [],
+        )
+
+        importer_objects = {
+            "financial_calculation_execution": financial_calculation_execution,
+            "financial_graph_calculation": financial_graph_calculation,
+        }
+        owner_target = getattr(financial_operation_policies, target_name)
+        public_identities = [owner_target]
+        for module_name, module in importer_objects.items():
+            with self.subTest(module_name=module_name):
+                imported_target = getattr(module, target_name)
+                self.assertIs(imported_target, owner_target)
+                public_identities.append(imported_target)
+        self.assertEqual(len(public_identities), 3)
+        self.assertTrue(all(item is owner_target for item in public_identities))
+
+        transform_paths = {
+            module_paths[module_name]
+            for module_name in expected_importers
+            | {"financial_operation_policies"}
+        } | {
+            repo_root / "tests" / test_name
+            for test_name in existing_test_ref_counts
+        }
+        self.assertEqual(len(transform_paths), 6)
+        self.assertEqual(
+            sum(
+                path.read_bytes().decode("utf-8-sig") is not None
+                for path in transform_paths
+            ),
+            6,
+        )
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in path.read_text(encoding="utf-8-sig")
+                )
+                for path in transform_paths
+            ),
+            5,
+        )
+
+    def test_current_source_should_coerce_percent_point_unit_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "should_coerce_percent_point_unit"
+        retired_private_name = "_should_coerce_percent_point_unit"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        adapter = (
+            financial_calculation_execution.build_runtime_deterministic_operation_plan
+        )
+        nested = {"preserve": ["identity"]}
+        operands = [{"operand_id": "left", "nested": nested}]
+        base_plan = {
+            "status": "ok",
+            "result_unit": "%",
+            "nested": nested,
+        }
+        active_subtask = {
+            "operation_family": " Difference ",
+            "query": " task query ",
+            "required_operands": [],
+            "nested": nested,
+        }
+        state = {"query": "state query", "nested": nested}
+        state_before = deepcopy(state)
+        task_before = deepcopy(active_subtask)
+        operands_before = deepcopy(operands)
+        adapter_events = []
+
+        def build_plan(**kwargs):
+            adapter_events.append("build")
+            self.assertEqual(kwargs["operation_family"], "difference")
+            self.assertIs(kwargs["operands"], operands)
+            return base_plan
+
+        def coerce(query, owner_operands, owner_plan):
+            adapter_events.append("coerce")
+            self.assertEqual(query, " task query ")
+            self.assertIs(owner_operands, operands)
+            self.assertIs(owner_plan, base_plan)
+            return True
+
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "build_deterministic_operation_plan",
+                side_effect=build_plan,
+            ),
+            patch.object(
+                financial_calculation_execution,
+                target_name,
+                side_effect=coerce,
+            ),
+        ):
+            changed = adapter(
+                state,
+                operands,
+                active_subtask=active_subtask,
+            )
+
+        self.assertEqual(adapter_events, ["build", "coerce"])
+        self.assertIsNot(changed, base_plan)
+        self.assertEqual(changed["result_unit"], "%p")
+        self.assertIs(changed["nested"], nested)
+        self.assertEqual(base_plan["result_unit"], "%")
+        self.assertEqual(state, state_before)
+        self.assertEqual(active_subtask, task_before)
+        self.assertEqual(operands, operands_before)
+        self.assertIs(active_subtask["nested"], nested)
+        self.assertIs(operands[0]["nested"], nested)
+
+        class RecordingState(dict):
+            def __init__(self, **values):
+                super().__init__(values)
+                self.events = []
+
+            def __getitem__(self, key):
+                self.events.append(("item", key))
+                return super().__getitem__(key)
+
+        fallback_state = RecordingState(query="fallback query")
+        fallback_task = {
+            **active_subtask,
+            "query": "",
+        }
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=base_plan,
+            ),
+            patch.object(
+                financial_calculation_execution,
+                target_name,
+                return_value=False,
+            ) as false_owner,
+        ):
+            unchanged = adapter(
+                fallback_state,
+                operands,
+                active_subtask=fallback_task,
+            )
+        self.assertIs(unchanged, base_plan)
+        self.assertEqual(fallback_state.events, [("item", "query")])
+        false_owner.assert_called_once_with(
+            "fallback query",
+            operands,
+            base_plan,
+        )
+
+        for operation_family, returned_plan in (
+            ("ratio", base_plan),
+            ("difference", {}),
+            ("difference", None),
+        ):
+            stopped_owner = Mock(
+                side_effect=AssertionError(
+                    "operation-family/plan gates must stop coercion"
+                )
+            )
+            with self.subTest(
+                operation_family=operation_family,
+                returned_plan=returned_plan,
+            ):
+                with (
+                    patch.object(
+                        financial_calculation_execution,
+                        "build_deterministic_operation_plan",
+                        return_value=returned_plan,
+                    ),
+                    patch.object(
+                        financial_calculation_execution,
+                        target_name,
+                        stopped_owner,
+                    ),
+                ):
+                    gated = adapter(
+                        state,
+                        operands,
+                        active_subtask={
+                            **active_subtask,
+                            "operation_family": operation_family,
+                        },
+                    )
+                self.assertIs(gated, returned_plan)
+                stopped_owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=base_plan,
+            ),
+            patch.object(
+                financial_calculation_execution,
+                target_name,
+                side_effect=RuntimeError("adapter coercion failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "adapter coercion failed"),
+        ):
+            adapter(
+                state,
+                operands,
+                active_subtask=active_subtask,
+            )
+        self.assertEqual(base_plan["result_unit"], "%")
+
+        graph_state = {
+            "active_subtask": {
+                "operation_family": "difference",
+                "required_operands": [],
+            }
+        }
+        graph_rows = [
+            {
+                "operand_id": "left",
+                "evidence_id": "ev-left",
+                "label": "left",
+                "raw_value": "10",
+                "raw_unit": "%",
+                "normalized_value": 10.0,
+                "normalized_unit": "PERCENT",
+            },
+            {
+                "operand_id": "right",
+                "evidence_id": "ev-right",
+                "label": "right",
+                "raw_value": "8",
+                "raw_unit": "%",
+                "normalized_value": 8.0,
+                "normalized_unit": "PERCENT",
+            },
+        ]
+        operation_plan_decision = SimpleNamespace(status="unavailable")
+
+        class GraphAgent:
+            def __init__(self, events):
+                self.events = events
+
+            def _calc_query(self, source_state):
+                self.assert_state_identity(source_state)
+                return " raw graph query "
+
+            def assert_state_identity(self, source_state):
+                if source_state is not graph_state:
+                    raise AssertionError("graph caller must retain state identity")
+
+            def _calc_metric_family(self, source_state):
+                self.assert_state_identity(source_state)
+                return ""
+
+            def _build_deterministic_lookup_plan(
+                self,
+                source_state,
+                owner_operands,
+            ):
+                self.assert_state_identity(source_state)
+                if owner_operands != graph_rows:
+                    raise AssertionError("unexpected graph operands")
+                return None
+
+            def _llm_for_phase(self, phase):
+                self.events.append(("llm", phase))
+                return StructuredLlm(self.events)
+
+            def _calculation_plan_artifact_update(
+                self,
+                source_state,
+                plan_data,
+            ):
+                self.assert_state_identity(source_state)
+                self.events.append(("artifact", plan_data))
+                return {"artifact_update": True}
+
+            def _infer_missing_info(self, source_state, owner_operands):
+                self.assert_state_identity(source_state)
+                self.events.append(("infer-missing", owner_operands))
+                return ["missing"]
+
+        class StructuredLlm:
+            def __init__(self, events):
+                self.events = events
+
+            def with_structured_output(self, model):
+                self.events.append(("structured", model))
+                return self
+
+        class PlanModel:
+            def __init__(self, plan_data, events):
+                self.plan_data = plan_data
+                self.events = events
+
+            def model_dump(self):
+                self.events.append(("model-dump", self.plan_data))
+                return self.plan_data
+
+        class Pipe:
+            def __init__(self, plan_model, events):
+                self.plan_model = plan_model
+                self.events = events
+
+            def invoke(self, payload):
+                self.events.append(("invoke", payload))
+                return self.plan_model
+
+        class Prompt:
+            def __init__(self, plan_model, events):
+                self.plan_model = plan_model
+                self.events = events
+
+            def __or__(self, structured_llm):
+                self.events.append(("pipe", structured_llm))
+                return Pipe(self.plan_model, self.events)
+
+        def run_graph_caller(policy_result=None, policy_error=None):
+            events = []
+            plan_data = {
+                "mode": "single_value",
+                "operation": "subtract",
+                "ordered_operand_ids": [],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "left"},
+                    {"variable": "B", "operand_id": "right"},
+                ],
+                "formula": "A - B",
+                "result_unit": "%",
+                "missing_info": [],
+            }
+            plan_model = PlanModel(plan_data, events)
+            agent = GraphAgent(events)
+            helper_operands = []
+
+            def coercion_owner(query, owner_operands, owner_plan):
+                events.append(("coerce", query, owner_operands, owner_plan))
+                self.assertEqual(query, "raw graph query")
+                self.assertIs(owner_plan, plan_data)
+                self.assertEqual(owner_plan["status"], "ok")
+                self.assertEqual(
+                    owner_plan["ordered_operand_ids"],
+                    ["left", "right"],
+                )
+                self.assertEqual(
+                    owner_plan["variable_bindings"],
+                    [
+                        {"variable": "A", "operand_id": "left"},
+                        {"variable": "B", "operand_id": "right"},
+                    ],
+                )
+                helper_operands.append(owner_operands)
+                if policy_error is not None:
+                    raise policy_error
+                return policy_result
+
+            def guard_owner(**kwargs):
+                events.append(("guard", kwargs["plan"]))
+                self.assertIs(kwargs["plan"], plan_data)
+                self.assertIs(kwargs["operands"], helper_operands[0])
+                self.assertEqual(kwargs["required_operands"], [])
+                self.assertEqual(kwargs["operation_family"], "difference")
+                return None
+
+            def trace_owner(source_state, **kwargs):
+                self.assertIs(source_state, graph_state)
+                events.append(("trace", kwargs["calculation_plan"]))
+                return {"captured_plan": kwargs["calculation_plan"]}
+
+            guard_mock = Mock(side_effect=guard_owner)
+            with (
+                patch.object(
+                    financial_graph_calculation,
+                    "_resolve_runtime_calculation_trace",
+                    return_value={"calculation_operands": graph_rows},
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_normalise_spaces",
+                    side_effect=lambda value: events.append(
+                        ("normalize-query", value)
+                    )
+                    or "raw graph query",
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "get_financial_ontology",
+                    return_value=SimpleNamespace(metric_family=lambda _key: None),
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "build_deterministic_ontology_plan",
+                    return_value=None,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_calculation_plan_model",
+                    return_value=object,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_chat_prompt_template_from_template",
+                    return_value=Prompt(plan_model, events),
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    target_name,
+                    side_effect=coercion_owner,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "guard_operation_plan",
+                    guard_mock,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_runtime_trace_state_update",
+                    side_effect=trace_owner,
+                ),
+            ):
+                result = financial_graph_calculation.FinancialAgentCalculationMixin._plan_formula_calculation_from_operation_decision(
+                    agent,
+                    graph_state,
+                    operation_plan_decision,
+                )
+            return result, plan_data, events, helper_operands, guard_mock
+
+        true_result, true_plan, true_events, true_operands, true_guard = (
+            run_graph_caller(policy_result=True)
+        )
+        self.assertEqual(len(true_operands), 1)
+        self.assertIsNot(true_operands[0], graph_rows)
+        self.assertIs(true_operands[0][0], graph_rows[0])
+        self.assertIs(true_operands[0][1], graph_rows[1])
+        self.assertEqual(true_plan["result_unit"], "%p")
+        self.assertIs(true_result["captured_plan"], true_plan)
+        self.assertTrue(true_result["artifact_update"])
+        true_guard.assert_called_once()
+        true_event_names = [event[0] for event in true_events]
+        self.assertLess(
+            true_event_names.index("model-dump"),
+            true_event_names.index("coerce"),
+        )
+        self.assertLess(
+            true_event_names.index("coerce"),
+            true_event_names.index("guard"),
+        )
+        self.assertLess(
+            true_event_names.index("guard"),
+            true_event_names.index("artifact"),
+        )
+        self.assertLess(
+            true_event_names.index("artifact"),
+            true_event_names.index("trace"),
+        )
+
+        false_result, false_plan, false_events, _, false_guard = (
+            run_graph_caller(policy_result=False)
+        )
+        self.assertEqual(false_plan["result_unit"], "%")
+        self.assertIs(false_result["captured_plan"], false_plan)
+        false_guard.assert_called_once()
+        false_guard_event = next(
+            event for event in false_events if event[0] == "guard"
+        )
+        self.assertIs(false_guard_event[1], false_plan)
+
+        failed_result, failed_source_plan, failed_events, _, failed_guard = (
+            run_graph_caller(
+                policy_error=RuntimeError("graph coercion failed")
+            )
+        )
+        failed_guard.assert_not_called()
+        self.assertEqual(failed_source_plan["result_unit"], "%")
+        self.assertEqual(
+            failed_result["planner_debug_trace"]["error"],
+            "graph coercion failed",
+        )
+        failed_plan = failed_result["captured_plan"]
+        self.assertEqual(failed_plan["status"], "incomplete")
+        self.assertEqual(failed_plan["mode"], "none")
+        self.assertEqual(failed_plan["explanation"], "graph coercion failed")
+        self.assertEqual(
+            [event[0] for event in failed_events].count("infer-missing"),
+            2,
+        )
+        self.assertNotIn("guard", [event[0] for event in failed_events])
+        self.assertNotIn("artifact", [event[0] for event in failed_events])
 
 
 if __name__ == "__main__":

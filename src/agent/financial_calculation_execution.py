@@ -10,7 +10,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_matches_requirement,
     _ratio_operand_rows_collapse_to_same_slot,
 )
-from src.agent.financial_operation_policies import _should_coerce_percent_point_unit
+from src.agent.financial_operation_policies import should_coerce_percent_point_unit
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -363,7 +363,7 @@ def build_runtime_deterministic_operation_plan(
         metric_label=metric_label,
         difference_result_unit="",
     )
-    if operation_family == "difference" and plan and _should_coerce_percent_point_unit(
+    if operation_family == "difference" and plan and should_coerce_percent_point_unit(
         str(resolved_active_subtask.get("query") or state["query"]),
         operands,
         plan,

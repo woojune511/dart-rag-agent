@@ -1896,7 +1896,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ) as base_owner,
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
                 side_effect=RuntimeError("percent policy must stay lazy"),
             ) as percent_policy,
         ):
@@ -1946,7 +1946,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ) as fallback_owner,
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
             ) as fallback_policy,
         ):
             fallback = target(state, operands)
@@ -1969,7 +1969,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ),
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
                 later_policy,
             ),
             self.assertRaisesRegex(RuntimeError, "base plan failed"),
@@ -2019,7 +2019,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ),
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
                 side_effect=percent_owner,
             ),
         ):
@@ -2045,7 +2045,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ),
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
                 return_value=False,
             ) as policy,
         ):
@@ -2063,7 +2063,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                 ),
                 patch.object(
                     calculation_execution,
-                    "_should_coerce_percent_point_unit",
+                    "should_coerce_percent_point_unit",
                     side_effect=RuntimeError("policy must stay lazy"),
                 ) as lazy_policy,
             ):
@@ -2080,7 +2080,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             ),
             patch.object(
                 calculation_execution,
-                "_should_coerce_percent_point_unit",
+                "should_coerce_percent_point_unit",
                 side_effect=RuntimeError("percent policy failed"),
             ),
             patch("builtins.dict", wraps=dict) as dict_owner,
@@ -2212,7 +2212,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             sum(
                 isinstance(node, ast.Name)
                 and isinstance(node.ctx, ast.Load)
-                and node.id == "_should_coerce_percent_point_unit"
+                and node.id == "should_coerce_percent_point_unit"
                 for node in ast.walk(graph_tree)
             ),
             1,
@@ -2230,7 +2230,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             sum(
                 isinstance(node, ast.Name)
                 and isinstance(node.ctx, ast.Load)
-                and node.id == "_should_coerce_percent_point_unit"
+                and node.id == "should_coerce_percent_point_unit"
                 for node in ast.walk(definition)
             ),
             1,

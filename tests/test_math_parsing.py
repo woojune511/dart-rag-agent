@@ -9,7 +9,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_operation_policies import _should_coerce_percent_point_unit
+from src.agent.financial_operation_policies import should_coerce_percent_point_unit
 from src.agent.financial_runtime_normalization import _extract_composite_krw, _normalise_operand_value
 from src.ops.evaluator import (
     EvalExample,
@@ -238,7 +238,7 @@ class CompositeKrwParsingTests(unittest.TestCase):
             "result_unit": "%",
         }
         self.assertTrue(
-            _should_coerce_percent_point_unit(
+            should_coerce_percent_point_unit(
                 "2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
                 operands,
                 plan,
