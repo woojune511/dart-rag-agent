@@ -7,7 +7,7 @@ rendering; graph modules retain state preparation, orchestration, and adoption.
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from src.agent.financial_scope_policies import _desired_consolidation_scope
+from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _display_operand_label,
@@ -512,7 +512,7 @@ def _difference_answer_prefix(
     period = _normalise_spaces(
         str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
     )
-    scope = _desired_consolidation_scope(query, report_scope or {})
+    scope = desired_consolidation_scope(query, report_scope or {})
     scope_text = dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {}).get(scope, "")
     period_prefix_template = str(CALCULATION_RENDER_POLICY.get("ratio_period_prefix_template") or "{period} ")
     period_suffix = period_prefix_template.replace("{period}", "").strip()

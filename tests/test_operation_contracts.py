@@ -70,7 +70,7 @@ from src.agent.financial_row_surfaces import (
     parse_unstructured_table_row_cells,
 )
 from src.agent.financial_operation_policies import label_implies_percent_metric, requires_direct_numeric_grounding
-from src.agent.financial_scope_policies import _desired_consolidation_scope
+from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_graph_models import (
     CalculationPlan,
     CalculationRenderOutput,
@@ -1150,14 +1150,14 @@ class OperationContractTests(unittest.TestCase):
 
     def test_financial_statement_queries_default_to_consolidated_scope(self) -> None:
         self.assertEqual(
-            _desired_consolidation_scope(
+            desired_consolidation_scope(
                 "2023년 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
                 {"company": "삼성전자", "year": 2023},
             ),
             "consolidated",
         )
         self.assertEqual(
-            _desired_consolidation_scope(
+            desired_consolidation_scope(
                 "2023년 별도 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
                 {"company": "삼성전자", "year": 2023},
             ),

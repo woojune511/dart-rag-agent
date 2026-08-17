@@ -80,7 +80,7 @@ from src.agent.financial_runtime_normalization import (
     _parse_number_text,
 )
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
+    desired_consolidation_scope,
     _metadata_period_match_strength,
 )
 from src.agent.financial_text_surface import (
@@ -132,7 +132,7 @@ def _prioritize_candidate_items(
     query_years: List[int],
 ) -> List[Dict[str, Any]]:
     desired_statement_types = set(_desired_statement_types(query, topic))
-    desired_consolidation = _desired_consolidation_scope(query, report_scope)
+    desired_consolidation = desired_consolidation_scope(query, report_scope)
     table_counts: Dict[str, int] = {}
     for item in candidate_items:
         metadata = dict(item.get("metadata") or {})

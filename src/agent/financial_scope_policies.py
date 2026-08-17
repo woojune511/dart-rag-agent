@@ -14,7 +14,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> str:
+def desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> str:
     text = _normalise_spaces(query)
     query_markers = dict(CONSOLIDATION_SCOPE_POLICY.get("query_markers") or {})
     for scope, markers in query_markers.items():

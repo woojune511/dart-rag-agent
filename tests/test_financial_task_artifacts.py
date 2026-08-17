@@ -2456,7 +2456,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 dependency_mock = stack.enter_context(
                     patch.object(agent, "_dependency_binding_resolution_state", side_effect=AssertionError("dependency must stop"))
                 )
-                stack.enter_context(patch.object(financial_graph_calculation, "_desired_consolidation_scope", return_value=""))
+                stack.enter_context(patch.object(financial_graph_calculation, "desired_consolidation_scope", return_value=""))
                 stack.enter_context(patch.object(financial_graph_calculation, "_calculation_debug_state_update", return_value={}))
                 stack.enter_context(patch.object(financial_graph_calculation, "_runtime_trace_state_update", return_value={}))
                 stack.enter_context(patch.object(financial_graph_calculation, "requires_direct_numeric_grounding", return_value=False))

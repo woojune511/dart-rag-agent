@@ -9374,7 +9374,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (11, 9))
+        self.assertEqual(owner_counts, (12, 8))
 
         def imported_names(module_name, imported_module):
             return {
@@ -9392,7 +9392,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertTrue(
             {
-                "_desired_consolidation_scope",
+                "desired_consolidation_scope",
                 "operand_period_focus",
             }.issubset(graph_owner_imports)
         )
@@ -9539,7 +9539,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_helpers,
-                "_desired_consolidation_scope",
+                "desired_consolidation_scope",
                 side_effect=hybrid_scope,
             ),
             patch.object(
@@ -9572,7 +9572,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_policies = Mock(side_effect=AssertionError("period failure must stop policies"))
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(
                 financial_graph_helpers,
                 query_name,
@@ -9631,7 +9631,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return "multi_period"
 
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", side_effect=concept_scope),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", side_effect=concept_scope),
             patch.object(financial_graph_helpers, query_name, side_effect=concept_query_period),
             patch.object(financial_graph_helpers, task_name, side_effect=concept_task_period),
             patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
@@ -9658,7 +9658,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         skipped_task_period = Mock(side_effect=AssertionError("falsey specs must skip role refinement"))
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="separate"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="separate"),
             patch.object(financial_graph_helpers, query_name, return_value="current"),
             patch.object(financial_graph_helpers, task_name, skipped_task_period),
             patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
@@ -9676,7 +9676,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_task = Mock(side_effect=AssertionError("query-period failure must stop role refinement"))
         stopped_normalize = Mock(side_effect=AssertionError("query-period failure must stop segment policy"))
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(
                 financial_graph_helpers,
                 query_name,
@@ -9698,7 +9698,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         stopped_normalize = Mock(side_effect=AssertionError("role failure must stop segment policy"))
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_helpers, query_name, return_value="prior"),
             patch.object(
                 financial_graph_helpers,
@@ -9741,7 +9741,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="growth_rate"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="consolidated"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="consolidated"),
             patch.object(financial_graph_helpers, query_name, side_effect=heuristic_query_period),
             patch.object(financial_graph_helpers, task_name, side_effect=heuristic_task_period),
             patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", side_effect=heuristic_retrieval),
@@ -9773,7 +9773,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="lookup"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(
                 financial_graph_helpers,
                 query_name,
@@ -9800,7 +9800,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "_infer_operation_family_from_query", return_value="lookup"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_helpers, query_name, return_value="current"),
             patch.object(
                 financial_graph_helpers,
@@ -9832,7 +9832,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             return "prior"
 
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", side_effect=metric_scope),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", side_effect=metric_scope),
             patch.object(financial_graph_helpers, query_name, side_effect=metric_period),
         ):
             metric_constraints = financial_graph_helpers._build_task_constraints(
@@ -9875,7 +9875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
 
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
             patch.object(
                 financial_graph_helpers,
                 query_name,
@@ -12471,7 +12471,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_helpers,
-                "_desired_consolidation_scope",
+                "desired_consolidation_scope",
                 side_effect=lambda query, scope: record("scope", "consolidated"),
             ) as scope_owner,
             patch.object(
@@ -12584,7 +12584,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         default_owner = Mock(side_effect=AssertionError("default format accessed"))
         term_owner = Mock(side_effect=AssertionError("table terms accessed"))
         with (
-            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="separate"),
+            patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="separate"),
             patch.object(financial_graph_helpers, "query_period_focus", return_value="prior"),
             patch.object(financial_graph_helpers, "active_narrative_policies", return_value=[paragraph_policy]),
             patch.object(financial_graph_helpers, "narrative_policy_slot_groups", return_value=[]),
@@ -12629,7 +12629,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_helpers,
-                "_desired_consolidation_scope",
+                "desired_consolidation_scope",
                 side_effect=RuntimeError("scope failed"),
             ),
             patch.object(financial_graph_helpers, "query_period_focus", period_owner),
@@ -13089,7 +13089,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         dead_after_move = {
             "query_period_focus",
             "query_requests_narrative_context",
-            "_desired_consolidation_scope",
+            "desired_consolidation_scope",
             "NARRATIVE_BASE_RETRIEVAL_SUFFIXES",
             "active_narrative_policies",
             "narrative_policy_preferred_sections",
@@ -13875,7 +13875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (11, 9),
+            (12, 8),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -17787,7 +17787,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (11, 9),
+            (12, 8),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -19981,7 +19981,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         evidence_items = [evidence_item]
         common_evidence_patches = (
             patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
-            patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
             patch.object(
                 financial_graph_evidence,
@@ -20019,7 +20019,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             )
             with (
                 patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
-                patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
                 patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
                 patch.object(
                     financial_graph_evidence,
@@ -20042,7 +20042,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
-            patch.object(financial_graph_evidence, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
             patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
             patch.object(
                 financial_graph_evidence,
@@ -20648,7 +20648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_scope_policies": (11, 9),
+                "financial_scope_policies": (12, 8),
             },
         )
 
@@ -24315,7 +24315,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (11, 9)},
+            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (12, 8)},
         )
 
         def imported_modules(tree):
@@ -48781,7 +48781,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50119,7 +50119,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51385,7 +51385,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52888,7 +52888,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -53192,7 +53192,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "b7c523e332f7e160994bfb7f3f6b8156c054c8a2d731f1322a4442f42beec20b"
+                "de70fe41c6d67983c88057602c04534c867e7a8fe1e48449ab69cd282fcbf61a"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -54221,7 +54221,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55473,7 +55473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56736,7 +56736,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58434,7 +58434,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -58451,7 +58451,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -59578,7 +59578,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "9b134a9f72a38aa810a4ca07c74d502177f731fdfd0bbcb8679751506281d91b",
+                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
                     (
                         "financial_graph_evidence",
                         "_extract_ratio_row_candidates",
@@ -59650,7 +59650,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "4734e8142eb2d46dc017a342bc7c301dcf63716f285ec7cea004e65a1983f226"
+                "b663382b0003d221cb0ea03a21b62dc6e8c80dea11ee4bb7ffd60f56c60c0e39"
                 if target_name == future_public_name
                 else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
             ),
@@ -59806,7 +59806,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -59823,7 +59823,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -61179,7 +61179,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query"): "c30b4b84c3c1c37d977b85ae86a9944984ca181e43ded4d625233097a4539460",
                     ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context"): "92d6a14434df6de4679e37e7b07e19bb99f089ffdb6430a07491d74bd65c19e9",
                     ("financial_graph_calculation", "_compose_growth_narrative_answer"): "f41c46b3696afb83b0d1be67e9459a5859c81b941aa51b107bb4b4e97e94d520",
-                    ("financial_graph_calculation", "_extract_calculation_operands"): "9b134a9f72a38aa810a4ca07c74d502177f731fdfd0bbcb8679751506281d91b",
+                    ("financial_graph_calculation", "_extract_calculation_operands"): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
                     ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results"): "d1432c5be02a6a66805f50b621b4d108dd1b326912d8ace0584bd437880714f6",
                     ("financial_graph_calculation", "_preserve_policy_required_realized_context"): "30cf4dd145889c7f60e4925a07a58fd9829fe63a3f5e14193f237412e1d60d85",
                     ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences"): "0d2662df66118668e6cc5f44ece4d512d4305741453d707c48ce8d5064fa9a5d",
@@ -61230,7 +61230,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "545f13fee330746cad606b810c62f04a9f19cee67ceb4669c63b2d3f28d58911"
+                "04a31adf45152d807bc4e75a29b1c2f8af5001c77aef90171dade9211e783e9c"
                 if target_name == future_public_name
                 else "12c5fb354fe3d80dace6e5d38276d171deb84780820a33c41b3577a7e2aa938a"
             ),
@@ -61392,7 +61392,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -61409,7 +61409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -62498,7 +62498,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_label_implies_percent_metric_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_label_implies_percent_metric_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -62515,7 +62515,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         importer_objects = {
@@ -63845,7 +63845,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -63862,7 +63862,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         owner_target = getattr(financial_operation_policies, target_name)
@@ -65303,7 +65303,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline",
             "test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -66087,7 +66087,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "9b134a9f72a38aa810a4ca07c74d502177f731fdfd0bbcb8679751506281d91b",
+                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
                     (
                         "financial_graph_evidence",
                         "_build_ratio_operands_from_candidates",
@@ -66159,7 +66159,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "e9813b1979f5966cc036b55f798cef4c86164502cba544609f296cfa8afdb39d"
+                "703eb6d24f48d5aa4d29bcd128346e0b8acd1956478e07f19b4fa03ade4ec6f4"
                 if target_name == future_public_name
                 else "bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad"
             ),
@@ -66319,7 +66319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -66336,7 +66336,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -68268,7 +68268,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -68285,7 +68285,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -69686,7 +69686,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "9b134a9f72a38aa810a4ca07c74d502177f731fdfd0bbcb8679751506281d91b",
+                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
                     (
                         "financial_graph_evidence",
                         "_extract_evidence",
@@ -69722,7 +69722,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac"
+                "657ba51d5950dda48275e4c1079ffb7f94a0ec47f27f098ba03bbc0570789ff5"
                 if target_name == future_public_name
                 else "1aae37e05f6a5c218dd0c5604a691ac7e56207387cc3cf9774aa4fbd891481ef"
             ),
@@ -69881,7 +69881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 266)
+        self.assertEqual(len(graph_test_methods), 270)
         self.assertEqual(
             {
                 method.name
@@ -69898,7 +69898,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            262,
+            266,
         )
 
         baseline = json.loads(
@@ -70314,7 +70314,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_calculation,
-                    "_desired_consolidation_scope",
+                    "desired_consolidation_scope",
                     return_value="",
                 ),
                 patch.object(
@@ -70382,7 +70382,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_calculation,
-                "_desired_consolidation_scope",
+                "desired_consolidation_scope",
                 return_value="",
             ),
             patch.object(
@@ -70402,6 +70402,1743 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 calculation_state,
             )
         stopped_surface.assert_not_called()
+
+    def test_current_source_desired_consolidation_scope_pins_precedence_policy_order_copy_and_results(self) -> None:
+        future_public_name = "desired_consolidation_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+        events = []
+
+        class Scope:
+            def __init__(self, name):
+                self.name = name
+
+            def __str__(self):
+                events.append(("scope-str", self.name))
+                return self.name
+
+        class Marker:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("marker-str", self.name))
+                return self.value
+
+        class MustCopy(dict):
+            def items(self):
+                raise AssertionError("policy iteration must use a plain shallow copy")
+
+        class Policy(dict):
+            def get(self, key, default=None):
+                events.append(("policy-get", key))
+                return super().get(key, default)
+
+        class ReportScopeBomb:
+            def __bool__(self):
+                raise AssertionError("a query-marker hit must stop report-scope access")
+
+        first_scope = Scope("query-first")
+        second_scope = Scope("query-second")
+        first_marker = Marker("query-first", "needle")
+        stopped_marker = Marker("query-second", "needle")
+        query_markers = MustCopy(
+            {
+                first_scope: [first_marker],
+                second_scope: [stopped_marker],
+            }
+        )
+        metadata_values = MustCopy({Scope("metadata"): ["metadata"]})
+        default_markers = [Marker("default", "needle")]
+        policy = Policy(
+            query_markers=query_markers,
+            metadata_values=metadata_values,
+            default_consolidated_markers=default_markers,
+        )
+        normalise = Mock(side_effect=lambda value: str(value).strip())
+        with (
+            patch.object(
+                financial_scope_policies,
+                "CONSOLIDATION_SCOPE_POLICY",
+                policy,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "_normalise_spaces",
+                normalise,
+            ),
+        ):
+            self.assertEqual(target("prefix needle suffix", ReportScopeBomb()), "query-first")
+        normalise.assert_called_once_with("prefix needle suffix")
+        self.assertEqual(
+            events,
+            [
+                ("policy-get", "query_markers"),
+                ("marker-str", "query-first"),
+                ("marker-str", "query-first"),
+                ("scope-str", "query-first"),
+            ],
+        )
+        self.assertIs(query_markers[first_scope][0], first_marker)
+        self.assertIs(policy["default_consolidated_markers"], default_markers)
+
+        events.clear()
+        metadata_first = Scope("metadata-first")
+        metadata_second = Scope("metadata-second")
+        first_value = Marker("metadata-first", "meta")
+        stopped_value = Marker("metadata-second", "meta")
+        stopped_default = Marker("stopped-default", "anything")
+        policy = Policy(
+            query_markers=MustCopy({Scope("query-miss"): [Marker("query-miss", "absent")]}),
+            metadata_values=MustCopy(
+                {
+                    metadata_first: [first_value],
+                    metadata_second: [stopped_value],
+                }
+            ),
+            default_consolidated_markers=[stopped_default],
+        )
+        report_nested = {"identity": True}
+        report_scope = {"consolidation": " META ", "nested": report_nested}
+        report_before = deepcopy(report_scope)
+        with (
+            patch.object(
+                financial_scope_policies,
+                "CONSOLIDATION_SCOPE_POLICY",
+                policy,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "_normalise_spaces",
+                side_effect=lambda value: str(value).strip(),
+            ),
+        ):
+            self.assertEqual(target("no query marker", report_scope), "metadata-first")
+        self.assertEqual(report_scope, report_before)
+        self.assertIs(report_scope["nested"], report_nested)
+        self.assertEqual(events.count(("marker-str", "query-miss")), 2)
+        self.assertEqual(events.count(("marker-str", "metadata-first")), 1)
+        self.assertNotIn(("marker-str", "metadata-second"), events)
+        self.assertNotIn(("marker-str", "stopped-default"), events)
+        self.assertLess(
+            events.index(("policy-get", "query_markers")),
+            events.index(("policy-get", "metadata_values")),
+        )
+        self.assertNotIn(("policy-get", "default_consolidated_markers"), events)
+
+        default_policy = {
+            "query_markers": {},
+            "metadata_values": {},
+            "default_consolidated_markers": ["default-hit", "later"],
+        }
+        default_before = deepcopy(default_policy)
+        with patch.object(
+            financial_scope_policies,
+            "CONSOLIDATION_SCOPE_POLICY",
+            default_policy,
+        ):
+            self.assertEqual(target("default-hit query", {}), "consolidated")
+            self.assertEqual(target("unmatched query", {}), "unknown")
+        self.assertEqual(default_policy, default_before)
+
+        checked_in_policy = financial_scope_policies.CONSOLIDATION_SCOPE_POLICY
+        checked_in_before = deepcopy(checked_in_policy)
+        self.assertEqual(target("연결 재무제표", {"consolidation": "별도"}), "consolidated")
+        self.assertEqual(target("일반 질문", {"consolidation": "standalone"}), "separate")
+        self.assertEqual(target("재무제표 항목", {}), "consolidated")
+        self.assertEqual(target("일반 질문", {}), "unknown")
+        self.assertEqual(checked_in_policy, checked_in_before)
+
+    def test_current_source_desired_consolidation_scope_pins_immutability_laziness_and_exceptions(self) -> None:
+        future_public_name = "desired_consolidation_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+        events = []
+
+        class Rendered:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return self.value
+
+        class StringBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        class Policy(dict):
+            def get(self, key, default=None):
+                events.append(("get", key))
+                return super().get(key, default)
+
+        blank = Rendered("blank", "")
+        hit = Rendered("hit", "needle")
+        stopped = StringBomb("query any consumed past first hit")
+        query_policy = Policy(
+            query_markers={"scope": [blank, hit, stopped]},
+            metadata_values={"metadata": [StringBomb("metadata accessed after query hit")]},
+            default_consolidated_markers=[StringBomb("default accessed after query hit")],
+        )
+        with patch.object(
+            financial_scope_policies,
+            "CONSOLIDATION_SCOPE_POLICY",
+            query_policy,
+        ):
+            self.assertEqual(target("needle", {}), "scope")
+        self.assertEqual(events.count(("str", "blank")), 1)
+        self.assertEqual(events.count(("str", "hit")), 2)
+        self.assertEqual(events, [("get", "query_markers"), ("str", "blank"), ("str", "hit"), ("str", "hit")])
+
+        events.clear()
+        metadata_policy = Policy(
+            query_markers={},
+            metadata_values={"metadata-first": [Rendered("metadata-value", "meta")]},
+            default_consolidated_markers=[StringBomb("default accessed after metadata hit")],
+        )
+        with patch.object(
+            financial_scope_policies,
+            "CONSOLIDATION_SCOPE_POLICY",
+            metadata_policy,
+        ):
+            self.assertEqual(target("plain", {"consolidation": "META"}), "metadata-first")
+        self.assertEqual(
+            events,
+            [
+                ("get", "query_markers"),
+                ("get", "metadata_values"),
+                ("str", "metadata-value"),
+            ],
+        )
+
+        class EagerIterable:
+            def __init__(self, first, message):
+                self.first = first
+                self.message = message
+
+            def __iter__(self):
+                yield self.first
+                raise RuntimeError(self.message)
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {
+                    "query_markers": {},
+                    "metadata_values": {
+                        "metadata": EagerIterable("meta", "metadata values are eager")
+                    },
+                    "default_consolidated_markers": (),
+                },
+            ),
+            self.assertRaisesRegex(RuntimeError, "metadata values are eager"),
+        ):
+            target("plain", {"consolidation": "meta"})
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "CONSOLIDATION_SCOPE_POLICY",
+                {
+                    "query_markers": {},
+                    "metadata_values": {},
+                    "default_consolidated_markers": EagerIterable(
+                        "needle",
+                        "default markers are eager",
+                    ),
+                },
+            ),
+            self.assertRaisesRegex(RuntimeError, "default markers are eager"),
+        ):
+            target("needle", {})
+
+        nested = {"identity": [1]}
+        report_scope = {"consolidation": "unknown", "nested": nested}
+        policy = {
+            "query_markers": {"scope": ["absent"]},
+            "metadata_values": {"scope": ["other"]},
+            "default_consolidated_markers": ["none"],
+        }
+        report_before = deepcopy(report_scope)
+        policy_before = deepcopy(policy)
+        with patch.object(
+            financial_scope_policies,
+            "CONSOLIDATION_SCOPE_POLICY",
+            policy,
+        ):
+            self.assertEqual(target("plain", report_scope), "unknown")
+        self.assertEqual(report_scope, report_before)
+        self.assertIs(report_scope["nested"], nested)
+        self.assertEqual(policy, policy_before)
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("report truth failed")
+
+        class GetBomb:
+            def __bool__(self):
+                return True
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("report get failed")
+
+        class CopyBomb:
+            def keys(self):
+                raise RuntimeError("policy copy failed")
+
+        exception_cases = [
+            (
+                "query normalization failed",
+                {"query_markers": {}, "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                {},
+                Mock(side_effect=RuntimeError("query normalization failed")),
+            ),
+            (
+                "policy copy failed",
+                {"query_markers": CopyBomb(), "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                {},
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "query marker conversion failed",
+                {"query_markers": {"scope": [StringBomb("query marker conversion failed")]}, "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                {},
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "scope conversion failed",
+                {"query_markers": {StringBomb("scope conversion failed"): ["query"]}, "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                {},
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "report truth failed",
+                {"query_markers": {}, "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                TruthBomb(),
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "report get failed",
+                {"query_markers": {}, "metadata_values": {}, "default_consolidated_markers": ()},
+                "query",
+                GetBomb(),
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "metadata conversion failed",
+                {"query_markers": {}, "metadata_values": {"scope": [StringBomb("metadata conversion failed")]}, "default_consolidated_markers": ()},
+                "query",
+                {"consolidation": "scope"},
+                Mock(side_effect=lambda value: str(value)),
+            ),
+            (
+                "default conversion failed",
+                {"query_markers": {}, "metadata_values": {}, "default_consolidated_markers": [StringBomb("default conversion failed")]},
+                "query",
+                {},
+                Mock(side_effect=lambda value: str(value)),
+            ),
+        ]
+        for message, case_policy, query, scope, normalise in exception_cases:
+            with self.subTest(message=message):
+                with (
+                    patch.object(
+                        financial_scope_policies,
+                        "CONSOLIDATION_SCOPE_POLICY",
+                        case_policy,
+                    ),
+                    patch.object(
+                        financial_scope_policies,
+                        "_normalise_spaces",
+                        normalise,
+                    ),
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    target(query, scope)
+
+    def test_current_source_desired_consolidation_scope_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        owner_path = repo_root / "src" / "agent" / "financial_scope_policies.py"
+        future_public_name = "desired_consolidation_scope"
+        retired_private_name = "_" + future_public_name
+        collision_free_local_name = "requested_consolidation_scope"
+        owner_source = owner_path.read_text(encoding="utf-8-sig")
+        owner_tree = ast.parse(owner_source)
+        target_name = (
+            future_public_name
+            if any(
+                isinstance(node, ast.FunctionDef)
+                and node.name == future_public_name
+                for node in owner_tree.body
+            )
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (17, 31))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["query", "report_scope"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["str", "Dict[str, Any]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "str")
+        self.assertEqual(
+            [type(node).__name__ for node in definition.body],
+            [
+                "Assign",
+                "Assign",
+                "For",
+                "Assign",
+                "Assign",
+                "For",
+                "Assign",
+                "If",
+                "Return",
+            ],
+        )
+        selected_body = ast.Module(body=definition.body, type_ignores=[])
+        node_counts = {
+            kind: sum(
+                type(node).__name__ == kind
+                for node in ast.walk(selected_body)
+            )
+            for kind in (
+                "AnnAssign",
+                "Assign",
+                "For",
+                "If",
+                "Return",
+                "Try",
+                "TryStar",
+                "Call",
+                "List",
+                "Tuple",
+                "Dict",
+                "Set",
+                "ListComp",
+                "DictComp",
+                "SetComp",
+                "GeneratorExp",
+                "IfExp",
+                "Lambda",
+                "Starred",
+                "comprehension",
+                "BoolOp",
+                "Compare",
+            )
+        }
+        self.assertEqual(
+            node_counts,
+            {
+                "AnnAssign": 0,
+                "Assign": 5,
+                "For": 2,
+                "If": 3,
+                "Return": 4,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 22,
+                "List": 0,
+                "Tuple": 5,
+                "Dict": 3,
+                "Set": 0,
+                "ListComp": 0,
+                "DictComp": 0,
+                "SetComp": 1,
+                "GeneratorExp": 3,
+                "IfExp": 0,
+                "Lambda": 0,
+                "Starred": 0,
+                "comprehension": 4,
+                "BoolOp": 8,
+                "Compare": 3,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(len(owner_functions), 20)
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (12, 8) if target_name == future_public_name else (11, 9),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and node.id == other_name
+                and isinstance(node.ctx, ast.Store)
+                for node in ast.walk(owner_tree)
+            )
+        )
+
+        module_paths = sorted((repo_root / "src" / "agent").glob("*.py"))
+        module_sources = {
+            path.stem: path.read_text(encoding="utf-8-sig")
+            for path in module_paths
+        }
+        module_trees = {
+            module_name: ast.parse(source)
+            for module_name, source in module_sources.items()
+        }
+        expected_importers = {
+            "financial_graph_calculation",
+            "financial_graph_calculation_rendering",
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_retrieval_pipeline",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module == "src.agent.financial_scope_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = import_counts.get(module_name, 0) + count
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [ast.unparse(argument) for argument in call.args],
+                        "keywords": [keyword.arg for keyword in call.keywords],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                (
+                    "financial_graph_calculation",
+                    "_context_scope_score",
+                    [
+                        "str(state.get('query') or '')",
+                        "dict(state.get('report_scope') or {})",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_recover_lookup_results_from_sibling_table_evidence",
+                    [
+                        "str(state.get('query') or '')",
+                        "dict(state.get('report_scope') or {})",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_recover_lookup_results_from_sibling_table_evidence",
+                    [
+                        "str(state.get('query') or '')",
+                        "dict(state.get('report_scope') or {})",
+                    ],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_structured_graph_provenance_for_dependency_operand",
+                    ["str(state.get('query') or '')", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation",
+                    "_extract_calculation_operands",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_calculation_rendering",
+                    "_difference_answer_prefix",
+                    ["query", "report_scope or {}"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_evidence",
+                    "_prioritize_candidate_items",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "build_hybrid_narrative_subtask",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "_build_concept_task_constraints",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "_build_heuristic_numeric_task",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "_build_task_constraints",
+                    ["query", "report_scope"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_retrieval_pipeline",
+                    "_rerank_docs",
+                    ["state['query']", "dict(state.get('report_scope') or {})"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+        actual_call_hash = hashlib.sha256(
+            json.dumps(
+                call_records,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(
+            actual_call_hash,
+            (
+                "e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291"
+                if target_name == future_public_name
+                else "cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b"
+            ),
+        )
+        self.assertEqual(len(caller_hashes), 11)
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        actual_caller_map_hash = hashlib.sha256(
+            json.dumps(
+                caller_hash_payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(
+            actual_caller_map_hash,
+            (
+                "143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9"
+                if target_name == future_public_name
+                else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
+            ),
+        )
+
+        calculation_tree = module_trees["financial_graph_calculation"]
+        calculation_source = module_sources["financial_graph_calculation"]
+        calculation_extract = next(
+            node
+            for node in ast.walk(calculation_tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_extract_calculation_operands"
+        )
+        keyword_count = sum(
+            isinstance(node, ast.keyword)
+            and node.arg == future_public_name
+            for node in ast.walk(calculation_extract)
+        )
+        self.assertEqual(keyword_count, 2)
+        if target_name == retired_private_name:
+            collision_nodes = [
+                node
+                for node in ast.walk(calculation_extract)
+                if isinstance(node, ast.Name)
+                and node.id == future_public_name
+            ]
+            self.assertEqual(
+                {
+                    kind: sum(type(node.ctx).__name__ == kind for node in collision_nodes)
+                    for kind in ("Store", "Load")
+                },
+                {"Store": 1, "Load": 8},
+            )
+            self.assertFalse(
+                any(
+                    isinstance(node, ast.Name)
+                    and node.id == collision_free_local_name
+                    for node in ast.walk(calculation_extract)
+                )
+            )
+
+            source_lines = calculation_source.splitlines(keepends=True)
+            line_offsets = []
+            offset = 0
+            for line in source_lines:
+                line_offsets.append(offset)
+                offset += len(line)
+            local_edits = []
+            for node in collision_nodes:
+                start = line_offsets[node.lineno - 1] + node.col_offset
+                end = line_offsets[node.end_lineno - 1] + node.end_col_offset
+                self.assertEqual(
+                    calculation_source[start:end],
+                    future_public_name,
+                )
+                local_edits.append((start, end))
+            for start, end in sorted(local_edits, reverse=True):
+                calculation_source = (
+                    calculation_source[:start]
+                    + collision_free_local_name
+                    + calculation_source[end:]
+                )
+            projected_sources = dict(module_sources)
+            projected_sources["financial_graph_calculation"] = calculation_source
+            projected_sources = {
+                module_name: source.replace(
+                    retired_private_name,
+                    future_public_name,
+                )
+                for module_name, source in projected_sources.items()
+            }
+        else:
+            public_call_nodes = [
+                node
+                for node in ast.walk(calculation_extract)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == future_public_name
+            ]
+            self.assertEqual(len(public_call_nodes), 1)
+            local_nodes = [
+                node
+                for node in ast.walk(calculation_extract)
+                if isinstance(node, ast.Name)
+                and node.id == collision_free_local_name
+            ]
+            self.assertEqual(
+                {
+                    kind: sum(type(node.ctx).__name__ == kind for node in local_nodes)
+                    for kind in ("Store", "Load")
+                },
+                {"Store": 1, "Load": 8},
+            )
+            self.assertEqual(
+                sum(
+                    isinstance(node, ast.Name)
+                    and node.id == future_public_name
+                    for node in ast.walk(calculation_extract)
+                ),
+                1,
+            )
+            projected_sources = dict(module_sources)
+
+        projected_trees = {}
+        for module_name, source in projected_sources.items():
+            compile(
+                source,
+                f"<projected:{module_name}>",
+                "exec",
+                ast.PyCF_ONLY_AST,
+            )
+            projected_trees[module_name] = ast.parse(source)
+        projected_owner = projected_trees["financial_scope_policies"]
+        projected_owner_functions = [
+            node
+            for node in projected_owner.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in projected_owner_functions),
+                sum(node.name.startswith("_") for node in projected_owner_functions),
+            ),
+            (12, 8),
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.FunctionDef)
+                and node.name == future_public_name
+                for node in projected_owner.body
+            ),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.FunctionDef)
+                and node.name == retired_private_name
+                for node in projected_owner.body
+            ),
+            0,
+        )
+        projected_calculation_extract = next(
+            node
+            for node in ast.walk(projected_trees["financial_graph_calculation"])
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_extract_calculation_operands"
+        )
+        projected_local_nodes = [
+            node
+            for node in ast.walk(projected_calculation_extract)
+            if isinstance(node, ast.Name)
+            and node.id == collision_free_local_name
+        ]
+        self.assertEqual(
+            {
+                kind: sum(type(node.ctx).__name__ == kind for node in projected_local_nodes)
+                for kind in ("Store", "Load")
+            },
+            {"Store": 1, "Load": 8},
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.keyword)
+                and node.arg == future_public_name
+                for node in ast.walk(projected_calculation_extract)
+            ),
+            2,
+        )
+        projected_public_calls = [
+            node
+            for node in ast.walk(projected_calculation_extract)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == future_public_name
+        ]
+        self.assertEqual(len(projected_public_calls), 1)
+        self.assertEqual(
+            ast.unparse(
+                next(
+                    parent
+                    for parent in ast.walk(projected_calculation_extract)
+                    if isinstance(parent, ast.Assign)
+                    and projected_public_calls[0] in list(ast.walk(parent))
+                )
+            ),
+            "requested_consolidation_scope = desired_consolidation_scope(query, report_scope)",
+        )
+
+        projected_call_records = []
+        projected_caller_hashes = {}
+        for module_name, tree in projected_trees.items():
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == future_public_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current
+                        break
+                projected_call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [ast.unparse(argument) for argument in call.args],
+                        "keywords": [keyword.arg for keyword in call.keywords],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    projected_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                projected_caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+        projected_call_records.sort(
+            key=lambda record: (record["module"], record["line"])
+        )
+        self.assertEqual(len(projected_call_records), 12)
+        self.assertEqual(len(projected_caller_hashes), 11)
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    projected_call_records,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            "e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291",
+        )
+        projected_caller_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in projected_caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    projected_caller_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            "143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9",
+        )
+
+        import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering
+
+        runtime_modules = [
+            financial_scope_policies,
+            financial_graph_helpers,
+            financial_graph_evidence,
+            financial_graph_calculation,
+            financial_graph_calculation_rendering,
+            financial_retrieval_pipeline,
+        ]
+        runtime_owner = getattr(financial_scope_policies, target_name)
+        self.assertEqual(
+            [getattr(module, target_name) is runtime_owner for module in runtime_modules],
+            [True] * 6,
+        )
+
+        semantic_target_count = 0
+        semantic_retired_count = 0
+        source_target_paths = set()
+        for module_name, tree in module_trees.items():
+            definition_count = sum(
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            import_count = sum(
+                isinstance(node, ast.alias)
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            call_count = sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+                for node in ast.walk(tree)
+            )
+            target_count = definition_count + import_count + call_count
+            if target_count:
+                source_target_paths.add(
+                    str(repo_root / "src" / "agent" / f"{module_name}.py")
+                )
+            semantic_target_count += target_count
+            semantic_retired_count += sum(
+                (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == other_name
+                )
+                or (isinstance(node, ast.alias) and node.name == other_name)
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == other_name
+                )
+                for node in ast.walk(tree)
+            )
+        self.assertEqual(semantic_target_count, 18)
+        self.assertEqual(semantic_retired_count, 0)
+        expected_source_paths = {
+            str(repo_root / "src" / "agent" / filename)
+            for filename in (
+                "financial_scope_policies.py",
+                "financial_graph_helpers.py",
+                "financial_graph_evidence.py",
+                "financial_graph_calculation.py",
+                "financial_graph_calculation_rendering.py",
+                "financial_retrieval_pipeline.py",
+            )
+        }
+        self.assertEqual(source_target_paths, expected_source_paths)
+
+        expected_test_paths = {
+            str(repo_root / "tests" / filename)
+            for filename in (
+                "test_financial_graph_helpers.py",
+                "test_financial_task_artifacts.py",
+                "test_financial_text_surface.py",
+                "test_operation_contracts.py",
+            )
+        }
+        test_paths = sorted((repo_root / "tests").glob("test_*.py"))
+        if target_name == retired_private_name:
+            retired_test_hits = {}
+            for path in test_paths:
+                tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+                count = sum(
+                    (isinstance(node, ast.Constant) and node.value == retired_private_name)
+                    or (isinstance(node, ast.Name) and node.id == retired_private_name)
+                    or (isinstance(node, ast.Attribute) and node.attr == retired_private_name)
+                    or (isinstance(node, ast.alias) and node.name == retired_private_name)
+                    for node in ast.walk(tree)
+                )
+                if count:
+                    retired_test_hits[str(path)] = count
+            self.assertEqual(set(retired_test_hits), expected_test_paths)
+            self.assertEqual(sum(retired_test_hits.values()), 26)
+        else:
+            self.assertFalse(
+                any(
+                    (
+                        (isinstance(node, ast.Constant) and node.value == retired_private_name)
+                        or (isinstance(node, ast.Name) and node.id == retired_private_name)
+                        or (isinstance(node, ast.Attribute) and node.attr == retired_private_name)
+                        or (isinstance(node, ast.alias) and node.name == retired_private_name)
+                    )
+                    for path in test_paths
+                    for node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8-sig"))
+                    )
+                )
+            )
+
+        transform_paths = expected_source_paths | expected_test_paths
+        self.assertEqual(len(transform_paths), 10)
+        non_ascii_paths = set()
+        for path_text in transform_paths:
+            raw = Path(path_text).read_bytes()
+            decoded = raw.decode("utf-8-sig")
+            if any(ord(character) > 127 for character in decoded):
+                non_ascii_paths.add(path_text)
+        self.assertEqual(len(non_ascii_paths), 8)
+
+        graph_test_source = Path(__file__).read_text(encoding="utf-8-sig")
+        graph_test_tree = ast.parse(graph_test_source)
+        graph_test_class = next(
+            node
+            for node in graph_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = [
+            node.name
+            for node in graph_test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 270)
+        self.assertTrue(
+            {
+                "test_current_source_desired_consolidation_scope_pins_precedence_policy_order_copy_and_results",
+                "test_current_source_desired_consolidation_scope_pins_immutability_laziness_and_exceptions",
+                "test_current_source_desired_consolidation_scope_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+                "test_current_source_desired_consolidation_scope_callers_pin_gates_args_adoption_and_stops",
+            }.issubset(graph_test_methods)
+        )
+
+        baseline_path = (
+            repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json"
+        )
+        baseline_records = json.loads(
+            baseline_path.read_text(encoding="utf-8")
+        ).get("records", [])
+        self.assertEqual(len(baseline_records), 217)
+        self.assertFalse(
+            any(
+                record.get("path") == "src/agent/financial_scope_policies.py"
+                and any(
+                    definition.lineno <= int(line) <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+                for record in baseline_records
+            )
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        in_degree = {module_name: 0 for module_name in recursive_modules}
+        dependents = {module_name: [] for module_name in recursive_modules}
+        for source_module, dependency in edges:
+            in_degree[dependency] += 1
+            dependents[source_module].append(dependency)
+        pending = [
+            module_name
+            for module_name, degree in in_degree.items()
+            if degree == 0
+        ]
+        visited = 0
+        while pending:
+            source_module = pending.pop()
+            visited += 1
+            for dependency in dependents[source_module]:
+                in_degree[dependency] -= 1
+                if in_degree[dependency] == 0:
+                    pending.append(dependency)
+        self.assertEqual(visited, len(recursive_modules))
+
+    def test_current_source_desired_consolidation_scope_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "desired_consolidation_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+
+        hybrid_query = object()
+        hybrid_nested = {"identity": True}
+        hybrid_scope = {"nested": hybrid_nested}
+        hybrid_owner_args = []
+
+        def stop_hybrid(query, report_scope):
+            hybrid_owner_args.append((query, report_scope))
+            raise RuntimeError("hybrid scope failed")
+
+        stopped_period_focus = Mock(
+            side_effect=AssertionError("scope failure must stop hybrid period work")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=stop_hybrid,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "query_period_focus",
+                stopped_period_focus,
+            ),
+            self.assertRaisesRegex(RuntimeError, "hybrid scope failed"),
+        ):
+            financial_graph_helpers.build_hybrid_narrative_subtask(
+                query=hybrid_query,
+                intent="qa",
+                report_scope=hybrid_scope,
+                next_task_id="task_2",
+            )
+        self.assertEqual(hybrid_owner_args, [(hybrid_query, hybrid_scope)])
+        stopped_period_focus.assert_not_called()
+
+        concept_query = "concept query"
+        concept_nested = {"identity": True}
+        concept_scope = {"nested": concept_nested}
+        concept_calls = []
+
+        def unknown_scope(query, report_scope):
+            concept_calls.append((query, report_scope))
+            return "unknown"
+
+        concept_ontology = SimpleNamespace(
+            planner_guidance={
+                "dimension_defaults": {
+                    "consolidation_scope": "fallback-scope",
+                    "period_focus": "fallback-period",
+                    "entity_scope": "fallback-entity",
+                }
+            }
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=unknown_scope,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "query_period_focus",
+                return_value="query-period",
+            ) as concept_period,
+            patch.object(
+                financial_graph_helpers,
+                "TASK_CONSTRAINT_POLICY",
+                {"segment_markers": ()},
+            ),
+        ):
+            concept_result = financial_graph_helpers._build_concept_task_constraints(
+                concept_query,
+                concept_scope,
+                concept_ontology,
+            )
+        self.assertEqual(concept_calls, [(concept_query, concept_scope)])
+        concept_period.assert_called_once_with(concept_query, "fallback-period")
+        self.assertEqual(
+            concept_result,
+            {
+                "consolidation_scope": "fallback-scope",
+                "period_focus": "query-period",
+                "entity_scope": "fallback-entity",
+                "segment_scope": "none",
+            },
+        )
+        self.assertIs(concept_scope["nested"], concept_nested)
+
+        heuristic_query = "heuristic query"
+        heuristic_scope = {"nested": {"identity": True}}
+        heuristic_calls = []
+
+        def separate_scope(query, report_scope):
+            heuristic_calls.append((query, report_scope))
+            return "separate"
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=separate_scope,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_infer_generic_metric_label",
+                return_value="metric",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_generic_required_operands",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_infer_statement_and_section_hints",
+                return_value=([], []),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_infer_operation_family_from_query",
+                return_value="lookup",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "get_financial_ontology",
+                return_value=object(),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "query_period_focus",
+                return_value="query-period",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "task_period_focus_from_operands",
+                return_value="operand-period",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_build_generic_retrieval_queries",
+                return_value=["retrieval query"],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "TASK_CONSTRAINT_POLICY",
+                {"segment_markers": ()},
+            ),
+        ):
+            heuristic_result = financial_graph_helpers._build_heuristic_numeric_task(
+                query=heuristic_query,
+                topic="topic",
+                intent="qa",
+                report_scope=heuristic_scope,
+            )
+        self.assertEqual(heuristic_calls, [(heuristic_query, heuristic_scope)])
+        self.assertEqual(
+            heuristic_result["constraints"],
+            {
+                "consolidation_scope": "separate",
+                "period_focus": "operand-period",
+                "entity_scope": "company",
+                "segment_scope": "none",
+            },
+        )
+
+        task_query = "task query"
+        task_scope = {"nested": {"identity": True}}
+        task_calls = []
+
+        class TaskOntology:
+            def default_constraints_for_metric(self, metric_key):
+                self.metric_key = metric_key
+                return {
+                    "consolidation_scope": "old-default",
+                    "period_focus": "old-period",
+                    "entity_scope": "entity",
+                    "segment_scope": "segment",
+                }
+
+        task_ontology = TaskOntology()
+
+        def task_scope_owner(query, report_scope):
+            task_calls.append((query, report_scope))
+            return "task-scope"
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=task_scope_owner,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "query_period_focus",
+                return_value="task-period",
+            ) as task_period,
+        ):
+            task_result = financial_graph_helpers._build_task_constraints(
+                task_query,
+                task_scope,
+                task_ontology,
+                "metric-key",
+            )
+        self.assertEqual(task_ontology.metric_key, "metric-key")
+        self.assertEqual(task_calls, [(task_query, task_scope)])
+        task_period.assert_called_once_with(task_query, "old-period")
+        self.assertEqual(
+            task_result,
+            {
+                "consolidation_scope": "task-scope",
+                "period_focus": "task-period",
+                "entity_scope": "entity",
+                "segment_scope": "segment",
+            },
+        )
+
+        evidence_query = "evidence query"
+        evidence_scope = {"nested": {"identity": True}}
+        separate_candidate = {
+            "candidate": "separate",
+            "metadata": {"consolidation_scope": "separate"},
+        }
+        consolidated_candidate = {
+            "candidate": "consolidated",
+            "metadata": {"consolidation_scope": "consolidated"},
+        }
+        evidence_calls = []
+
+        def evidence_scope_owner(query, report_scope):
+            evidence_calls.append((query, report_scope))
+            return "separate"
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=evidence_scope_owner,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_desired_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_metadata_period_match_strength",
+                return_value=0,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": ()},
+            ),
+        ):
+            prioritized = financial_graph_evidence._prioritize_candidate_items(
+                [consolidated_candidate, separate_candidate],
+                evidence_query,
+                "topic",
+                evidence_scope,
+                [],
+            )
+        self.assertEqual(evidence_calls, [(evidence_query, evidence_scope)])
+        self.assertIs(prioritized[0], separate_candidate)
+        self.assertIs(prioritized[1], consolidated_candidate)
+
+        class CandidateBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("scope failure must stop candidate iteration")
+
+        stopped_period_match = Mock(
+            side_effect=AssertionError("scope failure must stop candidate scoring")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence scope failed"),
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_desired_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_metadata_period_match_strength",
+                stopped_period_match,
+            ),
+            self.assertRaisesRegex(RuntimeError, "evidence scope failed"),
+        ):
+            financial_graph_evidence._prioritize_candidate_items(
+                [CandidateBomb()],
+                evidence_query,
+                "topic",
+                evidence_scope,
+                [],
+            )
+        stopped_period_match.assert_not_called()
+
+        import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering
+
+        render_query = "render query"
+        render_scope = {"company": "Company"}
+        render_calls = []
+
+        def render_scope_owner(query, report_scope):
+            render_calls.append((query, report_scope))
+            return "separate"
+
+        with (
+            patch.object(
+                financial_graph_calculation_rendering,
+                target_name,
+                side_effect=render_scope_owner,
+            ),
+            patch.object(
+                financial_graph_calculation_rendering,
+                "CALCULATION_RENDER_POLICY",
+                {
+                    "scope_labels": {"separate": "SCOPE"},
+                    "ratio_period_prefix_template": "{period} period",
+                },
+            ),
+        ):
+            prefix = financial_graph_calculation_rendering._difference_answer_prefix(
+                query=render_query,
+                report_scope=render_scope,
+                answer_slots={},
+                result_slot={"period": "2024"},
+                minuend={},
+                subtrahend={},
+            )
+        self.assertEqual(render_calls, [(render_query, render_scope)])
+        self.assertEqual(prefix, "Company 2024 period SCOPE")
+
+        class RenderPolicyBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("scope failure must stop render policy access")
+
+        with (
+            patch.object(
+                financial_graph_calculation_rendering,
+                target_name,
+                side_effect=RuntimeError("render scope failed"),
+            ),
+            patch.object(
+                financial_graph_calculation_rendering,
+                "CALCULATION_RENDER_POLICY",
+                RenderPolicyBomb(),
+            ),
+            self.assertRaisesRegex(RuntimeError, "render scope failed"),
+        ):
+            financial_graph_calculation_rendering._difference_answer_prefix(
+                query=render_query,
+                report_scope=render_scope,
+                answer_slots={},
+                result_slot={},
+                minuend={},
+                subtrahend={},
+            )
+
+        calculation_nested = {"identity": True}
+        calculation_report_scope = {"nested": calculation_nested}
+        calculation_state = {
+            "query": "state query",
+            "topic": "state topic",
+            "report_scope": calculation_report_scope,
+        }
+        calculation_owner_args = []
+
+        class CalculationAgent:
+            def _calc_query(self, state):
+                self.assert_state(state)
+                return "calculation query"
+
+            def _calc_topic(self, state):
+                self.assert_state(state)
+                return "calculation topic"
+
+            def assert_state(self, state):
+                if state is not calculation_state:
+                    raise AssertionError("calculation state identity changed")
+
+        def calculation_scope_owner(query, report_scope):
+            calculation_owner_args.append((query, report_scope))
+            self.assertEqual(query, "calculation query")
+            self.assertIsNot(report_scope, calculation_report_scope)
+            self.assertEqual(report_scope, calculation_report_scope)
+            self.assertIs(report_scope["nested"], calculation_nested)
+            raise RuntimeError("calculation scope failed")
+
+        stopped_debug_projection = Mock(
+            side_effect=AssertionError("scope failure must stop empty-result construction")
+        )
+        with (
+            patch.object(
+                financial_graph_calculation,
+                target_name,
+                side_effect=calculation_scope_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_calculation_debug_state_update",
+                stopped_debug_projection,
+            ),
+            self.assertRaisesRegex(RuntimeError, "calculation scope failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._extract_calculation_operands(
+                CalculationAgent(),
+                calculation_state,
+            )
+        self.assertEqual(len(calculation_owner_args), 1)
+        stopped_debug_projection.assert_not_called()
+
+        rerank_nested = {"identity": True}
+        rerank_report_scope = {"nested": rerank_nested}
+        rerank_state = {
+            "active_subtask": {},
+            "companies": [],
+            "years": [],
+            "topic": "",
+            "query": "rerank query",
+            "section_filter": "",
+            "intent": "qa",
+            "query_type": "qa",
+            "format_preference": "",
+            "report_scope": rerank_report_scope,
+        }
+        rerank_owner_args = []
+
+        def rerank_scope_owner(query, report_scope):
+            rerank_owner_args.append((query, report_scope))
+            self.assertEqual(query, "rerank query")
+            self.assertIsNot(report_scope, rerank_report_scope)
+            self.assertEqual(report_scope, rerank_report_scope)
+            self.assertIs(report_scope["nested"], rerank_nested)
+            raise RuntimeError("rerank scope failed")
+
+        stopped_focus_markers = Mock(
+            side_effect=AssertionError("scope failure must stop rerank focus work")
+        )
+        with (
+            patch.object(
+                financial_retrieval_pipeline,
+                target_name,
+                side_effect=rerank_scope_owner,
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_tokenize_terms",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "default_format_preference",
+                return_value="paragraph",
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_metric_terms_from_topic",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_active_preferred_sections",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_active_preferred_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "query_focus_markers",
+                stopped_focus_markers,
+            ),
+            self.assertRaisesRegex(RuntimeError, "rerank scope failed"),
+        ):
+            financial_retrieval_pipeline.FinancialRetrievalPipelineMixin._rerank_docs(
+                object(),
+                [],
+                rerank_state,
+            )
+        self.assertEqual(len(rerank_owner_args), 1)
+        stopped_focus_markers.assert_not_called()
+
+        calculation_source = inspect.getsource(
+            financial_graph_calculation.FinancialAgentCalculationMixin._best_direct_lookup_slot_from_evidence_pool
+        )
+        self.assertLess(
+            calculation_source.index("if state is None"),
+            calculation_source.index(target_name),
+        )
+        self.assertLess(
+            calculation_source.index(target_name),
+            calculation_source.index('if desired_scope == "unknown"'),
+        )
+        recovery_source = inspect.getsource(
+            financial_graph_calculation.FinancialAgentCalculationMixin._recover_lookup_results_from_sibling_table_evidence
+        )
+        recovery_calls = [
+            index
+            for index in range(len(recovery_source))
+            if recovery_source.startswith(target_name, index)
+        ]
+        self.assertEqual(len(recovery_calls), 2)
+        self.assertLess(
+            recovery_source.index("if context_docs and any"),
+            recovery_calls[0],
+        )
+        self.assertLess(recovery_calls[0], recovery_source.index("if not evidence_pool"))
+        self.assertLess(recovery_source.index("if not evidence_pool"), recovery_calls[1])
+        provenance_source = inspect.getsource(
+            financial_graph_calculation.FinancialAgentCalculationMixin._structured_graph_provenance_for_dependency_operand
+        )
+        self.assertLess(provenance_source.index("if not nodes"), provenance_source.index(target_name))
+        self.assertLess(provenance_source.index("if not raw_value"), provenance_source.index(target_name))
 
 
 if __name__ == "__main__":

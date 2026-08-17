@@ -260,7 +260,7 @@ from src.agent.financial_runtime_normalization import (
     _parse_number_text,
 )
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
+    desired_consolidation_scope,
     _extract_period_sort_key,
     known_consolidation_scope_value,
     operand_period_focus,
@@ -1490,7 +1490,7 @@ class FinancialAgentCalculationMixin:
         def _context_scope_score(evidence: Dict[str, Any]) -> float:
             if state is None:
                 return 0.0
-            desired_scope = _desired_consolidation_scope(
+            desired_scope = desired_consolidation_scope(
                 str(state.get("query") or ""),
                 dict(state.get("report_scope") or {}),
             )
@@ -1860,7 +1860,7 @@ class FinancialAgentCalculationMixin:
             return True
 
         if context_docs and any(_row_allows_seed_context_lookup_recovery(dict(row)) for row in ordered_results):
-            desired_scope = _desired_consolidation_scope(
+            desired_scope = desired_consolidation_scope(
                 str(state.get("query") or ""),
                 dict(state.get("report_scope") or {}),
             )
@@ -1882,7 +1882,7 @@ class FinancialAgentCalculationMixin:
             return ordered_results
         evidence_by_id = _evidence_items_by_id(evidence_pool)
 
-        desired_scope = _desired_consolidation_scope(
+        desired_scope = desired_consolidation_scope(
             str(state.get("query") or ""),
             dict(state.get("report_scope") or {}),
         )
@@ -5612,7 +5612,7 @@ class FinancialAgentCalculationMixin:
         }
         raw_value_variants = {item for item in raw_value_variants if item}
         report_scope = dict(state.get("report_scope") or {})
-        desired_scope = _desired_consolidation_scope(str(state.get("query") or ""), report_scope)
+        desired_scope = desired_consolidation_scope(str(state.get("query") or ""), report_scope)
         preferred_statement_type_set = set(preferred_statement_types)
         scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
         note_markers = tuple(str(item).lower() for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
@@ -8994,7 +8994,7 @@ class FinancialAgentCalculationMixin:
         query = self._calc_query(state)
         topic = self._calc_topic(state)
         report_scope = dict(state.get("report_scope") or {})
-        desired_consolidation_scope = _desired_consolidation_scope(query, report_scope)
+        requested_consolidation_scope = desired_consolidation_scope(query, report_scope)
 
         empty_result: Dict[str, Any] = {
             **_calculation_debug_state_update(state, coverage="missing"),
@@ -9109,14 +9109,14 @@ class FinancialAgentCalculationMixin:
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
-                if not operand_row_conflicts_requested_scope(row, desired_consolidation_scope)
+                if not operand_row_conflicts_requested_scope(row, requested_consolidation_scope)
             ]
         direct_target_evidence_pool = [
             dict(item)
             for item in list(evidence_items) + [dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict)]
             if isinstance(item, dict) and not evidence_item_conflicts_requested_scope(
                 dict(item),
-                desired_consolidation_scope,
+                requested_consolidation_scope,
             )
         ]
         if retrieved_docs or seed_retrieved_docs:
@@ -9128,7 +9128,7 @@ class FinancialAgentCalculationMixin:
             direct_target_evidence_pool.extend(
                 item
                 for item in self._ratio_operand_context_evidence_from_docs(target_context_docs, max_docs=48)
-                if not evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
+                if not evidence_item_conflicts_requested_scope(item, requested_consolidation_scope)
             )
         target_metric_row, target_metric_operand = self._direct_target_metric_operand_from_evidence(
             {
@@ -9145,7 +9145,7 @@ class FinancialAgentCalculationMixin:
             )
         if target_metric_row and not operand_row_conflicts_requested_scope(
             target_metric_row,
-            desired_consolidation_scope,
+            requested_consolidation_scope,
         ) and not direct_target_metric_row_conflicts_existing_units(
             target_metric_row,
             direct_structured_rows,
@@ -9252,7 +9252,7 @@ class FinancialAgentCalculationMixin:
                 period_context_evidence.extend(
                     item
                     for item in self._ratio_operand_context_evidence_from_docs(period_context_docs, max_docs=64)
-                    if not evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
+                    if not evidence_item_conflicts_requested_scope(item, requested_consolidation_scope)
                 )
             period_context_rows = self._build_period_comparison_operands_from_table_label_context(
                 period_context_evidence,
@@ -9320,7 +9320,7 @@ class FinancialAgentCalculationMixin:
                 dependency_resolved_keys=dependency_resolved_keys,
                 missing_dependency_bindings=missing_dependency_bindings,
                 producer_tasks=producer_tasks,
-                desired_consolidation_scope=desired_consolidation_scope,
+                desired_consolidation_scope=requested_consolidation_scope,
                 reconciliation_evidence_present=bool(reconciliation_evidence),
                 retrieved_ratio_context_recovered=retrieved_ratio_context_recovered,
             )
@@ -9507,7 +9507,7 @@ class FinancialAgentCalculationMixin:
                 query=query,
                 topic=topic,
                 report_scope=report_scope,
-                desired_consolidation_scope=desired_consolidation_scope,
+                desired_consolidation_scope=requested_consolidation_scope,
                 build_source_anchor=self._build_source_anchor,
                 build_required_operands_from_candidates=self._build_required_operands_from_candidates,
                 extract_ratio_row_candidates=self._extract_ratio_row_candidates,
@@ -9586,7 +9586,7 @@ class FinancialAgentCalculationMixin:
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
                 if evidence_item and evidence_item_conflicts_requested_scope(
                     evidence_item,
-                    desired_consolidation_scope,
+                    requested_consolidation_scope,
                 ):
                     continue
                 row["operand_id"] = f"op_{index:03d}"

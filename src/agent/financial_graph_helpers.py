@@ -87,7 +87,7 @@ from src.agent.financial_structured_cells import (
     select_aggregate_structured_cell,
 )
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
+    desired_consolidation_scope,
     _extract_year_tokens,
     candidate_matches_target_report_scope,
     has_single_report_scope,
@@ -425,7 +425,7 @@ def build_hybrid_narrative_subtask(
     report_scope: Dict[str, Any],
     next_task_id: str,
 ) -> Dict[str, Any]:
-    consolidation_scope = _desired_consolidation_scope(query, report_scope)
+    consolidation_scope = desired_consolidation_scope(query, report_scope)
     period_focus = query_period_focus(query, "unknown")
     active_policies = active_narrative_policies(query)
     active_slot_groups = [
@@ -1762,7 +1762,7 @@ def _build_concept_task_constraints(
 ) -> Dict[str, str]:
     guidance = dict(getattr(ontology, "planner_guidance", {}) or {})
     defaults = dict(guidance.get("dimension_defaults") or {})
-    consolidation_scope = _desired_consolidation_scope(query, report_scope)
+    consolidation_scope = desired_consolidation_scope(query, report_scope)
     if consolidation_scope == "unknown":
         consolidation_scope = str(defaults.get("consolidation_scope") or "unknown")
     period_focus = query_period_focus(query, str(defaults.get("period_focus") or "unknown"))
@@ -2111,7 +2111,7 @@ def _build_heuristic_numeric_task(
     preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
     operation_family = _infer_operation_family_from_query(query, get_financial_ontology())
     constraints = {
-        "consolidation_scope": _desired_consolidation_scope(query, report_scope),
+        "consolidation_scope": desired_consolidation_scope(query, report_scope),
         "period_focus": query_period_focus(query, "unknown"),
         "entity_scope": "company",
         "segment_scope": (
@@ -2925,7 +2925,7 @@ def _build_task_constraints(
     metric_key: str,
 ) -> Dict[str, str]:
     defaults = dict(ontology.default_constraints_for_metric(metric_key) or {})
-    defaults["consolidation_scope"] = _desired_consolidation_scope(query, report_scope)
+    defaults["consolidation_scope"] = desired_consolidation_scope(query, report_scope)
     defaults["period_focus"] = query_period_focus(query, str(defaults.get("period_focus") or "unknown"))
     return {
         "consolidation_scope": str(defaults.get("consolidation_scope") or "unknown"),

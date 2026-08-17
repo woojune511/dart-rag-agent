@@ -34,7 +34,7 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
+    desired_consolidation_scope,
     _metadata_period_match_strength,
     _report_scope_source_receipts,
     _should_apply_strict_company_scope,
@@ -1167,7 +1167,7 @@ class FinancialRetrievalPipelineMixin:
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
         desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
-        desired_consolidation = _desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
+        desired_consolidation = desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
         query_years = sorted(years)
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         query_focus_marker_values = (
