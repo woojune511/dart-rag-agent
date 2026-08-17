@@ -8129,3 +8129,94 @@ Static definition/signature/call/import/count/DAG/audit inspection and four
 existing owner/caller probes passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Direct-numeric-grounding public-API milestone
+
+- Commit `7de65fc` renames the exact former 40-line operation policy in place to
+  public `requires_direct_numeric_grounding(...)`. No wrapper or private alias
+  remains. Three external importers, three calls, and all 19 existing test
+  bindings use the public spelling.
+- Task truth and eager shallow copying, operation-family normalization and
+  precedence, required-row filter-before-copy ordering, ratio/sum equality,
+  difference/growth concept/role behavior, ordered fallback labels, exact
+  classifier adoption, immutability, and caller gates/exceptions remain
+  unchanged. Final call-record/caller-map hashes are
+  `d90668f2a62c7ce5d6aff1ee35b4a57c215427ebb0aae86730eeda3252deecdc` /
+  `66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac`.
+- Production source is `+7/-7`, tests are `+1,669/-61`, and the whole commit is
+  `+1,676/-68`, net `+1,608`; production physical lines are unchanged. Four
+  methods move discovery from 2,115 to 2,119. Final operation-policy public/
+  private counts are 7/0. The committed diff SHA-256 is
+  `a3409380b1d0d56104ab8caebfc94767089ff74098194575a1fde65aa77bc7b0`.
+- Focused pre/post 4/4, graph owner 266/266, operation contracts 242/242,
+  retrieval hints 5/5, task artifacts 15/15, calculation execution 45/45, math
+  parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
+  1,226/1,226, reflection promotion 15/15, reflection capability 24/24,
+  retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  and full 2,119/2,119 passed. Production/complete transform 4/4 and 8/8,
+  selected-body/three-caller parity, all three calls/four source modules, public
+  identity 4/4, unchanged 48-module/205-edge DAG, retired refs/stores zero,
+  graph-test AST 262/262 plus four methods, UTF-8 8/8, non-ASCII 4/4, pycompile,
+  and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Desired-consolidation-scope private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 15-line
+  `financial_scope_policies._desired_consolidation_scope(
+  query: str, report_scope: Dict[str, Any]) -> str` definition at lines 17-31
+  for an in-place public rename to `desired_consolidation_scope(...)`.
+  Calculation extraction already binds that name locally; the projection also
+  renames its one store and eight loads to `requested_consolidation_scope` while
+  retaining two `desired_consolidation_scope=` keyword names. No wrapper/private
+  alias or source/test rename is authorized before four CURRENT-SOURCE contracts
+  pass.
+- Preserve raw-query normalization, eager shallow query/metadata policy-map
+  copies, query-marker insertion order and lazy first-hit precedence, exact
+  report-scope normalization, eager per-scope metadata sets, eager default-
+  marker tuple construction followed by lazy membership, exact scope strings,
+  immutability, and every owner-uncaught failure. The nine-statement body has
+  five assignments, two loops, three total `if` nodes, four returns, 22 calls,
+  three generator expressions, one set comprehension, and no `try`. Its source-
+  body SHA-256 is
+  `999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57`.
+- Twelve two-positional-argument/no-keyword calls span eleven task, evidence,
+  calculation, rendering, and retrieval caller definitions, all at `try` depth
+  zero. Exact caller gates, prepared arguments, constraint/score/filter/label
+  adoption, dual sibling-recovery resolutions, and propagated stops remain
+  caller-owned. The calculation-extraction public call and collision-free local
+  result must stay distinct without changing the eight later uses or two callee
+  keyword names.
+- Eighteen production occurrences span six files. Twenty-six existing test
+  occurrences span four test files, so the complete transform is ten files.
+  The current caller collision is nine AST `Name` nodes (one store/eight loads);
+  the projection renames only those nodes, retains two keyword labels, and must
+  compile without an unbound-local path. Scope-policy counts project 11/9 to
+  12/8; public identity projects 6/6; the DAG stays 48 modules/205 edges; audit
+  remains 217. Current/projected call-
+  record hashes are
+  `cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b` /
+  `e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`;
+  caller-map hashes are
+  `9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0` /
+  `143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
+  surface owner 1/1, operand owner 69/69, affected semantic 1,230/1,230,
+  reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
+  1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,123/2,123,
+  production transform 6/6, complete transform 10/10, selected-body/eleven-
+  caller parity, all twelve calls/six source modules, public identity 6/6,
+  unchanged DAG, graph-test AST 266/266 plus four methods, collision-local
+  transform 9/9, retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8,
+  projected compile/import, pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/body/call/import/count/DAG/audit inspection and five
+existing owner/caller probes passed after correcting one test-selector typo.
+Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
+behavior, quality, ranking, performance, benchmark, schedule, or completion
+claim.

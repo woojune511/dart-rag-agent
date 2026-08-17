@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-14
+Last revised: 2026-08-18
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -1728,49 +1728,85 @@ The committed diff SHA-256 is
 `bae62fda6041a01df827633e1f6c1b38ba8c171fa76338d18dde8761250b217a`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the same owner's final private
-helper, the exact current 40-line
-`financial_operation_policies._requires_direct_numeric_grounding(
-active_subtask: Dict[str, Any]) -> bool`, for an in-place public rename to
-`requires_direct_numeric_grounding(...)`, with no wrapper or alias. Preserve
-the eager shallow task snapshot; operation-family normalization and precedence;
-required-row filter-before-copy ordering; ratio/sum concept-count result;
-difference/growth concept/role-set fast path; ordered fallback labels and exact
-classifier return; immutability; and all owner-uncaught failures. Evidence,
-reconciliation, calculation construction, model invocation, graph state,
-artifacts, ledger work, and exception boundaries remain outside the batch.
+Commit `7de65fc` completed the direct-numeric-grounding visibility batch. The
+exact former 40-line operation policy is public
+`requires_direct_numeric_grounding(...)`; three imports, three calls, and 19
+test bindings use it with no wrapper or private alias. The task copy, operation
+precedence, required-row filter/copy ordering, ratio/sum and difference/growth
+results, fallback classifier, caller gates/adoption, and exceptions remain
+unchanged. Operation-policy public/private counts finish at 7/0.
 
-Three external importers contain three one-positional-argument calls across
-three caller definitions, all at `try` depth zero. Reconciliation routing keeps
-its status/row/document gates and false/true route adoption; evidence extraction
-keeps its document gate, pre-model location, lazy narrative gate, and failure
-stop; calculation extraction keeps its post-task-projection, pre-surface-policy
-location and exact result adoption. No caller body, gate, argument, result, or
-exception scope moves.
+Focused pre/post 4/4, graph owner 266/266, operation contracts 242/242,
+retrieval hints 5/5, task artifacts 15/15, calculation execution 45/45, math
+parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
+1,226/1,226, reflection promotion 15/15, reflection capability 24/24,
+retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and
+full 2,119/2,119 passed. Production/complete transform 4/4 and 8/8, selected-
+body/three-caller/public-identity/DAG parity, graph-test AST 262/262 plus four
+methods, UTF-8 8/8, non-ASCII 4/4, pycompile, and diff check passed. Final call-
+record/caller-map hashes are
+`d90668f2a62c7ce5d6aff1ee35b4a57c215427ebb0aae86730eeda3252deecdc` /
+`66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac`;
+the committed diff SHA-256 is
+`a3409380b1d0d56104ab8caebfc94767089ff74098194575a1fde65aa77bc7b0`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-The body SHA-256 is
-`85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746`.
-Seven production occurrences span four files; 19 test refs span four files, so
-the complete transform is eight files. Operation-policy counts project 6/1 to
-7/0 and public identity projects 4/4. Current/projected call-record hashes are
-`aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a` /
-`d90668f2a62c7ce5d6aff1ee35b4a57c215427ebb0aae86730eeda3252deecdc`;
+The new characterize-only inventory selects the exact current 15-line
+`financial_scope_policies._desired_consolidation_scope(
+query: str, report_scope: Dict[str, Any]) -> str` for an in-place public rename
+to `desired_consolidation_scope(...)`, with no wrapper or alias. Calculation
+extraction already binds that name locally, so the same batch selectively
+renames its one store and eight loads to `requested_consolidation_scope` while
+retaining two `desired_consolidation_scope=` keyword names. Preserve raw-
+query normalization; eager shallow query/metadata policy-map copies; query-
+marker insertion-order and lazy first-hit precedence; exact report-scope
+truth/get/or/string/normalize/lower handling; eager per-scope metadata sets;
+eager default-marker tuple construction followed by lazy membership; exact
+scope-string results; immutability; and all owner-uncaught failures. Vocabulary
+stays in policy data. Task, evidence, calculation, rendering, retrieval, graph,
+artifact, ledger, and exception ownership remain outside the batch.
+
+Five importers contain twelve two-positional-argument calls across eleven caller
+definitions, all at `try` depth zero. Four task builders keep raw arguments,
+their exact default/constraint adoption, and stop positions. Evidence ranking
+keeps pre-loop resolution and score use. Five calculation calls keep state,
+context/evidence/graph/raw-value gates, two sibling-recovery resolutions, and
+later filter/refinement adoption. Calculation extraction keeps the public call
+distinct from the renamed local result and preserves all eight uses and both
+callee keyword names. Difference rendering keeps scope-label
+projection; retrieval reranking keeps exact state lookup, shallow scope copy,
+and pre-document-loop scoring input. No caller body, gate, argument, result,
+score, return, or exception scope moves.
+
+The source-body SHA-256 is
+`999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57`.
+Eighteen production occurrences span six files; 26 test occurrences span four
+files, so the complete transform is ten files. The current caller collision is
+exactly nine AST `Name` nodes (one store/eight loads); the projection renames
+only those nodes, retains two keyword labels, and must compile without an
+unbound-local path. Scope-policy counts project 11/9 to 12/8 and public identity
+projects 6/6. Current/projected call-record hashes
+are
+`cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b` /
+`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`;
 caller-map hashes are
-`1aae37e05f6a5c218dd0c5604a691ac7e56207387cc3cf9774aa4fbd891481ef` /
-`66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac`.
+`9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0` /
+`143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-266/266, operation contracts 242/242, retrieval hints 5/5, task artifacts
-15/15, surface owner 1/1, operand owner 69/69, affected semantic 1,226/1,226,
-reflection promotion 15/15, reflection capability 24/24, retrieval-pipeline
-1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,119/2,119,
-production transform 4/4, complete transform 8/8, selected-body/three-caller
-parity, all three calls/four source modules, public identity 4/4, unchanged DAG,
-graph-test AST 262/262 plus four methods, UTF-8 8/8, non-ASCII 4/4, pycompile,
-and diff-check gates are defined only in
+270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts
+15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
+surface owner 1/1, operand owner 69/69, affected semantic 1,230/1,230,
+reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
+1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,123/2,123,
+production transform 6/6, complete transform 10/10, selected-body/eleven-caller
+parity, all twelve calls/six source modules, public identity 6/6, unchanged DAG,
+graph-test AST 266/266 plus four methods, collision-local transform 9/9,
+retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8, projected compile/import,
+pycompile, and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-direct-grounding source or test rename has occurred. Static inventory and four
-existing owner/caller probes passed.
+desired-scope source or test rename has occurred. Static inventory and five
+existing owner/caller probes passed after one test-selector correction.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

@@ -1153,13 +1153,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import
   19/19, audit 217, full 2,115/2,115와 transform/body/identity/two-caller/
   48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner에 남은 마지막 private helper,
-  정확한 40줄 `_requires_direct_numeric_grounding(...)`을 public
-  `requires_direct_numeric_grounding(...)`로 이름 수렴시킨다. Task shallow
+- 완료된 `7de65fc` visibility batch는 같은 owner의 정확한 40줄
+  `_requires_direct_numeric_grounding(...)`을 public
+  `requires_direct_numeric_grounding(...)`로 이름 수렴시켰다. Task shallow
   copy, operation precedence, required-row filter/copy ordering, ratio/sum 및
   difference/growth 결과, fallback classifier adoption과 세 caller의 gate/
-  argument/adoption/exception scope를 유지해야 한다. 정확한 네 CURRENT-
-  SOURCE method와 projection은
+  argument/adoption/exception scope는 유지됐다. Operation-policy public/
+  private는 7/0이다. Focused pre/post 4/4, graph owner 266/266, operation
+  contracts 242/242, retrieval hints 5/5, task artifacts 15/15, semantic
+  1,226/1,226, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,119/2,119와 transform/body/identity/three-caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는 scope-policy owner의 정확한 15줄
+  `_desired_consolidation_scope(...)`을 public
+  `desired_consolidation_scope(...)`로 이름 수렴시킨다. Query/metadata/default
+  precedence와 copy/eager-lazy evaluation, exact scope results, immutability 및
+  다섯 importer·열두 call·열한 caller의 gate/argument/adoption/exception
+  scope를 유지해야 한다. 계산 extraction의 같은 이름 지역 store 1개/load
+  8개는 `requested_consolidation_scope`로 선택 변경하고 기존 keyword 이름
+  2개는 유지해 unbound-local 충돌을 제거해야 한다. 정확한 네 CURRENT-SOURCE
+  method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
