@@ -1664,36 +1664,65 @@ passed. The committed source/test diff SHA-256 is
 `190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory deletes exactly the runtime-unreachable
-9-line branch at current graph-helper lines 1623-1631, with no replacement.
-Spec ordering, raw-role recomputation, the earlier difference/growth return,
-downstream role hints and operand construction, exception boundaries, and all
-API/policy/state/artifact/ledger ownership remain unchanged. The selected
-branch SHA-256 is
-`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
+Commit `ca2969b` completed the runtime-unreachable single-metric concept-branch
+deletion. Exactly the former nine lines were removed without replacement; spec
+ordering, one-to-one raw-role recomputation, the earlier difference/growth
+return, downstream role hints/operand construction, and exception boundaries
+are unchanged. The owner now spans 1590-1720 with 18 statements and body hash
+`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+The public helper's calls/callers finish 3/3 with call-record/caller-map hashes
+`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd` /
+`fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
 
-The current `_build_concept_required_operands(...)` body hashes to
-`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`
-over lines 1590-1729 and 19 top-level statements. Exact deletion projects
-`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`,
-lines 1590-1720, and 18 statements. The public helper's call/caller inventory
-projects 4/4 to 3/3; its call-record hash projects
-`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e`
-to `76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`,
-and its caller-map hash projects
-`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035`
-to `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+Production source is `+0/-9`, tests are `+786/-32`, and the whole commit is
+`+786/-41`. Focused 4/4, graph owner 254/254, surface owner 1/1, operand owner
+69/69, affected semantic 1,214/1,214, reflection promotion 15/15, reflection
+capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, full 2,107/2,107, pycompile, exact-deletion/owner/caller
+hashes, graph-test AST 250/250 plus four methods, unchanged public identity/
+owner count/48-module/205-edge DAG, UTF-8/non-ASCII 2/2, and diff-check gates
+passed. The committed source/test diff SHA-256 is
+`0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 12-line
+`financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
+classifier for an in-place public rename to
+`is_percent_point_difference_query(...)`, with no wrapper or alias. Preserve
+raw input normalization, shallow policy snapshotting, direct-marker precedence,
+ratio-marker gating before comparison markers, eager marker tuples with
+retained-item double conversion, lazy membership, first-truthy stops,
+immutability, exact returns, and owner-uncaught failures.
+
+Five external importers contain seven calls and the owner contains one local
+call across seven caller definitions. All use one positional argument and no
+keywords; only calculation operand finalization remains at caller `try` depth
+one. Evidence ratio-component admission/direct-row selection, operation-family
+precedence, reflection objective selection, operand component suppression,
+calculation percent-unit filtering, and owner-local unit-coercion gates,
+arguments, adoption, and exception stops remain unchanged.
+
+The body SHA-256 is
+`79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
+Fourteen production occurrences span six files; 15 test refs span three files,
+so the complete transform is nine files. Operation-policy counts project 4/3
+to 5/2 and public identity projects 6/6. Current/projected call-record hashes
+are `6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
+`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`;
+caller-map hashes are
+`bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
+`2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-254/254, surface owner 1/1, operand owner 69/69, affected semantic
-1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+258/258, surface owner 1/1, operand owner 69/69, affected semantic
+1,218/1,218, reflection promotion 15/15, reflection capability 24/24,
 retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,107/2,107, exact one-file production/two-file complete transform, branch and
-owner-body hash parity, three remaining caller hashes/calls, unchanged public
-identity/owner count/DAG, graph-test AST 250/250 plus four methods, UTF-8/non-
-ASCII 2/2, pycompile, and diff-check gates are defined only in
+2,111/2,111, production transform 6/6, complete transform 9/9, selected-body/
+seven-caller parity, eight calls/six modules, public identity 6/6, unchanged
+DAG, graph-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8,
+pycompile, and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-branch deletion has occurred; it is the sole next priority.
+percent-point source or test rename has occurred; it is the sole next priority.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

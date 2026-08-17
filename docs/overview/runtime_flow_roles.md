@@ -1121,13 +1121,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,103/2,103와 transform/body/identity/caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는
-  `_build_concept_required_operands(...)`의 정확한 도달 불가능 9줄 분기만
-  replacement 없이 삭제한다. `ordered_specs`와 one-to-one으로 다시 만든
-  `raw_explicit_roles` 때문에 single-spec 조건과 empty-list 조건은 동시에
-  참일 수 없다. Ordering, earlier difference/growth return, downstream role-
-  hint와 operand construction은 유지해야 한다. 정확한 네 CURRENT-SOURCE
-  method와 projection은
+- 완료된 `ca2969b` dead-branch batch는
+  `_build_concept_required_operands(...)`의 runtime-unreachable 9줄만
+  replacement 없이 삭제했다. `ordered_specs`와 one-to-one으로 다시 만든
+  `raw_explicit_roles`의 cardinality invariant, ordering, earlier difference/
+  growth return, downstream role hints와 operand construction은 유지됐다.
+  Helper call/caller는 4/4에서 도달 가능한 3/3으로 줄었다. Focused 4/4,
+  graph owner 254/254, surface owner 1/1, operand owner 69/69, semantic
+  1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,107/2,107와 exact-deletion/owner/caller/48-module/205-edge DAG parity가
+  통과했다.
+- 새 characterize-only inventory는 operation-policy owner의 정확한 12줄
+  `_is_percent_point_difference_query(...)`을 public
+  `is_percent_point_difference_query(...)`로 이름 수렴시킨다. Policy snapshot,
+  direct-marker precedence, ratio-metric/comparison-marker gating과 8개 call의
+  caller adoption/stop을 유지해야 한다. 정확한 네 CURRENT-SOURCE method와
+  projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -5453,44 +5453,101 @@ committed source/test diff SHA-256 is
 `190b8c55912b139f610b4fda1bca8ada5ee4051ac5142eef0bf112116adb869d`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next contract deletes only the exact current 9-line unreachable branch at
-lines 1623-1631 of
-`financial_graph_helpers._build_concept_required_operands(...)`, without a
-replacement. Preserve spec materialization and ordering, raw-role
-recomputation, the earlier difference/growth return, downstream role hints and
-operand construction, inputs, and all exception boundaries. No API, policy,
-state, artifact, ledger, or sequencing ownership changes are authorized.
+Commit `ca2969b` completes the unreachable single-metric concept-branch
+deletion contract. Exactly the former lines 1623-1631 branch was removed from
+`financial_graph_helpers._build_concept_required_operands(...)` without a
+replacement. Its one-spec and empty-role-list guard was contradictory after
+one-to-one role recomputation, so neither the classifier nor its body could
+execute. Spec ordering, raw-role recomputation, the earlier difference/growth
+return, downstream role hints and operand construction, inputs, and exception
+boundaries are unchanged.
 
-The branch SHA-256 is
-`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
-It has one assignment, two `if` nodes, two returns, eight calls, two list
-literals, two boolean operations, one unary operation, two comparisons, and
-two attributes. The current owner spans lines 1590-1729 with 19 top-level
-statements and body SHA-256
-`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`;
-exact deletion projects lines 1590-1720, 18 statements, and body SHA-256
+The owner now spans lines 1590-1720 with 18 top-level statements and body
+SHA-256
 `dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
-
-The public helper's source calls/callers project 4/4 to 3/3. Only the
-unreachable concept record disappears; the import and three reachable caller
-bodies remain unchanged. Current/projected call-record hashes are
-`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e` /
-`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`;
-caller-map hashes are
-`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035` /
-`fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+The public helper's calls/callers finish 3/3; final call-record and caller-map
+hashes are
+`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`
+and `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
 Operation-policy counts remain 4/3, public identity remains 2/2, audit remains
 217, and the DAG remains 48 modules/205 edges.
 
+Executed gates are focused pre/post 4/4, graph owner 254/254, surface owner
+1/1, operand owner 69/69, affected semantic 1,214/1,214, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,107/2,107, plus pycompile, exact nine-
+line production deletion, owner/caller hash parity, graph-test AST 250/250 plus
+four methods, unchanged public identity/owner count/DAG, UTF-8/non-ASCII 2/2,
+and diff-check gates. Production is `+0/-9`, tests are `+786/-32`, and the
+whole commit is `+786/-41`. Its committed source/test diff SHA-256 is
+`0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 12-line
+`financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
+definition at lines 17-28. The authorized future batch only renames it in place
+to public `is_percent_point_difference_query(...)` and updates five imports,
+seven external calls, one owner-local call, and 15 existing test bindings. Add
+no wrapper or private alias. Shared normalization, policy data, operand/evidence
+decisions, operation precedence, reflection, unit coercion, and exception
+scopes remain outside this batch.
+
+Preserve raw input identity into `_normalise_spaces(...)`, then the shallow
+`dict(PERCENT_POINT_DIFFERENCE_POLICY)` snapshot. Preserve exact access to
+`direct_markers`, `ratio_metric_markers`, and `comparison_markers`; each raw
+`or ()`; each eager ordered tuple; and separate filter/retained `str(item)`
+calls. Retained items stringify twice and rejected items once. Every following
+membership generator remains lazy and stops at its first truthy result.
+
+A direct-marker hit returns exact `True` before ratio-marker construction. A
+ratio-marker miss returns exact `False` before comparison-marker access. Only
+a ratio-marker hit constructs the comparison tuple and returns its membership
+result. Do not lowercase, reorder, dedupe, cache, or mutate inputs or policy.
+Normalization, snapshot/access/truth, marker iteration/conversion/membership,
+tuple materialization, and result failures remain owner-uncaught.
+
+The nine-statement body has six assignments, two `if` nodes, and one final
+return; branch returns bring the return count to three. It has 17 calls, six
+generators/comprehension clauses, three tuples, three boolean operations, three
+comparisons, three attributes, one unary operation, and no loop, `try`, lambda,
+list/dict literal, list comprehension, or conditional expression. Its body
+SHA-256 is
+`79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
+
+Eight one-positional-argument/no-keyword calls span seven caller definitions.
+Seven calls are at caller `try` depth zero; only calculation operand
+finalization is at depth one. Evidence component extraction and both ratio-
+operand calls preserve their ratio admission, direct-row pair/single-row
+adoption, and component-fallback stops. Operation-family inference preserves
+blank/configured-family precedence and true-to-difference adoption. Reflection
+planning preserves its request construction and retry-objective precedence.
+Operand evidence collection preserves ratio-row admission and true-only
+component suppression. Owner-local percent-point unit coercion preserves its
+false early return and subsequent deterministic plan checks. Calculation
+preserves its post-remerge filter signal, coverage adoption, and broad caller
+exception scope.
+
+The private spelling has 14 production occurrences across six files. Fifteen
+existing test refs span three test files, so the complete transform is nine
+files. Current/projected operation-policy counts are 4/3 to 5/2; projected
+public identity is 6/6. The DAG remains 48 modules/205 edges and the selected
+span intersects no audit record. Current/projected call-record hashes are
+`6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
+`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`;
+seven-caller-map hashes are
+`bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
+`2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
+
 The four named CURRENT-SOURCE contracts and projected focused 4/4, graph owner
-254/254, surface owner 1/1, operand owner 69/69, affected semantic
-1,214/1,214, reflection promotion 15/15, reflection capability 24/24,
+258/258, surface owner 1/1, operand owner 69/69, affected semantic
+1,218/1,218, reflection promotion 15/15, reflection capability 24/24,
 retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,107/2,107, exact one-file production/two-file complete transform, branch
-removal, owner/caller hash parity, graph-test AST 250/250 plus four methods,
-UTF-8/non-ASCII 2/2, pycompile, and diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No branch
-deletion has occurred.
+2,111/2,111, production transform 6/6, complete transform 9/9, selected-body/
+seven-caller parity, eight-call/six-module/public-identity/DAG parity, graph-
+test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8, pycompile, and
+diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No percent-
+point source or test rename has occurred.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

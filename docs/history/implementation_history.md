@@ -7894,3 +7894,83 @@ Static branch/cardinality/call/DAG/audit inspection passed. Benchmark refresh
 and remote CI were **NOT RUN**. No source deletion has occurred; this checkpoint
 is not a behavior, quality, ranking, performance, benchmark, schedule, or
 completion claim.
+
+### Unreachable single-metric concept branch deletion milestone
+
+- Commit `ca2969b` removes exactly the former nine-line branch at graph-helper
+  lines 1623-1631 without replacement. Its one-spec condition could not coexist
+  with an empty `raw_explicit_roles` list immediately after one-to-one role
+  recomputation, so neither its classifier call nor body could execute.
+- Spec ordering, raw-role recomputation, the earlier difference/growth return,
+  downstream role hints, operand construction/dedupe, inputs, and exception
+  boundaries are unchanged. The owner now spans lines 1590-1720 with 18 top-
+  level statements and body SHA-256
+  `dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+- The public helper's source calls/callers finish 3/3. Final call-record and
+  caller-map hashes are
+  `76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd` /
+  `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+  Public identity 2/2, operation-policy counts 4/3, audit 217, and the 48-module/
+  205-edge DAG remain unchanged.
+- Production source is `+0/-9`, tests are `+786/-32`, and the whole commit is
+  `+786/-41`, net `+745`. Four methods move discovery from 2,103 to 2,107. The
+  committed source/test diff SHA-256 is
+  `0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
+- Focused pre/post deletion 4/4, graph owner 254/254, surface owner 1/1,
+  operand owner 69/69, affected semantic 1,214/1,214, reflection promotion
+  15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation
+  plan 51/51, import 19/19, audit 217, and full 2,107/2,107 passed. Pycompile,
+  exact nine-line deletion, owner/caller hash parity, graph-test AST 250/250
+  plus four methods, unchanged public identity/owner count/DAG, UTF-8/non-ASCII
+  2/2, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This exact dead-code
+  deletion is not a quality, ranking, performance, benchmark, schedule,
+  ledger, or Phase 3 completion claim.
+
+### Percent-point-difference-query private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 12-line
+  `financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
+  definition for an in-place public rename to
+  `is_percent_point_difference_query(...)`. No wrapper/private alias or source/
+  test rename is authorized before four CURRENT-SOURCE contracts pass.
+- The nine-statement body has six assignments, two `if` nodes, three returns,
+  17 calls, six generators/comprehension clauses, three tuples, three boolean
+  operations, three comparisons, three attributes, and one unary operation.
+  Its SHA-256 is
+  `79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
+  Preserve input identity/normalization, shallow policy snapshot, exact marker
+  access, eager tuple construction with retained-item double conversion, lazy
+  membership, direct-marker precedence, ratio-marker gating, exact returns,
+  immutability, and every owner-uncaught failure.
+- Eight one-positional-argument/no-keyword calls span seven caller definitions,
+  five external importers, and one owner-local call. Seven remain at caller
+  `try` depth zero; calculation operand finalization remains at depth one.
+  Evidence component admission/direct-row selection, operation-family
+  precedence, reflection objective selection, operand component suppression,
+  calculation percent-unit filtering, and owner-local coercion keep their exact
+  gates, arguments, adoption, and stops.
+- Fourteen production occurrences span six files. Fifteen existing test refs
+  span three test files, so the complete transform is nine files. Operation-
+  policy counts project 4/3 to 5/2; public identity projects 6/6. The selected
+  span intersects no audit record and the DAG remains 48 modules/205 edges.
+  Current/projected call-record hashes are
+  `6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
+  `0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`;
+  caller-map hashes are
+  `bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
+  `2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  258/258, surface owner 1/1, operand owner 69/69, affected semantic
+  1,218/1,218, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,111/2,111, production transform 6/6, complete transform 9/9,
+  selected-body/seven-caller parity, eight-call/six-module/public-identity/DAG
+  parity, graph-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8,
+  pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/import/count/DAG/audit inspection passed.
+Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
+behavior, quality, ranking, performance, benchmark, schedule, or completion
+claim.

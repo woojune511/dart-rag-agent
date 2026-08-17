@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-16
+Last updated: 2026-08-18
 
 ## At A Glance
 
@@ -16,10 +16,10 @@ Last updated: 2026-08-16
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `f0fae1f` renamed the exact 11-line single-metric-period-comparison classifier in its existing operation-policy owner and updated all four source calls plus three live test bindings without an alias; its contracts also proved one graph call is runtime-unreachable |
-| What passed? | Focused 4/4, graph owner 250/250, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,210/1,210, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,103/2,103 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only move with exact selected-body parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Delete the exact runtime-unreachable 9-line single-metric concept branch in `_build_concept_required_operands(...)` without replacement, after four CURRENT-SOURCE contracts pass |
+| What just changed? | `ca2969b` deleted the exact runtime-unreachable 9-line single-metric concept branch without replacement and reduced the helper's source call/caller inventory from 4/4 to the three reachable callers |
+| What passed? | Focused 4/4, graph owner 254/254, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,214/1,214, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,107/2,107 |
+| Was the benchmark refreshed? | **NOT RUN**; this was an exact dead-branch deletion with runtime non-entry and fallthrough parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
+| What is next? | Characterize and publicize the exact 12-line `_is_percent_point_difference_query(...)` classifier in its existing operation-policy owner; no rename is authorized until four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -748,14 +748,14 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, single-metric-period-comparison public API 4 / 4; graph owner 250 / 250; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,210 / 1,210; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, unreachable single-metric concept branch deletion 4 / 4; graph owner 254 / 254; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,214 / 1,214; additional retrieval-pipeline caller module 1 / 1 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,103 / 2,103 |
-| Benchmark refresh after latest single-metric-period-comparison API change | **NOT RUN** |
+| Full unittest discovery | PASS, 2,107 / 2,107 |
+| Benchmark refresh after latest unreachable-branch deletion | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -798,83 +798,128 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects the exact current 9-line branch at
-lines 1623-1631 of
-`financial_graph_helpers._build_concept_required_operands(...)` for deletion
-without replacement. No API rename, helper move, policy change, or adjacent
-cleanup is authorized. Before deletion, add exactly four CURRENT-SOURCE
-contracts and require them to pass. No production deletion has occurred for
-this follow-on, and this document maintains no competing implementation queue.
+The characterize-only inventory selects the exact current 12-line
+`financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
+definition at lines 17-28 for an in-place public rename to
+`is_percent_point_difference_query(...)`. Add no wrapper or private alias.
+Shared normalization, percent-point policy data, operand filtering, evidence
+admission, operation-family inference, reflection objectives, and unit coercion
+remain outside this visibility-only batch. Before the rename, add exactly four
+CURRENT-SOURCE contracts and require them to pass. No production or test rename
+has occurred, and this document maintains no competing implementation queue.
 
-The branch is runtime-unreachable. `ordered_specs` starts as
-`list(concept_specs)`. After the only possible reordering, `raw_explicit_roles`
-is rebuilt one-to-one from `ordered_specs`. Therefore
-`len(ordered_specs) == 1` implies `len(raw_explicit_roles) == 1`, even when the
-sole contained role is `""`; the list itself remains truthy, so
-`not raw_explicit_roles` cannot also be true. The earlier single-spec
-`difference`/`growth` branch returns before this condition and does not weaken
-the invariant.
+Preserve raw `text` identity into `_normalise_spaces(...)`, then the shallow
+`dict(PERCENT_POINT_DIFFERENCE_POLICY)` snapshot. For each of
+`direct_markers`, `ratio_metric_markers`, and `comparison_markers`, preserve
+exact key access, raw `or ()`, eager ordered tuple construction, and separate
+`str(item)` calls in filter and retained expression. Retained items stringify
+twice and rejected items once. Each following `any(...)` remains lazy and
+stops at its first truthy membership.
 
-Delete only the outer `if`, its period-expansion assignment, nested truth gate,
-and two returns. Preserve concept-spec materialization, ordering, raw-role
-recomputation, the earlier difference/growth return, downstream `role_hints`,
-all operand construction and dedupe, input immutability, and every existing
-exception boundary. The selected branch has one assignment, two `if` nodes
-including the outer branch, two returns, eight calls, two list literals, two
-boolean operations, one unary operation, two comparisons, and two attributes;
-it has no list comprehension or generator expression. Its SHA-256 is
-`6e212026aee222ba02c34ec9c0dc2b3c7b38f0ecd46e196c767aa92ccdd3da58`.
+Direct-marker truth returns exact `True` before ratio-marker construction.
+Without a direct hit, ratio-marker truth is materialized; false returns exact
+`False` before comparison-marker access. Only a ratio-marker hit constructs
+the comparison tuple and returns its membership result. Do not lowercase,
+reorder, dedupe, cache, or mutate text, policy, or markers. Normalization,
+snapshot/access/truth, marker iteration/conversion/membership, tuple
+materialization, and result failures remain owner-uncaught.
 
-The current owner spans lines 1590-1729 with 19 top-level statements and body
-SHA-256
-`97254bbaf62e26bdec28ac9053c9824ed7f9583bd7a4046f4312874d324d5bab`.
-Exact deletion projects lines 1590-1720, 18 top-level statements, and body
-SHA-256
-`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
-The bounded production transform is one file; the complete transform is the
-graph helper plus its test file. UTF-8/non-ASCII preservation is 2/2.
+The nine-statement body has six assignments, two `if` nodes, and one final
+return; branch returns bring the return count to three. Its AST has 17 calls,
+six generator expressions and comprehension clauses, three tuples, three
+boolean operations, three comparisons, three attributes, one unary operation,
+and no loop, `try`, lambda, list/dict literal, list comprehension, or conditional
+expression. The selected body SHA-256 is
+`79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
 
-The deletion removes only the unreachable concept caller of
-`is_single_metric_period_comparison(...)`. Public helper production references
-project 6 to 5, graph-helper references 4 to 3, and direct calls/caller
-definitions 4/4 to 3/3. The import remains and the three reachable calls stay
-unchanged: `_build_generic_required_operands(...)`,
-`_infer_operation_family_from_query(...)`, and owner-local
-`_requires_direct_numeric_grounding(...)`. Their body hashes remain
-`0192cd49c8f530fb46580e3e78fbb01489cf6da16a2ed7dd75ee44dfc10cc6be`,
-`948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741`,
-and
-`85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746`.
+Eight one-positional-argument calls use no keywords across seven caller
+definitions. Five external importers contain seven calls; one call is owner-
+local. Seven calls remain at caller `try` depth zero. The calculation operand-
+finalization call alone remains at depth one inside its existing broad caller
+scope. It adopts the boolean as a required `PERCENT`-unit filter signal after
+late dependency remerge. Classifier failures retain every current stop or
+caller fallback.
+
+Evidence ratio-component extraction calls after ratio-query admission; true
+stops component extraction. Ratio-operand building calls twice: with direct
+ratio rows, true returns a period pair or first two rows while false keeps the
+single-row path; without rows, true stops ontology component fallback.
+Operation-family inference calls after blank/configured-family gates; true
+returns `difference`. Reflection planning stores the result after building its
+request and gives it retry-objective precedence. Operand evidence collection
+stores it before ratio-row fallback and uses true only to suppress component
+candidates. Owner-local percent-point coercion returns false immediately on a
+false classification and otherwise continues its deterministic plan checks.
+
+The private identifier has 14 production occurrences across six files: one
+definition, five imports, seven external calls, and one local call. Fifteen
+existing test references span graph-helper, semantic-numeric-plan, and
+reflection-capability tests, so the complete source/test transform is nine
+files. No public definition or store collision exists. Current/projected
+operation-policy public/private counts are 4/3 to 5/2; public identity projects
+6/6. Existing edges keep the DAG acyclic at 48 modules/205 edges. The selected
+17-28 body intersects no reviewed runtime-domain record, so audit remains 217.
 
 Canonical current/projected call-record hashes are
-`fcf6044263e7d57e2b76101476a55f977eed4ff198f19784a8406e4f103a451e` /
-`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`.
-Current/projected caller-map hashes are
-`3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035` /
-`fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
-Operation-policy public/private counts stay 4/3, public identity stays 2/2,
-and existing edges keep the DAG acyclic at 48 modules/205 internal edges. The
-deleted span intersects no reviewed runtime-domain record, so all 217 records
-must remain unchanged.
+`6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
+`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`.
+Current/projected seven-caller-map hashes are
+`bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
+`2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_unreachable_single_metric_concept_branch_pins_cardinality_and_non_entry`;
-- `test_current_source_unreachable_single_metric_concept_branch_pins_fallthrough_outputs_side_effects_and_exceptions`;
-- `test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline`;
-- `test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops`.
+- `test_current_source_is_percent_point_difference_query_pins_policy_precedence_laziness_and_result`;
+- `test_current_source_is_percent_point_difference_query_pins_immutability_and_exceptions`;
+- `test_current_source_is_percent_point_difference_query_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_is_percent_point_difference_query_callers_pin_gates_args_adoption_and_stops`.
 
-Projected post-deletion gates are focused 4/4, graph owner 254/254, surface-
-contract owner 1/1, operand owner 69/69, affected eleven-module semantic set
-1,214/1,214, reflection-promotion 15/15, reflection-capability 24/24,
-retrieval-pipeline 1/1, reconciliation plan 51/51, import side effects 19/19,
-runtime audit 217, and full discovery 2,107/2,107. Structural gates are exact
-one-file production/two-file complete transform, selected-branch removal,
-projected owner-body hash/count/span, three remaining caller-body hashes and
-3/3 call parity, unchanged public identity and DAG, graph-test AST 250/250 plus
-four new methods, UTF-8/non-ASCII 2/2, pycompile, and `git diff --check`. These
-are projections, not executed results. Static branch/cardinality/call/DAG/audit
-inspection passed; benchmark refresh and remote CI were **NOT RUN**.
+Projected post-rename gates are focused 4/4, graph owner 258/258, surface owner
+1/1, operand owner 69/69, affected eleven-module semantic set 1,218/1,218,
+reflection-promotion 15/15, reflection-capability 24/24, retrieval-pipeline
+1/1, reconciliation plan 51/51, import side effects 19/19, runtime audit 217,
+and full discovery 2,111/2,111. Structural gates are production transform 6/6,
+complete transform 9/9, selected-body/seven-caller parity, all eight calls/six
+source modules, public identity 6/6, unchanged DAG, retired refs/public stores
+zero, graph-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8,
+pycompile, and `git diff --check`. These are projections, not executed results.
+Static definition/signature/call/import/count/DAG/audit inspection passed;
+benchmark refresh and remote CI were **NOT RUN**.
+
+## Completed Unreachable Single-Metric Concept Branch Deletion
+
+Commit `ca2969b` deleted exactly the former lines 1623-1631 branch from
+`financial_graph_helpers._build_concept_required_operands(...)` without a
+replacement. The guard required both one ordered concept spec and an empty
+roles list immediately after rebuilding that list one-to-one from the specs;
+the branch and its helper call were therefore runtime-unreachable. The earlier
+difference/growth return, ordering and role recomputation, downstream role
+hints, operand construction/dedupe, inputs, and exception boundaries remain
+unchanged.
+
+The owner now spans lines 1590-1720 with 18 top-level statements and body
+SHA-256
+`dfbc243dd7560578cdab5c18fa33ca0b457c9afc3653a2200d7321b2f2ae4164`.
+Public helper references finish 5, graph-helper references finish 3, and direct
+calls/callers finish 3/3. Final call-record and caller-map hashes are
+`76cd32e8d95fd910137283b602d7ef4fc0115f9c5637b6005d67b4bd900769dd`
+and `fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5`.
+Operation-policy counts stay 4/3 and the DAG stays 48 modules/205 edges.
+
+Production source is `+0/-9`, tests are `+786/-32`, and the whole commit is
+`+786/-41`, net `+745`. The committed source/test diff SHA-256 is
+`0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
+Four new methods moved discovery from 2,103 to 2,107.
+
+Focused pre/post deletion 4/4, graph owner 254/254, surface owner 1/1, operand
+owner 69/69, affected semantic 1,214/1,214, reflection promotion 15/15,
+reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,107/2,107 passed. Pycompile, exact nine-line
+production deletion, projected owner/caller hashes, graph-test AST 250/250 plus
+four methods, unchanged public identity/owner count/DAG, UTF-8/non-ASCII 2/2,
+and diff check passed. Benchmark refresh and remote CI were **NOT RUN**. This
+dead-code deletion proves no quality, ranking, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Single-Metric-Period-Comparison Public API
 
