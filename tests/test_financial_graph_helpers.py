@@ -48779,7 +48779,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50117,7 +50117,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51383,7 +51383,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52886,7 +52886,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54219,7 +54219,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55471,7 +55471,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56734,7 +56734,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58432,7 +58432,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -58449,7 +58449,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            250,
+            254,
         )
 
         baseline = json.loads(
@@ -59379,7 +59379,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (4, 3) if target_name == future_public_name else (3, 4),
+            (5, 2) if target_name == future_public_name else (4, 3),
         )
         self.assertEqual(
             [
@@ -59576,7 +59576,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "75b93c2334ede4ad4ef4241c402d8c436dd7ed2ffb38e54dff3671169aa211be",
+                    ): "60703a235aaefe673dee297c414b1f7c198906edc5abfdbe891b313ec8ad2d4e",
                     (
                         "financial_graph_evidence",
                         "_extract_ratio_row_candidates",
@@ -59584,11 +59584,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_extract_ratio_component_candidates",
-                    ): "c2c204dde1af4c141ae089327fbc663f53686751dc09d1885c49972299b61734",
+                    ): "050e7c1d20d372cb207dd7a03135a2ff8844b6a680ab066b002e7dfc148ce861",
                     (
                         "financial_graph_helpers",
                         "_infer_operation_family_from_query",
-                    ): "948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741",
+                    ): "b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5",
                     (
                         "financial_graph_reconciliation",
                         "_supplement_section_seed_docs",
@@ -59600,7 +59600,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "35814c29aab330afd0b10f389f8ea6e66a55cb2b57043029b3087d0917d5ecc1",
+                    ): "c51b375910aa7044c7ac36c267af63ce2ad4a0f9510a2d72c8e72d9ac72de56d",
                 }
                 if target_name == future_public_name
                 else {
@@ -59648,7 +59648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "986a246b229d06f0e7e2e8ea221bdfcf1eb2e8cc4d15c3794636a8e1be51bf15"
+                "0e9a125fc414a64b1c2c50be774bf706aa56741b024e8bfd2ad7fa292f4798e7"
                 if target_name == future_public_name
                 else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
             ),
@@ -59785,7 +59785,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 other_existing_test_ref_counts[path.name] = other_count
         self.assertEqual(
             existing_test_ref_counts,
-            {"test_reflection_capability_contract.py": 3},
+            {
+                "test_financial_graph_helpers.py": 8,
+                "test_reflection_capability_contract.py": 3,
+            },
         )
         self.assertEqual(other_existing_test_ref_counts, {})
 
@@ -59801,7 +59804,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -59818,7 +59821,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            250,
+            254,
         )
 
         baseline = json.loads(
@@ -59908,7 +59911,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -59960,7 +59963,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -60010,7 +60013,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -60097,7 +60100,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ),
                     patch.object(
                         financial_graph_evidence,
-                        "_is_percent_point_difference_query",
+                        "is_percent_point_difference_query",
                         stopped_percent_point,
                     ),
                 ):
@@ -60130,7 +60133,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as adopted_evidence_target,
             patch.object(
                 financial_graph_evidence,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -60358,7 +60361,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ) as reflection_target,
             patch.object(
                 financial_graph_reconciliation,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 stopped_percent_point,
             ),
         ):
@@ -61006,7 +61009,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (4, 3) if target_name == future_public_name else (3, 4),
+            (5, 2) if target_name == future_public_name else (4, 3),
         )
         self.assertEqual(
             [
@@ -61174,7 +61177,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query"): "c30b4b84c3c1c37d977b85ae86a9944984ca181e43ded4d625233097a4539460",
                     ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context"): "92d6a14434df6de4679e37e7b07e19bb99f089ffdb6430a07491d74bd65c19e9",
                     ("financial_graph_calculation", "_compose_growth_narrative_answer"): "f41c46b3696afb83b0d1be67e9459a5859c81b941aa51b107bb4b4e97e94d520",
-                    ("financial_graph_calculation", "_extract_calculation_operands"): "75b93c2334ede4ad4ef4241c402d8c436dd7ed2ffb38e54dff3671169aa211be",
+                    ("financial_graph_calculation", "_extract_calculation_operands"): "60703a235aaefe673dee297c414b1f7c198906edc5abfdbe891b313ec8ad2d4e",
                     ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results"): "d1432c5be02a6a66805f50b621b4d108dd1b326912d8ace0584bd437880714f6",
                     ("financial_graph_calculation", "_preserve_policy_required_realized_context"): "30cf4dd145889c7f60e4925a07a58fd9829fe63a3f5e14193f237412e1d60d85",
                     ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences"): "0d2662df66118668e6cc5f44ece4d512d4305741453d707c48ce8d5064fa9a5d",
@@ -61225,7 +61228,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "df81e1e10da238e555b9ae88705a42c4c667d69e27fc476a3d1642666c67619a"
+                "a4289d909568bf282cdd2b074a1c36c9545c699a2e5c82222317ac521695444b"
                 if target_name == future_public_name
                 else "12c5fb354fe3d80dace6e5d38276d171deb84780820a33c41b3577a7e2aa938a"
             ),
@@ -61387,7 +61390,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -61404,7 +61407,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            250,
+            254,
         )
 
         baseline = json.loads(
@@ -62219,7 +62222,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (4, 3) if target_name == future_public_name else (3, 4),
+            (5, 2) if target_name == future_public_name else (4, 3),
         )
         self.assertEqual(
             [
@@ -62493,7 +62496,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_label_implies_percent_metric_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_label_implies_percent_metric_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -62510,7 +62513,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            250,
+            254,
         )
 
         importer_objects = {
@@ -63564,7 +63567,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (4, 3) if target_name == future_public_name else (3, 4),
+            (5, 2) if target_name == future_public_name else (4, 3),
         )
         self.assertEqual(
             [
@@ -63711,7 +63714,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             (
                 {
                     ("financial_graph_helpers", "_build_generic_required_operands"): "0192cd49c8f530fb46580e3e78fbb01489cf6da16a2ed7dd75ee44dfc10cc6be",
-                    ("financial_graph_helpers", "_infer_operation_family_from_query"): "948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741",
+                    ("financial_graph_helpers", "_infer_operation_family_from_query"): "b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5",
                     ("financial_operation_policies", "_requires_direct_numeric_grounding"): "85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746",
                 }
                 if target_name == future_public_name
@@ -63736,7 +63739,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5"
+                "4a38811fb56c49836fa129b40153d34cbdbe40dc76df49d3f3c238268c99baf4"
                 if target_name == future_public_name
                 else "d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd"
             ),
@@ -63840,7 +63843,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -63857,7 +63860,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            250,
+            254,
         )
 
         owner_target = getattr(financial_operation_policies, target_name)
@@ -64211,7 +64214,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=True,
             ),
             patch.object(
@@ -64250,7 +64253,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -64292,7 +64295,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -64337,7 +64340,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_is_percent_point_difference_query",
+                "is_percent_point_difference_query",
                 return_value=False,
             ),
             patch.object(
@@ -64930,7 +64933,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in policy_functions),
                 sum(node.name.startswith("_") for node in policy_functions),
             ),
-            (4, 3),
+            (5, 2),
         )
         imported_by = set()
         direct_calls = []
@@ -65185,7 +65188,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             (
                 "financial_graph_helpers",
                 "_infer_operation_family_from_query",
-            ): "948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741",
+            ): "b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5",
             (
                 "financial_operation_policies",
                 "_requires_direct_numeric_grounding",
@@ -65212,9 +65215,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "3d89da74e4978fbe92a335abe1a6909e236b05c51932affdb8b8bec361658035"
+                "254edbaf70f6c1f138c7a356a018bf67e6c619dd74b63e61179db1d0c446d68d"
                 if branch_present
-                else "fc94b25b2c63bb160d0732fb17686ba866abbf7183b8f69758dc32e65791d0a5"
+                else "4a38811fb56c49836fa129b40153d34cbdbe40dc76df49d3f3c238268c99baf4"
             ),
         )
 
@@ -65298,7 +65301,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline",
             "test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 254)
+        self.assertEqual(len(graph_test_methods), 258)
         self.assertEqual(
             {
                 method.name
@@ -65328,6 +65331,1928 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             2,
         )
+
+    def test_current_source_is_percent_point_difference_query_pins_policy_precedence_laziness_and_result(self) -> None:
+        future_public_name = "is_percent_point_difference_query"
+        retired_private_name = "_is_percent_point_difference_query"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_operation_policies, target_name)
+        source_text = object()
+        events = []
+
+        class Marker:
+            def __init__(self, name, rendered):
+                self.name = name
+                self.rendered = rendered
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return self.rendered
+
+        class MarkerSource:
+            def __init__(self, name, markers, *, truthy=True):
+                self.name = name
+                self.markers = list(markers)
+                self.truthy = truthy
+
+            def __bool__(self):
+                events.append((self.name, "bool"))
+                return self.truthy
+
+            def __iter__(self):
+                events.append((self.name, "iter"))
+                yield from self.markers
+
+        class StoppedMarkerSource:
+            def __bool__(self):
+                raise AssertionError("direct marker hit must stop later marker construction")
+
+            def __iter__(self):
+                raise AssertionError("direct marker hit must stop later marker iteration")
+
+        class NormalizedText:
+            def __contains__(self, marker):
+                events.append(("contains", marker))
+                return marker == "hit"
+
+        direct_markers = MarkerSource(
+            "direct",
+            [
+                Marker("empty", ""),
+                Marker("miss", "miss"),
+                Marker("hit", "hit"),
+                Marker("stopped", "stopped"),
+            ],
+        )
+        nested = {"preserve": ["identity"]}
+        policy = {
+            "direct_markers": direct_markers,
+            "ratio_metric_markers": StoppedMarkerSource(),
+            "comparison_markers": StoppedMarkerSource(),
+            "nested": nested,
+        }
+        policy_before = dict(policy)
+        nested_before = deepcopy(nested)
+
+        def normalize(value):
+            events.append(("normalize", value))
+            self.assertIs(value, source_text)
+            return NormalizedText()
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                policy,
+            ),
+        ):
+            self.assertIs(target(source_text), True)
+
+        self.assertEqual(
+            events,
+            [
+                ("normalize", source_text),
+                ("direct", "bool"),
+                ("direct", "iter"),
+                ("str", "empty"),
+                ("str", "miss"),
+                ("str", "miss"),
+                ("str", "hit"),
+                ("str", "hit"),
+                ("str", "stopped"),
+                ("str", "stopped"),
+                ("contains", "miss"),
+                ("contains", "hit"),
+            ],
+        )
+        self.assertEqual(policy, policy_before)
+        self.assertIs(policy["nested"], nested)
+        self.assertEqual(nested, nested_before)
+
+        ratio_events = []
+
+        class FalseyDirectMarkers:
+            def __bool__(self):
+                ratio_events.append(("direct", "bool"))
+                return False
+
+            def __iter__(self):
+                raise AssertionError("falsey direct markers must use the empty fallback")
+
+        class RatioMarkers:
+            def __bool__(self):
+                ratio_events.append(("ratio", "bool"))
+                return True
+
+            def __iter__(self):
+                ratio_events.append(("ratio", "iter"))
+                yield "ratio-miss"
+
+        class StoppedComparisonMarkers:
+            def __bool__(self):
+                raise AssertionError("ratio miss must stop comparison marker construction")
+
+            def __iter__(self):
+                raise AssertionError("ratio miss must stop comparison marker iteration")
+
+        class RatioMissText:
+            def __contains__(self, marker):
+                ratio_events.append(("contains", marker))
+                return False
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=lambda value: ratio_events.append(("normalize", value))
+                or RatioMissText(),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {
+                    "direct_markers": FalseyDirectMarkers(),
+                    "ratio_metric_markers": RatioMarkers(),
+                    "comparison_markers": StoppedComparisonMarkers(),
+                },
+            ),
+        ):
+            self.assertIs(target("ratio input"), False)
+        self.assertEqual(
+            ratio_events,
+            [
+                ("normalize", "ratio input"),
+                ("direct", "bool"),
+                ("ratio", "bool"),
+                ("ratio", "iter"),
+                ("contains", "ratio-miss"),
+            ],
+        )
+
+        comparison_events = []
+
+        class ComparisonText:
+            def __init__(self, hits):
+                self.hits = set(hits)
+
+            def __contains__(self, marker):
+                comparison_events.append(marker)
+                return marker in self.hits
+
+        comparison_policy = {
+            "direct_markers": ["direct"],
+            "ratio_metric_markers": ["ratio"],
+            "comparison_markers": ["first", "compare", "stopped"],
+        }
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=ComparisonText({"ratio", "compare"}),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                comparison_policy,
+            ),
+        ):
+            self.assertIs(target("comparison input"), True)
+        self.assertEqual(
+            comparison_events,
+            ["direct", "ratio", "first", "compare"],
+        )
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=ComparisonText({"ratio"}),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                comparison_policy,
+            ),
+        ):
+            self.assertIs(target("comparison miss"), False)
+
+    def test_current_source_is_percent_point_difference_query_pins_immutability_and_exceptions(self) -> None:
+        future_public_name = "is_percent_point_difference_query"
+        retired_private_name = "_is_percent_point_difference_query"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_operation_policies, target_name)
+
+        source = {"query": ["ratio", "compare"], "nested": {"keep": True}}
+        nested = {"keep": ["same"]}
+        policy = {
+            "direct_markers": ["direct"],
+            "ratio_metric_markers": ["ratio"],
+            "comparison_markers": ["compare"],
+            "nested": nested,
+        }
+        source_before = deepcopy(source)
+        policy_before = deepcopy(policy)
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=lambda value: self.assertIs(value, source)
+                or "ratio compare",
+            ) as normalize,
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                policy,
+            ),
+        ):
+            self.assertIs(target(source), True)
+        normalize.assert_called_once_with(source)
+        self.assertEqual(source, source_before)
+        self.assertEqual(policy, policy_before)
+        self.assertIs(policy["nested"], nested)
+
+        class StoppedPolicy:
+            def keys(self):
+                raise AssertionError("normalization failure must stop policy snapshot")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                StoppedPolicy(),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                target("input")
+
+        class SnapshotBomb:
+            def keys(self):
+                raise RuntimeError("policy snapshot failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                SnapshotBomb(),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy snapshot failed"):
+                target("input")
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("marker truth failed")
+
+            def __iter__(self):
+                raise AssertionError("truth failure must stop marker iteration")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {"direct_markers": BoolBomb()},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker truth failed"):
+                target("input")
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("marker iteration failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {"direct_markers": IterBomb()},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker iteration failed"):
+                target("input")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("marker conversion failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {"direct_markers": [StringBomb()]},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker conversion failed"):
+                target("input")
+
+        membership_events = []
+
+        class ContainsBomb:
+            def __contains__(self, marker):
+                membership_events.append(marker)
+                raise RuntimeError("membership failed")
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=ContainsBomb(),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {"direct_markers": ["first", "stopped"]},
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "membership failed"):
+                target("input")
+        self.assertEqual(membership_events, ["first"])
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value="normalized",
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {
+                    "direct_markers": (),
+                    "ratio_metric_markers": IterBomb(),
+                },
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker iteration failed"):
+                target("input")
+
+        class RatioHitText:
+            def __contains__(self, marker):
+                return marker == "ratio"
+
+        with (
+            patch.object(
+                financial_operation_policies,
+                "_normalise_spaces",
+                return_value=RatioHitText(),
+            ),
+            patch.object(
+                financial_operation_policies,
+                "PERCENT_POINT_DIFFERENCE_POLICY",
+                {
+                    "direct_markers": (),
+                    "ratio_metric_markers": ["ratio"],
+                    "comparison_markers": IterBomb(),
+                },
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker iteration failed"):
+                target("input")
+
+    def test_current_source_is_percent_point_difference_query_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        future_public_name = "is_percent_point_difference_query"
+        retired_private_name = "_is_percent_point_difference_query"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        module_paths = {
+            path.stem: path
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        owner_source = module_sources["financial_operation_policies"]
+        owner_tree = module_trees["financial_operation_policies"]
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (17, 28))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["text"],
+        )
+        self.assertEqual(definition.args.posonlyargs, [])
+        self.assertEqual(definition.args.kwonlyargs, [])
+        self.assertEqual(definition.args.defaults, [])
+        self.assertIsInstance(definition.returns, ast.Name)
+        self.assertEqual(definition.returns.id, "bool")
+        self.assertEqual(
+            [type(statement).__name__ for statement in definition.body],
+            [
+                "Assign",
+                "Assign",
+                "Assign",
+                "If",
+                "Assign",
+                "Assign",
+                "If",
+                "Assign",
+                "Return",
+            ],
+        )
+        node_counts = {}
+        for node in ast.walk(definition):
+            node_name = type(node).__name__
+            node_counts[node_name] = node_counts.get(node_name, 0) + 1
+        self.assertEqual(
+            {
+                name: node_counts.get(name, 0)
+                for name in (
+                    "AnnAssign",
+                    "Assign",
+                    "For",
+                    "If",
+                    "Return",
+                    "Try",
+                    "TryStar",
+                    "Call",
+                    "List",
+                    "Tuple",
+                    "Dict",
+                    "ListComp",
+                    "GeneratorExp",
+                    "BoolOp",
+                    "Compare",
+                    "IfExp",
+                    "comprehension",
+                    "Lambda",
+                    "Starred",
+                )
+            },
+            {
+                "AnnAssign": 0,
+                "Assign": 6,
+                "For": 0,
+                "If": 2,
+                "Return": 3,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 17,
+                "List": 0,
+                "Tuple": 3,
+                "Dict": 0,
+                "ListComp": 0,
+                "GeneratorExp": 6,
+                "BoolOp": 3,
+                "Compare": 3,
+                "IfExp": 0,
+                "comprehension": 6,
+                "Lambda": 0,
+                "Starred": 0,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (5, 2) if target_name == future_public_name else (4, 3),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and node.id == other_name
+                and isinstance(node.ctx, ast.Store)
+                for node in ast.walk(owner_tree)
+            )
+        )
+
+        expected_importers = {
+            "financial_graph_calculation",
+            "financial_graph_evidence",
+            "financial_graph_helpers",
+            "financial_graph_reconciliation",
+            "financial_operand_resolution",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    == "src.agent.financial_operation_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = (
+                        import_counts.get(module_name, 0) + count
+                    )
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(
+                        current,
+                        (ast.FunctionDef, ast.AsyncFunctionDef),
+                    ):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [
+                            ast.unparse(argument) for argument in call.args
+                        ],
+                        "keywords": [
+                            keyword.arg for keyword in call.keywords
+                        ],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                (
+                    "financial_graph_calculation",
+                    "_extract_calculation_operands",
+                    ["query"],
+                    [],
+                    1,
+                ),
+                (
+                    "financial_graph_evidence",
+                    "_extract_ratio_component_candidates",
+                    ["combined_query"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_evidence",
+                    "_build_ratio_operands_from_candidates",
+                    ["query_text"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_evidence",
+                    "_build_ratio_operands_from_candidates",
+                    ["query_text"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_helpers",
+                    "_infer_operation_family_from_query",
+                    ["query"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_graph_reconciliation",
+                    "_plan_reflection_retry",
+                    ["query"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "collect_retrieved_operand_evidence_candidates",
+                    ["query"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_operation_policies",
+                    "_should_coerce_percent_point_unit",
+                    ["query"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+        call_payload = [
+            {
+                "args": record["args"],
+                "caller": record["caller"],
+                "keywords": record["keywords"],
+                "line": record["line"],
+                "module": record["module"],
+                "parent": record["parent"],
+                "try_depth": record["try_depth"],
+            }
+            for record in call_records
+        ]
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444"
+                if target_name == future_public_name
+                else "6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab"
+            ),
+        )
+        self.assertEqual(
+            caller_hashes,
+            (
+                {
+                    (
+                        "financial_graph_calculation",
+                        "_extract_calculation_operands",
+                    ): "60703a235aaefe673dee297c414b1f7c198906edc5abfdbe891b313ec8ad2d4e",
+                    (
+                        "financial_graph_evidence",
+                        "_build_ratio_operands_from_candidates",
+                    ): "7b0ad6a72a5a31fc4cf2bc618c6ef9f9111f1ca78a63d59c4e798a0734ec495d",
+                    (
+                        "financial_graph_evidence",
+                        "_extract_ratio_component_candidates",
+                    ): "050e7c1d20d372cb207dd7a03135a2ff8844b6a680ab066b002e7dfc148ce861",
+                    (
+                        "financial_graph_helpers",
+                        "_infer_operation_family_from_query",
+                    ): "b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5",
+                    (
+                        "financial_graph_reconciliation",
+                        "_plan_reflection_retry",
+                    ): "c51b375910aa7044c7ac36c267af63ce2ad4a0f9510a2d72c8e72d9ac72de56d",
+                    (
+                        "financial_operand_resolution",
+                        "collect_retrieved_operand_evidence_candidates",
+                    ): "837da702ca73fbab5972dbe7dd36329dcfb4e60903231403da89401adc47a789",
+                    (
+                        "financial_operation_policies",
+                        "_should_coerce_percent_point_unit",
+                    ): "0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1",
+                }
+                if target_name == future_public_name
+                else {
+                    (
+                        "financial_graph_calculation",
+                        "_extract_calculation_operands",
+                    ): "75b93c2334ede4ad4ef4241c402d8c436dd7ed2ffb38e54dff3671169aa211be",
+                    (
+                        "financial_graph_evidence",
+                        "_build_ratio_operands_from_candidates",
+                    ): "e1b2de559ed3262ac1c3e4d1c9ffc2bb87cc006fe18c33c91e7418bff51d03fc",
+                    (
+                        "financial_graph_evidence",
+                        "_extract_ratio_component_candidates",
+                    ): "c2c204dde1af4c141ae089327fbc663f53686751dc09d1885c49972299b61734",
+                    (
+                        "financial_graph_helpers",
+                        "_infer_operation_family_from_query",
+                    ): "948a67db0bb41bffb96d41986ba0902c65480a1a5e2b580c9468ca23bc154741",
+                    (
+                        "financial_graph_reconciliation",
+                        "_plan_reflection_retry",
+                    ): "35814c29aab330afd0b10f389f8ea6e66a55cb2b57043029b3087d0917d5ecc1",
+                    (
+                        "financial_operand_resolution",
+                        "collect_retrieved_operand_evidence_candidates",
+                    ): "cce1c7419f7528212b2bf6f40421b033e492e841ae0ed9cd6b6016f73e0f0037",
+                    (
+                        "financial_operation_policies",
+                        "_should_coerce_percent_point_unit",
+                    ): "33641c756be63626d6e8cf659996dd1c9f5f0e8e30fd5d7ce82ecd99e7a25e69",
+                }
+            ),
+        )
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21"
+                if target_name == future_public_name
+                else "bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad"
+            ),
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): tree
+            for path, tree in (
+                (
+                    path,
+                    ast.parse(path.read_text(encoding="utf-8-sig")),
+                )
+                for path in (repo_root / "src" / "agent").rglob("*.py")
+            )
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for source, dependency in edges:
+                    if source != current:
+                        continue
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertTrue(
+            all(
+                reaches(
+                    f"src.agent.{module_name}",
+                    "src.agent.financial_operation_policies",
+                )
+                for module_name in expected_importers
+            )
+        )
+        self.assertTrue(
+            all(
+                not reaches(
+                    "src.agent.financial_operation_policies",
+                    f"src.agent.{module_name}",
+                )
+                for module_name in expected_importers
+            )
+        )
+
+        def reference_count(tree, name):
+            count = 0
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and node.id == name:
+                    count += 1
+                elif isinstance(node, ast.Attribute) and node.attr == name:
+                    count += 1
+                elif isinstance(node, ast.alias):
+                    if node.name == name:
+                        count += 1
+                    if node.asname == name:
+                        count += 1
+                elif isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ) and node.name == name:
+                    count += 1
+                elif isinstance(node, ast.Constant) and node.value == name:
+                    count += 1
+            return count
+
+        production_ref_counts = {
+            module_name: reference_count(tree, target_name)
+            for module_name, tree in module_trees.items()
+            if reference_count(tree, target_name)
+        }
+        self.assertEqual(
+            production_ref_counts,
+            {
+                "financial_graph_calculation": 2,
+                "financial_graph_evidence": 4,
+                "financial_graph_helpers": 2,
+                "financial_graph_reconciliation": 2,
+                "financial_operand_resolution": 2,
+                "financial_operation_policies": 2,
+            },
+        )
+        self.assertEqual(sum(production_ref_counts.values()), 14)
+        self.assertEqual(
+            sum(
+                reference_count(tree, other_name)
+                for tree in module_trees.values()
+            ),
+            0,
+        )
+
+        new_method_names = {
+            "test_current_source_is_percent_point_difference_query_pins_policy_precedence_laziness_and_result",
+            "test_current_source_is_percent_point_difference_query_pins_immutability_and_exceptions",
+            "test_current_source_is_percent_point_difference_query_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+            "test_current_source_is_percent_point_difference_query_callers_pin_gates_args_adoption_and_stops",
+        }
+        existing_test_ref_counts = {}
+        other_existing_test_ref_counts = {}
+        for path in (repo_root / "tests").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            current_count = reference_count(tree, target_name)
+            other_count = reference_count(tree, other_name)
+            if path.name == "test_financial_graph_helpers.py":
+                for class_node in (
+                    node for node in tree.body if isinstance(node, ast.ClassDef)
+                ):
+                    for method in class_node.body:
+                        if (
+                            isinstance(method, ast.FunctionDef)
+                            and method.name in new_method_names
+                        ):
+                            current_count -= reference_count(method, target_name)
+                            other_count -= reference_count(method, other_name)
+            if current_count:
+                existing_test_ref_counts[path.name] = current_count
+            if other_count:
+                other_existing_test_ref_counts[path.name] = other_count
+        self.assertEqual(
+            existing_test_ref_counts,
+            {
+                "test_financial_graph_helpers.py": 10,
+                "test_reflection_capability_contract.py": 2,
+                "test_semantic_numeric_plan.py": 3,
+            },
+        )
+        self.assertEqual(sum(existing_test_ref_counts.values()), 15)
+        self.assertEqual(other_existing_test_ref_counts, {})
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        graph_test_methods = [
+            method
+            for class_node in current_test_tree.body
+            if isinstance(class_node, ast.ClassDef)
+            and class_node.name == "FinancialGraphHelperTests"
+            for method in class_node.body
+            if isinstance(method, ast.FunctionDef)
+            and method.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 258)
+        self.assertEqual(
+            {
+                method.name
+                for method in graph_test_methods
+                if method.name in new_method_names
+            },
+            new_method_names,
+        )
+        self.assertEqual(
+            len(
+                [
+                    method
+                    for method in graph_test_methods
+                    if method.name not in new_method_names
+                ]
+            ),
+            254,
+        )
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == "src/agent/financial_operation_policies.py"
+                and str(record.get("text") or "") in body_source
+            ],
+            [],
+        )
+
+        importer_objects = {
+            "financial_graph_calculation": financial_graph_calculation,
+            "financial_graph_evidence": financial_graph_evidence,
+            "financial_graph_helpers": financial_graph_helpers,
+            "financial_graph_reconciliation": financial_graph_reconciliation,
+            "financial_operand_resolution": financial_operand_resolution,
+        }
+        owner_target = getattr(financial_operation_policies, target_name)
+        public_identities = [owner_target]
+        for module_name, module in importer_objects.items():
+            with self.subTest(module_name=module_name):
+                imported_target = getattr(module, target_name)
+                self.assertIs(imported_target, owner_target)
+                public_identities.append(imported_target)
+        self.assertEqual(len(public_identities), 6)
+        self.assertTrue(all(item is owner_target for item in public_identities))
+
+        transform_paths = {
+            module_paths[module_name]
+            for module_name in expected_importers
+            | {"financial_operation_policies"}
+        } | {
+            repo_root / "tests" / test_name
+            for test_name in existing_test_ref_counts
+        }
+        self.assertEqual(len(transform_paths), 9)
+        self.assertEqual(
+            sum(
+                path.read_bytes().decode("utf-8-sig") is not None
+                for path in transform_paths
+            ),
+            9,
+        )
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in path.read_text(encoding="utf-8-sig")
+                )
+                for path in transform_paths
+            ),
+            8,
+        )
+
+    def test_current_source_is_percent_point_difference_query_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "is_percent_point_difference_query"
+        retired_private_name = "_is_percent_point_difference_query"
+        target_name = (
+            future_public_name
+            if hasattr(financial_operation_policies, future_public_name)
+            else retired_private_name
+        )
+
+        repo_root = Path(__file__).resolve().parents[1]
+
+        def function_source(relative_path, function_name):
+            path = repo_root / relative_path
+            source = path.read_text(encoding="utf-8-sig")
+            tree = ast.parse(source)
+            matches = [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == function_name
+            ]
+            self.assertEqual(len(matches), 1)
+            node = matches[0]
+            return "\n".join(source.splitlines()[node.lineno - 1 : node.end_lineno])
+
+        calculation_source = function_source(
+            "src/agent/financial_graph_calculation.py",
+            "_extract_calculation_operands",
+        )
+        self.assertLess(
+            calculation_source.index("late_dependency_remerge ="),
+            calculation_source.index(f"{target_name}(query)"),
+        )
+        self.assertLess(
+            calculation_source.index(f"{target_name}(query)"),
+            calculation_source.index("late_operand_finalization ="),
+        )
+        self.assertIn(
+            '"PERCENT" if percent_point_operand_filter_applied else None',
+            calculation_source,
+        )
+
+        extraction_source = function_source(
+            "src/agent/financial_graph_evidence.py",
+            "_extract_ratio_component_candidates",
+        )
+        self.assertLess(
+            extraction_source.index("is_ratio_percent_query(combined_query)"),
+            extraction_source.index(f"{target_name}(combined_query)"),
+        )
+        self.assertLess(
+            extraction_source.index(f"{target_name}(combined_query)"),
+            extraction_source.index("get_financial_ontology()"),
+        )
+
+        builder_source = function_source(
+            "src/agent/financial_graph_evidence.py",
+            "_build_ratio_operands_from_candidates",
+        )
+        self.assertEqual(builder_source.count(f"{target_name}(query_text)"), 2)
+        first_builder_call = builder_source.index(f"{target_name}(query_text)")
+        second_builder_call = builder_source.index(
+            f"{target_name}(query_text)",
+            first_builder_call + 1,
+        )
+        self.assertLess(builder_source.index("if operand_rows:"), first_builder_call)
+        self.assertLess(first_builder_call, builder_source.index("return operand_rows[:1]"))
+        self.assertLess(second_builder_call, builder_source.index("ontology = get_financial_ontology()"))
+
+        family_source = function_source(
+            "src/agent/financial_graph_helpers.py",
+            "_infer_operation_family_from_query",
+        )
+        self.assertLess(
+            family_source.index("if not text:"),
+            family_source.index("for policy in OPERATION_FAMILY_QUERY_POLICIES:"),
+        )
+        self.assertLess(
+            family_source.index("for policy in OPERATION_FAMILY_QUERY_POLICIES:"),
+            family_source.index(f"{target_name}(query)"),
+        )
+        self.assertLess(
+            family_source.index(f"{target_name}(query)"),
+            family_source.index("is_single_metric_period_comparison("),
+        )
+        self.assertLess(
+            family_source.index("is_single_metric_period_comparison("),
+            family_source.index("is_ratio_percent_query(query)"),
+        )
+
+        reconciliation_source = function_source(
+            "src/agent/financial_graph_reconciliation.py",
+            "_plan_reflection_retry",
+        )
+        self.assertLess(
+            reconciliation_source.index("reflection_request ="),
+            reconciliation_source.index("ratio_query = is_ratio_percent_query(query)"),
+        )
+        self.assertLess(
+            reconciliation_source.index("ratio_query = is_ratio_percent_query(query)"),
+            reconciliation_source.index(f"percent_point_query = {target_name}(query)"),
+        )
+        self.assertLess(
+            reconciliation_source.index(f"percent_point_query = {target_name}(query)"),
+            reconciliation_source.index("sum_markers ="),
+        )
+        self.assertLess(
+            reconciliation_source.index("if percent_point_query:"),
+            reconciliation_source.index("elif ratio_query and len(operands) < 2:"),
+        )
+
+        operand_source = function_source(
+            "src/agent/financial_operand_resolution.py",
+            "collect_retrieved_operand_evidence_candidates",
+        )
+        self.assertLess(
+            operand_source.index(f"percent_point_query = {target_name}(query)"),
+            operand_source.index("ratio_row_candidates = extract_ratio_row_candidates("),
+        )
+        self.assertLess(
+            operand_source.index("ratio_row_candidates = extract_ratio_row_candidates("),
+            operand_source.index("if not percent_point_query:"),
+        )
+        self.assertLess(
+            operand_source.index("if not percent_point_query:"),
+            operand_source.index("extract_ratio_component_candidates("),
+        )
+
+        owner_caller_source = function_source(
+            "src/agent/financial_operation_policies.py",
+            "_should_coerce_percent_point_unit",
+        )
+        self.assertLess(
+            owner_caller_source.index(f"{target_name}(query)"),
+            owner_caller_source.index('plan_data.get("mode")'),
+        )
+        self.assertLess(
+            owner_caller_source.index('plan_data.get("mode")'),
+            owner_caller_source.index('plan_data.get("ordered_operand_ids")'),
+        )
+
+        stopped_blank_target = Mock(
+            side_effect=AssertionError("blank query must stop percent-point classification")
+        )
+        stopped_blank_labels = Mock(
+            side_effect=AssertionError("blank query must stop operand label extraction")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                return_value="",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_extract_generic_operand_labels",
+                stopped_blank_labels,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                stopped_blank_target,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._infer_operation_family_from_query(
+                    "query",
+                    object(),
+                ),
+                "single_value",
+            )
+        stopped_blank_labels.assert_not_called()
+        stopped_blank_target.assert_not_called()
+
+        stopped_configured_target = Mock(
+            side_effect=AssertionError("configured policy must stop percent-point classification")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                return_value="configured marker",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_extract_generic_operand_labels",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "OPERATION_FAMILY_QUERY_POLICIES",
+                ({"markers": ["configured"], "operation_family": "sum"},),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                stopped_configured_target,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._infer_operation_family_from_query(
+                    "query",
+                    object(),
+                ),
+                "sum",
+            )
+        stopped_configured_target.assert_not_called()
+
+        stopped_period_classifier = Mock(
+            side_effect=AssertionError("percent-point match must stop period classification")
+        )
+        stopped_ratio_classifier = Mock(
+            side_effect=AssertionError("percent-point match must stop ratio classification")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                return_value="comparison",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_extract_generic_operand_labels",
+                return_value=["metric"],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "OPERATION_FAMILY_QUERY_POLICIES",
+                (),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                return_value=True,
+            ) as family_target,
+            patch.object(
+                financial_graph_helpers,
+                "is_single_metric_period_comparison",
+                stopped_period_classifier,
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "is_ratio_percent_query",
+                stopped_ratio_classifier,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_helpers._infer_operation_family_from_query(
+                    "raw query",
+                    object(),
+                ),
+                "difference",
+            )
+        family_target.assert_called_once_with("raw query")
+        stopped_period_classifier.assert_not_called()
+        stopped_ratio_classifier.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                return_value="comparison",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_extract_generic_operand_labels",
+                return_value=["metric"],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "OPERATION_FAMILY_QUERY_POLICIES",
+                (),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                return_value=False,
+            ) as false_family_target,
+            patch.object(
+                financial_graph_helpers,
+                "is_single_metric_period_comparison",
+                return_value=False,
+            ) as period_target,
+            patch.object(
+                financial_graph_helpers,
+                "is_ratio_percent_query",
+                return_value=True,
+            ) as ratio_target,
+        ):
+            self.assertEqual(
+                financial_graph_helpers._infer_operation_family_from_query(
+                    "raw query",
+                    object(),
+                ),
+                "ratio",
+            )
+        false_family_target.assert_called_once_with("raw query")
+        period_target.assert_called_once_with("raw query", ["metric"])
+        ratio_target.assert_called_once_with("raw query")
+
+        stopped_failure_period = Mock(
+            side_effect=AssertionError("classifier failure must stop later family checks")
+        )
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                return_value="comparison",
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "_extract_generic_operand_labels",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "OPERATION_FAMILY_QUERY_POLICIES",
+                (),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                target_name,
+                side_effect=RuntimeError("family classifier failed"),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "is_single_metric_period_comparison",
+                stopped_failure_period,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "family classifier failed"):
+                financial_graph_helpers._infer_operation_family_from_query(
+                    "raw query",
+                    object(),
+                )
+        stopped_failure_period.assert_not_called()
+
+        evidence_agent = SimpleNamespace()
+        stopped_evidence_target = Mock(
+            side_effect=AssertionError("ratio gate must stop percent-point classification")
+        )
+        stopped_evidence_ontology = Mock(
+            side_effect=AssertionError("ratio gate must stop ontology lookup")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="Q T",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "is_ratio_percent_query",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                stopped_evidence_target,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "get_financial_ontology",
+                stopped_evidence_ontology,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._extract_ratio_component_candidates(
+                    evidence_agent,
+                    [],
+                    "Q",
+                    "T",
+                ),
+                [],
+            )
+        stopped_evidence_target.assert_not_called()
+        stopped_evidence_ontology.assert_not_called()
+
+        stopped_percent_ontology = Mock(
+            side_effect=AssertionError("percent-point match must stop ontology lookup")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="Q T",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "is_ratio_percent_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=True,
+            ) as evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "get_financial_ontology",
+                stopped_percent_ontology,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._extract_ratio_component_candidates(
+                    evidence_agent,
+                    [],
+                    "Q",
+                    "T",
+                ),
+                [],
+            )
+        evidence_target.assert_called_once_with("Q T")
+        stopped_percent_ontology.assert_not_called()
+
+        component_specs = Mock(return_value=[])
+        ontology = SimpleNamespace(component_specs=component_specs)
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="Q T",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "is_ratio_percent_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=False,
+            ) as false_evidence_target,
+            patch.object(
+                financial_graph_evidence,
+                "get_financial_ontology",
+                return_value=ontology,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._extract_ratio_component_candidates(
+                    evidence_agent,
+                    [],
+                    "Q",
+                    "T",
+                ),
+                [],
+            )
+        false_evidence_target.assert_called_once_with("Q T")
+        component_specs.assert_called_once_with("Q", "T", "comparison")
+
+        stopped_failed_ontology = Mock(
+            side_effect=AssertionError("classifier failure must stop ontology lookup")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_normalise_spaces",
+                return_value="Q T",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "is_ratio_percent_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence classifier failed"),
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "get_financial_ontology",
+                stopped_failed_ontology,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence classifier failed"):
+                financial_graph_evidence.FinancialAgentEvidenceMixin._extract_ratio_component_candidates(
+                    evidence_agent,
+                    [],
+                    "Q",
+                    "T",
+                )
+        stopped_failed_ontology.assert_not_called()
+
+        ratio_candidate = {
+            "evidence_id": "ev-1",
+            "source_anchor": "anchor-1",
+            "source_context": "2024년 2023년",
+            "raw_row_text": "10% 8%",
+            "metadata": {},
+        }
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                return_value=[ratio_candidate],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=True,
+            ) as builder_target,
+        ):
+            percent_point_rows = financial_graph_evidence.FinancialAgentEvidenceMixin._build_ratio_operands_from_candidates(
+                evidence_agent,
+                [ratio_candidate],
+                "2024년 2023년",
+            )
+        builder_target.assert_called_once_with("2024년 2023년")
+        self.assertEqual(len(percent_point_rows), 2)
+        self.assertEqual(
+            [row["period"] for row in percent_point_rows],
+            ["2024년", "2023년"],
+        )
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                return_value=[ratio_candidate],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=False,
+            ) as false_builder_target,
+        ):
+            single_ratio_row = financial_graph_evidence.FinancialAgentEvidenceMixin._build_ratio_operands_from_candidates(
+                evidence_agent,
+                [ratio_candidate],
+                "2024년 2023년",
+            )
+        false_builder_target.assert_called_once_with("2024년 2023년")
+        self.assertEqual(len(single_ratio_row), 1)
+        self.assertEqual(single_ratio_row[0]["period"], "2024년")
+
+        no_ratio_candidate = {
+            "source_anchor": "anchor-2",
+            "raw_row_text": "no ratio display",
+            "metadata": {},
+        }
+        stopped_builder_ontology = Mock(
+            side_effect=AssertionError("percent-point no-row gate must stop ontology fallback")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "_prioritize_candidate_items",
+                return_value=[no_ratio_candidate],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                return_value=True,
+            ) as no_row_target,
+            patch.object(
+                financial_graph_evidence,
+                "get_financial_ontology",
+                stopped_builder_ontology,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_evidence.FinancialAgentEvidenceMixin._build_ratio_operands_from_candidates(
+                    evidence_agent,
+                    [no_ratio_candidate],
+                    "query",
+                ),
+                [],
+            )
+        no_row_target.assert_called_once_with("query")
+        stopped_builder_ontology.assert_not_called()
+
+        def collect_operand_candidates(classifier_result):
+            row_candidates = Mock(return_value=[])
+            component_candidates = Mock(return_value=[])
+            with patch.object(
+                financial_operand_resolution,
+                target_name,
+                return_value=classifier_result,
+            ) as operand_target:
+                batch = financial_operand_resolution.collect_retrieved_operand_evidence_candidates(
+                    [],
+                    [],
+                    existing_evidence_items=[],
+                    required_operands=[],
+                    missing_dependency_bindings=[],
+                    query="operand query",
+                    topic="operand topic",
+                    report_scope={},
+                    desired_consolidation_scope="",
+                    build_source_anchor=Mock(),
+                    build_required_operands_from_candidates=Mock(),
+                    extract_ratio_row_candidates=row_candidates,
+                    extract_ratio_component_candidates=component_candidates,
+                )
+            operand_target.assert_called_once_with("operand query")
+            row_candidates.assert_called_once_with(
+                [],
+                "operand query",
+                "operand topic",
+            )
+            return batch, component_candidates
+
+        true_batch, stopped_components = collect_operand_candidates(True)
+        self.assertEqual(list(true_batch.evidence_items), [])
+        stopped_components.assert_not_called()
+        false_batch, adopted_components = collect_operand_candidates(False)
+        self.assertEqual(list(false_batch.evidence_items), [])
+        adopted_components.assert_called_once_with(
+            [],
+            "operand query",
+            "operand topic",
+        )
+
+        stopped_ratio_rows = Mock(
+            side_effect=AssertionError("classifier failure must stop ratio-row extraction")
+        )
+        with patch.object(
+            financial_operand_resolution,
+            target_name,
+            side_effect=RuntimeError("operand classifier failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operand classifier failed"):
+                financial_operand_resolution.collect_retrieved_operand_evidence_candidates(
+                    [],
+                    [],
+                    existing_evidence_items=[],
+                    required_operands=[],
+                    missing_dependency_bindings=[],
+                    query="operand query",
+                    topic="operand topic",
+                    report_scope={},
+                    desired_consolidation_scope="",
+                    build_source_anchor=Mock(),
+                    build_required_operands_from_candidates=Mock(),
+                    extract_ratio_row_candidates=stopped_ratio_rows,
+                    extract_ratio_component_candidates=Mock(),
+                )
+        stopped_ratio_rows.assert_not_called()
+
+        class StoppedPlan:
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("false classification must stop plan inspection")
+
+        with patch.object(
+            financial_operation_policies,
+            target_name,
+            return_value=False,
+        ) as owner_target:
+            self.assertIs(
+                financial_operation_policies._should_coerce_percent_point_unit(
+                    "owner query",
+                    [],
+                    StoppedPlan(),
+                ),
+                False,
+            )
+        owner_target.assert_called_once_with("owner query")
+
+        operands = [
+            {"operand_id": "a", "normalized_unit": "PERCENT"},
+            {"operand_id": "b", "normalized_unit": "PERCENT"},
+        ]
+        plan_data = {
+            "mode": "single_value",
+            "ordered_operand_ids": ["a", "b"],
+            "operation": "subtract",
+            "formula": "a - b",
+        }
+        with patch.object(
+            financial_operation_policies,
+            target_name,
+            return_value=True,
+        ) as true_owner_target:
+            self.assertIs(
+                financial_operation_policies._should_coerce_percent_point_unit(
+                    "owner query",
+                    operands,
+                    plan_data,
+                ),
+                True,
+            )
+        true_owner_target.assert_called_once_with("owner query")
+
+        with patch.object(
+            financial_operation_policies,
+            target_name,
+            side_effect=RuntimeError("owner classifier failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "owner classifier failed"):
+                financial_operation_policies._should_coerce_percent_point_unit(
+                    "owner query",
+                    operands,
+                    plan_data,
+                )
+
+        reflection_objectives = []
+
+        class FailingPipe:
+            def invoke(self, _payload):
+                raise RuntimeError("planned fallback")
+
+        class Prompt:
+            def __or__(self, _structured_llm):
+                return FailingPipe()
+
+        class StructuredLlm:
+            def with_structured_output(self, _model):
+                return self
+
+        class ReconciliationAgent:
+            def _infer_missing_info(self, _state, _operands):
+                return []
+
+            def _calc_metric_family(self, _state):
+                return ""
+
+            def _heuristic_reflection_query_plan(
+                self,
+                _state,
+                _operands,
+                *,
+                retry_objective,
+                explanation,
+            ):
+                reflection_objectives.append(retry_objective)
+                return {
+                    "status": "ready",
+                    "retry_objective": retry_objective,
+                    "missing_info": [],
+                    "subqueries": [],
+                    "preferred_sections": [],
+                    "explanation": explanation,
+                }
+
+            def _llm_for_phase(self, _phase):
+                return StructuredLlm()
+
+        reflection_state = {
+            "query": "reflection query",
+            "years": [],
+            "companies": [],
+            "seed_retrieved_docs": [],
+        }
+
+        def run_reflection(percent_point_result):
+            request_builder = Mock(return_value={"request": True})
+            with (
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_resolve_runtime_calculation_trace",
+                    return_value={},
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_preferred_calc_sections",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "build_reflection_request",
+                    request_builder,
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "is_ratio_percent_query",
+                    return_value=True,
+                ) as reflection_ratio_target,
+                patch.object(
+                    financial_graph_reconciliation,
+                    target_name,
+                    return_value=percent_point_result,
+                ) as reflection_target,
+                patch.object(
+                    financial_graph_reconciliation,
+                    "get_financial_ontology",
+                    return_value=object(),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_reflection_query_plan_model",
+                    return_value=object(),
+                ),
+                patch.object(
+                    financial_graph_reconciliation,
+                    "_chat_prompt_template_from_template",
+                    return_value=Prompt(),
+                ),
+            ):
+                result = financial_graph_reconciliation.FinancialAgentReconciliationMixin._plan_reflection_retry(
+                    ReconciliationAgent(),
+                    reflection_state,
+                )
+            request_builder.assert_called_once()
+            reflection_ratio_target.assert_called_once_with("reflection query")
+            reflection_target.assert_called_once_with("reflection query")
+            return result
+
+        percent_reflection = run_reflection(True)
+        self.assertEqual(
+            percent_reflection["reflection_plan"]["retry_objective"],
+            "find_direct_row",
+        )
+        ratio_reflection = run_reflection(False)
+        self.assertEqual(
+            ratio_reflection["reflection_plan"]["retry_objective"],
+            "find_missing_values",
+        )
+        self.assertEqual(
+            reflection_objectives,
+            ["find_direct_row", "find_missing_values"],
+        )
+
+        stopped_reflection_heuristic = Mock(
+            side_effect=AssertionError("classifier failure must stop retry planning")
+        )
+        failed_agent = ReconciliationAgent()
+        failed_agent._heuristic_reflection_query_plan = stopped_reflection_heuristic
+        with (
+            patch.object(
+                financial_graph_reconciliation,
+                "_resolve_runtime_calculation_trace",
+                return_value={},
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                "_preferred_calc_sections",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                "build_reflection_request",
+                return_value={"request": True},
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                "is_ratio_percent_query",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_reconciliation,
+                target_name,
+                side_effect=RuntimeError("reflection classifier failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reflection classifier failed"):
+                financial_graph_reconciliation.FinancialAgentReconciliationMixin._plan_reflection_retry(
+                    failed_agent,
+                    reflection_state,
+                )
+        stopped_reflection_heuristic.assert_not_called()
 
 
 if __name__ == "__main__":

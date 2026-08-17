@@ -32,7 +32,7 @@ from src.agent.financial_row_surfaces import (
 from src.agent.financial_retrieval_hints import _active_preferred_sections
 from src.agent.financial_retrieval_pipeline import _ensure_period_count_operand_docs, _focused_operand_surface_queries
 from src.agent.financial_graph_models import ConceptPlannerOutput
-from src.agent.financial_operation_policies import _is_percent_point_difference_query
+from src.agent.financial_operation_policies import is_percent_point_difference_query
 
 
 class _StubStructuredLLM:
@@ -2404,12 +2404,12 @@ class SemanticNumericPlanTests(unittest.TestCase):
 
     def test_ratio_query_is_not_misclassified_as_percent_point_difference(self) -> None:
         self.assertFalse(
-            _is_percent_point_difference_query(
+            is_percent_point_difference_query(
                 "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘."
             )
         )
         self.assertTrue(
-            _is_percent_point_difference_query(
+            is_percent_point_difference_query(
                 "2023년과 2022년 부채비율의 차이를 %p 기준으로 계산해 줘."
             )
         )

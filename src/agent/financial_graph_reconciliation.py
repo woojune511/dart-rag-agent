@@ -82,7 +82,7 @@ from src.agent.financial_reflection_projection import (
 )
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
+    is_percent_point_difference_query,
     is_ratio_percent_query,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
@@ -1329,7 +1329,7 @@ class FinancialAgentReconciliationMixin:
         )
 
         ratio_query = is_ratio_percent_query(query)
-        percent_point_query = _is_percent_point_difference_query(query)
+        percent_point_query = is_percent_point_difference_query(query)
         sum_markers = tuple(
             str(item)
             for item in (RECONCILIATION_POLICY.get("reflection_sum_query_markers") or ())

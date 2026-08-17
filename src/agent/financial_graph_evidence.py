@@ -69,7 +69,7 @@ if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
+    is_percent_point_difference_query,
     is_ratio_percent_query,
     query_requests_narrative_context,
     _requires_direct_numeric_grounding,
@@ -923,7 +923,7 @@ class FinancialAgentEvidenceMixin:
         combined_query = _normalise_spaces(f"{query} {topic}")
         if not is_ratio_percent_query(combined_query):
             return []
-        if _is_percent_point_difference_query(combined_query):
+        if is_percent_point_difference_query(combined_query):
             return []
 
         specs: List[Dict[str, Any]] = []
@@ -1165,7 +1165,7 @@ class FinancialAgentEvidenceMixin:
                 )
 
         if operand_rows:
-            if _is_percent_point_difference_query(query_text):
+            if is_percent_point_difference_query(query_text):
                 if query_years:
                     filtered = [row for row in operand_rows if row.get("period") in query_years]
                     if len(filtered) >= 2:
@@ -1178,7 +1178,7 @@ class FinancialAgentEvidenceMixin:
             return operand_rows[:1]
 
         # 2) component-based operands from the active ontology metric family.
-        if _is_percent_point_difference_query(query_text):
+        if is_percent_point_difference_query(query_text):
             return []
 
         ontology = get_financial_ontology()

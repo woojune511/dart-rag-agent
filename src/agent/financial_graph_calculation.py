@@ -246,7 +246,7 @@ from src.agent.financial_graph_model_loaders import (
 from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
+    is_percent_point_difference_query,
     is_ratio_percent_query,
     query_requests_narrative_context,
     _requires_direct_numeric_grounding,
@@ -9687,7 +9687,7 @@ class FinancialAgentCalculationMixin:
                 )
             )
             operand_rows = late_dependency_remerge.operand_rows
-            percent_point_operand_filter_applied = _is_percent_point_difference_query(query)
+            percent_point_operand_filter_applied = is_percent_point_difference_query(query)
             late_operand_finalization = resolve_late_operand_finalization(
                 LateOperandFinalizationInput(
                     operand_rows=operand_rows,

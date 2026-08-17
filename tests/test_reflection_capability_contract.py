@@ -1261,7 +1261,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,
-            "_is_percent_point_difference_query",
+            "is_percent_point_difference_query",
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1385,7 +1385,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,
-            "_is_percent_point_difference_query",
+            "is_percent_point_difference_query",
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,

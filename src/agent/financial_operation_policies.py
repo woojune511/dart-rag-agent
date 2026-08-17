@@ -14,7 +14,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _is_percent_point_difference_query(text: str) -> bool:
+def is_percent_point_difference_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
     policy = dict(PERCENT_POINT_DIFFERENCE_POLICY)
     direct_markers = tuple(str(item) for item in (policy.get("direct_markers") or ()) if str(item))
@@ -111,7 +111,7 @@ def _should_coerce_percent_point_unit(
     operands: List[Dict[str, Any]],
     plan_data: Dict[str, Any],
 ) -> bool:
-    if not _is_percent_point_difference_query(query):
+    if not is_percent_point_difference_query(query):
         return False
     if str(plan_data.get("mode") or "") != "single_value":
         return False

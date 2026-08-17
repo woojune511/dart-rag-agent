@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, FrozenSet, List, Literal, Mapping, Optio
 
 from src.agent.financial_answer_slots import period_match_key
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
+    is_percent_point_difference_query,
     label_implies_percent_metric,
 )
 from src.agent.financial_row_surfaces import (
@@ -3430,7 +3430,7 @@ def collect_retrieved_operand_evidence_candidates(
                 ) >= max_operand_docs:
                     break
 
-    percent_point_query = _is_percent_point_difference_query(query)
+    percent_point_query = is_percent_point_difference_query(query)
     ratio_row_candidates = extract_ratio_row_candidates(candidate_docs, query, topic)
     if ratio_row_candidates:
         logger.info(

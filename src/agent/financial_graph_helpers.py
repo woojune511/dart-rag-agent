@@ -97,7 +97,7 @@ from src.agent.financial_scope_policies import (
     task_period_focus_from_operands,
 )
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
+    is_percent_point_difference_query,
     label_implies_percent_metric,
     is_ratio_percent_query,
     is_single_metric_period_comparison,
@@ -1214,7 +1214,7 @@ def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
         markers = tuple(str(marker).lower() for marker in (policy.get("markers") or ()) if str(marker))
         if any(marker in text for marker in markers):
             return str(policy.get("operation_family") or "single_value")
-    if _is_percent_point_difference_query(query):
+    if is_percent_point_difference_query(query):
         return "difference"
     if is_single_metric_period_comparison(query, generic_operand_labels):
         return "difference"
