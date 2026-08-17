@@ -1132,12 +1132,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,107/2,107와 exact-deletion/owner/caller/48-module/205-edge DAG parity가
   통과했다.
-- 새 characterize-only inventory는 operation-policy owner의 정확한 12줄
+- 완료된 `1d8eb67` visibility batch는 operation-policy owner의 정확한 12줄
   `_is_percent_point_difference_query(...)`을 public
-  `is_percent_point_difference_query(...)`로 이름 수렴시킨다. Policy snapshot,
+  `is_percent_point_difference_query(...)`로 이름 수렴시켰다. Policy snapshot,
   direct-marker precedence, ratio-metric/comparison-marker gating과 8개 call의
-  caller adoption/stop을 유지해야 한다. 정확한 네 CURRENT-SOURCE method와
-  projection은
+  caller adoption/stop은 유지됐다. Operation-policy public/private는 5/2다.
+  Focused pre/post 4/4, graph owner 258/258, surface owner 1/1, operand owner
+  69/69, semantic 1,218/1,218, reflection promotion 15/15, reflection capability
+  24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+  217, full 2,111/2,111와 transform/body/identity/seven-caller/48-module/
+  205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 21줄
+  `_should_coerce_percent_point_unit(...)`을 public
+  `should_coerce_percent_point_unit(...)`로 이름 수렴시킨다. Percent-point/
+  mode/ordered-ID/operand-map/unit gates와 operation/formula result, 두 caller의
+  argument/adoption/fallback/exception scope를 유지해야 한다. 정확한 네
+  CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

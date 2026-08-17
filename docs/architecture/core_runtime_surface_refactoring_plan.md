@@ -1685,44 +1685,68 @@ passed. The committed source/test diff SHA-256 is
 `0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 12-line
-`financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
-classifier for an in-place public rename to
-`is_percent_point_difference_query(...)`, with no wrapper or alias. Preserve
-raw input normalization, shallow policy snapshotting, direct-marker precedence,
-ratio-marker gating before comparison markers, eager marker tuples with
-retained-item double conversion, lazy membership, first-truthy stops,
-immutability, exact returns, and owner-uncaught failures.
+Commit `1d8eb67` completed the exact 12-line percent-point-difference visibility
+batch. The owner now exposes public `is_percent_point_difference_query(...)`;
+five importers, seven external calls, one owner-local call, and 15 existing test
+bindings use it without a wrapper or private alias. Normalization, shallow
+policy snapshotting, marker construction/precedence/gating, lazy membership,
+immutability, exact results, caller adoption, and exception scopes are
+unchanged. Production is `+14/-14`, tests are `+1,976/-51`, and the whole commit
+is `+1,990/-65`. Its committed diff SHA-256 is
+`8f6939314dafb61d7aa613afd858c203ed9f0ac454629fd453c2f187f234ed89`.
 
-Five external importers contain seven calls and the owner contains one local
-call across seven caller definitions. All use one positional argument and no
-keywords; only calculation operand finalization remains at caller `try` depth
-one. Evidence ratio-component admission/direct-row selection, operation-family
-precedence, reflection objective selection, operand component suppression,
-calculation percent-unit filtering, and owner-local unit-coercion gates,
-arguments, adoption, and exception stops remain unchanged.
+Focused pre/post 4/4, graph owner 258/258, surface owner 1/1, operand owner
+69/69, affected semantic 1,218/1,218, reflection promotion 15/15, reflection
+capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, full 2,111/2,111, production/complete transform 6/6 and 9/9,
+selected-body/seven-caller/eight-call/public-identity/DAG parity, graph-test AST
+254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8, pycompile, and diff-check
+gates passed. Final call-record/caller-map hashes are
+`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444` /
+`2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 21-line
+`financial_operation_policies._should_coerce_percent_point_unit(query,
+operands, plan_data) -> bool` helper for an in-place public rename to
+`should_coerce_percent_point_unit(...)`, with no wrapper or alias. Preserve the
+percent-point and mode early gates; ordered-ID materialization with retained raw
+strings; duplicate-last operand mapping; selected-row order/missing checks;
+exact uppercase `PERCENT` validation; operation/formula normalization; final
+subtract-or-hyphen result; input immutability; and every owner-uncaught failure.
+Do not move query classification, plan construction, operand extraction,
+formula guarding, result-unit policy, graph state, artifacts, or ledger work.
+
+Two external importers contain two three-positional-argument calls across two
+caller definitions. The deterministic runtime-plan adapter retains its
+difference/truthy-plan gates, fallback-resolved query, raw operand/plan identity,
+fresh true-result copy, false-result plan identity, and propagated failures.
+The graph formula-plan caller retains its depth-one location after plan repair
+and before guarding, true-only result-unit mutation, false continuation, and
+broad structured-output fallback on failure.
 
 The body SHA-256 is
-`79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
-Fourteen production occurrences span six files; 15 test refs span three files,
-so the complete transform is nine files. Operation-policy counts project 4/3
-to 5/2 and public identity projects 6/6. Current/projected call-record hashes
-are `6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
-`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`;
+`0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1`.
+Five production occurrences span three files; 18 test refs span three files, so
+the complete transform is six files. Operation-policy counts project 5/2 to
+6/1 and public identity projects 3/3. Current/projected call-record hashes are
+`ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b` /
+`59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5`;
 caller-map hashes are
-`bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
-`2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
+`c7bb14e756091352fbb8fcb55be5e3dea34244652a32ac7edcd0903d3eae1c26` /
+`a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-258/258, surface owner 1/1, operand owner 69/69, affected semantic
-1,218/1,218, reflection promotion 15/15, reflection capability 24/24,
-retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,111/2,111, production transform 6/6, complete transform 9/9, selected-body/
-seven-caller parity, eight calls/six modules, public identity 6/6, unchanged
-DAG, graph-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8,
-pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No
-percent-point source or test rename has occurred; it is the sole next priority.
+262/262, calculation-execution owner 45/45, math parsing 24/24, surface owner
+1/1, operand owner 69/69, affected semantic 1,222/1,222, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,115/2,115, production transform 3/3,
+complete transform 6/6, selected-body/two-caller parity, both calls/three source
+modules, public identity 3/3, unchanged DAG, graph-test AST 258/258 plus four
+methods, UTF-8 6/6, non-ASCII 5/5, pycompile, and diff-check gates are defined
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+No coercion-helper source or test rename has occurred; it is the sole next
+priority. Static inventory and four existing owner/caller probes passed.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

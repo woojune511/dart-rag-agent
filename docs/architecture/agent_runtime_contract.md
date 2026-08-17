@@ -5483,71 +5483,93 @@ whole commit is `+786/-41`. Its committed source/test diff SHA-256 is
 `0d342c2106e55f4079ee658ddce7a940376ba168bb5532e0e69d1118b96dfcef`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 12-line
-`financial_operation_policies._is_percent_point_difference_query(text: str) -> bool`
-definition at lines 17-28. The authorized future batch only renames it in place
-to public `is_percent_point_difference_query(...)` and updates five imports,
-seven external calls, one owner-local call, and 15 existing test bindings. Add
-no wrapper or private alias. Shared normalization, policy data, operand/evidence
-decisions, operation precedence, reflection, unit coercion, and exception
-scopes remain outside this batch.
+Commit `1d8eb67` completes the percent-point-difference visibility contract.
+The exact former 12-line private classifier is now public
+`financial_operation_policies.is_percent_point_difference_query(...)`. Five
+imports, seven external calls, one owner-local call, and 15 existing test
+bindings use the public spelling; no wrapper or private alias remains. Raw
+input normalization, shallow policy snapshots, marker construction and
+precedence, ratio/comparison gating, lazy membership, exact booleans,
+immutability, and caller exception scopes remain unchanged.
 
-Preserve raw input identity into `_normalise_spaces(...)`, then the shallow
-`dict(PERCENT_POINT_DIFFERENCE_POLICY)` snapshot. Preserve exact access to
-`direct_markers`, `ratio_metric_markers`, and `comparison_markers`; each raw
-`or ()`; each eager ordered tuple; and separate filter/retained `str(item)`
-calls. Retained items stringify twice and rejected items once. Every following
-membership generator remains lazy and stops at its first truthy result.
-
-A direct-marker hit returns exact `True` before ratio-marker construction. A
-ratio-marker miss returns exact `False` before comparison-marker access. Only
-a ratio-marker hit constructs the comparison tuple and returns its membership
-result. Do not lowercase, reorder, dedupe, cache, or mutate inputs or policy.
-Normalization, snapshot/access/truth, marker iteration/conversion/membership,
-tuple materialization, and result failures remain owner-uncaught.
-
-The nine-statement body has six assignments, two `if` nodes, and one final
-return; branch returns bring the return count to three. It has 17 calls, six
-generators/comprehension clauses, three tuples, three boolean operations, three
-comparisons, three attributes, one unary operation, and no loop, `try`, lambda,
-list/dict literal, list comprehension, or conditional expression. Its body
-SHA-256 is
-`79a0ca39b2d69eae56a6d77402320460106edef15b1edf776f62ce36bb94457e`.
-
-Eight one-positional-argument/no-keyword calls span seven caller definitions.
-Seven calls are at caller `try` depth zero; only calculation operand
-finalization is at depth one. Evidence component extraction and both ratio-
-operand calls preserve their ratio admission, direct-row pair/single-row
-adoption, and component-fallback stops. Operation-family inference preserves
-blank/configured-family precedence and true-to-difference adoption. Reflection
-planning preserves its request construction and retry-objective precedence.
-Operand evidence collection preserves ratio-row admission and true-only
-component suppression. Owner-local percent-point unit coercion preserves its
-false early return and subsequent deterministic plan checks. Calculation
-preserves its post-remerge filter signal, coverage adoption, and broad caller
-exception scope.
-
-The private spelling has 14 production occurrences across six files. Fifteen
-existing test refs span three test files, so the complete transform is nine
-files. Current/projected operation-policy counts are 4/3 to 5/2; projected
-public identity is 6/6. The DAG remains 48 modules/205 edges and the selected
-span intersects no audit record. Current/projected call-record hashes are
-`6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab` /
-`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444`;
-seven-caller-map hashes are
-`bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad` /
+Production is `+14/-14`, tests are `+1,976/-51`, and the whole commit is
+`+1,990/-65`. Focused pre/post 4/4, graph owner 258/258, surface owner 1/1,
+operand owner 69/69, affected semantic 1,218/1,218, reflection promotion 15/15,
+reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51,
+import 19/19, audit 217, and full 2,111/2,111 passed. Production/complete
+transform 6/6 and 9/9, selected-body/seven-caller/eight-call/public-identity/DAG
+parity, graph-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8,
+pycompile, and diff check also passed. Final call-record/caller-map hashes are
+`0269efe3c2a5fc64b44f70b1c2c02206f577ea68c1f3b088d663e6acdfbac444` /
 `2f34fd00af1b37503820f103872b91de63d69cc644e53bbe00bf679362e0cf21`.
+The committed diff SHA-256 is
+`8f6939314dafb61d7aa613afd858c203ed9f0ac454629fd453c2f187f234ed89`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 21-line
+`financial_operation_policies._should_coerce_percent_point_unit(query: str,
+operands: List[Dict[str, Any]], plan_data: Dict[str, Any]) -> bool` definition at
+lines 109-129. The authorized future batch only renames it in place to public
+`should_coerce_percent_point_unit(...)` and updates two imports, two external
+calls, and 18 existing test bindings. Add no wrapper or private alias. Shared
+percent-point classification, plan creation, operand extraction, formula
+guarding, result-unit policy, graph state, artifacts, ledger sequencing, and
+exception scopes remain outside this batch.
+
+Preserve raw `query` identity into `is_percent_point_difference_query(...)` and
+its false early return before plan access. Preserve exact mode coercion and
+comparison; eager ordered-ID construction from raw `or []`; separate filter and
+retained conversion; filter-only trimming; and the fewer-than-two early return.
+Preserve duplicate-last operand-map construction, ordered selected-row
+materialization, missing-row early return, lazy uppercase `PERCENT` validation,
+operation strip/lower, formula string/normalization, and the final exact
+subtract-or-hyphen boolean. Operation truth may stop only final formula
+membership; formula normalization has already occurred. Inputs and nested
+values remain unmodified. Classification, mapping access/truth, conversion,
+iteration, lookup, normalization, comparison, and membership failures remain
+owner-uncaught.
+
+The 11-statement body has five assignments, five `if` nodes, and one final
+return; branch returns bring the return count to six. It has 23 calls, two list
+comprehensions, one dictionary comprehension, two generators, five
+comprehension clauses, ten boolean operations, six comparisons, one list, one
+dictionary, two tuples, and no loop, `try`, lambda, conditional expression, set
+comprehension, or starred expression. Its body SHA-256 is
+`0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1`.
+
+Two three-positional-argument/no-keyword calls span two external caller
+definitions. The depth-zero runtime deterministic-plan adapter calls only
+after difference-family and truthy-plan gates, passes the exact fallback-
+resolved query string plus operand/plan objects, adopts a fresh result-unit
+override only on true, preserves false-result plan identity, and propagates
+failure. The graph formula-plan caller remains at depth one after LLM-plan
+normalization and before guarding. It mutates only the result unit on true,
+continues unchanged on false, and routes helper failure into its existing broad
+structured-output fallback. No gate, argument, adoption, fallback, or exception
+scope moves.
+
+The private spelling has five production occurrences across three files.
+Eighteen existing test refs span three test files, so the complete transform is
+six files. Current/projected operation-policy counts are 5/2 to 6/1; projected
+public identity is 3/3. The DAG remains 48 modules/205 edges and the selected
+span intersects no audit record. Current/projected call-record hashes are
+`ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b` /
+`59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5`;
+two-caller-map hashes are
+`c7bb14e756091352fbb8fcb55be5e3dea34244652a32ac7edcd0903d3eae1c26` /
+`a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d`.
 
 The four named CURRENT-SOURCE contracts and projected focused 4/4, graph owner
-258/258, surface owner 1/1, operand owner 69/69, affected semantic
-1,218/1,218, reflection promotion 15/15, reflection capability 24/24,
-retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,111/2,111, production transform 6/6, complete transform 9/9, selected-body/
-seven-caller parity, eight-call/six-module/public-identity/DAG parity, graph-
-test AST 254/254 plus four methods, UTF-8 9/9, non-ASCII 8/8, pycompile, and
-diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No percent-
-point source or test rename has occurred.
+262/262, calculation-execution owner 45/45, math parsing 24/24, surface owner
+1/1, operand owner 69/69, affected semantic 1,222/1,222, reflection promotion
+15/15, reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, full 2,115/2,115, production transform 3/3,
+complete transform 6/6, selected-body/two-caller parity, both calls/three-source-
+module/public-identity/DAG parity, graph-test AST 258/258 plus four methods,
+UTF-8 6/6, non-ASCII 5/5, pycompile, and diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No coercion-
+helper source or test rename has occurred. Static inventory and four existing
+owner/caller probes passed.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

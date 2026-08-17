@@ -339,10 +339,19 @@ call/caller는 4/4에서 도달 가능한 3/3으로 줄었다. Focused 4/4, grap
 254/254, surface owner 1/1, operand owner 69/69, affected 1,214/1,214,
 reflection promotion 15/15, reflection capability 24/24, retrieval-pipeline
 1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,107/2,107 및
-exact-deletion/owner/caller/DAG parity가 통과했다. 다음 characterize-only
-inventory는 operation-policy owner의 정확한 12줄
-`_is_percent_point_difference_query(...)`을 public
-`is_percent_point_difference_query(...)`로 이름 수렴시킨다. 정확한 계약과
+exact-deletion/owner/caller/DAG parity가 통과했다. 이어 operation-policy
+owner의 정확한 12줄 `_is_percent_point_difference_query(...)`은 `1d8eb67`에서
+public `is_percent_point_difference_query(...)`로 이름 수렴했다. 5개
+importer의 7개 외부 call과 1개 owner-local call은 public API를 사용하며
+normalization, policy snapshot, direct-marker precedence, ratio/comparison
+gating, lazy membership, immutability와 caller adoption/stop은 유지됐다.
+Focused pre/post 4/4, graph owner 258/258, surface owner 1/1, operand owner
+69/69, affected 1,218/1,218, reflection promotion 15/15, reflection capability
+24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+217, full 2,111/2,111 및 transform/body/identity/caller/DAG parity가 통과했다.
+다음 characterize-only inventory는 같은 owner의 정확한 21줄
+`_should_coerce_percent_point_unit(...)`을 public
+`should_coerce_percent_point_unit(...)`로 이름 수렴시킨다. 정확한 계약과
 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
