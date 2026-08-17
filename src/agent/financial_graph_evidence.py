@@ -72,7 +72,7 @@ from src.agent.financial_operation_policies import (
     is_percent_point_difference_query,
     is_ratio_percent_query,
     query_requests_narrative_context,
-    _requires_direct_numeric_grounding,
+    requires_direct_numeric_grounding,
 )
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
@@ -3442,7 +3442,7 @@ class FinancialAgentEvidenceMixin:
         docs = state.get("retrieved_docs", [])
         if not docs:
             return {"evidence_bullets": [], "evidence_items": [], "evidence_status": "missing"}
-        direct_numeric_grounding = _requires_direct_numeric_grounding(state.get("active_subtask") or {})
+        direct_numeric_grounding = requires_direct_numeric_grounding(state.get("active_subtask") or {})
         preserve_narrative_context = (
             direct_numeric_grounding
             and query_requests_narrative_context(str(state.get("query") or ""))

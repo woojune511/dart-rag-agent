@@ -249,7 +249,7 @@ from src.agent.financial_operation_policies import (
     is_percent_point_difference_query,
     is_ratio_percent_query,
     query_requests_narrative_context,
-    _requires_direct_numeric_grounding,
+    requires_direct_numeric_grounding,
     should_coerce_percent_point_unit,
 )
 from src.agent.financial_runtime_normalization import (
@@ -9035,7 +9035,7 @@ class FinancialAgentCalculationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
-        direct_numeric_grounding = _requires_direct_numeric_grounding(active_subtask)
+        direct_numeric_grounding = requires_direct_numeric_grounding(active_subtask)
         surface_contract_evidence = surface_contract_numeric_evidence_items(
             evidence_items,
             required_operands,

@@ -64,7 +64,7 @@ def label_implies_percent_metric(label: str) -> bool:
     )
 
 
-def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
+def requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
     task = dict(active_subtask or {})
     operation_family = str(task.get("operation_family") or "").strip().lower()
     if operation_family in {"lookup", "single_value"}:

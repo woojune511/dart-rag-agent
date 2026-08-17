@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         RuntimeCalculationTrace,
     )
 from src.agent.financial_numeric_surface import answer_covers_numeric_answer, extract_numeric_surface_candidates
-from src.agent.financial_operation_policies import _requires_direct_numeric_grounding
+from src.agent.financial_operation_policies import requires_direct_numeric_grounding
 from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 
 logger = logging.getLogger(__name__)
@@ -538,7 +538,7 @@ class FinancialAgent(
                 if isinstance(item, dict) and bool(item.get("required", True))
             ]
             has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
-            if required_operands and has_retrieved_docs and not _requires_direct_numeric_grounding(active_subtask):
+            if required_operands and has_retrieved_docs and not requires_direct_numeric_grounding(active_subtask):
                 return "operand_extractor"
         return "advance_subtask"
 

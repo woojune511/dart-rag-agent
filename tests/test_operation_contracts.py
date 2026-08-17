@@ -69,7 +69,7 @@ from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
     parse_unstructured_table_row_cells,
 )
-from src.agent.financial_operation_policies import label_implies_percent_metric, _requires_direct_numeric_grounding
+from src.agent.financial_operation_policies import label_implies_percent_metric, requires_direct_numeric_grounding
 from src.agent.financial_scope_policies import _desired_consolidation_scope
 from src.agent.financial_graph_models import (
     CalculationPlan,
@@ -9054,7 +9054,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_ratio_task_with_explicit_concepts_requires_direct_numeric_grounding(self) -> None:
         self.assertTrue(
-            _requires_direct_numeric_grounding(
+            requires_direct_numeric_grounding(
                 {
                     "operation_family": "ratio",
                     "required_operands": [
@@ -10712,7 +10712,7 @@ class OperationContractTests(unittest.TestCase):
                 "_evidence_items_from_reconciliation_matches",
                 return_value=reconciliation_evidence,
             ),
-            patch.object(financial_graph_calculation, "_requires_direct_numeric_grounding", return_value=False),
+            patch.object(financial_graph_calculation, "requires_direct_numeric_grounding", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "surface_contract_numeric_evidence_items",

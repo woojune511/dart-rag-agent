@@ -657,7 +657,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             raise RuntimeError("context projection stopped")
 
         with (
-            patch.object(financial_graph_evidence, "_requires_direct_numeric_grounding", return_value=False),
+            patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
             patch.object(financial_graph_evidence, "_evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(
@@ -677,7 +677,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
 
         context_after_owner = Mock(side_effect=AssertionError("owner failure must stop context construction"))
         with (
-            patch.object(financial_graph_evidence, "_requires_direct_numeric_grounding", return_value=False),
+            patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
             patch.object(financial_graph_evidence, "_evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(
