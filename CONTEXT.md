@@ -21,7 +21,7 @@ Last updated: 2026-08-18
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `ca2969b` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `a893cb3` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, query/task/operand/report period·single-report-scope와 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -349,9 +349,18 @@ Focused pre/post 4/4, graph owner 258/258, surface owner 1/1, operand owner
 69/69, affected 1,218/1,218, reflection promotion 15/15, reflection capability
 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
 217, full 2,111/2,111 및 transform/body/identity/caller/DAG parity가 통과했다.
-다음 characterize-only inventory는 같은 owner의 정확한 21줄
-`_should_coerce_percent_point_unit(...)`을 public
-`should_coerce_percent_point_unit(...)`로 이름 수렴시킨다. 정확한 계약과
+이어 같은 owner의 정확한 21줄 `_should_coerce_percent_point_unit(...)`은
+`a893cb3`에서 public `should_coerce_percent_point_unit(...)`로 이름 수렴했다.
+두 importer/call과 기존 test binding 18개가 public API를 사용하며 percent-
+point/mode/ordered-ID/operand-map/unit gate, operation/formula result와 두
+caller의 adoption/fallback/exception scope는 유지됐다. Focused pre/post 4/4,
+graph owner 262/262, calculation-execution 45/45, math 24/24, surface 1/1,
+operand 69/69, affected 1,222/1,222, reflection promotion 15/15, reflection
+capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, full 2,115/2,115 및 transform/body/identity/caller/DAG parity가
+통과했다. 다음 characterize-only inventory는 같은 owner에 남은 정확한 40줄
+`_requires_direct_numeric_grounding(...)`을 public
+`requires_direct_numeric_grounding(...)`로 이름 수렴시킨다. 정확한 계약과
 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 

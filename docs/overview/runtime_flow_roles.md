@@ -299,7 +299,7 @@ State-free owner topology:
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, single-report-scope classification, public query/task and generic operand target-year/period-focus policy, candidate report/year matching and binding bonuses, and candidate period/table coherence scoring |
-| `financial_operation_policies.py` | state-free operation-family and numeric-grounding policy over supplied query/task data; marker vocabulary remains in retrieval policy/config while public API visibility is still converging |
+| `financial_operation_policies.py` | state-free operation-family and numeric-grounding policy over supplied query/task data; marker vocabulary remains in retrieval policy/config, and the final private visibility seam is `requires_direct_numeric_grounding(...)` |
 | `financial_surface_contracts.py` | operand needles/public segment-label projection, positive/negative surface-term contracts, candidate concept-conflict, contextual-aggregate preference, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, selected-unit-family projection, and scoped surface-affinity scoring over supplied items |
 | `financial_row_surfaces.py` | row/table text matching and parsing, column-candidate and delta-like row-label classification, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
@@ -1142,12 +1142,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
   217, full 2,111/2,111와 transform/body/identity/seven-caller/48-module/
   205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 21줄
+- 완료된 `a893cb3` visibility batch는 같은 owner의 정확한 21줄
   `_should_coerce_percent_point_unit(...)`을 public
-  `should_coerce_percent_point_unit(...)`로 이름 수렴시킨다. Percent-point/
+  `should_coerce_percent_point_unit(...)`로 이름 수렴시켰다. Percent-point/
   mode/ordered-ID/operand-map/unit gates와 operation/formula result, 두 caller의
-  argument/adoption/fallback/exception scope를 유지해야 한다. 정확한 네
-  CURRENT-SOURCE method와 projection은
+  argument/adoption/fallback/exception scope는 유지됐다. Operation-policy
+  public/private는 6/1이다. Focused pre/post 4/4, graph owner 262/262,
+  calculation-execution 45/45, math parsing 24/24, surface owner 1/1, operand
+  owner 69/69, semantic 1,222/1,222, reflection promotion 15/15, reflection
+  capability 24/24, retrieval-pipeline 1/1, reconciliation plan 51/51, import
+  19/19, audit 217, full 2,115/2,115와 transform/body/identity/two-caller/
+  48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner에 남은 마지막 private helper,
+  정확한 40줄 `_requires_direct_numeric_grounding(...)`을 public
+  `requires_direct_numeric_grounding(...)`로 이름 수렴시킨다. Task shallow
+  copy, operation precedence, required-row filter/copy ordering, ratio/sum 및
+  difference/growth 결과, fallback classifier adoption과 세 caller의 gate/
+  argument/adoption/exception scope를 유지해야 한다. 정확한 네 CURRENT-
+  SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

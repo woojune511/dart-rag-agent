@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `1d8eb67` renamed the exact 12-line percent-point-difference classifier in place to public `is_percent_point_difference_query(...)`; five importers, seven external calls, one owner-local call, and 15 existing test bindings now use the public API with no wrapper or private alias |
-| What passed? | Focused pre/post 4/4, graph owner 258/258, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,218/1,218, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,111/2,111 |
+| What just changed? | `a893cb3` renamed the exact 21-line percent-point-unit policy in place to public `should_coerce_percent_point_unit(...)`; two importers, two external calls, and 18 existing test bindings now use the public API with no wrapper or private alias |
+| What passed? | Focused pre/post 4/4, graph owner 262/262, calculation-execution owner 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,222/1,222, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,115/2,115 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with selected-body, caller, and full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 21-line `_should_coerce_percent_point_unit(...)` policy helper in its existing owner; no rename is authorized until four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 40-line `_requires_direct_numeric_grounding(...)` policy helper in its existing owner; no rename is authorized until four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -748,14 +748,14 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, percent-point-difference public API pre/post 4 / 4; graph owner 258 / 258; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,218 / 1,218; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, percent-point-unit public API pre/post 4 / 4; graph owner 262 / 262; calculation-execution owner 45 / 45; math parsing 24 / 24; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,222 / 1,222; additional retrieval-pipeline caller module 1 / 1 |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,111 / 2,111 |
+| Full unittest discovery | PASS, 2,115 / 2,115 |
 | Benchmark refresh after latest visibility-only rename | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
@@ -799,96 +799,134 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects the exact current 21-line
-`financial_operation_policies._should_coerce_percent_point_unit(query: str,
-operands: List[Dict[str, Any]], plan_data: Dict[str, Any]) -> bool` definition at
-lines 109-129 for an in-place public rename to
-`should_coerce_percent_point_unit(...)`. Add no wrapper or private alias.
-Percent-point query classification, plan construction, operand extraction,
-formula guarding, result-unit policy, graph state, artifacts, and ledger
-sequencing remain outside this visibility-only batch. Before the rename, add
-exactly four CURRENT-SOURCE contracts and require them to pass. No production
-or test rename has occurred, and this document maintains no competing
-implementation queue.
+The characterize-only inventory selects the exact current 40-line
+`financial_operation_policies._requires_direct_numeric_grounding(
+active_subtask: Dict[str, Any]) -> bool` definition at lines 67-106 for an
+in-place public rename to `requires_direct_numeric_grounding(...)`. Add no
+wrapper or private alias. Evidence extraction, reconciliation routing,
+calculation-operand construction, graph state, LLM invocation, evidence
+adoption, artifacts, and ledger sequencing remain outside this visibility-only
+batch. Before the rename, add exactly four CURRENT-SOURCE contracts and require
+them to pass. No production or test rename has occurred, and this document
+maintains no competing implementation queue.
 
-Preserve raw `query` identity into `is_percent_point_difference_query(...)`;
-false returns exact `False` before plan access. The mode gate retains
-`str(plan_data.get("mode") or "") != "single_value"`. Ordered operand IDs are
-eagerly materialized in source order from `plan_data.get("ordered_operand_ids")
-or []`: retained items stringify separately in the filter and expression,
-filter truth uses `.strip()`, and the retained string itself is not stripped.
-Fewer than two IDs returns exact `False` before operand-map construction.
+Preserve `active_subtask or {}` truthiness and the eager shallow `dict(...)`
+snapshot. The operation family retains exact get/or/string/strip/lower
+normalization. `lookup` and `single_value` return exact `True` before required-
+operand access. Required operands are materialized eagerly in source order from
+`task.get("required_operands") or []`: `item.get("required", True)` is evaluated
+before each retained shallow `dict(item)` copy, false rows are omitted, and
+nested values retain identity. An empty retained list returns exact `False`.
 
-The operand map remains an eager dictionary comprehension keyed by
-`str(row.get("operand_id") or "")`; later duplicate IDs overwrite earlier rows.
-The selected list preserves ordered-ID order and materializes missing lookups
-as `None`. Any missing row returns exact `False` before unit inspection. Unit
-validation remains lazy `all(...)` over the already materialized list and uses
-`str((row or {}).get("normalized_unit") or "").upper() == "PERCENT"` without
-trimming. Only then are operation and formula materialized through the exact
-strip/lower and `_normalise_spaces(str(... or ""))` pipelines. The final result
-is the exact boolean `operation == "subtract" or "-" in formula`; operation
-truth short-circuits formula membership, but not the earlier formula
-normalization. Do not mutate query, operands, rows, plan data, or nested values.
-Classification, mapping access/truth, conversion, iteration, lookup,
-normalization, comparison, and membership failures remain owner-uncaught.
+For `ratio` and `sum`, concept values keep their double get/string/strip
+evaluation for retained entries and the result is exact length equality against
+all retained operands; duplicate concepts are not deduplicated. Other operation
+families except `difference` and `growth_rate` return `False` before concept/
+role sets. Difference/growth concept and role set comprehensions preserve native
+hash/equality dedupe and double conversion of retained values. One distinct
+concept plus the exact `current_period`/`prior_period` role subset returns
+`True` before label/query access. Otherwise operand labels retain ordered,
+filter-only trimming with double conversion, and the exact result of
+`is_single_metric_period_comparison(str(task.get("query") or ""),
+operand_labels)` is returned. Do not mutate the input, required rows, or nested
+values. Truth, mapping, copy, iteration, conversion, hashing, equality, set,
+length, subset, and classifier failures remain owner-uncaught.
 
-The 11-statement body has five assignments, five `if` nodes, and one final
-return; branch returns bring the return count to six. Its AST has 23 calls, two
-list comprehensions, one dictionary comprehension, two generator expressions,
-five comprehension clauses, ten boolean operations, six comparisons, one list,
-one dictionary, two tuples, and no loop, `try`, lambda, conditional expression,
-set comprehension, or starred expression. The selected body SHA-256 is
-`0a76da43e12274f6765449ab02d661d7fd5cabab298cf6e8a584a77c54d93aa1`.
+The 12-statement body has seven assignments, five `if` nodes, and one final
+return; branch returns bring the return count to six. Its AST has 40 calls,
+three list comprehensions, two set comprehensions, five comprehension clauses,
+13 boolean operations, five comparisons, four set nodes, one list, one tuple,
+one dictionary, and no loop, `try`, dictionary comprehension, generator,
+lambda, conditional expression, or starred expression. The selected body
+SHA-256 is
+`85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746`.
 
-Two three-positional-argument calls use no keywords across two external caller
-definitions and two importers. `build_runtime_deterministic_operation_plan(...)`
-calls at `try` depth zero only after exact `operation_family == "difference"`
-and truthy-plan gates. It passes the fallback-resolved query string, the raw
-`operands` object, and the newly built `plan`; true adopts a fresh
-`{**plan, "result_unit": "%p"}` mapping, false returns the original plan, and
-helper failure propagates. `_plan_formula_calculation_from_operation_decision(...)`
-calls at `try` depth one after LLM-plan default/binding/incomplete normalization
-and before `guard_operation_plan(...)`. True mutates only
-`plan_data["result_unit"]`, false continues unchanged, and helper failure enters
-the caller's existing structured-output fallback plan. No caller body, gate,
-argument, adoption, fallback, or exception scope moves.
+Three one-positional-argument/no-keyword calls span three external callers and
+importers, all at `try` depth zero. `_route_after_reconcile_plan(...)` calls only
+inside the `insufficient_operands` branch after required-row and retrieved-doc
+truth gates; it passes the shallow active-task snapshot, maps false to
+`operand_extractor`, maps true to `advance_subtask`, and propagates failure.
+`_extract_evidence(...)` calls after its nonempty-doc gate with the truthy raw
+active-task object (or a fresh empty mapping), before model/LLM construction;
+false lazily stops narrative-query classification, true enables current direct-
+grounding filtering, and failure propagates before the caller's later `try`.
+`_extract_calculation_operands(...)` calls after active-task/required-row
+projection and before surface-contract/narrative handling; it passes the shallow
+task snapshot, preserves the result as the direct-grounding flag, and propagates
+failure before later evidence processing. No caller body, gate, argument,
+adoption, or exception scope moves.
 
-The private identifier has five production occurrences across three files: one
-definition, two imports, and two external calls. Eighteen existing test
-references span graph-helper, financial-calculation-execution, and math-parsing
-tests, so the complete source/test transform is six files. No public definition
-or store collision exists. Current/projected operation-policy public/private
-counts are 5/2 to 6/1; public identity projects 3/3. Existing edges keep the DAG
-acyclic at 48 modules/205 edges. The selected 109-129 body intersects no
+The private identifier has seven production occurrences across four files: one
+definition, three imports, and three external calls. Nineteen existing test
+references span graph-helper, operation-contract, retrieval-hint, and task-
+artifact tests, so the complete source/test transform is eight files. No public
+definition or store collision exists. Current/projected operation-policy public/
+private counts are 6/1 to 7/0; public identity projects 4/4. Existing edges keep
+the DAG acyclic at 48 modules/205 edges. The selected 67-106 body intersects no
 reviewed runtime-domain record, so audit remains 217.
 
 Canonical current/projected call-record hashes are
-`ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b` /
-`59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5`.
-Current/projected two-caller-map hashes are
-`c7bb14e756091352fbb8fcb55be5e3dea34244652a32ac7edcd0903d3eae1c26` /
-`a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d`.
+`aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a` /
+`d90668f2a62c7ce5d6aff1ee35b4a57c215427ebb0aae86730eeda3252deecdc`.
+Current/projected three-caller-map hashes are
+`1aae37e05f6a5c218dd0c5604a691ac7e56207387cc3cf9774aa4fbd891481ef` /
+`66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac`.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_should_coerce_percent_point_unit_pins_gates_order_identity_and_result`;
-- `test_current_source_should_coerce_percent_point_unit_pins_immutability_laziness_and_exceptions`;
-- `test_current_source_should_coerce_percent_point_unit_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_should_coerce_percent_point_unit_callers_pin_gates_args_adoption_and_stops`.
+- `test_current_source_requires_direct_numeric_grounding_pins_precedence_copy_filter_and_results`;
+- `test_current_source_requires_direct_numeric_grounding_pins_immutability_laziness_and_exceptions`;
+- `test_current_source_requires_direct_numeric_grounding_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_requires_direct_numeric_grounding_callers_pin_gates_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 262/262,
-financial-calculation-execution owner 45/45, math parsing 24/24, surface owner
-1/1, operand owner 69/69, affected eleven-module semantic set 1,222/1,222,
-reflection-promotion 15/15, reflection-capability 24/24, retrieval-pipeline
-1/1, reconciliation plan 51/51, import side effects 19/19, runtime audit 217,
-and full discovery 2,115/2,115. Structural gates are production transform 3/3,
-complete transform 6/6, selected-body/two-caller parity, both calls/three source
-modules, public identity 3/3, unchanged DAG, retired refs/public stores zero,
-graph-test AST 258/258 plus four methods, UTF-8 6/6, non-ASCII 5/5, pycompile,
-and `git diff --check`. These are projections, not executed results. Static
-definition/signature/call/import/count/DAG/audit inspection and four existing
-owner/caller probes passed; benchmark refresh and remote CI were **NOT RUN**.
+Projected post-rename gates are focused 4/4, graph owner 266/266, operation-
+contracts 242/242, retrieval hints 5/5, task artifacts 15/15, surface owner 1/1,
+operand owner 69/69, affected eleven-module semantic set 1,226/1,226,
+reflection-promotion 15/15, reflection-capability 24/24, retrieval-pipeline 1/1,
+reconciliation plan 51/51, import side effects 19/19, runtime audit 217, and
+full discovery 2,119/2,119. Structural gates are production transform 4/4,
+complete transform 8/8, selected-body/three-caller parity, all three calls/four
+source modules, public identity 4/4, unchanged DAG, retired refs/public stores
+zero, graph-test AST 262/262 plus four methods, UTF-8 8/8, non-ASCII 4/4,
+pycompile, and `git diff --check`. These are projections, not executed results.
+Static definition/signature/call/import/count/DAG/audit inspection and four
+existing owner/caller probes passed; benchmark refresh and remote CI were
+**NOT RUN**.
+
+## Completed Percent-Point-Unit-Coercion Public API
+
+Commit `a893cb3` renamed the exact former 21-line policy in place to public
+`financial_operation_policies.should_coerce_percent_point_unit(...)`. No wrapper
+or private alias remains. Two external importers, two external calls, and all 18
+existing test bindings use the public identifier. Percent-point/mode/ordered-ID/
+operand-map/unit gates, duplicate-last mapping, operation/formula normalization,
+exact result, immutability, caller adoption, and exception scopes remain
+unchanged.
+
+Production source is `+5/-5`, tests are `+1,589/-48`, and the whole commit is
+`+1,594/-53`, net `+1,541`; production physical line counts are unchanged. Four
+new methods moved discovery from 2,111 to 2,115. Final operation-policy public/
+private counts are 6/1. Final call-record and two-caller-map hashes are
+`59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5`
+and `a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d`.
+The renamed owner-caller also moves the current percent-point-classifier call/
+caller-map hashes to
+`2e395ec24f0b8c280c1a86744ea34d67e9361907cb004f3f548dc2b898250a55`
+and `8ccdb658b0f465b6008e3580ba3cd6e76eb8af16f4af9cc467255487f80ffcd8`.
+The committed source/test diff SHA-256 is
+`bae62fda6041a01df827633e1f6c1b38ba8c171fa76338d18dde8761250b217a`.
+
+Focused pre/post rename 4/4, graph owner 262/262, calculation-execution owner
+45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69, affected
+semantic 1,222/1,222, reflection promotion 15/15, reflection capability 24/24,
+retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, and
+full 2,115/2,115 passed. Pycompile, production transform 3/3, complete transform
+6/6, selected-body/two-caller parity, both calls/three source modules, public
+identity 3/3, unchanged 48-module/205-edge DAG, retired production refs/public
+stores zero, graph-test AST 258/258 plus four methods, UTF-8 6/6, non-ASCII 5/5,
+and diff check passed. Benchmark refresh and remote CI were **NOT RUN**. This
+visibility-only milestone proves no behavior, quality, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Percent-Point-Difference Public API
 

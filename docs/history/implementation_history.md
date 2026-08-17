@@ -8052,3 +8052,80 @@ Static definition/signature/call/import/count/DAG/audit inspection and four
 existing owner/caller probes passed. Benchmark refresh and remote CI were
 **NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
 benchmark, schedule, or completion claim.
+
+### Percent-point-unit-coercion public API milestone
+
+- Commit `a893cb3` renames the exact former 21-line policy in place to public
+  `financial_operation_policies.should_coerce_percent_point_unit(...)`. No
+  wrapper or private alias remains. Two external importers, two calls, and all
+  18 existing test bindings use the public spelling.
+- Percent-point and mode early gates, ordered-ID materialization, duplicate-last
+  operand mapping, selected-row/missing checks, exact uppercase `PERCENT` unit
+  validation, operation/formula normalization, subtract-or-hyphen result,
+  immutability, caller adoption, and exception scopes remain unchanged. Final
+  call-record/caller-map hashes are
+  `59d36159e78009dbca607854cf4062b920132c1c1944d62f3adefd29861575b5` /
+  `a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d`.
+- Production source is `+5/-5`, tests are `+1,589/-48`, and the whole commit is
+  `+1,594/-53`, net `+1,541`; production physical lines are unchanged. Four
+  methods move discovery from 2,111 to 2,115. Final operation-policy public/
+  private counts are 6/1. The committed diff SHA-256 is
+  `bae62fda6041a01df827633e1f6c1b38ba8c171fa76338d18dde8761250b217a`.
+- Focused pre/post 4/4, graph owner 262/262, calculation-execution owner 45/45,
+  math parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
+  1,222/1,222, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  and full 2,115/2,115 passed. Production/complete transform 3/3 and 6/6,
+  selected-body/two-caller parity, both calls/three source modules, public
+  identity 3/3, unchanged 48-module/205-edge DAG, retired refs/public stores
+  zero, graph-test AST 258/258 plus four methods, UTF-8 6/6, non-ASCII 5/5,
+  pycompile, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Direct-numeric-grounding private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 40-line
+  `financial_operation_policies._requires_direct_numeric_grounding(
+  active_subtask: Dict[str, Any]) -> bool` definition at lines 67-106 for an
+  in-place public rename to `requires_direct_numeric_grounding(...)`. No
+  wrapper/private alias or source/test rename is authorized before four
+  CURRENT-SOURCE contracts pass.
+- Preserve truth-gated eager shallow task copying, operation-family
+  normalization and precedence, required-row filter-before-copy ordering,
+  ratio/sum concept-count equality without dedupe, difference/growth concept/
+  role-set behavior, ordered fallback labels, exact classifier-result adoption,
+  immutability, and every owner-uncaught failure. The 12-statement body has
+  seven assignments, five `if` nodes, six returns, 40 calls, three list
+  comprehensions, two set comprehensions, and no loop or `try`. Its SHA-256 is
+  `85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746`.
+- Three one-positional-argument/no-keyword calls span reconciliation routing,
+  evidence extraction, and calculation-operand extraction, all at `try` depth
+  zero. Their exact gates, task arguments, false/true result adoption, lazy
+  classifier behavior, and propagated failure stops remain caller-owned.
+- Seven production occurrences span four files. Nineteen existing test refs
+  span four test files, so the complete transform is eight files. Operation-
+  policy counts project 6/1 to 7/0; public identity projects 4/4; the DAG stays
+  48 modules/205 edges; audit remains 217. Current/projected call-record hashes
+  are
+  `aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a` /
+  `d90668f2a62c7ce5d6aff1ee35b4a57c215427ebb0aae86730eeda3252deecdc`;
+  caller-map hashes are
+  `1aae37e05f6a5c218dd0c5604a691ac7e56207387cc3cf9774aa4fbd891481ef` /
+  `66a895f03194fd07f0f54a32075d5229c9f3ebbb5f7d7be4279073a3c1b70bac`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  266/266, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, surface owner 1/1, operand owner 69/69, affected semantic 1,226/1,226,
+  reflection promotion 15/15, reflection capability 24/24, retrieval-pipeline
+  1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,119/2,119,
+  production transform 4/4, complete transform 8/8, selected-body/three-caller
+  parity, all three calls/four source modules, public identity 4/4, unchanged
+  DAG, graph-test AST 262/262 plus four methods, UTF-8 8/8, non-ASCII 4/4,
+  pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/call/import/count/DAG/audit inspection and four
+existing owner/caller probes passed. Benchmark refresh and remote CI were
+**NOT RUN**. This checkpoint is not a behavior, quality, ranking, performance,
+benchmark, schedule, or completion claim.
