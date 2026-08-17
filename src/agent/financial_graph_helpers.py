@@ -1620,15 +1620,6 @@ def _build_concept_required_operands(
             return _build_concept_period_operands(expanded_single[0], query, report_scope)
         return []
 
-    if (
-        len(ordered_specs) == 1
-        and not raw_explicit_roles
-        and is_single_metric_period_comparison(query, [str(ordered_specs[0].get("name") or "").strip()])
-    ):
-        expanded_single = _expand_group_concept_specs(ordered_specs, raw_explicit_roles)
-        if len(expanded_single) == 1:
-            return _build_concept_period_operands(expanded_single[0], query, report_scope)
-        return []
 
     role_hints = raw_explicit_roles
     if operation_family == "ratio":
