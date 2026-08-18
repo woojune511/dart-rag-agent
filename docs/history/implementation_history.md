@@ -8302,3 +8302,78 @@ projected AST compilation, and five existing owner/caller probes passed.
 Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
 behavior, quality, ranking, performance, benchmark, schedule, or completion
 claim.
+
+### Metadata-period-match-strength public-API milestone
+
+- Commit `5509d78` renames the exact former 11-line scope policy in place to
+  public `metadata_period_match_strength(...)`. No wrapper or private alias
+  remains. Three external importers, three calls, and all 19 existing test
+  bindings use the public spelling.
+- Input truth-gate order, repeated label rendering/stripping, label/year set
+  dedupe and intersection, exact zero/full/partial overlap results,
+  immutability, all three caller score-adoption paths, and exception scopes
+  remain unchanged. Final call-record/caller-map hashes are
+  `62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03` /
+  `b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
+- Production source is `+7/-7`, tests are `+1,148/-57`, and the whole commit is
+  `+1,155/-64`, net `+1,091`; production physical lines are unchanged. Four
+  methods move discovery from 2,123 to 2,127. Final scope-policy public/private
+  counts are 13/7. The committed diff SHA-256 is
+  `db3d34f22af44759d21e6ead24680aad7c3b7c290cd1ea3d4f3c009bd7afc19b`.
+- Focused pre/post 4/4, graph owner 274/274, operation contracts 242/242,
+  retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation
+  execution 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69,
+  affected semantic 1,234/1,234, reflection promotion 15/15, reflection
+  capability 24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import
+  19/19, audit 217, and full 2,127/2,127 passed. Production/complete transform
+  4/4 and 6/6, selected-body/three-caller parity, all three calls/four source
+  modules, public identity 4/4, unchanged 48-module/205-edge DAG, retired refs/
+  public stores zero, graph-test AST 270/270 plus four methods, UTF-8 6/6,
+  non-ASCII 6/6, pycompile, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Extract-period-sort-key private-API and unused-import characterization checkpoint
+
+- A docs-only inventory selects the exact current 10-line
+  `financial_scope_policies._extract_period_sort_key(period: str) -> int`
+  definition at lines 491-500 for an in-place public rename to
+  `extract_period_sort_key(...)`. No wrapper/private alias, source rename, or
+  import deletion is authorized before four CURRENT-SOURCE contracts pass.
+- Preserve `_normalise_spaces(period)`, the first `(19|20)\d{2}` match, and the
+  exact matched-year / `당기` 9999 / `전기` 9998 / `-1` precedence. The body has
+  two assignments, three `if` nodes, four returns, four calls, two comparisons,
+  and no loop, comprehension, boolean operation, binary operation, or `try`.
+  Its source-body SHA-256 is
+  `ddbbc2f697d6ea65e04e844634aa8e1754e49eded12ebc9948b68208cd84fa48`.
+- The sole real call is the nested `str(row.get("period") or "")` sorted-key
+  lambda inside `execute_prepared_calculation_plan(...)`. Its time-series and
+  operand-count gates, materialization, stable ascending sort, evidence/growth
+  adoption, and outer caught-exception boundary remain caller-owned.
+- Four private production occurrences span three files: one definition, two
+  imports, and one call. The graph-calculation import has no load or call and is
+  deleted instead of renamed. No existing test references exist. Scope-policy
+  counts project 13/7 to 14/6; public identity projects 2/2; the DAG stays 48
+  modules/205 edges; audit remains 217. Current/projected call-record hashes are
+  `1529c14d859066e87f3e89a6f48f785267ec450b09b32a00cc61926af3af563f` /
+  `257a8c47456cbf8326c10afcbf693f4aa73de321be9736a84c11b3ba6c334057`;
+  caller-map hashes are
+  `687f6338e91898015ebf31bdc5f64a1f74af6de7d23a6cafed2f09cc4f614298` /
+  `d774b540cf895765fab754c99b74d64730d61e8d0e2b63cc5e1dfe67fa67c7d2`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  278/278, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
+  surface owner 1/1, operand owner 69/69, affected semantic 1,238/1,238,
+  reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
+  1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,131/2,131,
+  selected-body/sole-caller parity, unused-import deletion, public identity 2/2,
+  unchanged DAG, graph-test AST 274/274 plus four methods, encoding, compile,
+  pycompile, and diff-check gates are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/body/call/import/count/DAG/audit inspection,
+projected AST compilation, and the existing time-series ordering caller probe
+passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not
+a behavior, quality, ranking, performance, benchmark, schedule, or completion
+claim.

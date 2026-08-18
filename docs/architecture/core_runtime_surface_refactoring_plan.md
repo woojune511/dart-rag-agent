@@ -1777,49 +1777,71 @@ the committed diff SHA-256 is
 `383134898960245449744387c078a61a6c02ba538cecb4252c60b8f0bcdc898e`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 11-line
-`financial_scope_policies._metadata_period_match_strength(
-period_labels: List[str], query_years: List[int]) -> float` for an in-place
-public rename to `metadata_period_match_strength(...)`, with no wrapper or
-alias. Preserve the left-to-right input truth gate; exact `0.0` short circuit;
-repeated `str(label).strip()` filtering/projection; period-label and wanted-year
-set dedupe/intersection; exact zero/full/partial overlap results; immutability;
-and all owner-uncaught failures. Scoring policy stays in the scope owner;
-evidence, operand, retrieval, graph, artifact, ledger, and exception ownership
-remain outside the batch.
+Commit `5509d78` completed the metadata-period-match-strength visibility batch.
+The exact former 11-line scope policy is public
+`metadata_period_match_strength(...)`; three imports, three calls, and 19 test
+bindings use it with no wrapper or private alias. Input truth-gate order,
+repeated label conversion, set dedupe/intersection, exact overlap results,
+immutability, caller score adoption, and exception scopes remain unchanged.
+Scope-policy public/private counts finish at 13/7.
 
-Three importers contain three two-positional-argument calls across three caller
-definitions, all at `try` depth zero. Evidence's nested candidate score and
-operand-candidate scoring each preserve exact metadata-list/query-year
-arguments and `* 1.5` adoption; retrieval reranking preserves its prepared
-period-label/query-year arguments, positive gate, and `0.10 *` adoption. No
-caller gate, argument, score order, sort, return, or exception scope moves.
+Focused pre/post 4/4, graph owner 274/274, operation contracts 242/242,
+retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation
+execution 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69,
+affected semantic 1,234/1,234, reflection promotion 15/15, reflection capability
+24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,127/2,127 passed. Production/complete transform 4/4 and 6/6,
+selected-body/three-caller/public-identity/DAG parity, graph-test AST 270/270
+plus four methods, UTF-8 6/6, non-ASCII 6/6, pycompile, and diff check passed.
+Final call-record/caller-map hashes are
+`62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03` /
+`b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`;
+the committed diff SHA-256 is
+`db3d34f22af44759d21e6ead24680aad7c3b7c290cd1ea3d4f3c009bd7afc19b`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 10-line
+`financial_scope_policies._extract_period_sort_key(period: str) -> int` for an
+in-place public rename to `extract_period_sort_key(...)`, with no wrapper or
+alias. Update the sole real importer/call in calculation execution and delete
+the unused graph-calculation import instead of renaming it. Preserve whitespace
+normalization, the first `(19|20)\d{2}` match, matched-year / `당기` 9999 / `전기`
+9998 / `-1` precedence, immutability, and all owner-uncaught failures. Period
+ordering stays in the scope owner; calculation execution, graph, artifact,
+ledger, and exception ownership remain outside the batch.
+
+The sole real call stays the nested period string projection used as the stable
+ascending `sorted` key inside the time-series branch of
+`execute_prepared_calculation_plan(...)`. Preserve validation, the outer `try`,
+mode and operand-count gates, operand materialization, evidence/growth adoption,
+and the caller-caught exception boundary. No caller gate, argument, sort,
+return, or exception scope moves.
 
 The source-body SHA-256 is
-`93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29`.
-Seven production occurrences span four files; 19 test occurrences span two
-files, so the complete transform is six files. Scope-policy counts project 12/8
-to 13/7 and public identity projects 4/4. Current/projected call-record hashes
-are
-`e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742` /
-`62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03`;
+`ddbbc2f697d6ea65e04e844634aa8e1754e49eded12ebc9948b68208cd84fa48`.
+Four private production occurrences span three files: one definition, two
+imports, and one call. The unused import has no load or call. No existing test
+references exist. Scope-policy counts project 13/7 to 14/6 and public identity
+projects 2/2. Current/projected call-record hashes are
+`1529c14d859066e87f3e89a6f48f785267ec450b09b32a00cc61926af3af563f` /
+`257a8c47456cbf8326c10afcbf693f4aa73de321be9736a84c11b3ba6c334057`;
 caller-map hashes are
-`a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b` /
-`b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
+`687f6338e91898015ebf31bdc5f64a1f74af6de7d23a6cafed2f09cc4f614298` /
+`d774b540cf895765fab754c99b74d64730d61e8d0e2b63cc5e1dfe67fa67c7d2`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-274/274, operation contracts 242/242, retrieval hints 5/5, task artifacts
+278/278, operation contracts 242/242, retrieval hints 5/5, task artifacts
 15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
-surface owner 1/1, operand owner 69/69, affected semantic 1,234/1,234,
+surface owner 1/1, operand owner 69/69, affected semantic 1,238/1,238,
 reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
-1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127,
-production transform 4/4, complete transform 6/6, selected-body/three-caller
-parity, all three calls/four source modules, public identity 4/4, unchanged DAG,
-graph-test AST 270/270 plus four methods, UTF-8 6/6, non-ASCII 6/6, projected
-compile/import, pycompile, and diff-check gates are defined only in
+1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,131/2,131,
+selected-body/sole-caller parity, unused-import deletion, public identity 2/2,
+unchanged DAG, graph-test AST 274/274 plus four methods, projected compile/
+import, pycompile, and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-period-strength source or test rename has occurred. Static inventory, projected
-AST compilation, and five existing owner/caller probes passed.
+period-sort source rename or import deletion has occurred. Static inventory,
+projected AST compilation, and the existing time-series ordering caller probe
+passed.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

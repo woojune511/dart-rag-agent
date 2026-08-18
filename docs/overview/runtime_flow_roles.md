@@ -1178,12 +1178,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
   51/51, import 19/19, audit 217, full 2,123/2,123와 transform/body/identity/
   eleven-caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 11줄
+- 완료된 `5509d78` visibility batch는 같은 owner의 정확한 11줄
   `_metadata_period_match_strength(...)`을 public
-  `metadata_period_match_strength(...)`로 이름 수렴시킨다. Input short-
+  `metadata_period_match_strength(...)`로 이름 수렴시켰다. Input short-
   circuit, repeated label conversion, set dedupe/intersection, exact overlap
-  ratio, immutability 및 세 importer·세 call의 score adoption/exception scope를
-  유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
+  ratio, immutability 및 세 importer·세 call의 score adoption/exception scope는
+  유지됐다. Scope-policy public/private는 13/7이다. Focused pre/post 4/4,
+  graph owner 274/274, operation contracts 242/242, retrieval hints 5/5, task
+  artifacts 15/15, text surface 30/30, semantic 1,234/1,234, reflection
+  promotion 15/15, reflection capability 24/24, retrieval-pipeline 1/1,
+  reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127와
+  transform/body/identity/three-caller/48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 10줄
+  `_extract_period_sort_key(...)`을 public `extract_period_sort_key(...)`로
+  이름 수렴시키고 graph-calculation의 미사용 private import 1개를 삭제한다.
+  First-year/당기/전기/default precedence와 calculation-execution의 time-series
+  gate, stable sort, evidence/growth adoption 및 outer exception scope를 유지해야
+  한다. 정확한 네 CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
