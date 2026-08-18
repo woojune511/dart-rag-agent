@@ -423,9 +423,14 @@ audit 217, full 2,143/2,143가 통과했고 recursive DAG는 48/203 그대로다
 lookup과 caller exception boundary는 유지됐다. Characterize-only inventory가
 누락한 CURRENT-SOURCE fingerprint 16개까지 갱신해 source `+50/-50`, tests
 `+34/-34`, whole `+84/-84`로 마감했고 affected 466/466, import 19/19, audit
-217, full 2,143/2,143가 통과했다. 다음 batch는
+217, full 2,143/2,143가 통과했다. 이어 `643bdf6`이
 `financial_langchain_loaders.py`의 lazy loader 4개 전체를 public contract로
-이름 수렴시킨다. 정확한 mapping/caller/test 경계는
+이름 수렴시켰다. Function-local import, exact factory/identity, document
+metadata copy와 caller exception boundary는 유지됐다. Source `+42/-42`, tests
+`+29/-29`, whole `+71/-71`이며 affected 676/676, import 19/19, audit 217,
+full 2,143/2,143가 통과했다. 다음 batch는 `financial_text_surface.py`의
+externally imported private text primitive 4개 전체를 public contract로 이름
+수렴시킨다. 정확한 mapping/caller/test/fingerprint 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

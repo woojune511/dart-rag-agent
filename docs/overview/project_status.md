@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `4dd38ca` renamed all 13 externally imported private graph-model-loader wrappers to public APIs; only cached `_graph_model(...)` remains private and all retired private refs are zero |
-| What passed? | Mapping/identity 13/13, affected tests 466/466, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only lazy-loader rename with full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Rename all four private lazy functions in `financial_langchain_loaders.py` to public APIs in one owner-wide batch while preserving function-local imports and exact factories |
+| What just changed? | `643bdf6` renamed all four private LangChain loader functions to public APIs without moving imports or adding aliases; all retired refs are zero |
+| What passed? | Loader identity 4/4, affected tests 676/676, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only loader rename with full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
+| What is next? | Rename the four externally imported private text primitives in `financial_text_surface.py` to public APIs in one owner-wide batch, preserving exact regex, truth, normalization, result, and exception behavior |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, graph-model-loader mapping/identity 13 / 13; affected seven-module set 466 / 466 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after graph-model-loader public API convergence |
+| Latest focused owner checkpoint | PASS, LangChain-loader identity 4 / 4; affected seven-module set 676 / 676 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after LangChain-loader public API convergence |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,10 +799,121 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename all four functions in `financial_langchain_loaders.py` in place to public
-APIs. Add no compatibility alias or wrapper, do not move any LangChain import to
-module scope, and do not change any factory, argument evaluation, returned
-identity, caller gate, or exception boundary. The exact mapping is:
+Rename the four externally imported private primitives at the top of
+`financial_text_surface.py` in place. Add no compatibility alias, wrapper, new
+owner, or behavior branch. The exact mapping and behavior boundary is:
+
+| Current | Public | Exact behavior |
+| --- | --- | --- |
+| `_tokenize_terms(text: str)` | `tokenize_terms(text: str)` | exact `re.findall(r"[가-힣A-Za-z0-9]+", text or "")`, then a fresh lowercase set containing only tokens whose raw length is at least two |
+| `_split_sentences(text: str)` | `split_sentences(text: str)` | call `_normalise_spaces(text)` once, return a fresh empty list on a falsey result, otherwise use the exact punctuation-or-`다` split regex documented below and retain ordered `part.strip()` values |
+| `_strip_anchor_text(text: str)` | `strip_anchor_text(text: str)` | remove bracket anchors, then leading `*`/`-`/`•` markers, then return exact `_normalise_spaces(cleaned)` |
+| `_strip_rerank_metadata(text: str)` | `strip_rerank_metadata(text: str)` | evaluate exact `str(text or "")`, remove bracket metadata, collapse whitespace, and return `raw.strip()` |
+
+Preserve raw truth before string conversion. Tokenization and anchor stripping
+must not add a `str(...)` coercion; a falsey input must select the empty string,
+while a truthy non-string remains an uncaught regex error. Rerank stripping must
+stringify a truthy input exactly once and must not stringify a falsey input.
+Sentence splitting passes the original input directly to `_normalise_spaces`.
+Its split pattern remains exact `r"(?<=[.!?])\s+|(?<=다)\s+"`.
+Preserve set/list freshness, lowercase and length filtering, set dedupe,
+sentence order and duplicates, the repeated `part.strip()` filter/result calls,
+both exact regex sequences, input immutability, and every truth, regex,
+normalization, string, iteration, length, lowercase, strip, membership, hash, or
+comprehension failure. Do not change the distinct public
+`split_narrative_sentences(...)` API.
+
+The owner has no local call to any selected function. Current scope is four
+definitions, ten import bindings, and 23 direct owner-external calls over six
+source paths: 14 tokenizer, one sentence splitter, one anchor stripper, and
+seven rerank-metadata stripper calls. Every call has one positional argument,
+no keyword, and caller `try` depth zero. Token sets continue to feed label
+matching, evidence `allowed_terms`, and retrieval overlap; sentence and anchor
+results continue to feed validation fallback checks; stripped rerank text keeps
+each caller's existing exact-result versus `or original` adoption. Any selected
+failure must stop the remaining caller work exactly where it does now.
+
+Current/projected owner top-level public/private counts are 15/4 to 19/0.
+Future public top-level definitions/importer bindings do not collide. One
+unrelated function-local list variable already named `split_sentences` remains
+scope-local and unchanged. Non-call loads, module attributes, and dynamic
+`getattr`/`hasattr` consumers are zero.
+
+Mapping-record SHA-256 is
+`bf86fcefc508849d1961e5a8b24f8743fe77f00ff8b1ff62b853deabf1c5b5df`.
+Current/projected binding hashes are
+`fbc70d3934774fb1d21e5fcf74924f36c3a28181d98668da4d3b211eb1c70f52` /
+`265e6f5987c7a8d873cbdaac2e35192c0f9048f8297772945b3c8bde1c2f93b9`;
+call-record hashes are
+`2b68507a11ae4fb03d4bc786839efb4cda2675efcfb1bebe7b498b027a5eff59` /
+`0c0021ed4fffe99cd081121800193812633902965f1d0ee809bed3026d053997`.
+
+Three test files contain 13 exact private-name strings. The rename also changes
+the following already-pinned CURRENT-SOURCE fingerprints:
+
+| Scope | Current | Projected | Replacements |
+| --- | --- | --- | ---: |
+| caller `_augment_narrative_answer_with_supported_drivers` | `11bb6f9d5a54ced825d8082221af1058758a2f74531cc352e381f929e8f7d46f` | `884ad4433b14d5b53bba4ea04d50f1dc5f8349c72a29b70a0e3ee60019d2b15b` | 1 |
+| caller `_supplement_policy_realized_evidence` | `48ab56c5528d2499fe5dfd27a491079d7eb771954ce02c3739a0926137b52423` | `7b1a8c031c398d8bc1c26ff8b1f51819043773917449f9535baa9f0448b3b7d0` | 1 |
+| caller `collect_retrieved_operand_evidence_candidates` | `837da702ca73fbab5972dbe7dd36329dcfb4e60903231403da89401adc47a789` | `29a40abfdb409f2de5cb1edfa4b30d23640c10fc56e0ed767d25dc6f591cea43` | 1 |
+| caller `_rerank_docs` | `45b649d9c97d6f8fb6010f6ebb38a12958624920a558a95b0bac6abf3b3e6f45` | `12767296524cc80df3fb4b2a69478be3c9d73055eab8012c18992f2249ca5a46` | 1 |
+| narrative-context caller map | `b28eb301ac4af8d5cfda0d990dfb3f07aed9b47dfc2f4800faf7523332dd0de0` | `ff28482c35a004f7abdd5587d007f674a0aaa8ab205a56a714cba04c7b0ad7ee` | 1 |
+| percent-point-difference caller map | `65fc95530821ed9f9cb776d62736c0f5d1e4b1c71cb57b10182c2c10db389b19` | `842df1bdd0864226a82f70dbd6bd4e1794fb734ea7d15f53900d21c86b9afd2f` | 1 |
+| metadata-period caller map | `b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f` | `518c605a06e0c928dac59c93ea8fe6f04e0cea80bfee0acb6e08a65ea743a650` | 1 |
+| desired-consolidation caller map | `53538b42c37007f917208ad83081cc45a4af1523f89339025cf95dd636b3cc43` | `98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592` | 2 |
+| operand-text caller digest | `d95a92e589b9574fcd8d2a537f63d6edf133046c92517af3382ee9b778d2d0de` | `bf117326bbbbbcd736c2c689962ba08ff0686f00a119ebe0a80e12e72757f99e` | 1 |
+| strip-leading-period caller hash | `34c20297894ed727c215c2008282f10faa4d94a960240bf31f74b598ac7851c5` | `9ebfd98aecd1ffebbc128f047bbe985e06f81ed98a3d625f21a42ab7a3c8a612` | 1 |
+
+These are ten fingerprint pairs and 11 replacements. Their canonical mapping
+hash is
+`9e3bc3b412aa48b6b48e84f655e04d1e16ee9d44511832a74bd54e8513957eb8`.
+Projected source/test/whole transforms are `+36/-36`, `+24/-24`, and
+`+60/-60`; the exact temporary projection diff hash is
+`78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+Add no test method or weakened expectation.
+
+Current direct behavior/laziness/error probes pass 8/8. The exact projected
+tree passed public identity/behavior 4/4, the three directly affected modules
+413/413 plus import-side-effects 19/19 (432/432 combined), source/test pycompile
+9/9, runtime audit 217, retired private refs zero, and `git diff --check`.
+The recursive agent DAG remains 48 modules/203 edges at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Required post-edit gates are the complete transform and hashes above, focused
+432/432, import 19/19, audit 217, pycompile, full discovery 2,143/2,143, and
+diff check. Benchmark refresh and remote CI remain **NOT RUN**.
+
+Keep narrative-policy selection, evidence construction, rerank scoring,
+candidate/operand adoption, retrieval, graph state, model invocation,
+artifact/ledger mutation, and final sequencing outside this visibility batch.
+The inventory and projected tests establish no answer-quality, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed LangChain-Loader Public API Batch
+
+Commit `643bdf6` renamed all four selected definitions, 14 imports, and 25 calls
+to public names without an alias or wrapper. Function-local LangChain imports,
+exact factories, returned identities, document keyword-only inputs and fresh
+outer metadata copy, nested identities, caller `try` depth, and all exceptions
+remain unchanged. Retired private refs finish zero and owner public/private
+counts finish 4/0.
+
+Production source is `+42/-42`, tests are `+29/-29`, and the whole commit is
+`+71/-71`; its committed diff SHA-256 is
+`d0f499aca84aab0aa6f242fdc308b589e8503c036e342c77b872764a784845e3`.
+Fresh-import isolation, factory identity 4/4, metadata-copy and exception probes,
+affected tests 676/676, import side effects 19/19, audit 217, source/test
+pycompile, unchanged 48-module/203-edge DAG, full discovery 2,143/2,143 in
+212.658 seconds, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**. This is a visibility-only milestone, not a behavior, quality,
+ranking, performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+The completed pre-commit contract is retained below as an audit record.
+
+The completed batch renamed all four functions in
+`financial_langchain_loaders.py` in place to public APIs. It added no
+compatibility alias or wrapper, moved no LangChain import to module scope, and
+changed no factory, argument evaluation, returned identity, caller gate, or
+exception boundary. The exact mapping is:
 
 | Current | Public | Exact lazy behavior |
 | --- | --- | --- |
@@ -855,14 +966,14 @@ replacements. Their canonical mapping hash is
 Projected source/test/whole transforms are `+42/-42`, `+29/-29`, and
 `+71/-71`. Add no test method or weakened expectation.
 
-Current fresh-import isolation, factory identity 4/4, metadata-copy, and
-exception-propagation probes pass. Projected AST compilation passes source 9/9
-plus tests 6/6. The recursive agent DAG must remain 48 modules/203 edges at
+Fresh-import isolation, factory identity 4/4, metadata-copy, and
+exception-propagation probes passed. AST compilation passed source 9/9 plus
+tests 6/6. The recursive agent DAG remained 48 modules/203 edges at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`;
-the audit remains 217. Required post-edit gates are complete transform, retired
-private refs zero, owner counts 4/0, mapping/caller/fingerprint parity, affected
-seven-module tests 676/676, import-side-effect 19/19, runtime audit 217, full
-discovery 2,143/2,143, source/test pycompile, and `git diff --check`.
+the audit remained 217. Complete transform, retired private refs zero, owner
+counts 4/0, mapping/caller/fingerprint parity, affected seven-module tests
+676/676, import-side-effect 19/19, runtime audit 217, full discovery
+2,143/2,143, source/test pycompile, and `git diff --check` all passed.
 Benchmark refresh and remote CI remain **NOT RUN**.
 
 ## Completed Graph-Model-Loader Public API Batch

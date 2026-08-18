@@ -5822,54 +5822,68 @@ seconds, and diff checks passed. The committed diff SHA-256 is
 `30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next contract renames all four externally imported private functions in
-`financial_langchain_loaders.py` to their leading-underscore-free public names:
-`chat_prompt_template_from_template`, `str_output_parser`,
-`runnable_passthrough`, and `document`. Add no alias or wrapper. Preserve each
-function-local LangChain import so importing the owner continues to load zero
-`langchain_core` modules. Preserve exact factory selection, argument evaluation,
-return identity, and every import/attribute/factory failure.
+Commit `643bdf6` completes the LangChain-loader public API contract. The owner
+now exposes `chat_prompt_template_from_template`, `str_output_parser`,
+`runnable_passthrough`, and keyword-only `document`; no private alias or wrapper
+remains. Each function still imports its exact LangChain type locally. Exact
+factory calls, returned identities, the document's fresh outer metadata dict and
+nested identities, caller `try` depth, and all import/attribute/factory/mapping
+failures remain unchanged. Owner public/private counts finish 4/0 and retired
+private refs finish zero.
 
-`chat_prompt_template_from_template(template: str)` must import
-`ChatPromptTemplate` locally and return exact `ChatPromptTemplate.from_template(template)`.
-The parser and passthrough functions must import and instantiate their exact
-classes with zero arguments. `document(*, page_content: str, metadata:
-Mapping[str, Any])` must retain keyword-only inputs and exact
-`Document(page_content=page_content, metadata=dict(metadata))`, including the
-fresh outer metadata dict and retained nested identities.
+The committed transform is four definitions, 14 imports, and 25 calls over nine
+source paths, plus 13 direct test strings and 16 CURRENT-SOURCE fingerprints.
+Source/tests/whole are `+42/-42`, `+29/-29`, and `+71/-71`; the committed diff
+SHA-256 is
+`d0f499aca84aab0aa6f242fdc308b589e8503c036e342c77b872764a784845e3`.
+Fresh-import isolation, factory identity 4/4, metadata-copy and exception probes,
+affected 676/676, import 19/19, audit 217, source/test pycompile, unchanged
+48-module/203-edge DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
+CI were **NOT RUN**.
 
-The batch updates four definitions, 14 import bindings, and 25 direct calls
-across nine source paths. Call distribution is 16 prompt, six parser, one
-passthrough, and two document calls. The two parser fallbacks retain caller
-`try` depth one; every other selected call remains at depth zero. Thirteen exact
-test strings span six files. Four caller-body hashes occur nine times and six
-caller-map hashes occur seven times, for 16 additional fingerprint replacements
-and 29 total test replacements. Exact mapping and fingerprint pairs are
-authoritative only in
+The next visibility contract renames all four externally imported private text
+primitives in `financial_text_surface.py` to `tokenize_terms`,
+`split_sentences`, `strip_anchor_text`, and `strip_rerank_metadata`. Rename in
+place and add no alias, wrapper, module, policy, or behavior branch. Keep the
+distinct public `split_narrative_sentences(...)` unchanged.
+
+`tokenize_terms(text)` must pass exact `text or ""` to
+`re.findall(r"[가-힣A-Za-z0-9]+", ...)`, then return a fresh set of lowercase
+tokens whose raw length is at least two. It must not stringify the input.
+`split_sentences(text)` must call `_normalise_spaces(text)` once, return a fresh
+empty list on a falsey result, otherwise use exact
+`r"(?<=[.!?])\s+|(?<=다)\s+"`, preserving ordered duplicates and the repeated
+`part.strip()` filter/result evaluation. `strip_anchor_text(text)` must apply the
+bracket-anchor substitution, the leading bullet substitution, then exact
+normalization. `strip_rerank_metadata(text)` must evaluate exact
+`str(text or "")`, remove bracket metadata, collapse whitespace, and strip.
+
+Preserve raw-truth short circuits, truthy-only rerank stringification, set/list
+freshness, input immutability, exact regex order, each caller's exact-result or
+`or original` adoption, and every uncaught error. All 23 calls remain one-
+positional-argument calls at `try` depth zero: 14 token, one sentence, one
+anchor, and seven rerank calls. Owner-local selected calls remain zero and owner
+public/private counts project 15/4 to 19/0.
+
+The batch covers four definitions, ten bindings, 23 calls, 13 direct test
+strings, and 11 existing fingerprint occurrences. Source/tests/whole project
+`+36/-36`, `+24/-24`, and `+60/-60`. Mapping, current/projected binding,
+current/projected call, and fingerprint hashes are respectively
+`bf86fcefc508849d1961e5a8b24f8743fe77f00ff8b1ff62b853deabf1c5b5df`,
+`fbc70d3934774fb1d21e5fcf74924f36c3a28181d98668da4d3b211eb1c70f52` /
+`265e6f5987c7a8d873cbdaac2e35192c0f9048f8297772945b3c8bde1c2f93b9`,
+`2b68507a11ae4fb03d4bc786839efb4cda2675efcfb1bebe7b498b027a5eff59` /
+`0c0021ed4fffe99cd081121800193812633902965f1d0ee809bed3026d053997`,
+and `9e3bc3b412aa48b6b48e84f655e04d1e16ee9d44511832a74bd54e8513957eb8`.
+Exact fingerprint pairs and stop lines are authoritative only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
-The mapping hash is
-`c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`.
-Current/projected binding hashes are
-`395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
-`59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`;
-call hashes are
-`82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
-`dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`;
-the fingerprint mapping hash is
-`4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
-
-Current fresh-import isolation and direct loader probes pass 4/4, metadata-copy
-and exception propagation pass, and projected AST compilation passes source 9/9
-plus tests 6/6. Public-name collisions, non-call loads, module attributes, and
-dynamic consumers are zero. Owner public/private counts project 0/4 to 4/0;
-source projects `+42/-42`, tests `+29/-29`, and the whole batch `+71/-71`.
-The DAG must remain 48/203 at
+The exact temporary projection passed public identity/behavior 4/4, focused
+432/432, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
+48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Required gates are complete transform, retired private refs zero, affected
-676/676, import 19/19, audit 217, source/test pycompile, full 2,143/2,143, and
-diff check. Add no test method. Benchmark refresh and remote CI remain
-**NOT RUN**.
+The implementation batch must rerun full discovery 2,143/2,143. Add no test
+method. Benchmark refresh and remote CI remain **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

@@ -8855,3 +8855,70 @@ completion claim.
   module suite is 676 tests, and full discovery remains 2,143. Exact mapping,
   fingerprint pairs, and gates are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### LangChain-loader public API milestone
+
+- Commit `643bdf6` renames all four selected definitions, 14 import bindings,
+  and 25 direct calls to public names without a compatibility alias or wrapper.
+  Owner public/private counts finish 4/0 and retired private refs finish zero.
+- Function-local `langchain_core` imports, exact prompt/parser/passthrough/
+  document factories, returned identities, keyword-only document inputs, fresh
+  outer metadata copy, nested identities, caller `try` depth, and every uncaught
+  import/attribute/factory/mapping error remain unchanged.
+- Production source is `+42/-42`, tests are `+29/-29`, and the whole commit is
+  `+71/-71`. Thirteen direct test strings and 16 caller-body/map fingerprints
+  account for the test transform. The committed diff SHA-256 is
+  `d0f499aca84aab0aa6f242fdc308b589e8503c036e342c77b872764a784845e3`.
+- Fresh-import isolation, factory identity 4/4, metadata-copy and exception
+  probes, affected tests 676/676, import-side-effect 19/19, audit 217,
+  source/test pycompile, unchanged 48-module/203-edge DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
+  full 2,143/2,143 in 212.658 seconds, and diff checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Text-surface primitive public API characterization checkpoint
+
+- The next batch renames all four externally imported private primitives in
+  `financial_text_surface.py` in place: `_tokenize_terms` to `tokenize_terms`,
+  `_split_sentences` to `split_sentences`, `_strip_anchor_text` to
+  `strip_anchor_text`, and `_strip_rerank_metadata` to
+  `strip_rerank_metadata`. Add no alias, wrapper, owner, policy, or behavior
+  branch; leave `split_narrative_sentences(...)` unchanged.
+- Preserve tokenizer `text or ""`, exact alphanumeric/Hangul regex, lowercase
+  set and length filter; splitter direct normalization, blank short circuit,
+  exact punctuation/`다` regex, ordered duplicates, and repeated `strip()`;
+  anchor two-regex/normalization order; rerank exact `str(text or "")`, bracket
+  removal, whitespace collapse, and final strip. Preserve raw truth,
+  truthy-only rerank stringification, fresh results, immutability, and every
+  uncaught failure. Current direct probes pass 8/8.
+- Static scope is four definitions, ten import bindings, and 23 calls over one
+  owner plus five importers: 14 token, one sentence, one anchor, and seven
+  rerank calls. Every call has one positional argument, no keyword, and `try`
+  depth zero; selected owner-local calls, non-call loads, attributes, and
+  dynamic consumers are zero. Owner public/private counts project 15/4 to 19/0.
+- Thirteen direct test strings plus ten fingerprint pairs occurring 11 times
+  make 24 test replacements. Source/tests/whole project `+36/-36`, `+24/-24`,
+  and `+60/-60`; the exact temporary projection diff SHA-256 is
+  `78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+  The fingerprint mapping hash is
+  `9e3bc3b412aa48b6b48e84f655e04d1e16ee9d44511832a74bd54e8513957eb8`.
+- Mapping, current/projected binding, and current/projected call hashes are
+  `bf86fcefc508849d1961e5a8b24f8743fe77f00ff8b1ff62b853deabf1c5b5df`,
+  `fbc70d3934774fb1d21e5fcf74924f36c3a28181d98668da4d3b211eb1c70f52` /
+  `265e6f5987c7a8d873cbdaac2e35192c0f9048f8297772945b3c8bde1c2f93b9`,
+  and
+  `2b68507a11ae4fb03d4bc786839efb4cda2675efcfb1bebe7b498b027a5eff59` /
+  `0c0021ed4fffe99cd081121800193812633902965f1d0ee809bed3026d053997`.
+- The exact temporary projection passed public identity/behavior 4/4, directly
+  affected tests 413/413 plus import 19/19 (432/432 combined), audit 217,
+  pycompile 9/9, retired private refs zero, diff check, and unchanged 48/203 DAG
+  at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains a required implementation gate. Exact fingerprint
+  pairs and stop lines are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, accuracy, ranking, performance, schedule, ledger, or Phase 3
+  completion claim.

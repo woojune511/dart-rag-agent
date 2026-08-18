@@ -1256,12 +1256,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   unbounded LRU cache와 exception propagation은 유지됐다. Owner public/private는
   13/1이며 source `+50/-50`, tests `+34/-34`, affected 466/466, import 19/19,
   audit 217, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_langchain_loaders.py`의 lazy loader 4개를
-  public API로 in-place rename한다. Lazy LangChain import, prompt/parser/
-  passthrough identity, `Document` metadata copy와 모든 caller exception boundary를
-  유지하고 alias/wrapper는 추가하지 않는다. Owner public/private는 0/4에서
-  4/0으로 수렴하며, 정확한 9-source/6-test transform, fingerprint 16개,
-  affected 676, audit 217, unchanged 48/203 DAG, full 2,143 gate는
+- 완료된 `643bdf6` visibility batch는 `financial_langchain_loaders.py`의 lazy
+  loader 4개를 public API로 in-place rename했다. Function-local LangChain
+  import, prompt/parser/passthrough/document identity, `Document` metadata copy와
+  모든 caller exception boundary는 유지됐다. Owner public/private는 4/0이며
+  source `+42/-42`, tests `+29/-29`, affected 676/676, import 19/19, audit 217,
+  unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_text_surface.py`의 private text primitive
+  4개를 public API로 in-place rename한다. Exact regex, raw truth/string,
+  normalization, fresh set/list, ordered sentence, caller adoption과 exception
+  boundary를 유지하고 alias/wrapper는 추가하지 않는다. Owner public/private는
+  15/4에서 19/0으로 수렴하며, 정확한 6-source/3-test transform,
+  fingerprint 11개, focused 432, audit 217, unchanged 48/203 DAG, full 2,143
+  gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

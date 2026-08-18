@@ -1982,30 +1982,43 @@ diff checks passed. The diff SHA-256 is
 `30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`;
 benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility batch publicizes all four functions in
-`financial_langchain_loaders.py` in place. Preserve function-local imports,
-exact prompt/parser/passthrough/document factories, `document(...)` keyword-only
-inputs and fresh outer metadata copy, returned identities, and all exceptions.
-Add no alias or wrapper. Owner public/private counts project 0/4 to 4/0.
+Commit `643bdf6` completed the bounded LangChain-loader visibility batch. All
+four definitions, 14 imports, and 25 calls use public names; no alias or wrapper
+remains. Function-local imports, exact factories/identities, document metadata
+copy, caller exception boundaries, and the 48/203 DAG remain unchanged. Source,
+tests, and whole commit are `+42/-42`, `+29/-29`, and `+71/-71`; affected
+676/676, import 19/19, audit 217, pycompile, and full 2,143/2,143 passed. The
+diff SHA-256 is
+`d0f499aca84aab0aa6f242fdc308b589e8503c036e342c77b872764a784845e3`;
+benchmark refresh and remote CI were **NOT RUN**.
 
-The transform spans one owner plus eight importers: four definitions, 14 import
-bindings, and 25 calls over nine source paths. Thirteen exact test strings plus
-16 caller-body/map fingerprints make 29 test replacements in six files. Source,
-tests, and whole-batch projections are `+42/-42`, `+29/-29`, and `+71/-71`.
+The next bounded visibility batch publicizes the four externally imported
+private primitives in `financial_text_surface.py` in place:
+`tokenize_terms`, `split_sentences`, `strip_anchor_text`, and
+`strip_rerank_metadata`. They share one pure text-surface owner, have zero
+owner-local calls, and serve five importers through ten bindings and 23 direct
+one-positional-argument calls at `try` depth zero. Preserve exact raw truth,
+regex, stringification, normalization, set/list freshness, sentence ordering,
+caller adoption, and exception behavior. Add no alias, wrapper, owner, policy,
+or behavior branch; leave `split_narrative_sentences(...)` unchanged.
+
+Owner public/private counts project 15/4 to 19/0. Thirteen direct test strings
+and 11 CURRENT-SOURCE fingerprint occurrences make 24 test replacements. Source,
+tests, and whole projections are `+36/-36`, `+24/-24`, and `+60/-60`.
 Mapping, current/projected binding, current/projected call, and fingerprint
 hashes are respectively
-`c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`,
-`395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
-`59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`,
-`82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
-`dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`,
+`bf86fcefc508849d1961e5a8b24f8743fe77f00ff8b1ff62b853deabf1c5b5df`,
+`fbc70d3934774fb1d21e5fcf74924f36c3a28181d98668da4d3b211eb1c70f52` /
+`265e6f5987c7a8d873cbdaac2e35192c0f9048f8297772945b3c8bde1c2f93b9`,
+`2b68507a11ae4fb03d4bc786839efb4cda2675efcfb1bebe7b498b027a5eff59` /
+`0c0021ed4fffe99cd081121800193812633902965f1d0ee809bed3026d053997`,
 and
-`4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
-Fresh-import isolation, loader identity 4/4, metadata-copy, exception, and
-projected compile 9/9 plus 6/6 checks pass. Public collision and dynamic-consumer
-counts are zero. The DAG remains 48/203, audit remains 217, affected tests remain
-676, and full discovery remains 2,143. Exact names, fingerprint pairs, and gates
-are defined only in
+`9e3bc3b412aa48b6b48e84f655e04d1e16ee9d44511832a74bd54e8513957eb8`.
+
+The exact temporary projection passed public behavior/identity 4/4, focused
+432/432, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
+48/203 DAG. The implementation must rerun full 2,143/2,143; add no test method.
+Exact names, fingerprint pairs, stop lines, and gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
