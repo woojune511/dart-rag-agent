@@ -9043,3 +9043,52 @@ completion claim.
 - Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
+
+### Evidence-owner zero-load import cleanup milestone
+
+- Commit `6d0e21c` deletes exactly six selected imports from
+  `financial_graph_evidence.py` and no definition, owner, live import/call,
+  policy, or runtime branch. Selected owner loads, external imports, attributes,
+  and dynamic consumers finish zero.
+- Production source is `-6`, tests are `+9/-9`, and the whole commit is
+  `+9/-15` across two files. Nine existing absolute-line fingerprint
+  replacements account for the test transform. Its committed diff SHA-256 is
+  `2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3`.
+- Focused graph-helper/text-surface/import 339/339 in 169.551 seconds, audit 217,
+  pycompile 2/2, selected consumer zero, unchanged acyclic 48/203 DAG, full
+  2,143/2,143 in 213.316 seconds, artifact hygiene, and diff checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Graph-calculation query-focus import cleanup characterization checkpoint
+
+- The next bounded deletion removes only the zero-load
+  `query_focus_marker_groups` binding from the financial-text-surface import
+  tuple in `financial_graph_calculation.py`. Preserve the owner definition,
+  every live call, `query_focus_markers`, and all query-focus behavior.
+- Static source/test analysis finds zero selected owner load/call, graph-
+  calculation direct import, module attribute, patch, constant dynamic, or
+  wildcard consumer. Current/empty record hashes are
+  `f56c0e04506159ca481caad4ab16f9b8b23d5f686a4a374db94c97a281232209` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- Retain adjacent `text_has_negative_surface`: the rejected initial two-import
+  projection proved that CURRENT-SOURCE tests contract its graph-calculation
+  compatibility identity. Do not weaken that export or expand the batch.
+- Source deletes one line. Seven existing fingerprint expectations, representing
+  six unique pairs, update only for shifted graph-calculation line numbers.
+  Source/tests/whole project `+0/-1`, `+7/-7`, and `+7/-8`; the fingerprint
+  mapping and exact temporary diff hashes are
+  `6cc72ad0dd24bef2d0eb145a4902bdc8c0cbd465f40e7adbccb34710649ceefd` and
+  `5cfe61d2307cdd4dbcd566e9e504a45cae8008eb1113daa4187feb069b3603b9`.
+- The exact temporary projection passed focused graph-helper/text-surface/import
+  339/339 in 168.418 seconds, audit 217, pycompile 2/2, selected consumer zero,
+  retained compatibility identity, diff check, and unchanged acyclic 48/203
+  DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
+  are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.

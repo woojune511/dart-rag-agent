@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `f220c9c` renamed the sole externally imported private aggregate-answer selector to a public API without moving ownership or adding an alias; all retired refs are zero |
-| What passed? | Selector behavior 7/7, public identity 4/4, affected plus import tests 527/527, runtime audit 217, pycompile 8/8, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only selector rename with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Delete exactly six zero-load import bindings from `financial_graph_evidence.py`, preserving every live definition, import, call, and runtime boundary |
+| What just changed? | `6d0e21c` deleted exactly six zero-load imports from `financial_graph_evidence.py` without deleting any definition or changing runtime behavior |
+| What passed? | Selected consumer zero, affected tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
+| What is next? | Delete only the zero-load `query_focus_marker_groups` import from `financial_graph_calculation.py`, preserving the separately contracted `text_has_negative_surface` compatibility re-export |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, aggregate-answer selector identity 4 / 4; affected plus import set 527 / 527 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after aggregate-answer selector public API convergence |
+| Latest focused owner checkpoint | PASS, evidence-owner dead-import consumer zero; affected graph/text/import set 339 / 339 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after evidence-owner dead-import cleanup |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,58 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Delete only the zero-load `query_focus_marker_groups` binding from the existing
+`src.agent.financial_text_surface` import tuple in
+`src/agent/financial_graph_calculation.py`. Delete exactly one production line.
+Do not delete or rename the owner definition, alter its live calls in
+`financial_text_surface.py` or `financial_graph_evidence.py`, remove
+`query_focus_markers`, or change any query-focus behavior.
+
+Keep `text_has_negative_surface` in the adjacent
+`financial_surface_contracts` import tuple. Although that binding also has zero
+owner loads, CURRENT-SOURCE tests explicitly contract its compatibility identity
+through `financial_graph_calculation`; the initial two-import projection was
+therefore rejected. Do not weaken or remove that export, and do not expand this
+batch to other zero-load imports.
+
+The selected `query_focus_marker_groups` binding has zero owner loads/calls and
+zero repository source/test direct import from `financial_graph_calculation`,
+module-attribute access, `patch.object`, constant-name `getattr`/`hasattr`, or
+wildcard consumer. Source-contract tests inspect graph-calculation query-focus
+calls but do not require this unused re-export. The current/empty selected-
+record hashes are
+`f56c0e04506159ca481caad4ab16f9b8b23d5f686a4a374db94c97a281232209` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+
+Deleting the line shifts later graph-calculation absolute line numbers. Update
+exactly seven existing caller-fingerprint expectations in
+`tests/test_financial_graph_helpers.py`, representing six unique old/new pairs;
+the desired-consolidation hash occurs twice. Add no test method and change no
+call, body, DAG, identity, behavior, or assertion strength. The fingerprint
+mapping hash is
+`6cc72ad0dd24bef2d0eb145a4902bdc8c0cbd465f40e7adbccb34710649ceefd`.
+Projected source/test/whole transforms are `+0/-1`, `+7/-7`, and `+7/-8`
+across exactly two files. The exact temporary projection diff SHA-256 is
+`5cfe61d2307cdd4dbcd566e9e504a45cae8008eb1113daa4187feb069b3603b9`.
+
+The exact temporary projection passed the affected graph-helper, text-surface,
+and import-side-effect set 339/339 in 168.418 seconds, audit 217, pycompile 2/2,
+selected consumer zero, `git diff --check`, and the unchanged acyclic
+48-module/203-edge DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Required implementation gates are the exact transforms and hashes above,
+focused 339/339, audit 217, pycompile, full discovery 2,143/2,143, selected-
+consumer zero, retained compatibility identity, DAG parity, artifact hygiene,
+and diff check. Benchmark refresh and remote CI remain **NOT RUN**. This deletion
+proves no behavior, answer-quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+## Completed Evidence-Owner Zero-Load Import Cleanup Characterization
+
+The following characterize-only record preceded commit `6d0e21c`. Its deletion
+and projected gates are complete; it is retained for audit and is not active or
+competing work.
 
 Delete exactly these six zero-load import bindings from
 `src/agent/financial_graph_evidence.py` and no other source:
@@ -848,6 +900,24 @@ consumer zero, DAG parity, artifact hygiene, and diff check. Benchmark refresh
 and remote CI remain **NOT RUN**. This deletion proves no behavior, answer-
 quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
 completion claim.
+
+## Completed Evidence-Owner Zero-Load Import Cleanup Batch
+
+Commit `6d0e21c` deleted the six selected import bindings and no definition,
+owner, live importer, call, policy, or runtime branch. Selected owner loads,
+direct imports, module attributes, and dynamic consumers finish zero; retained
+retrieval-pipeline, runtime-trace, config, and evidence behavior remain intact.
+
+Production source is exactly `-6`; tests are `+9/-9`, and the whole commit is
+`+9/-15` across two files. Nine absolute-line fingerprint expectations account
+for the test transform. The committed diff SHA-256 is
+`2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3`.
+Focused graph-helper/text-surface/import tests 339/339 in 169.551 seconds,
+audit 217, pycompile 2/2, selected consumer zero, unchanged acyclic
+48-module/203-edge DAG, full discovery 2,143/2,143 in 213.316 seconds, artifact
+hygiene, and diff checks passed. Benchmark refresh and remote CI were **NOT
+RUN**; this dead-import-only batch is not a behavior, quality, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Preferred Aggregate-Answer Selector Characterization
 
