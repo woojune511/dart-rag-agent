@@ -18,10 +18,6 @@ class AnalystCoreRunner(Protocol):
         ...
 
 
-def _trace(message: str) -> List[str]:
-    return [message]
-
-
 def _iter_analyst_tasks(state: MultiAgentState) -> Iterable[tuple[str, AgentTask]]:
     tasks = state.get("tasks", {}) or {}
     for task_id, task in tasks.items():

@@ -154,10 +154,6 @@ def _normalize_plan_tasks(payload: Dict[str, Any]) -> List[AgentTask]:
     return normalized
 
 
-def _artifact_payload(artifact: Artifact) -> Dict[str, Any]:
-    return dict(project_worker_artifact_boundary(artifact).get("payload") or {})
-
-
 def _artifact_answer(artifact: Artifact) -> str:
     return str(project_worker_artifact_boundary(artifact).get("answer") or "").strip()
 
