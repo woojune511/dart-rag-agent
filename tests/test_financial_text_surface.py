@@ -3830,7 +3830,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         marker_owner = Mock(return_value=["Focus"])
 
         patches = (
-            patch.object(financial_retrieval_pipeline, "_tokenize_terms", return_value=set()),
+            patch.object(financial_retrieval_pipeline, "tokenize_terms", return_value=set()),
             patch.object(financial_retrieval_pipeline, "_metric_terms_from_topic", return_value=set()),
             patch.object(financial_retrieval_pipeline, "_active_preferred_sections", return_value=[]),
             patch.object(financial_retrieval_pipeline, "_active_preferred_statement_types", return_value=[]),

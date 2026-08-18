@@ -18,12 +18,12 @@ from src.config.retrieval_policy import (
 )
 
 
-def _tokenize_terms(text: str) -> set[str]:
+def tokenize_terms(text: str) -> set[str]:
     tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
     return {token.lower() for token in tokens if len(token) >= 2}
 
 
-def _split_sentences(text: str) -> List[str]:
+def split_sentences(text: str) -> List[str]:
     cleaned = _normalise_spaces(text)
     if not cleaned:
         return []
@@ -31,13 +31,13 @@ def _split_sentences(text: str) -> List[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
-def _strip_anchor_text(text: str) -> str:
+def strip_anchor_text(text: str) -> str:
     cleaned = re.sub(r"\[[^\]]+\]", " ", text or "")
     cleaned = re.sub(r"^[*\-\u2022]+\s*", "", cleaned)
     return _normalise_spaces(cleaned)
 
 
-def _strip_rerank_metadata(text: str) -> str:
+def strip_rerank_metadata(text: str) -> str:
     raw = str(text or "")
     raw = re.sub(r"\[[^\]]+\]", " ", raw)
     raw = re.sub(r"\s+", " ", raw)

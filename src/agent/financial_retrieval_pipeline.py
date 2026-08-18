@@ -44,8 +44,8 @@ from src.agent.financial_surface_contracts import (
     text_has_positive_surface,
 )
 from src.agent.financial_text_surface import (
-    _strip_rerank_metadata,
-    _tokenize_terms,
+    strip_rerank_metadata,
+    tokenize_terms,
     query_focus_markers,
 )
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
@@ -1155,7 +1155,7 @@ class FinancialRetrievalPipelineMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         companies = {company.lower() for company in state.get("companies", [])}
         years = {int(year) for year in state.get("years", [])}
-        topic_terms = _tokenize_terms(state.get("topic") or state["query"])
+        topic_terms = tokenize_terms(state.get("topic") or state["query"])
         section_filter = (state.get("section_filter") or "").strip()
         intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
         format_preference = str(
@@ -1186,8 +1186,8 @@ class FinancialRetrievalPipelineMixin:
             statement_type = str(metadata.get("statement_type") or "unknown").strip()
             consolidation_scope = str(metadata.get("consolidation_scope") or "unknown").strip()
             period_labels = list(metadata.get("period_labels") or [])
-            body_text = _strip_rerank_metadata(doc.page_content)
-            document_terms = _tokenize_terms(
+            body_text = strip_rerank_metadata(doc.page_content)
+            document_terms = tokenize_terms(
                 " ".join(
                     [
                         body_text,

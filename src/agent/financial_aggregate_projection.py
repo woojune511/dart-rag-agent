@@ -64,7 +64,7 @@ from src.agent.financial_runtime_trace import (
 )
 from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import (
-    _tokenize_terms,
+    tokenize_terms,
     narrative_context_terms,
     narrative_sentence_looks_abbreviated_fragment,
     narrative_sentence_looks_table_noisy,
@@ -161,7 +161,7 @@ def compose_supported_quantitative_impact_answer(
             return True
         if any(term and (term in compact or compact in term) for term in quoted_terms):
             return True
-        label_terms = [term for term in _tokenize_terms(label) if len(term) >= 3]
+        label_terms = [term for term in tokenize_terms(label) if len(term) >= 3]
         return any(term in query_text for term in label_terms)
 
     current_rows = [
@@ -2958,7 +2958,7 @@ def select_aggregate_projection_answer_sentence(
         normalized = _normalise_spaces(sentence).lower()
         if not normalized:
             return 0
-        sentence_tokens = _tokenize_terms(normalized)
+        sentence_tokens = tokenize_terms(normalized)
         score = 0
         for label in row_labels:
             if not label:
@@ -2966,7 +2966,7 @@ def select_aggregate_projection_answer_sentence(
             if label in normalized:
                 score = max(score, 3)
                 continue
-            label_tokens = _tokenize_terms(label)
+            label_tokens = tokenize_terms(label)
             if not label_tokens:
                 continue
             overlap = len(label_tokens & sentence_tokens)

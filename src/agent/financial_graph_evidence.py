@@ -82,10 +82,10 @@ from src.agent.financial_scope_policies import (
     metadata_period_match_strength,
 )
 from src.agent.financial_text_surface import (
-    _split_sentences,
-    _strip_anchor_text,
-    _strip_rerank_metadata,
-    _tokenize_terms,
+    split_sentences,
+    strip_anchor_text,
+    strip_rerank_metadata,
+    tokenize_terms,
     query_focus_marker_groups,
     query_focus_markers,
 )
@@ -1847,7 +1847,7 @@ class FinancialAgentEvidenceMixin:
                             "quote_span": snippet or amount_surface,
                             "support_level": "direct",
                             "question_relevance": "high",
-                            "allowed_terms": sorted(_tokenize_terms((snippet or amount_surface)))[:8],
+                            "allowed_terms": sorted(tokenize_terms((snippet or amount_surface)))[:8],
                             "metadata": self._resolve_anchor_metadata(
                                 anchor_lookup,
                                 anchor,
@@ -1876,7 +1876,7 @@ class FinancialAgentEvidenceMixin:
                             "quote_span": snippet,
                             "support_level": "direct",
                             "question_relevance": "high",
-                            "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                            "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                             "metadata": self._resolve_anchor_metadata(
                                 anchor_lookup,
                                 anchor,
@@ -1992,7 +1992,7 @@ class FinancialAgentEvidenceMixin:
                         if part
                     )
                 )
-                surface = _strip_rerank_metadata(surface) or surface
+                surface = strip_rerank_metadata(surface) or surface
                 if not surface:
                     continue
                 lowered_surface = surface.lower()
@@ -2039,7 +2039,7 @@ class FinancialAgentEvidenceMixin:
                     "quote_span": snippet,
                     "support_level": "direct",
                     "question_relevance": "high",
-                    "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                    "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                     "metadata": self._resolve_anchor_metadata(
                         anchor_lookup,
                         anchor,
@@ -2163,7 +2163,7 @@ class FinancialAgentEvidenceMixin:
                     if part
                 )
             )
-            surface = _strip_rerank_metadata(surface) or surface
+            surface = strip_rerank_metadata(surface) or surface
             if not surface:
                 continue
 
@@ -2214,7 +2214,7 @@ class FinancialAgentEvidenceMixin:
                         "quote_span": snippet,
                         "support_level": "context",
                         "question_relevance": "high",
-                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                        "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                         "metadata": self._resolve_anchor_metadata(
                             anchor_lookup,
                             anchor,
@@ -2275,7 +2275,7 @@ class FinancialAgentEvidenceMixin:
                 best_snippet = ""
                 best_score = 0
                 for item in selected_evidence:
-                    claim = _strip_rerank_metadata(
+                    claim = strip_rerank_metadata(
                         _normalise_spaces(
                             " ".join(
                                 part
@@ -3327,7 +3327,7 @@ class FinancialAgentEvidenceMixin:
                     "reason": "fallback_keep",
                     "supporting_claim_ids": selected_claim_ids,
                 }
-                for sentence in _split_sentences(compressed_answer)
+                for sentence in split_sentences(compressed_answer)
             ]
 
         seen_sentences: set[str] = set()
@@ -3339,7 +3339,7 @@ class FinancialAgentEvidenceMixin:
             if not sentence or sentence in seen_sentences:
                 continue
             seen_sentences.add(sentence)
-            normalized_sentence = _strip_anchor_text(sentence)
+            normalized_sentence = strip_anchor_text(sentence)
 
             verdict = str(entry.get("verdict", "keep") or "keep").strip()
             reason = _normalise_spaces(str(entry.get("reason", "")))
@@ -3357,8 +3357,8 @@ class FinancialAgentEvidenceMixin:
                 reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("missing_support_reason") or "")
 
             support_text = self._sentence_support_text(supporting_claim_ids, evidence_lookup)
-            support_tokens = _tokenize_terms(support_text)
-            sentence_tokens = _tokenize_terms(normalized_sentence)
+            support_tokens = tokenize_terms(support_text)
+            sentence_tokens = tokenize_terms(normalized_sentence)
             overlap_ratio = len(sentence_tokens & support_tokens) / max(len(sentence_tokens), 1)
             aggregate_supported = (
                 query_type in {"business_overview", "risk"}
@@ -3990,7 +3990,7 @@ class FinancialAgentEvidenceMixin:
                 "quote_span": total_hit["quote"],
                 "support_level": "direct",
                 "question_relevance": "high",
-                "allowed_terms": sorted(_tokenize_terms(total_hit["quote"]))[:8],
+                "allowed_terms": sorted(tokenize_terms(total_hit["quote"]))[:8],
                 "metadata": total_hit["metadata"],
             },
             {
@@ -4000,7 +4000,7 @@ class FinancialAgentEvidenceMixin:
                 "quote_span": impairment_hit["quote"],
                 "support_level": "direct",
                 "question_relevance": "high",
-                "allowed_terms": sorted(_tokenize_terms(impairment_hit["quote"]))[:8],
+                "allowed_terms": sorted(tokenize_terms(impairment_hit["quote"]))[:8],
                 "metadata": impairment_hit["metadata"],
             },
         ]

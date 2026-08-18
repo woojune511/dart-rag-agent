@@ -69,7 +69,7 @@ from src.agent.financial_scope_policies import (
     operand_target_years,
 )
 from src.agent.financial_structured_cells import structured_cell_period_text
-from src.agent.financial_text_surface import _strip_rerank_metadata
+from src.agent.financial_text_surface import strip_rerank_metadata
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CALCULATION_RENDER_POLICY,
@@ -3296,7 +3296,7 @@ def _synthesized_calculation_doc_item(
     text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
     if not text:
         return None
-    display_text = _strip_rerank_metadata(text) or text
+    display_text = strip_rerank_metadata(text) or text
     provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
     if evidence_item_conflicts_requested_scope(provisional_item, desired_consolidation_scope):
         return None
@@ -3365,7 +3365,7 @@ def collect_retrieved_operand_evidence_candidates(
         operand_probe_items: List[Dict[str, Any]] = []
         for candidate_index, (doc, _score) in enumerate(candidate_docs, start=1):
             full_text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-            full_text = _strip_rerank_metadata(full_text) or full_text
+            full_text = strip_rerank_metadata(full_text) or full_text
             item = _synthesized_calculation_doc_item(
                 doc,
                 index=candidate_index,

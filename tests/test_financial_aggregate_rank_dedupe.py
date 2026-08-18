@@ -249,7 +249,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_tokenize_terms",
+                "tokenize_terms",
                 side_effect=lambda value: str(value).split(),
             ),
         ):
@@ -319,7 +319,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
             patch.object(
                 financial_aggregate_projection,
-                "_tokenize_terms",
+                "tokenize_terms",
                 side_effect=lambda value: token_calls.append(value) or str(value).split(),
             ),
         ):
@@ -340,7 +340,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_QUERY_TERMS", ("impact",)),
             patch.object(financial_aggregate_projection, "QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", policy),
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
-            patch.object(financial_aggregate_projection, "_tokenize_terms", quoted_tokenizer),
+            patch.object(financial_aggregate_projection, "tokenize_terms", quoted_tokenizer),
         ):
             quoted_result = owner(
                 query='impact "Quoted"',
@@ -388,7 +388,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
                     patch.object(
                         financial_aggregate_projection,
-                        "_tokenize_terms",
+                        "tokenize_terms",
                         side_effect=lambda value: str(value).split(),
                     ),
                 ):
@@ -476,7 +476,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_aggregate_projection,
-                    "_tokenize_terms",
+                    "tokenize_terms",
                     side_effect=lambda value: str(value).split(),
                 ),
             ):
@@ -539,7 +539,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: str(value)),
             patch.object(
                 financial_aggregate_projection,
-                "_tokenize_terms",
+                "tokenize_terms",
                 side_effect=RuntimeError("tokenization failed"),
             ),
             self.assertRaisesRegex(RuntimeError, "tokenization failed"),
@@ -766,7 +766,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             {"QUANTITATIVE_IMPACT_ASSEMBLY_POLICY", "QUANTITATIVE_IMPACT_QUERY_TERMS"}
             <= owner_policy_names
         )
-        self.assertIn("_tokenize_terms", imported_names(trees["owner"], "src.agent.financial_text_surface"))
+        self.assertIn("tokenize_terms", imported_names(trees["owner"], "src.agent.financial_text_surface"))
 
         module_paths = list(Path("src/agent").glob("*.py"))
         edges = {}

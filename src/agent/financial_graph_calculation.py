@@ -263,7 +263,7 @@ from src.agent.financial_scope_policies import (
     known_consolidation_scope_value,
     operand_period_focus,
 )
-from src.agent.financial_text_surface import _strip_rerank_metadata, _tokenize_terms
+from src.agent.financial_text_surface import strip_rerank_metadata, tokenize_terms
 from src.agent.financial_runtime_trace import (
     _collect_nested_result_evidence,
     _resolve_runtime_calculation_trace,
@@ -4797,7 +4797,7 @@ class FinancialAgentCalculationMixin:
                     if part
                 )
             )
-            surface = _strip_rerank_metadata(surface) or surface
+            surface = strip_rerank_metadata(surface) or surface
             if not surface:
                 continue
             surface_lower = surface.lower()
@@ -4831,7 +4831,7 @@ class FinancialAgentCalculationMixin:
                         "quote_span": snippet,
                         "support_level": "context",
                         "question_relevance": "medium" if matched_terms else "low",
-                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                        "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                         "metadata": {
                             **metadata,
                             "missing_decision_context": True,
