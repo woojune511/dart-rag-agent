@@ -3230,7 +3230,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_operand_resolution, "operand_period_focus", return_value="unknown"),
                 patch.object(financial_operand_resolution, "candidate_segment_binding_bonus", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_source_priority_bonus", return_value=0.0),
-                patch.object(financial_operand_resolution, "_metadata_period_match_strength", return_value=0.0),
+                patch.object(financial_operand_resolution, "metadata_period_match_strength", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_period_table_coherence_bonus", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_report_scope_binding_bonus", return_value=0.0),
             ]
@@ -9374,7 +9374,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (12, 8))
+        self.assertEqual(owner_counts, (13, 7))
 
         def imported_names(module_name, imported_module):
             return {
@@ -13875,7 +13875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (12, 8),
+            (13, 7),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -17787,7 +17787,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (12, 8),
+            (13, 7),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -19290,7 +19290,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
                 patch.object(financial_operand_resolution, "candidate_segment_binding_bonus", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_source_priority_bonus", return_value=0.0),
-                patch.object(financial_operand_resolution, "_metadata_period_match_strength", return_value=0.0),
+                patch.object(financial_operand_resolution, "metadata_period_match_strength", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_period_table_coherence_bonus", return_value=0.0),
                 patch.object(financial_operand_resolution, "candidate_report_scope_binding_bonus", return_value=0.0),
             ):
@@ -19982,7 +19982,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         common_evidence_patches = (
             patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
             patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
-            patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+            patch.object(financial_graph_evidence, "metadata_period_match_strength", return_value=0.0),
             patch.object(
                 financial_graph_evidence,
                 "STRUCTURED_CELL_AFFINITY_POLICY",
@@ -20020,7 +20020,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with (
                 patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
                 patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
-                patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+                patch.object(financial_graph_evidence, "metadata_period_match_strength", return_value=0.0),
                 patch.object(
                     financial_graph_evidence,
                     "STRUCTURED_CELL_AFFINITY_POLICY",
@@ -20043,7 +20043,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_evidence, "_desired_statement_types", return_value=[]),
             patch.object(financial_graph_evidence, "desired_consolidation_scope", return_value="unknown"),
-            patch.object(financial_graph_evidence, "_metadata_period_match_strength", return_value=0.0),
+            patch.object(financial_graph_evidence, "metadata_period_match_strength", return_value=0.0),
             patch.object(
                 financial_graph_evidence,
                 "STRUCTURED_CELL_AFFINITY_POLICY",
@@ -20648,7 +20648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_scope_policies": (12, 8),
+                "financial_scope_policies": (13, 7),
             },
         )
 
@@ -20726,7 +20726,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for statement in score_definition.body[target_index - 2 : target_index + 3]
         ]
         self.assertIn("candidate_source_priority_bonus", neighborhood[0])
-        self.assertIn("_metadata_period_match_strength", neighborhood[1])
+        self.assertIn("metadata_period_match_strength", neighborhood[1])
         self.assertIn(target_name, neighborhood[2])
         self.assertIn("candidate_report_scope_binding_bonus", neighborhood[3])
         self.assertIn("table_source_id", neighborhood[4])
@@ -20848,7 +20848,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_operand_resolution, "candidate_source_priority_bonus", side_effect=source_bonus)
             )
             stack.enter_context(
-                patch.object(financial_operand_resolution, "_metadata_period_match_strength", side_effect=period_strength)
+                patch.object(financial_operand_resolution, "metadata_period_match_strength", side_effect=period_strength)
             )
             stack.enter_context(
                 patch.object(financial_operand_resolution, target_name, side_effect=coherence_bonus)
@@ -20900,7 +20900,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     financial_operand_resolution,
-                    "_metadata_period_match_strength",
+                    "metadata_period_match_strength",
                     side_effect=lambda *_args, **_kwargs: failure_events.append("period") or 0.0,
                 )
             )
@@ -21722,7 +21722,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     patch.object(financial_operand_resolution, "operand_period_focus", return_value="unknown"),
                     patch.object(financial_operand_resolution, "candidate_segment_binding_bonus", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_source_priority_bonus", return_value=0.0),
-                    patch.object(financial_operand_resolution, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_operand_resolution, "metadata_period_match_strength", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_period_table_coherence_bonus", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_report_scope_binding_bonus", return_value=0.0),
                 ):
@@ -22557,7 +22557,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                         "candidate_source_priority_bonus",
                         side_effect=lambda *_args, **_kwargs: events.append("source") or 0.0,
                     ),
-                    patch.object(financial_operand_resolution, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_operand_resolution, "metadata_period_match_strength", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_period_table_coherence_bonus", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_report_scope_binding_bonus", return_value=0.0),
                 ):
@@ -23230,7 +23230,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                         "candidate_source_priority_bonus",
                         side_effect=lambda *_args, **_kwargs: events.append("source") or 0.0,
                     ),
-                    patch.object(financial_operand_resolution, "_metadata_period_match_strength", return_value=0.0),
+                    patch.object(financial_operand_resolution, "metadata_period_match_strength", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_period_table_coherence_bonus", return_value=0.0),
                     patch.object(financial_operand_resolution, "candidate_report_scope_binding_bonus", return_value=0.0),
                 ):
@@ -24315,7 +24315,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (12, 8)},
+            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (13, 7)},
         )
 
         def imported_modules(tree):
@@ -30614,7 +30614,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     patch.object(financial_operand_resolution, target_name, side_effect=source),
                     patch.object(
                         financial_operand_resolution,
-                        "_metadata_period_match_strength",
+                        "metadata_period_match_strength",
                         side_effect=lambda *_args: events.append("period") or 0.0,
                     ),
                     patch.object(
@@ -39144,7 +39144,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 score_owner,
-                "_metadata_period_match_strength",
+                "metadata_period_match_strength",
                 return_value=0.4,
             ),
             patch.object(
@@ -39394,7 +39394,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 stack.enter_context(
                     patch.object(
                         score_owner,
-                        "_metadata_period_match_strength",
+                        "metadata_period_match_strength",
                         return_value=0.0,
                     )
                 )
@@ -39607,7 +39607,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256(body_dump.encode()).hexdigest(),
-            "01c4ccb53efa83fded822b82bdfb2e93d6d2161fc27376010f058ad4313f4eda",
+            "fb7fcaaba52d8ec754f3ae78fac41e821c404cc214c9395517904eec72888520",
         )
 
         name_call_counts = {}
@@ -39651,7 +39651,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "preference_bonus": 2,
                 "max": 2,
                 "candidate_source_priority_bonus": 1,
-                "_metadata_period_match_strength": 1,
+                "metadata_period_match_strength": 1,
                 "candidate_period_table_coherence_bonus": 1,
                 "candidate_report_scope_binding_bonus": 1,
             },
@@ -48561,7 +48561,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             {
                 "financial_graph_helpers": "986d07edbcbba1ed2cbe14d8b4086aef5ffd4211eb8570fd6b9d1b84fae8250b",
-                "financial_operand_resolution": "ca2d2af58518fa95b6e41a237b70ece125949ae98ef33bb724728474ed66a9f9",
+                "financial_operand_resolution": "868506cb65faf31c27717ebed547371547b049d94b521ad4c662e4f7a42f5ea0",
                 "financial_row_surfaces": "29c48c8cead8adae91f09ba55f963b4eb926a13e2012444c1c401f2d5b461ee6",
             },
         )
@@ -48781,7 +48781,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -49261,7 +49261,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 stack.enter_context(
                     patch.object(
                         financial_operand_resolution,
-                        "_metadata_period_match_strength",
+                        "metadata_period_match_strength",
                         return_value=0.0,
                     )
                 )
@@ -50119,7 +50119,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51177,7 +51177,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             (
                 "financial_operand_resolution",
                 "score_operand_candidate",
-            ): "ca2d2af58518fa95b6e41a237b70ece125949ae98ef33bb724728474ed66a9f9",
+            ): "868506cb65faf31c27717ebed547371547b049d94b521ad4c662e4f7a42f5ea0",
             (
                 "financial_row_surfaces",
                 "operand_text_match",
@@ -51385,7 +51385,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52888,7 +52888,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -53192,7 +53192,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "de70fe41c6d67983c88057602c04534c867e7a8fe1e48449ab69cd282fcbf61a"
+                "d95a92e589b9574fcd8d2a537f63d6edf133046c92517af3382ee9b778d2d0de"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -54221,7 +54221,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55473,7 +55473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56736,7 +56736,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58434,7 +58434,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -58451,7 +58451,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -59806,7 +59806,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -59823,7 +59823,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -61392,7 +61392,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -61409,7 +61409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -62498,7 +62498,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_label_implies_percent_metric_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_label_implies_percent_metric_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -62515,7 +62515,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         importer_objects = {
@@ -63845,7 +63845,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -63862,7 +63862,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         owner_target = getattr(financial_operation_policies, target_name)
@@ -65303,7 +65303,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline",
             "test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -66319,7 +66319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -66336,7 +66336,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -68268,7 +68268,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -68285,7 +68285,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -69881,7 +69881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertEqual(
             {
                 method.name
@@ -69898,7 +69898,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            266,
+            270,
         )
 
         baseline = json.loads(
@@ -70910,7 +70910,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (12, 8) if target_name == future_public_name else (11, 9),
+            (13, 7) if target_name == future_public_name else (12, 8),
         )
         self.assertEqual(
             [
@@ -71148,7 +71148,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_caller_map_hash,
             (
-                "143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9"
+                "a522d348c71296dfa30d32b42b2c8989f4c477b97ba515e0ba6b1743292121aa"
                 if target_name == future_public_name
                 else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
             ),
@@ -71272,7 +71272,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in projected_owner_functions),
                 sum(node.name.startswith("_") for node in projected_owner_functions),
             ),
-            (12, 8),
+            (13, 7),
         )
         self.assertEqual(
             sum(
@@ -71409,7 +71409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9",
+            "a522d348c71296dfa30d32b42b2c8989f4c477b97ba515e0ba6b1743292121aa",
         )
 
         import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering
@@ -71547,7 +71547,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 270)
+        self.assertEqual(len(graph_test_methods), 274)
         self.assertTrue(
             {
                 "test_current_source_desired_consolidation_scope_pins_precedence_policy_order_copy_and_results",
@@ -71866,7 +71866,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_evidence,
-                "_metadata_period_match_strength",
+                "metadata_period_match_strength",
                 return_value=0,
             ),
             patch.object(
@@ -71906,7 +71906,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_evidence,
-                "_metadata_period_match_strength",
+                "metadata_period_match_strength",
                 stopped_period_match,
             ),
             self.assertRaisesRegex(RuntimeError, "evidence scope failed"),
@@ -72139,6 +72139,1097 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertLess(provenance_source.index("if not nodes"), provenance_source.index(target_name))
         self.assertLess(provenance_source.index("if not raw_value"), provenance_source.index(target_name))
+
+    def test_current_source_metadata_period_match_strength_pins_short_circuits_normalization_dedupe_and_results(self) -> None:
+        future_public_name = "metadata_period_match_strength"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+        events = []
+
+        class TruthProbe(list):
+            def __init__(self, name, values=(), *, truth=True, failure=None):
+                super().__init__(values)
+                self.name = name
+                self.truth = truth
+                self.failure = failure
+
+            def __bool__(self):
+                events.append(("truth", self.name))
+                if self.failure is not None:
+                    raise self.failure
+                return self.truth
+
+        class Render:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return self.value
+
+        stopped_labels = TruthProbe(
+            "stopped-labels",
+            ["2024"],
+            failure=AssertionError("false years must stop label truth testing"),
+        )
+        self.assertEqual(
+            target(
+                stopped_labels,
+                TruthProbe("false-years", [2024], truth=False),
+            ),
+            0.0,
+        )
+        self.assertEqual(events, [("truth", "false-years")])
+
+        events.clear()
+        self.assertEqual(
+            target(
+                TruthProbe("false-labels", ["2024"], truth=False),
+                TruthProbe("true-years", [2024], truth=True),
+            ),
+            0.0,
+        )
+        self.assertEqual(
+            events,
+            [("truth", "true-years"), ("truth", "false-labels")],
+        )
+
+        events.clear()
+        labels = [
+            Render("label-first", " 2024 "),
+            Render("label-blank", "   "),
+            Render("label-duplicate", "2024"),
+        ]
+        years = [
+            Render("year-first", "2024"),
+            Render("year-second", "2023"),
+            Render("year-duplicate", "2024"),
+        ]
+        labels_before = list(labels)
+        years_before = list(years)
+        self.assertEqual(target(labels, years), 0.5)
+        self.assertEqual(
+            events,
+            [
+                ("str", "label-first"),
+                ("str", "label-first"),
+                ("str", "label-blank"),
+                ("str", "label-duplicate"),
+                ("str", "label-duplicate"),
+                ("str", "year-first"),
+                ("str", "year-second"),
+                ("str", "year-duplicate"),
+            ],
+        )
+        self.assertEqual(labels, labels_before)
+        self.assertEqual(years, years_before)
+        self.assertTrue(
+            all(actual is expected for actual, expected in zip(labels, labels_before))
+        )
+        self.assertTrue(
+            all(actual is expected for actual, expected in zip(years, years_before))
+        )
+
+        self.assertEqual(target(["2024"], [2023]), 0.0)
+        self.assertEqual(target(["2024"], [2024]), 1.0)
+        self.assertEqual(target(["2024", "2024"], [2024, 2024]), 1.0)
+        self.assertEqual(target(["2024"], [2024, 2023, 2022]), 1.0 / 3.0)
+        self.assertEqual(target(["2024년"], [2024]), 0.0)
+
+    def test_current_source_metadata_period_match_strength_pins_laziness_immutability_and_exceptions(self) -> None:
+        future_public_name = "metadata_period_match_strength"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+
+        nested = {"preserve": True}
+        period_labels = [" 2024 ", "2023", nested]
+        query_years = [2024, 2022]
+        period_before = deepcopy(period_labels)
+        years_before = list(query_years)
+        self.assertEqual(target(period_labels, query_years), 0.5)
+        self.assertEqual(period_labels, period_before)
+        self.assertEqual(query_years, years_before)
+        self.assertIs(period_labels[2], nested)
+
+        class BoolBomb(list):
+            def __init__(self, message, values=()):
+                super().__init__(values)
+                self.message = message
+
+            def __bool__(self):
+                raise RuntimeError(self.message)
+
+        class IterBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError(self.message)
+
+        class StrBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __str__(self):
+                raise RuntimeError(self.message)
+
+        stopped_period_truth = Mock(
+            side_effect=AssertionError("year truth failure must stop period truth")
+        )
+        class StoppedPeriod(list):
+            def __bool__(self):
+                stopped_period_truth()
+                return True
+
+        with self.assertRaisesRegex(RuntimeError, "year truth failed"):
+            target(StoppedPeriod(["2024"]), BoolBomb("year truth failed", [2024]))
+        stopped_period_truth.assert_not_called()
+
+        with self.assertRaisesRegex(RuntimeError, "period truth failed"):
+            target(BoolBomb("period truth failed", ["2024"]), [2024])
+        with self.assertRaisesRegex(RuntimeError, "period iteration failed"):
+            target(IterBomb("period iteration failed"), [2024])
+        with self.assertRaisesRegex(RuntimeError, "period conversion failed"):
+            target([StrBomb("period conversion failed")], [2024])
+        with self.assertRaisesRegex(RuntimeError, "year iteration failed"):
+            target(["2024"], IterBomb("year iteration failed"))
+        with self.assertRaisesRegex(RuntimeError, "year conversion failed"):
+            target(["2024"], [StrBomb("year conversion failed")])
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "len",
+                side_effect=RuntimeError("length failed"),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "length failed"),
+        ):
+            target(["2024"], [2024])
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "max",
+                side_effect=RuntimeError("max failed"),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "max failed"),
+        ):
+            target(["2024"], [2024, 2023])
+
+    def test_current_source_metadata_period_match_strength_bindings_pin_owner_def_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        owner_path = repo_root / "src" / "agent" / "financial_scope_policies.py"
+        future_public_name = "metadata_period_match_strength"
+        retired_private_name = "_" + future_public_name
+        owner_source = owner_path.read_text(encoding="utf-8-sig")
+        owner_tree = ast.parse(owner_source)
+        target_name = (
+            future_public_name
+            if any(
+                isinstance(node, ast.FunctionDef)
+                and node.name == future_public_name
+                for node in owner_tree.body
+            )
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (478, 488))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["period_labels", "query_years"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["List[str]", "List[int]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "float")
+        self.assertEqual(
+            [type(node).__name__ for node in definition.body],
+            ["If", "Assign", "Assign", "Assign", "If", "If", "Return"],
+        )
+        selected_body = ast.Module(body=definition.body, type_ignores=[])
+        node_counts = {
+            kind: sum(
+                type(node).__name__ == kind
+                for node in ast.walk(selected_body)
+            )
+            for kind in (
+                "AnnAssign",
+                "Assign",
+                "For",
+                "If",
+                "Return",
+                "Try",
+                "TryStar",
+                "Call",
+                "List",
+                "Tuple",
+                "Dict",
+                "Set",
+                "ListComp",
+                "DictComp",
+                "SetComp",
+                "GeneratorExp",
+                "IfExp",
+                "Lambda",
+                "Starred",
+                "comprehension",
+                "BoolOp",
+                "Compare",
+                "BinOp",
+            )
+        }
+        self.assertEqual(
+            node_counts,
+            {
+                "AnnAssign": 0,
+                "Assign": 3,
+                "For": 0,
+                "If": 3,
+                "Return": 4,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 9,
+                "List": 0,
+                "Tuple": 0,
+                "Dict": 0,
+                "Set": 0,
+                "ListComp": 0,
+                "DictComp": 0,
+                "SetComp": 2,
+                "GeneratorExp": 0,
+                "IfExp": 0,
+                "Lambda": 0,
+                "Starred": 0,
+                "comprehension": 2,
+                "BoolOp": 1,
+                "Compare": 2,
+                "BinOp": 2,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(len(owner_functions), 20)
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (13, 7) if target_name == future_public_name else (12, 8),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+
+        module_paths = sorted((repo_root / "src" / "agent").glob("*.py"))
+        module_sources = {
+            path.stem: path.read_text(encoding="utf-8-sig")
+            for path in module_paths
+        }
+        module_trees = {
+            module_name: ast.parse(source)
+            for module_name, source in module_sources.items()
+        }
+        expected_importers = {
+            "financial_graph_evidence",
+            "financial_operand_resolution",
+            "financial_retrieval_pipeline",
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module == "src.agent.financial_scope_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = import_counts.get(module_name, 0) + count
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [ast.unparse(argument) for argument in call.args],
+                        "keywords": [keyword.arg for keyword in call.keywords],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, expected_importers)
+        self.assertEqual(
+            import_counts,
+            {module_name: 1 for module_name in expected_importers},
+        )
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            [
+                (
+                    record["module"],
+                    record["caller"],
+                    record["args"],
+                    record["keywords"],
+                    record["try_depth"],
+                )
+                for record in call_records
+            ],
+            [
+                (
+                    "financial_graph_evidence",
+                    "score",
+                    ["list(metadata.get('period_labels') or [])", "query_years"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_operand_resolution",
+                    "score_operand_candidate",
+                    ["list(metadata.get('period_labels') or [])", "query_years"],
+                    [],
+                    0,
+                ),
+                (
+                    "financial_retrieval_pipeline",
+                    "_rerank_docs",
+                    ["period_labels", "query_years"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_records,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03"
+                if target_name == future_public_name
+                else "e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742"
+            ),
+        )
+        expected_caller_hashes = (
+            {
+                ("financial_graph_evidence", "score"): "480a1b36d876a9ee12039a7ee24c7866224471037acfbabf8f7693c67b6d0cb9",
+                ("financial_operand_resolution", "score_operand_candidate"): "868506cb65faf31c27717ebed547371547b049d94b521ad4c662e4f7a42f5ea0",
+                ("financial_retrieval_pipeline", "_rerank_docs"): "45b649d9c97d6f8fb6010f6ebb38a12958624920a558a95b0bac6abf3b3e6f45",
+            }
+            if target_name == future_public_name
+            else {
+                ("financial_graph_evidence", "score"): "5e89d134924e92d13a32dbebf626c0524a8da0f10dcb5a7741e1a556d2b11a0a",
+                ("financial_operand_resolution", "score_operand_candidate"): "ca2d2af58518fa95b6e41a237b70ece125949ae98ef33bb724728474ed66a9f9",
+                ("financial_retrieval_pipeline", "_rerank_docs"): "a6f06d54dfbd7ea23d47b0e83468d73cd78ea98dbc3aea144954168ac6418a46",
+            }
+        )
+        self.assertEqual(caller_hashes, expected_caller_hashes)
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f"
+                if target_name == future_public_name
+                else "a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b"
+            ),
+        )
+
+        projected_sources = (
+            {
+                module_name: source.replace(
+                    retired_private_name,
+                    future_public_name,
+                )
+                for module_name, source in module_sources.items()
+            }
+            if target_name == retired_private_name
+            else dict(module_sources)
+        )
+        projected_trees = {}
+        for module_name, source in projected_sources.items():
+            compile(
+                source,
+                f"<projected:{module_name}>",
+                "exec",
+                ast.PyCF_ONLY_AST,
+            )
+            projected_trees[module_name] = ast.parse(source)
+        projected_owner_functions = [
+            node
+            for node in projected_trees["financial_scope_policies"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in projected_owner_functions),
+                sum(node.name.startswith("_") for node in projected_owner_functions),
+            ),
+            (13, 7),
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.FunctionDef)
+                and node.name == future_public_name
+                for node in projected_trees["financial_scope_policies"].body
+            ),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.FunctionDef)
+                and node.name == retired_private_name
+                for node in projected_trees["financial_scope_policies"].body
+            ),
+            0,
+        )
+
+        runtime_modules = [
+            financial_scope_policies,
+            financial_graph_evidence,
+            financial_operand_resolution,
+            financial_retrieval_pipeline,
+        ]
+        runtime_owner = getattr(financial_scope_policies, target_name)
+        self.assertEqual(
+            [getattr(module, target_name) is runtime_owner for module in runtime_modules],
+            [True] * 4,
+        )
+
+        semantic_target_count = 0
+        semantic_other_count = 0
+        source_target_paths = set()
+        for module_name, tree in module_trees.items():
+            definition_count = sum(
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            import_count = sum(
+                isinstance(node, ast.alias)
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            call_count = sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+                for node in ast.walk(tree)
+            )
+            target_count = definition_count + import_count + call_count
+            if target_count:
+                source_target_paths.add(
+                    str(repo_root / "src" / "agent" / f"{module_name}.py")
+                )
+            semantic_target_count += target_count
+            semantic_other_count += sum(
+                (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == other_name
+                )
+                or (isinstance(node, ast.alias) and node.name == other_name)
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == other_name
+                )
+                for node in ast.walk(tree)
+            )
+        self.assertEqual(semantic_target_count, 7)
+        self.assertEqual(semantic_other_count, 0)
+        expected_source_paths = {
+            str(repo_root / "src" / "agent" / filename)
+            for filename in (
+                "financial_scope_policies.py",
+                "financial_graph_evidence.py",
+                "financial_operand_resolution.py",
+                "financial_retrieval_pipeline.py",
+            )
+        }
+        self.assertEqual(source_target_paths, expected_source_paths)
+
+        expected_test_paths = {
+            str(repo_root / "tests" / filename)
+            for filename in (
+                "test_financial_graph_helpers.py",
+                "test_financial_text_surface.py",
+            )
+        }
+        test_paths = sorted((repo_root / "tests").glob("test_*.py"))
+        if target_name == retired_private_name:
+            retired_test_hits = {}
+            for path in test_paths:
+                tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+                count = sum(
+                    (isinstance(node, ast.Constant) and node.value == retired_private_name)
+                    or (isinstance(node, ast.Name) and node.id == retired_private_name)
+                    or (isinstance(node, ast.Attribute) and node.attr == retired_private_name)
+                    or (isinstance(node, ast.alias) and node.name == retired_private_name)
+                    for node in ast.walk(tree)
+                )
+                if count:
+                    retired_test_hits[str(path)] = count
+            self.assertEqual(set(retired_test_hits), expected_test_paths)
+            self.assertEqual(sum(retired_test_hits.values()), 19)
+        else:
+            self.assertFalse(
+                any(
+                    (
+                        (isinstance(node, ast.Constant) and node.value == retired_private_name)
+                        or (isinstance(node, ast.Name) and node.id == retired_private_name)
+                        or (isinstance(node, ast.Attribute) and node.attr == retired_private_name)
+                        or (isinstance(node, ast.alias) and node.name == retired_private_name)
+                    )
+                    for path in test_paths
+                    for node in ast.walk(
+                        ast.parse(path.read_text(encoding="utf-8-sig"))
+                    )
+                )
+            )
+
+        transform_paths = expected_source_paths | expected_test_paths
+        self.assertEqual(len(transform_paths), 6)
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in Path(path_text).read_text(encoding="utf-8-sig")
+                )
+                for path_text in transform_paths
+            ),
+            6,
+        )
+        if target_name == retired_private_name:
+            for path_text in transform_paths:
+                source = Path(path_text).read_text(encoding="utf-8-sig").replace(
+                    retired_private_name,
+                    future_public_name,
+                )
+                compile(source, f"<projected:{path_text}>", "exec", ast.PyCF_ONLY_AST)
+
+        graph_test_source = Path(__file__).read_text(encoding="utf-8-sig")
+        graph_test_tree = ast.parse(graph_test_source)
+        graph_test_class = next(
+            node
+            for node in graph_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = [
+            node.name
+            for node in graph_test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 274)
+        self.assertTrue(
+            {
+                "test_current_source_metadata_period_match_strength_pins_short_circuits_normalization_dedupe_and_results",
+                "test_current_source_metadata_period_match_strength_pins_laziness_immutability_and_exceptions",
+                "test_current_source_metadata_period_match_strength_bindings_pin_owner_def_calls_dag_imports_and_baseline",
+                "test_current_source_metadata_period_match_strength_callers_pin_gates_args_adoption_and_stops",
+            }.issubset(graph_test_methods)
+        )
+
+        baseline_path = (
+            repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json"
+        )
+        baseline_records = json.loads(
+            baseline_path.read_text(encoding="utf-8")
+        ).get("records", [])
+        self.assertEqual(len(baseline_records), 217)
+        self.assertFalse(
+            any(
+                record.get("path") == "src/agent/financial_scope_policies.py"
+                and any(
+                    definition.lineno <= int(line) <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+                for record in baseline_records
+            )
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        in_degree = {module_name: 0 for module_name in recursive_modules}
+        dependents = {module_name: [] for module_name in recursive_modules}
+        for source_module, dependency in edges:
+            in_degree[dependency] += 1
+            dependents[source_module].append(dependency)
+        pending = [
+            module_name
+            for module_name, degree in in_degree.items()
+            if degree == 0
+        ]
+        visited = 0
+        while pending:
+            source_module = pending.pop()
+            visited += 1
+            for dependency in dependents[source_module]:
+                in_degree[dependency] -= 1
+                if in_degree[dependency] == 0:
+                    pending.append(dependency)
+        self.assertEqual(visited, len(recursive_modules))
+
+    def test_current_source_metadata_period_match_strength_callers_pin_gates_args_adoption_and_stops(self) -> None:
+        future_public_name = "metadata_period_match_strength"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+
+        query_years = [2024]
+        candidate_items = [
+            {"id": "low", "metadata": {"period_labels": ["low"]}},
+            {"id": "high", "metadata": {"period_labels": ["high"]}},
+        ]
+        candidate_before = deepcopy(candidate_items)
+        evidence_calls = []
+
+        def evidence_period_strength(period_labels, years):
+            evidence_calls.append((period_labels, years))
+            self.assertIs(years, query_years)
+            return 1.0 if period_labels == ["high"] else 0.0
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=evidence_period_strength,
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_desired_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "desired_consolidation_scope",
+                return_value="unknown",
+            ),
+        ):
+            prioritized = financial_graph_evidence._prioritize_candidate_items(
+                candidate_items,
+                "query",
+                "topic",
+                {},
+                query_years,
+            )
+        self.assertEqual([item["id"] for item in prioritized], ["high", "low"])
+        self.assertEqual(
+            [labels for labels, _years in evidence_calls],
+            [["low"], ["high"]],
+        )
+        self.assertEqual(candidate_items, candidate_before)
+
+        stopped_affinity = Mock(
+            side_effect=AssertionError("period failure must stop later affinity scoring")
+        )
+        with (
+            patch.object(
+                financial_graph_evidence,
+                target_name,
+                side_effect=RuntimeError("evidence period failed"),
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "_desired_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "desired_consolidation_scope",
+                return_value="unknown",
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": ["metric"]},
+            ),
+            patch.object(
+                financial_graph_evidence,
+                "scoped_surface_affinity_priority",
+                stopped_affinity,
+            ),
+            self.assertRaisesRegex(RuntimeError, "evidence period failed"),
+        ):
+            financial_graph_evidence._prioritize_candidate_items(
+                [
+                    {
+                        "metadata": {
+                            "period_labels": ["2024"],
+                            "statement_type": "segment_note",
+                        }
+                    }
+                ],
+                "metric query",
+                "metric topic",
+                {},
+                query_years,
+            )
+        stopped_affinity.assert_not_called()
+
+        candidate = {
+            "candidate_kind": "",
+            "metadata": {"row_label": "", "period_labels": ["2024"]},
+        }
+        operand = {"label": "Metric", "binding_policy": {}}
+        candidate_before = deepcopy(candidate)
+        operand_before = deepcopy(operand)
+
+        def run_operand_score(period_result):
+            events = []
+            source_bonus = Mock(
+                side_effect=lambda *args, **kwargs: events.append("source") or 0.0
+            )
+            period_owner = Mock(
+                side_effect=lambda labels, years: events.append("period")
+                or period_result
+            )
+            coherence = Mock(
+                side_effect=lambda *args, **kwargs: events.append("coherence") or 0.0
+            )
+            report_bonus = Mock(
+                side_effect=lambda *args, **kwargs: events.append("report") or 0.0
+            )
+            with (
+                patch.object(
+                    financial_operand_resolution,
+                    "candidate_source_priority_bonus",
+                    source_bonus,
+                ),
+                patch.object(
+                    financial_operand_resolution,
+                    target_name,
+                    period_owner,
+                ),
+                patch.object(
+                    financial_operand_resolution,
+                    "candidate_period_table_coherence_bonus",
+                    coherence,
+                ),
+                patch.object(
+                    financial_operand_resolution,
+                    "candidate_report_scope_binding_bonus",
+                    report_bonus,
+                ),
+            ):
+                result = financial_operand_resolution.score_operand_candidate(
+                    candidate,
+                    operand=operand,
+                    preferred_statement_types=[],
+                    constraints={},
+                    query_years=query_years,
+                    report_scope={},
+                )
+            self.assertEqual(events, ["source", "period", "coherence", "report"])
+            labels_arg, years_arg = period_owner.call_args.args
+            self.assertEqual(labels_arg, ["2024"])
+            self.assertIsNot(labels_arg, candidate["metadata"]["period_labels"])
+            self.assertIs(years_arg, query_years)
+            return result
+
+        zero_score = run_operand_score(0.0)
+        full_score = run_operand_score(1.0)
+        self.assertEqual(full_score - zero_score, 1.5)
+        self.assertEqual(candidate, candidate_before)
+        self.assertEqual(operand, operand_before)
+
+        stopped_coherence = Mock(
+            side_effect=AssertionError("period failure must stop coherence scoring")
+        )
+        with (
+            patch.object(
+                financial_operand_resolution,
+                "candidate_source_priority_bonus",
+                return_value=0.0,
+            ),
+            patch.object(
+                financial_operand_resolution,
+                target_name,
+                side_effect=RuntimeError("operand period failed"),
+            ),
+            patch.object(
+                financial_operand_resolution,
+                "candidate_period_table_coherence_bonus",
+                stopped_coherence,
+            ),
+            self.assertRaisesRegex(RuntimeError, "operand period failed"),
+        ):
+            financial_operand_resolution.score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=[],
+                constraints={},
+                query_years=query_years,
+                report_scope={},
+            )
+        stopped_coherence.assert_not_called()
+
+        doc = SimpleNamespace(
+            page_content="body",
+            metadata={"period_labels": ["2024"]},
+        )
+        rerank_state = {
+            "active_subtask": {},
+            "companies": [],
+            "years": [2024],
+            "topic": "",
+            "query": "query",
+            "section_filter": "",
+            "intent": "qa",
+            "query_type": "qa",
+            "format_preference": "table",
+            "report_scope": {},
+        }
+
+        def run_rerank(period_result):
+            period_owner = Mock(return_value=period_result)
+            agent = SimpleNamespace(_section_bias=Mock(return_value=0.0))
+            with (
+                patch.object(
+                    financial_retrieval_pipeline,
+                    target_name,
+                    period_owner,
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_tokenize_terms",
+                    return_value=set(),
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_metric_terms_from_topic",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_active_preferred_sections",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_active_preferred_statement_types",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "desired_consolidation_scope",
+                    return_value="unknown",
+                ),
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_strip_rerank_metadata",
+                    return_value="body",
+                ),
+            ):
+                reranked = (
+                    financial_retrieval_pipeline.FinancialRetrievalPipelineMixin._rerank_docs(
+                        agent,
+                        [(doc, 1.25)],
+                        rerank_state,
+                    )
+                )
+            labels_arg, years_arg = period_owner.call_args.args
+            self.assertEqual(labels_arg, ["2024"])
+            self.assertIsNot(labels_arg, doc.metadata["period_labels"])
+            self.assertEqual(years_arg, [2024])
+            return reranked[0][1]
+
+        zero_rerank_score = run_rerank(0.0)
+        full_rerank_score = run_rerank(1.0)
+        self.assertAlmostEqual(full_rerank_score - zero_rerank_score, 0.10)
+
+        stopped_section_bias = Mock(
+            side_effect=AssertionError("period failure must stop section bias")
+        )
+        stopped_agent = SimpleNamespace(_section_bias=stopped_section_bias)
+        with (
+            patch.object(
+                financial_retrieval_pipeline,
+                target_name,
+                side_effect=RuntimeError("rerank period failed"),
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_tokenize_terms",
+                return_value=set(),
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_metric_terms_from_topic",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_active_preferred_sections",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_active_preferred_statement_types",
+                return_value=[],
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "desired_consolidation_scope",
+                return_value="unknown",
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_strip_rerank_metadata",
+                return_value="body",
+            ),
+            self.assertRaisesRegex(RuntimeError, "rerank period failed"),
+        ):
+            financial_retrieval_pipeline.FinancialRetrievalPipelineMixin._rerank_docs(
+                stopped_agent,
+                [(doc, 1.25)],
+                rerank_state,
+            )
+        stopped_section_bias.assert_not_called()
+
+        evidence_source = inspect.getsource(
+            financial_graph_evidence._prioritize_candidate_items
+        )
+        self.assertLess(
+            evidence_source.index(target_name),
+            evidence_source.index("points += period_strength * 1.5"),
+        )
+        operand_source = inspect.getsource(
+            financial_operand_resolution.score_operand_candidate
+        )
+        self.assertLess(
+            operand_source.index("candidate_source_priority_bonus"),
+            operand_source.index(target_name),
+        )
+        self.assertLess(
+            operand_source.index(target_name),
+            operand_source.index("candidate_period_table_coherence_bonus"),
+        )
+        rerank_source = inspect.getsource(
+            financial_retrieval_pipeline.FinancialRetrievalPipelineMixin._rerank_docs
+        )
+        self.assertLess(
+            rerank_source.index(target_name),
+            rerank_source.index("if period_match_strength > 0"),
+        )
+        self.assertLess(
+            rerank_source.index("if period_match_strength > 0"),
+            rerank_source.index("self._section_bias"),
+        )
 
 
 if __name__ == "__main__":

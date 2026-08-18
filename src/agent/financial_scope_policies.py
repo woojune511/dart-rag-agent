@@ -475,7 +475,7 @@ def has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
         return False
 
 
-def _metadata_period_match_strength(period_labels: List[str], query_years: List[int]) -> float:
+def metadata_period_match_strength(period_labels: List[str], query_years: List[int]) -> float:
     if not query_years or not period_labels:
         return 0.0
     normalized_labels = {str(label).strip() for label in period_labels if str(label).strip()}

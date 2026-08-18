@@ -60,7 +60,7 @@ from src.agent.financial_surface_contracts import (
     operand_prefers_note_aggregate_lookup,
 )
 from src.agent.financial_scope_policies import (
-    _metadata_period_match_strength,
+    metadata_period_match_strength,
     candidate_matches_operand_target_year,
     candidate_matches_target_report_scope,
     candidate_period_table_coherence_bonus,
@@ -4201,7 +4201,7 @@ def score_operand_candidate(
         local_heading=local_heading,
     )
 
-    score += _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
+    score += metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years) * 1.5
     score += candidate_period_table_coherence_bonus(
         candidate,
         operand=operand,

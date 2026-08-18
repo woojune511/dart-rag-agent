@@ -3835,7 +3835,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patch.object(financial_retrieval_pipeline, "_active_preferred_sections", return_value=[]),
             patch.object(financial_retrieval_pipeline, "_active_preferred_statement_types", return_value=[]),
             patch.object(financial_retrieval_pipeline, "desired_consolidation_scope", return_value="unknown"),
-            patch.object(financial_retrieval_pipeline, "_metadata_period_match_strength", return_value=0),
+            patch.object(financial_retrieval_pipeline, "metadata_period_match_strength", return_value=0),
             patch.object(financial_retrieval_pipeline, "NARRATIVE_RERANK_POLICY", {"causal_markers": ()}),
         )
         with (

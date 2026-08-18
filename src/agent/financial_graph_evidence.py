@@ -81,7 +81,7 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
-    _metadata_period_match_strength,
+    metadata_period_match_strength,
 )
 from src.agent.financial_text_surface import (
     _split_sentences,
@@ -155,7 +155,7 @@ def _prioritize_candidate_items(
                 points += 2.0
             elif consolidation_scope != "unknown":
                 points -= 2.0
-        period_strength = _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
+        period_strength = metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
         points += period_strength * 1.5
         affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
         metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))

@@ -35,7 +35,7 @@ from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
-    _metadata_period_match_strength,
+    metadata_period_match_strength,
     _report_scope_source_receipts,
     _should_apply_strict_company_scope,
 )
@@ -1230,7 +1230,7 @@ class FinancialRetrievalPipelineMixin:
                     boosted += 0.12
                 elif consolidation_scope != "unknown":
                     boosted -= 0.18
-            period_match_strength = _metadata_period_match_strength(period_labels, query_years)
+            period_match_strength = metadata_period_match_strength(period_labels, query_years)
             if period_match_strength > 0:
                 boosted += 0.10 * period_match_strength
 
