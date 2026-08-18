@@ -1201,12 +1201,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
   51/51, import 19/19, audit 217, full 2,131/2,131와 transform/body/identity/
   sole-caller/48-module/205-edge DAG parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 10줄
+- 완료된 `579141d` visibility batch는 같은 owner의 정확한 10줄
   `_should_apply_strict_company_scope(...)`을 public
-  `should_apply_strict_company_scope(...)`로 이름 수렴시킨다. Companies-first
+  `should_apply_strict_company_scope(...)`로 이름 수렴시켰다. Companies-first
   short circuit, shallow scope copy, explicit/source-receipt precedence와
   retrieval caller의 company prepend/filter adoption 및 propagated exception
-  scope를 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
+  scope는 유지됐다. Scope-policy public/private는 15/5이다. Focused pre/post
+  4/4, retrieval scope 28/28, graph owner 282/282, operation contracts 242/242,
+  retrieval hints 5/5, task artifacts 15/15, text surface 30/30, semantic
+  1,242/1,242, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,135/2,135와 transform/body/identity/sole-caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 7줄
+  `_report_scope_source_receipts(...)`을 public
+  `report_scope_source_receipts(...)`로 이름 수렴시킨다. Source-report helper
+  identity, lazy order, receipt normalization, equality-based stable dedupe와
+  single-report/strict-company/retrieval 세 caller의 서로 다른 exception
+  boundary를 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
