@@ -1848,56 +1848,95 @@ the committed diff SHA-256 is
 `683f170f2dd40d325b4d7ce514054b991dc3465859ac61821dc40b604f293c28`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 7-line
-`financial_scope_policies._report_scope_source_receipts(
-report_scope: Dict[str, Any]) -> List[str]` for an in-place public rename to
-`report_scope_source_receipts(...)`, with no wrapper or alias. Update two owner-
-local calls, the retrieval-pipeline import/call, and 28 exact graph-test strings.
-Receipt projection stays in the scope owner; report-row projection, filtering/
-search, graph, artifact, ledger, and exception ownership remain outside the
-batch.
+Commit `faba39e` completed the report-scope-source-receipts visibility batch.
+The exact former 7-line projection is public
+`report_scope_source_receipts(...)`; two owner-local calls, the retrieval
+import/call, 28 exact graph-test strings, and two longer retrieval-caller source
+strings use the public spelling with no wrapper or alias. Fresh-list
+construction, identity-preserving and lazy source-report iteration, receipt
+normalization, equality-based first-seen dedupe, non-mutation, and all three
+caller exception boundaries remain unchanged. Scope-policy public/private
+counts finish at 16/4.
 
-Preserve the fresh list, identity-preserving source-report helper call, lazy
-source-order iteration, exact receipt get/or/string/strip sequence, raw and
-stripped truth gates, ordered equality-based membership dedupe, first-seen
-append, fresh result, nested identity, input immutability, and all owner-uncaught
-failures. Do not add sorting, a set, eager materialization, fallback, or a new
-exception boundary. The three-statement body has one annotated and one plain
-assignment, one loop, one `if`, one return, five calls, one list literal, two
-boolean operations, one comparison, and no `try` or comprehension. Its source-
-body SHA-256 is
-`030a5eb40db1f5c1c4a25e0d5d1954b6caa9656448f2a9d1c190d94166df8370`.
+Focused pre/post 4/4, retrieval scope 28/28, graph owner 286/286, operation
+contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30,
+calculation execution 45/45, math parsing 24/24, surface owner 1/1, operand owner
+69/69, affected semantic 1,246/1,246, reflection promotion 15/15, reflection
+capability 24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, and full 2,139/2,139 passed. Production/complete transform 5/5
+and 3/3, selected-body/three-caller/public-identity/DAG parity, graph-test AST
+282/282 plus four methods, existing exact-string 28/28 and caller-source 2/2
+transforms, UTF-8 3/3, non-ASCII 3/3, pycompile, and diff check passed. Final
+call-record/caller-map hashes are
+`03014bbe5bfa18c8d28657847f0cce1ea67b68d9bb024ed13836336ce992e965` /
+`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`;
+the committed diff SHA-256 is
+`b1adfdddca9e994b41d504702dc5fc67661d87c8387282b47327e373bac594d6`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Three one-positional/no-keyword calls stay in place: single-report scope at
-`try` depth one with `len(result) <= 1` and caught ordinary exceptions, strict-
-company scope at depth zero with a truth-test and propagated errors, and
-retrieval at depth zero with cardinality/filter adoption. No caller gate,
-argument, result adoption, ordering, search, return, or exception scope moves.
+The new characterize-only inventory selects the exact current 25-line
+`financial_scope_policies._extract_year_tokens(
+query: str, report_scope: Dict[str, Any]) -> List[int]` definition at lines
+503-527 for an in-place public rename to `extract_year_tokens(...)`, with no
+wrapper or alias. Update the graph-helper import, its three calls, and one exact
+graph-test string. Year projection stays in the scope owner; generic/concept
+operand construction, dependency-query assembly/fallback, graph state,
+artifacts, and ledger sequencing remain outside the batch.
 
-Five private production semantic occurrences span two files; 28 exact test
-strings are in the graph contract file, for three complete transform paths.
-Scope-policy counts project 15/5 to 16/4 and public identity projects 2/2. The
-DAG stays 48 modules/205 edges and audit stays 217. Current/projected call-
-record hashes are
-`b93e7cca713b02cadcafc528492fcd6c672025415af46fcac2ce4dc8c6a6e88d` /
-`03014bbe5bfa18c8d28657847f0cce1ea67b68d9bb024ed13836336ce992e965`;
+Preserve the fresh list and exact left-to-right phases. Query extraction uses
+`re.findall(r"(20\d{2})년", str(query or ""))`, integer conversion, first-seen
+order, and equality-based dedupe. Scope year uses exact `get("year")`, then one
+`try` containing the non-null/non-empty gate, integer conversion, membership,
+and nonduplicate `insert(0, ...)`; `TypeError`/`ValueError` pass, a duplicate is
+not repositioned, and all other failures propagate. Source rows come from one
+identity-preserving `_report_scope_source_reports(report_scope)` call and lazy
+source-order iteration. Each row prefers direct `year`, falls back to
+`dict(metadata or {}).get("year")` only for `None`/empty, catches only integer-
+conversion `TypeError`/`ValueError` with `continue`, then equality-dedupes and
+appends. Preserve input/nested identity and non-mutation; do not add sorting, a
+set, eager materialization, alternate parsing, fallback, or exception handling.
+
+The six top-level statements are `AnnAssign`, `For`, `Assign`, `Try`, `For`, and
+`Return`. Including nested nodes, the body has one annotated and six plain
+assignments, two loops, five `if` nodes, two `try`/handler pairs, one `continue`,
+one `pass`, one return, 14 calls, one list, one dictionary, four tuples, two
+boolean operations, and five comparisons, with no comprehension, lambda,
+conditional expression, starred expression, unary operation, or binary
+operation. Its source-body SHA-256 is
+`b6e416b8033425999db29cebe67e3760021910aa836dd78614b61340982dcce8`.
+
+Three two-positional/no-keyword graph-helper calls stay at `try` depth zero.
+`_build_generic_required_operands(...)` calls only after its ratio-result stop
+and single-metric-period gate, then uses the first year and second-or-minus-one
+or its current/prior hint path. `_build_concept_period_operands(...)` applies the
+same truthy/falsey year adoption. `_task_dependency_query_years(...)` passes its
+joined task query text and original report scope, returns a truthy result by
+identity, and runs its existing scope-year fallback only for a falsey result.
+Every selected-helper failure remains propagated before later adoption.
+
+Five private production semantic occurrences span two files; one exact test
+string is in the graph contract file, for three complete transform paths.
+Scope-policy counts project 16/4 to 17/3 and public identity projects 2/2. The
+DAG stays 48 modules/205 edges and audit stays 217. Current/projected call-record
+hashes are
+`88f78a94917a59c75e6efbd1ac240e90bb0de7a416b8e6c43c025547b03e3818` /
+`e67fc351713582c74d9c165209ff5bc8449f1439212542ef5bf2cba7e628800b`;
 caller-map hashes are
-`d08e16c1409894af5ab351f27ac9c4a6e2b8292da8f749d4942a05dabd4f0759` /
-`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`.
+`89f3813f0674e25f5132125a95353999caad24594767e58cc532036693df77d6` /
+`9b4ab9d450de2701ec06f798c7832f0fc9214a1bddd0af069e870a5d8bec74c2`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, retrieval scope
-28/28, graph owner 286/286, operation contracts 242/242, retrieval hints 5/5,
+28/28, graph owner 290/290, operation contracts 242/242, retrieval hints 5/5,
 task artifacts 15/15, text surface 30/30, calculation execution 45/45, math
 parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
-1,246/1,246, reflection promotion 15/15, reflection capability 24/24,
+1,250/1,250, reflection promotion 15/15, reflection capability 24/24,
 retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,139/2,139, selected-body/three-caller parity, public identity 2/2, unchanged
-DAG, graph-test AST 282/282 plus four methods, projected compile/import,
+2,143/2,143, selected-body/three-caller parity, public identity 2/2, unchanged
+DAG, graph-test AST 286/286 plus four methods, projected compile/import,
 pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No
-receipt-projection source or test rename has occurred. Static inventory,
-projected AST compilation 3/3, direct probes 5/5, and existing caller probes
-10/10 passed.
+[project_status.md#next-work](../overview/project_status.md#next-work). No year-
+token source or test rename has occurred. Static inventory, projected AST
+compilation 2/2, direct behavior probes 5/5, and caller probes 3/3 passed.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

@@ -1213,12 +1213,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,135/2,135와 transform/body/identity/sole-caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 7줄
+- 완료된 `faba39e` visibility batch는 같은 owner의 정확한 7줄
   `_report_scope_source_receipts(...)`을 public
-  `report_scope_source_receipts(...)`로 이름 수렴시킨다. Source-report helper
+  `report_scope_source_receipts(...)`로 이름 수렴시켰다. Source-report helper
   identity, lazy order, receipt normalization, equality-based stable dedupe와
   single-report/strict-company/retrieval 세 caller의 서로 다른 exception
-  boundary를 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
+  boundary는 유지됐다. Scope-policy public/private는 16/4이다. Focused pre/post
+  4/4, retrieval scope 28/28, graph owner 286/286, operation contracts 242/242,
+  retrieval hints 5/5, task artifacts 15/15, text surface 30/30, semantic
+  1,246/1,246, reflection promotion 15/15, reflection capability 24/24,
+  retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,139/2,139와 transform/body/identity/three-caller/48-module/205-edge DAG
+  parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 25줄
+  `_extract_year_tokens(...)`을 public `extract_year_tokens(...)`로 이름
+  수렴시킨다. Query의 `20xx년` 순서, scope-year front insertion, source-report
+  direct/metadata fallback, equality dedupe, 좁은 `TypeError`/`ValueError`
+  경계와 generic/concept period operand 및 dependency-query 세 caller의 결과
+  채택을 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

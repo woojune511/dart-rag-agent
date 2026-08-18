@@ -8535,3 +8535,87 @@ projected AST compilation 3/3, direct probes 5/5, and existing caller probes
 10/10 passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint
 is not a behavior, quality, ranking, performance, benchmark, schedule, or
 completion claim.
+
+### Report-scope-source-receipts public-API milestone
+
+- Commit `faba39e` renames the exact former 7-line receipt projection in place
+  to public `report_scope_source_receipts(...)`. No wrapper or private alias
+  remains. Two owner-local calls, the retrieval import/call, 28 exact graph-test
+  strings, and two longer retrieval-caller source strings use the public
+  spelling.
+- Fresh-list construction, identity-preserving source-report projection, lazy
+  source order, receipt get/or/string/strip normalization, raw and stripped
+  truth gates, equality-based first-seen dedupe, nested identity, input non-
+  mutation, and all three caller exception boundaries remain unchanged. Final
+  call-record/caller-map hashes are
+  `03014bbe5bfa18c8d28657847f0cce1ea67b68d9bb024ed13836336ce992e965` /
+  `4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`.
+- Production source is `+5/-5`, tests are `+1,193/-75`, and the whole commit is
+  `+1,198/-80`, net `+1,118`. Four methods move discovery from 2,135 to 2,139.
+  Final scope-policy public/private counts are 16/4. The committed diff SHA-256
+  is `b1adfdddca9e994b41d504702dc5fc67661d87c8387282b47327e373bac594d6`.
+- Focused pre/post 4/4, retrieval scope 28/28, graph owner 286/286, operation
+  contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface
+  30/30, calculation execution 45/45, math parsing 24/24, surface owner 1/1,
+  operand owner 69/69, affected semantic 1,246/1,246, reflection promotion
+  15/15, reflection capability 24/24, retrieval pipeline 1/1, reconciliation
+  plan 51/51, import 19/19, audit 217, and full 2,139/2,139 passed. Production/
+  complete transform 5/5 and 3/3, selected-body/three-caller parity, public
+  identity 2/2, unchanged 48-module/205-edge DAG, retired refs/public stores
+  zero, graph-test AST 282/282 plus four methods, existing exact-string 28/28
+  and caller-source 2/2 transforms, UTF-8 3/3, non-ASCII 3/3, pycompile, and
+  diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Extract-year-tokens private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 25-line
+  `financial_scope_policies._extract_year_tokens(
+  query: str, report_scope: Dict[str, Any]) -> List[int]` definition at lines
+  503-527 for an in-place public rename to `extract_year_tokens(...)`. No
+  wrapper/private alias or source/test rename is authorized before four CURRENT-
+  SOURCE contracts pass.
+- Preserve query `20xx년` extraction order and equality dedupe, nonduplicate
+  scope-year insertion at index zero, duplicate scope-year non-reordering,
+  source-report direct-year/metadata fallback, source order, integer conversion,
+  fresh results, original report-scope identity, lazy source iteration, and
+  input non-mutation. Preserve the two narrow `TypeError`/`ValueError` handlers:
+  scope conversion passes and row conversion continues; all work outside those
+  exact `try` bodies remains uncaught. The six top-level statements are
+  `AnnAssign`, `For`, `Assign`, `Try`, `For`, and `Return`; the source-body
+  SHA-256 is
+  `b6e416b8033425999db29cebe67e3760021910aa836dd78614b61340982dcce8`.
+- Three two-positional/no-keyword calls at `try` depth zero stay in graph
+  helpers. Generic and concept period-operand builders adopt the first year as
+  current and the second or current-minus-one as prior, while empty results use
+  policy hints. Dependency-query projection passes its joined task query text,
+  returns a truthy result by identity, and applies its existing scope-year
+  fallback only to a falsey result. All helper-call failures propagate.
+- Five private production semantic occurrences span two files. One existing
+  exact test string is in the graph contract file, for three complete transform
+  paths. Scope-policy counts project 16/4 to 17/3; public identity projects 2/2;
+  the DAG stays 48 modules/205 edges; audit remains 217. Current/projected call-
+  record hashes are
+  `88f78a94917a59c75e6efbd1ac240e90bb0de7a416b8e6c43c025547b03e3818` /
+  `e67fc351713582c74d9c165209ff5bc8449f1439212542ef5bf2cba7e628800b`;
+  caller-map hashes are
+  `89f3813f0674e25f5132125a95353999caad24594767e58cc532036693df77d6` /
+  `9b4ab9d450de2701ec06f798c7832f0fc9214a1bddd0af069e870a5d8bec74c2`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, retrieval scope
+  28/28, graph owner 290/290, operation contracts 242/242, retrieval hints 5/5,
+  task artifacts 15/15, text surface 30/30, calculation execution 45/45, math
+  parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
+  1,250/1,250, reflection promotion 15/15, reflection capability 24/24,
+  retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
+  full 2,143/2,143, selected-body/three-caller parity, public identity 2/2,
+  unchanged DAG, graph-test AST 286/286 plus four methods, existing-test and
+  encoding/compile/pycompile/diff-check gates are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/body/call/import/count/DAG/audit inspection,
+projected AST compilation 2/2, direct behavior probes 5/5, and caller probes
+3/3 passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is
+not a behavior, quality, ranking, performance, benchmark, schedule, or
+completion claim.
