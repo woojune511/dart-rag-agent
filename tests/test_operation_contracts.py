@@ -10686,7 +10686,7 @@ class OperationContractTests(unittest.TestCase):
             patch.object(agent, "_llm_for_phase", return_value=DummyLlm()),
             patch.object(
                 financial_graph_calculation,
-                "_chat_prompt_template_from_template",
+                "chat_prompt_template_from_template",
                 return_value=DummyPrompt(),
             ),
             patch.object(

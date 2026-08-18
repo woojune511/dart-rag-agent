@@ -784,7 +784,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             patch.object(financial_graph_evidence, "compression_guidance", side_effect=guidance_owner),
             patch.object(agent, "_llm_for_phase", return_value=CompressionLlm()),
             patch.object(financial_graph_evidence, "compression_output_model", return_value="compression-model"),
-            patch.object(financial_graph_evidence, "_chat_prompt_template_from_template", return_value=Prompt()),
+            patch.object(financial_graph_evidence, "chat_prompt_template_from_template", return_value=Prompt()),
             patch.object(agent, "_expand_selected_claim_ids_for_narrative_drivers", side_effect=expand),
             patch.object(agent, "_filter_evidence_by_ids", side_effect=filter_rows),
             patch.object(agent, "_augment_narrative_answer_with_supported_drivers", side_effect=augment),

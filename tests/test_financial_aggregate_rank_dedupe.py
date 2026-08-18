@@ -894,10 +894,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_graph_evidence, "validation_output_model", return_value=object),
             patch.object(
                 financial_graph_evidence,
-                "_chat_prompt_template_from_template",
+                "chat_prompt_template_from_template",
                 return_value=primary_pipeline,
             ),
-            patch.object(financial_graph_evidence, "_str_output_parser", return_value=object()),
+            patch.object(financial_graph_evidence, "str_output_parser", return_value=object()),
             patch.object(
                 financial_graph_evidence,
                 "compose_supported_quantitative_impact_answer",
@@ -936,10 +936,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_graph_evidence, "validation_output_model", return_value=object),
             patch.object(
                 financial_graph_evidence,
-                "_chat_prompt_template_from_template",
+                "chat_prompt_template_from_template",
                 return_value=retry_pipeline,
             ),
-            patch.object(financial_graph_evidence, "_str_output_parser", return_value=object()),
+            patch.object(financial_graph_evidence, "str_output_parser", return_value=object()),
             patch.object(
                 financial_graph_evidence,
                 "compose_supported_quantitative_impact_answer",

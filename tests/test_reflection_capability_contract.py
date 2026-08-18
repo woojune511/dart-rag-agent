@@ -1281,7 +1281,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=model_type,
         ), patch.object(
             financial_graph_reconciliation,
-            "_chat_prompt_template_from_template",
+            "chat_prompt_template_from_template",
             return_value=prompt,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1405,7 +1405,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=model_type,
         ), patch.object(
             financial_graph_reconciliation,
-            "_chat_prompt_template_from_template",
+            "chat_prompt_template_from_template",
             return_value=Prompt(),
         ), patch.object(
             financial_graph_reconciliation,

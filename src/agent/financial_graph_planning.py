@@ -41,7 +41,7 @@ from src.agent.financial_graph_model_loaders import (
     validate_answer_slots_payload,
 )
 from src.agent.financial_answer_slots import answer_slot_has_material
-from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
+from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_answer_projection import (
     promote_nested_subtask_result_if_more_specific,
 )
@@ -331,7 +331,7 @@ class FinancialAgentPlanningMixin:
             if replan_mode
             else str(PLANNING_POLICY.get("concept_planner_initial_rule") or "")
         )
-        prompt = _chat_prompt_template_from_template(
+        prompt = chat_prompt_template_from_template(
             str(PLANNING_POLICY.get("concept_planner_prompt_template") or "")
         )
         ConceptPlannerOutput = concept_planner_output_model()

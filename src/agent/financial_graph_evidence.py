@@ -32,8 +32,8 @@ from src.agent.financial_operand_resolution import (
     coerce_operand_unit_from_evidence,
 )
 from src.agent.financial_langchain_loaders import (
-    _chat_prompt_template_from_template,
-    _str_output_parser,
+    chat_prompt_template_from_template,
+    str_output_parser,
 )
 from src.agent.financial_retrieval_pipeline import (
     _COUNT_VALUE_UNIT_RE,
@@ -3458,7 +3458,7 @@ class FinancialAgentEvidenceMixin:
         extra_rules = str(dict(extraction_policy.get("extra_rules_by_query_type") or {}).get(query_type) or "")
         if not extra_rules:
             extra_rules = str(dict(extraction_policy.get("extra_rules_by_operation_family") or {}).get(operation_family) or "")
-        prompt = _chat_prompt_template_from_template(str(extraction_policy.get("prompt_template") or ""))
+        prompt = chat_prompt_template_from_template(str(extraction_policy.get("prompt_template") or ""))
 
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
@@ -3569,7 +3569,7 @@ class FinancialAgentEvidenceMixin:
         compression_llm = self._llm_for_phase("compression")
         CompressionOutput = compression_output_model()
         structured_llm = compression_llm.with_structured_output(CompressionOutput)
-        prompt = _chat_prompt_template_from_template(
+        prompt = chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("compression_prompt_template") or "")
         )
 
@@ -3611,7 +3611,7 @@ class FinancialAgentEvidenceMixin:
             }
         except Exception as exc:
             logger.warning("Compression structured output failed, using fallback text output: %s", exc)
-            chain = prompt | compression_llm | _str_output_parser()
+            chain = prompt | compression_llm | str_output_parser()
             compressed_answer = chain.invoke(
                 {
                     "instruction": guidance["instruction"],
@@ -3663,7 +3663,7 @@ class FinancialAgentEvidenceMixin:
         validation_llm = self._llm_for_phase("validation")
         ValidationOutput = validation_output_model()
         structured_llm = validation_llm.with_structured_output(ValidationOutput)
-        validator_prompt = _chat_prompt_template_from_template(
+        validator_prompt = chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("validation_prompt_template") or "")
         )
         try:
@@ -3761,7 +3761,7 @@ class FinancialAgentEvidenceMixin:
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
-            validated_answer = (validator_prompt | validation_llm | _str_output_parser()).invoke(
+            validated_answer = (validator_prompt | validation_llm | str_output_parser()).invoke(
                 {
                     "query_type": query_type,
                     "query": state["query"],
@@ -4115,7 +4115,7 @@ class FinancialAgentEvidenceMixin:
         else:
             NumericExtraction = numeric_extraction_model()
             structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
-            prompt = _chat_prompt_template_from_template(
+            prompt = chat_prompt_template_from_template(
                 str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
             )
 

@@ -55,7 +55,7 @@ from src.agent.financial_graph_model_loaders import (
     reconciliation_candidate_rerank_model,
     reflection_query_plan_model,
 )
-from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template, _document
+from src.agent.financial_langchain_loaders import chat_prompt_template_from_template, document
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
@@ -278,7 +278,7 @@ class FinancialAgentReconciliationMixin:
 
         ReconciliationCandidateRerank = reconciliation_candidate_rerank_model()
         structured_llm = self._llm_for_phase("reconciliation_rerank").with_structured_output(ReconciliationCandidateRerank)
-        prompt = _chat_prompt_template_from_template(
+        prompt = chat_prompt_template_from_template(
             str(RECONCILIATION_POLICY.get("candidate_rerank_prompt_template") or "")
         )
         try:
@@ -1002,7 +1002,7 @@ class FinancialAgentReconciliationMixin:
         return filtered if filtered else docs
 
     def _make_reconciliation_document(self, *, page_content: str, metadata: Dict[str, Any]) -> Document:
-        return _document(page_content=page_content, metadata=metadata)
+        return document(page_content=page_content, metadata=metadata)
 
     def _supplement_section_seed_docs(self, state: FinancialAgentState) -> List[tuple[Document, float]]:
         query = state["query"]
@@ -1402,7 +1402,7 @@ class FinancialAgentReconciliationMixin:
 
         ReflectionQueryPlan = reflection_query_plan_model()
         structured_llm = self._llm_for_phase("reflection_planning").with_structured_output(ReflectionQueryPlan)
-        prompt = _chat_prompt_template_from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
+        prompt = chat_prompt_template_from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
         try:
             reflection_plan: ReflectionQueryPlan = (prompt | structured_llm).invoke(
                 {

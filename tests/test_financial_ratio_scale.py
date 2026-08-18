@@ -729,7 +729,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "calculation_render_output_model", return_value=object),
                 patch.object(
                     financial_graph_calculation,
-                    "_chat_prompt_template_from_template",
+                    "chat_prompt_template_from_template",
                     return_value=Prompt(SimpleNamespace(final_answer="model ratio")),
                 ),
                 patch.object(
@@ -799,7 +799,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "calculation_verification_output_model", return_value=object),
                 patch.object(
                     financial_graph_calculation,
-                    "_chat_prompt_template_from_template",
+                    "chat_prompt_template_from_template",
                     return_value=Prompt(
                         SimpleNamespace(verdict="keep", final_answer="verified ratio", issues=[])
                     ),

@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 from dotenv import load_dotenv
 
 from src.agent.financial_langchain_loaders import (
-    _chat_prompt_template_from_template,
-    _str_output_parser,
+    chat_prompt_template_from_template,
+    str_output_parser,
 )
 from src.agent.mas_types import AgentTask, Artifact, EvidenceRecord, MultiAgentState, TaskStatus, build_artifact, build_evidence_record
 from src.schema.runtime_enums import ArtifactKind
@@ -210,7 +210,7 @@ class NarrativeResearcherCore:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
         self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
-        self.prompt = _chat_prompt_template_from_template(
+        self.prompt = chat_prompt_template_from_template(
             """당신은 DART 공시 문서를 읽고 맥락을 요약하는 리서처입니다.
 
 아래 검색 컨텍스트만 사용해서 질문에 답하세요.
@@ -241,7 +241,7 @@ class NarrativeResearcherCore:
                 "summary_points": [],
             }
 
-        answer = (self.prompt | self.llm | _str_output_parser()).invoke(
+        answer = (self.prompt | self.llm | str_output_parser()).invoke(
             {
                 "question": query,
                 "context": context,

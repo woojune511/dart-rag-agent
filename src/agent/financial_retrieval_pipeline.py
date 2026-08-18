@@ -23,7 +23,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _store_query_result_cache,
     _summarize_executed_query_telemetry,
 )
-from src.agent.financial_langchain_loaders import _document
+from src.agent.financial_langchain_loaders import document
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
@@ -809,7 +809,7 @@ def _is_document_like(doc: Any) -> bool:
 
 
 def _make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
-    return _document(page_content=page_content, metadata=metadata)
+    return document(page_content=page_content, metadata=metadata)
 
 
 def _required_operand_coverage_from_docs(
