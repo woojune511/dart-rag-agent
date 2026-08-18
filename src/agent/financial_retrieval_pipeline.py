@@ -12,7 +12,6 @@ import json
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from src.agent.financial_graph_helpers import _build_generic_metric_aliases
 from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,

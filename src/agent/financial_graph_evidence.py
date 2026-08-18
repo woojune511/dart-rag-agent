@@ -33,7 +33,6 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent.financial_langchain_loaders import (
     _chat_prompt_template_from_template,
-    _document,
     _str_output_parser,
 )
 from src.agent.financial_retrieval_pipeline import (
@@ -67,7 +66,6 @@ from src.agent.financial_structured_cells import score_structured_cell, structur
 if TYPE_CHECKING:
     from src.agent.financial_graph_models import EvidenceItem
     from src.agent.financial_graph_state import FinancialAgentState
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     is_percent_point_difference_query,
     is_ratio_percent_query,

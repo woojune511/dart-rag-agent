@@ -24362,7 +24362,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target):
             pending = [start]
@@ -25246,7 +25246,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target):
             pending = [start]
@@ -26162,7 +26162,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -27217,7 +27217,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -28415,7 +28415,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -29606,7 +29606,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -30510,7 +30510,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -31247,7 +31247,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -32352,7 +32352,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             }
             dependency_graph[module_name] = dependencies
             dependency_edges.update((module_name, dependency) for dependency in dependencies)
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
 
         def reachable(start, target_module):
             pending = [start]
@@ -33260,7 +33260,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             dependency_edges.update(
                 (module_name, dependency) for dependency in dependencies
             )
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
         ownership_edge = (
             "src.agent.financial_operand_resolution",
             "src.agent.financial_scope_policies",
@@ -34862,7 +34862,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             dependency_edges.update(
                 (module_name, dependency) for dependency in dependencies
             )
-        self.assertEqual(len(dependency_edges), 205)
+        self.assertEqual(len(dependency_edges), 203)
         ownership_edge = (
             "src.agent.financial_operand_resolution",
             "src.agent.financial_scope_policies",
@@ -36088,7 +36088,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         indegree = {name: 0 for name in recursive_modules}
         outgoing = {name: set() for name in recursive_modules}
         for source, destination in edges:
@@ -37279,7 +37279,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         indegree = {name: 0 for name in recursive_modules}
         outgoing = {name: set() for name in recursive_modules}
         for source, destination in edges:
@@ -38629,7 +38629,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         previous_edges = set(edges)
         previous_edges.remove(
             (
@@ -38637,7 +38637,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "src.agent.financial_structured_cells",
             )
         )
-        self.assertEqual(len(previous_edges), 204)
+        self.assertEqual(len(previous_edges), 202)
 
         def visited_count(current_edges):
             indegree = {name: 0 for name in recursive_modules}
@@ -39842,7 +39842,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def visited_count(current_edges):
             indegree = {name: 0 for name in recursive_modules}
@@ -40579,7 +40579,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -41491,7 +41491,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -42408,7 +42408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -43394,7 +43394,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -44563,7 +44563,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -45669,7 +45669,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -46522,7 +46522,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -47470,7 +47470,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -48676,7 +48676,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -50041,7 +50041,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -51292,7 +51292,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -52775,7 +52775,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -54147,7 +54147,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -55405,7 +55405,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -56661,7 +56661,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (module_name, dependency)
                 for dependency in internal_dependencies
             )
-        self.assertEqual(len(edges), 205)
+        self.assertEqual(len(edges), 203)
 
         def has_cycle():
             visiting = set()
@@ -57019,7 +57019,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "7ccafd1d0b6a6f712dc9ee5272b3c72a207873885fa0897e2a0e8a59fb29cc1a"
+                "9a95490fffc149c421f972fa0404ce38458061f7f687b137d3089d3d5d0d9552"
                 if target_name == future_public_name
                 else "56c133f9852c0e013747dfb6a625d7af13a5713f15dcc06974d6fafe0e9fc201"
             ),
@@ -58215,7 +58215,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "a0ddee2afcc9bc97ce2f4bc6471e1021508e589fd68d87d3a0893831e7e0e2b5"
+                "4a0a947551a0078055c5bbaf423be86700f00533ac56dbc59ee87c8676711e3b"
                 if target_name == future_public_name
                 else "541b793fe8e0596a0d0271c2a87e373c1c88d12a34ffe549b641e6b67d7ffec1"
             ),
@@ -58302,7 +58302,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -59566,7 +59566,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "1a24d505e6ec2e0d16ae20b54908d5cea0909ab83182a90386ee771a78eb4c96"
+                "a00802e4a5ead815f69f371da7e616dd3a177d594e38cc99761c3d28c0e595fb"
                 if target_name == future_public_name
                 else "86067daddcf3b370a5219834120499482d0cbec9b38f4088fa35a0fab079aab5"
             ),
@@ -59677,7 +59677,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -61166,7 +61166,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "3dcef1908f976f606358bdaaf0760042358d3859bd3dd98632b5b5e46bac79db"
+                "3dc8237cba155ad05078de66f09f752bfd70ae205dd8cfee90f99562ccd004ea"
                 if target_name == future_public_name
                 else "ef07a28d7d4fd72951c8814b810062cb60e49922590f83d0f6585986aa3fb063"
             ),
@@ -61257,7 +61257,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -62416,7 +62416,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source, dependency in edges:
@@ -63768,7 +63768,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source, dependency in edges:
@@ -64984,7 +64984,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source, dependency in edges:
@@ -66075,7 +66075,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "0135ac1116de4fbc374085062c365d2e1a174413a0adcb8b6cd389faa6323937"
+                "9f7d8e1d7e7dc456d97a0d2576104203e2aa4cf6197e106d3b2d102a57474c1e"
                 if target_name == future_public_name
                 else "6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab"
             ),
@@ -66186,7 +66186,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -68067,7 +68067,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "3b45a4a7ee946de8aa34892682477ffe2eef4c091e095268af752eb6b5360515"
+                "1da1ba93f9f1895b1150589cc600e33632fd38ff88b6df156c567f862e0c9633"
                 if target_name == future_public_name
                 else "ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b"
             ),
@@ -68138,7 +68138,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -69670,7 +69670,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "8b409f40b5410bdc5ffe8eb1455be24adf7d2339f1be8b7f80d5e2f26c4cd5a3"
+                "f5ee94478412f060bb7aa44769249e60a48dc92168adaec31aa59ab3a5a81419"
                 if target_name == future_public_name
                 else "aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a"
             ),
@@ -69749,7 +69749,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
 
         def reaches(start, target):
             pending = [start]
@@ -71128,7 +71128,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_call_hash,
             (
-                "43bb41aef537d5829a385a35a816e26570e21e6c09fd09f13155ebc73123c73f"
+                "520a6f299efa48f06cd80e8697b91f21897994531a89bc28cabdab18d5bbd20b"
                 if target_name == future_public_name
                 else "cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b"
             ),
@@ -71395,7 +71395,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "43bb41aef537d5829a385a35a816e26570e21e6c09fd09f13155ebc73123c73f",
+            "520a6f299efa48f06cd80e8697b91f21897994531a89bc28cabdab18d5bbd20b",
         )
         projected_caller_payload = {
             f"{module_name}:{caller_name}": digest
@@ -71592,7 +71592,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:
@@ -72591,7 +72591,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03"
+                "acb8c61258b02e14c616340ad5c3b30a8eded8bf1e756aa62305c8fe08f980bb"
                 if target_name == future_public_name
                 else "e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742"
             ),
@@ -72860,7 +72860,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:
@@ -73968,7 +73968,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:
@@ -74718,7 +74718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 {
                     "module": "financial_retrieval_pipeline",
                     "caller": "_retrieve",
-                    "line": 2020,
+                    "line": 2019,
                     "args": ["companies", "report_scope"],
                     "keywords": [],
                     "parent": (
@@ -74739,7 +74739,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "c82616a53264c2b42a488f483c6b833991821a6d2f4ffdb6d1269b4c49fd090b"
+                "1f70b81fd42cb2372128ad5d3e9d0a3b663ffbee3361cfda0e00e7d951a88aa9"
                 if target_name == future_public_name
                 else "1cd3c7c07259c467518386946b7862d1e266ce16e608fb4e5497fa9f61695b21"
             ),
@@ -74980,7 +74980,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:
@@ -75698,7 +75698,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 {
                     "module": "financial_retrieval_pipeline",
                     "caller": "_retrieve",
-                    "line": 2034,
+                    "line": 2033,
                     "args": ["report_scope"],
                     "keywords": [],
                     "parent": f"scope_source_receipts = {target_name}(report_scope)",
@@ -75734,7 +75734,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "03014bbe5bfa18c8d28657847f0cce1ea67b68d9bb024ed13836336ce992e965"
+                "c4ce88d6827936e1acf419d0c98278a00418dddba602a191d4b4cb066317a5ed"
                 if target_name == future_public_name
                 else "b93e7cca713b02cadcafc528492fcd6c672025415af46fcac2ce4dc8c6a6e88d"
             ),
@@ -76004,7 +76004,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:
@@ -77048,7 +77048,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for dependency in dependencies:
                     if dependency in recursive_modules:
                         edges.add((module_name, dependency))
-        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 203))
         in_degree = {module_name: 0 for module_name in recursive_modules}
         dependents = {module_name: [] for module_name in recursive_modules}
         for source_module, dependency in edges:

@@ -202,7 +202,6 @@ from src.agent.financial_operand_resolution import (
     _missing_required_operands,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     _operand_rows_have_single_table_context,
-    _operand_row_has_direct_evidence_surface,
     _operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
