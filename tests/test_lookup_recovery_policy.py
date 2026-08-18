@@ -2666,7 +2666,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(financial_lookup_recovery, "answer_slot_has_material", side_effect=material),
             patch.object(financial_lookup_recovery, "_extract_lookup_slot_from_answer_text", side_effect=extract),
-            patch.object(financial_lookup_recovery, "_validate_answer_slots_payload", side_effect=validate),
+            patch.object(financial_lookup_recovery, "validate_answer_slots_payload", side_effect=validate),
         ):
             synthesized = financial_lookup_recovery.synthesize_lookup_answer_slot_from_prose(
                 active_subtask=task,
@@ -2710,7 +2710,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "_extract_lookup_slot_from_answer_text", return_value=slot),
             patch.object(
                 financial_lookup_recovery,
-                "_validate_answer_slots_payload",
+                "validate_answer_slots_payload",
                 side_effect=RuntimeError("slot validation failed"),
             ),
         ):
@@ -2968,7 +2968,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         }
         for name in ("_normalise_operand_value", "operand_needles", "NUMERIC_UNIT_NORMALIZATION_POLICY"):
             self.assertNotIn(name, planning_imports)
-        for name in ("re", "PLANNING_POLICY", "answer_slot_has_material", "_validate_answer_slots_payload", "_normalise_spaces"):
+        for name in ("re", "PLANNING_POLICY", "answer_slot_has_material", "validate_answer_slots_payload", "_normalise_spaces"):
             outside = [
                 node
                 for node in ast.walk(planning_tree)
@@ -3163,7 +3163,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             ),
             patch.object(financial_graph_planning, "answer_slot_has_material", side_effect=lambda slot: bool(slot.get("raw_value"))),
             patch.object(financial_graph_planning, "lookup_operand_matches_active_task", side_effect=active_match),
-            patch.object(financial_graph_planning, "_validate_answer_slots_payload", side_effect=validate),
+            patch.object(financial_graph_planning, "validate_answer_slots_payload", side_effect=validate),
             patch.object(financial_graph_planning, "lookup_slot_supporting_doc_evidence", side_effect=support),
             patch.object(financial_graph_planning, "refine_lookup_slot_unit_from_evidence", side_effect=refine),
             patch.object(financial_graph_planning, "coerce_lookup_magnitude_record", side_effect=magnitude),

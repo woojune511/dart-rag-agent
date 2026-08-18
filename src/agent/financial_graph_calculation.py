@@ -236,11 +236,11 @@ from src.agent.financial_structured_cells import (
     select_structured_cell,
 )
 from src.agent.financial_graph_model_loaders import (
-    _aggregate_synthesis_output_model,
-    _calculation_plan_model,
-    _calculation_render_output_model,
-    _calculation_verification_output_model,
-    _operand_extraction_model,
+    aggregate_synthesis_output_model,
+    calculation_plan_model,
+    calculation_render_output_model,
+    calculation_verification_output_model,
+    operand_extraction_model,
 )
 from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
@@ -9567,7 +9567,7 @@ class FinancialAgentCalculationMixin:
                     len(deterministic_required_rows),
                 )
 
-        OperandExtraction = _operand_extraction_model()
+        OperandExtraction = operand_extraction_model()
         structured_llm = self._llm_for_phase("operand_extraction").with_structured_output(OperandExtraction)
         evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
         prompt = _chat_prompt_template_from_template(
@@ -10049,7 +10049,7 @@ class FinancialAgentCalculationMixin:
                     calculation_result={},
                 ),
             }
-        CalculationPlan = _calculation_plan_model()
+        CalculationPlan = calculation_plan_model()
         structured_llm = self._llm_for_phase("formula_planning").with_structured_output(CalculationPlan)
         ontology_context = ""
         if metric_info:
@@ -11067,7 +11067,7 @@ class FinancialAgentCalculationMixin:
                 **_stale_repair_provenance_update(),
             }
 
-        CalculationRenderOutput = _calculation_render_output_model()
+        CalculationRenderOutput = calculation_render_output_model()
         structured_llm = self._llm_for_phase("calculation_render").with_structured_output(CalculationRenderOutput)
         prompt = _chat_prompt_template_from_template(
             str(CALCULATION_RENDER_POLICY.get("renderer_prompt_template") or "")
@@ -11171,7 +11171,7 @@ class FinancialAgentCalculationMixin:
             result_value=result_val,
             render_policy=render_policy,
         )
-        CalculationVerificationOutput = _calculation_verification_output_model()
+        CalculationVerificationOutput = calculation_verification_output_model()
         structured_llm = self._llm_for_phase("calculation_verification").with_structured_output(CalculationVerificationOutput)
         prompt = _chat_prompt_template_from_template(
             str(render_policy.get("verification_prompt_template") or "")
@@ -12586,7 +12586,7 @@ class FinancialAgentCalculationMixin:
         aggregate_synthesis_input_json = ""
         aggregate_synthesis_debug: Dict[str, Any] = {}
         if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
-            AggregateSynthesisOutput = _aggregate_synthesis_output_model()
+            AggregateSynthesisOutput = aggregate_synthesis_output_model()
             structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
             prompt = _chat_prompt_template_from_template(
                 str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")

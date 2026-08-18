@@ -658,7 +658,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
-            patch.object(financial_graph_evidence, "_evidence_extraction_model", return_value="model"),
+            patch.object(financial_graph_evidence, "evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(
                 financial_graph_evidence,
@@ -678,7 +678,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
         context_after_owner = Mock(side_effect=AssertionError("owner failure must stop context construction"))
         with (
             patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
-            patch.object(financial_graph_evidence, "_evidence_extraction_model", return_value="model"),
+            patch.object(financial_graph_evidence, "evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(
                 financial_graph_evidence,
@@ -783,7 +783,7 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             patch.object(agent, "_format_evidence_for_prompt", return_value="formatted evidence"),
             patch.object(financial_graph_evidence, "compression_guidance", side_effect=guidance_owner),
             patch.object(agent, "_llm_for_phase", return_value=CompressionLlm()),
-            patch.object(financial_graph_evidence, "_compression_output_model", return_value="compression-model"),
+            patch.object(financial_graph_evidence, "compression_output_model", return_value="compression-model"),
             patch.object(financial_graph_evidence, "_chat_prompt_template_from_template", return_value=Prompt()),
             patch.object(agent, "_expand_selected_claim_ids_for_narrative_drivers", side_effect=expand),
             patch.object(agent, "_filter_evidence_by_ids", side_effect=filter_rows),

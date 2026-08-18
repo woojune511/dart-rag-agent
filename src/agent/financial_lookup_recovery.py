@@ -4,7 +4,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional
 
 from src.agent.financial_answer_slots import answer_slot_has_material
-from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
+from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
     _evidence_item_for_operand_row,
@@ -313,7 +313,7 @@ def synthesize_lookup_answer_slot_from_prose(
         "operation_family": "lookup",
         "rendered_value": rendered_value,
         "formatted_result": _normalise_spaces(answer) or rendered_value,
-        "answer_slots": _validate_answer_slots_payload(updated_slots),
+        "answer_slots": validate_answer_slots_payload(updated_slots),
     }
 
 

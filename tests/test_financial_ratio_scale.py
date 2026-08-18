@@ -726,7 +726,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
                     return_value="",
                 ),
                 patch.object(agent, "_llm_for_phase", return_value=StructuredLLM(), create=True),
-                patch.object(financial_graph_calculation, "_calculation_render_output_model", return_value=object),
+                patch.object(financial_graph_calculation, "calculation_render_output_model", return_value=object),
                 patch.object(
                     financial_graph_calculation,
                     "_chat_prompt_template_from_template",
@@ -796,7 +796,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
                 patch.object(agent, "_calc_query", side_effect=lambda state: str(state.get("query") or ""), create=True),
                 patch.object(financial_graph_calculation.calculation_rendering, "direction_hint_for_result", return_value=""),
                 patch.object(agent, "_llm_for_phase", return_value=StructuredLLM(), create=True),
-                patch.object(financial_graph_calculation, "_calculation_verification_output_model", return_value=object),
+                patch.object(financial_graph_calculation, "calculation_verification_output_model", return_value=object),
                 patch.object(
                     financial_graph_calculation,
                     "_chat_prompt_template_from_template",

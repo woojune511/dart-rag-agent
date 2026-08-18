@@ -52,8 +52,8 @@ from src.agent.financial_dependency_projection import (
     task_prefers_sibling_output_synthesis,
 )
 from src.agent.financial_graph_model_loaders import (
-    _reconciliation_candidate_rerank_model,
-    _reflection_query_plan_model,
+    reconciliation_candidate_rerank_model,
+    reflection_query_plan_model,
 )
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template, _document
 from src.agent.financial_retrieval_hints import (
@@ -276,7 +276,7 @@ class FinancialAgentReconciliationMixin:
         if len(allowed_ids) < 2:
             return allowed_ids
 
-        ReconciliationCandidateRerank = _reconciliation_candidate_rerank_model()
+        ReconciliationCandidateRerank = reconciliation_candidate_rerank_model()
         structured_llm = self._llm_for_phase("reconciliation_rerank").with_structured_output(ReconciliationCandidateRerank)
         prompt = _chat_prompt_template_from_template(
             str(RECONCILIATION_POLICY.get("candidate_rerank_prompt_template") or "")
@@ -1400,7 +1400,7 @@ class FinancialAgentReconciliationMixin:
             explanation="fallback reflection query plan",
         )
 
-        ReflectionQueryPlan = _reflection_query_plan_model()
+        ReflectionQueryPlan = reflection_query_plan_model()
         structured_llm = self._llm_for_phase("reflection_planning").with_structured_output(ReflectionQueryPlan)
         prompt = _chat_prompt_template_from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
         try:

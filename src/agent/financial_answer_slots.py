@@ -11,7 +11,7 @@ from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
     render_value_with_unit,
 )
-from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
+from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
     numeric_surface_candidates_equivalent,
@@ -693,7 +693,7 @@ def build_answer_slots(
             source_normalized_unit=source_normalized_unit,
             current_period=current_period,
         )
-        return _validate_answer_slots_payload(answer_slots)
+        return validate_answer_slots_payload(answer_slots)
 
     period_difference = _period_comparison_requested(
         family=family,
@@ -731,4 +731,4 @@ def build_answer_slots(
         prior_row=prior_row,
     )
 
-    return _validate_answer_slots_payload(answer_slots)
+    return validate_answer_slots_payload(answer_slots)

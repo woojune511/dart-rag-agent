@@ -11680,7 +11680,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "_chat_prompt_template_from_template",
                 return_value=prompt,
             ),
-            patch.object(financial_graph_planning, "_concept_planner_output_model", return_value=object()),
+            patch.object(financial_graph_planning, "concept_planner_output_model", return_value=object()),
             patch.object(
                 financial_graph_planning,
                 "validate_concept_planner_task",
@@ -59578,7 +59578,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
+                    ): "b44b7f616419c86f8047ff446b9f6b020fdec15b524374a42eb7240923656393",
                     (
                         "financial_graph_evidence",
                         "_extract_ratio_row_candidates",
@@ -59602,7 +59602,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "c51b375910aa7044c7ac36c267af63ce2ad4a0f9510a2d72c8e72d9ac72de56d",
+                    ): "e7cb9f5d4b30fb5862524e59c6771a7e11d14b0853ba2f6386fc87ebcad16040",
                 }
                 if target_name == future_public_name
                 else {
@@ -59650,7 +59650,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "b663382b0003d221cb0ea03a21b62dc6e8c80dea11ee4bb7ffd60f56c60c0e39"
+                "f34d81f35d5c2ea72ad442a7b73d63b8696f76dbda1071fe55fd66c909b5618d"
                 if target_name == future_public_name
                 else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
             ),
@@ -61179,14 +61179,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     ("financial_graph_calculation", "_append_retrieved_growth_driver_evidence_for_query"): "c30b4b84c3c1c37d977b85ae86a9944984ca181e43ded4d625233097a4539460",
                     ("financial_graph_calculation", "_build_period_comparison_operands_from_table_label_context"): "92d6a14434df6de4679e37e7b07e19bb99f089ffdb6430a07491d74bd65c19e9",
                     ("financial_graph_calculation", "_compose_growth_narrative_answer"): "f41c46b3696afb83b0d1be67e9459a5859c81b941aa51b107bb4b4e97e94d520",
-                    ("financial_graph_calculation", "_extract_calculation_operands"): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
+                    ("financial_graph_calculation", "_extract_calculation_operands"): "b44b7f616419c86f8047ff446b9f6b020fdec15b524374a42eb7240923656393",
                     ("financial_graph_calculation", "_preserve_policy_required_context_in_narrative_results"): "d1432c5be02a6a66805f50b621b4d108dd1b326912d8ace0584bd437880714f6",
                     ("financial_graph_calculation", "_preserve_policy_required_realized_context"): "30cf4dd145889c7f60e4925a07a58fd9829fe63a3f5e14193f237412e1d60d85",
                     ("financial_graph_calculation", "_prune_irrelevant_growth_narrative_sentences"): "0d2662df66118668e6cc5f44ece4d512d4305741453d707c48ce8d5064fa9a5d",
                     ("financial_graph_calculation", "_prune_nonfocus_numeric_narrative_sentences"): "ff188a0647dc272b629960b29febce595cc355dbf6f0537b03e7b159d4589363",
                     ("financial_graph_evidence", "_augment_narrative_answer_with_supported_drivers"): "11bb6f9d5a54ced825d8082221af1058758a2f74531cc352e381f929e8f7d46f",
                     ("financial_graph_evidence", "_expand_selected_claim_ids_for_narrative_drivers"): "234f90d3980628f2ac4f35284214ac4ba5905d84e4ff58c1a4697f4c242eb49f",
-                    ("financial_graph_evidence", "_extract_evidence"): "dc9816fb850d6203cde7623508712a2dcf84356c40b3745100dcd0f1828eda17",
+                    ("financial_graph_evidence", "_extract_evidence"): "c07cdfe9109da26935c275ae85c99d1c23f166d181dfbf919da77bbb3e2ef60b",
                     ("financial_graph_evidence", "_is_narrative_supporting_evidence_item"): "989b93762218ea89a5d934f042fb1be7d1a0dcf49e94f0561ac156ed9ffb8c38",
                     ("financial_graph_evidence", "_supplement_policy_realized_evidence"): "48ab56c5528d2499fe5dfd27a491079d7eb771954ce02c3739a0926137b52423",
                     ("financial_graph_helpers", "_needs_hybrid_narrative_subtask"): "da0b4604d12fce60ed2cda9449d439946f19dd158dcafa2ff3ec651ec4a28b91",
@@ -61230,7 +61230,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "04a31adf45152d807bc4e75a29b1c2f8af5001c77aef90171dade9211e783e9c"
+                "0ecabd140a22cb1f8992ea46f0da815305868d2e1d913f91f70047e0bad2d390"
                 if target_name == future_public_name
                 else "12c5fb354fe3d80dace6e5d38276d171deb84780820a33c41b3577a7e2aa938a"
             ),
@@ -66087,7 +66087,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
+                    ): "b44b7f616419c86f8047ff446b9f6b020fdec15b524374a42eb7240923656393",
                     (
                         "financial_graph_evidence",
                         "_build_ratio_operands_from_candidates",
@@ -66103,7 +66103,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "c51b375910aa7044c7ac36c267af63ce2ad4a0f9510a2d72c8e72d9ac72de56d",
+                    ): "e7cb9f5d4b30fb5862524e59c6771a7e11d14b0853ba2f6386fc87ebcad16040",
                     (
                         "financial_operand_resolution",
                         "collect_retrieved_operand_evidence_candidates",
@@ -66159,7 +66159,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "703eb6d24f48d5aa4d29bcd128346e0b8acd1956478e07f19b4fa03ade4ec6f4"
+                "66a4431133b269f9f78f16eccc46fecdb27f25f919cb084f9659eba2fdbfbad5"
                 if target_name == future_public_name
                 else "bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad"
             ),
@@ -67184,7 +67184,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_reconciliation,
-                    "_reflection_query_plan_model",
+                    "reflection_query_plan_model",
                     return_value=object(),
                 ),
                 patch.object(
@@ -68083,7 +68083,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_plan_formula_calculation_from_operation_decision",
-                    ): "07c6914ef228431cab77a0c4d3bcee01d4c468fd00eb212b7d460060f642e9c7",
+                    ): "777472b4cd65105c9f3115db8f320d35c747dbd82264fd6c13169966f64ee589",
                 }
                 if target_name == future_public_name
                 else {
@@ -68111,7 +68111,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "a15eb6644ac2c75175109618f2a9fc926cc39354c0b72b94bbc475edab7dd11d"
+                "7398adefc5b59d9ce6607cc8ceae0c52da2a062ba8dc3066c9720efad02db927"
                 if target_name == future_public_name
                 else "c7bb14e756091352fbb8fcb55be5e3dea34244652a32ac7edcd0903d3eae1c26"
             ),
@@ -68703,7 +68703,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_calculation,
-                    "_calculation_plan_model",
+                    "calculation_plan_model",
                     return_value=object,
                 ),
                 patch.object(
@@ -69686,11 +69686,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_calculation",
                         "_extract_calculation_operands",
-                    ): "e03c51cd8651a7d3d4f26b103511f0d4863e91e167e34c20d5bf0d692e5562a9",
+                    ): "b44b7f616419c86f8047ff446b9f6b020fdec15b524374a42eb7240923656393",
                     (
                         "financial_graph_evidence",
                         "_extract_evidence",
-                    ): "dc9816fb850d6203cde7623508712a2dcf84356c40b3745100dcd0f1828eda17",
+                    ): "c07cdfe9109da26935c275ae85c99d1c23f166d181dfbf919da77bbb3e2ef60b",
                 }
                 if target_name == future_public_name
                 else {
@@ -69722,7 +69722,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "657ba51d5950dda48275e4c1079ffb7f94a0ec47f27f098ba03bbc0570789ff5"
+                "106f168828edbb8e420d60463381be08b438ee680bdd1d7df2b0ccc150a253a7"
                 if target_name == future_public_name
                 else "1aae37e05f6a5c218dd0c5604a691ac7e56207387cc3cf9774aa4fbd891481ef"
             ),
@@ -70163,7 +70163,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ) as narrative_mock,
                 patch.object(
                     financial_graph_evidence,
-                    "_evidence_extraction_model",
+                    "evidence_extraction_model",
                     side_effect=lambda: events.append(("model",)) or object,
                 ),
                 self.assertRaisesRegex(
@@ -70201,7 +70201,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_evidence,
-                "_evidence_extraction_model",
+                "evidence_extraction_model",
                 stopped_evidence_model,
             ),
             self.assertRaisesRegex(RuntimeError, "evidence grounding failed"),
@@ -71148,7 +71148,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_caller_map_hash,
             (
-                "a522d348c71296dfa30d32b42b2c8989f4c477b97ba515e0ba6b1743292121aa"
+                "7beaca67827ba25b13fea4c40d71eae90bf440ad19ae79966a849e1561534ba0"
                 if target_name == future_public_name
                 else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
             ),
@@ -71409,7 +71409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "a522d348c71296dfa30d32b42b2c8989f4c477b97ba515e0ba6b1743292121aa",
+            "7beaca67827ba25b13fea4c40d71eae90bf440ad19ae79966a849e1561534ba0",
         )
 
         import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering

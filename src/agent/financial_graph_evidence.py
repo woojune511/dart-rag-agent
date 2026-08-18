@@ -21,11 +21,11 @@ from src.agent.financial_graph_helpers import (
 )
 from src.agent.financial_aggregate_projection import compose_supported_quantitative_impact_answer
 from src.agent.financial_graph_model_loaders import (
-    _compression_output_model,
-    _evidence_extraction_model,
-    _numeric_extraction_model,
-    _validate_answer_slots_payload,
-    _validation_output_model,
+    compression_output_model,
+    evidence_extraction_model,
+    numeric_extraction_model,
+    validate_answer_slots_payload,
+    validation_output_model,
 )
 from src.agent.financial_operand_resolution import (
     _operand_row_matches_requirement,
@@ -2729,7 +2729,7 @@ class FinancialAgentEvidenceMixin:
             calculation_operands[0] if calculation_operands else {},
         )
         primary_slot = dict(next(iter(components_by_role.get(str(primary_operand.get("operand_id") or ""), [])), {}))
-        answer_slots = _validate_answer_slots_payload(
+        answer_slots = validate_answer_slots_payload(
             {
                 "operation_family": "lookup",
                 "metric_label": entity_label,
@@ -3448,7 +3448,7 @@ class FinancialAgentEvidenceMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
-        EvidenceExtraction = _evidence_extraction_model()
+        EvidenceExtraction = evidence_extraction_model()
         structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
         focus_terms = evidence_extraction_focus_terms(str(state.get("query") or ""))
@@ -3567,7 +3567,7 @@ class FinancialAgentEvidenceMixin:
         guidance = compression_guidance(query_type, query, coverage)
 
         compression_llm = self._llm_for_phase("compression")
-        CompressionOutput = _compression_output_model()
+        CompressionOutput = compression_output_model()
         structured_llm = compression_llm.with_structured_output(CompressionOutput)
         prompt = _chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("compression_prompt_template") or "")
@@ -3661,7 +3661,7 @@ class FinancialAgentEvidenceMixin:
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
 
         validation_llm = self._llm_for_phase("validation")
-        ValidationOutput = _validation_output_model()
+        ValidationOutput = validation_output_model()
         structured_llm = validation_llm.with_structured_output(ValidationOutput)
         validator_prompt = _chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("validation_prompt_template") or "")
@@ -4113,7 +4113,7 @@ class FinancialAgentEvidenceMixin:
             debug_trace = reused_debug_trace
             answer = reused_answer
         else:
-            NumericExtraction = _numeric_extraction_model()
+            NumericExtraction = numeric_extraction_model()
             structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
             prompt = _chat_prompt_template_from_template(
                 str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")

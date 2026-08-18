@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_state import FinancialAgentState, RuntimeCalculationTrace
-from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
+from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
     numeric_candidates_with_spans_from_surface,
@@ -1054,7 +1054,7 @@ def _build_aggregate_calculation_projection(
             "source_row_ids": aggregate_source_row_ids,
             "source_evidence_ids": source_evidence_ids,
             "subtask_results": subtask_result_views,
-            "answer_slots": _validate_answer_slots_payload(
+            "answer_slots": validate_answer_slots_payload(
                 {
                     "operation_family": "aggregate_subtasks",
                     "source_row_ids": aggregate_source_row_ids,

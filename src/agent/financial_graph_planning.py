@@ -37,8 +37,8 @@ from src.agent.financial_graph_helpers import (
     validate_concept_planner_task,
 )
 from src.agent.financial_graph_model_loaders import (
-    _concept_planner_output_model,
-    _validate_answer_slots_payload,
+    concept_planner_output_model,
+    validate_answer_slots_payload,
 )
 from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
@@ -334,7 +334,7 @@ class FinancialAgentPlanningMixin:
         prompt = _chat_prompt_template_from_template(
             str(PLANNING_POLICY.get("concept_planner_prompt_template") or "")
         )
-        ConceptPlannerOutput = _concept_planner_output_model()
+        ConceptPlannerOutput = concept_planner_output_model()
         structured_llm = self._llm_for_phase("concept_planning").with_structured_output(ConceptPlannerOutput)
         try:
             prompt_value = prompt.invoke(
@@ -1088,7 +1088,7 @@ class FinancialAgentPlanningMixin:
                 "rendered_value": rendered_value,
                 "formatted_result": answer or rendered_value,
                 "source_row_ids": primary_slot_from_operand["source_row_ids"],
-                "answer_slots": _validate_answer_slots_payload(
+                "answer_slots": validate_answer_slots_payload(
                     {
                         **dict(calculation_result.get("answer_slots") or {}),
                         "operation_family": "lookup",

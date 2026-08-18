@@ -1277,7 +1277,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=Mock(),
         ), patch.object(
             financial_graph_reconciliation,
-            "_reflection_query_plan_model",
+            "reflection_query_plan_model",
             return_value=model_type,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1401,7 +1401,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=Mock(),
         ), patch.object(
             financial_graph_reconciliation,
-            "_reflection_query_plan_model",
+            "reflection_query_plan_model",
             return_value=model_type,
         ), patch.object(
             financial_graph_reconciliation,

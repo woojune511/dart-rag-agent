@@ -891,7 +891,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         primary_agent, primary_pipeline, _events, select_fallback, augment = build_validation_agent()
         with (
-            patch.object(financial_graph_evidence, "_validation_output_model", return_value=object),
+            patch.object(financial_graph_evidence, "validation_output_model", return_value=object),
             patch.object(
                 financial_graph_evidence,
                 "_chat_prompt_template_from_template",
@@ -933,7 +933,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         retry_agent, retry_pipeline, _events, _select_fallback, retry_augment = build_validation_agent()
         with (
-            patch.object(financial_graph_evidence, "_validation_output_model", return_value=object),
+            patch.object(financial_graph_evidence, "validation_output_model", return_value=object),
             patch.object(
                 financial_graph_evidence,
                 "_chat_prompt_template_from_template",
