@@ -365,8 +365,10 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `promote_nested_subtask_result_if_more_specific(...)`는 현재 material 보호와
   stable winner 규칙 안에서 선택된 result만 반환한다. Task/state capture와
   broader dependency-coherence replacement는 소유하지 않는다.
-- `_preferred_complete_aggregate_subtask_answer(...)`와 내부 numeric-surface
-  helpers: 더 완성된 answer candidate를 evidence-visible 숫자 표면으로 비교한다.
+- 현재 private visibility인 `_preferred_complete_aggregate_subtask_answer(...)`와
+  내부 numeric-surface helpers는 더 완성된 answer candidate를 evidence-visible
+  숫자 표면으로 비교한다. 구현 owner는 이미 이 모듈이고 다음 batch는 이름만
+  public contract로 수렴시킨다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
   갖지 않는다.
 
@@ -374,8 +376,9 @@ Aggregate/narrative row의 state-free answer policy owner다.
 
 여러 answer-composition 경로가 공유하는 state-free text surface owner다.
 
-- 내부 token/sentence/anchor/rerank-metadata helpers는 정규화된 text fragment를
-  준비한다.
+- public `tokenize_terms(...)`, `split_sentences(...)`,
+  `strip_anchor_text(...)`, `strip_rerank_metadata(...)`는 정규화된 text
+  fragment를 준비한다.
 - `topic_particle(...)`와 `polish_korean_particle_pairs(...)`는 policy와 한글
   음절 구조에 따라 조사 표면만 다듬는다.
 - `split_narrative_sentences(...)`,
@@ -1262,13 +1265,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   모든 caller exception boundary는 유지됐다. Owner public/private는 4/0이며
   source `+42/-42`, tests `+29/-29`, affected 676/676, import 19/19, audit 217,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_text_surface.py`의 private text primitive
-  4개를 public API로 in-place rename한다. Exact regex, raw truth/string,
-  normalization, fresh set/list, ordered sentence, caller adoption과 exception
-  boundary를 유지하고 alias/wrapper는 추가하지 않는다. Owner public/private는
-  15/4에서 19/0으로 수렴하며, 정확한 6-source/3-test transform,
-  fingerprint 11개, focused 432, audit 217, unchanged 48/203 DAG, full 2,143
-  gate는
+- 완료된 `4a4550c` visibility batch는 `financial_text_surface.py`의 externally
+  imported private primitive 4개를 public API로 in-place rename했다. Exact
+  regex, raw truth/string, normalization, fresh set/list, ordered sentence,
+  caller adoption과 exception boundary는 유지됐고 alias/wrapper는 없다.
+  Owner public/private는 19/0이며 source `+36/-36`, tests `+24/-24`, focused
+  432/432, audit 217, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_answer_projection.py`의 유일한 externally
+  imported private function
+  `_preferred_complete_aggregate_subtask_answer(...)`을 같은 owner에서 public
+  이름으로 수렴시킨다. Blank-answer short circuit, eager row snapshot,
+  operation/metric/status/candidate precedence, 세 completion path, longest
+  result, 네 caller의 서로 다른 fallback/guard/adoption/exception stop을
+  유지한다. Owner public/private는 12/9에서 13/8로 수렴하며, 정확한
+  5-source/3-test `+24/-24`, direct 7/7, focused 527, audit 217, unchanged
+  48/203 DAG, full 2,143 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -1288,8 +1299,10 @@ Aggregate/narrative row의 state-free answer policy owner다.
   exclusive-policy projection; model invocation and state/task adoption remain
   outside
 
-`_preferred_complete_aggregate_subtask_answer`는 compatibility를 위해 여기서
-re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
+`_preferred_complete_aggregate_subtask_answer`는 이 helper 묶음이 소유하거나
+re-export하지 않는다. 실제 구현은 `financial_answer_projection.py`에 있고 네
+peer consumer가 그 owner에서 직접 import한다. 다음 batch도 owner 이동 없이
+visibility만 수렴시킨다.
 
 ### Calculation owner index
 

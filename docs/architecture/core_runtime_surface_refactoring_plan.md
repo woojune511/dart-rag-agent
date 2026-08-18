@@ -1992,8 +1992,9 @@ diff SHA-256 is
 `d0f499aca84aab0aa6f242fdc308b589e8503c036e342c77b872764a784845e3`;
 benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility batch publicizes the four externally imported
-private primitives in `financial_text_surface.py` in place:
+The characterize-only record that preceded `4a4550c` selected the four
+externally imported private primitives in `financial_text_surface.py` for an
+in-place public rename:
 `tokenize_terms`, `split_sentences`, `strip_anchor_text`, and
 `strip_rerank_metadata`. They share one pure text-surface owner, have zero
 owner-local calls, and serve five importers through ten bindings and 23 direct
@@ -2017,9 +2018,56 @@ and
 
 The exact temporary projection passed public behavior/identity 4/4, focused
 432/432, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
-48/203 DAG. The implementation must rerun full 2,143/2,143; add no test method.
-Exact names, fingerprint pairs, stop lines, and gates are defined only in
+48/203 DAG. Commit `4a4550c` completed that projection with the exact
+`+60/-60` diff at
+`78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+Focused 432/432 in 180.672 seconds and full 2,143/2,143 in 212.018 seconds,
+audit 217, pycompile 9/9, retired-ref zero, and DAG/diff checks passed. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+The next bounded visibility batch renames the exact current 63-line
+`financial_answer_projection._preferred_complete_aggregate_subtask_answer(...)`
+definition in place to public
+`preferred_complete_aggregate_subtask_answer(...)`. This is the sole remaining
+externally imported private function in that owner. Add no alias, wrapper, new
+owner, policy, or behavior branch; keep its eight owner-private support helpers
+private.
+
+Preserve blank-answer normalization and return before row materialization,
+exact eager `list(subtask_results or [])`, row identity and non-mapping skip,
+mapping copies, operation/metric/status/candidate precedence, suffix narrative
+filtering, contained numeric-candidate and conflicting-surface paths, longest
+accepted output, stable row order, immutability, helper laziness, and all
+exceptions. The four importers retain four two-positional-argument calls at
+`try` depth zero and their distinct guard, fallback, projection-build, attach,
+and exception-stop behavior. Answer repair, numeric-surface support helpers,
+evidence, retrieval, graph state, artifacts/ledger, and final sequencing remain
+outside this batch.
+
+Owner public/private counts project 12/9 to 13/8. Static scope is one
+definition, four bindings, four calls, zero owner-local calls/non-call loads/
+attributes/dynamic consumers/collisions, five source paths, and three test
+paths. Fourteen direct test strings plus one owner-count tuple make source,
+test, and whole projections `+9/-9`, `+15/-15`, and `+24/-24`; there is no
+caller-fingerprint replacement. The exact temporary diff hash is
+`0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+
+Selected-body, mapping, current/projected binding, and current/projected call
+hashes are respectively
+`5828d88632c45a63a0376cc823682d8ff13d5f451ef3adf7124a5b89262b6bec`,
+`96f1acd9f315cf03c630bab38c42ddae77761c29936a22ff0f296fffe9b060ea`,
+`fbcda4b1226d349d324831f942ac40d4d16c389ef4e69765fec8daf205544502` /
+`4d9c472d5e85ce5c83300ec802c1b1f9905da34fdf6d489d400552928d98ec2a`,
+and
+`d751cfe671ef796048c1464ce42966751060efed2c3acde9b2733083d494ac79` /
+`5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
+Current/projected direct probes passed 7/7. The exact temporary projection
+passed public identity 4/4, affected plus import 527/527, audit 217, pycompile
+8/8, retired-ref zero, diff check, and unchanged acyclic 48/203 DAG. Full
+2,143/2,143 remains an implementation gate. Exact caller/adoption contracts and
+stop lines are authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
+Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

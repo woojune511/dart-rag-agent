@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `643bdf6` renamed all four private LangChain loader functions to public APIs without moving imports or adding aliases; all retired refs are zero |
-| What passed? | Loader identity 4/4, affected tests 676/676, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only loader rename with full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Rename the four externally imported private text primitives in `financial_text_surface.py` to public APIs in one owner-wide batch, preserving exact regex, truth, normalization, result, and exception behavior |
+| What just changed? | `4a4550c` renamed all four externally imported private text-surface primitives to public APIs without moving ownership or adding aliases; all retired refs are zero |
+| What passed? | Text-surface identity/behavior 4/4, affected plus import tests 432/432, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only text-surface rename with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
+| What is next? | Rename the sole externally imported private aggregate-answer selector in `financial_answer_projection.py` to a public API in place, preserving its exact 63-line behavior and four caller boundaries |
 
 ## Product Boundary
 
@@ -799,6 +799,84 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
+Rename the exact current 63-line
+`financial_answer_projection._preferred_complete_aggregate_subtask_answer(subtask_results: List[Dict[str, Any]], final_answer: str) -> str`
+definition in place to public
+`preferred_complete_aggregate_subtask_answer(...)`. Add no compatibility alias,
+wrapper, new owner, policy, or behavior branch. The selected function is already
+imported by four peer modules; this batch fixes visibility only.
+
+Preserve exact `str(final_answer or "")` selection and one
+`_normalise_projection_spaces(...)` call. A blank normalized answer returns `""`
+before the row input is materialized. Otherwise eagerly evaluate exact
+`list(subtask_results or [])`, preserve row identities, skip non-`Mapping` rows,
+and retain the current fresh `dict(...)` copies, operation-family precedence,
+metric-family fallback, `ok`/`ready` status gate, and candidate precedence.
+Preserve all three existing completion paths: append only nonnumeric narrative
+sentences from a candidate suffix; select a numeric candidate already contained
+inside a longer answer only when the preceding prefix is also numeric; or adopt
+a non-substring candidate only through
+`_candidate_reduces_conflicting_numeric_surfaces(...)`. Longest accepted output
+wins with stable row order. Keep exact substring/split/regex/normalization order,
+raw truth and string conversion, eager list materialization, mapping copies,
+input and nested-object immutability, helper laziness, and every uncaught error.
+
+The exact production scope is one definition, four import bindings, and four
+two-positional-argument calls over five source paths. Every call has no keyword
+and caller `try` depth zero:
+
+| Importer / caller | Exact arguments | Existing adoption |
+| --- | --- | --- |
+| `financial_agent_run_projection.complete_aggregate_public_answer_projection` | `subtask_results`, `base_answer or public_answer` | blank result returns `("", {})`; a result feeds the existing aggregate projection/attach path |
+| `financial_aggregate_projection.structured_subtask_projection_for_public_answer` | `subtask_results`, `public_answer` | exact `or public_answer` fallback before the current-rendered gate |
+| `financial_graph.FinancialAgent._structured_result_projection_for_stale_public_numeric_answer` | `subtask_results`, `structured_answer or public_answer` | result remains only the existing equality guard before replacement composition |
+| `financial_runtime_trace._structured_result_subtask_projection_if_public_aligned` | `subtask_results`, `public_answer` | exact `or public_answer` fallback before trace comparison/build |
+
+Any selected-function failure must stop later caller work exactly where it does
+now. Do not move or publicize its eight owner-private support helpers in this
+batch. Numeric-surface extraction/equivalence, broader answer projection,
+structured-result repair, evidence construction, retrieval, graph state,
+artifact/ledger mutation, and final sequencing remain outside the boundary.
+
+Current/projected owner top-level public/private counts are 12/9 to 13/8.
+Selected owner-local calls, non-call loads, module attributes, dynamic
+`getattr`/`hasattr` consumers, and public-name collisions are zero. The selected
+body AST-dump hash, excluding only the function name/signature, is
+`5828d88632c45a63a0376cc823682d8ff13d5f451ef3adf7124a5b89262b6bec`.
+Mapping-record SHA-256 is
+`96f1acd9f315cf03c630bab38c42ddae77761c29936a22ff0f296fffe9b060ea`.
+Current/projected binding-record hashes are
+`fbcda4b1226d349d324831f942ac40d4d16c389ef4e69765fec8daf205544502` /
+`4d9c472d5e85ce5c83300ec802c1b1f9905da34fdf6d489d400552928d98ec2a`;
+call-record hashes are
+`d751cfe671ef796048c1464ce42966751060efed2c3acde9b2733083d494ac79` /
+`5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
+
+Two test files contain 14 exact private-name strings; one existing answer-owner
+contract changes only its public/private tuple from `(12, 9)` to `(13, 8)`.
+There is no caller-body fingerprint replacement. Projected source/test/whole
+transforms are `+9/-9`, `+15/-15`, and `+24/-24` across exactly five source and
+three test files. The exact temporary projection diff SHA-256 is
+`0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+Add no test method or weakened expectation.
+
+Current and projected direct behavior/order/error probes passed 7/7. The exact
+temporary projection passed public identity 4/4, affected plus import tests
+527/527 in 181.586 seconds, audit 217, pycompile 8/8, retired private refs zero,
+`git diff --check`, and the unchanged acyclic 48-module/203-edge DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Required implementation gates are the exact transform/hashes above, direct
+behavior and identity, affected 527/527, audit 217, pycompile, full discovery
+2,143/2,143, and diff check. Benchmark refresh and remote CI remain **NOT RUN**.
+This characterization establishes no behavior, answer-quality, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Text-Surface Primitive Characterization
+
+The following characterize-only record preceded commit `4a4550c`. Its rename
+and projected gates are complete; it is retained for audit and is not active or
+competing work.
+
 Rename the four externally imported private primitives at the top of
 `financial_text_surface.py` in place. Add no compatibility alias, wrapper, new
 owner, or behavior branch. The exact mapping and behavior boundary is:
@@ -887,6 +965,26 @@ candidate/operand adoption, retrieval, graph state, model invocation,
 artifact/ledger mutation, and final sequencing outside this visibility batch.
 The inventory and projected tests establish no answer-quality, ranking,
 performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Text-Surface Primitive Public API Batch
+
+Commit `4a4550c` renamed the four selected definitions, ten imports, and 23 calls
+to `tokenize_terms`, `split_sentences`, `strip_anchor_text`, and
+`strip_rerank_metadata` without an alias or wrapper. Exact regex, raw truth and
+stringification, normalization, set/list freshness, sentence ordering, caller
+adoption, and every exception boundary remain unchanged. Retired private refs
+finish zero and owner public/private counts finish 19/0.
+
+Production source is `+36/-36`, tests are `+24/-24`, and the whole commit is
+`+60/-60`. Thirteen direct test strings and 11 CURRENT-SOURCE fingerprint
+replacements account for the test transform. The committed diff SHA-256 is
+`78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+Public identity/behavior 4/4, focused 432/432 in 180.672 seconds, audit 217,
+source/test pycompile 9/9, unchanged 48-module/203-edge DAG, retired-ref zero,
+full 2,143/2,143 in 212.018 seconds, and diff checks passed. Benchmark refresh
+and remote CI were **NOT RUN**; this visibility-only batch is not a behavior,
+quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed LangChain-Loader Public API Batch
 

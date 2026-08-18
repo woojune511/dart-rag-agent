@@ -8916,9 +8916,75 @@ completion claim.
   pycompile 9/9, retired private refs zero, diff check, and unchanged 48/203 DAG
   at
   `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-  Full 2,143/2,143 remains a required implementation gate. Exact fingerprint
-  pairs and stop lines are governed only by
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  Full 2,143/2,143 remained the required implementation gate. Exact fingerprint
+  pairs and historical stop lines remain in
+  [Project Status Completed Text-Surface Characterization](../overview/project_status.md#completed-text-surface-primitive-characterization).
 - Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
   no behavior, accuracy, ranking, performance, schedule, ledger, or Phase 3
   completion claim.
+
+### Text-surface primitive public API milestone
+
+- Commit `4a4550c` renames all four selected definitions, ten import bindings,
+  and 23 direct calls to `tokenize_terms`, `split_sentences`,
+  `strip_anchor_text`, and `strip_rerank_metadata` without an alias, wrapper,
+  owner, policy, or behavior branch. Owner public/private counts finish 19/0
+  and retired private refs finish zero.
+- Exact regexes, raw truth and stringification, one normalization path per
+  primitive, lowercase/set filtering, set/list freshness, sentence order and
+  duplicates, repeated `strip()`, caller exact-result versus `or original`
+  adoption, and every uncaught error remain unchanged.
+- Production source is `+36/-36`, tests are `+24/-24`, and the whole commit is
+  `+60/-60`. Thirteen direct test strings and 11 existing CURRENT-SOURCE
+  fingerprint replacements account for the test transform. The committed diff
+  SHA-256 is
+  `78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+- Public identity/behavior 4/4, affected plus import tests 432/432 in 180.672
+  seconds, audit 217, source/test pycompile 9/9, retired-ref zero, unchanged
+  48-module/203-edge DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
+  full 2,143/2,143 in 212.018 seconds, and diff checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Preferred complete aggregate-answer public API characterization checkpoint
+
+- The next bounded batch renames the exact current 63-line
+  `financial_answer_projection._preferred_complete_aggregate_subtask_answer(...)`
+  definition in place to public
+  `preferred_complete_aggregate_subtask_answer(...)`. Add no alias, wrapper,
+  owner, policy, or behavior branch. Owner public/private counts project 12/9
+  to 13/8; its eight private support helpers remain private.
+- Preserve blank-answer short circuit before exact eager
+  `list(subtask_results or [])`, row identity/non-`Mapping` skip, mapping copies,
+  operation/metric/status/candidate precedence, suffix narrative filtering,
+  contained numeric-candidate and conflicting-surface paths, longest accepted
+  answer, stable row order, immutability, helper laziness, and every uncaught
+  error. Current and projected direct probes pass 7/7.
+- Static scope is one definition, four imports, and four two-positional-argument
+  calls at `try` depth zero across five source paths. Selected owner-local calls,
+  non-call loads, attributes, dynamic consumers, and public collisions are zero.
+  The exact four caller arguments and adoption/stop boundaries remain governed
+  by [Project Status Next Work](../overview/project_status.md#next-work).
+- Fourteen direct test strings plus one owner-count expectation make 15 test
+  replacements; there is no caller fingerprint replacement. Source/tests/whole
+  project `+9/-9`, `+15/-15`, and `+24/-24` across five source and three test
+  files. The exact temporary projection diff SHA-256 is
+  `0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+- Selected-body, mapping, current/projected binding, and current/projected call
+  hashes are
+  `5828d88632c45a63a0376cc823682d8ff13d5f451ef3adf7124a5b89262b6bec`,
+  `96f1acd9f315cf03c630bab38c42ddae77761c29936a22ff0f296fffe9b060ea`,
+  `fbcda4b1226d349d324831f942ac40d4d16c389ef4e69765fec8daf205544502` /
+  `4d9c472d5e85ce5c83300ec802c1b1f9905da34fdf6d489d400552928d98ec2a`,
+  and
+  `d751cfe671ef796048c1464ce42966751060efed2c3acde9b2733083d494ac79` /
+  `5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
+- The exact temporary projection passed public identity 4/4, affected plus
+  import tests 527/527 in 181.586 seconds, audit 217, pycompile 8/8, retired-ref
+  zero, diff check, and unchanged acyclic 48/203 DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains an implementation gate; benchmark refresh and remote
+  CI were **NOT RUN**. The characterization establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.

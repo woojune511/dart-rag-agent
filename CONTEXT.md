@@ -428,9 +428,15 @@ lookup과 caller exception boundary는 유지됐다. Characterize-only inventory
 이름 수렴시켰다. Function-local import, exact factory/identity, document
 metadata copy와 caller exception boundary는 유지됐다. Source `+42/-42`, tests
 `+29/-29`, whole `+71/-71`이며 affected 676/676, import 19/19, audit 217,
-full 2,143/2,143가 통과했다. 다음 batch는 `financial_text_surface.py`의
-externally imported private text primitive 4개 전체를 public contract로 이름
-수렴시킨다. 정확한 mapping/caller/test/fingerprint 경계는
+full 2,143/2,143가 통과했다. 이어 `4a4550c`가
+`financial_text_surface.py`의 externally imported private text primitive 4개
+전체를 public contract로 이름 수렴시켰다. Exact regex, raw truth/string,
+normalization, fresh result, caller adoption과 exception boundary는 유지됐다.
+Source `+36/-36`, tests `+24/-24`, whole `+60/-60`이며 focused 432/432,
+audit 217, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는
+`financial_answer_projection.py`의 유일한 externally imported private helper
+`_preferred_complete_aggregate_subtask_answer(...)`을 in-place public rename한다.
+63줄 body, 네 caller, exact `+24/-24`, focused 527 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

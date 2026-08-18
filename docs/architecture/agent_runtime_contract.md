@@ -5841,8 +5841,9 @@ affected 676/676, import 19/19, audit 217, source/test pycompile, unchanged
 48-module/203-edge DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The next visibility contract renames all four externally imported private text
-primitives in `financial_text_surface.py` to `tokenize_terms`,
+The historical visibility contract that preceded `4a4550c` selected all four
+externally imported private text primitives in `financial_text_surface.py` for
+rename to `tokenize_terms`,
 `split_sentences`, `strip_anchor_text`, and `strip_rerank_metadata`. Rename in
 place and add no alias, wrapper, module, policy, or behavior branch. Keep the
 distinct public `split_narrative_sentences(...)` unchanged.
@@ -5875,15 +5876,81 @@ current/projected call, and fingerprint hashes are respectively
 `2b68507a11ae4fb03d4bc786839efb4cda2675efcfb1bebe7b498b027a5eff59` /
 `0c0021ed4fffe99cd081121800193812633902965f1d0ee809bed3026d053997`,
 and `9e3bc3b412aa48b6b48e84f655e04d1e16ee9d44511832a74bd54e8513957eb8`.
-Exact fingerprint pairs and stop lines are authoritative only in
-[Project Status Next Work](../overview/project_status.md#next-work).
+The exact fingerprint pairs and historical stop lines remain in
+[Project Status Completed Text-Surface Characterization](../overview/project_status.md#completed-text-surface-primitive-characterization).
 
 The exact temporary projection passed public identity/behavior 4/4, focused
 432/432, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-The implementation batch must rerun full discovery 2,143/2,143. Add no test
-method. Benchmark refresh and remote CI remain **NOT RUN**.
+Commit `4a4550c` completed that contract at exact diff hash
+`78d64c25819b505c16ee3962126a98d1e2b6240c09ff41d2fe7749684b189ef0`.
+Focused 432/432 in 180.672 seconds, full 2,143/2,143 in 212.018 seconds, audit
+217, pycompile 9/9, retired-ref zero, and DAG/diff checks passed. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+The active visibility contract is the exact current 63-line
+`financial_answer_projection._preferred_complete_aggregate_subtask_answer(subtask_results: List[Dict[str, Any]], final_answer: str) -> str`
+definition, renamed in place to public
+`preferred_complete_aggregate_subtask_answer(...)`. Add no compatibility alias,
+forwarder, owner, policy, or behavior branch. Its eight owner-private support
+helpers remain private.
+
+The function must first evaluate exact `str(final_answer or "")`, normalize once
+with `_normalise_projection_spaces(...)`, and return exact `""` on a falsey
+normalized answer before touching the row input. Otherwise it eagerly evaluates
+`list(subtask_results or [])`. It preserves row object identities, skips a row
+unless it is a `Mapping`, shallow-copies `calculation_result` and `answer_slots`,
+and retains the exact operation-family, metric-family, status, and candidate
+precedence and normalization.
+
+An eligible candidate preserves three paths. When it contains the normalized
+answer, only suffix sentences surviving `_split_projection_sentences(...)`,
+leading punctuation removal, normalization, and the no-digit gate may extend
+the answer. When the candidate is already contained in the answer, it is
+eligible only if it has a digit and the preceding prefix is nonblank and also
+contains a digit. A non-substring candidate is eligible only after the existing
+digit gate and a true
+`_candidate_reduces_conflicting_numeric_surfaces(answer_text, candidate)`.
+Every path keeps the longest accepted string; ties retain the earlier row.
+Preserve exact substring and first-split behavior, regexes, helper order and
+laziness, raw truth/string conversion, eager list materialization, mapping
+copies, input/nested identity and immutability, and every uncaught failure.
+
+Four peer modules keep one direct call each, all with two positional arguments,
+no keywords, and caller `try` depth zero. Agent-run passes
+`subtask_results, base_answer or public_answer` and a blank result stops its
+projection builder. Aggregate projection passes `subtask_results, public_answer`
+and applies exact `or public_answer`. The graph stale-answer guard passes
+`subtask_results, structured_answer or public_answer` and uses the result only
+for the current equality check. Runtime trace passes
+`subtask_results, public_answer` and applies exact `or public_answer`. Every
+error must stop later caller work at the current boundary.
+
+Owner public/private counts project 12/9 to 13/8. Static scope is one
+definition, four bindings, four calls, five source paths, no owner-local call,
+and no non-call, attribute, dynamic, or collision consumer. Fourteen direct
+test strings plus one owner-count expectation make projected source/tests/whole
+`+9/-9`, `+15/-15`, and `+24/-24` across five source and three test files; no
+caller fingerprint changes. The temporary diff hash is
+`0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+Selected-body, mapping, current/projected binding, and current/projected call
+hashes are
+`5828d88632c45a63a0376cc823682d8ff13d5f451ef3adf7124a5b89262b6bec`,
+`96f1acd9f315cf03c630bab38c42ddae77761c29936a22ff0f296fffe9b060ea`,
+`fbcda4b1226d349d324831f942ac40d4d16c389ef4e69765fec8daf205544502` /
+`4d9c472d5e85ce5c83300ec802c1b1f9905da34fdf6d489d400552928d98ec2a`,
+and
+`d751cfe671ef796048c1464ce42966751060efed2c3acde9b2733083d494ac79` /
+`5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
+
+Current/projected direct behavior probes passed 7/7. The exact temporary tree
+passed public identity 4/4, affected plus import 527/527 in 181.586 seconds,
+audit 217, pycompile 8/8, retired-ref zero, diff check, and unchanged acyclic
+48/203 DAG. Full 2,143/2,143 remains an implementation gate. Exact stop lines
+remain authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work). Benchmark
+refresh and remote CI were **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical
