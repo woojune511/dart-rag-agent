@@ -66,7 +66,7 @@ from src.agent.financial_aggregate_projection import (
 )
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
-from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+from src.agent.financial_answer_projection import preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_runtime_normalization import _normalise_spaces
@@ -109,7 +109,7 @@ class FinancialAgent(
         subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
         if not subtask_results:
             return "", {}
-        preferred_complete_answer = _preferred_complete_aggregate_subtask_answer(
+        preferred_complete_answer = preferred_complete_aggregate_subtask_answer(
             subtask_results,
             structured_answer or public_answer,
         )

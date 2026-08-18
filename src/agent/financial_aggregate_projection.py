@@ -15,7 +15,7 @@ from src.agent.financial_answer_slots import (
     source_task_display_compatible_with_slot,
 )
 from src.agent.financial_answer_projection import (
-    _preferred_complete_aggregate_subtask_answer,
+    preferred_complete_aggregate_subtask_answer,
     growth_answer_has_untraced_numeric_sentence,
     growth_row_has_conflicting_periods,
     growth_sentence_has_untraced_material_numeric,
@@ -412,7 +412,7 @@ def structured_subtask_projection_for_public_answer(
             or ""
         )
     )
-    projection_answer = _preferred_complete_aggregate_subtask_answer(
+    projection_answer = preferred_complete_aggregate_subtask_answer(
         subtask_results,
         public_answer,
     ) or public_answer

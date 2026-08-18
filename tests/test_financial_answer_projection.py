@@ -1738,7 +1738,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_defs),
                 sum(node.name.startswith("_") for node in owner_defs),
             ),
-            (12, 9),
+            (13, 8),
         )
         self.assertFalse(
             any(

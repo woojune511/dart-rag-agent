@@ -4818,7 +4818,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 owner,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 side_effect=preferred,
             ),
             patch.object(
@@ -4867,7 +4867,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 owner,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 return_value="",
             ) as preferred_mock,
             patch.object(owner, "_build_aggregate_calculation_projection", builder),
@@ -4891,7 +4891,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 owner,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 return_value="complete answer",
             ),
             patch.object(
@@ -4916,7 +4916,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 owner,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 side_effect=RuntimeError("preferred failed"),
             ),
             patch.object(owner, "_build_aggregate_calculation_projection", downstream),
@@ -4932,7 +4932,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 owner,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 return_value="complete",
             ),
             patch.object(
@@ -5364,7 +5364,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         ]
         self.assertEqual(graph_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 0)
         self.assertEqual(owner_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 1)
-        self.assertEqual(graph_name_loads.count("_preferred_complete_aggregate_subtask_answer"), 1)
+        self.assertEqual(graph_name_loads.count("preferred_complete_aggregate_subtask_answer"), 1)
         self.assertEqual(graph_name_loads.count("_attach_runtime_projection_metadata"), 2)
         self.assertEqual(graph_name_loads.count("_build_aggregate_calculation_projection"), 1)
         self.assertEqual(graph_name_loads.count("_structured_result_subtask_rows_and_answer"), 2)

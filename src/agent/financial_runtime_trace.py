@@ -6,7 +6,7 @@ import re
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
-from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+from src.agent.financial_answer_projection import preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_state import FinancialAgentState, RuntimeCalculationTrace
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_numeric_surface import (
@@ -1266,7 +1266,7 @@ def _structured_result_subtask_projection_if_public_aligned(
     public_answer = _normalise_spaces(str(result.get("answer") or result.get("compressed_answer") or ""))
     if not public_answer or public_answer != structured_answer:
         return {}
-    projection_answer = _preferred_complete_aggregate_subtask_answer(
+    projection_answer = preferred_complete_aggregate_subtask_answer(
         subtask_results,
         public_answer,
     ) or public_answer

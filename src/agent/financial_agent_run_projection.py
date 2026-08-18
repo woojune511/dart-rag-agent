@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Optional
 
-from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+from src.agent.financial_answer_projection import preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_state import (
     AgentAnswer,
     DebugBundle,
@@ -118,7 +118,7 @@ def complete_aggregate_public_answer_projection(
     base_answer: str,
     public_answer: str,
 ) -> tuple[str, RuntimeCalculationTrace]:
-    complete_answer = _preferred_complete_aggregate_subtask_answer(
+    complete_answer = preferred_complete_aggregate_subtask_answer(
         subtask_results,
         base_answer or public_answer,
     )

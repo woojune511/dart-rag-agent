@@ -560,7 +560,7 @@ def _candidate_reduces_conflicting_numeric_surfaces(answer_text: str, candidate:
     return len(candidate) >= max(40, int(len(answer_text) * 0.35))
 
 
-def _preferred_complete_aggregate_subtask_answer(
+def preferred_complete_aggregate_subtask_answer(
     subtask_results: List[Dict[str, Any]],
     final_answer: str,
 ) -> str:

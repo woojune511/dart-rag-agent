@@ -13713,7 +13713,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 side_effect=preferred,
             ),
             patch.object(
@@ -13742,7 +13742,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ) as eager_rows,
-            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer") as stopped_preferred,
+            patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer") as stopped_preferred,
         ):
             self.assertEqual(
                 financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
@@ -13760,7 +13760,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "different answer"),
             ),
-            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer") as stopped_preferred,
+            patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer") as stopped_preferred,
         ):
             self.assertEqual(
                 financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
@@ -13775,7 +13775,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ),
-            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer", return_value="public answer"),
+            patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value="public answer"),
             patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
         ):
             same_trace = {"calculation_result": {"formatted_result": "public answer"}}
@@ -13794,7 +13794,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_preferred_complete_aggregate_subtask_answer",
+                "preferred_complete_aggregate_subtask_answer",
                 side_effect=RuntimeError("preferred failed"),
             ),
             patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
@@ -13810,7 +13810,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ),
-            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer", return_value=""),
+            patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value=""),
             patch.object(
                 financial_aggregate_projection,
                 "_build_aggregate_calculation_projection",
@@ -14111,7 +14111,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             {
                 name: planning_loads[name]
                 for name in (
-                    "_preferred_complete_aggregate_subtask_answer",
+                    "preferred_complete_aggregate_subtask_answer",
                     "growth_row_has_conflicting_periods",
                     "material_gap_feedback_for_subtask_result",
                     "_attach_runtime_projection_metadata",
@@ -14120,7 +14120,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 )
             },
             {
-                "_preferred_complete_aggregate_subtask_answer": 0,
+                "preferred_complete_aggregate_subtask_answer": 0,
                 "growth_row_has_conflicting_periods": 0,
                 "material_gap_feedback_for_subtask_result": 0,
                 "_attach_runtime_projection_metadata": 0,
