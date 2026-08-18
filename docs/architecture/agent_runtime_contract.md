@@ -5889,12 +5889,11 @@ Focused 432/432 in 180.672 seconds, full 2,143/2,143 in 212.018 seconds, audit
 217, pycompile 9/9, retired-ref zero, and DAG/diff checks passed. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The active visibility contract is the exact current 63-line
-`financial_answer_projection._preferred_complete_aggregate_subtask_answer(subtask_results: List[Dict[str, Any]], final_answer: str) -> str`
-definition, renamed in place to public
-`preferred_complete_aggregate_subtask_answer(...)`. Add no compatibility alias,
-forwarder, owner, policy, or behavior branch. Its eight owner-private support
-helpers remain private.
+The completed selector contract is the exact current 63-line public
+`financial_answer_projection.preferred_complete_aggregate_subtask_answer(subtask_results: List[Dict[str, Any]], final_answer: str) -> str`
+definition. Commit `f220c9c` renamed it in place from the former private name
+without a compatibility alias, forwarder, owner, policy, or behavior branch.
+Its eight owner-private support helpers remain private.
 
 The function must first evaluate exact `str(final_answer or "")`, normalize once
 with `_normalise_projection_spaces(...)`, and return exact `""` on a falsey
@@ -5927,12 +5926,12 @@ for the current equality check. Runtime trace passes
 `subtask_results, public_answer` and applies exact `or public_answer`. Every
 error must stop later caller work at the current boundary.
 
-Owner public/private counts project 12/9 to 13/8. Static scope is one
-definition, four bindings, four calls, five source paths, no owner-local call,
-and no non-call, attribute, dynamic, or collision consumer. Fourteen direct
-test strings plus one owner-count expectation make projected source/tests/whole
+Owner public/private counts finish 13/8 from 12/9. Historical static scope was
+one definition, four bindings, four calls, five source paths, no owner-local
+call, and no non-call, attribute, dynamic, or collision consumer. Fourteen
+direct test strings plus one owner-count expectation made source/tests/whole
 `+9/-9`, `+15/-15`, and `+24/-24` across five source and three test files; no
-caller fingerprint changes. The temporary diff hash is
+caller fingerprint changed. The committed diff hash is
 `0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
 Selected-body, mapping, current/projected binding, and current/projected call
 hashes are
@@ -5944,13 +5943,38 @@ and
 `d751cfe671ef796048c1464ce42966751060efed2c3acde9b2733083d494ac79` /
 `5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
 
-Current/projected direct behavior probes passed 7/7. The exact temporary tree
-passed public identity 4/4, affected plus import 527/527 in 181.586 seconds,
-audit 217, pycompile 8/8, retired-ref zero, diff check, and unchanged acyclic
-48/203 DAG. Full 2,143/2,143 remains an implementation gate. Exact stop lines
-remain authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work). Benchmark
-refresh and remote CI were **NOT RUN**.
+Current/projected direct behavior probes passed 7/7. The exact implementation
+passed public identity 4/4, affected plus import 527/527 in 181.671 seconds,
+audit 217, pycompile 8/8, retired-ref zero, diff check, unchanged acyclic 48/203
+DAG, and full 2,143/2,143 in 214.528 seconds. Exact historical scope and stop
+lines remain recorded in
+[Project Status Completed Selector Characterization](../overview/project_status.md#completed-preferred-aggregate-answer-selector-characterization).
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The active cleanup contract deletes exactly six unused import bindings from
+`financial_graph_evidence.py`: `classify_report_cache_consumer_candidate`,
+`KOREAN_COUNT_UNIT_RE_FRAGMENT`, `METRIC_TOPIC_EXTRACTION_TERMS`,
+`PERIOD_COMPARISON_COUNT_POLICY`, `active_narrative_policies`, and
+`narrative_policy_facets`. These names have zero owner loads/calls and zero
+direct-import, module-attribute, or dynamic consumers through the evidence
+owner. Deleting them must not delete or modify their definitions, the live
+retrieval-pipeline/runtime-trace/config imports and calls, any other evidence
+import, or any runtime behavior.
+
+Only absolute source-line fingerprints may change: exactly nine existing
+expectations in `test_financial_graph_helpers.py`, representing eight unique
+old/new pairs. Add no new test, fallback, export, wrapper, or weakened
+assertion. The selected current/empty hashes are
+`842dacd35d7991e45be44f6571c9f9c9924699eb6cc9dfb44e5d5c879156131c` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`;
+the exact projected diff and fingerprint mapping hashes are
+`2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3` and
+`4d6ffde1b5765d0d8c697421f8eb3b6a970d07128b2d2875e17940ff9f57db7f`.
+Source/tests/whole project `+0/-6`, `+9/-9`, and `+9/-15`. The temporary tree
+passed focused 339/339, audit 217, pycompile 2/2, consumer zero, diff check, and
+unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation gate;
+the exact active scope is governed by
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

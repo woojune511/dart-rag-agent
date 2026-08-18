@@ -2025,7 +2025,7 @@ Focused 432/432 in 180.672 seconds and full 2,143/2,143 in 212.018 seconds,
 audit 217, pycompile 9/9, retired-ref zero, and DAG/diff checks passed. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility batch renames the exact current 63-line
+The characterize-only record that preceded `f220c9c` selected the exact 63-line
 `financial_answer_projection._preferred_complete_aggregate_subtask_answer(...)`
 definition in place to public
 `preferred_complete_aggregate_subtask_answer(...)`. This is the sole remaining
@@ -2063,10 +2063,37 @@ and
 `5eb0ba8d59203ec8787553d03acbe009f076b26f5905ff2ec37fb3bf9b9d7bd3`.
 Current/projected direct probes passed 7/7. The exact temporary projection
 passed public identity 4/4, affected plus import 527/527, audit 217, pycompile
-8/8, retired-ref zero, diff check, and unchanged acyclic 48/203 DAG. Full
-2,143/2,143 remains an implementation gate. Exact caller/adoption contracts and
-stop lines are authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+8/8, retired-ref zero, diff check, and unchanged acyclic 48/203 DAG. Commit
+`f220c9c` completed the exact `+24/-24` projection at
+`0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+Focused 527/527 in 181.671 seconds, audit 217, pycompile 8/8, retired-ref zero,
+unchanged 48/203 DAG, full 2,143/2,143 in 214.528 seconds, and diff checks
+passed. Exact caller/adoption semantics remain normative in
+[agent_runtime_contract.md](agent_runtime_contract.md). Benchmark refresh and
+remote CI were **NOT RUN**.
+
+The next bounded cleanup deletes exactly six zero-load imports from
+`financial_graph_evidence.py`: `classify_report_cache_consumer_candidate`,
+`KOREAN_COUNT_UNIT_RE_FRAGMENT`, `METRIC_TOPIC_EXTRACTION_TERMS`,
+`PERIOD_COMPARISON_COUNT_POLICY`, `active_narrative_policies`, and
+`narrative_policy_facets`. Remove no definition or other binding. Keep the live
+retrieval-pipeline/runtime-trace/config consumers and all evidence behavior.
+Static source/test analysis finds no selected owner load/call, direct import,
+attribute access, or dynamic consumer.
+
+The selected current/empty record hashes are
+`842dacd35d7991e45be44f6571c9f9c9924699eb6cc9dfb44e5d5c879156131c` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Source deletes six lines; nine existing line-number fingerprints in one test
+file update without weakening a contract. Source/tests/whole project
+`+0/-6`, `+9/-9`, and `+9/-15`; the exact temporary diff hash is
+`2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3`
+and fingerprint mapping hash is
+`4d6ffde1b5765d0d8c697421f8eb3b6a970d07128b2d2875e17940ff9f57db7f`.
+The projection passed focused 339/339, audit 217, pycompile 2/2, selected-
+consumer zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
+remains the implementation gate; exact scope and stop lines are authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded

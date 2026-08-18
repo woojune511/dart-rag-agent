@@ -365,10 +365,10 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `promote_nested_subtask_result_if_more_specific(...)`는 현재 material 보호와
   stable winner 규칙 안에서 선택된 result만 반환한다. Task/state capture와
   broader dependency-coherence replacement는 소유하지 않는다.
-- 현재 private visibility인 `_preferred_complete_aggregate_subtask_answer(...)`와
-  내부 numeric-surface helpers는 더 완성된 answer candidate를 evidence-visible
-  숫자 표면으로 비교한다. 구현 owner는 이미 이 모듈이고 다음 batch는 이름만
-  public contract로 수렴시킨다.
+- Public `preferred_complete_aggregate_subtask_answer(...)`와 내부 private
+  numeric-surface helpers는 더 완성된 answer candidate를 evidence-visible
+  숫자 표면으로 비교한다. Selector는 이 모듈이 직접 소유하고 네 peer
+  consumer가 owner에서 public API를 import한다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
   갖지 않는다.
 
@@ -1271,15 +1271,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   caller adoption과 exception boundary는 유지됐고 alias/wrapper는 없다.
   Owner public/private는 19/0이며 source `+36/-36`, tests `+24/-24`, focused
   432/432, audit 217, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_answer_projection.py`의 유일한 externally
-  imported private function
-  `_preferred_complete_aggregate_subtask_answer(...)`을 같은 owner에서 public
-  이름으로 수렴시킨다. Blank-answer short circuit, eager row snapshot,
-  operation/metric/status/candidate precedence, 세 completion path, longest
-  result, 네 caller의 서로 다른 fallback/guard/adoption/exception stop을
-  유지한다. Owner public/private는 12/9에서 13/8로 수렴하며, 정확한
-  5-source/3-test `+24/-24`, direct 7/7, focused 527, audit 217, unchanged
-  48/203 DAG, full 2,143 gate는
+- 완료된 `f220c9c` visibility batch는
+  `financial_answer_projection.py`의 유일한 externally imported private
+  selector를 public `preferred_complete_aggregate_subtask_answer(...)`로 같은
+  owner에서 in-place rename했다. Blank-answer short circuit, eager row
+  snapshot, operation/metric/status/candidate precedence, 세 completion path,
+  longest/stable result, 네 caller의 fallback/guard/adoption/exception stop은
+  유지됐다. Owner public/private는 13/8이며 source `+9/-9`, tests `+15/-15`,
+  whole `+24/-24`, direct 7/7, public identity 4/4, focused 527/527, audit 217,
+  unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 cleanup은 `financial_graph_evidence.py`의 load/call/external consumer가
+  모두 0인 config import 6개만 삭제한다. Helper 정의, retrieval/runtime-trace
+  owner의 live import/call, 다른 evidence import는 유지한다. Exact source
+  `-6`, line-fingerprint 9개, projected focused 339/339와 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -1299,10 +1303,9 @@ Aggregate/narrative row의 state-free answer policy owner다.
   exclusive-policy projection; model invocation and state/task adoption remain
   outside
 
-`_preferred_complete_aggregate_subtask_answer`는 이 helper 묶음이 소유하거나
+`preferred_complete_aggregate_subtask_answer`는 이 helper 묶음이 소유하거나
 re-export하지 않는다. 실제 구현은 `financial_answer_projection.py`에 있고 네
-peer consumer가 그 owner에서 직접 import한다. 다음 batch도 owner 이동 없이
-visibility만 수렴시킨다.
+peer consumer가 그 owner의 public API를 직접 import한다.
 
 ### Calculation owner index
 

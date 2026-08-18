@@ -8988,3 +8988,58 @@ completion claim.
   Full 2,143/2,143 remains an implementation gate; benchmark refresh and remote
   CI were **NOT RUN**. The characterization establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Preferred complete aggregate-answer public API milestone
+
+- Commit `f220c9c` renames the exact 63-line definition, four import bindings,
+  and four direct calls to public
+  `preferred_complete_aggregate_subtask_answer(...)` without an alias, wrapper,
+  owner, policy, or behavior branch. Owner public/private counts finish 13/8
+  and retired private refs finish zero.
+- Blank-answer normalization/short circuit, eager row snapshot, mapping copies,
+  operation/metric/status/candidate precedence, suffix narrative, contained
+  numeric-candidate and conflicting-surface paths, longest/stable selection,
+  four distinct caller adoption boundaries, helper laziness, immutability, and
+  every exception remain unchanged.
+- Production source is `+9/-9`, tests are `+15/-15`, and the whole commit is
+  `+24/-24` across five source and three test files. Its committed diff SHA-256
+  is `0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+- Direct behavior/order/error 7/7, public identity 4/4, affected plus import
+  527/527 in 181.671 seconds, audit 217, pycompile 8/8, retired-ref zero,
+  unchanged acyclic 48/203 DAG, full 2,143/2,143 in 214.528 seconds, and diff
+  checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Evidence-owner zero-load import cleanup characterization checkpoint
+
+- The next bounded deletion removes exactly six unused imports from
+  `financial_graph_evidence.py`: `classify_report_cache_consumer_candidate`,
+  `KOREAN_COUNT_UNIT_RE_FRAGMENT`, `METRIC_TOPIC_EXTRACTION_TERMS`,
+  `PERIOD_COMPARISON_COUNT_POLICY`, `active_narrative_policies`, and
+  `narrative_policy_facets`. Delete no definition or other import and change no
+  runtime path.
+- All six bindings have zero owner loads/calls. Source/test analysis finds zero
+  direct evidence-owner import, module attribute, or dynamic consumer. Eight
+  exact `active_narrative_policies` test strings patch graph helpers instead.
+  Current/empty selected-record hashes are
+  `842dacd35d7991e45be44f6571c9f9c9924699eb6cc9dfb44e5d5c879156131c` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- Source deletes exactly six lines. Absolute line shifts require nine existing
+  fingerprint replacements in `test_financial_graph_helpers.py`, representing
+  eight unique old/new pairs and no assertion weakening. Their mapping hash is
+  `4d6ffde1b5765d0d8c697421f8eb3b6a970d07128b2d2875e17940ff9f57db7f`.
+  Source/tests/whole project `+0/-6`, `+9/-9`, and `+9/-15`; the exact temporary
+  diff SHA-256 is
+  `2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3`.
+- The temporary projection passed affected graph-helper/text-surface/import
+  339/339 in 168.290 seconds, audit 217, pycompile 2/2, selected consumer zero,
+  diff check, and unchanged acyclic 48/203 DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
+  are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.

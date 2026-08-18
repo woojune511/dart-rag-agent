@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `4a4550c` renamed all four externally imported private text-surface primitives to public APIs without moving ownership or adding aliases; all retired refs are zero |
-| What passed? | Text-surface identity/behavior 4/4, affected plus import tests 432/432, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only text-surface rename with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename the sole externally imported private aggregate-answer selector in `financial_answer_projection.py` to a public API in place, preserving its exact 63-line behavior and four caller boundaries |
+| What just changed? | `f220c9c` renamed the sole externally imported private aggregate-answer selector to a public API without moving ownership or adding an alias; all retired refs are zero |
+| What passed? | Selector behavior 7/7, public identity 4/4, affected plus import tests 527/527, runtime audit 217, pycompile 8/8, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only selector rename with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
+| What is next? | Delete exactly six zero-load import bindings from `financial_graph_evidence.py`, preserving every live definition, import, call, and runtime boundary |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, LangChain-loader identity 4 / 4; affected seven-module set 676 / 676 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after LangChain-loader public API convergence |
+| Latest focused owner checkpoint | PASS, aggregate-answer selector identity 4 / 4; affected plus import set 527 / 527 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after aggregate-answer selector public API convergence |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,62 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Delete exactly these six zero-load import bindings from
+`src/agent/financial_graph_evidence.py` and no other source:
+
+- `classify_report_cache_consumer_candidate` from
+  `src.config.report_scoped_cache`;
+- `KOREAN_COUNT_UNIT_RE_FRAGMENT`, `METRIC_TOPIC_EXTRACTION_TERMS`,
+  `PERIOD_COMPARISON_COUNT_POLICY`, `active_narrative_policies`, and
+  `narrative_policy_facets` from `src.config.retrieval_policy`.
+
+Do not delete, move, rename, wrap, or change any imported definition. Preserve
+the live copies and calls in `financial_retrieval_pipeline.py`,
+`financial_runtime_trace.py`, config, and tests. Keep every other evidence-owner
+import, including the similarly named `_active_narrative_policies_for_query(...)`
+and `_narrative_policy_facets_for_query(...)` methods and their live policy
+dependencies. Add no fallback, compatibility export, `__all__`, or behavior
+branch.
+
+All six selected bindings have zero owner `Load` nodes and calls. Repository-
+wide source/test analysis finds zero direct import from
+`financial_graph_evidence`, module-attribute consumer, or dynamic
+`getattr`/`hasattr` consumer for the selected names. The eight exact
+`"active_narrative_policies"` test strings patch
+`financial_graph_helpers`, not this owner. The selected current/empty binding-
+record hashes are
+`842dacd35d7991e45be44f6571c9f9c9924699eb6cc9dfb44e5d5c879156131c` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+
+Physical production scope is one file and exactly six deleted lines. Because
+the deletion shifts later absolute line numbers, update exactly nine existing
+caller-fingerprint expectations in `tests/test_financial_graph_helpers.py`;
+the desired-consolidation caller hash occurs twice, so these are eight unique
+old/new pairs. Change no test method, body contract, call record, assertion
+strength, or runtime expectation. The fingerprint mapping hash is
+`4d6ffde1b5765d0d8c697421f8eb3b6a970d07128b2d2875e17940ff9f57db7f`.
+Projected source/test/whole transforms are `+0/-6`, `+9/-9`, and `+9/-15`
+across exactly two files. The exact temporary projection diff SHA-256 is
+`2f26c4c2be025ddbc7d8c701af0e84707079c17a1934ca82f7a7890dca8d80d3`.
+
+The exact temporary projection passed the affected graph-helper, text-surface,
+and import-side-effect set 339/339 in 168.290 seconds, audit 217, pycompile 2/2,
+empty selected bindings/consumers, `git diff --check`, and the unchanged
+acyclic 48-module/203-edge DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Required implementation gates are the exact transforms and hashes above,
+focused 339/339, audit 217, pycompile, full discovery 2,143/2,143, live/dynamic-
+consumer zero, DAG parity, artifact hygiene, and diff check. Benchmark refresh
+and remote CI remain **NOT RUN**. This deletion proves no behavior, answer-
+quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+## Completed Preferred Aggregate-Answer Selector Characterization
+
+The following characterize-only record preceded commit `f220c9c`. Its rename
+and projected gates are complete; it is retained for audit and is not active or
+competing work.
 
 Rename the exact current 63-line
 `financial_answer_projection._preferred_complete_aggregate_subtask_answer(subtask_results: List[Dict[str, Any]], final_answer: str) -> str`
@@ -869,6 +925,27 @@ Required implementation gates are the exact transform/hashes above, direct
 behavior and identity, affected 527/527, audit 217, pycompile, full discovery
 2,143/2,143, and diff check. Benchmark refresh and remote CI remain **NOT RUN**.
 This characterization establishes no behavior, answer-quality, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Preferred Aggregate-Answer Selector Public API Batch
+
+Commit `f220c9c` renamed the selected 63-line definition, four import bindings,
+and four calls to `preferred_complete_aggregate_subtask_answer(...)` without an
+alias, wrapper, owner, policy, or behavior branch. Blank-answer short circuit,
+eager row materialization, mapping copies, operation/metric/status/candidate
+precedence, all three completion paths, longest/stable selection, caller
+fallback/adoption, helper laziness, immutability, and exception stops remain
+unchanged. Owner public/private counts finish 13/8 and retired private refs
+finish zero.
+
+Production source is `+9/-9`, tests are `+15/-15`, and the whole commit is
+`+24/-24` across five source and three test files. The committed diff SHA-256
+is `0212a1273a1dfda7e87ed5cf3986e238e4433e89cbd0bf9cacc95b5439885c1d`.
+Direct behavior/order/error probes 7/7, public identity 4/4, affected plus
+import tests 527/527 in 181.671 seconds, audit 217, pycompile 8/8, retired-ref
+zero, unchanged acyclic 48-module/203-edge DAG, full discovery 2,143/2,143 in
+214.528 seconds, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**; this visibility-only batch is not a behavior, quality, ranking,
 performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Text-Surface Primitive Characterization
