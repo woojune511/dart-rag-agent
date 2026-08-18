@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `7de65fc` renamed the exact 40-line direct-numeric-grounding policy in place to public `requires_direct_numeric_grounding(...)`; three importers, three external calls, and 19 existing test bindings now use the public API with no wrapper or private alias |
-| What passed? | Focused pre/post 4/4, graph owner 266/266, operation contracts 242/242, retrieval hints 5/5, task artifacts 15/15, calculation-execution owner 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,226/1,226, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,119/2,119 |
+| What just changed? | `d6e7765` renamed the exact 15-line desired-consolidation-scope policy in place to public `desired_consolidation_scope(...)`; five importers, twelve calls, and 26 existing test bindings now use the public API, while one colliding calculation-local store and eight loads use `requested_consolidation_scope` |
+| What passed? | Focused pre/post 4/4, graph owner 270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation-execution owner 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,230/1,230, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,123/2,123 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with selected-body, caller, and full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Characterize and publicize the exact 15-line `_desired_consolidation_scope(...)` policy helper in its existing owner, including the required selective rename of one colliding calculation-local binding; no source rename is authorized until four CURRENT-SOURCE contracts pass |
+| What is next? | Characterize and publicize the exact 11-line `_metadata_period_match_strength(...)` policy helper in its existing owner; no source rename is authorized until four CURRENT-SOURCE contracts pass |
 
 ## Product Boundary
 
@@ -748,14 +748,14 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, direct-numeric-grounding public API pre/post 4 / 4; graph owner 266 / 266; operation contracts 242 / 242; retrieval hints 5 / 5; task artifacts 15 / 15; calculation-execution owner 45 / 45; math parsing 24 / 24; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,226 / 1,226; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, desired-consolidation-scope public API pre/post 4 / 4; graph owner 270 / 270; operation contracts 242 / 242; retrieval hints 5 / 5; task artifacts 15 / 15; text surface 30 / 30; calculation-execution owner 45 / 45; math parsing 24 / 24; surface owner 1 / 1; operand owner 69 / 69 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,230 / 1,230; additional retrieval-pipeline caller module 1 / 1 |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
-| Full unittest discovery | PASS, 2,119 / 2,119 |
+| Full unittest discovery | PASS, 2,123 / 2,123 |
 | Benchmark refresh after latest visibility-only rename | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
@@ -790,129 +790,144 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference and complete operand-candidate scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, ratio-component and direct acceptance, and direct-grounding classification, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, reconciliation candidate construction/ranking, broader evidence orchestration, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, desired consolidation-scope, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference and complete operand-candidate scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, ratio-component and direct acceptance, and direct-grounding classification, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, reconciliation candidate construction/ranking, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
-| Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
+| Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, desired consolidation-scope policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
 
 These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The characterize-only inventory selects the exact current 15-line
-`financial_scope_policies._desired_consolidation_scope(
-query: str, report_scope: Dict[str, Any]) -> str` definition at lines 17-31 for
-an in-place public rename to `desired_consolidation_scope(...)`. Because
-`_extract_calculation_operands(...)` already binds that exact name locally, the
-batch must also rename its one store and eight loads to
-`requested_consolidation_scope`; preserve both existing
-`desired_consolidation_scope=` keyword names. Add no wrapper or private alias.
-Policy vocabulary remains in `CONSOLIDATION_SCOPE_POLICY`;
-task construction, evidence scoring, calculation recovery, answer rendering,
-retrieval reranking, graph state, artifacts, and ledger sequencing remain in
-their current callers. Before the rename, add exactly four CURRENT-SOURCE
-contracts and require them to pass. No production or test rename has occurred,
-and this document maintains no competing implementation queue.
+The characterize-only inventory selects the exact current 11-line
+`financial_scope_policies._metadata_period_match_strength(
+period_labels: List[str], query_years: List[int]) -> float` definition at lines
+478-488 for an in-place public rename to
+`metadata_period_match_strength(...)`. Add no wrapper or private alias. Period-
+overlap scoring remains a generic mechanism in the scope-policy owner; evidence
+prioritization, operand scoring, retrieval reranking, graph state, artifacts,
+and ledger sequencing remain in their current callers. Before the rename, add
+exactly four CURRENT-SOURCE contracts and require them to pass. No source or
+test rename has occurred, and this document maintains no competing
+implementation queue.
 
-Preserve the raw `query` argument to `_normalise_spaces(...)`, followed by the
-eager shallow `dict(CONSOLIDATION_SCOPE_POLICY.get("query_markers") or {})`
-snapshot. Query scopes retain policy insertion order. For each scope,
-`markers or ()` is iterated lazily by `any(...)`; `str(marker)` is evaluated once
-for a falsey rendered marker and twice for a truthy rendered marker. The first
-membership hit returns `str(scope)` before any `report_scope`, metadata-value,
-or default-marker access.
+Preserve the exact left-to-right `not query_years or not period_labels` truth
+gate and immediate `0.0` return. Only after both inputs are truthy, iterate
+`period_labels` into the exact set comprehension
+`{str(label).strip() for label in period_labels if str(label).strip()}`. A label
+whose first rendered/stripped value is falsey is converted once; an included
+label is converted and stripped twice. Preserve set hashing, equality, and
+dedupe. Then eagerly iterate every query year into
+`{str(year) for year in query_years}`, preserving string conversion and dedupe,
+and compute exact `len(normalized_labels & wanted)`.
 
-After all query-marker misses, preserve the exact
-`_normalise_spaces(str((report_scope or {}).get("consolidation") or "")).lower()`
-pipeline. Metadata values retain an eager shallow policy-map copy and outer
-insertion-order precedence. Each `values or ()` input is eagerly consumed into
-one lowercased string set before membership, with one `str(...)` and one
-`.lower()` call per raw value; the first matching scope returns `str(scope)`.
-Only after all metadata misses is the complete default-marker tuple eagerly
-stringified. Membership over that materialized tuple remains lazy and returns
-exact `"consolidated"` on the first hit, otherwise exact `"unknown"`. Input,
-policy, nested marker/value collections, and returned scope sources remain
-unmodified. All normalization, policy access, truth, mapping copy, item
-iteration, conversion, lowercase, hashing/equality, tuple/set construction,
-membership, and `any(...)` failures remain owner-uncaught.
+An overlap at or below zero returns exact `0.0`; an overlap at or above
+`len(wanted)` returns exact `1.0`; otherwise return exact
+`overlap / max(len(wanted), 1)`. Do not cache rendered labels, change set
+semantics, normalize beyond `.strip()`, or mutate either input. Truth testing,
+iteration, conversion, stripping, hashing/equality, intersection, length,
+comparison, `max(...)`, and division failures remain owner-uncaught.
 
-The nine-statement body has five assignments, two `for` nodes, one top-level
-`if`, and one final return; nested branches bring `if` and return counts to three
-and four. Its AST has 22 calls, three generator expressions, one set
-comprehension, four comprehension clauses, eight boolean operations, three
-comparisons, three dictionary nodes, five tuple nodes, and no list, set, `try`,
-lambda, conditional expression, or starred expression. The selected source-body
-SHA-256 is
-`999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57`.
+The seven top-level statements are `If`, three `Assign` nodes, two more `If`
+nodes, and `Return`; nested returns bring the total return count to four. The
+body has nine calls, two set comprehensions and two comprehension clauses, one
+boolean operation, two comparisons, two binary operations, and no loop, list,
+tuple, dictionary, literal set, generator, `try`, lambda, conditional
+expression, or starred expression. Its source-body SHA-256 is
+`93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29`.
 
-Twelve two-positional-argument/no-keyword calls span eleven caller definitions
-in five importers, all at `try` depth zero. Four graph-helper builders pass raw
-`query`/`report_scope`: hybrid narrative construction adopts the result before
-period/policy work; concept constraints replace only `"unknown"` with the
-ontology default; heuristic numeric construction stores the exact result in its
-new constraints; task constraints overwrite the copied metric default before
-period focus. Evidence prioritization resolves the desired scope before table
-counting and uses it only in the existing candidate score.
+Three two-positional-argument/no-keyword calls span three caller definitions in
+three importers, all at `try` depth zero. Evidence prioritization's nested
+`score(...)` passes exact `list(metadata.get("period_labels") or [])` and
+`query_years` after statement/consolidation scoring, assigns the result, and
+adds exact `period_strength * 1.5` before later affinity and table-count work.
+`score_operand_candidate(...)` passes the same prepared arguments after source-
+priority scoring and adds exact `* 1.5` before period/table coherence and report-
+scope bonuses. Retrieval `_rerank_docs(...)` passes exact prepared
+`period_labels` and `query_years` inside the document loop, then adds
+`0.10 * period_match_strength` only when the result is positive. Every failure
+stops later caller work; no gate, argument, score, sort, return, or exception
+scope may move.
 
-Calculation keeps five calls and their current gates. Context scoring first
-returns `0.0` when state is absent, otherwise passes a normalized query source
-and shallow report-scope copy; `"unknown"` stops before evidence metadata.
-Sibling-table recovery resolves once only when context docs and an eligible row
-exist before adding scope-compatible evidence, then resolves again only after
-the nonempty evidence-pool gate for value refinement. Structured graph
-provenance calls after graph, node, and raw-value gates with the prepared report-
-scope copy. Calculation-operand extraction calls after its state/query/topic/
-scope projection and before empty-result and reconciliation work, storing the
-result as `requested_consolidation_scope` for its eight later loads while the two
-callee keyword names stay unchanged. Difference rendering passes raw `query` and
-`report_scope or {}` after company/period projection, then maps the result to an
-existing scope label. Retrieval reranking passes exact `state["query"]` and a
-shallow report-scope copy after its pre-loop state projection and before document
-iteration. Every failure stops later work in its caller; no gate, argument,
-adoption, score, return, or exception scope may move.
-
-The private identifier has 18 production occurrences across six files: one
-definition, five imports, and twelve calls. Twenty-six existing test occurrences
-span graph-helper, operation-contract, task-artifact, and text-surface tests, so
-the complete source/test transform is ten files. No public definition exists,
-but calculation extraction contains the one current function-local collision:
-nine exact AST `Name` nodes, comprising one store and eight loads. The projected
-source renames only those nodes, retains two same-named keyword arguments, and
-must compile without an unbound-local path. Current/projected scope-policy
-public/private counts are 11/9 to 12/8; public identity projects 6/6. Existing
-edges keep the DAG acyclic at 48
-modules/205 edges. The selected 17-31 span intersects no reviewed runtime-domain
-record, so audit remains 217.
+The private identifier has seven production occurrences across four files: one
+definition, three imports, and three calls. Nineteen existing test occurrences
+span graph-helper and text-surface tests, so the complete transform is six files.
+Current/projected scope-policy public/private counts are 12/8 to 13/7; public
+identity projects 4/4. There is no public-name binding collision. Existing edges
+keep the DAG acyclic at 48 modules/205 edges. The selected 478-488 span
+intersects no reviewed runtime-domain record, so audit remains 217. All six
+transform files are UTF-8 and contain non-ASCII text.
 
 Canonical current/projected call-record hashes are
-`cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b` /
-`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`.
-Current/projected eleven-caller-map hashes are
-`9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0` /
-`143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+`e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742` /
+`62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03`.
+Current/projected three-caller-map hashes are
+`a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b` /
+`b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
+The three caller bodies project respectively from
+`5e89d134924e92d13a32dbebf626c0524a8da0f10dcb5a7741e1a556d2b11a0a`,
+`ca2d2af58518fa95b6e41a237b70ece125949ae98ef33bb724728474ed66a9f9`, and
+`a6f06d54dfbd7ea23d47b0e83468d73cd78ea98dbc3aea144954168ac6418a46` to
+`480a1b36d876a9ee12039a7ee24c7866224471037acfbabf8f7693c67b6d0cb9`,
+`868506cb65faf31c27717ebed547371547b049d94b521ad4c662e4f7a42f5ea0`, and
+`45b649d9c97d6f8fb6010f6ebb38a12958624920a558a95b0bac6abf3b3e6f45`;
+update only exact dependent structural hashes.
 
 Add exactly these four CURRENT-SOURCE methods to `FinancialGraphHelperTests`:
 
-- `test_current_source_desired_consolidation_scope_pins_precedence_policy_order_copy_and_results`;
-- `test_current_source_desired_consolidation_scope_pins_immutability_laziness_and_exceptions`;
-- `test_current_source_desired_consolidation_scope_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
-- `test_current_source_desired_consolidation_scope_callers_pin_gates_args_adoption_and_stops`.
+- `test_current_source_metadata_period_match_strength_pins_short_circuits_normalization_dedupe_and_results`;
+- `test_current_source_metadata_period_match_strength_pins_laziness_immutability_and_exceptions`;
+- `test_current_source_metadata_period_match_strength_bindings_pin_owner_def_calls_dag_imports_and_baseline`;
+- `test_current_source_metadata_period_match_strength_callers_pin_gates_args_adoption_and_stops`.
 
-Projected post-rename gates are focused 4/4, graph owner 270/270, operation
+Projected post-rename gates are focused 4/4, graph owner 274/274, operation
 contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30,
 calculation execution 45/45, math parsing 24/24, surface owner 1/1, operand owner
-69/69, affected eleven-module semantic set 1,230/1,230, reflection promotion
+69/69, affected eleven-module semantic set 1,234/1,234, reflection promotion
 15/15, reflection capability 24/24, retrieval pipeline 1/1, reconciliation plan
 51/51, import side effects 19/19, runtime audit 217, and full discovery
-2,123/2,123. Structural gates are production transform 6/6, complete transform
-10/10, selected-body/eleven-caller parity, all twelve calls/six source modules,
-public identity 6/6, unchanged DAG, retired refs/public stores zero, graph-test
-AST 266/266 plus four methods, collision-local store/load transform 9/9,
-retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8, projected compile/import,
-pycompile, and `git diff --check`. These are projections, not executed results.
-Static definition/signature/body/call/import/count/DAG/audit inspection and five
-existing owner/caller probes passed after correcting one test-selector typo;
+2,127/2,127. Structural gates are production transform 4/4, complete transform
+6/6, selected-body/three-caller parity, all three calls/four source modules,
+public identity 4/4, unchanged DAG, retired refs/public stores zero, graph-test
+AST 270/270 plus four methods, UTF-8 6/6, non-ASCII 6/6, projected compile/
+import, pycompile, and `git diff --check`. These are projections, not executed
+results. Static definition/signature/body/call/import/count/DAG/audit inspection,
+projected AST compilation, and five existing owner/caller probes passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+## Completed Desired-Consolidation-Scope Public API
+
+Commit `d6e7765` renamed the exact former 15-line policy in place to public
+`financial_scope_policies.desired_consolidation_scope(...)`. No wrapper or
+private alias remains. Five external importers, twelve calls, and all 26 existing
+test bindings use the public identifier. Query/metadata/default precedence,
+eager shallow policy copies, eager/lazy evaluation boundaries, exact scope
+results, immutability, caller gates, and exception scopes remain unchanged. The
+calculation caller's one colliding local store and eight loads alone use
+`requested_consolidation_scope`; both existing keyword labels remain unchanged.
+
+Production source is `+26/-26`, tests are `+1,801/-64`, and the whole commit is
+`+1,827/-90`, net `+1,737`; production physical line counts are unchanged. Four
+new methods moved discovery from 2,119 to 2,123. Final scope-policy public/private
+counts are 12/8. Final call-record and eleven-caller-map hashes are
+`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`
+and `143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+The committed source/test diff SHA-256 is
+`383134898960245449744387c078a61a6c02ba538cecb4252c60b8f0bcdc898e`.
+
+Focused pre/post rename 4/4, graph owner 270/270, operation contracts 242/242,
+retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation
+execution 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69,
+affected semantic 1,230/1,230, reflection promotion 15/15, reflection capability
+24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,123/2,123 passed. Pycompile, production transform 6/6, complete
+transform 10/10, selected-body/eleven-caller parity, all twelve calls/six source
+modules, public identity 6/6, unchanged 48-module/205-edge DAG, retired refs/
+public stores zero, graph-test AST 266/266 plus four methods, collision-local
+transform 9/9, retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8, and diff
+check passed. Benchmark refresh and remote CI were **NOT RUN**. This visibility-
+only milestone proves no behavior, quality, ranking, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Direct-Numeric-Grounding Public API
 

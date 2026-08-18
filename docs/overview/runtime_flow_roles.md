@@ -1165,15 +1165,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,119/2,119와 transform/body/identity/three-caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는 scope-policy owner의 정확한 15줄
+- 완료된 `d6e7765` visibility batch는 scope-policy owner의 정확한 15줄
   `_desired_consolidation_scope(...)`을 public
-  `desired_consolidation_scope(...)`로 이름 수렴시킨다. Query/metadata/default
+  `desired_consolidation_scope(...)`로 이름 수렴시켰다. Query/metadata/default
   precedence와 copy/eager-lazy evaluation, exact scope results, immutability 및
   다섯 importer·열두 call·열한 caller의 gate/argument/adoption/exception
-  scope를 유지해야 한다. 계산 extraction의 같은 이름 지역 store 1개/load
-  8개는 `requested_consolidation_scope`로 선택 변경하고 기존 keyword 이름
-  2개는 유지해 unbound-local 충돌을 제거해야 한다. 정확한 네 CURRENT-SOURCE
-  method와 projection은
+  scope는 유지됐다. 계산 extraction의 같은 이름 지역 store 1개/load 8개만
+  `requested_consolidation_scope`로 바뀌고 기존 keyword 이름 2개는 유지됐다.
+  Scope-policy public/private는 12/8이다. Focused pre/post 4/4, graph owner
+  270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, text surface 30/30, semantic 1,230/1,230, reflection promotion 15/15,
+  reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+  51/51, import 19/19, audit 217, full 2,123/2,123와 transform/body/identity/
+  eleven-caller/48-module/205-edge DAG parity가 통과했다.
+- 새 characterize-only inventory는 같은 owner의 정확한 11줄
+  `_metadata_period_match_strength(...)`을 public
+  `metadata_period_match_strength(...)`로 이름 수렴시킨다. Input short-
+  circuit, repeated label conversion, set dedupe/intersection, exact overlap
+  ratio, immutability 및 세 importer·세 call의 score adoption/exception scope를
+  유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

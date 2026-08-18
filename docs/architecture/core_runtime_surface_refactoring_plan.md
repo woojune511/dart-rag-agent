@@ -1751,62 +1751,75 @@ the committed diff SHA-256 is
 `a3409380b1d0d56104ab8caebfc94767089ff74098194575a1fde65aa77bc7b0`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 15-line
-`financial_scope_policies._desired_consolidation_scope(
-query: str, report_scope: Dict[str, Any]) -> str` for an in-place public rename
-to `desired_consolidation_scope(...)`, with no wrapper or alias. Calculation
-extraction already binds that name locally, so the same batch selectively
-renames its one store and eight loads to `requested_consolidation_scope` while
-retaining two `desired_consolidation_scope=` keyword names. Preserve raw-
-query normalization; eager shallow query/metadata policy-map copies; query-
-marker insertion-order and lazy first-hit precedence; exact report-scope
-truth/get/or/string/normalize/lower handling; eager per-scope metadata sets;
-eager default-marker tuple construction followed by lazy membership; exact
-scope-string results; immutability; and all owner-uncaught failures. Vocabulary
-stays in policy data. Task, evidence, calculation, rendering, retrieval, graph,
-artifact, ledger, and exception ownership remain outside the batch.
+Commit `d6e7765` completed the desired-consolidation-scope visibility batch. The
+exact former 15-line scope policy is public
+`desired_consolidation_scope(...)`; five imports, twelve calls, and 26 test
+bindings use it with no wrapper or private alias. Query/metadata/default
+precedence, eager shallow policy copies, eager/lazy evaluation, exact results,
+immutability, caller gates/adoption, and exceptions remain unchanged. The
+calculation caller's one colliding store and eight loads alone now use
+`requested_consolidation_scope`; two keyword labels remain unchanged. Scope-
+policy public/private counts finish at 12/8.
 
-Five importers contain twelve two-positional-argument calls across eleven caller
-definitions, all at `try` depth zero. Four task builders keep raw arguments,
-their exact default/constraint adoption, and stop positions. Evidence ranking
-keeps pre-loop resolution and score use. Five calculation calls keep state,
-context/evidence/graph/raw-value gates, two sibling-recovery resolutions, and
-later filter/refinement adoption. Calculation extraction keeps the public call
-distinct from the renamed local result and preserves all eight uses and both
-callee keyword names. Difference rendering keeps scope-label
-projection; retrieval reranking keeps exact state lookup, shallow scope copy,
-and pre-document-loop scoring input. No caller body, gate, argument, result,
-score, return, or exception scope moves.
+Focused pre/post 4/4, graph owner 270/270, operation contracts 242/242,
+retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation
+execution 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69,
+affected semantic 1,230/1,230, reflection promotion 15/15, reflection capability
+24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit
+217, and full 2,123/2,123 passed. Production/complete transform 6/6 and 10/10,
+selected-body/eleven-caller/public-identity/DAG parity, graph-test AST 266/266
+plus four methods, collision-local transform 9/9, retained keyword names 2/2,
+UTF-8 10/10, non-ASCII 8/8, pycompile, and diff check passed. Final call-record/
+caller-map hashes are
+`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291` /
+`143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`;
+the committed diff SHA-256 is
+`383134898960245449744387c078a61a6c02ba538cecb4252c60b8f0bcdc898e`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The new characterize-only inventory selects the exact current 11-line
+`financial_scope_policies._metadata_period_match_strength(
+period_labels: List[str], query_years: List[int]) -> float` for an in-place
+public rename to `metadata_period_match_strength(...)`, with no wrapper or
+alias. Preserve the left-to-right input truth gate; exact `0.0` short circuit;
+repeated `str(label).strip()` filtering/projection; period-label and wanted-year
+set dedupe/intersection; exact zero/full/partial overlap results; immutability;
+and all owner-uncaught failures. Scoring policy stays in the scope owner;
+evidence, operand, retrieval, graph, artifact, ledger, and exception ownership
+remain outside the batch.
+
+Three importers contain three two-positional-argument calls across three caller
+definitions, all at `try` depth zero. Evidence's nested candidate score and
+operand-candidate scoring each preserve exact metadata-list/query-year
+arguments and `* 1.5` adoption; retrieval reranking preserves its prepared
+period-label/query-year arguments, positive gate, and `0.10 *` adoption. No
+caller gate, argument, score order, sort, return, or exception scope moves.
 
 The source-body SHA-256 is
-`999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57`.
-Eighteen production occurrences span six files; 26 test occurrences span four
-files, so the complete transform is ten files. The current caller collision is
-exactly nine AST `Name` nodes (one store/eight loads); the projection renames
-only those nodes, retains two keyword labels, and must compile without an
-unbound-local path. Scope-policy counts project 11/9 to 12/8 and public identity
-projects 6/6. Current/projected call-record hashes
+`93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29`.
+Seven production occurrences span four files; 19 test occurrences span two
+files, so the complete transform is six files. Scope-policy counts project 12/8
+to 13/7 and public identity projects 4/4. Current/projected call-record hashes
 are
-`cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b` /
-`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`;
+`e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742` /
+`62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03`;
 caller-map hashes are
-`9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0` /
-`143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+`a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b` /
+`b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
 
 Four required CURRENT-SOURCE methods and projected focused 4/4, graph owner
-270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts
+274/274, operation contracts 242/242, retrieval hints 5/5, task artifacts
 15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
-surface owner 1/1, operand owner 69/69, affected semantic 1,230/1,230,
+surface owner 1/1, operand owner 69/69, affected semantic 1,234/1,234,
 reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
-1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,123/2,123,
-production transform 6/6, complete transform 10/10, selected-body/eleven-caller
-parity, all twelve calls/six source modules, public identity 6/6, unchanged DAG,
-graph-test AST 266/266 plus four methods, collision-local transform 9/9,
-retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8, projected compile/import,
-pycompile, and diff-check gates are defined only in
+1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127,
+production transform 4/4, complete transform 6/6, selected-body/three-caller
+parity, all three calls/four source modules, public identity 4/4, unchanged DAG,
+graph-test AST 270/270 plus four methods, UTF-8 6/6, non-ASCII 6/6, projected
+compile/import, pycompile, and diff-check gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No
-desired-scope source or test rename has occurred. Static inventory and five
-existing owner/caller probes passed after one test-selector correction.
+period-strength source or test rename has occurred. Static inventory, projected
+AST compilation, and five existing owner/caller probes passed.
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

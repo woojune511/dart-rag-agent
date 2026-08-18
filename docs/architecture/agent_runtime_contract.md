@@ -5555,84 +5555,102 @@ The committed diff SHA-256 is
 `a3409380b1d0d56104ab8caebfc94767089ff74098194575a1fde65aa77bc7b0`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 15-line
-`financial_scope_policies._desired_consolidation_scope(
-query: str, report_scope: Dict[str, Any]) -> str` definition at lines 17-31.
-The authorized future batch only renames it in place to public
-`desired_consolidation_scope(...)` and updates five imports, twelve calls, and
-26 existing test occurrences. Calculation extraction already binds the public
-name locally, so rename exactly its one store and eight loads to
-`requested_consolidation_scope` while retaining both
-`desired_consolidation_scope=` keyword names. Add no wrapper or private alias.
-Policy vocabulary remains in `CONSOLIDATION_SCOPE_POLICY`; task/evidence/
-calculation/render/retrieval orchestration, graph state, artifacts, ledger
-sequencing, and caller exception scopes remain outside this batch.
+Commit `d6e7765` completes the desired-consolidation-scope visibility contract.
+The exact former 15-line private policy is now public
+`financial_scope_policies.desired_consolidation_scope(...)`. Five imports,
+twelve calls, and 26 existing test bindings use the public spelling; no wrapper
+or private alias remains. Query/metadata/default precedence, eager shallow
+policy copies, eager/lazy evaluation boundaries, exact results, immutability,
+caller gates, and exception scopes remain unchanged. Calculation extraction's
+one colliding local store and eight loads alone use
+`requested_consolidation_scope`; both keyword labels remain unchanged.
 
-Preserve raw-query normalization and the eager shallow query-marker policy-map
-copy. Query scopes and their markers retain insertion order, lazy `any(...)`
-membership, one string conversion for a falsey rendered marker, two conversions
-for a truthy rendered marker, and first-hit `str(scope)` return before report-
-scope or later policy access. After query misses, preserve the exact report-
-scope truth/get/or/string/normalization/lowercase pipeline. Metadata scopes
-retain insertion order; each values collection is eagerly converted into one
-lowercased string set before membership, and the first match returns
-`str(scope)`. Only after metadata misses is the complete default-marker tuple
-eagerly stringified; membership over that tuple remains lazy and returns exact
-`"consolidated"` or final `"unknown"`. Inputs and policy collections remain
-unmodified. Normalization, access, truth, copy, iteration, conversion, lower,
-hash/equality, construction, membership, and `any(...)` failures remain owner-
-uncaught.
-
-The nine-statement body has five assignments, two loops, three total `if` nodes,
-and four returns. It has 22 calls, three generator expressions, one set
-comprehension, four comprehension clauses, eight boolean operations, three
-comparisons, three dictionary nodes, five tuple nodes, and no list, set, `try`,
-lambda, conditional expression, or starred expression. Its source-body SHA-256
-is `999ed0c40d5a422f03afa71c66e341e12a1a54df31cabfa640a8549592acad57`.
-
-Twelve two-positional-argument/no-keyword calls span eleven caller definitions
-and five importers at `try` depth zero. Four graph-helper builders preserve raw
-arguments, exact constraint adoption, the concept-default fallback, and their
-current stop positions. Evidence prioritization preserves its pre-table-count
-resolution and existing score adoption. The five calculation calls preserve
-the state/context/evidence/graph/raw-value gates, prepared query/report-scope
-arguments, dual sibling-recovery resolutions, later filter/refinement adoption,
-and propagated stops. Calculation extraction stores the call result under the
-new collision-free local name for its eight later loads without changing two
-callee keyword names. Difference rendering preserves its post-company/period
-call and scope-label mapping. Retrieval reranking preserves exact state lookup,
-shallow report-scope copying, pre-document-loop resolution, and scoring use. No
-gate, argument, result, score, return, or exception boundary moves.
-
-The private spelling has 18 production occurrences across six files. Twenty-six
-test occurrences span four test files, so the complete transform is ten files.
-The existing calculation caller has one same-named local store and eight loads;
-the projected source renames only those nine AST `Name` nodes, keeps two keyword
-labels unchanged, and must compile without an unbound-local path. Current/
-projected scope-policy public/private counts are 11/9 to 12/8;
-projected public identity is 6/6. The DAG remains 48 modules/205 edges and the
-selected span intersects no audit record. Current/projected call-record hashes
-are
-`cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b` /
-`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291`;
-eleven-caller-map hashes are
-`9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0` /
+Production is `+26/-26`, tests are `+1,801/-64`, and the whole commit is
+`+1,827/-90`. Focused pre/post 4/4, graph owner 270/270, operation contracts
+242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30,
+calculation execution 45/45, math parsing 24/24, surface owner 1/1, operand owner
+69/69, affected semantic 1,230/1,230, reflection promotion 15/15, reflection
+capability 24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import
+19/19, audit 217, and full 2,123/2,123 passed. Production/complete transform 6/6
+and 10/10, selected-body/eleven-caller/public-identity/DAG parity, graph-test AST
+266/266 plus four methods, collision-local transform 9/9, retained keyword names
+2/2, UTF-8 10/10, non-ASCII 8/8, pycompile, and diff check also passed. Final
+call-record/caller-map hashes are
+`e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291` /
 `143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+The committed diff SHA-256 is
+`383134898960245449744387c078a61a6c02ba538cecb4252c60b8f0bcdc898e`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 11-line
+`financial_scope_policies._metadata_period_match_strength(
+period_labels: List[str], query_years: List[int]) -> float` definition at lines
+478-488. The authorized future batch only renames it in place to public
+`metadata_period_match_strength(...)` and updates three imports, three calls,
+and 19 existing test occurrences. Add no wrapper or private alias. Period-
+overlap scoring remains in the scope-policy owner; evidence prioritization,
+operand scoring, retrieval reranking, graph state, artifacts, ledger sequencing,
+and caller exception scopes remain outside this batch.
+
+Preserve the exact left-to-right `not query_years or not period_labels` truth
+gate and immediate `0.0` result. Only after both inputs are truthy, consume
+`period_labels` through exact
+`{str(label).strip() for label in period_labels if str(label).strip()}`. A
+rejected rendered label is converted/stripped once; an included label is
+converted/stripped twice. Preserve hashing, equality, and set dedupe. Then
+consume every `query_years` item through exact
+`{str(year) for year in query_years}`, preserving conversion and dedupe, and set
+`overlap` to exact `len(normalized_labels & wanted)`.
+
+Preserve exact result precedence: overlap at or below zero returns `0.0`,
+overlap at or above `len(wanted)` returns `1.0`, and the partial case returns
+`overlap / max(len(wanted), 1)`. Inputs remain unmodified; do not cache rendered
+labels or add normalization. Truth, iteration, conversion, strip, hash/equality,
+intersection, length, comparison, `max(...)`, and division failures remain
+owner-uncaught.
+
+The seven-statement body has three assignments, three `if` nodes, and four total
+returns. It has nine calls, two set comprehensions, two comprehension clauses,
+one boolean operation, two comparisons, two binary operations, and no loop,
+list, tuple, dictionary, literal set, generator, `try`, lambda, conditional
+expression, or starred expression. Its source-body SHA-256 is
+`93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29`.
+
+Three two-positional-argument/no-keyword calls span three caller definitions and
+three importers at `try` depth zero. Evidence prioritization's nested
+`score(...)` passes exact `list(metadata.get("period_labels") or [])` and
+`query_years`, assigns the result, then adds exact `* 1.5`. Operand
+`score_operand_candidate(...)` passes the same prepared arguments and adds exact
+`* 1.5` between source-priority and later period/table/report-scope bonuses.
+Retrieval `_rerank_docs(...)` passes exact prepared `period_labels` and
+`query_years`, then adds exact `0.10 *` only behind its positive-result gate.
+No caller gate, argument, score order, sort, return, or exception boundary moves.
+
+The private spelling has seven production occurrences across four files.
+Nineteen test occurrences span two test files, so the complete transform is six
+files. Current/projected scope-policy public/private counts are 12/8 to 13/7;
+projected public identity is 4/4. No public-name collision exists. The DAG
+remains 48 modules/205 edges and the selected span intersects no audit record.
+Current/projected call-record hashes are
+`e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742` /
+`62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03`;
+three-caller-map hashes are
+`a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b` /
+`b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
 
 The four named CURRENT-SOURCE contracts and projected focused 4/4, graph owner
-270/270, operation contracts 242/242, retrieval hints 5/5, task artifacts
+274/274, operation contracts 242/242, retrieval hints 5/5, task artifacts
 15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
-surface owner 1/1, operand owner 69/69, affected semantic 1,230/1,230,
+surface owner 1/1, operand owner 69/69, affected semantic 1,234/1,234,
 reflection promotion 15/15, reflection capability 24/24, retrieval pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,123/2,123,
-production transform 6/6, complete transform 10/10, selected-body/eleven-caller
-parity, all twelve calls/six-source-module/public-identity/DAG parity, graph-test
-AST 266/266 plus four methods, collision-local transform 9/9, retained keyword
-names 2/2, UTF-8 10/10, non-ASCII 8/8, projected compile/import, pycompile, and
-diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No desired-
-scope-helper source or test rename has occurred. Static inventory and five
-existing owner/caller probes passed after one test-selector correction.
+reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127,
+production transform 4/4, complete transform 6/6, selected-body/three-caller
+parity, all three calls/four-source-module/public-identity/DAG parity, graph-test
+AST 270/270 plus four methods, UTF-8 6/6, non-ASCII 6/6, projected compile/
+import, pycompile, and diff-check gates are governed only by
+[Project Status Next Work](../overview/project_status.md#next-work). No period-
+strength source or test rename has occurred. Static inventory, projected AST
+compilation, and five existing owner/caller probes passed.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

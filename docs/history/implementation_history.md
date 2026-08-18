@@ -8220,3 +8220,85 @@ existing owner/caller probes passed after correcting one test-selector typo.
 Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
 behavior, quality, ranking, performance, benchmark, schedule, or completion
 claim.
+
+### Desired-consolidation-scope public-API milestone
+
+- Commit `d6e7765` renames the exact former 15-line scope policy in place to
+  public `desired_consolidation_scope(...)`. No wrapper or private alias remains.
+  Five external importers, twelve calls, and all 26 existing test bindings use
+  the public spelling.
+- Query/metadata/default precedence, eager shallow policy copies, eager/lazy
+  evaluation, exact scope results, immutability, and caller gates/exceptions
+  remain unchanged. Calculation extraction's one colliding local store and
+  eight loads alone use `requested_consolidation_scope`; both existing keyword
+  labels remain unchanged. Final call-record/caller-map hashes are
+  `e0e1670ce1714cc446ad4091bafc8efb38ee1a14cf6f03b4ebeadec36be25291` /
+  `143804328cb07fcfc3d6d6099e59427dafd24296ff0e1f7bb49ba74a1b273ec9`.
+- Production source is `+26/-26`, tests are `+1,801/-64`, and the whole commit
+  is `+1,827/-90`, net `+1,737`; production physical lines are unchanged. Four
+  methods move discovery from 2,119 to 2,123. Final scope-policy public/private
+  counts are 12/8. The committed diff SHA-256 is
+  `383134898960245449744387c078a61a6c02ba538cecb4252c60b8f0bcdc898e`.
+- Focused pre/post 4/4, graph owner 270/270, operation contracts 242/242,
+  retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation
+  execution 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69,
+  affected semantic 1,230/1,230, reflection promotion 15/15, reflection
+  capability 24/24, retrieval pipeline 1/1, reconciliation plan 51/51, import
+  19/19, audit 217, and full 2,123/2,123 passed. Production/complete transform
+  6/6 and 10/10, selected-body/eleven-caller parity, all twelve calls/six source
+  modules, public identity 6/6, unchanged 48-module/205-edge DAG, retired refs/
+  public stores zero, graph-test AST 266/266 plus four methods, collision-local
+  transform 9/9, retained keyword names 2/2, UTF-8 10/10, non-ASCII 8/8,
+  pycompile, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Metadata-period-match-strength private-API characterization checkpoint
+
+- A docs-only inventory selects the exact current 11-line
+  `financial_scope_policies._metadata_period_match_strength(
+  period_labels: List[str], query_years: List[int]) -> float` definition at
+  lines 478-488 for an in-place public rename to
+  `metadata_period_match_strength(...)`. No wrapper/private alias or source/test
+  rename is authorized before four CURRENT-SOURCE contracts pass.
+- Preserve the left-to-right truth short circuit, exact `0.0`, repeated
+  `str(label).strip()` filter/projection evaluation, label/year set dedupe and
+  intersection, zero/full/partial overlap results, immutability, and every
+  owner-uncaught failure. The seven-statement body has three assignments, three
+  `if` nodes, four returns, nine calls, two set comprehensions, two comprehension
+  clauses, one boolean operation, two comparisons, two binary operations, and
+  no loop or `try`. Its source-body SHA-256 is
+  `93e219fea17942e8b495fe554af12a4a8d40f3cc34bb0c3273df4e6977f86b29`.
+- Three two-positional-argument/no-keyword calls span evidence's nested candidate
+  score, operand-candidate scoring, and retrieval reranking at `try` depth zero.
+  Their exact metadata-list/period-label and query-year arguments, `* 1.5` or
+  positive-gated `0.10 *` adoption, order, and propagated stops remain caller-
+  owned.
+- Seven production occurrences span four files. Nineteen existing test
+  occurrences span two test files, so the complete transform is six files.
+  Scope-policy counts project 12/8 to 13/7; public identity projects 4/4; the
+  DAG stays 48 modules/205 edges; audit remains 217. Current/projected call-
+  record hashes are
+  `e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742` /
+  `62d3900668cbfdab705d00ce2afba44ed475740ceed66d8dd9f08bdfb0a30d03`;
+  caller-map hashes are
+  `a8c1b2661c80bc48cf29cdf6eddbdbb46d93a9fabee12476e267855a3be2616b` /
+  `b039d1ffb850ce20cf5b001ed8b272f8f49b7057f7a98fc93330e789af09bb7f`.
+- Four named CURRENT-SOURCE methods and projected focused 4/4, graph owner
+  274/274, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
+  surface owner 1/1, operand owner 69/69, affected semantic 1,234/1,234,
+  reflection promotion 15/15, reflection capability 24/24, retrieval pipeline
+  1/1, reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127,
+  production transform 4/4, complete transform 6/6, selected-body/three-caller
+  parity, all three calls/four source modules, public identity 4/4, unchanged
+  DAG, graph-test AST 270/270 plus four methods, UTF-8 6/6, non-ASCII 6/6,
+  projected compile/import, pycompile, and diff check are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+Static definition/signature/body/call/import/count/DAG/audit inspection,
+projected AST compilation, and five existing owner/caller probes passed.
+Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is not a
+behavior, quality, ranking, performance, benchmark, schedule, or completion
+claim.
