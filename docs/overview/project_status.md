@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `3eadee4` deleted the dead Analyst/Researcher `_trace(...)` helpers and Orchestrator `_artifact_payload(...)`; the three selected definitions and all selected consumers are now zero while live MAS trace/artifact boundaries remain |
-| What passed? | Targeted Analyst/Orchestrator/Researcher/MAS 45/45, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a dead-definition-only optional-MAS cleanup, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Rename all 13 externally imported private wrappers in `financial_graph_model_loaders.py` to public APIs in one owner-wide batch; keep only cached `_graph_model(...)` private and preserve lazy imports |
+| What just changed? | `4dd38ca` renamed all 13 externally imported private graph-model-loader wrappers to public APIs; only cached `_graph_model(...)` remains private and all retired private refs are zero |
+| What passed? | Mapping/identity 13/13, affected tests 466/466, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only lazy-loader rename with full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
+| What is next? | Rename all four private lazy functions in `financial_langchain_loaders.py` to public APIs in one owner-wide batch while preserving function-local imports and exact factories |
 
 ## Product Boundary
 
@@ -748,15 +748,15 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, targeted Analyst/Orchestrator/Researcher/MAS 45 / 45; import side effects 19 / 19 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after optional-MAS dead-definition cleanup |
+| Latest focused owner checkpoint | PASS, graph-model-loader mapping/identity 13 / 13; affected seven-module set 466 / 466 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after graph-model-loader public API convergence |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Full unittest discovery | PASS, 2,143 / 2,143 |
-| Benchmark refresh after latest dead-definition cleanup | **NOT RUN** |
+| Benchmark refresh after latest visibility-only cleanup | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -799,66 +799,92 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename all 13 externally imported private wrappers in
-`financial_graph_model_loaders.py` in place to public APIs. Keep only cached
-`_graph_model(name)` private. Add no compatibility alias or wrapper, do not
-eagerly import `financial_graph_models`, and do not change any model class,
-payload, caller gate, exception boundary, or result adoption. Update exactly 17
-imports, 18 direct calls, and 18 existing test patch/string references across
-the selected files. Add no test method; this batch reduces the private API mesh
-without increasing test-count noise.
+Rename all four functions in `financial_langchain_loaders.py` in place to public
+APIs. Add no compatibility alias or wrapper, do not move any LangChain import to
+module scope, and do not change any factory, argument evaluation, returned
+identity, caller gate, or exception boundary. The exact mapping is:
 
-The exact public mapping is:
-
-| Current | Public | Lazy target |
+| Current | Public | Exact lazy behavior |
 | --- | --- | --- |
-| `_aggregate_synthesis_output_model` | `aggregate_synthesis_output_model` | `AggregateSynthesisOutput` |
-| `_calculation_plan_model` | `calculation_plan_model` | `CalculationPlan` |
-| `_calculation_render_output_model` | `calculation_render_output_model` | `CalculationRenderOutput` |
-| `_calculation_verification_output_model` | `calculation_verification_output_model` | `CalculationVerificationOutput` |
-| `_compression_output_model` | `compression_output_model` | `CompressionOutput` |
-| `_concept_planner_output_model` | `concept_planner_output_model` | `ConceptPlannerOutput` |
-| `_evidence_extraction_model` | `evidence_extraction_model` | `EvidenceExtraction` |
-| `_numeric_extraction_model` | `numeric_extraction_model` | `NumericExtraction` |
-| `_operand_extraction_model` | `operand_extraction_model` | `OperandExtraction` |
-| `_reconciliation_candidate_rerank_model` | `reconciliation_candidate_rerank_model` | `ReconciliationCandidateRerank` |
-| `_reflection_query_plan_model` | `reflection_query_plan_model` | `ReflectionQueryPlan` |
-| `_validation_output_model` | `validation_output_model` | `ValidationOutput` |
-| `_validate_answer_slots_payload` | `validate_answer_slots_payload` | `validate_answer_slots_payload` |
+| `_chat_prompt_template_from_template(template: str)` | `chat_prompt_template_from_template(template: str)` | local `ChatPromptTemplate` import, then exact `ChatPromptTemplate.from_template(template)` |
+| `_str_output_parser()` | `str_output_parser()` | local `StrOutputParser` import, then zero-argument construction |
+| `_runnable_passthrough()` | `runnable_passthrough()` | local `RunnablePassthrough` import, then zero-argument construction |
+| `_document(*, page_content: str, metadata: Mapping[str, Any])` | `document(*, page_content: str, metadata: Mapping[str, Any])` | local `Document` import, then exact `Document(page_content=page_content, metadata=dict(metadata))` |
 
-Each first twelve wrapper has no parameters, calls `_graph_model(...)` once with
-the exact target string, and returns the exact object. The validation wrapper
-accepts its original payload identity, resolves the exact validation callable,
-invokes it once with one positional argument and no keyword, and returns the
-exact result. Rename its owner-local callable binding from
-`validate_answer_slots_payload` to `validator` so the new public function name
-does not shadow a local variable. Preserve all uncaught import, attribute,
-loader, callable, and validation exceptions. `_graph_model` keeps exact
-`@lru_cache(maxsize=None)`, `import_module(...)`, and `getattr(...)` behavior.
+The document inputs remain keyword-only. Preserve the fresh outer metadata dict,
+its retained nested-object identities, and every import, attribute, factory, or
+mapping-conversion failure. Importing the loader owner must continue to add zero
+`langchain_core` modules. The prompt/parser/passthrough/document probes must
+return their exact factory results; no caller catches a new failure.
 
-The selected owner has 13 definitions at lines 16-66. Current/projected owner
-public/private counts are 0/14 to 13/1. Source has 13 definitions, 17 imports,
-and 18 direct calls across eight paths; six test files contain 18 exact private
-references. There is no same-module or caller public-name collision after the
-local `validator` rename. The mapping-record SHA-256 is
-`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`.
+Current scope is four definitions, 14 import bindings, and 25 direct calls over
+nine source paths: 16 prompt, six parser, one passthrough, and two document calls.
+The two evidence parser calls remain inside caller `try` depth one; every other
+selected call remains at depth zero. Current/projected owner public/private
+counts are 0/4 to 4/0. Public-name collisions, non-call loads, module attributes,
+and source/test `getattr`/`hasattr` consumers are zero.
+
+Mapping-record SHA-256 is
+`c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`.
 Current/projected binding hashes are
-`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
-`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`;
+`395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
+`59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`;
 call-record hashes are
-`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
-`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+`82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
+`dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`.
 
-Current direct mapping/identity probes pass 13/13 and projected AST compilation
-passes source 8/8 plus tests 6/6. The recursive agent DAG remains 48 modules/203
-edges with hash
+Six test files contain 13 exact private patch strings. The rename also changes
+the following already-pinned CURRENT-SOURCE fingerprints:
+
+| Scope | Current | Projected | Replacements |
+| --- | --- | --- | ---: |
+| caller `_extract_calculation_operands` | `b44b7f616419c86f8047ff446b9f6b020fdec15b524374a42eb7240923656393` | `8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac` | 4 |
+| caller `_plan_formula_calculation_from_operation_decision` | `777472b4cd65105c9f3115db8f320d35c747dbd82264fd6c13169966f64ee589` | `fae9e68d4b8ce499b9ba09c72b8d50861d881ee9ac51a2e8d3fefbd344c6d415` | 1 |
+| caller `_extract_evidence` | `c07cdfe9109da26935c275ae85c99d1c23f166d181dfbf919da77bbb3e2ef60b` | `70e15a350298d98dee4b110d4033ef7cb8e336f3801a4050d81bddb9b88a3b6e` | 2 |
+| caller `_plan_reflection_retry` | `e7cb9f5d4b30fb5862524e59c6771a7e11d14b0853ba2f6386fc87ebcad16040` | `1797f79af32c1e06b6627a0e25ba0457a8288f9eb001b692c43a86c90678cfb9` | 2 |
+| `is_ratio_percent_query` caller map | `f34d81f35d5c2ea72ad442a7b73d63b8696f76dbda1071fe55fd66c909b5618d` | `0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e` | 1 |
+| narrative-context caller map | `0ecabd140a22cb1f8992ea46f0da815305868d2e1d913f91f70047e0bad2d390` | `b28eb301ac4af8d5cfda0d990dfb3f07aed9b47dfc2f4800faf7523332dd0de0` | 1 |
+| percent-point-difference caller map | `66a4431133b269f9f78f16eccc46fecdb27f25f919cb084f9659eba2fdbfbad5` | `65fc95530821ed9f9cb776d62736c0f5d1e4b1c71cb57b10182c2c10db389b19` | 1 |
+| percent-point-coercion caller map | `7398adefc5b59d9ce6607cc8ceae0c52da2a062ba8dc3066c9720efad02db927` | `a5308e1856ef1f3e82e7a7994c05c6ca375fd19c2278ad99c98fa3400978e52c` | 1 |
+| direct-numeric-grounding caller map | `106f168828edbb8e420d60463381be08b438ee680bdd1d7df2b0ccc150a253a7` | `c54161def8235e16506e68be3e11f3ad3366088f911f649465cd862d9d072cac` | 1 |
+| desired-consolidation-scope caller map | `7beaca67827ba25b13fea4c40d71eae90bf440ad19ae79966a849e1561534ba0` | `53538b42c37007f917208ad83081cc45a4af1523f89339025cf95dd636b3cc43` | 2 |
+
+These are nine caller-body plus seven caller-map occurrences, or 16 fingerprint
+replacements. Their canonical mapping hash is
+`4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
+Projected source/test/whole transforms are `+42/-42`, `+29/-29`, and
+`+71/-71`. Add no test method or weakened expectation.
+
+Current fresh-import isolation, factory identity 4/4, metadata-copy, and
+exception-propagation probes pass. Projected AST compilation passes source 9/9
+plus tests 6/6. The recursive agent DAG must remain 48 modules/203 edges at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`;
-the selected owner span intersects no reviewed domain-language record, so audit
-remains 217. Required post-edit gates are complete private-to-public transform,
-retired private refs zero, owner counts 13/1, mapping and 18-caller parity,
-affected seven-module tests 466/466, import-side-effect 19/19, runtime audit 217,
-full discovery 2,143/2,143, source/test pycompile, and `git diff --check`.
+the audit remains 217. Required post-edit gates are complete transform, retired
+private refs zero, owner counts 4/0, mapping/caller/fingerprint parity, affected
+seven-module tests 676/676, import-side-effect 19/19, runtime audit 217, full
+discovery 2,143/2,143, source/test pycompile, and `git diff --check`.
 Benchmark refresh and remote CI remain **NOT RUN**.
+
+## Completed Graph-Model-Loader Public API Batch
+
+Commit `4dd38ca` renamed all 13 selected definitions, 17 imports, and 18 calls to
+public names. Cached `_graph_model(name)` remains the only private owner function.
+Lazy import, exact model identity, answer-slot payload identity, exception
+propagation, and caller result adoption remain unchanged. Retired private refs
+finish zero and owner public/private counts finish 13/1.
+
+The characterize-only checkpoint counted 18 direct test refs but missed nine
+caller-body plus seven caller-map fingerprint replacements. Final production is
+`+50/-50`, tests are `+34/-34`, and the whole commit is `+84/-84`; no test method
+was added or weakened. The committed diff SHA-256 is
+`30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`.
+
+Mapping/identity 13/13, affected tests 466/466, import side effects 19/19, audit
+217, source/test pycompile, retired-ref zero, unchanged 48-module/203-edge DAG,
+and full discovery 2,143/2,143 in 213.609 seconds passed. Benchmark refresh and
+remote CI were **NOT RUN**. This visibility-only milestone is not a behavior,
+quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Dead MAS-Node Helper Cleanup
 

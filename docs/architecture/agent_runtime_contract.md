@@ -5804,37 +5804,72 @@ passed. The committed diff SHA-256 is
 `2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next contract renames all 13 externally imported private model-loader
-wrappers at owner lines 16-66 to their leading-underscore-free public names.
-Only `_graph_model(name)` remains private. Add no alias or wrapper and retain
-lazy import isolation. The first twelve zero-argument wrappers each call
-`_graph_model(...)` exactly once with their current target model string and
-return its exact result. The validation wrapper passes its original payload to
-the exact lazily resolved callable and returns its exact result. Rename only its
-owner-local callable binding to `validator` to avoid shadowing the new public
-function name. Preserve all uncaught loader, import, attribute, callable, and
-validation failures.
+Commit `4dd38ca` completes the graph-model-loader public API batch. All 13
+selected definitions, 17 imports, and 18 calls now use their public names;
+`_graph_model(name)` is the only private owner function. The validation wrapper
+uses owner-local `validator`, while lazy `import_module(...)`, exact model target
+identity, the unbounded LRU cache, payload identity, and every uncaught failure
+remain unchanged. Retired private refs finish zero and owner public/private
+counts finish 13/1.
 
-Exact private/public/model mapping is authoritative only in
-[Project Status Next Work](../overview/project_status.md#next-work); its mapping
-hash is
-`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`.
-The complete source transform is 13 definitions, 17 imports, and 18 calls over
-eight paths; six tests have 18 exact patch/string references. Owner public/
-private counts project 0/14 to 13/1. Current/projected binding hashes are
-`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
-`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`;
+The characterize-only inventory counted 18 direct test patch/string refs but
+missed nine caller-body and seven caller-map fingerprint replacements. The final
+test transform is therefore 34 replacements, not 18. Production source is
+`+50/-50`, tests are `+34/-34`, and the whole commit is `+84/-84`. Mapping/
+identity 13/13, affected 466/466, import 19/19, audit 217, source/test pycompile,
+unchanged 48-module/203-edge DAG, private-ref zero, full 2,143/2,143 in 213.609
+seconds, and diff checks passed. The committed diff SHA-256 is
+`30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next contract renames all four externally imported private functions in
+`financial_langchain_loaders.py` to their leading-underscore-free public names:
+`chat_prompt_template_from_template`, `str_output_parser`,
+`runnable_passthrough`, and `document`. Add no alias or wrapper. Preserve each
+function-local LangChain import so importing the owner continues to load zero
+`langchain_core` modules. Preserve exact factory selection, argument evaluation,
+return identity, and every import/attribute/factory failure.
+
+`chat_prompt_template_from_template(template: str)` must import
+`ChatPromptTemplate` locally and return exact `ChatPromptTemplate.from_template(template)`.
+The parser and passthrough functions must import and instantiate their exact
+classes with zero arguments. `document(*, page_content: str, metadata:
+Mapping[str, Any])` must retain keyword-only inputs and exact
+`Document(page_content=page_content, metadata=dict(metadata))`, including the
+fresh outer metadata dict and retained nested identities.
+
+The batch updates four definitions, 14 import bindings, and 25 direct calls
+across nine source paths. Call distribution is 16 prompt, six parser, one
+passthrough, and two document calls. The two parser fallbacks retain caller
+`try` depth one; every other selected call remains at depth zero. Thirteen exact
+test strings span six files. Four caller-body hashes occur nine times and six
+caller-map hashes occur seven times, for 16 additional fingerprint replacements
+and 29 total test replacements. Exact mapping and fingerprint pairs are
+authoritative only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+The mapping hash is
+`c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`.
+Current/projected binding hashes are
+`395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
+`59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`;
 call hashes are
-`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
-`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+`82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
+`dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`;
+the fingerprint mapping hash is
+`4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
 
-Direct mapping/identity probes pass 13/13 and projected compile passes source
-8/8 plus tests 6/6. No same-module/caller collision remains after `validator`;
-private selected refs must finish zero. The DAG remains 48/203 at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
-and audit remains 217. Affected tests 466/466, import 19/19, full 2,143/2,143,
-pycompile, complete transform, and diff check are required. Add no test method.
-Benchmark refresh and remote CI remain **NOT RUN**.
+Current fresh-import isolation and direct loader probes pass 4/4, metadata-copy
+and exception propagation pass, and projected AST compilation passes source 9/9
+plus tests 6/6. Public-name collisions, non-call loads, module attributes, and
+dynamic consumers are zero. Owner public/private counts project 0/4 to 4/0;
+source projects `+42/-42`, tests `+29/-29`, and the whole batch `+71/-71`.
+The DAG must remain 48/203 at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Required gates are complete transform, retired private refs zero, affected
+676/676, import 19/19, audit 217, source/test pycompile, full 2,143/2,143, and
+diff check. Add no test method. Benchmark refresh and remote CI remain
+**NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

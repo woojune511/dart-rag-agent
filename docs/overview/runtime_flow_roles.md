@@ -1250,13 +1250,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   sizes는 317/660/368, public/private counts는 2/10, 4/22, 2/14이며 targeted
   MAS 45/45, import 19/19, audit 217, unchanged 48/203 DAG, full 2,143/2,143가
   통과했다.
-- 다음 visibility batch는 `financial_graph_model_loaders.py`의 externally
-  imported private wrapper 13개를 같은 이름의 public API로 in-place rename한다.
-  `_graph_model(...)`의 lazy import, exact target identity, unbounded LRU cache와
-  exception propagation은 유지하고 alias/wrapper는 추가하지 않는다. Owner
-  public/private는 0/14에서 13/1로 수렴하며, 정확한 13-name mapping, 8-source/
-  6-test transform, affected 466, audit 217, unchanged 48/203 DAG, full 2,143
-  gate는 [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `4dd38ca` visibility batch는 `financial_graph_model_loaders.py`의
+  externally imported private wrapper 13개를 public API로 in-place rename했다.
+  `_graph_model(...)`만 private로 남고 lazy import, exact target identity,
+  unbounded LRU cache와 exception propagation은 유지됐다. Owner public/private는
+  13/1이며 source `+50/-50`, tests `+34/-34`, affected 466/466, import 19/19,
+  audit 217, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_langchain_loaders.py`의 lazy loader 4개를
+  public API로 in-place rename한다. Lazy LangChain import, prompt/parser/
+  passthrough identity, `Document` metadata copy와 모든 caller exception boundary를
+  유지하고 alias/wrapper는 추가하지 않는다. Owner public/private는 0/4에서
+  4/0으로 수렴하며, 정확한 9-source/6-test transform, fingerprint 16개,
+  affected 676, audit 217, unchanged 48/203 DAG, full 2,143 gate는
+  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

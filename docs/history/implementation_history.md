@@ -8791,3 +8791,67 @@ completion claim.
   audit remains 217, and full discovery remains 2,143. Exact mapping and gates
   are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Graph-model-loader public API milestone
+
+- Commit `4dd38ca` renames all 13 selected owner definitions, 17 imports, and 18
+  calls to public names without a wrapper or alias. `_graph_model(name)` remains
+  the only private owner function. Its `@lru_cache(maxsize=None)`, lazy
+  `import_module(...)`, exact `getattr(...)`, returned model identity, and every
+  import/attribute/callable/validation failure remain unchanged. The answer-slot
+  validator retains payload identity through owner-local `validator`.
+- Retired private refs finish zero and owner public/private counts finish 13/1.
+  Direct mapping/identity probes pass 13/13. Production source is `+50/-50`:
+  15 owner replacements plus 17 imports and 18 calls.
+- The characterize-only checkpoint counted 18 direct test refs but missed nine
+  caller-body and seven caller-map fingerprint replacements. The final test
+  transform is therefore `+34/-34`, not `+18/-18`; the whole commit is
+  `+84/-84`. No test method was added or weakened.
+- Affected tests 466/466, import-side-effect 19/19, audit 217, source/test
+  pycompile, unchanged 48-module/203-edge DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
+  full 2,143/2,143 in 213.609 seconds, private-ref zero, and diff checks passed.
+  The committed diff SHA-256 is
+  `30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`.
+  Benchmark refresh and remote CI were **NOT RUN**; this is a visibility-only
+  refactor, not a behavior, quality, performance, or Phase 3 completion claim.
+
+### LangChain-loader public API characterization checkpoint
+
+- The next batch renames all four functions in
+  `financial_langchain_loaders.py` in place:
+  `_chat_prompt_template_from_template` to
+  `chat_prompt_template_from_template`, `_str_output_parser` to
+  `str_output_parser`, `_runnable_passthrough` to `runnable_passthrough`, and
+  `_document` to `document`. Add no compatibility alias or forwarding wrapper;
+  owner public/private counts project 0/4 to 4/0.
+- Preserve each function-local `langchain_core` import. The prompt wrapper must
+  call exact `ChatPromptTemplate.from_template(template)`; parser and
+  passthrough wrappers instantiate their exact classes with zero arguments. The
+  document wrapper retains keyword-only `page_content`/`metadata` and exact
+  `Document(page_content=page_content, metadata=dict(metadata))`, including a
+  fresh outer mapping and nested-object identities. Preserve every exception.
+  Fresh-import isolation, direct factory identity 4/4, metadata-copy, and
+  exception-propagation probes pass.
+- Static scope is four definitions, 14 import bindings, and 25 calls across one
+  owner plus eight importers. Calls finish 16 prompt, six parser, one
+  passthrough, and two document; two parser calls retain `try` depth one and all
+  other calls depth zero. Public collisions, non-call loads, attributes, and
+  dynamic consumers are zero. Projected compilation passes source 9/9 and tests
+  6/6.
+- Thirteen direct test strings plus nine caller-body and seven caller-map hash
+  occurrences make 29 test replacements. Source/test/whole projections are
+  `+42/-42`, `+29/-29`, and `+71/-71`. The fingerprint mapping contains 16
+  replacements with hash
+  `4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
+- Mapping, current/projected binding, and current/projected call hashes are
+  `c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`,
+  `395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
+  `59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`,
+  and
+  `82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
+  `dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`.
+  The DAG projects unchanged at 48/203, audit remains 217, the affected seven-
+  module suite is 676 tests, and full discovery remains 2,143. Exact mapping,
+  fingerprint pairs, and gates are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).

@@ -1968,25 +1968,44 @@ SHA-256 is
 `2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`;
 benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility batch publicizes all 13 externally imported private
-wrappers in `financial_graph_model_loaders.py` in place. Keep `_graph_model(...)`
-private, lazily import `financial_graph_models`, retain its unbounded LRU cache,
-and add no compatibility alias or forwarding wrapper. The validation wrapper
-uses an owner-local `validator` binding after the rename so it does not shadow
-its public function name. Owner public/private counts project from 0/14 to 13/1.
-The complete transform spans eight source paths: one owner and seven importers;
-it updates 13 definitions, 17 imports, 18 source loads/calls, and 18 existing
-test references in six files. Mapping, binding, and current/projected call-record
+Commit `4dd38ca` completed the graph-model-loader public API batch. All 13
+selected definitions, 17 imports, and 18 calls use public names; only cached
+`_graph_model(...)` remains private. Lazy import, model/payload identity, and
+exception boundaries remain unchanged. Owner public/private counts finish 13/1
+and retired private refs finish zero.
+
+The initial characterization missed nine caller-body and seven caller-map
+fingerprint replacements. Final source is `+50/-50`, tests are `+34/-34`, and
+the whole commit is `+84/-84`. Mapping/identity 13/13, affected 466/466, import
+19/19, audit 217, compile/pycompile, unchanged 48/203 DAG, full 2,143/2,143, and
+diff checks passed. The diff SHA-256 is
+`30e6ecf0905c80d799932ade117525ea698afa18b2697bb93d1360091c49ec37`;
+benchmark refresh and remote CI were **NOT RUN**.
+
+The next bounded visibility batch publicizes all four functions in
+`financial_langchain_loaders.py` in place. Preserve function-local imports,
+exact prompt/parser/passthrough/document factories, `document(...)` keyword-only
+inputs and fresh outer metadata copy, returned identities, and all exceptions.
+Add no alias or wrapper. Owner public/private counts project 0/4 to 4/0.
+
+The transform spans one owner plus eight importers: four definitions, 14 import
+bindings, and 25 calls over nine source paths. Thirteen exact test strings plus
+16 caller-body/map fingerprints make 29 test replacements in six files. Source,
+tests, and whole-batch projections are `+42/-42`, `+29/-29`, and `+71/-71`.
+Mapping, current/projected binding, current/projected call, and fingerprint
 hashes are respectively
-`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`,
-`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
-`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`,
+`c8e0fa3d0ad375525bbd70a11c3b144e3c8dfa2769208ff1f9ab4b1d77f4e084`,
+`395d4efc19b25d1a9bacbd91288d5f0d54208aa664cc638b3e9e05a89f6d7b64` /
+`59bf77dfac15eaf15b59196bc25ba064965491e1e7092539ae95487d8b295e09`,
+`82d75a0b41292186737024be7b32664d88ac6e6689ce2c49ef818c3423e1cc67` /
+`dbad002ce2f18e9f4c1d7e196682309e3edd06f6d2960bf3d879e44d9be32d46`,
 and
-`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
-`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
-Projected AST compilation passes all eight source and six test paths, the DAG
-remains 48/203, audit remains 217, the affected suite remains 466 tests, and full
-discovery remains 2,143. Exact names and gates are defined only in
+`4d9b13ad5541d99acb2cdc86ee9e5c95bf5c61e480a11e693782e96f89d7c323`.
+Fresh-import isolation, loader identity 4/4, metadata-copy, exception, and
+projected compile 9/9 plus 6/6 checks pass. Public collision and dynamic-consumer
+counts are zero. The DAG remains 48/203, audit remains 217, affected tests remain
+676, and full discovery remains 2,143. Exact names, fingerprint pairs, and gates
+are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
