@@ -456,7 +456,7 @@ def candidate_period_table_coherence_bonus(
     return score
 
 
-def _report_scope_source_receipts(report_scope: Dict[str, Any]) -> List[str]:
+def report_scope_source_receipts(report_scope: Dict[str, Any]) -> List[str]:
     receipts: List[str] = []
     for row in _report_scope_source_reports(report_scope):
         receipt_no = str(row.get("rcept_no") or "").strip()
@@ -470,7 +470,7 @@ def has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
     if str(scope.get("rcept_no") or "").strip():
         return True
     try:
-        return len(_report_scope_source_receipts(scope)) <= 1
+        return len(report_scope_source_receipts(scope)) <= 1
     except Exception:
         return False
 
@@ -534,6 +534,6 @@ def should_apply_strict_company_scope(companies: List[str], report_scope: Dict[s
     scope_rcept_no = str(scope.get("rcept_no") or "").strip()
     if scope_rcept_no:
         return False
-    if _report_scope_source_receipts(scope):
+    if report_scope_source_receipts(scope):
         return False
     return True

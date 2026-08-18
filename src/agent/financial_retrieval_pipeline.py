@@ -36,7 +36,7 @@ from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
     metadata_period_match_strength,
-    _report_scope_source_receipts,
+    report_scope_source_receipts,
     should_apply_strict_company_scope,
 )
 from src.agent.financial_surface_contracts import (
@@ -2031,7 +2031,7 @@ class FinancialRetrievalPipelineMixin:
             years = [scope_year, *years] if years else [scope_year]
         scope_report_type = str(report_scope.get("report_type") or "").strip()
         scope_rcept_no = str(report_scope.get("rcept_no") or "").strip()
-        scope_source_receipts = _report_scope_source_receipts(report_scope)
+        scope_source_receipts = report_scope_source_receipts(report_scope)
         has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
         section_filter = state.get("section_filter")
