@@ -317,7 +317,6 @@ from src.agent.financial_text_surface import (
     polish_korean_particle_pairs as _polish_korean_particle_pairs,
     preserve_retrieved_narrative_source_surface,
     preserve_source_visible_query_terms,
-    query_focus_marker_groups,
     query_focus_markers,
     split_narrative_sentences as _split_narrative_sentences,
     topic_particle as _topic_particle,
