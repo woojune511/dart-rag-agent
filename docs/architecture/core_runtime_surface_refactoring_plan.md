@@ -1953,16 +1953,40 @@ The diff SHA-256 is
 `ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`;
 benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded cleanup deletes three dead 2-line MAS-node definitions:
-Analyst and Researcher `_trace(...)`, plus Orchestrator `_artifact_payload(...)`.
-All selected import/load/call/attribute/dynamic consumer counts are zero. Keep
-the live orchestrator trace, artifact boundary functions, and all imports. The
-selected-definition current/empty hashes are
-`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70` /
+Commit `3eadee4` completed the dead MAS-node helper cleanup. Analyst and
+Researcher `_trace(...)`, plus Orchestrator `_artifact_payload(...)`, were
+deleted while the live orchestrator trace, artifact boundary functions, and all
+imports remained. The final selected import/load/call/attribute/dynamic-consumer
+record is empty at
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-The patch projects nine physical lines deleted, private function counts
-11/23/15 to 10/22/14, compile 3/3, unchanged 48/203 DAG, audit 217, targeted MAS
-45, import 19, and full 2,143. Exact boundaries and gates are defined only in
+The actual patch deleted 12 physical lines, not the projected nine, because each
+2-line definition also consumed two surrounding separator lines. Final module
+sizes are 317/660/368 and public/private function counts are 2/10, 4/22, and
+2/14. Targeted MAS 45/45, import 19/19, audit 217, compile/pycompile, unchanged
+48-module/203-edge DAG, full 2,143/2,143, and diff checks passed. The diff
+SHA-256 is
+`2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`;
+benchmark refresh and remote CI were **NOT RUN**.
+
+The next bounded visibility batch publicizes all 13 externally imported private
+wrappers in `financial_graph_model_loaders.py` in place. Keep `_graph_model(...)`
+private, lazily import `financial_graph_models`, retain its unbounded LRU cache,
+and add no compatibility alias or forwarding wrapper. The validation wrapper
+uses an owner-local `validator` binding after the rename so it does not shadow
+its public function name. Owner public/private counts project from 0/14 to 13/1.
+The complete transform spans eight source paths: one owner and seven importers;
+it updates 13 definitions, 17 imports, 18 source loads/calls, and 18 existing
+test references in six files. Mapping, binding, and current/projected call-record
+hashes are respectively
+`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`,
+`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
+`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`,
+and
+`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
+`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+Projected AST compilation passes all eight source and six test paths, the DAG
+remains 48/203, audit remains 217, the affected suite remains 466 tests, and full
+discovery remains 2,143. Exact names and gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded

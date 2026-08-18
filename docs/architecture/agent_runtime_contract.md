@@ -5788,31 +5788,53 @@ consumer checks, and full 2,143/2,143 passed. The committed diff SHA-256 is
 `ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next contract deletes exactly three unused 2-line private definitions:
-`analyst_node._trace(...)` at 21-22,
-`orchestrator_node._artifact_payload(...)` at 157-158, and
-`researcher_node._trace(...)` at 37-38. Each selected owner has zero import,
-load, call, module-attribute, `getattr`/`hasattr`, and patch-string consumers in
-`src` and `tests`. The live orchestrator `_trace(...)` and every artifact-
-boundary consumer remain outside this deletion.
-
-The two selected trace helpers have source/AST hashes
-`d51ecccce408de70bf0ff9b9607967190b155314a79777014e3c9d55f018b89d` /
-`16b49f6cdfe93089fab003270a7697d53145ec755d4007f2d19c32a94ff06686`;
-the artifact helper hashes are
-`4958b08162a6c19af90f9abc0acc06f55090350a9d53fc3cb5a0190d55421034` /
-`f52c21a79e7b50898e8b8715f1a1c0ce0aaa52f42c732431e2f76d6399e45585`.
-Delete each definition plus its blank separator only. Physical lines project
-321/664/372 to 318/661/369 and private function counts 11/23/15 to 10/22/14;
-public counts remain 2/4/2. No import changes. The selected-definition current/
-empty hashes are
-`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70` /
+Commit `3eadee4` completes the dead MAS-node helper cleanup. The two selected
+trace definitions and one artifact-payload definition are absent; their selected
+definition/import/load/call/attribute/dynamic record is empty at hash
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Compile projects 3/3, audit remains 217, and the 48/203 DAG and edge hash remain
-unchanged. Targeted MAS 45/45, import 19/19, full 2,143/2,143, pycompile,
-consumer-zero, and diff check are required. Exact active-work authority is
-[Project Status Next Work](../overview/project_status.md#next-work); benchmark
-refresh and remote CI remain **NOT RUN**.
+The live orchestrator trace, artifact answer/reference projections, all imports,
+and two `project_worker_artifact_boundary(...)` loads remain.
+
+The earlier projection counted one separator line per helper, while the source
+has two blank top-level separators. The exact implementation deletes 12 physical
+lines and finishes module sizes 317/660/368, public/private function counts
+2/10, 4/22, and 2/14. Targeted MAS 45/45, import 19/19, audit 217, compile/
+pycompile, unchanged 48-module/203-edge DAG, consumer-zero, and full 2,143/2,143
+passed. The committed diff SHA-256 is
+`2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next contract renames all 13 externally imported private model-loader
+wrappers at owner lines 16-66 to their leading-underscore-free public names.
+Only `_graph_model(name)` remains private. Add no alias or wrapper and retain
+lazy import isolation. The first twelve zero-argument wrappers each call
+`_graph_model(...)` exactly once with their current target model string and
+return its exact result. The validation wrapper passes its original payload to
+the exact lazily resolved callable and returns its exact result. Rename only its
+owner-local callable binding to `validator` to avoid shadowing the new public
+function name. Preserve all uncaught loader, import, attribute, callable, and
+validation failures.
+
+Exact private/public/model mapping is authoritative only in
+[Project Status Next Work](../overview/project_status.md#next-work); its mapping
+hash is
+`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`.
+The complete source transform is 13 definitions, 17 imports, and 18 calls over
+eight paths; six tests have 18 exact patch/string references. Owner public/
+private counts project 0/14 to 13/1. Current/projected binding hashes are
+`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
+`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`;
+call hashes are
+`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
+`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+
+Direct mapping/identity probes pass 13/13 and projected compile passes source
+8/8 plus tests 6/6. No same-module/caller collision remains after `validator`;
+private selected refs must finish zero. The DAG remains 48/203 at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
+and audit remains 217. Affected tests 466/466, import 19/19, full 2,143/2,143,
+pycompile, complete transform, and diff check are required. Add no test method.
+Benchmark refresh and remote CI remain **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

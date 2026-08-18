@@ -8734,3 +8734,60 @@ completion claim.
   projects 45/45, import 19/19, and full discovery remains 2,143/2,143. Add no
   test method or expectation change. Exact gates are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Dead MAS-node helper cleanup milestone
+
+- Commit `3eadee4` deletes only Analyst and Researcher `_trace(...)` plus
+  Orchestrator `_artifact_payload(...)`. The live orchestrator trace,
+  `_artifact_answer(...)`, `_artifact_refs(...)`,
+  `project_worker_artifact_boundary(...)`, and every import remain. Final
+  selected definition/import/load/call/attribute/dynamic-consumer counts are
+  zero; the canonical empty record hash is
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- The actual source diff is 12 deletions rather than the projected nine because
+  each 2-line helper removal also consumes two top-level separator lines. Final
+  module sizes are 317/660/368 and public/private function counts are 2/10,
+  4/22, and 2/14. No newly unused import remains.
+- Targeted Analyst/Orchestrator/Researcher/MAS 45/45, import-side-effect 19/19,
+  audit 217, three-file pycompile, unchanged 48-module/203-edge DAG, full
+  2,143/2,143 in 211.556 seconds, and diff checks pass. The committed diff
+  SHA-256 is
+  `2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`.
+  Benchmark refresh and remote CI were **NOT RUN**; this is a dead-code-only
+  milestone, not a runtime-quality or Phase 3 completion claim.
+
+### Graph-model-loader public API characterization checkpoint
+
+- The next batch renames all 13 externally imported private wrappers in
+  `financial_graph_model_loaders.py` in place:
+  `aggregate_synthesis_output_model`, `calculation_plan_model`,
+  `calculation_render_output_model`, `calculation_verification_output_model`,
+  `compression_output_model`, `concept_planner_output_model`,
+  `evidence_extraction_model`, `numeric_extraction_model`,
+  `operand_extraction_model`, `reconciliation_candidate_rerank_model`,
+  `reflection_query_plan_model`, `validation_output_model`, and
+  `validate_answer_slots_payload`. Keep `_graph_model(...)` as the only private
+  owner function and add no wrapper or alias.
+- Preserve lazy `import_module("src.agent.financial_graph_models")`, exact
+  `getattr(module, name)`, `@lru_cache(maxsize=None)`, target identity, exception
+  propagation, and the validation wrapper's one-positional-argument call. Rename
+  its owner-local target binding to `validator` to avoid public-name shadowing.
+  Direct current mapping/identity probes pass 13/13.
+- Static scope is 13 definitions, 17 imports, and 18 loads/calls across one
+  owner plus seven importers. Eighteen exact private test references span six
+  files; with import-side-effect coverage, the affected seven-module suite is
+  466 tests. Owner public/private counts project from 0/14 to 13/1.
+- The mapping record hash is
+  `85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`.
+  Current/projected binding hashes are
+  `5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
+  `5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`;
+  current/projected call-record hashes are
+  `7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
+  `713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+  Projected compilation passes source 8/8 and tests 6/6; the DAG remains
+  48/203 at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
+  audit remains 217, and full discovery remains 2,143. Exact mapping and gates
+  are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).

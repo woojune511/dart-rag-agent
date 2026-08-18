@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `be1fbc9` deleted exactly four zero-load/zero-call cross-module private imports while preserving every helper definition and live call; the agent DAG is now 48 modules/203 edges |
-| What passed? | Focused DAG 19/19, graph owner 290/290, affected semantic set 1,250/1,250, separate owner set 144/144, reflection/retrieval/reconciliation/import set 110/110, import-side-effect 19/19, runtime audit 217, pycompile, zero dynamic consumers, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with preserved definitions/calls and full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Delete the two dead MAS-node `_trace(...)` helpers and the dead orchestrator `_artifact_payload(...)` helper; all three exact 2-line definitions have zero import/load/call/attribute/dynamic consumers |
+| What just changed? | `3eadee4` deleted the dead Analyst/Researcher `_trace(...)` helpers and Orchestrator `_artifact_payload(...)`; the three selected definitions and all selected consumers are now zero while live MAS trace/artifact boundaries remain |
+| What passed? | Targeted Analyst/Orchestrator/Researcher/MAS 45/45, import-side-effect 19/19, runtime audit 217, pycompile, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a dead-definition-only optional-MAS cleanup, not a policy-behavior, ingest, retrieval, or answer-contract change |
+| What is next? | Rename all 13 externally imported private wrappers in `financial_graph_model_loaders.py` to public APIs in one owner-wide batch; keep only cached `_graph_model(...)` private and preserve lazy imports |
 
 ## Product Boundary
 
@@ -748,15 +748,15 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, zero-load import DAG contracts 19 / 19; graph owner 290 / 290; separate owner set 144 / 144 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,250 / 1,250; reflection/retrieval/reconciliation/import set 110 / 110 |
+| Latest focused owner checkpoint | PASS, targeted Analyst/Orchestrator/Researcher/MAS 45 / 45; import side effects 19 / 19 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after optional-MAS dead-definition cleanup |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Full unittest discovery | PASS, 2,143 / 2,143 |
-| Benchmark refresh after latest dead-import cleanup | **NOT RUN** |
+| Benchmark refresh after latest dead-definition cleanup | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -799,47 +799,90 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Delete exactly three top-level private helper definitions that have zero imports,
-loads, calls, module-attribute consumers, and dynamic/string-based consumers in
-`src` and `tests`. The selected functions are the exact 2-line
-`analyst_node._trace(message: str) -> List[str]` at lines 21-22, the exact 2-line
-`orchestrator_node._artifact_payload(artifact: Artifact) -> Dict[str, Any]` at
-lines 157-158, and the exact 2-line `researcher_node._trace(message: str) ->
-List[str]` at lines 37-38. Do not delete the live orchestrator `_trace(...)`, any
-artifact boundary function, or any import.
+Rename all 13 externally imported private wrappers in
+`financial_graph_model_loaders.py` in place to public APIs. Keep only cached
+`_graph_model(name)` private. Add no compatibility alias or wrapper, do not
+eagerly import `financial_graph_models`, and do not change any model class,
+payload, caller gate, exception boundary, or result adoption. Update exactly 17
+imports, 18 direct calls, and 18 existing test patch/string references across
+the selected files. Add no test method; this batch reduces the private API mesh
+without increasing test-count noise.
 
-The two selected `_trace(...)` definitions each return a fresh `[message]` list;
-their source/AST hashes are
-`d51ecccce408de70bf0ff9b9607967190b155314a79777014e3c9d55f018b89d` /
-`16b49f6cdfe93089fab003270a7697d53145ec755d4007f2d19c32a94ff06686`.
-The selected artifact helper returns exact
-`dict(project_worker_artifact_boundary(artifact).get("payload") or {})`; its
-source/AST hashes are
-`4958b08162a6c19af90f9abc0acc06f55090350a9d53fc3cb5a0190d55421034` /
-`f52c21a79e7b50898e8b8715f1a1c0ce0aaa52f42c732431e2f76d6399e45585`.
-Because no selected helper executes, deleting it moves no runtime behavior or
-exception boundary. `project_worker_artifact_boundary` remains live through
-`_artifact_answer(...)` and `_artifact_refs(...)`.
+The exact public mapping is:
 
-Delete each definition and its following blank separator only: nine physical
-lines, six definition/body lines, three files. Physical line counts project
-analyst 321 to 318, orchestrator 664 to 661, and researcher 372 to 369. Their
-top-level public/private function counts project 2/11 to 2/10, 4/23 to 4/22,
-and 2/15 to 2/14. No import becomes unused. Projected AST compilation is 3/3.
-The canonical selected-definition record hash is
-`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70`;
-the post-deletion empty-record hash is
+| Current | Public | Lazy target |
+| --- | --- | --- |
+| `_aggregate_synthesis_output_model` | `aggregate_synthesis_output_model` | `AggregateSynthesisOutput` |
+| `_calculation_plan_model` | `calculation_plan_model` | `CalculationPlan` |
+| `_calculation_render_output_model` | `calculation_render_output_model` | `CalculationRenderOutput` |
+| `_calculation_verification_output_model` | `calculation_verification_output_model` | `CalculationVerificationOutput` |
+| `_compression_output_model` | `compression_output_model` | `CompressionOutput` |
+| `_concept_planner_output_model` | `concept_planner_output_model` | `ConceptPlannerOutput` |
+| `_evidence_extraction_model` | `evidence_extraction_model` | `EvidenceExtraction` |
+| `_numeric_extraction_model` | `numeric_extraction_model` | `NumericExtraction` |
+| `_operand_extraction_model` | `operand_extraction_model` | `OperandExtraction` |
+| `_reconciliation_candidate_rerank_model` | `reconciliation_candidate_rerank_model` | `ReconciliationCandidateRerank` |
+| `_reflection_query_plan_model` | `reflection_query_plan_model` | `ReflectionQueryPlan` |
+| `_validation_output_model` | `validation_output_model` | `ValidationOutput` |
+| `_validate_answer_slots_payload` | `validate_answer_slots_payload` | `validate_answer_slots_payload` |
+
+Each first twelve wrapper has no parameters, calls `_graph_model(...)` once with
+the exact target string, and returns the exact object. The validation wrapper
+accepts its original payload identity, resolves the exact validation callable,
+invokes it once with one positional argument and no keyword, and returns the
+exact result. Rename its owner-local callable binding from
+`validate_answer_slots_payload` to `validator` so the new public function name
+does not shadow a local variable. Preserve all uncaught import, attribute,
+loader, callable, and validation exceptions. `_graph_model` keeps exact
+`@lru_cache(maxsize=None)`, `import_module(...)`, and `getattr(...)` behavior.
+
+The selected owner has 13 definitions at lines 16-66. Current/projected owner
+public/private counts are 0/14 to 13/1. Source has 13 definitions, 17 imports,
+and 18 direct calls across eight paths; six test files contain 18 exact private
+references. There is no same-module or caller public-name collision after the
+local `validator` rename. The mapping-record SHA-256 is
+`85172cb3c9344296697d158fa4269e072e45d239be418510b507199697616685`.
+Current/projected binding hashes are
+`5456e27b4ff2a74dd11db97178455bc809425f4e90d5b9a62b337ad9fc0c425c` /
+`5ff10ef6c806bdd88b137253f0b76db5b0b73c4f3d05a7c6a405a431589c261a`;
+call-record hashes are
+`7a37d9829e9d09d4171d2daa1acf58d1f496dcc2168bca852dd5d4e0213f9528` /
+`713fd152a1760ca7f6c2953f5c6dca053f713b88829539b86a5f6cdfd15736eb`.
+
+Current direct mapping/identity probes pass 13/13 and projected AST compilation
+passes source 8/8 plus tests 6/6. The recursive agent DAG remains 48 modules/203
+edges with hash
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`;
+the selected owner span intersects no reviewed domain-language record, so audit
+remains 217. Required post-edit gates are complete private-to-public transform,
+retired private refs zero, owner counts 13/1, mapping and 18-caller parity,
+affected seven-module tests 466/466, import-side-effect 19/19, runtime audit 217,
+full discovery 2,143/2,143, source/test pycompile, and `git diff --check`.
+Benchmark refresh and remote CI remain **NOT RUN**.
+
+## Completed Dead MAS-Node Helper Cleanup
+
+Commit `3eadee4` deleted the unused Analyst/Researcher `_trace(...)` definitions
+and Orchestrator `_artifact_payload(...)`. The selected definition/import/load/
+call/attribute/dynamic-consumer record is now empty with hash
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The live orchestrator `_trace(...)`, artifact answer/reference helpers, and two
+`project_worker_artifact_boundary(...)` loads remain intact. No import became
+unused and no test expectation changed.
 
-The recursive agent DAG must remain exactly 48 modules/203 edges with edge hash
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Selected spans intersect zero runtime-domain audit occurrences, so the reviewed
-baseline remains 217. Add no test method and change no existing expectation.
-Required post-edit gates are selected definitions/consumers zero, retained live
-orchestrator trace and artifact-boundary users, projected/real compile 3/3,
-targeted Analyst/Orchestrator/Researcher/MAS tests 45/45, import-side-effect
-19/19, runtime-domain audit 217, full discovery 2,143/2,143, pycompile, and
-`git diff --check`. Benchmark refresh and remote CI remain **NOT RUN**.
+The characterize-only projection counted one blank line per helper, but the
+actual top-level separator is two blank lines. The exact patch therefore deletes
+12 physical lines, not nine: module sizes are now 317/660/368. Public/private
+function counts finish 2/10, 4/22, and 2/14. Production and whole-commit stats
+are `-12`; the committed diff SHA-256 is
+`2ee08fa81d381d49cc7682926a89ef39b0f9ae856faf2d6411c20f3e45d64d6e`.
+
+Targeted Analyst/Orchestrator/Researcher/MAS tests 45/45, import side effects
+19/19, audit 217, pycompile, empty selected record, unchanged 48-module/203-edge
+DAG, and full discovery 2,143/2,143 passed. Benchmark refresh and remote CI were
+**NOT RUN**. This dead-definition-only optional-MAS milestone is not a behavior,
+quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Zero-Load Cross-Module Import Cleanup
 

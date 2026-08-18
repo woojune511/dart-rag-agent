@@ -1243,12 +1243,20 @@ Aggregate/narrative row의 state-free answer policy owner다.
   45개와 line/fingerprint 15개였다. Focused 19/19, graph 290/290, semantic
   1,250/1,250, separate owner 144/144, combined caller/import 110/110, audit
   217, full 2,143/2,143가 통과했다.
-- 다음 cleanup은 optional MAS node의 unused 2-line helper 세 개만 삭제한다:
-  Analyst/Researcher `_trace(...)`과 Orchestrator `_artifact_payload(...)`이다.
-  Live orchestrator trace와 artifact boundary consumer는 유지한다. 정확한
-  consumer-zero, function-count, compile, targeted MAS 45, unchanged 48/203 DAG,
-  audit 217와 full gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `3eadee4` cleanup은 optional MAS node의 unused helper 세 개만
+  삭제했다: Analyst/Researcher `_trace(...)`과 Orchestrator
+  `_artifact_payload(...)`이다. Live orchestrator trace와 artifact boundary는
+  유지됐고, 실제 source diff는 separator를 포함해 `-12`다. 최종 module
+  sizes는 317/660/368, public/private counts는 2/10, 4/22, 2/14이며 targeted
+  MAS 45/45, import 19/19, audit 217, unchanged 48/203 DAG, full 2,143/2,143가
+  통과했다.
+- 다음 visibility batch는 `financial_graph_model_loaders.py`의 externally
+  imported private wrapper 13개를 같은 이름의 public API로 in-place rename한다.
+  `_graph_model(...)`의 lazy import, exact target identity, unbounded LRU cache와
+  exception propagation은 유지하고 alias/wrapper는 추가하지 않는다. Owner
+  public/private는 0/14에서 13/1로 수렴하며, 정확한 13-name mapping, 8-source/
+  6-test transform, affected 466, audit 217, unchanged 48/203 DAG, full 2,143
+  gate는 [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 
