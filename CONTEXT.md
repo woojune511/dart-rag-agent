@@ -21,7 +21,7 @@ Last updated: 2026-08-18
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `5509d78` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `d9dddc4` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -385,11 +385,19 @@ full 2,123/2,123 및 transform/body/identity/eleven-caller/DAG parity가
 repeated label conversion, set dedupe/intersection, exact overlap ratio 및 세
 caller의 score adoption/exception scope는 유지됐다. Focused pre/post 4/4,
 graph owner 274/274, affected 1,234/1,234, audit 217, full 2,127/2,127 및
-transform/body/identity/three-caller/DAG parity가 통과했다. 다음
-characterize-only inventory는 같은 owner의 정확한 10줄
-`_extract_period_sort_key(...)`을 public `extract_period_sort_key(...)`로 이름
-수렴시키고 `financial_graph_calculation.py`의 미사용 private import 1개를
-삭제하는 visibility/cleanup batch다. 정확한 계약과 projected gate는
+transform/body/identity/three-caller/DAG parity가 통과했다. 이어 같은
+owner의 정확한 10줄 `_extract_period_sort_key(...)`은 `d9dddc4`에서
+public `extract_period_sort_key(...)`로 이름 수렴했다. 실제 importer/call은
+public API를 사용하고 `financial_graph_calculation.py`의 load/call 0인 private
+import 1줄은 삭제됐다. First-year/당기/전기/default precedence와 calculation-
+execution의 time-series gate, stable sort, evidence/growth adoption 및 outer
+exception scope는 유지됐다. Focused pre/post 4/4, retrieval scope 28/28,
+graph owner 278/278, affected 1,238/1,238, audit 217, full 2,131/2,131 및
+transform/body/identity/sole-caller/DAG parity가 통과했다. 다음 characterize-
+only inventory는 같은 owner의 정확한 10줄
+`_should_apply_strict_company_scope(...)`을 public
+`should_apply_strict_company_scope(...)`로 이름 수렴시키는 visibility batch다.
+정확한 계약과 projected gate는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

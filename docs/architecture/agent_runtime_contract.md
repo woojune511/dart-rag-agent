@@ -5606,62 +5606,93 @@ The committed diff SHA-256 is
 `db3d34f22af44759d21e6ead24680aad7c3b7c290cd1ea3d4f3c009bd7afc19b`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 10-line
-`financial_scope_policies._extract_period_sort_key(period: str) -> int`
-definition at lines 491-500. The authorized future batch only renames it in
-place to public `extract_period_sort_key(...)`, updates the sole real importer/
-call in `financial_calculation_execution.py`, and deletes the unused import from
-`financial_graph_calculation.py`. Add no wrapper or private alias. Period
-ordering remains in the scope-policy owner; calculation execution, graph state,
-artifacts, ledger sequencing, and caller exception scope remain outside this
-batch.
+Commit `d9dddc4` completes the extract-period-sort-key visibility/cleanup
+contract. The exact former 10-line private policy is now public
+`financial_scope_policies.extract_period_sort_key(...)`. Its sole real import/
+call uses the public spelling, no wrapper or private alias remains, and the
+graph-calculation private import with zero loads and zero calls is deleted.
+Whitespace normalization, first-year/current/prior/default precedence,
+immutability, stable sorting, evidence/growth adoption, and the caller-caught
+exception boundary remain unchanged.
 
-Preserve exact `_normalise_spaces(period)`, the first `(19|20)\d{2}` match, and
-result precedence: a matched year returns `int(year_match.group(0))` before the
-exact `"당기"` / `9999` and `"전기"` / `9998` branches; otherwise return `-1`.
-Inputs remain unmodified; do not cache, broaden the regex, choose a maximum
-year, reorder branches, or add normalization. Normalization, regex, membership,
-group, and integer-conversion failures remain owner-uncaught.
+Production is `+3/-4`, tests are `+1,016/-42`, and the whole commit is
+`+1,019/-46`. Focused pre/post 4/4, retrieval scope 28/28, graph owner 278/278,
+operation contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text
+surface 30/30, calculation execution 45/45, math parsing 24/24, surface owner
+1/1, operand owner 69/69, affected semantic 1,238/1,238, reflection promotion
+15/15, reflection capability 24/24, retrieval pipeline 1/1, reconciliation plan
+51/51, import 19/19, audit 217, and full 2,131/2,131 passed. Production/complete
+transform 4/4, selected-body/sole-caller/public-identity/DAG parity, unused-
+import deletion, graph-test AST 274/274 plus four methods, UTF-8 4/4, non-ASCII
+4/4, pycompile, and diff check also passed. Final call-record/caller-map hashes
+are
+`257a8c47456cbf8326c10afcbf693f4aa73de321be9736a84c11b3ba6c334057` /
+`d774b540cf895765fab754c99b74d64730d61e8d0e2b63cc5e1dfe67fa67c7d2`.
+The committed diff SHA-256 is
+`3e1636144a5ac9308116dee53d920dbed588a6dc7858af366a8ecf7eda4d4e44`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next private-API contract is the exact current 10-line
+`financial_scope_policies._should_apply_strict_company_scope(
+companies: List[str], report_scope: Dict[str, Any]) -> bool` definition at lines
+530-539. The authorized future batch only renames it in place to public
+`should_apply_strict_company_scope(...)`, updates the sole retrieval-pipeline
+import/call, and updates four existing test bindings. Add no wrapper or private
+alias. Strict-company filtering remains in the scope-policy owner; retrieval
+query/filter/search, graph state, artifacts, ledger sequencing, and caller
+exception scope remain outside this batch.
+
+Preserve the exact companies-first truth gate and immediate `False` result.
+Only when companies are truthy, consume exact `dict(report_scope or {})` into a
+fresh shallow copy. Preserve the report-scope truth gate, nested-object identity,
+and input non-mutation. Then consume exact
+`str(scope.get("rcept_no") or "").strip()` and return `False` when truthy. Only
+after an empty explicit receipt, call `_report_scope_source_receipts(scope)`
+with the copy and return `False` when that result is truthy; otherwise return
+exact `True`. Do not move receipt projection ownership or add normalization or
+exception handling. Every truth, copy, access, conversion, strip, receipt-call,
+and result-truth failure remains owner-uncaught.
 
 The six-statement body has two assignments, three `if` nodes, and four total
-returns. It has four calls, two comparisons, and no loop, comprehension,
-boolean operation, binary operation, `try`, lambda, conditional expression, or
-starred expression. Its source-body SHA-256 is
-`ddbbc2f697d6ea65e04e844634aa8e1754e49eded12ebc9948b68208cd84fa48`.
+returns. It has five calls, one dictionary literal, two boolean operations, one
+unary operation, and no loop, comprehension, comparison, binary operation,
+`try`, lambda, conditional expression, or starred expression. Its source-body
+SHA-256 is
+`be55d41bf5c284e7240b79ffe1a72f1c6d8741ca23b82b9781296cfa82742117`.
 
-The sole real call is the nested
-`_extract_period_sort_key(str(row.get("period") or ""))` key lambda inside
-`execute_prepared_calculation_plan(...)`. Preserve earlier validation, the
-outer `try`, time-series and two-binding gates, operand materialization, stable
-ascending sort, evidence-ID projection, growth-rate calculation, later result
-adoption, and the caller-caught exception boundary. No caller gate, argument,
-sort, return, or exception boundary moves.
+The sole real call passes prepared `companies` and `report_scope` as two
+positional arguments with no keywords inside retrieval `_retrieve(...)` at
+`try` depth zero. Preserve earlier state list/dict copies and scope-company
+projection, immediate scope-company prepend gating, later company-filter
+gating, subsequent year/receipt/filter/query/search work, and the propagated
+exception stop. No caller gate, argument, result adoption, filter, search,
+return, or exception boundary moves.
 
-The private spelling has four production occurrences across three files: one
-definition, two imports, and one call. The graph-calculation import has no load
-or call and must be deleted rather than renamed. No existing test occurrence
-exists. Current/projected scope-policy public/private counts are 13/7 to 14/6;
-projected public identity is 2/2 in the owner and real importer. The DAG remains
-48 modules/205 edges and the selected span intersects no audit record. Current/
-projected call-record hashes are
-`1529c14d859066e87f3e89a6f48f785267ec450b09b32a00cc61926af3af563f` /
-`257a8c47456cbf8326c10afcbf693f4aa73de321be9736a84c11b3ba6c334057`;
+The private spelling has three production occurrences across two files. Four
+test occurrences span `tests/test_retrieval_scope.py`; the graph contract test
+file makes four complete transform paths. Current/projected scope-policy public/
+private counts are 14/6 to 15/5; projected public identity is 2/2. No public-
+name collision exists. The DAG remains 48 modules/205 edges and the selected
+span intersects no audit record. Current/projected call-record hashes are
+`1cd3c7c07259c467518386946b7862d1e266ce16e608fb4e5497fa9f61695b21` /
+`c82616a53264c2b42a488f483c6b833991821a6d2f4ffdb6d1269b4c49fd090b`;
 one-caller-map hashes are
-`687f6338e91898015ebf31bdc5f64a1f74af6de7d23a6cafed2f09cc4f614298` /
-`d774b540cf895765fab754c99b74d64730d61e8d0e2b63cc5e1dfe67fa67c7d2`.
+`e493e701554347a4058bce545bd4b428dee453fed3ca9ca78717446f4def0f34` /
+`64ff812d9a106fbbd70a092a89f5eb9e8391de756b7f824c6e738fe37c3286e0`.
 
-The four named CURRENT-SOURCE contracts and projected focused 4/4, graph owner
-278/278, operation contracts 242/242, retrieval hints 5/5, task artifacts
-15/15, text surface 30/30, calculation execution 45/45, math parsing 24/24,
-surface owner 1/1, operand owner 69/69, affected semantic 1,238/1,238,
-reflection promotion 15/15, reflection capability 24/24, retrieval pipeline 1/1,
-reconciliation plan 51/51, import 19/19, audit 217, full 2,131/2,131, selected-
-body/sole-caller parity, unused-import deletion, public identity 2/2, unchanged
-DAG, graph-test AST 274/274 plus four methods, projected compile/import,
+The four named CURRENT-SOURCE contracts and projected focused 4/4, retrieval
+scope 28/28, graph owner 282/282, operation contracts 242/242, retrieval hints
+5/5, task artifacts 15/15, text surface 30/30, calculation execution 45/45,
+math parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
+1,242/1,242, reflection promotion 15/15, reflection capability 24/24,
+retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
+2,135/2,135, selected-body/sole-caller parity, public identity 2/2, unchanged
+DAG, graph-test AST 278/278 plus four methods, projected compile/import,
 pycompile, and diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No period-
-sort source rename or import deletion has occurred. Static inventory, projected
-AST compilation, and the existing time-series ordering caller probe passed.
+[Project Status Next Work](../overview/project_status.md#next-work). No strict-
+company-scope source or test rename has occurred. Static inventory, projected
+AST compilation 4/4, three direct owner probes, and retrieval-scope 28/28
+passed.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

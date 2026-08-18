@@ -1189,12 +1189,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   promotion 15/15, reflection capability 24/24, retrieval-pipeline 1/1,
   reconciliation plan 51/51, import 19/19, audit 217, full 2,127/2,127와
   transform/body/identity/three-caller/48-module/205-edge DAG parity가 통과했다.
+- 완료된 `d9dddc4` visibility/cleanup batch는 같은 owner의 정확한 10줄
+  `_extract_period_sort_key(...)`을 public `extract_period_sort_key(...)`로 이름
+  수렴시켰다. 실제 importer/call은 public API를 사용하고 graph-calculation의
+  load/call 0인 private import 1개는 삭제됐다. First-year/당기/전기/default
+  precedence와 calculation-execution의 time-series gate, stable sort,
+  evidence/growth adoption 및 outer exception scope는 유지됐다. Scope-policy
+  public/private는 14/6이다. Focused pre/post 4/4, retrieval scope 28/28, graph
+  owner 278/278, operation contracts 242/242, retrieval hints 5/5, task artifacts
+  15/15, text surface 30/30, semantic 1,238/1,238, reflection promotion 15/15,
+  reflection capability 24/24, retrieval-pipeline 1/1, reconciliation plan
+  51/51, import 19/19, audit 217, full 2,131/2,131와 transform/body/identity/
+  sole-caller/48-module/205-edge DAG parity가 통과했다.
 - 새 characterize-only inventory는 같은 owner의 정확한 10줄
-  `_extract_period_sort_key(...)`을 public `extract_period_sort_key(...)`로
-  이름 수렴시키고 graph-calculation의 미사용 private import 1개를 삭제한다.
-  First-year/당기/전기/default precedence와 calculation-execution의 time-series
-  gate, stable sort, evidence/growth adoption 및 outer exception scope를 유지해야
-  한다. 정확한 네 CURRENT-SOURCE method와 projection은
+  `_should_apply_strict_company_scope(...)`을 public
+  `should_apply_strict_company_scope(...)`로 이름 수렴시킨다. Companies-first
+  short circuit, shallow scope copy, explicit/source-receipt precedence와
+  retrieval caller의 company prepend/filter adoption 및 propagated exception
+  scope를 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
