@@ -37,7 +37,7 @@ from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
     metadata_period_match_strength,
     _report_scope_source_receipts,
-    _should_apply_strict_company_scope,
+    should_apply_strict_company_scope,
 )
 from src.agent.financial_surface_contracts import (
     operand_needles,
@@ -2017,7 +2017,7 @@ class FinancialRetrievalPipelineMixin:
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
         scope_company = str(report_scope.get("company") or "").strip()
-        strict_company_scope = _should_apply_strict_company_scope(companies, report_scope)
+        strict_company_scope = should_apply_strict_company_scope(companies, report_scope)
         if scope_company and strict_company_scope and scope_company not in companies:
             companies = [scope_company, *companies] if companies else [scope_company]
         scope_year_raw = report_scope.get("year")

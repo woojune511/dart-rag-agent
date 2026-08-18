@@ -8,7 +8,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _cross_trace_reuse_candidate_diagnostics,
     _summarize_executed_query_telemetry,
 )
-from src.agent.financial_scope_policies import _should_apply_strict_company_scope
+from src.agent.financial_scope_policies import should_apply_strict_company_scope
 
 
 class _EvidenceBiasProbe:
@@ -189,7 +189,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {"company": "네이버", "year": 2023, "rcept_no": "20240318000844"},
             )
@@ -197,7 +197,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_enabled_without_rcept_no(self) -> None:
         self.assertTrue(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {"company": "네이버", "year": 2023},
             )
@@ -205,7 +205,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_disabled_when_multi_report_receipts_are_present(self) -> None:
         self.assertFalse(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {
                     "company": "네이버",

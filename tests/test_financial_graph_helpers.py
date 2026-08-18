@@ -9374,7 +9374,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (14, 6))
+        self.assertEqual(owner_counts, (15, 5))
 
         def imported_names(module_name, imported_module):
             return {
@@ -13875,7 +13875,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (14, 6),
+            (15, 5),
         )
         self.assertIn("operand_target_years", scope_functions)
         self.assertIn("operand_period_focus", scope_functions)
@@ -17787,7 +17787,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in scope_functions),
                 sum(name.startswith("_") for name in scope_functions),
             ),
-            (14, 6),
+            (15, 5),
         )
         self.assertTrue(target_names.issubset(scope_functions))
 
@@ -20648,7 +20648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_helpers": (9, 71),
                 "financial_operand_resolution": (54, 37),
-                "financial_scope_policies": (14, 6),
+                "financial_scope_policies": (15, 5),
             },
         )
 
@@ -24315,7 +24315,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (14, 6)},
+            {"financial_graph_helpers": (9, 71), "financial_scope_policies": (15, 5)},
         )
 
         def imported_modules(tree):
@@ -48781,7 +48781,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_financial_label_annotations_callers_pin_args_adoption_and_stops(self) -> None:
@@ -50119,7 +50119,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
     def test_current_source_strip_leading_period_qualifiers_callers_pin_args_adoption_and_stops(self) -> None:
@@ -51385,7 +51385,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -52888,7 +52888,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -54221,7 +54221,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -55473,7 +55473,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(method, identifier):
@@ -56736,7 +56736,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(graph_test_methods & required_methods, required_methods)
 
         def exact_target_reference_count(node, identifier):
@@ -58434,7 +58434,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -58451,7 +58451,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -59806,7 +59806,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -59823,7 +59823,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -61392,7 +61392,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -61409,7 +61409,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -62498,7 +62498,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_label_implies_percent_metric_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_label_implies_percent_metric_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -62515,7 +62515,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         importer_objects = {
@@ -63845,7 +63845,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_is_single_metric_period_comparison_bindings_pin_owner_def_calls_dag_imports_and_baseline",
             "test_current_source_is_single_metric_period_comparison_callers_pin_gates_args_adoption_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -63862,7 +63862,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         owner_target = getattr(financial_operation_policies, target_name)
@@ -65303,7 +65303,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "test_current_source_unreachable_single_metric_concept_branch_bindings_pin_ast_hash_helper_calls_dag_and_baseline",
             "test_current_source_unreachable_single_metric_concept_branch_deletion_projection_pins_refs_caller_hashes_counts_and_stops",
         }
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -66319,7 +66319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -66336,7 +66336,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -68268,7 +68268,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -68285,7 +68285,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -69881,7 +69881,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(method, ast.FunctionDef)
             and method.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertEqual(
             {
                 method.name
@@ -69898,7 +69898,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     if method.name not in new_method_names
                 ]
             ),
-            274,
+            278,
         )
 
         baseline = json.loads(
@@ -70910,7 +70910,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (14, 6) if target_name == future_public_name else (13, 7),
+            (15, 5) if target_name == future_public_name else (14, 6),
         )
         self.assertEqual(
             [
@@ -71272,7 +71272,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in projected_owner_functions),
                 sum(node.name.startswith("_") for node in projected_owner_functions),
             ),
-            (14, 6),
+            (15, 5),
         )
         self.assertEqual(
             sum(
@@ -71547,7 +71547,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertTrue(
             {
                 "test_current_source_desired_consolidation_scope_pins_precedence_policy_order_copy_and_results",
@@ -72456,7 +72456,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (14, 6) if target_name == future_public_name else (13, 7),
+            (15, 5) if target_name == future_public_name else (14, 6),
         )
         self.assertEqual(
             [
@@ -72659,7 +72659,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in projected_owner_functions),
                 sum(node.name.startswith("_") for node in projected_owner_functions),
             ),
-            (14, 6),
+            (15, 5),
         )
         self.assertEqual(
             sum(
@@ -72815,7 +72815,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertTrue(
             {
                 "test_current_source_metadata_period_match_strength_pins_short_circuits_normalization_dedupe_and_results",
@@ -73578,7 +73578,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (14, 6) if target_name == future_public_name else (13, 7),
+            (15, 5) if target_name == future_public_name else (14, 6),
         )
         self.assertEqual(
             [
@@ -73766,7 +73766,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in projected_owner_functions),
                 sum(node.name.startswith("_") for node in projected_owner_functions),
             ),
-            (14, 6),
+            (15, 5),
         )
         self.assertEqual(
             sum(
@@ -73923,7 +73923,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test_")
         ]
-        self.assertEqual(len(graph_test_methods), 278)
+        self.assertEqual(len(graph_test_methods), 282)
         self.assertTrue(
             {
                 "test_current_source_extract_period_sort_key_pins_normalization_precedence_and_results",
@@ -74203,6 +74203,978 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertLess(
             caller_source.index("outcome_evidence_ids = tuple"),
             caller_source.index("time_series_yoy_growth_rates"),
+        )
+
+    def test_current_source_should_apply_strict_company_scope_pins_company_receipt_precedence_copy_and_results(self) -> None:
+        future_public_name = "should_apply_strict_company_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+
+        events = []
+
+        class FalseCompanies:
+            def __bool__(self):
+                events.append("companies_truth")
+                return False
+
+        class UntouchedScope:
+            @staticmethod
+            def __bool__():
+                raise AssertionError("falsey companies must stop report-scope access")
+
+        result = target(FalseCompanies(), UntouchedScope())
+        self.assertIs(result, False)
+        self.assertEqual(events, ["companies_truth"])
+
+        class FalseScope:
+            def __bool__(self):
+                events.append("scope_truth")
+                return False
+
+        copied_values = []
+
+        def copy_value(value):
+            copied_values.append(value)
+            return dict(value)
+
+        receipt_owner = Mock(return_value=[])
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                side_effect=copy_value,
+                create=True,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_receipts",
+                receipt_owner,
+            ),
+        ):
+            result = target(["Existing"], FalseScope())
+        self.assertIs(result, True)
+        self.assertEqual(events, ["companies_truth", "scope_truth"])
+        self.assertEqual(copied_values, [{}])
+        receipt_owner.assert_called_once_with({})
+
+        class ReceiptValue:
+            def __bool__(self):
+                events.append("receipt_value_truth")
+                return True
+
+            def __str__(self):
+                events.append("receipt_value_string")
+                return " receipt-1 "
+
+        nested = {"preserve": True}
+        receipt_value = ReceiptValue()
+        companies = ["Existing"]
+        report_scope = {
+            "rcept_no": receipt_value,
+            "source_reports": [{"rcept_no": "source-receipt"}],
+            "nested": nested,
+        }
+        companies_before = list(companies)
+        scope_items_before = list(report_scope.items())
+        stopped_receipts = Mock(
+            side_effect=AssertionError("explicit receipt must stop source projection")
+        )
+        with patch.object(
+            financial_scope_policies,
+            "_report_scope_source_receipts",
+            stopped_receipts,
+        ):
+            result = target(companies, report_scope)
+        self.assertIs(result, False)
+        self.assertEqual(
+            events[-2:],
+            ["receipt_value_truth", "receipt_value_string"],
+        )
+        stopped_receipts.assert_not_called()
+        self.assertEqual(companies, companies_before)
+        self.assertEqual(list(report_scope.items()), scope_items_before)
+        self.assertIs(report_scope["rcept_no"], receipt_value)
+        self.assertIs(report_scope["nested"], nested)
+
+        helper_scopes = []
+
+        class ReceiptProjection:
+            def __bool__(self):
+                events.append("projected_receipts_truth")
+                return True
+
+        def project_receipts(scope):
+            events.append("project_receipts")
+            helper_scopes.append(scope)
+            return ReceiptProjection()
+
+        report_scope = {"rcept_no": "   ", "nested": nested}
+        scope_before = deepcopy(report_scope)
+        with patch.object(
+            financial_scope_policies,
+            "_report_scope_source_receipts",
+            side_effect=project_receipts,
+        ):
+            result = target(companies, report_scope)
+        self.assertIs(result, False)
+        self.assertEqual(events[-2:], ["project_receipts", "projected_receipts_truth"])
+        self.assertEqual(len(helper_scopes), 1)
+        self.assertIsNot(helper_scopes[0], report_scope)
+        self.assertIs(helper_scopes[0]["nested"], nested)
+        self.assertEqual(report_scope, scope_before)
+        self.assertIs(report_scope["nested"], nested)
+
+        helper_scopes.clear()
+        with patch.object(
+            financial_scope_policies,
+            "_report_scope_source_receipts",
+            side_effect=lambda scope: helper_scopes.append(scope) or [],
+        ):
+            result = target(companies, {"nested": nested})
+        self.assertIs(result, True)
+        self.assertEqual(len(helper_scopes), 1)
+        self.assertIs(helper_scopes[0]["nested"], nested)
+
+    def test_current_source_should_apply_strict_company_scope_pins_laziness_immutability_and_exceptions(self) -> None:
+        future_public_name = "should_apply_strict_company_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_scope_policies, future_public_name)
+            else retired_private_name
+        )
+        target = getattr(financial_scope_policies, target_name)
+
+        class TruthBomb:
+            def __init__(self, message):
+                self.message = message
+
+            def __bool__(self):
+                raise RuntimeError(self.message)
+
+        class UntouchedScope:
+            @staticmethod
+            def __bool__():
+                raise AssertionError("company truth failure must stop scope access")
+
+        with self.assertRaisesRegex(RuntimeError, "company truth failed"):
+            target(TruthBomb("company truth failed"), UntouchedScope())
+
+        stopped_copy = Mock(
+            side_effect=AssertionError("scope truth failure must stop copying")
+        )
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                stopped_copy,
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "scope truth failed"),
+        ):
+            target(["Existing"], TruthBomb("scope truth failed"))
+        stopped_copy.assert_not_called()
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                side_effect=RuntimeError("scope copy failed"),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "scope copy failed"),
+        ):
+            target(["Existing"], {"company": "ScopeCo"})
+
+        class GetBomb:
+            @staticmethod
+            def get(key):
+                raise RuntimeError(f"scope get failed: {key}")
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                return_value=GetBomb(),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "scope get failed: rcept_no"),
+        ):
+            target(["Existing"], {"company": "ScopeCo"})
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                return_value={"rcept_no": TruthBomb("receipt truth failed")},
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "receipt truth failed"),
+        ):
+            target(["Existing"], {"company": "ScopeCo"})
+
+        class TruthyReceipt:
+            @staticmethod
+            def __bool__():
+                return True
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "dict",
+                return_value={"rcept_no": TruthyReceipt()},
+                create=True,
+            ),
+            patch.object(
+                financial_scope_policies,
+                "str",
+                side_effect=RuntimeError("receipt string failed"),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "receipt string failed"),
+        ):
+            target(["Existing"], {"company": "ScopeCo"})
+
+        class StripBomb:
+            @staticmethod
+            def strip():
+                raise RuntimeError("receipt strip failed")
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "str",
+                return_value=StripBomb(),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "receipt strip failed"),
+        ):
+            target(["Existing"], {"rcept_no": "receipt"})
+
+        class StripResult:
+            @staticmethod
+            def __bool__():
+                raise RuntimeError("stripped receipt truth failed")
+
+        class StripProbe:
+            @staticmethod
+            def strip():
+                return StripResult()
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "str",
+                return_value=StripProbe(),
+                create=True,
+            ),
+            self.assertRaisesRegex(RuntimeError, "stripped receipt truth failed"),
+        ):
+            target(["Existing"], {"rcept_no": "receipt"})
+
+        nested = {"preserve": True}
+        report_scope = {"nested": nested}
+        report_scope_before = deepcopy(report_scope)
+        with (
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_receipts",
+                side_effect=RuntimeError("receipt projection failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "receipt projection failed"),
+        ):
+            target(["Existing"], report_scope)
+        self.assertEqual(report_scope, report_scope_before)
+        self.assertIs(report_scope["nested"], nested)
+
+        with (
+            patch.object(
+                financial_scope_policies,
+                "_report_scope_source_receipts",
+                return_value=TruthBomb("projected receipt truth failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "projected receipt truth failed"),
+        ):
+            target(["Existing"], report_scope)
+
+    def test_current_source_should_apply_strict_company_scope_bindings_pin_owner_def_call_tests_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        owner_path = repo_root / "src" / "agent" / "financial_scope_policies.py"
+        retrieval_path = repo_root / "src" / "agent" / "financial_retrieval_pipeline.py"
+        retrieval_test_path = repo_root / "tests" / "test_retrieval_scope.py"
+        future_public_name = "should_apply_strict_company_scope"
+        retired_private_name = "_" + future_public_name
+        owner_source = owner_path.read_text(encoding="utf-8-sig")
+        owner_tree = ast.parse(owner_source)
+        target_name = (
+            future_public_name
+            if any(
+                isinstance(node, ast.FunctionDef)
+                and node.name == future_public_name
+                for node in owner_tree.body
+            )
+            else retired_private_name
+        )
+        other_name = (
+            retired_private_name
+            if target_name == future_public_name
+            else future_public_name
+        )
+        definitions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == target_name
+        ]
+        self.assertEqual(len(definitions), 1)
+        definition = definitions[0]
+        self.assertEqual((definition.lineno, definition.end_lineno), (530, 539))
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["companies", "report_scope"],
+        )
+        self.assertEqual(
+            [ast.unparse(argument.annotation) for argument in definition.args.args],
+            ["List[str]", "Dict[str, Any]"],
+        )
+        self.assertEqual(ast.unparse(definition.returns), "bool")
+        self.assertEqual(
+            [type(node).__name__ for node in definition.body],
+            ["If", "Assign", "Assign", "If", "If", "Return"],
+        )
+        selected_body = ast.Module(body=definition.body, type_ignores=[])
+        node_counts = {
+            kind: sum(
+                type(node).__name__ == kind
+                for node in ast.walk(selected_body)
+            )
+            for kind in (
+                "AnnAssign",
+                "Assign",
+                "For",
+                "If",
+                "Return",
+                "Try",
+                "TryStar",
+                "Call",
+                "List",
+                "Tuple",
+                "Dict",
+                "Set",
+                "ListComp",
+                "DictComp",
+                "SetComp",
+                "GeneratorExp",
+                "IfExp",
+                "Lambda",
+                "Starred",
+                "comprehension",
+                "BoolOp",
+                "UnaryOp",
+                "Compare",
+                "BinOp",
+            )
+        }
+        self.assertEqual(
+            node_counts,
+            {
+                "AnnAssign": 0,
+                "Assign": 2,
+                "For": 0,
+                "If": 3,
+                "Return": 4,
+                "Try": 0,
+                "TryStar": 0,
+                "Call": 5,
+                "List": 0,
+                "Tuple": 0,
+                "Dict": 1,
+                "Set": 0,
+                "ListComp": 0,
+                "DictComp": 0,
+                "SetComp": 0,
+                "GeneratorExp": 0,
+                "IfExp": 0,
+                "Lambda": 0,
+                "Starred": 0,
+                "comprehension": 0,
+                "BoolOp": 2,
+                "UnaryOp": 1,
+                "Compare": 0,
+                "BinOp": 0,
+            },
+        )
+        body_source = "\n".join(
+            owner_source.splitlines()[
+                definition.body[0].lineno - 1 : definition.end_lineno
+            ]
+        )
+        self.assertEqual(
+            hashlib.sha256(body_source.encode("utf-8")).hexdigest(),
+            "be55d41bf5c284e7240b79ffe1a72f1c6d8741ca23b82b9781296cfa82742117",
+        )
+
+        owner_functions = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(len(owner_functions), 20)
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (15, 5) if target_name == future_public_name else (14, 6),
+        )
+        self.assertEqual(
+            [
+                node.name
+                for node in owner_functions
+                if node.name in {future_public_name, retired_private_name}
+            ],
+            [target_name],
+        )
+
+        module_paths = sorted((repo_root / "src" / "agent").glob("*.py"))
+        module_sources = {
+            path.stem: path.read_text(encoding="utf-8-sig")
+            for path in module_paths
+        }
+        module_trees = {
+            module_name: ast.parse(source)
+            for module_name, source in module_sources.items()
+        }
+        imported_by = set()
+        import_counts = {}
+        call_records = []
+        caller_hashes = {}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module == "src.agent.financial_scope_policies"
+                ):
+                    continue
+                count = sum(alias.name == target_name for alias in node.names)
+                if count:
+                    imported_by.add(module_name)
+                    import_counts[module_name] = import_counts.get(module_name, 0) + count
+
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for call in ast.walk(tree):
+                if not (
+                    isinstance(call, ast.Call)
+                    and isinstance(call.func, ast.Name)
+                    and call.func.id == target_name
+                ):
+                    continue
+                current = call
+                try_depth = 0
+                caller = None
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, (ast.Try, ast.TryStar)):
+                        try_depth += 1
+                    if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current
+                        break
+                self.assertIsNotNone(caller)
+                call_records.append(
+                    {
+                        "module": module_name,
+                        "caller": caller.name,
+                        "line": call.lineno,
+                        "args": [ast.unparse(argument) for argument in call.args],
+                        "keywords": [keyword.arg for keyword in call.keywords],
+                        "parent": ast.unparse(parents[call]),
+                        "try_depth": try_depth,
+                    }
+                )
+                caller_body_source = "\n".join(
+                    module_sources[module_name].splitlines()[
+                        caller.body[0].lineno - 1 : caller.end_lineno
+                    ]
+                )
+                caller_hashes[(module_name, caller.name)] = hashlib.sha256(
+                    caller_body_source.encode("utf-8")
+                ).hexdigest()
+
+        self.assertEqual(imported_by, {"financial_retrieval_pipeline"})
+        self.assertEqual(import_counts, {"financial_retrieval_pipeline": 1})
+        call_records.sort(key=lambda record: (record["module"], record["line"]))
+        self.assertEqual(
+            call_records,
+            [
+                {
+                    "module": "financial_retrieval_pipeline",
+                    "caller": "_retrieve",
+                    "line": 2020,
+                    "args": ["companies", "report_scope"],
+                    "keywords": [],
+                    "parent": (
+                        "strict_company_scope = "
+                        f"{target_name}(companies, report_scope)"
+                    ),
+                    "try_depth": 0,
+                }
+            ],
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    call_records,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "c82616a53264c2b42a488f483c6b833991821a6d2f4ffdb6d1269b4c49fd090b"
+                if target_name == future_public_name
+                else "1cd3c7c07259c467518386946b7862d1e266ce16e608fb4e5497fa9f61695b21"
+            ),
+        )
+        self.assertEqual(
+            caller_hashes,
+            {
+                ("financial_retrieval_pipeline", "_retrieve"): (
+                    "42f3e9a7359e4c72ddfaeedfdd4441b342ba31b768150db37194d20eeef9f2b4"
+                    if target_name == future_public_name
+                    else "527df34043cea865ecec8a482383cb6ebf775892f301774a192f8577ed009341"
+                )
+            },
+        )
+        caller_hash_payload = {
+            f"{module_name}:{caller_name}": digest
+            for (module_name, caller_name), digest in caller_hashes.items()
+        }
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    caller_hash_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            (
+                "64ff812d9a106fbbd70a092a89f5eb9e8391de756b7f824c6e738fe37c3286e0"
+                if target_name == future_public_name
+                else "e493e701554347a4058bce545bd4b428dee453fed3ca9ca78717446f4def0f34"
+            ),
+        )
+
+        projected_sources = {
+            module_name: source.replace(retired_private_name, future_public_name)
+            for module_name, source in module_sources.items()
+        }
+        projected_trees = {
+            module_name: ast.parse(source)
+            for module_name, source in projected_sources.items()
+        }
+        projected_owner_functions = [
+            node
+            for node in projected_trees["financial_scope_policies"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in projected_owner_functions),
+                sum(node.name.startswith("_") for node in projected_owner_functions),
+            ),
+            (15, 5),
+        )
+        self.assertFalse(
+            any(
+                (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == retired_private_name
+                )
+                or (isinstance(node, ast.alias) and node.name == retired_private_name)
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == retired_private_name
+                )
+                for tree in projected_trees.values()
+                for node in ast.walk(tree)
+            )
+        )
+
+        runtime_owner = getattr(financial_scope_policies, target_name)
+        self.assertIs(
+            getattr(financial_retrieval_pipeline, target_name),
+            runtime_owner,
+        )
+        self.assertFalse(hasattr(financial_scope_policies, other_name))
+        self.assertFalse(hasattr(financial_retrieval_pipeline, other_name))
+
+        semantic_target_count = 0
+        semantic_other_count = 0
+        source_target_paths = set()
+        for module_name, tree in module_trees.items():
+            definition_count = sum(
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            import_count = sum(
+                isinstance(node, ast.alias)
+                and node.name == target_name
+                for node in ast.walk(tree)
+            )
+            call_count = sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == target_name
+                for node in ast.walk(tree)
+            )
+            target_count = definition_count + import_count + call_count
+            if target_count:
+                source_target_paths.add(
+                    str(repo_root / "src" / "agent" / f"{module_name}.py")
+                )
+            semantic_target_count += target_count
+            semantic_other_count += sum(
+                (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == other_name
+                )
+                or (isinstance(node, ast.alias) and node.name == other_name)
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == other_name
+                )
+                for node in ast.walk(tree)
+            )
+        self.assertEqual(semantic_target_count, 3)
+        self.assertEqual(semantic_other_count, 0)
+        self.assertEqual(
+            source_target_paths,
+            {
+                str(owner_path),
+                str(retrieval_path),
+            },
+        )
+
+        test_paths = sorted((repo_root / "tests").glob("test_*.py"))
+
+        def test_binding_count(binding_name):
+            return sum(
+                (
+                    (isinstance(node, ast.Name) and node.id == binding_name)
+                    or (isinstance(node, ast.Attribute) and node.attr == binding_name)
+                    or (isinstance(node, ast.alias) and node.name == binding_name)
+                )
+                for path in test_paths
+                for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig")))
+            )
+
+        self.assertEqual(
+            test_binding_count(retired_private_name),
+            0 if target_name == future_public_name else 4,
+        )
+        self.assertEqual(
+            test_binding_count(future_public_name),
+            4 if target_name == future_public_name else 0,
+        )
+
+        transform_paths = {
+            str(owner_path),
+            str(retrieval_path),
+            str(retrieval_test_path),
+            str(Path(__file__).resolve()),
+        }
+        self.assertEqual(len(transform_paths), 4)
+        self.assertEqual(
+            sum(
+                any(
+                    ord(character) > 127
+                    for character in Path(path_text).read_text(encoding="utf-8-sig")
+                )
+                for path_text in transform_paths
+            ),
+            4,
+        )
+        projected_transform_sources = {
+            str(owner_path): projected_sources["financial_scope_policies"],
+            str(retrieval_path): projected_sources["financial_retrieval_pipeline"],
+            str(retrieval_test_path): retrieval_test_path.read_text(
+                encoding="utf-8-sig"
+            ).replace(retired_private_name, future_public_name),
+            str(Path(__file__).resolve()): Path(__file__).read_text(
+                encoding="utf-8-sig"
+            ),
+        }
+        for path_text, source in projected_transform_sources.items():
+            compile(source, f"<projected:{path_text}>", "exec", ast.PyCF_ONLY_AST)
+
+        graph_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        graph_test_class = next(
+            node
+            for node in graph_test_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialGraphHelperTests"
+        )
+        graph_test_methods = [
+            node.name
+            for node in graph_test_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test_")
+        ]
+        self.assertEqual(len(graph_test_methods), 282)
+        self.assertTrue(
+            {
+                "test_current_source_should_apply_strict_company_scope_pins_company_receipt_precedence_copy_and_results",
+                "test_current_source_should_apply_strict_company_scope_pins_laziness_immutability_and_exceptions",
+                "test_current_source_should_apply_strict_company_scope_bindings_pin_owner_def_call_tests_dag_imports_and_baseline",
+                "test_current_source_should_apply_strict_company_scope_caller_pins_gate_args_adoption_and_stops",
+            }.issubset(graph_test_methods)
+        )
+
+        baseline_path = (
+            repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json"
+        )
+        baseline_records = json.loads(
+            baseline_path.read_text(encoding="utf-8")
+        ).get("records", [])
+        self.assertEqual(len(baseline_records), 217)
+        self.assertFalse(
+            any(
+                record.get("path") == "src/agent/financial_scope_policies.py"
+                and any(
+                    definition.lineno <= int(line) <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+                for record in baseline_records
+            )
+        )
+
+        recursive_modules = {
+            ".".join(path.relative_to(repo_root).with_suffix("").parts): ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+            for path in (repo_root / "src" / "agent").rglob("*.py")
+        }
+        edges = set()
+        for module_name, tree in recursive_modules.items():
+            for node in tree.body:
+                dependencies = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    dependencies.append(node.module)
+                elif isinstance(node, ast.Import):
+                    dependencies.extend(alias.name for alias in node.names)
+                for dependency in dependencies:
+                    if dependency in recursive_modules:
+                        edges.add((module_name, dependency))
+        self.assertEqual((len(recursive_modules), len(edges)), (48, 205))
+        in_degree = {module_name: 0 for module_name in recursive_modules}
+        dependents = {module_name: [] for module_name in recursive_modules}
+        for source_module, dependency in edges:
+            in_degree[dependency] += 1
+            dependents[source_module].append(dependency)
+        pending = [
+            module_name
+            for module_name, degree in in_degree.items()
+            if degree == 0
+        ]
+        visited = 0
+        while pending:
+            source_module = pending.pop()
+            visited += 1
+            for dependency in dependents[source_module]:
+                in_degree[dependency] -= 1
+                if in_degree[dependency] == 0:
+                    pending.append(dependency)
+        self.assertEqual(visited, len(recursive_modules))
+
+    def test_current_source_should_apply_strict_company_scope_caller_pins_gate_args_adoption_and_stops(self) -> None:
+        future_public_name = "should_apply_strict_company_scope"
+        retired_private_name = "_" + future_public_name
+        target_name = (
+            future_public_name
+            if hasattr(financial_retrieval_pipeline, future_public_name)
+            else retired_private_name
+        )
+
+        class CaptureVSM:
+            def __init__(self, events):
+                self.events = events
+                self.queries = []
+
+            def search(self, query, k=0, where_filter=None):
+                self.events.append("search")
+                self.queries.append(
+                    {"query": query, "k": k, "where_filter": where_filter}
+                )
+                return []
+
+        def make_agent(events):
+            agent = financial_graph.FinancialAgent.__new__(
+                financial_graph.FinancialAgent
+            )
+            agent.k = 2
+            agent.retrieval_query_budget = 1
+            agent.retry_retrieval_query_budget = 0
+            agent.focused_retrieval_query_budget = 0
+            agent.vsm = CaptureVSM(events)
+            agent._merge_retry_candidates = lambda existing, new: existing + new
+            agent._rerank_docs = lambda docs, state: docs
+            agent._supplement_section_seed_docs = lambda state: []
+            agent._apply_strict_filter = lambda docs, *args, **kwargs: docs
+            agent._select_narrative_summary_docs = (
+                lambda reranked, state, effective_k: reranked
+            )
+            agent._ensure_preferred_operand_section_docs = (
+                lambda docs, reranked, active_subtask, effective_k: docs
+            )
+            return agent
+
+        nested = {"preserve": True}
+        base_state = {
+            "query": "scope query",
+            "retrieval_queries": [],
+            "active_subtask": {},
+            "report_scope": {"company": "ScopeCo", "nested": nested},
+            "companies": ["Existing"],
+            "years": [],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "",
+            "format_preference": "",
+        }
+        state_before = deepcopy(base_state)
+
+        for strict_result, expected_filter in (
+            (True, {"company": {"$in": ["ScopeCo", "Existing"]}}),
+            (False, None),
+        ):
+            events = []
+            agent = make_agent(events)
+            passed_companies = []
+            passed_scopes = []
+
+            def strict_scope(companies, report_scope):
+                events.append("target")
+                passed_companies.append(companies)
+                passed_scopes.append(report_scope)
+                return strict_result
+
+            receipt_scopes = []
+
+            def project_receipts(report_scope):
+                events.append("receipts")
+                receipt_scopes.append(report_scope)
+                return []
+
+            with (
+                patch.object(
+                    financial_retrieval_pipeline,
+                    target_name,
+                    side_effect=strict_scope,
+                ) as strict_owner,
+                patch.object(
+                    financial_retrieval_pipeline,
+                    "_report_scope_source_receipts",
+                    side_effect=project_receipts,
+                ),
+            ):
+                agent._retrieve(base_state)
+
+            strict_owner.assert_called_once()
+            self.assertEqual(events, ["target", "receipts", "search"])
+            self.assertEqual(len(passed_companies), 1)
+            self.assertEqual(passed_companies[0], ["Existing"])
+            self.assertIsNot(passed_companies[0], base_state["companies"])
+            self.assertEqual(len(passed_scopes), 1)
+            self.assertIsNot(passed_scopes[0], base_state["report_scope"])
+            self.assertIs(passed_scopes[0]["nested"], nested)
+            self.assertEqual(receipt_scopes, passed_scopes)
+            self.assertEqual(len(agent.vsm.queries), 1)
+            self.assertEqual(
+                agent.vsm.queries[0]["where_filter"],
+                expected_filter,
+            )
+            self.assertEqual(base_state, state_before)
+            self.assertIs(base_state["report_scope"]["nested"], nested)
+
+        events = []
+        agent = make_agent(events)
+        stopped_receipts = Mock(
+            side_effect=AssertionError("target failure must stop receipt projection")
+        )
+        with (
+            patch.object(
+                financial_retrieval_pipeline,
+                target_name,
+                side_effect=RuntimeError("strict company scope failed"),
+            ),
+            patch.object(
+                financial_retrieval_pipeline,
+                "_report_scope_source_receipts",
+                stopped_receipts,
+            ),
+            self.assertRaisesRegex(RuntimeError, "strict company scope failed"),
+        ):
+            agent._retrieve(base_state)
+        stopped_receipts.assert_not_called()
+        self.assertEqual(agent.vsm.queries, [])
+        self.assertEqual(base_state, state_before)
+
+        caller_source = inspect.getsource(
+            financial_retrieval_pipeline.FinancialRetrievalPipelineMixin._retrieve
+        )
+        self.assertLess(
+            caller_source.index('report_scope = dict(state.get("report_scope") or {})'),
+            caller_source.index('companies = list(state.get("companies", []) or [])'),
+        )
+        self.assertLess(
+            caller_source.index('companies = list(state.get("companies", []) or [])'),
+            caller_source.index(
+                'scope_company = str(report_scope.get("company") or "").strip()'
+            ),
+        )
+        self.assertLess(
+            caller_source.index(
+                'scope_company = str(report_scope.get("company") or "").strip()'
+            ),
+            caller_source.index(target_name),
+        )
+        self.assertLess(
+            caller_source.index(target_name),
+            caller_source.index(
+                "if scope_company and strict_company_scope and scope_company not in companies"
+            ),
+        )
+        self.assertLess(
+            caller_source.index(
+                "if scope_company and strict_company_scope and scope_company not in companies"
+            ),
+            caller_source.index(
+                "scope_source_receipts = _report_scope_source_receipts(report_scope)"
+            ),
+        )
+        self.assertLess(
+            caller_source.index(
+                "scope_source_receipts = _report_scope_source_receipts(report_scope)"
+            ),
+            caller_source.index("if companies and strict_company_scope"),
         )
 
 

@@ -527,7 +527,7 @@ def _extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
     return years
 
 
-def _should_apply_strict_company_scope(companies: List[str], report_scope: Dict[str, Any]) -> bool:
+def should_apply_strict_company_scope(companies: List[str], report_scope: Dict[str, Any]) -> bool:
     if not companies:
         return False
     scope = dict(report_scope or {})
