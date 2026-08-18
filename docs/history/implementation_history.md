@@ -8619,3 +8619,63 @@ projected AST compilation 2/2, direct behavior probes 5/5, and caller probes
 3/3 passed. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint is
 not a behavior, quality, ranking, performance, benchmark, schedule, or
 completion claim.
+
+### Extract-year-tokens public-API milestone
+
+- Commit `d2a8f8e` renames the exact former 25-line year-token projection in
+  place to public `financial_scope_policies.extract_year_tokens(...)`. No
+  wrapper or private alias remains. The graph-helper import, three calls, and
+  one exact graph-test string use the public spelling.
+- Query `20xx년` extraction order, scope-year front precedence without duplicate
+  repositioning, source-report direct-year/metadata fallback, ordered equality
+  dedupe, fresh results, original identities, lazy source iteration, input non-
+  mutation, narrow conversion exceptions, and all three caller result-adoption
+  boundaries remain unchanged. Final scope-policy public/private counts are
+  17/3 and public identity is 2/2.
+- Production source is `+5/-5`, tests are `+1,148/-51`, and the whole commit is
+  `+1,153/-56`, net `+1,097`. The final body hash remains
+  `b6e416b8033425999db29cebe67e3760021910aa836dd78614b61340982dcce8`;
+  call-record/caller-map hashes are
+  `e67fc351713582c74d9c165209ff5bc8449f1439212542ef5bf2cba7e628800b` /
+  `9b4ab9d450de2701ec06f798c7832f0fc9214a1bddd0af069e870a5d8bec74c2`.
+  The committed diff SHA-256 is
+  `997cb4c8e7a9246cfc4371771d792b4a25d0c4de485f990a8523449d17151408`.
+- Focused pre/post 4/4, retrieval scope 28/28, graph owner 290/290, operation
+  contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface
+  30/30, calculation execution 45/45, math parsing 24/24, surface owner 1/1,
+  operand owner 69/69, affected semantic 1,250/1,250, separate owner set 144/144,
+  reflection/retrieval/reconciliation/import set 110/110, audit 217, and full
+  2,143/2,143 passed. Selected-body/three-caller parity, public identity,
+  unchanged 48-module/205-edge DAG, compile, pycompile, and diff check passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Zero-load cross-module import cleanup characterization checkpoint
+
+- Static inventory selects exactly four imports with one binding and zero loads
+  or calls in their importer: evidence `_document` and runtime-trace resolution,
+  retrieval-pipeline generic-metric aliases, and graph-calculation direct-
+  evidence-surface detection. Delete only those bindings; preserve every helper
+  definition and other live import/call.
+- Repository-wide retained definition/call counts are one/two for `_document`,
+  one/four for `_build_generic_metric_aliases`, one/19 for
+  `_resolve_runtime_calculation_trace`, and one/two for
+  `_operand_row_has_direct_evidence_surface`. No source/test module-attribute or
+  dynamic `getattr`/`hasattr` consumer relies on the selected importer names.
+- The selected-import current/empty hashes are
+  `9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+  Projected AST compilation is 3/3. Physical source removes four lines across
+  three files without changing any helper body.
+- The DAG projects from 48 modules/205 edges to 48/203, removing only
+  `financial_graph_evidence -> financial_runtime_trace` and
+  `financial_retrieval_pipeline -> financial_graph_helpers`. Current/projected
+  edge hashes are
+  `e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` /
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Update exactly 19 existing DAG expectations; add no new test method.
+- Required post-edit graph/import/retrieval/reconciliation/audit/semantic/full,
+  compile, live-ref, dynamic-consumer, and diff gates are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work). Benchmark
+  refresh and remote CI remain **NOT RUN**.

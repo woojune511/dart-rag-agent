@@ -1874,14 +1874,12 @@ the committed diff SHA-256 is
 `b1adfdddca9e994b41d504702dc5fc67661d87c8387282b47327e373bac594d6`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The new characterize-only inventory selects the exact current 25-line
-`financial_scope_policies._extract_year_tokens(
-query: str, report_scope: Dict[str, Any]) -> List[int]` definition at lines
-503-527 for an in-place public rename to `extract_year_tokens(...)`, with no
-wrapper or alias. Update the graph-helper import, its three calls, and one exact
-graph-test string. Year projection stays in the scope owner; generic/concept
-operand construction, dependency-query assembly/fallback, graph state,
-artifacts, and ledger sequencing remain outside the batch.
+Commit `d2a8f8e` completed the extract-year-tokens visibility batch. The exact
+former 25-line projection is public `extract_year_tokens(...)`; the graph-helper
+import, three calls, and one exact graph-test string use the public spelling
+with no wrapper or alias. Year projection stays in the scope owner, while
+generic/concept operand construction, dependency-query assembly/fallback,
+graph state, artifacts, and ledger sequencing remain outside the owner move.
 
 Preserve the fresh list and exact left-to-right phases. Query extraction uses
 `re.findall(r"(20\d{2})년", str(query or ""))`, integer conversion, first-seen
@@ -1914,29 +1912,55 @@ joined task query text and original report scope, returns a truthy result by
 identity, and runs its existing scope-year fallback only for a falsey result.
 Every selected-helper failure remains propagated before later adoption.
 
-Five private production semantic occurrences span two files; one exact test
-string is in the graph contract file, for three complete transform paths.
-Scope-policy counts project 16/4 to 17/3 and public identity projects 2/2. The
-DAG stays 48 modules/205 edges and audit stays 217. Current/projected call-record
-hashes are
+Five former private production semantic occurrences spanned two files; one
+exact test string was in the graph contract file, for three complete transform
+paths. Final scope-policy counts are 17/3 and public identity is 2/2. The
+implementation retained the 48-module/205-edge DAG and audit 217. Pre/post call-
+record hashes are
 `88f78a94917a59c75e6efbd1ac240e90bb0de7a416b8e6c43c025547b03e3818` /
 `e67fc351713582c74d9c165209ff5bc8449f1439212542ef5bf2cba7e628800b`;
 caller-map hashes are
 `89f3813f0674e25f5132125a95353999caad24594767e58cc532036693df77d6` /
 `9b4ab9d450de2701ec06f798c7832f0fc9214a1bddd0af069e870a5d8bec74c2`.
 
-Four required CURRENT-SOURCE methods and projected focused 4/4, retrieval scope
-28/28, graph owner 290/290, operation contracts 242/242, retrieval hints 5/5,
-task artifacts 15/15, text surface 30/30, calculation execution 45/45, math
-parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
-1,250/1,250, reflection promotion 15/15, reflection capability 24/24,
-retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,143/2,143, selected-body/three-caller parity, public identity 2/2, unchanged
-DAG, graph-test AST 286/286 plus four methods, projected compile/import,
-pycompile, and diff-check gates are defined only in
-[project_status.md#next-work](../overview/project_status.md#next-work). No year-
-token source or test rename has occurred. Static inventory, projected AST
-compilation 2/2, direct behavior probes 5/5, and caller probes 3/3 passed.
+Four required CURRENT-SOURCE methods passed before and after the source edit.
+Focused 4/4, retrieval scope 28/28, graph owner 290/290, operation contracts
+242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30,
+calculation execution 45/45, math parsing 24/24, surface owner 1/1, operand owner
+69/69, affected semantic 1,250/1,250, separate owner set 144/144, reflection/
+retrieval/reconciliation/import set 110/110, audit 217, and full 2,143/2,143
+passed. Selected-body/three-caller parity, public identity 2/2, unchanged DAG,
+graph-test AST 286/286 plus four methods, compile/import, pycompile, and diff
+check passed. Production is `+5/-5`, tests are `+1,148/-51`, and the full commit
+is `+1,153/-56`; its diff SHA-256 is
+`997cb4c8e7a9246cfc4371771d792b4a25d0c4de485f990a8523449d17151408`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next bounded cleanup deletes exactly four cross-module private import
+bindings with zero loads and zero calls in their selected importer: `_document`
+and `_resolve_runtime_calculation_trace` in `financial_graph_evidence.py`,
+`_build_generic_metric_aliases` in `financial_retrieval_pipeline.py`, and
+`_operand_row_has_direct_evidence_surface` in
+`financial_graph_calculation.py`. Preserve all helper definitions, other live
+imports/calls, module identities, state boundaries, and runtime behavior. The
+repository-wide retained definition/call counts are one/two, one/19, one/four,
+and one/two respectively; selected importer loads/calls and source/test dynamic
+namespace consumers are zero.
+
+Delete only two grouped aliases and two standalone statements. The canonical
+selected-import record projects from
+`9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8` to the
+empty-record hash
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The DAG projects from 48 modules/205 edges to 48/203, removing only evidence-to-
+runtime-trace and retrieval-pipeline-to-graph-helpers. Edge hashes project from
+`e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` to
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Update the 19 exact DAG expectations and add no test method. Graph 290, import
+19, retrieval pipeline 1, reconciliation 51, audit 217, affected semantic
+1,250, separate owner 144, combined caller/import 110, full 2,143, compile,
+pycompile, live-ref/dynamic-consumer, and diff gates are defined only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

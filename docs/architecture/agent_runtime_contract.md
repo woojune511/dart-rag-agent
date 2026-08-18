@@ -5683,15 +5683,14 @@ The committed diff SHA-256 is
 `b1adfdddca9e994b41d504702dc5fc67661d87c8387282b47327e373bac594d6`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next private-API contract is the exact current 25-line
-`financial_scope_policies._extract_year_tokens(
-query: str, report_scope: Dict[str, Any]) -> List[int]` definition at lines
-503-527. The authorized future batch only renames it in place to public
-`extract_year_tokens(...)`, updates the graph-helper import and three calls, and
-updates one existing exact graph-test string. Add no wrapper or private alias.
-Year projection remains in the scope-policy owner; generic/concept operand
-construction, dependency-query assembly/fallback, graph state, artifacts,
-ledger sequencing, and caller exception scopes remain outside this batch.
+Commit `d2a8f8e` completes the extract-year-tokens visibility contract. The exact
+former 25-line private definition is now public
+`financial_scope_policies.extract_year_tokens(...)`. The graph-helper import,
+three calls, and one existing exact graph-test string use the public spelling;
+no wrapper or private alias remains. Year projection stays in the scope-policy
+owner. Generic/concept operand construction, dependency-query assembly/
+fallback, graph state, artifacts, ledger sequencing, and caller exception
+scopes remain in their existing owners.
 
 The function must begin with a fresh empty `years` list. Query processing must
 preserve exact `re.findall(r"(20\d{2})년", str(query or ""))`, source-order
@@ -5741,30 +5740,62 @@ result by identity, and runs its existing narrow scope-year fallback only when
 the result is falsey. Every selected-helper failure remains propagated before
 later caller adoption.
 
-The private spelling has five production semantic occurrences across two files
-and one exact string binding in the graph test; the complete transform is three
-files. Scope-policy public/private counts project 16/4 to 17/3; public identity
-projects 2/2. No public collision exists. The DAG remains 48 modules/205 edges,
-and the selected span intersects no audit record. Current/projected call-record
-hashes are
+The former private spelling had five production semantic occurrences across two
+files and one exact graph-test string; all selected references now use the
+public spelling. Scope-policy public/private counts are 17/3 and public identity
+is 2/2. The implementation commit retained the 48-module/205-edge DAG and the
+selected span intersects no audit record. Pre/post call-record hashes are
 `88f78a94917a59c75e6efbd1ac240e90bb0de7a416b8e6c43c025547b03e3818` /
 `e67fc351713582c74d9c165209ff5bc8449f1439212542ef5bf2cba7e628800b`;
 caller-map hashes are
 `89f3813f0674e25f5132125a95353999caad24594767e58cc532036693df77d6` /
 `9b4ab9d450de2701ec06f798c7832f0fc9214a1bddd0af069e870a5d8bec74c2`.
 
-The four named CURRENT-SOURCE contracts and projected focused 4/4, retrieval
-scope 28/28, graph owner 290/290, operation contracts 242/242, retrieval hints
-5/5, task artifacts 15/15, text surface 30/30, calculation execution 45/45,
-math parsing 24/24, surface owner 1/1, operand owner 69/69, affected semantic
-1,250/1,250, reflection promotion 15/15, reflection capability 24/24,
-retrieval pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217, full
-2,143/2,143, selected-body/three-caller parity, public identity 2/2, unchanged
-DAG, graph-test AST 286/286 plus four methods, projected compile/import,
-pycompile, and diff-check gates are governed only by
-[Project Status Next Work](../overview/project_status.md#next-work). No year-
-token source or test rename has occurred. Static inventory, projected AST
-compilation 2/2, direct behavior probes 5/5, and caller probes 3/3 passed.
+The four named CURRENT-SOURCE contracts passed before and after the rename.
+Focused 4/4, retrieval scope 28/28, graph owner 290/290, operation contracts
+242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30,
+calculation execution 45/45, math parsing 24/24, surface owner 1/1, operand owner
+69/69, affected semantic 1,250/1,250, separate owner set 144/144, reflection/
+retrieval/reconciliation/import set 110/110, audit 217, and full 2,143/2,143
+passed. Selected-body/three-caller parity, public identity 2/2, unchanged DAG,
+graph-test AST 286/286 plus four methods, compile/import, pycompile, and diff
+check also passed. Production is `+5/-5`, tests are `+1,148/-51`, and the whole
+commit is `+1,153/-56`. The committed diff SHA-256 is
+`997cb4c8e7a9246cfc4371771d792b4a25d0c4de485f990a8523449d17151408`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next contract deletes exactly four cross-module private import bindings
+whose selected importer has zero loads and zero calls. It deletes no helper
+definition and changes no live importer, behavior, argument/result adoption,
+exception boundary, state access, or orchestration. The selected bindings are
+`financial_graph_evidence._document`,
+`financial_graph_evidence._resolve_runtime_calculation_trace`,
+`financial_retrieval_pipeline._build_generic_metric_aliases`, and
+`financial_graph_calculation._operand_row_has_direct_evidence_surface`.
+
+Delete only those two grouped aliases and two standalone import statements.
+The selected importer for each has one import and zero definitions, loads, and
+calls. Repository-wide agent code retains one definition/two calls, one/four,
+one/19, and one/two respectively. Source/test module-attribute and dynamic
+`getattr`/`hasattr` consumers of the selected importer namespaces remain zero.
+The selected-import canonical current/empty hashes are
+`9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+
+The import DAG must move from 48 modules/205 edges to 48/203 by removing only
+`financial_graph_evidence -> financial_runtime_trace` and
+`financial_retrieval_pipeline -> financial_graph_helpers`. Current/projected
+edge hashes are
+`e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` /
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Update exactly 19 existing graph-test DAG assertions from `(48, 205)` to
+`(48, 203)` and add no cleanup-specific test. Required gates are import 19/19,
+retrieval pipeline 1/1, reconciliation 51/51, graph owner 290/290, audit 217,
+affected semantic 1,250/1,250, separate owner 144/144, reflection/retrieval/
+reconciliation/import 110/110, full 2,143/2,143, compile/pycompile, live-ref and
+dynamic-consumer preservation, and diff check. Benchmark refresh and remote CI
+remain **NOT RUN** for this dead-import-only batch. Exact active-work authority
+is [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

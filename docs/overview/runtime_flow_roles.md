@@ -1225,12 +1225,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   retrieval-pipeline 1/1, reconciliation plan 51/51, import 19/19, audit 217,
   full 2,139/2,139와 transform/body/identity/three-caller/48-module/205-edge DAG
   parity가 통과했다.
-- 새 characterize-only inventory는 같은 owner의 정확한 25줄
+- 완료된 `d2a8f8e` visibility batch는 같은 owner의 정확한 25줄
   `_extract_year_tokens(...)`을 public `extract_year_tokens(...)`로 이름
-  수렴시킨다. Query의 `20xx년` 순서, scope-year front insertion, source-report
+  수렴시켰다. Query의 `20xx년` 순서, scope-year front insertion, source-report
   direct/metadata fallback, equality dedupe, 좁은 `TypeError`/`ValueError`
   경계와 generic/concept period operand 및 dependency-query 세 caller의 결과
-  채택을 유지해야 한다. 정확한 네 CURRENT-SOURCE method와 projection은
+  채택은 유지됐다. Scope-policy public/private는 17/3이다. Focused pre/post
+  4/4, retrieval scope 28/28, graph owner 290/290, semantic 1,250/1,250,
+  separate owner 144/144, combined caller/import 110/110, audit 217, full
+  2,143/2,143와 body/identity/three-caller/48-module/205-edge DAG parity가
+  통과했다.
+- 다음 cleanup은 graph evidence의 `_document`/runtime-trace resolver,
+  retrieval pipeline의 generic-metric-alias builder, graph calculation의
+  direct-evidence-surface predicate에 남은 zero-load/zero-call import 네 개만
+  삭제한다. Helper definition과 live caller는 유지하고 기존 DAG assertion
+  19개를 48 modules/203 edges로 갱신한다. 정확한 경계와 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
