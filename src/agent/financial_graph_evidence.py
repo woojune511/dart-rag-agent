@@ -90,10 +90,8 @@ from src.agent.financial_text_surface import (
     query_focus_markers,
 )
 from src.config import get_financial_ontology
-from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
     CALCULATION_SLOT_POLICY,
-    KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
@@ -101,18 +99,14 @@ from src.config.retrieval_policy import (
     EVIDENCE_COMPRESSION_GUIDANCE_POLICY,
     EVIDENCE_EXTRACTION_POLICY,
     EVIDENCE_RUNTIME_POLICY,
-    METRIC_TOPIC_EXTRACTION_TERMS,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
-    PERIOD_COMPARISON_COUNT_POLICY,
     QUERY_FOCUS_MARKER_POLICY,
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
     SENTENCE_NORMALISATION_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     VALUE_NEAR_MATCH_POLICY,
-    active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
-    narrative_policy_facets,
     narrative_policy_slot_groups,
     narrative_policy_terms,
 )

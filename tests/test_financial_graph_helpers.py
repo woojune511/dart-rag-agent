@@ -57019,7 +57019,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "9a95490fffc149c421f972fa0404ce38458061f7f687b137d3089d3d5d0d9552"
+                "57d1c00a9e648220a3a6f80f9a8db5232b9574e74ed2c4deacd53a5238267a46"
                 if target_name == future_public_name
                 else "56c133f9852c0e013747dfb6a625d7af13a5713f15dcc06974d6fafe0e9fc201"
             ),
@@ -58215,7 +58215,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "4a0a947551a0078055c5bbaf423be86700f00533ac56dbc59ee87c8676711e3b"
+                "c28d4e029d60809c5a7b9b12055cb4278a2043e4eebd83e9244451d9fd1fd970"
                 if target_name == future_public_name
                 else "541b793fe8e0596a0d0271c2a87e373c1c88d12a34ffe549b641e6b67d7ffec1"
             ),
@@ -59566,7 +59566,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "a00802e4a5ead815f69f371da7e616dd3a177d594e38cc99761c3d28c0e595fb"
+                "436be6cfe37df8a224353f4f66100c1442df02ff92ebeec8245c10c072a29f71"
                 if target_name == future_public_name
                 else "86067daddcf3b370a5219834120499482d0cbec9b38f4088fa35a0fab079aab5"
             ),
@@ -61166,7 +61166,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "3dc8237cba155ad05078de66f09f752bfd70ae205dd8cfee90f99562ccd004ea"
+                "669844208216476a82ba42d897f9d49e1d47102317c159e3ae1e15cb00ab8325"
                 if target_name == future_public_name
                 else "ef07a28d7d4fd72951c8814b810062cb60e49922590f83d0f6585986aa3fb063"
             ),
@@ -66075,7 +66075,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "9f7d8e1d7e7dc456d97a0d2576104203e2aa4cf6197e106d3b2d102a57474c1e"
+                "d851c37cd3eea76318dd12e8577d5cee7ba409b962cfe79192b006b7472d6790"
                 if target_name == future_public_name
                 else "6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab"
             ),
@@ -69670,7 +69670,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "f5ee94478412f060bb7aa44769249e60a48dc92168adaec31aa59ab3a5a81419"
+                "c68ced2437d0fbeccc956c563e7e8a40d3d4df4bec32af1bd1b237cf2023000b"
                 if target_name == future_public_name
                 else "aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a"
             ),
@@ -71128,7 +71128,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_call_hash,
             (
-                "520a6f299efa48f06cd80e8697b91f21897994531a89bc28cabdab18d5bbd20b"
+                "ffe706b37919b92cb007228cb6acca3b9e2e989d52e84d0e66e26d5e7ab4b504"
                 if target_name == future_public_name
                 else "cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b"
             ),
@@ -71395,7 +71395,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "520a6f299efa48f06cd80e8697b91f21897994531a89bc28cabdab18d5bbd20b",
+            "ffe706b37919b92cb007228cb6acca3b9e2e989d52e84d0e66e26d5e7ab4b504",
         )
         projected_caller_payload = {
             f"{module_name}:{caller_name}": digest
@@ -72591,7 +72591,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "acb8c61258b02e14c616340ad5c3b30a8eded8bf1e756aa62305c8fe08f980bb"
+                "dcfd34cf83d4ebd9d2dc07b46509b078acdd82f6ed9c576b1f15e735e1bfce8a"
                 if target_name == future_public_name
                 else "e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742"
             ),
