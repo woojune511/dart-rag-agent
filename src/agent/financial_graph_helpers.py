@@ -88,7 +88,7 @@ from src.agent.financial_structured_cells import (
 )
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
-    _extract_year_tokens,
+    extract_year_tokens,
     candidate_matches_target_report_scope,
     has_single_report_scope,
     operand_period_focus,
@@ -928,7 +928,7 @@ def _build_generic_required_operands(
         aliases = _build_generic_metric_aliases(base_label)
         unit_family = _infer_generic_unit_family(base_label)
         concept_spec = _infer_generic_concept_spec(base_label, ontology)
-        year_tokens = _extract_year_tokens(query, report_scope)
+        year_tokens = extract_year_tokens(query, report_scope)
         if year_tokens:
             current_year = year_tokens[0]
             prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
@@ -1331,7 +1331,7 @@ def _build_concept_period_operands(
     preferred_statement_types = list(dict.fromkeys(spec.get("preferred_statement_types") or []))
     binding_policy = dict(spec.get("binding_policy") or {})
     surface_contract = dict(spec.get("surface_contract") or {})
-    year_tokens = _extract_year_tokens(query, report_scope)
+    year_tokens = extract_year_tokens(query, report_scope)
     if year_tokens:
         current_year = year_tokens[0]
         prior_year = year_tokens[1] if len(year_tokens) > 1 else current_year - 1
@@ -2161,7 +2161,7 @@ def _task_dependency_query_years(task: Dict[str, Any], report_scope: Dict[str, A
         ]
         if part
     )
-    years = _extract_year_tokens(query_text, report_scope)
+    years = extract_year_tokens(query_text, report_scope)
     if not years:
         scope_year_raw = report_scope.get("year")
         try:

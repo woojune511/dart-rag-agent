@@ -500,7 +500,7 @@ def extract_period_sort_key(period: str) -> int:
     return -1
 
 
-def _extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
+def extract_year_tokens(query: str, report_scope: Dict[str, Any]) -> List[int]:
     years: List[int] = []
     for token in re.findall(r"(20\d{2})년", str(query or "")):
         year = int(token)
