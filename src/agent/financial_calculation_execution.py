@@ -17,7 +17,7 @@ from src.agent.financial_runtime_normalization import (
     _normalise_spaces,
 )
 from src.agent.financial_runtime_trace import _runtime_trace_state_update
-from src.agent.financial_scope_policies import _extract_period_sort_key
+from src.agent.financial_scope_policies import extract_period_sort_key
 from src.agent.financial_task_artifacts import calculation_result_artifact_update as _calculation_result_artifact_update
 from src.config import get_financial_ontology
 
@@ -737,7 +737,7 @@ def execute_prepared_calculation_plan(
                 )
             outcome_operands = sorted(
                 [operands[str(binding.get("operand_id"))] for binding in binding_rows],
-                key=lambda row: _extract_period_sort_key(str(row.get("period") or "")),
+                key=lambda row: extract_period_sort_key(str(row.get("period") or "")),
             )
             outcome_evidence_ids = tuple(
                 dict.fromkeys(

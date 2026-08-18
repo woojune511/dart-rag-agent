@@ -261,7 +261,6 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
-    _extract_period_sort_key,
     known_consolidation_scope_value,
     operand_period_focus,
 )

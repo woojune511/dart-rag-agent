@@ -488,7 +488,7 @@ def metadata_period_match_strength(period_labels: List[str], query_years: List[i
     return overlap / max(len(wanted), 1)
 
 
-def _extract_period_sort_key(period: str) -> int:
+def extract_period_sort_key(period: str) -> int:
     text = _normalise_spaces(period)
     year_match = re.search(r"(19|20)\d{2}", text)
     if year_match:
