@@ -8679,3 +8679,58 @@ completion claim.
   compile, live-ref, dynamic-consumer, and diff gates are governed only by
   [Project Status Next Work](../overview/project_status.md#next-work). Benchmark
   refresh and remote CI remain **NOT RUN**.
+
+### Zero-load cross-module import cleanup milestone
+
+- Commit `be1fbc9` deletes the four selected import bindings and no helper
+  definition. Repository-wide helper call counts remain 2, 4, 19, and 2;
+  selected importer loads/calls and source/test module-attribute or dynamic
+  consumers finish at zero. Production source is exactly `-4`.
+- The selected-import record is empty with hash
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+  The DAG finishes 48 modules/203 edges after removing only evidence-to-runtime-
+  trace and retrieval-pipeline-to-graph-helpers; its hash is
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+- The characterize-only checkpoint counted 19 tuple-form DAG expectations but
+  omitted 26 standalone full-DAG expectations. The final test transform updates
+  45 current-DAG counts, one prior-edge count, two retrieval call lines, and 12
+  call-record fingerprints: `+60/-60`, with no new or weakened test. The whole
+  commit is `+60/-64`, net `-4`; its diff SHA-256 is
+  `ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`.
+- Focused DAG 19/19, graph 290/290, remaining semantic 960/960 for affected
+  1,250/1,250, separate owner 144/144, reflection/retrieval/reconciliation/
+  import 110/110, audit 217, compile/pycompile, live-ref/dynamic-consumer checks,
+  and full 2,143/2,143 passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+  milestone is not a behavior, quality, ranking, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Dead MAS-node helper cleanup characterization checkpoint
+
+- Static inventory selects exactly three unused 2-line definitions:
+  `analyst_node._trace(...)` at 21-22,
+  `orchestrator_node._artifact_payload(...)` at 157-158, and
+  `researcher_node._trace(...)` at 37-38. Each selected module/name pair has zero
+  imports, loads, calls, attributes, `getattr`/`hasattr`, and patch-string
+  consumers across `src` and `tests`.
+- The live orchestrator `_trace(...)`, `_artifact_answer(...)`,
+  `_artifact_refs(...)`, `project_worker_artifact_boundary(...)`, and all imports
+  remain outside the deletion. No selected helper has executed behavior to move.
+  Trace source/AST hashes are
+  `d51ecccce408de70bf0ff9b9607967190b155314a79777014e3c9d55f018b89d` /
+  `16b49f6cdfe93089fab003270a7697d53145ec755d4007f2d19c32a94ff06686`;
+  artifact-helper hashes are
+  `4958b08162a6c19af90f9abc0acc06f55090350a9d53fc3cb5a0190d55421034` /
+  `f52c21a79e7b50898e8b8715f1a1c0ce0aaa52f42c732431e2f76d6399e45585`.
+- Delete the three definitions and following blank separators only. Nine
+  physical lines project module sizes 321/664/372 to 318/661/369; public counts
+  stay 2/4/2 and private counts project 11/23/15 to 10/22/14. No import changes.
+  Selected-definition current/empty hashes are
+  `be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- Projected AST compilation passes 3/3. The DAG remains 48/203 at edge hash
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`;
+  selected audit occurrences are zero and baseline remains 217. Targeted MAS
+  projects 45/45, import 19/19, and full discovery remains 2,143/2,143. Add no
+  test method or expectation change. Exact gates are governed only by
+  [Project Status Next Work](../overview/project_status.md#next-work).

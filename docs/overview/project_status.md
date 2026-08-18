@@ -16,10 +16,10 @@ Last updated: 2026-08-18
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `d2a8f8e` renamed the exact former 25-line year-token projection in place to public `extract_year_tokens(...)`; the graph-helper importer, three callers, and exact test binding now use the public API, with no wrapper or private alias |
-| What passed? | Focused pre/post 4/4, retrieval scope 28/28, graph owner 290/290, operation contracts 242/242, retrieval hints 5/5, task artifacts 15/15, text surface 30/30, calculation-execution owner 45/45, math parsing 24/24, surface owner 1/1, operand owner 69/69, affected eleven-module semantic set 1,250/1,250, reflection-promotion 15/15, reflection-capability 24/24, additional retrieval-pipeline caller module 1/1, reconciliation plan 51/51, import-side-effect 19/19, runtime audit 217, full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with selected-body, caller, and full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
-| What is next? | Delete exactly four cross-module private imports whose selected importer has zero loads and zero calls, preserve every helper definition and live importer, and update the 19 existing DAG assertions from 48 modules/205 edges to 48/203 |
+| What just changed? | `be1fbc9` deleted exactly four zero-load/zero-call cross-module private imports while preserving every helper definition and live call; the agent DAG is now 48 modules/203 edges |
+| What passed? | Focused DAG 19/19, graph owner 290/290, affected semantic set 1,250/1,250, separate owner set 144/144, reflection/retrieval/reconciliation/import set 110/110, import-side-effect 19/19, runtime audit 217, pycompile, zero dynamic consumers, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with preserved definitions/calls and full-regression parity, not a policy-behavior, ingest, retrieval, or answer-contract change |
+| What is next? | Delete the two dead MAS-node `_trace(...)` helpers and the dead orchestrator `_artifact_payload(...)` helper; all three exact 2-line definitions have zero import/load/call/attribute/dynamic consumers |
 
 ## Product Boundary
 
@@ -748,15 +748,15 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, extract-year-tokens public API pre/post 4 / 4; retrieval scope 28 / 28; graph owner 290 / 290; operation contracts 242 / 242; retrieval hints 5 / 5; task artifacts 15 / 15; text surface 30 / 30; calculation-execution owner 45 / 45; math parsing 24 / 24; surface owner 1 / 1; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eleven-module set 1,250 / 1,250; additional retrieval-pipeline caller module 1 / 1 |
+| Latest focused owner checkpoint | PASS, zero-load import DAG contracts 19 / 19; graph owner 290 / 290; separate owner set 144 / 144 |
+| Latest semantic regression set | PASS, affected eleven-module set 1,250 / 1,250; reflection/retrieval/reconciliation/import set 110 / 110 |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Full unittest discovery | PASS, 2,143 / 2,143 |
-| Benchmark refresh after latest visibility-only rename | **NOT RUN** |
+| Benchmark refresh after latest dead-import cleanup | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -799,61 +799,78 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Delete exactly four cross-module private imports that bind a name but have zero
-`Load` nodes and zero calls in the selected importer. Do not delete or rename
-the helper definitions, do not change live imports in other modules, and do not
-move any behavior, exception boundary, graph-state access, evidence projection,
-or orchestration. This is a four-source-line dependency cleanup, not a public-
-API migration, and requires no new test method.
+Delete exactly three top-level private helper definitions that have zero imports,
+loads, calls, module-attribute consumers, and dynamic/string-based consumers in
+`src` and `tests`. The selected functions are the exact 2-line
+`analyst_node._trace(message: str) -> List[str]` at lines 21-22, the exact 2-line
+`orchestrator_node._artifact_payload(artifact: Artifact) -> Dict[str, Any]` at
+lines 157-158, and the exact 2-line `researcher_node._trace(message: str) ->
+List[str]` at lines 37-38. Do not delete the live orchestrator `_trace(...)`, any
+artifact boundary function, or any import.
 
-The exact current aliases are:
+The two selected `_trace(...)` definitions each return a fresh `[message]` list;
+their source/AST hashes are
+`d51ecccce408de70bf0ff9b9607967190b155314a79777014e3c9d55f018b89d` /
+`16b49f6cdfe93089fab003270a7697d53145ec755d4007f2d19c32a94ff06686`.
+The selected artifact helper returns exact
+`dict(project_worker_artifact_boundary(artifact).get("payload") or {})`; its
+source/AST hashes are
+`4958b08162a6c19af90f9abc0acc06f55090350a9d53fc3cb5a0190d55421034` /
+`f52c21a79e7b50898e8b8715f1a1c0ce0aaa52f42c732431e2f76d6399e45585`.
+Because no selected helper executes, deleting it moves no runtime behavior or
+exception boundary. `project_worker_artifact_boundary` remains live through
+`_artifact_answer(...)` and `_artifact_refs(...)`.
 
-- `financial_graph_evidence.py` imports `_document` from
-  `financial_langchain_loaders` in its three-alias grouped import and imports
-  `_resolve_runtime_calculation_trace` from `financial_runtime_trace` as a
-  standalone statement;
-- `financial_retrieval_pipeline.py` imports
-  `_build_generic_metric_aliases` from `financial_graph_helpers` as a standalone
-  statement;
-- `financial_graph_calculation.py` imports
-  `_operand_row_has_direct_evidence_surface` from
-  `financial_operand_resolution` in its 49-alias grouped import.
-
-Each selected importer has exactly one import and zero definitions, loads, and
-calls for its target name. Repository-wide agent code still has live definitions
-and calls: `_document` has one definition/two calls, generic metric aliases one/
-four, runtime-trace resolution one/19, and direct-evidence-surface detection one/
-two. No source/test module-attribute access or dynamic `getattr`/`hasattr`
-consumer relies on the selected importer namespaces. Preserve all of those live
-definitions, calls, and imports.
-
-Delete only the two grouped aliases and two standalone statements. Projected
-physical source-line counts are calculation 13,466 to 13,465, evidence 4,229 to
-4,227, and retrieval pipeline 2,642 to 2,641. Their top-level import-statement
-counts project 36 to 36, 24 to 23, and 18 to 17. Projected AST compilation must
-pass 3/3. The canonical selected-import record hash is
-`9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8`;
-after deletion the exact empty-record hash is
+Delete each definition and its following blank separator only: nine physical
+lines, six definition/body lines, three files. Physical line counts project
+analyst 321 to 318, orchestrator 664 to 661, and researcher 372 to 369. Their
+top-level public/private function counts project 2/11 to 2/10, 4/23 to 4/22,
+and 2/15 to 2/14. No import becomes unused. Projected AST compilation is 3/3.
+The canonical selected-definition record hash is
+`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70`;
+the post-deletion empty-record hash is
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
 
-The agent import DAG projects from 48 modules/205 edges to 48/203. The exact
-removed edges are `financial_graph_evidence -> financial_runtime_trace` and
-`financial_retrieval_pipeline -> financial_graph_helpers`; the other two target
-modules remain connected through live imports. Current/projected canonical edge
-hashes are
-`e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` /
+The recursive agent DAG must remain exactly 48 modules/203 edges with edge hash
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Update exactly the 19 existing `(48, 205)` graph-test assertions to `(48, 203)`;
-do not add a cleanup-specific test or weaken any other contract.
+Selected spans intersect zero runtime-domain audit occurrences, so the reviewed
+baseline remains 217. Add no test method and change no existing expectation.
+Required post-edit gates are selected definitions/consumers zero, retained live
+orchestrator trace and artifact-boundary users, projected/real compile 3/3,
+targeted Analyst/Orchestrator/Researcher/MAS tests 45/45, import-side-effect
+19/19, runtime-domain audit 217, full discovery 2,143/2,143, pycompile, and
+`git diff --check`. Benchmark refresh and remote CI remain **NOT RUN**.
 
-Required post-edit gates are the selected-import empty record, live-reference
-preservation, direct/dynamic consumer zero, projected/real AST compilation 3/3,
-graph owner 290/290, import-side-effect 19/19, retrieval pipeline 1/1,
-reconciliation plan 51/51, runtime-domain audit 217, affected semantic set
-1,250/1,250, the separate owner set 144/144, reflection/retrieval/reconciliation/
-import set 110/110, full discovery 2,143/2,143, pycompile, and
-`git diff --check`. Benchmark refresh and remote CI are not required for this
-dead-import-only batch and must remain explicitly **NOT RUN**.
+## Completed Zero-Load Cross-Module Import Cleanup
+
+Commit `be1fbc9` deleted exactly four private import bindings with zero loads and
+zero calls in their selected importer: evidence `_document` and runtime-trace
+resolution, retrieval-pipeline generic-metric aliases, and graph-calculation
+direct-evidence-surface detection. It deleted no helper definition and preserved
+repository-wide helper call counts at 2, 19, 4, and 2. Direct module-attribute
+and dynamic namespace consumers remain zero.
+
+Production source is `-4`; tests are `+60/-60`; the whole commit is `+60/-64`,
+net `-4`. The static inventory finishes empty with hash
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The DAG moved from 48 modules/205 edges to 48/203, removing only
+`financial_graph_evidence -> financial_runtime_trace` and
+`financial_retrieval_pipeline -> financial_graph_helpers`; its final edge hash
+is `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+The committed diff SHA-256 is
+`ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`.
+
+The pre-edit inventory found 19 tuple-form DAG expectations, but the first wider
+run exposed 26 additional standalone full-DAG expectations. The final test-only
+transform therefore updates 45 current-DAG counts, one prior-edge count, two
+retrieval-pipeline call lines, and 12 dependent call-record fingerprints: 60
+exact replacements, with no new or weakened test. Focused DAG 19/19, graph
+290/290, remaining semantic 960/960 for affected 1,250/1,250, separate owner
+144/144, reflection/retrieval/reconciliation/import 110/110, audit 217,
+pycompile, static live-reference/dynamic-consumer checks, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+milestone is not a behavior, quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Extract-Year-Tokens Public API
 

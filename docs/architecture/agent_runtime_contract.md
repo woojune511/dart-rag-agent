@@ -5764,38 +5764,55 @@ commit is `+1,153/-56`. The committed diff SHA-256 is
 `997cb4c8e7a9246cfc4371771d792b4a25d0c4de485f990a8523449d17151408`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next contract deletes exactly four cross-module private import bindings
-whose selected importer has zero loads and zero calls. It deletes no helper
-definition and changes no live importer, behavior, argument/result adoption,
-exception boundary, state access, or orchestration. The selected bindings are
-`financial_graph_evidence._document`,
-`financial_graph_evidence._resolve_runtime_calculation_trace`,
-`financial_retrieval_pipeline._build_generic_metric_aliases`, and
-`financial_graph_calculation._operand_row_has_direct_evidence_surface`.
-
-Delete only those two grouped aliases and two standalone import statements.
-The selected importer for each has one import and zero definitions, loads, and
-calls. Repository-wide agent code retains one definition/two calls, one/four,
-one/19, and one/two respectively. Source/test module-attribute and dynamic
-`getattr`/`hasattr` consumers of the selected importer namespaces remain zero.
-The selected-import canonical current/empty hashes are
-`9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8` /
+Commit `be1fbc9` completes the zero-load cross-module import cleanup. It deletes
+exactly the four selected bindings and no helper definition. Repository-wide
+helper call counts remain 2, 4, 19, and 2; selected importer loads/calls and
+source/test module-attribute or dynamic namespace consumers finish at zero. The
+selected-import record is empty with hash
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
 
-The import DAG must move from 48 modules/205 edges to 48/203 by removing only
+The import DAG is now 48 modules/203 edges after removing only
 `financial_graph_evidence -> financial_runtime_trace` and
-`financial_retrieval_pipeline -> financial_graph_helpers`. Current/projected
-edge hashes are
-`e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` /
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Update exactly 19 existing graph-test DAG assertions from `(48, 205)` to
-`(48, 203)` and add no cleanup-specific test. Required gates are import 19/19,
-retrieval pipeline 1/1, reconciliation 51/51, graph owner 290/290, audit 217,
-affected semantic 1,250/1,250, separate owner 144/144, reflection/retrieval/
-reconciliation/import 110/110, full 2,143/2,143, compile/pycompile, live-ref and
-dynamic-consumer preservation, and diff check. Benchmark refresh and remote CI
-remain **NOT RUN** for this dead-import-only batch. Exact active-work authority
-is [Project Status Next Work](../overview/project_status.md#next-work).
+`financial_retrieval_pipeline -> financial_graph_helpers`. Its canonical edge
+hash is `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+The initial 19 tuple-form expectations were not the complete test ripple: 26
+standalone full-DAG expectations, one prior-edge count, two retrieval call lines,
+and 12 call-record fingerprints also required exact updates. The final test
+transform is 60 replacements and adds or weakens no test.
+
+Production source is `-4`, tests are `+60/-60`, and the whole commit is
+`+60/-64`. Focused DAG 19/19, graph 290/290, remaining semantic 960/960 for
+affected 1,250/1,250, separate owner 144/144, reflection/retrieval/
+reconciliation/import 110/110, audit 217, compile/pycompile, live-ref/dynamic-
+consumer checks, and full 2,143/2,143 passed. The committed diff SHA-256 is
+`ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next contract deletes exactly three unused 2-line private definitions:
+`analyst_node._trace(...)` at 21-22,
+`orchestrator_node._artifact_payload(...)` at 157-158, and
+`researcher_node._trace(...)` at 37-38. Each selected owner has zero import,
+load, call, module-attribute, `getattr`/`hasattr`, and patch-string consumers in
+`src` and `tests`. The live orchestrator `_trace(...)` and every artifact-
+boundary consumer remain outside this deletion.
+
+The two selected trace helpers have source/AST hashes
+`d51ecccce408de70bf0ff9b9607967190b155314a79777014e3c9d55f018b89d` /
+`16b49f6cdfe93089fab003270a7697d53145ec755d4007f2d19c32a94ff06686`;
+the artifact helper hashes are
+`4958b08162a6c19af90f9abc0acc06f55090350a9d53fc3cb5a0190d55421034` /
+`f52c21a79e7b50898e8b8715f1a1c0ce0aaa52f42c732431e2f76d6399e45585`.
+Delete each definition plus its blank separator only. Physical lines project
+321/664/372 to 318/661/369 and private function counts 11/23/15 to 10/22/14;
+public counts remain 2/4/2. No import changes. The selected-definition current/
+empty hashes are
+`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Compile projects 3/3, audit remains 217, and the 48/203 DAG and edge hash remain
+unchanged. Targeted MAS 45/45, import 19/19, full 2,143/2,143, pycompile,
+consumer-zero, and diff check are required. Exact active-work authority is
+[Project Status Next Work](../overview/project_status.md#next-work); benchmark
+refresh and remote CI remain **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

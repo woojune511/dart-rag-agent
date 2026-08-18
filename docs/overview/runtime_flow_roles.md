@@ -1235,11 +1235,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   separate owner 144/144, combined caller/import 110/110, audit 217, full
   2,143/2,143와 body/identity/three-caller/48-module/205-edge DAG parity가
   통과했다.
-- 다음 cleanup은 graph evidence의 `_document`/runtime-trace resolver,
-  retrieval pipeline의 generic-metric-alias builder, graph calculation의
-  direct-evidence-surface predicate에 남은 zero-load/zero-call import 네 개만
-  삭제한다. Helper definition과 live caller는 유지하고 기존 DAG assertion
-  19개를 48 modules/203 edges로 갱신한다. 정확한 경계와 gate는
+- 완료된 `be1fbc9` cleanup은 graph evidence의 `_document`/runtime-trace
+  resolver, retrieval pipeline의 generic-metric-alias builder, graph
+  calculation의 direct-evidence-surface predicate에 남은 zero-load/zero-call
+  import 네 개만 삭제했다. Helper definition과 live caller는 유지됐고 DAG는
+  48 modules/203 edges다. 최종 파급은 tuple/standalone을 합친 DAG expectation
+  45개와 line/fingerprint 15개였다. Focused 19/19, graph 290/290, semantic
+  1,250/1,250, separate owner 144/144, combined caller/import 110/110, audit
+  217, full 2,143/2,143가 통과했다.
+- 다음 cleanup은 optional MAS node의 unused 2-line helper 세 개만 삭제한다:
+  Analyst/Researcher `_trace(...)`과 Orchestrator `_artifact_payload(...)`이다.
+  Live orchestrator trace와 artifact boundary consumer는 유지한다. 정확한
+  consumer-zero, function-count, compile, targeted MAS 45, unchanged 48/203 DAG,
+  audit 217와 full gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

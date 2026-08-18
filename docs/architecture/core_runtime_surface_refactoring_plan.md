@@ -1936,30 +1936,33 @@ is `+1,153/-56`; its diff SHA-256 is
 `997cb4c8e7a9246cfc4371771d792b4a25d0c4de485f990a8523449d17151408`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded cleanup deletes exactly four cross-module private import
-bindings with zero loads and zero calls in their selected importer: `_document`
-and `_resolve_runtime_calculation_trace` in `financial_graph_evidence.py`,
-`_build_generic_metric_aliases` in `financial_retrieval_pipeline.py`, and
-`_operand_row_has_direct_evidence_surface` in
-`financial_graph_calculation.py`. Preserve all helper definitions, other live
-imports/calls, module identities, state boundaries, and runtime behavior. The
-repository-wide retained definition/call counts are one/two, one/19, one/four,
-and one/two respectively; selected importer loads/calls and source/test dynamic
-namespace consumers are zero.
-
-Delete only two grouped aliases and two standalone statements. The canonical
-selected-import record projects from
-`9a1a727471d40de8f1f87a5d2ee1505e3bcb000472f11efcf41c55f0178db9b8` to the
-empty-record hash
+Commit `be1fbc9` completed the zero-load cross-module import cleanup. Four source
+bindings were deleted while helper definition/call counts remained unchanged.
+The selected record is empty at
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-The DAG projects from 48 modules/205 edges to 48/203, removing only evidence-to-
-runtime-trace and retrieval-pipeline-to-graph-helpers. Edge hashes project from
-`e4bdbdb848db4c34dfc971c74128114e12c8883a723dbe49b2e0aef57ba931a1` to
+The DAG finishes 48 modules/203 edges with canonical hash
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Update the 19 exact DAG expectations and add no test method. Graph 290, import
-19, retrieval pipeline 1, reconciliation 51, audit 217, affected semantic
-1,250, separate owner 144, combined caller/import 110, full 2,143, compile,
-pycompile, live-ref/dynamic-consumer, and diff gates are defined only in
+
+The initial characterization covered 19 tuple-form DAG expectations but not 26
+standalone equivalents. The final exact test ripple is 45 current-DAG counts,
+one prior-edge count, two call lines, and 12 fingerprints, or 60 replacements.
+Production is `-4`, tests are `+60/-60`, and the commit is `+60/-64`. Focused
+DAG 19, graph 290, affected semantic 1,250, separate owner 144, combined caller/
+import 110, audit 217, compile, dynamic-consumer, and full 2,143 gates passed.
+The diff SHA-256 is
+`ac9fd2c24689e4c22ea7e16d0471dce7633d2205c8a4894530ab5201378f2ee9`;
+benchmark refresh and remote CI were **NOT RUN**.
+
+The next bounded cleanup deletes three dead 2-line MAS-node definitions:
+Analyst and Researcher `_trace(...)`, plus Orchestrator `_artifact_payload(...)`.
+All selected import/load/call/attribute/dynamic consumer counts are zero. Keep
+the live orchestrator trace, artifact boundary functions, and all imports. The
+selected-definition current/empty hashes are
+`be896e2857d7766a80b2ee74ce2be96ff8fecfbd17e0ccc1f1262fb998a40f70` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The patch projects nine physical lines deleted, private function counts
+11/23/15 to 10/22/14, compile 3/3, unchanged 48/203 DAG, audit 217, targeted MAS
+45, import 19, and full 2,143. Exact boundaries and gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
