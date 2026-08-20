@@ -51,7 +51,6 @@ from src.agent.financial_retrieval_hints import (
     preferred_section_evidence_subset,
 )
 from src.agent.financial_surface_contracts import (
-    operand_needles,
     text_has_negative_surface,
     text_has_positive_surface,
     scoped_surface_affinity_priority,
