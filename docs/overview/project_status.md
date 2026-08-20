@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `7cdb317` deleted only the zero-load `query_focus_marker_groups` import from `financial_graph_calculation.py` while retaining the contracted `text_has_negative_surface` compatibility identity |
-| What passed? | Selected consumer zero, retained compatibility identity, affected tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `5de5e23` deleted only four zero-load reconciliation-candidate imports from `financial_graph_reconciliation.py`, preserving their canonical definitions and 2/2/2/4 owner-local calls |
+| What passed? | Selected facade consumers zero, focused tests 323/323, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Delete only four zero-load reconciliation-candidate imports from `financial_graph_reconciliation.py`, preserving their canonical definitions, 2/2/2/4 live owner calls, and the other four live imports |
+| What is next? | Delete only the zero-load `operand_needles` import from `financial_graph_evidence.py`, preserving its canonical definition, all 24 source calls, the other eight external importers, and the tuple's three live imports |
 
 ## Product Boundary
 
@@ -799,48 +799,70 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Delete only four zero-load bindings from the existing
-`src.agent.financial_reconciliation_candidates` import tuple in
-`src/agent/financial_graph_reconciliation.py`:
-`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
-`pair_candidate_period_score`, and `structured_cell_identity`. Delete exactly
-four production lines. Do not delete or rename their canonical owner
-definitions, alter their 2/2/2/4 owner-local calls, remove the other four live
-imports in that tuple, or change reconciliation behavior.
+Delete only the zero-load `operand_needles` binding from the existing
+`src.agent.financial_surface_contracts` import tuple in
+`src/agent/financial_graph_evidence.py`. Delete exactly one production line.
+Do not delete or rename its canonical owner definition, alter any of its 24
+source calls, remove any of the other eight external importers, remove the
+tuple's three live imports, or change evidence behavior.
 
-All four selected bindings have zero reconciliation-module loads/calls and zero
-repository source/test direct import from `financial_graph_reconciliation`,
-module-attribute access, `patch.object` or string-patch use, constant-name
-`getattr`/`hasattr`, wildcard import, `__all__`, or `dir`/`vars`/`getmembers`/
-`__dict__` consumer. Their canonical definitions and every source call live in
-`financial_reconciliation_candidates.py`. The current/empty selected-record
-hashes are
-`4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
+The selected evidence binding has zero load/call and zero repository source/test
+direct import from `financial_graph_evidence`, module-attribute access,
+`patch.object` or string-patch use, constant-name `getattr`/`hasattr`, wildcard
+import, `__all__`, or `dir`/`vars`/`getmembers`/`__dict__` consumer. Its canonical
+definition and four owner-local calls remain in
+`financial_surface_contracts.py`; twenty more caller calls remain across eight
+external importers. The current/empty selected-record hashes are
+`e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The retained evidence tuple imports `text_has_negative_surface`,
+`text_has_positive_surface`, and `scoped_surface_affinity_priority` with exact
+load/call counts 3/3, 8/8, and 1/1.
 
-Deleting the four lines shifts reconciliation absolute line numbers. Update
-exactly three existing caller-fingerprint expectations in
-`tests/test_financial_graph_helpers.py` and remove exactly four selected names
-from the existing expected reconciliation-candidate import set in
-`tests/test_financial_reconciliation_candidates.py`. Add no test method and
-change no call, body, DAG edge, behavior, or assertion strength. The three-pair
-fingerprint mapping hash is
-`9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395`.
-Projected source/test/whole transforms are `+0/-4`, `+3/-7`, and `+3/-11`
-across exactly three files. The exact temporary projection diff SHA-256 is
-`133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
+Deleting the line shifts evidence absolute line numbers. Replace exactly nine
+existing graph-helper fingerprint occurrences representing eight unique pairs,
+and delete exactly two stale `financial_graph_evidence` entries from the
+existing operand-needles importer-set and public-identity expectations. Add no
+test method, change no call or body, and weaken no assertion. The canonical
+eight-record `{old,new,occurrences}` fingerprint mapping hash is
+`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a`.
+Projected source/test/whole transforms are `+0/-1`, `+9/-11`, and `+9/-12`
+across exactly two files. The exact temporary projection diff SHA-256 is
+`62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
 
-The exact temporary projection passed the graph-helper,
-reconciliation-candidate, and import-side-effect set 323/323 in 189.466
-seconds, audit 217, pycompile 3/3, selected facade-consumer zero,
-`git diff --check`, and the unchanged acyclic 48-module/203-edge DAG at
+The exact temporary projection passed the graph-helper, text-surface, and
+import-side-effect set 339/339 in 172.545 seconds, audit 217, pycompile 2/2,
+selected facade-consumer zero, `git diff --check`, and the unchanged acyclic
+48-module/203-edge DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Required implementation gates are the exact transforms and hashes above,
-focused 323/323, audit 217, pycompile, full discovery 2,143/2,143, selected-
-consumer zero, retained owner definitions/calls, DAG parity, artifact hygiene,
-and diff check. Benchmark refresh and remote CI remain **NOT RUN**. This deletion
-would prove no behavior, answer-quality, ranking, performance, benchmark,
-schedule, ledger, or Phase 3 completion claim.
+focused 339/339, audit 217, pycompile, full discovery 2,143/2,143, selected-
+consumer zero, retained owner definition/calls/importers, retained tuple-import
+loads/calls, DAG parity, artifact hygiene, and diff check. Benchmark refresh and
+remote CI remain **NOT RUN**. This deletion would prove no behavior,
+answer-quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+## Completed Reconciliation-Candidate Import Cleanup
+
+Commit `5de5e23` completed the previously characterized deletion of only
+`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
+`pair_candidate_period_score`, and `structured_cell_identity` from the
+`financial_reconciliation_candidates` import tuple in
+`financial_graph_reconciliation.py`. All four canonical owner definitions,
+their 2/2/2/4 owner-local calls, the tuple's other four live imports, and all
+reconciliation behavior remain unchanged.
+
+Production source is `+0/-4`, tests are `+3/-7`, and the whole commit is
+`+3/-11` across exactly three files. Its committed diff SHA-256 is
+`133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
+Focused graph-helper/reconciliation-candidate/import tests passed 323/323 in
+173.754 seconds, audit 217, pycompile 3/3, selected facade-consumer zero,
+`git diff --check`, and the unchanged acyclic 48-module/203-edge DAG passed.
+Full discovery passed 2,143/2,143 in 235.423 seconds. Artifact hygiene passed;
+benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+milestone establishes no behavior, answer-quality, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Graph-Calculation Query-Focus Import Cleanup
 

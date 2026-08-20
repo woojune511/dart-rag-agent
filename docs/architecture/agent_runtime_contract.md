@@ -6000,30 +6000,55 @@ seconds, audit 217, pycompile 2/2, selected consumer zero, retained compatibilit
 identity, diff check, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
 211.992 seconds passed. Benchmark refresh and remote CI were **NOT RUN**.
 
-The active cleanup contract deletes only four zero-load bindings imported into
-`financial_graph_reconciliation.py` from
-`financial_reconciliation_candidates.py`:
-`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
-`pair_candidate_period_score`, and `structured_cell_identity`. Preserve all four
-canonical owner definitions, their 2/2/2/4 owner-local calls, the other four
-live imports in the tuple, and all reconciliation behavior.
+Commit `5de5e23` completed the reconciliation-candidate import cleanup. It
+deleted only `effective_structured_cell_unit_hint`,
+`find_reconciliation_match_entry`, `pair_candidate_period_score`, and
+`structured_cell_identity` from the existing
+`financial_reconciliation_candidates` import tuple in
+`financial_graph_reconciliation.py`. All four canonical definitions, their
+2/2/2/4 owner-local calls, the tuple's other four live imports, and all runtime
+behavior remain unchanged.
 
-The selected reconciliation bindings have zero importer load/call, direct
-import through the reconciliation module, module attribute, patch, constant
-dynamic, wildcard, `__all__`, or introspection consumer. Their current/empty
-record hashes are
-`4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Only three existing graph-helper fingerprint expectations and four names in the
-existing reconciliation-candidate expected import set may change. Source/tests/
-whole project `+0/-4`, `+3/-7`, and `+3/-11`; the mapping and exact projection
-diff hashes are
-`9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395` and
+Production source is `+0/-4`, tests are `+3/-7`, and the whole commit is
+`+3/-11` across three files. Its committed diff SHA-256 is
 `133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
-The temporary tree passed focused 323/323, audit 217, pycompile 3/3, selected
-consumer zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
-remains the implementation gate; the exact active scope is governed by
-[Project Status Next Work](../overview/project_status.md#next-work).
+Focused graph-helper/reconciliation-candidate/import tests passed 323/323 in
+173.754 seconds, audit 217 and pycompile 3/3 passed, selected facade consumers
+finished zero, and the acyclic DAG remained 48 modules/203 edges. Full
+discovery passed 2,143/2,143 in 235.423 seconds. Benchmark refresh and remote CI
+were **NOT RUN**.
+
+The active cleanup contract deletes only the zero-load `operand_needles`
+binding from the `financial_surface_contracts` import tuple in
+`financial_graph_evidence.py`. Preserve its one canonical definition, all 24
+source calls (four owner-local and twenty caller calls), the other eight
+external importers, and the tuple's three live imports. Those retained evidence
+imports have exact load/call counts 3/3, 8/8, and 1/1 for
+`text_has_negative_surface`, `text_has_positive_surface`, and
+`scoped_surface_affinity_priority` respectively.
+
+The evidence binding has zero load/call and zero repository source/test direct
+import through the evidence facade, module-attribute access, patch or string
+patch, constant `getattr`/`hasattr`, wildcard/`__all__`, or
+`dir`/`vars`/`getmembers`/`__dict__` consumer. Its current/empty record hashes
+are `e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+
+Delete exactly two stale `financial_graph_evidence` entries from the existing
+operand-needles importer-set and public-identity expectations, and replace
+exactly nine absolute-line fingerprints representing eight unique pairs. Add
+no test method and weaken no assertion. Source/tests/whole project are
+`+0/-1`, `+9/-11`, and `+9/-12`; the canonical eight-record
+`{old,new,occurrences}` mapping hash and exact temporary diff SHA-256 are
+`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a` and
+`62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+The temporary tree passed focused graph-helper/text-surface/import 339/339 in
+172.545 seconds, audit 217, pycompile 2/2, selected facade-consumer zero, diff
+check, and the unchanged acyclic 48/203 DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Full 2,143/2,143 remains the implementation gate; the exact active scope is
+governed by [Project Status Next Work](../overview/project_status.md#next-work).
+Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

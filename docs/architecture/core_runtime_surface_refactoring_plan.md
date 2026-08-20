@@ -2119,28 +2119,45 @@ pycompile 2/2, consumer zero, retained compatibility identity, diff check,
 unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 211.992 seconds. Benchmark
 refresh and remote CI were **NOT RUN**.
 
-The next bounded cleanup deletes only four zero-load imports from
-`financial_graph_reconciliation.py`:
+The reconciliation-candidate cleanup completed by `5de5e23` deleted only
 `effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
-`pair_candidate_period_score`, and `structured_cell_identity`. Their canonical
-owner remains `financial_reconciliation_candidates.py`; preserve all four
-definitions, their 2/2/2/4 owner-local calls, the other four live imports, and
-all reconciliation behavior.
+`pair_candidate_period_score`, and `structured_cell_identity` from
+`financial_graph_reconciliation.py`. Their canonical owner definitions and
+2/2/2/4 owner-local calls, the tuple's other four live imports, and all
+reconciliation behavior remain unchanged.
 
-Selected reconciliation-facade consumers are zero across direct imports,
-attributes, patches, constant dynamic lookup, wildcard/`__all__`, and reviewed
-introspection. Current/empty record hashes are
-`4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Three graph-helper fingerprints update and four names leave the existing
-reconciliation-candidate expected import set. Source/tests/whole project
-`+0/-4`, `+3/-7`, and `+3/-11`; mapping and exact temporary diff hashes are
-`9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395` and
+Source/tests/whole commit transforms are `+0/-4`, `+3/-7`, and `+3/-11` across
+three files; the committed diff SHA-256 is
 `133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
-The temporary projection passed focused 323/323, audit 217, pycompile 3/3,
-consumer zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
-remains the implementation gate; exact scope and stop lines are authoritative
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+Focused 323/323 in 173.754 seconds, audit 217, pycompile 3/3, selected consumer
+zero, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 235.423 seconds,
+artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**.
+
+The next bounded cleanup deletes only the zero-load `operand_needles` import
+from `financial_graph_evidence.py`. Its canonical owner remains
+`financial_surface_contracts.py`; preserve the one definition, all 24 source
+calls (four owner-local and twenty caller calls), the other eight external
+importers, and the tuple's live `text_has_negative_surface`,
+`text_has_positive_surface`, and `scoped_surface_affinity_priority` imports.
+
+Selected evidence-facade consumers are zero across direct imports, attributes,
+patches, constant dynamic lookup, wildcard/`__all__`, and reviewed
+introspection. Current/empty record hashes are
+`e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Nine graph-helper fingerprint occurrences representing eight unique pairs
+update, and two stale evidence-facade entries leave the existing importer-set
+and public-identity expectations. Add no test method and weaken no assertion.
+Source/tests/whole project are `+0/-1`, `+9/-11`, and `+9/-12`; the canonical
+eight-record `{old,new,occurrences}` mapping and exact temporary diff hashes are
+`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a` and
+`62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+The temporary projection passed focused 339/339 in 172.545 seconds, audit 217,
+pycompile 2/2, selected consumer zero, diff check, and the unchanged acyclic
+48/203 DAG. Full 2,143/2,143 remains the implementation gate; exact scope and
+stop lines are authoritative only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded

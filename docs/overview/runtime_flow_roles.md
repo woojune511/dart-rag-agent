@@ -1291,12 +1291,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `text_has_negative_surface`는 유지됐다. Source `-1`, tests `+7/-7`, focused
   339/339, audit 217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가
   통과했다.
-- 다음 cleanup은 `financial_graph_reconciliation.py`의 zero-load
+- 완료된 `5de5e23` cleanup은 `financial_graph_reconciliation.py`의 zero-load
   `effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
   `pair_candidate_period_score`, `structured_cell_identity` import 네 줄만
-  삭제한다. Canonical owner 정의와 2/2/2/4 live calls, 나머지 네 live import는
-  유지한다. Exact source `-4`, tests `+3/-7`, projected focused 323/323와 전체
-  구현 gate는
+  삭제했다. Canonical owner 정의와 2/2/2/4 live calls, 나머지 네 live import는
+  유지됐다. Source `-4`, tests `+3/-7`, focused 323/323, audit 217, pycompile
+  3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 cleanup은 `financial_graph_evidence.py`의 zero-load
+  `operand_needles` import 한 줄만 삭제한다. Canonical owner 정의와 총 24개
+  source call, 나머지 여덟 external importer, 같은 tuple의 세 live import는
+  유지한다. Exact projection은 source `-1`, tests `+9/-11`, whole `+9/-12`,
+  focused 339/339이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
