@@ -2134,30 +2134,43 @@ zero, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 235.423 seconds,
 artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The next bounded cleanup deletes only the zero-load `operand_needles` import
-from `financial_graph_evidence.py`. Its canonical owner remains
-`financial_surface_contracts.py`; preserve the one definition, all 24 source
-calls (four owner-local and twenty caller calls), the other eight external
-importers, and the tuple's live `text_has_negative_surface`,
-`text_has_positive_surface`, and `scoped_surface_affinity_priority` imports.
+The evidence operand-needles cleanup completed by `5ff7fd2` deleted only the
+zero-load `operand_needles` import from `financial_graph_evidence.py`. Its
+canonical definition, all 24 source calls, the other eight external importers,
+the tuple's three live imports, and all evidence behavior remain unchanged.
 
-Selected evidence-facade consumers are zero across direct imports, attributes,
-patches, constant dynamic lookup, wildcard/`__all__`, and reviewed
-introspection. Current/empty record hashes are
-`e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Nine graph-helper fingerprint occurrences representing eight unique pairs
-update, and two stale evidence-facade entries leave the existing importer-set
-and public-identity expectations. Add no test method and weaken no assertion.
-Source/tests/whole project are `+0/-1`, `+9/-11`, and `+9/-12`; the canonical
-eight-record `{old,new,occurrences}` mapping and exact temporary diff hashes are
-`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a` and
+Source/tests/whole commit transforms are `+0/-1`, `+9/-11`, and `+9/-12`
+across two files; the committed diff SHA-256 is
 `62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
-The temporary projection passed focused 339/339 in 172.545 seconds, audit 217,
-pycompile 2/2, selected consumer zero, diff check, and the unchanged acyclic
+Focused 339/339 in 173.413 seconds, audit 217, pycompile 2/2, selected consumer
+zero, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 216.116 seconds,
+artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**.
+
+The next bounded cleanup removes only `TYPE_CHECKING` from the existing typing
+import line in `financial_graph_calculation.py`. It has one import record but
+zero loads, zero `if TYPE_CHECKING` guards, and zero calculation-facade direct,
+attribute, patch, constant-dynamic, wildcard/`__all__`, or reviewed
+introspection consumer. Preserve `from __future__ import annotations`, the
+same physical import line, all other source, and the retained `Any`, `Dict`,
+`List`, `Literal`, `NamedTuple`, `Optional`, and `Sequence` imports.
+
+Current/empty selected-record hashes are
+`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The physical line count is unchanged, so no test or fingerprint may change.
+Source/tests/whole project are `+1/-1`, `+0/-0`, and `+1/-1`; the exact
+temporary diff SHA-256 is
+`bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
+The temporary projection passed focused 339/339 in 170.992 seconds, audit 217,
+pycompile 1/1, selected consumer zero, diff check, and the unchanged acyclic
 48/203 DAG. Full 2,143/2,143 remains the implementation gate; exact scope and
 stop lines are authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
+
+Do not expand the edit to the seventeen remaining non-future zero-load
+bindings: ten graph compatibility surfaces, two experimental-MAS re-exports,
+and five legacy `multi_agent_graph.__all__` exports require separate contracts.
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded

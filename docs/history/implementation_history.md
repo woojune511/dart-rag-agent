@@ -9199,3 +9199,56 @@ completion claim.
 - Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
+
+### Evidence operand-needles import cleanup milestone
+
+- Commit `5ff7fd2` deletes only the zero-load `operand_needles` import from
+  `financial_graph_evidence.py`. Its canonical definition, all 24 source calls
+  (four owner-local and twenty caller calls), the other eight external
+  importers, the tuple's three live imports, and all evidence behavior remain
+  unchanged. Selected facade consumers finish zero.
+- Production source is `+0/-1`, tests are `+9/-11`, and the whole commit is
+  `+9/-12` across two files. Nine absolute-line fingerprint replacements and
+  two stale facade-expectation removals account for the test transform. Its
+  committed diff SHA-256 is
+  `62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+- Focused graph-helper/text-surface/import 339/339 in 173.413 seconds, audit
+  217, pycompile 2/2, selected facade-consumer zero, unchanged acyclic 48/203
+  DAG, full 2,143/2,143 in 216.116 seconds, artifact hygiene, and diff checks
+  passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Graph-calculation TYPE_CHECKING import characterization checkpoint
+
+- The next bounded deletion removes only `TYPE_CHECKING` from the existing
+  single-line typing import in `financial_graph_calculation.py`. Preserve the
+  physical line, `from __future__ import annotations`, every other source line,
+  and the retained `Any`, `Dict`, `List`, `Literal`, `NamedTuple`, `Optional`,
+  and `Sequence` entries.
+- The binding has one import record but zero loads and zero `if TYPE_CHECKING`
+  guards. Direct imports through the calculation facade, attributes, patches,
+  constant dynamic lookups, wildcard/`__all__`, and reviewed introspection
+  consumers are all zero. Two generic `TYPE_CHECKING` strings in import-side-
+  effect tests inspect AST guards and are not facade consumers. Current/empty
+  selected-record hashes are
+  `6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- The physical line count remains unchanged, so no test or fingerprint may
+  change. Source/tests/whole project are `+1/-1`, `+0/-0`, and `+1/-1` across
+  one file. The exact temporary diff SHA-256 is
+  `bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
+- The exact temporary projection passed graph-helper/text-surface/import
+  339/339 in 170.992 seconds, audit 217, pycompile 1/1, selected facade-
+  consumer zero, diff check, and the unchanged acyclic 48/203 DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
+  are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- The remaining seventeen non-future zero-load bindings are excluded: ten
+  graph compatibility surfaces, two experimental-MAS re-exports, and five
+  legacy `multi_agent_graph.__all__` exports require separate contracts.
+  Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.

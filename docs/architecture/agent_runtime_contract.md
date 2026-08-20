@@ -6018,36 +6018,54 @@ finished zero, and the acyclic DAG remained 48 modules/203 edges. Full
 discovery passed 2,143/2,143 in 235.423 seconds. Benchmark refresh and remote CI
 were **NOT RUN**.
 
-The active cleanup contract deletes only the zero-load `operand_needles`
-binding from the `financial_surface_contracts` import tuple in
-`financial_graph_evidence.py`. Preserve its one canonical definition, all 24
-source calls (four owner-local and twenty caller calls), the other eight
-external importers, and the tuple's three live imports. Those retained evidence
-imports have exact load/call counts 3/3, 8/8, and 1/1 for
-`text_has_negative_surface`, `text_has_positive_surface`, and
-`scoped_surface_affinity_priority` respectively.
+Commit `5ff7fd2` completed the evidence operand-needles import cleanup. It
+deleted only the zero-load `operand_needles` binding from
+`financial_graph_evidence.py`. Its canonical definition, all 24 source calls
+(four owner-local and twenty caller calls), the other eight external importers,
+the tuple's three live imports, and all evidence behavior remain unchanged.
 
-The evidence binding has zero load/call and zero repository source/test direct
-import through the evidence facade, module-attribute access, patch or string
-patch, constant `getattr`/`hasattr`, wildcard/`__all__`, or
-`dir`/`vars`/`getmembers`/`__dict__` consumer. Its current/empty record hashes
-are `e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-
-Delete exactly two stale `financial_graph_evidence` entries from the existing
-operand-needles importer-set and public-identity expectations, and replace
-exactly nine absolute-line fingerprints representing eight unique pairs. Add
-no test method and weaken no assertion. Source/tests/whole project are
-`+0/-1`, `+9/-11`, and `+9/-12`; the canonical eight-record
-`{old,new,occurrences}` mapping hash and exact temporary diff SHA-256 are
-`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a` and
+Production source is `+0/-1`, tests are `+9/-11`, and the whole commit is
+`+9/-12` across two files. Its committed diff SHA-256 is
 `62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+Focused graph-helper/text-surface/import tests passed 339/339 in 173.413
+seconds, audit 217 and pycompile 2/2 passed, selected facade consumers finished
+zero, and the acyclic DAG remained 48 modules/203 edges. Full discovery passed
+2,143/2,143 in 216.116 seconds. Benchmark refresh and remote CI were **NOT
+RUN**.
+
+The active cleanup contract removes only `TYPE_CHECKING` from the existing
+single-line `typing` import in `financial_graph_calculation.py`. The binding has
+one import record but zero `ast.Name` loads and zero `if TYPE_CHECKING` guards.
+It has zero source/test direct import through the calculation facade, module-
+attribute access, patch or string patch, constant `getattr`/`hasattr`, wildcard
+import, `__all__`, or `dir`/`vars`/`getmembers`/`__dict__` consumer. Two literal
+`TYPE_CHECKING` strings in import-side-effect tests inspect generic AST guards;
+they do not consume the calculation-module binding and remain unchanged.
+
+The selected current/empty record hashes are
+`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Preserve `Any`, `Dict`, `List`, `Literal`, `NamedTuple`, `Optional`, and
+`Sequence` in the same import; their current load counts are 416, 409, 256, 1,
+6, 47, and 3. Preserve `from __future__ import annotations` and every other
+source line.
+
+Because the physical import line remains, no absolute line or fingerprint
+changes. Add or edit no test. Source/tests/whole transforms are `+1/-1`,
+`+0/-0`, and `+1/-1` across one file; the exact temporary diff SHA-256 is
+`bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
 The temporary tree passed focused graph-helper/text-surface/import 339/339 in
-172.545 seconds, audit 217, pycompile 2/2, selected facade-consumer zero, diff
+170.992 seconds, audit 217, pycompile 1/1, selected facade-consumer zero, diff
 check, and the unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; the exact active scope is
 governed by [Project Status Next Work](../overview/project_status.md#next-work).
+
+After this candidate, seventeen non-future zero-load bindings remain outside
+the batch: one separately pinned graph-calculation compatibility identity, nine
+graph-helper compatibility surfaces requiring their own contract, two MAS
+bindings re-exported through `src.experimental.mas.types`, and five legacy
+`multi_agent_graph.__all__` exports. Do not fold any of them into this edit.
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization

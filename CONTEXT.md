@@ -455,11 +455,16 @@ full 2,143/2,143가 통과했다. 이어 `5de5e23`이
 `pair_candidate_period_score`, `structured_cell_identity` import 네 개만
 삭제했다. Owner 정의와 2/2/2/4 live calls는 유지됐고 source `-4`, tests
 `+3/-7`, focused 323/323, audit 217, pycompile 3/3, unchanged 48/203 DAG,
-full 2,143/2,143가 통과했다. 다음 batch는
+full 2,143/2,143가 통과했다. 이어 `5ff7fd2`가
 `financial_graph_evidence.py`의 zero-load `operand_needles` import 한 줄만
-삭제한다. Canonical owner 정의와 총 24개 source call, 나머지 여덟 external
-importer, 같은 tuple의 세 live import는 유지한다. Exact projection source
-`-1`, tests `+9/-11`, whole `+9/-12`, focused 339/339 경계는
+삭제했다. Canonical owner 정의와 총 24개 source call, 나머지 여덟 external
+importer, 같은 tuple의 세 live import는 유지됐고 source `-1`, tests
+`+9/-11`, focused 339/339, audit 217, pycompile 2/2, unchanged 48/203 DAG,
+full 2,143/2,143가 통과했다. 다음 batch는
+`financial_graph_calculation.py`의 zero-load·zero-guard `TYPE_CHECKING` import
+항목만 같은 typing import 줄에서 삭제한다. 나머지 일곱 typing binding과 모든
+line fingerprint는 유지한다. Exact projection source/whole `+1/-1`, tests
+변경 0, focused 339/339 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

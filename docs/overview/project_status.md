@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `5de5e23` deleted only four zero-load reconciliation-candidate imports from `financial_graph_reconciliation.py`, preserving their canonical definitions and 2/2/2/4 owner-local calls |
-| What passed? | Selected facade consumers zero, focused tests 323/323, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `5ff7fd2` deleted only the zero-load `operand_needles` import from `financial_graph_evidence.py`, preserving its canonical definition, all 24 source calls, and the other eight external importers |
+| What passed? | Selected facade consumers zero, focused tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Delete only the zero-load `operand_needles` import from `financial_graph_evidence.py`, preserving its canonical definition, all 24 source calls, the other eight external importers, and the tuple's three live imports |
+| What is next? | Remove only the unused `TYPE_CHECKING` entry from the existing typing import in `financial_graph_calculation.py`; keep the physical line, all seven live typing imports, source line numbers, and tests unchanged |
 
 ## Product Boundary
 
@@ -799,49 +799,67 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Delete only the zero-load `operand_needles` binding from the existing
-`src.agent.financial_surface_contracts` import tuple in
-`src/agent/financial_graph_evidence.py`. Delete exactly one production line.
-Do not delete or rename its canonical owner definition, alter any of its 24
-source calls, remove any of the other eight external importers, remove the
-tuple's three live imports, or change evidence behavior.
+Remove only the zero-load, zero-guard `TYPE_CHECKING` entry from the existing
+single-line typing import in
+`src/agent/financial_graph_calculation.py`. Do not delete the physical line,
+change any other source line, alter `from __future__ import annotations`, edit a
+test, or fold another zero-load binding into this batch.
 
-The selected evidence binding has zero load/call and zero repository source/test
-direct import from `financial_graph_evidence`, module-attribute access,
-`patch.object` or string-patch use, constant-name `getattr`/`hasattr`, wildcard
-import, `__all__`, or `dir`/`vars`/`getmembers`/`__dict__` consumer. Its canonical
-definition and four owner-local calls remain in
-`financial_surface_contracts.py`; twenty more caller calls remain across eight
-external importers. The current/empty selected-record hashes are
-`e2df28a400e6577deca389376356b1bee5e537c1c32bf91d4277efc784c24b29` /
+The selected binding has one import record but zero `ast.Name` loads and zero
+`if TYPE_CHECKING` guards. It has zero repository source/test direct import from
+`financial_graph_calculation`, module-attribute access, `patch.object` or
+string-patch use, constant-name `getattr`/`hasattr`, wildcard import, `__all__`,
+or `dir`/`vars`/`getmembers`/`__dict__` consumer. Two `TYPE_CHECKING` string
+constants in `tests/test_import_side_effects.py` inspect generic AST guards and
+do not consume this calculation-module binding. The current/empty selected-
+record hashes are
+`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-The retained evidence tuple imports `text_has_negative_surface`,
-`text_has_positive_surface`, and `scoped_surface_affinity_priority` with exact
-load/call counts 3/3, 8/8, and 1/1.
 
-Deleting the line shifts evidence absolute line numbers. Replace exactly nine
-existing graph-helper fingerprint occurrences representing eight unique pairs,
-and delete exactly two stale `financial_graph_evidence` entries from the
-existing operand-needles importer-set and public-identity expectations. Add no
-test method, change no call or body, and weaken no assertion. The canonical
-eight-record `{old,new,occurrences}` fingerprint mapping hash is
-`f68f80850721da7816707b0761a79a9d46186678b8de71d83ae36016080adc7a`.
-Projected source/test/whole transforms are `+0/-1`, `+9/-11`, and `+9/-12`
-across exactly two files. The exact temporary projection diff SHA-256 is
-`62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+Preserve the same import line and its `Any`, `Dict`, `List`, `Literal`,
+`NamedTuple`, `Optional`, and `Sequence` entries. Their current load counts are
+416, 409, 256, 1, 6, 47, and 3. No absolute line or fingerprint changes, test
+edits, new tests, behavior changes, or assertion changes are allowed. Projected
+source/test/whole transforms are `+1/-1`, `+0/-0`, and `+1/-1` across exactly
+one file. The exact temporary projection diff SHA-256 is
+`bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
 
 The exact temporary projection passed the graph-helper, text-surface, and
-import-side-effect set 339/339 in 172.545 seconds, audit 217, pycompile 2/2,
+import-side-effect set 339/339 in 170.992 seconds, audit 217, pycompile 1/1,
 selected facade-consumer zero, `git diff --check`, and the unchanged acyclic
 48-module/203-edge DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Required implementation gates are the exact transforms and hashes above,
+Required implementation gates are the exact transform and hashes above,
 focused 339/339, audit 217, pycompile, full discovery 2,143/2,143, selected-
-consumer zero, retained owner definition/calls/importers, retained tuple-import
-loads/calls, DAG parity, artifact hygiene, and diff check. Benchmark refresh and
-remote CI remain **NOT RUN**. This deletion would prove no behavior,
-answer-quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
-completion claim.
+consumer and guard zero, retained typing-import loads, DAG parity, artifact
+hygiene, and diff check.
+
+The remaining seventeen non-future zero-load bindings stay outside this batch:
+one separately pinned graph-calculation compatibility identity, nine graph-
+helper compatibility surfaces, two bindings re-exported through
+`src.experimental.mas.types`, and five legacy `multi_agent_graph.__all__`
+exports. Benchmark refresh and remote CI remain **NOT RUN**. This deletion
+would prove no behavior, answer-quality, ranking, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+## Completed Evidence Operand-Needles Import Cleanup
+
+Commit `5ff7fd2` completed the previously characterized deletion of only the
+zero-load `operand_needles` import from `financial_graph_evidence.py`. Its
+canonical definition, all 24 source calls (four owner-local and twenty caller
+calls), the other eight external importers, the tuple's three live imports, and
+all evidence behavior remain unchanged.
+
+Production source is `+0/-1`, tests are `+9/-11`, and the whole commit is
+`+9/-12` across exactly two files. Its committed diff SHA-256 is
+`62acdb9c825520f15374b801e142afe37882e0896217cbe424ccb8d363619f44`.
+Focused graph-helper/text-surface/import tests passed 339/339 in 173.413
+seconds, audit 217, pycompile 2/2, selected facade-consumer zero,
+`git diff --check`, and the unchanged acyclic 48-module/203-edge DAG passed.
+Full discovery passed 2,143/2,143 in 216.116 seconds. Artifact hygiene passed;
+benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+milestone establishes no behavior, answer-quality, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Reconciliation-Candidate Import Cleanup
 

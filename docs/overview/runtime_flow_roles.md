@@ -1297,11 +1297,15 @@ Aggregate/narrative row의 state-free answer policy owner다.
   삭제했다. Canonical owner 정의와 2/2/2/4 live calls, 나머지 네 live import는
   유지됐다. Source `-4`, tests `+3/-7`, focused 323/323, audit 217, pycompile
   3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 cleanup은 `financial_graph_evidence.py`의 zero-load
-  `operand_needles` import 한 줄만 삭제한다. Canonical owner 정의와 총 24개
+- 완료된 `5ff7fd2` cleanup은 `financial_graph_evidence.py`의 zero-load
+  `operand_needles` import 한 줄만 삭제했다. Canonical owner 정의와 총 24개
   source call, 나머지 여덟 external importer, 같은 tuple의 세 live import는
-  유지한다. Exact projection은 source `-1`, tests `+9/-11`, whole `+9/-12`,
-  focused 339/339이며 전체 구현 gate는
+  유지됐다. Source `-1`, tests `+9/-11`, focused 339/339, audit 217, pycompile
+  2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 cleanup은 `financial_graph_calculation.py`의 zero-load·zero-guard
+  `TYPE_CHECKING` 항목만 기존 typing import 줄에서 삭제한다. 나머지 일곱
+  typing binding과 모든 source line/fingerprint는 유지한다. Exact projection은
+  source/whole `+1/-1`, tests 변경 0, focused 339/339이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
