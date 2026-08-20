@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Sequence
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Sequence
 
 from src.agent import financial_answer_slots
 from src.agent.financial_answer_slots import (
