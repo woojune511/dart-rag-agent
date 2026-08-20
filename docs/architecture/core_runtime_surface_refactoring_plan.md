@@ -2099,27 +2099,48 @@ Focused 339/339 in 169.551 seconds, audit 217, pycompile 2/2, consumer zero,
 unchanged 48/203 DAG, full 2,143/2,143 in 213.316 seconds, artifact hygiene,
 and diff checks passed. Benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded cleanup deletes only the zero-load
-`query_focus_marker_groups` import from `financial_graph_calculation.py`.
-Preserve its financial-text-surface owner and live calls, `query_focus_markers`,
-and all runtime behavior. Keep adjacent `text_has_negative_surface`: the
-rejected two-import projection proved that CURRENT-SOURCE tests explicitly
-contract its graph-calculation compatibility identity.
+The bounded graph-calculation cleanup completed by `7cdb317` deleted only the
+zero-load `query_focus_marker_groups` import from
+`financial_graph_calculation.py`. Its financial-text-surface owner and live
+calls, `query_focus_markers`, all runtime behavior, and adjacent
+`text_has_negative_surface` compatibility identity remain unchanged.
 
 The selected current/empty record hashes are
 `f56c0e04506159ca481caad4ab16f9b8b23d5f686a4a374db94c97a281232209` /
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Static source/test consumers are zero. Source deletes one line and seven
-existing line fingerprints update without behavior or assertion changes.
-Source/tests/whole project `+0/-1`, `+7/-7`, and `+7/-8`; the fingerprint
+Static source/test consumers were zero. Source deleted one line and seven
+existing line fingerprints updated without behavior or assertion changes.
+Source/tests/whole project were `+0/-1`, `+7/-7`, and `+7/-8`; the fingerprint
 mapping and exact temporary diff hashes are
 `6cc72ad0dd24bef2d0eb145a4902bdc8c0cbd465f40e7adbccb34710649ceefd` and
 `5cfe61d2307cdd4dbcd566e9e504a45cae8008eb1113daa4187feb069b3603b9`.
-The projection passed focused 339/339, audit 217, pycompile 2/2, consumer zero,
-retained compatibility identity, diff check, and unchanged acyclic 48/203 DAG.
-Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
-are authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+The implementation passed focused 339/339 in 168.331 seconds, audit 217,
+pycompile 2/2, consumer zero, retained compatibility identity, diff check,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 211.992 seconds. Benchmark
+refresh and remote CI were **NOT RUN**.
+
+The next bounded cleanup deletes only four zero-load imports from
+`financial_graph_reconciliation.py`:
+`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
+`pair_candidate_period_score`, and `structured_cell_identity`. Their canonical
+owner remains `financial_reconciliation_candidates.py`; preserve all four
+definitions, their 2/2/2/4 owner-local calls, the other four live imports, and
+all reconciliation behavior.
+
+Selected reconciliation-facade consumers are zero across direct imports,
+attributes, patches, constant dynamic lookup, wildcard/`__all__`, and reviewed
+introspection. Current/empty record hashes are
+`4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Three graph-helper fingerprints update and four names leave the existing
+reconciliation-candidate expected import set. Source/tests/whole project
+`+0/-4`, `+3/-7`, and `+3/-11`; mapping and exact temporary diff hashes are
+`9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395` and
+`133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
+The temporary projection passed focused 323/323, audit 217, pycompile 3/3,
+consumer zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
+remains the implementation gate; exact scope and stop lines are authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded

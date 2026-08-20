@@ -5976,29 +5976,53 @@ pycompile 2/2, consumer zero, diff check, unchanged acyclic 48/203 DAG, and full
 2,143/2,143 in 213.316 seconds passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The active cleanup contract deletes only the zero-load
+The completed graph-calculation cleanup contract deleted only the zero-load
 `query_focus_marker_groups` binding imported into
-`financial_graph_calculation.py` from `financial_text_surface.py`. Preserve the
-owner definition, every live call, `query_focus_markers`, and all query-focus
-behavior. The graph-calculation binding has zero owner load/call, direct-import,
-module-attribute, patch, constant dynamic, or wildcard consumer.
+`financial_graph_calculation.py` from `financial_text_surface.py`. The owner
+definition, every live call, `query_focus_markers`, and all query-focus behavior
+remain unchanged. The graph-calculation binding had zero owner load/call,
+direct-import, module-attribute, patch, constant dynamic, or wildcard consumer.
 
-Do not delete adjacent `text_has_negative_surface`. Its owner load is also zero,
-but CURRENT-SOURCE tests explicitly require its graph-calculation compatibility
-identity; the initial two-import projection was rejected at that contract. The
-selected query-focus current/empty hashes are
+Adjacent `text_has_negative_surface` remains imported. Its owner load is also
+zero, but CURRENT-SOURCE tests explicitly require its graph-calculation
+compatibility identity; the initial two-import projection was rejected at that
+contract. The selected query-focus current/empty hashes are
 `f56c0e04506159ca481caad4ab16f9b8b23d5f686a4a374db94c97a281232209` /
 `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
 
-Only seven existing graph-helper fingerprint expectations may change, covering
-six unique old/new pairs and no behavior or assertion. Source/tests/whole
-project `+0/-1`, `+7/-7`, and `+7/-8`; the mapping and exact diff hashes are
+Only seven existing graph-helper fingerprint expectations changed, covering six
+unique old/new pairs and no behavior or assertion. Source/tests/whole project
+were `+0/-1`, `+7/-7`, and `+7/-8`; the mapping and exact diff hashes are
 `6cc72ad0dd24bef2d0eb145a4902bdc8c0cbd465f40e7adbccb34710649ceefd` and
 `5cfe61d2307cdd4dbcd566e9e504a45cae8008eb1113daa4187feb069b3603b9`.
-The temporary tree passed focused 339/339, audit 217, pycompile 2/2, selected
-consumer zero, retained compatibility identity, diff check, and unchanged
-acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation gate; the exact
-active scope is governed by
+Commit `7cdb317` completed that exact projection. Focused 339/339 in 168.331
+seconds, audit 217, pycompile 2/2, selected consumer zero, retained compatibility
+identity, diff check, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
+211.992 seconds passed. Benchmark refresh and remote CI were **NOT RUN**.
+
+The active cleanup contract deletes only four zero-load bindings imported into
+`financial_graph_reconciliation.py` from
+`financial_reconciliation_candidates.py`:
+`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
+`pair_candidate_period_score`, and `structured_cell_identity`. Preserve all four
+canonical owner definitions, their 2/2/2/4 owner-local calls, the other four
+live imports in the tuple, and all reconciliation behavior.
+
+The selected reconciliation bindings have zero importer load/call, direct
+import through the reconciliation module, module attribute, patch, constant
+dynamic, wildcard, `__all__`, or introspection consumer. Their current/empty
+record hashes are
+`4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
+`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+Only three existing graph-helper fingerprint expectations and four names in the
+existing reconciliation-candidate expected import set may change. Source/tests/
+whole project `+0/-4`, `+3/-7`, and `+3/-11`; the mapping and exact projection
+diff hashes are
+`9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395` and
+`133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
+The temporary tree passed focused 323/323, audit 217, pycompile 3/3, selected
+consumer zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
+remains the implementation gate; the exact active scope is governed by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

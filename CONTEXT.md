@@ -445,10 +445,16 @@ stop은 유지됐다. Source `+9/-9`, tests `+15/-15`, whole `+24/-24`이며 dir
 config import 6개를 삭제했다. 정의와 다른 owner의 live import/call은
 유지됐고 source `-6`, tests `+9/-9`, focused 339/339, audit 217, unchanged
 48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는
-`financial_graph_calculation.py`의 zero-load `query_focus_marker_groups` import
-한 줄만 삭제한다. 명시적 compatibility identity가 있는 인접
-`text_has_negative_surface`는 보존한다. Exact `-1`, fingerprint 7개,
-projected 339/339 경계는
+`7cdb317`에서 `financial_graph_calculation.py`의 zero-load
+`query_focus_marker_groups` import 한 줄만 삭제했다. 명시적 compatibility
+identity가 있는 인접 `text_has_negative_surface`는 유지됐고 source `-1`,
+tests `+7/-7`, focused 339/339, audit 217, pycompile 2/2, unchanged 48/203 DAG,
+full 2,143/2,143가 통과했다. 다음 batch는
+`financial_graph_reconciliation.py`가 사용하지 않는
+`effective_structured_cell_unit_hint`, `find_reconciliation_match_entry`,
+`pair_candidate_period_score`, `structured_cell_identity` import 네 개만
+삭제한다. Owner 정의와 2/2/2/4 live calls는 유지한다. Exact source `-4`,
+tests `+3/-7`, projected 323/323 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

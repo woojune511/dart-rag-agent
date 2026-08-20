@@ -9092,3 +9092,55 @@ completion claim.
 - Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
+
+### Graph-calculation query-focus import cleanup milestone
+
+- Commit `7cdb317` deletes only the selected zero-load
+  `query_focus_marker_groups` import from `financial_graph_calculation.py`.
+  The owner definition, every live call, `query_focus_markers`, all query-focus
+  behavior, and the contracted `text_has_negative_surface` compatibility
+  identity remain unchanged.
+- Production source is `-1`, tests are `+7/-7`, and the whole commit is `+7/-8`
+  across two files. Seven existing absolute-line fingerprint replacements
+  account for the test transform. Its committed diff SHA-256 is
+  `5cfe61d2307cdd4dbcd566e9e504a45cae8008eb1113daa4187feb069b3603b9`.
+- Focused graph-helper/text-surface/import 339/339 in 168.331 seconds, audit 217,
+  pycompile 2/2, selected consumer zero, retained compatibility identity,
+  unchanged acyclic 48/203 DAG, full 2,143/2,143 in 211.992 seconds, artifact
+  hygiene, and diff checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Reconciliation-candidate import cleanup characterization checkpoint
+
+- The next bounded deletion removes only four zero-load bindings from the
+  `financial_reconciliation_candidates` import tuple in
+  `financial_graph_reconciliation.py`: `effective_structured_cell_unit_hint`,
+  `find_reconciliation_match_entry`, `pair_candidate_period_score`, and
+  `structured_cell_identity`.
+- Importer loads/calls, direct imports through the reconciliation facade,
+  attributes, patches, constant dynamic lookups, wildcard/`__all__`, and
+  reviewed introspection consumers are all zero. The canonical owner retains
+  all four definitions and 2/2/2/4 owner-local calls; the tuple's other four
+  imports remain live. Current/empty selected-record hashes are
+  `4d8b9f051c6044c2d4faff0260fc77c4838d8291fd3073713491208c899dd547` /
+  `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- Source deletes exactly four lines. Three graph-helper fingerprint
+  expectations update and four names leave the existing
+  reconciliation-candidate expected import set without weakening a contract.
+  Source/tests/whole project `+0/-4`, `+3/-7`, and `+3/-11`; mapping and exact
+  temporary diff hashes are
+  `9a262825b226e1b55cbcf892e489ae7873d14ce41afbad5d2ace53351ca11395` and
+  `133a07f36696c8efd7ac47b5a8459b56198a5293072ef2ef1f29988bdb794e1d`.
+- The exact temporary projection passed graph-helper,
+  reconciliation-candidate, and import-side-effect 323/323 in 189.466 seconds,
+  audit 217, pycompile 3/3, selected consumer zero, diff check, and unchanged
+  acyclic 48/203 DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+  Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
+  are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
