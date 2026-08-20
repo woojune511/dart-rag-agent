@@ -38,13 +38,9 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent.financial_reconciliation_candidates import (
     build_operand_row_from_candidate_cell,
-    effective_structured_cell_unit_hint,
     expand_structured_candidate_ids,
     extract_structured_period_pair_rows,
-    find_reconciliation_match_entry,
-    pair_candidate_period_score,
     structured_candidate_from_id,
-    structured_cell_identity,
 )
 from src.agent.financial_dependency_projection import (
     active_subtask_with_sibling_lookup_surfaces,
