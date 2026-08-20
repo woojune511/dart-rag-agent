@@ -6033,40 +6033,60 @@ zero, and the acyclic DAG remained 48 modules/203 edges. Full discovery passed
 2,143/2,143 in 216.116 seconds. Benchmark refresh and remote CI were **NOT
 RUN**.
 
-The active cleanup contract removes only `TYPE_CHECKING` from the existing
-single-line `typing` import in `financial_graph_calculation.py`. The binding has
-one import record but zero `ast.Name` loads and zero `if TYPE_CHECKING` guards.
-It has zero source/test direct import through the calculation facade, module-
-attribute access, patch or string patch, constant `getattr`/`hasattr`, wildcard
-import, `__all__`, or `dir`/`vars`/`getmembers`/`__dict__` consumer. Two literal
-`TYPE_CHECKING` strings in import-side-effect tests inspect generic AST guards;
-they do not consume the calculation-module binding and remain unchanged.
+Commit `eea2935` completed the graph-calculation `TYPE_CHECKING` cleanup. It
+removed only that zero-load, zero-guard entry from the existing typing import;
+the physical line, `from __future__ import annotations`, all other source, and
+the seven live typing bindings remain unchanged. No test changed.
 
-The selected current/empty record hashes are
-`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-Preserve `Any`, `Dict`, `List`, `Literal`, `NamedTuple`, `Optional`, and
-`Sequence` in the same import; their current load counts are 416, 409, 256, 1,
-6, 47, and 3. Preserve `from __future__ import annotations` and every other
-source line.
-
-Because the physical import line remains, no absolute line or fingerprint
-changes. Add or edit no test. Source/tests/whole transforms are `+1/-1`,
-`+0/-0`, and `+1/-1` across one file; the exact temporary diff SHA-256 is
+Source/tests/whole transforms are `+1/-1`, `+0/-0`, and `+1/-1` across one
+file; the committed diff SHA-256 is
 `bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
-The temporary tree passed focused graph-helper/text-surface/import 339/339 in
-170.992 seconds, audit 217, pycompile 1/1, selected facade-consumer zero, diff
-check, and the unchanged acyclic 48/203 DAG at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Full 2,143/2,143 remains the implementation gate; the exact active scope is
-governed by [Project Status Next Work](../overview/project_status.md#next-work).
+Focused graph-helper/text-surface/import passed 339/339 in 169.812 seconds,
+audit 217 and pycompile 1/1 passed, selected consumer and guard finished zero,
+and the acyclic DAG remained 48 modules/203 edges. Full discovery passed
+2,143/2,143 in 214.291 seconds. Benchmark refresh and remote CI were **NOT
+RUN**.
 
-After this candidate, seventeen non-future zero-load bindings remain outside
-the batch: one separately pinned graph-calculation compatibility identity, nine
-graph-helper compatibility surfaces requiring their own contract, two MAS
-bindings re-exported through `src.experimental.mas.types`, and five legacy
-`multi_agent_graph.__all__` exports. Do not fold any of them into this edit.
-Benchmark refresh and remote CI were **NOT RUN**.
+The active visibility contract renames only the exact two-line
+`financial_retrieval_pipeline._make_document(*, page_content: str, metadata:
+Dict[str, Any]) -> Document` definition in place to public `make_document(...)`.
+Update exactly the one evidence import and three direct evidence calls. Preserve
+the definition at lines 811-812, both keyword-only arguments, the `Document`
+return annotation, and the sole exact delegation to
+`document(page_content=page_content, metadata=metadata)`.
+
+The normalized definition-body hash is
+`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e`.
+All three calls remain in `_expand_via_structure_graph` at lines 242, 255, and
+305, with zero positional arguments, exact `page_content` and `metadata`
+keyword expressions, and `try` depth zero. Their record hash is
+`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
+Retrieval and evidence remain at 2,641 and 4,220 physical lines.
+
+The current selected surface has one definition, one external import, and
+three calls. The future public name has no pre-existing source/test definition,
+import, call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
+introspection, or exact test consumer. After the rename, selected agent-private
+refs finish zero and `financial_graph_evidence.make_document` is identical to
+the public retrieval owner. Unrelated `_make_document` definitions under
+`src/storage` are distinct private namespaces and remain unchanged.
+
+Do not delete the wrapper or its `financial_langchain_loaders.document` import.
+The rejected direct-loader projection changed the DAG from 48/203 to 48/202 and
+triggered 45 graph-wide CURRENT-SOURCE failures before expected contract
+updates. That consolidation requires its own characterization. The accepted
+name-only projection keeps the DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+
+Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5` across two source
+files; exact temporary diff SHA-256 is
+`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
+The temporary projection passed public identity/behavior 4/4, focused 339/339
+in 171.750 seconds, audit 217, pycompile 2/2, retired selected agent refs zero,
+diff check, and unchanged 48/203 DAG parity. Full 2,143/2,143 remains the
+implementation gate; exact scope is governed by
+[Project Status Next Work](../overview/project_status.md#next-work). Benchmark
+refresh and remote CI were **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

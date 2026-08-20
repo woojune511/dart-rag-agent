@@ -460,11 +460,17 @@ full 2,143/2,143가 통과했다. 이어 `5ff7fd2`가
 삭제했다. Canonical owner 정의와 총 24개 source call, 나머지 여덟 external
 importer, 같은 tuple의 세 live import는 유지됐고 source `-1`, tests
 `+9/-11`, focused 339/339, audit 217, pycompile 2/2, unchanged 48/203 DAG,
-full 2,143/2,143가 통과했다. 다음 batch는
+full 2,143/2,143가 통과했다. 이어 `eea2935`가
 `financial_graph_calculation.py`의 zero-load·zero-guard `TYPE_CHECKING` import
-항목만 같은 typing import 줄에서 삭제한다. 나머지 일곱 typing binding과 모든
-line fingerprint는 유지한다. Exact projection source/whole `+1/-1`, tests
-변경 0, focused 339/339 경계는
+항목만 같은 typing import 줄에서 삭제했다. 나머지 일곱 typing binding과 모든
+line fingerprint는 유지됐고 source/whole `+1/-1`, tests 변경 0, focused
+339/339, audit 217, pycompile 1/1, unchanged 48/203 DAG, full 2,143/2,143가
+통과했다. 다음 batch는 `financial_retrieval_pipeline.py`의 exact 2-line
+`_make_document(...)` wrapper를 같은 위치와 본문으로 public
+`make_document(...)`로 rename하고 evidence import 한 개와 direct call 세 개만
+갱신한다. Direct-loader deletion, 다른 retrieval helper, storage-local 동명
+helper는 제외한다. Exact projection source/whole `+5/-5`, tests 변경 0,
+focused 339/339 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

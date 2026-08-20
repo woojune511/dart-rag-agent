@@ -9252,3 +9252,62 @@ completion claim.
   Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
+
+### Graph-calculation TYPE_CHECKING import cleanup milestone
+
+- Commit `eea2935` removes only the zero-load, zero-guard `TYPE_CHECKING` entry
+  from the existing typing import in `financial_graph_calculation.py`. The
+  physical line, `from __future__ import annotations`, every other source line,
+  and the live `Any`, `Dict`, `List`, `Literal`, `NamedTuple`, `Optional`, and
+  `Sequence` imports remain unchanged. No test changed.
+- Production source, tests, and the whole commit are `+1/-1`, `+0/-0`, and
+  `+1/-1` across one file. Its committed diff SHA-256 is
+  `bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
+- Focused graph-helper/text-surface/import 339/339 in 169.812 seconds, audit
+  217, pycompile 1/1, selected consumer and guard zero, unchanged acyclic
+  48/203 DAG, full 2,143/2,143 in 214.291 seconds, artifact hygiene, and diff
+  checks passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This dead-import-only
+  milestone is not a behavior, answer-quality, ranking, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Retrieval document-factory public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact two-line
+  `financial_retrieval_pipeline._make_document(*, page_content: str, metadata:
+  Dict[str, Any]) -> Document` definition in place to public
+  `make_document(...)`. Update exactly its one evidence import and three calls
+  in `_expand_via_structure_graph`. Do not move or delete the wrapper, alter
+  another retrieval helper, or touch unrelated storage-local `_make_document`
+  definitions.
+- The definition stays at lines 811-812 with two keyword-only arguments, one
+  `Document` return annotation, and the exact
+  `document(page_content=page_content, metadata=metadata)` return. Its
+  normalized body hash is
+  `750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e`.
+  The three direct calls stay at evidence lines 242/255/305, preserve zero
+  positional and exact two keyword expressions at `try` depth zero, and have
+  record hash
+  `3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
+- Current selected counts are one definition, one external import, and three
+  calls. The future public name has no pre-existing source/test definition,
+  import, call, patch, attribute, dynamic, wildcard/`__all__`, introspection,
+  or exact test consumer. Both physical line counts remain 2,641/4,220; after
+  the rename selected agent-private refs finish zero and the evidence binding
+  is identical to the public retrieval owner.
+- The rejected direct-loader projection changed the DAG from 48/203 to 48/202
+  and triggered 45 graph-wide CURRENT-SOURCE failures before their expected
+  updates. It is a separate consolidation contract. The accepted name-only
+  projection keeps the 48/203 DAG at
+  `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+- Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5` across two
+  source files. The exact temporary diff SHA-256 is
+  `87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
+  Public identity/behavior 4/4, focused graph-helper/text-surface/import 339/339
+  in 171.750 seconds, audit 217, pycompile 2/2, retired selected refs zero,
+  artifact hygiene, diff check, and unchanged DAG passed. Full 2,143/2,143
+  remains the implementation gate; exact scope and stop lines are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.

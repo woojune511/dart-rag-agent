@@ -1302,10 +1302,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   source call, 나머지 여덟 external importer, 같은 tuple의 세 live import는
   유지됐다. Source `-1`, tests `+9/-11`, focused 339/339, audit 217, pycompile
   2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 cleanup은 `financial_graph_calculation.py`의 zero-load·zero-guard
-  `TYPE_CHECKING` 항목만 기존 typing import 줄에서 삭제한다. 나머지 일곱
-  typing binding과 모든 source line/fingerprint는 유지한다. Exact projection은
-  source/whole `+1/-1`, tests 변경 0, focused 339/339이며 전체 구현 gate는
+- 완료된 `eea2935` cleanup은 `financial_graph_calculation.py`의
+  zero-load·zero-guard `TYPE_CHECKING` 항목만 기존 typing import 줄에서
+  삭제했다. 나머지 일곱 typing binding과 모든 source line/fingerprint는
+  유지됐다. Source/whole `+1/-1`, tests 변경 0, focused 339/339, audit 217,
+  pycompile 1/1, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_retrieval_pipeline.py`의 exact 2-line
+  `_make_document(...)`를 같은 위치와 본문으로 public `make_document(...)`로
+  rename하고 evidence import 한 개와 direct call 세 개만 갱신한다. Wrapper,
+  loader edge, source line, 48/203 DAG를 유지하고 direct-loader deletion과
+  storage-local 동명 helper는 제외한다. Exact projection은 source/whole
+  `+5/-5`, tests 변경 0, focused 339/339이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

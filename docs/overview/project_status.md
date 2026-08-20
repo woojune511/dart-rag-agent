@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `5ff7fd2` deleted only the zero-load `operand_needles` import from `financial_graph_evidence.py`, preserving its canonical definition, all 24 source calls, and the other eight external importers |
-| What passed? | Selected facade consumers zero, focused tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `eea2935` removed only the unused `TYPE_CHECKING` entry from the existing typing import in `financial_graph_calculation.py`; the physical line and all seven live typing imports remain |
+| What passed? | Selected consumer and guard zero, focused tests 339/339, runtime audit 217, pycompile 1/1, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Remove only the unused `TYPE_CHECKING` entry from the existing typing import in `financial_graph_calculation.py`; keep the physical line, all seven live typing imports, source line numbers, and tests unchanged |
+| What is next? | Rename only `financial_retrieval_pipeline._make_document(...)` in place to public `make_document(...)` and update its one evidence import plus three direct calls; preserve its exact body, lines, loader edge, and call placement |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, graph-calculation query-focus dead-import consumer zero and compatibility identity retained; affected graph/text/import set 339 / 339 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after graph-calculation query-focus import cleanup |
+| Latest focused owner checkpoint | PASS, graph-calculation `TYPE_CHECKING` consumer and guard zero; affected graph/text/import set 339 / 339 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after graph-calculation `TYPE_CHECKING` import cleanup |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,48 +799,70 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Remove only the zero-load, zero-guard `TYPE_CHECKING` entry from the existing
-single-line typing import in
-`src/agent/financial_graph_calculation.py`. Do not delete the physical line,
-change any other source line, alter `from __future__ import annotations`, edit a
-test, or fold another zero-load binding into this batch.
+Rename only the exact two-line
+`src.agent.financial_retrieval_pipeline._make_document(*, page_content: str,
+metadata: Dict[str, Any]) -> Document` definition in place to public
+`make_document(...)`. Update its one import in
+`financial_graph_evidence.py` and the three direct calls in
+`FinancialAgentEvidenceMixin._expand_via_structure_graph`. Do not move or
+delete the wrapper, redirect the caller to `financial_langchain_loaders`,
+change another private retrieval helper, or alter the unrelated storage-local
+`_make_document` definitions.
 
-The selected binding has one import record but zero `ast.Name` loads and zero
-`if TYPE_CHECKING` guards. It has zero repository source/test direct import from
-`financial_graph_calculation`, module-attribute access, `patch.object` or
-string-patch use, constant-name `getattr`/`hasattr`, wildcard import, `__all__`,
-or `dir`/`vars`/`getmembers`/`__dict__` consumer. Two `TYPE_CHECKING` string
-constants in `tests/test_import_side_effects.py` inspect generic AST guards and
-do not consume this calculation-module binding. The current/empty selected-
-record hashes are
-`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+The definition remains at lines 811-812 with two keyword-only arguments, a
+`Document` return annotation, and one exact return statement:
+`document(page_content=page_content, metadata=metadata)`. Its normalized body
+hash is
+`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e`.
+The three calls remain at evidence lines 242, 255, and 305, have zero positional
+arguments, preserve the exact `page_content`/`metadata` keyword expressions,
+and stay at `try` depth zero. Their record hash is
+`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
+Both source files keep their current 2,641 and 4,220 physical lines.
 
-Preserve the same import line and its `Any`, `Dict`, `List`, `Literal`,
-`NamedTuple`, `Optional`, and `Sequence` entries. Their current load counts are
-416, 409, 256, 1, 6, 47, and 3. No absolute line or fingerprint changes, test
-edits, new tests, behavior changes, or assertion changes are allowed. Projected
-source/test/whole transforms are `+1/-1`, `+0/-0`, and `+1/-1` across exactly
-one file. The exact temporary projection diff SHA-256 is
+Before the rename there is one selected definition, one external import, and
+three direct calls; the public name has no pre-existing definition, import,
+call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
+introspection, or exact test consumer. After the rename the selected private
+agent binding must be zero and the evidence binding must be identical to the
+public owner at runtime. The same-named storage-private helpers are outside the
+selected namespace and remain unchanged.
+
+An initial direct-loader deletion projection was rejected for this batch: it
+removed the retrieval-to-loader edge, changed the DAG to 48/202, and triggered
+45 graph-wide CURRENT-SOURCE failures before their expected contract updates.
+That consolidation may be characterized separately; it must not be folded into
+this name-only seam. The accepted projection keeps the DAG at 48/203 with edge
+hash `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+
+Projected source/tests/whole transforms are `+5/-5`, `+0/-0`, and `+5/-5`
+across exactly two source files. The exact temporary diff SHA-256 is
+`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
+The temporary projection passed public identity/behavior 4/4, focused graph-
+helper/text-surface/import 339/339 in 171.750 seconds, audit 217, pycompile 2/2,
+retired selected agent refs zero, `git diff --check`, and unchanged DAG parity.
+Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
+and remote CI remain **NOT RUN**. This name-only visibility change would prove
+no behavior, answer-quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+## Completed Graph-Calculation TYPE_CHECKING Import Cleanup
+
+Commit `eea2935` removed only the zero-load, zero-guard `TYPE_CHECKING` entry
+from the existing typing import in `financial_graph_calculation.py`. The
+physical line, `from __future__ import annotations`, all other source, and the
+live `Any`, `Dict`, `List`, `Literal`, `NamedTuple`, `Optional`, and `Sequence`
+imports remain unchanged. No test changed.
+
+Production source, tests, and the whole commit are `+1/-1`, `+0/-0`, and
+`+1/-1` across one file. The committed diff SHA-256 is
 `bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
-
-The exact temporary projection passed the graph-helper, text-surface, and
-import-side-effect set 339/339 in 170.992 seconds, audit 217, pycompile 1/1,
-selected facade-consumer zero, `git diff --check`, and the unchanged acyclic
-48-module/203-edge DAG at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Required implementation gates are the exact transform and hashes above,
-focused 339/339, audit 217, pycompile, full discovery 2,143/2,143, selected-
-consumer and guard zero, retained typing-import loads, DAG parity, artifact
-hygiene, and diff check.
-
-The remaining seventeen non-future zero-load bindings stay outside this batch:
-one separately pinned graph-calculation compatibility identity, nine graph-
-helper compatibility surfaces, two bindings re-exported through
-`src.experimental.mas.types`, and five legacy `multi_agent_graph.__all__`
-exports. Benchmark refresh and remote CI remain **NOT RUN**. This deletion
-would prove no behavior, answer-quality, ranking, performance, benchmark,
-schedule, ledger, or Phase 3 completion claim.
+Focused graph-helper/text-surface/import tests passed 339/339 in 169.812
+seconds, audit 217, pycompile 1/1, selected consumer and guard zero, unchanged
+acyclic 48/203 DAG, full discovery 2,143/2,143 in 214.291 seconds, artifact
+hygiene, and diff checks passed. Benchmark refresh and remote CI were **NOT
+RUN**. This dead-import-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Evidence Operand-Needles Import Cleanup
 

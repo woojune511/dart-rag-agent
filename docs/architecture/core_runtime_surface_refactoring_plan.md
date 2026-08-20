@@ -2147,30 +2147,45 @@ zero, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 216.116 seconds,
 artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The next bounded cleanup removes only `TYPE_CHECKING` from the existing typing
-import line in `financial_graph_calculation.py`. It has one import record but
-zero loads, zero `if TYPE_CHECKING` guards, and zero calculation-facade direct,
-attribute, patch, constant-dynamic, wildcard/`__all__`, or reviewed
-introspection consumer. Preserve `from __future__ import annotations`, the
-same physical import line, all other source, and the retained `Any`, `Dict`,
-`List`, `Literal`, `NamedTuple`, `Optional`, and `Sequence` imports.
-
-Current/empty selected-record hashes are
-`6f0a5d9a0017ab6923a2f6117662efa41506e3d44d241ba2bb4b28e61fa77f8c` /
-`4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
-The physical line count is unchanged, so no test or fingerprint may change.
-Source/tests/whole project are `+1/-1`, `+0/-0`, and `+1/-1`; the exact
-temporary diff SHA-256 is
+The graph-calculation cleanup completed by `eea2935` removed only the unused
+`TYPE_CHECKING` entry from its existing typing import. The physical line,
+future-annotations import, all other source, and seven live typing bindings
+remain unchanged. Source/tests/whole were `+1/-1`, `+0/-0`, and `+1/-1`; the
+committed diff SHA-256 is
 `bbabef4ee357dc074339da22f14fcd998a61c1b335b9e1fd7c3d238fd5880c0a`.
-The temporary projection passed focused 339/339 in 170.992 seconds, audit 217,
-pycompile 1/1, selected consumer zero, diff check, and the unchanged acyclic
-48/203 DAG. Full 2,143/2,143 remains the implementation gate; exact scope and
-stop lines are authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+Focused 339/339 in 169.812 seconds, audit 217, pycompile 1/1, selected consumer
+and guard zero, unchanged 48/203 DAG, full 2,143/2,143 in 214.291 seconds,
+artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**.
 
-Do not expand the edit to the seventeen remaining non-future zero-load
-bindings: ten graph compatibility surfaces, two experimental-MAS re-exports,
-and five legacy `multi_agent_graph.__all__` exports require separate contracts.
+The next bounded visibility seam renames only the exact two-line
+`financial_retrieval_pipeline._make_document(...)` definition in place to
+public `make_document(...)`, then updates its one evidence import and three
+direct calls. Preserve lines 811-812, keyword-only `page_content`/`metadata`,
+the `Document` return, the exact loader delegation, all three call lines and
+keyword expressions, and `try` depth zero.
+
+Normalized body and three-call record hashes are
+`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e` /
+`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
+Both source physical line counts stay 2,641/4,220. Selected current counts are
+one definition, one external import, and three calls; the public name has zero
+pre-existing source/test consumer. Retire only the selected agent-private
+binding, not unrelated storage-local `_make_document` helpers.
+
+Do not delete the wrapper or direct the evidence caller to the loader in this
+batch. That rejected projection changed the DAG to 48/202 and triggered 45
+CURRENT-SOURCE failures; it requires a separate contract. The name-only
+projection remains 48/203 at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5`; exact temporary
+diff SHA-256 is
+`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
+The projection passed public identity/behavior 4/4, focused 339/339 in 171.750
+seconds, audit 217, pycompile 2/2, retired selected refs zero, and diff/DAG
+checks. Full 2,143/2,143 remains the implementation gate; exact scope and stop
+lines are authoritative only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter inventory is the historical checkpoint that preceded
