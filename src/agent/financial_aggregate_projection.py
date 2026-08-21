@@ -45,7 +45,7 @@ from src.agent.financial_numeric_surface import (
     text_supports_numeric_candidates,
 )
 from src.agent.financial_operand_resolution import (
-    _evidence_item_for_operand_row,
+    evidence_item_for_operand_row,
     evidence_items_by_id,
     coerce_operand_unit_from_evidence,
     ratio_context_has_metric_surface,
@@ -1575,7 +1575,7 @@ def align_lookup_result_units_from_own_evidence(
             continue
         raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
         raw_unit = _normalise_spaces(str(primary_slot.get("raw_unit") or ""))
-        evidence_item = _evidence_item_for_operand_row(primary_slot, evidence_by_id)
+        evidence_item = evidence_item_for_operand_row(primary_slot, evidence_by_id)
         if not raw_value or not evidence_item:
             aligned_results.append(row)
             continue

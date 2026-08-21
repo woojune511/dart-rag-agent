@@ -16,7 +16,7 @@ from src.agent.financial_operand_resolution import (
     DirectStructuredOperandAcceptanceInput,
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
-    _evidence_item_for_operand_row,
+    evidence_item_for_operand_row,
     evidence_items_by_id,
     evidence_surface_contains_segment_label,
     filter_operand_rows_by_required_surface_contract,
@@ -3608,21 +3608,21 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertEqual(evidence_by_id["duplicate"]["marker"], "last")
         self.assertIsNot(evidence_by_id["duplicate"], evidence_items[1])
         self.assertIs(
-            _evidence_item_for_operand_row(
+            evidence_item_for_operand_row(
                 {"evidence_id": "primary", "source_row_id": "source"},
                 evidence_by_id,
             ),
             evidence_by_id["recon::primary"],
         )
         self.assertEqual(
-            _evidence_item_for_operand_row(
+            evidence_item_for_operand_row(
                 {"evidence_id": "recon::plain"},
                 {"plain": {"marker": "stripped alias"}},
             ),
             {"marker": "stripped alias"},
         )
         self.assertEqual(
-            _evidence_item_for_operand_row(
+            evidence_item_for_operand_row(
                 {"evidence_id": "primary"},
                 {
                     "primary": {},
@@ -3631,7 +3631,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             ),
             {"marker": "truthy fallback"},
         )
-        self.assertIsNone(_evidence_item_for_operand_row({}, evidence_by_id))
+        self.assertIsNone(evidence_item_for_operand_row({}, evidence_by_id))
         self.assertEqual(evidence_items, evidence_items_before)
 
     def test_required_surface_filter_preserves_identity_and_no_evidence_contract(self) -> None:
@@ -6239,7 +6239,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             ),
             patch.object(
                 operand_resolution,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=select_evidence,
             ),
             patch.object(
@@ -6291,7 +6291,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 return_value=False,
             ),
-            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=evidence),
+            patch.object(operand_resolution, "evidence_item_for_operand_row", return_value=evidence),
             patch.object(
                 operand_resolution,
                 "_normalise_operand_value",
@@ -6318,7 +6318,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 return_value=False,
             ),
-            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=same_hint),
+            patch.object(operand_resolution, "evidence_item_for_operand_row", return_value=same_hint),
             patch.object(
                 operand_resolution,
                 "_normalise_operand_value",
@@ -6346,7 +6346,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             ),
             patch.object(
                 operand_resolution,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=AssertionError("evidence lookup must stay lazy"),
             ) as whitespace_evidence,
             patch.object(
@@ -6399,7 +6399,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 ),
                 patch.object(
                     operand_resolution,
-                    "_evidence_item_for_operand_row",
+                    "evidence_item_for_operand_row",
                     return_value=selected_evidence,
                 ),
                 patch.object(
@@ -6434,7 +6434,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     "dependency_task_output_has_consistent_krw_unit",
                     return_value=False,
                 ),
-                patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=evidence),
+                patch.object(operand_resolution, "evidence_item_for_operand_row", return_value=evidence),
                 patch.object(
                     operand_resolution,
                     "_normalise_operand_value",
@@ -6464,7 +6464,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 return_value=False,
             ),
-            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=bomb),
+            patch.object(operand_resolution, "evidence_item_for_operand_row", return_value=bomb),
             patch.object(operand_resolution, "_normalise_operand_value") as stopped_normalizer,
             self.assertRaisesRegex(RuntimeError, "surface failed"),
         ):

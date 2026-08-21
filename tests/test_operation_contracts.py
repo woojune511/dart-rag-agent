@@ -49,7 +49,7 @@ from src.agent.financial_scope_policies import (
 )
 from src.agent.financial_graph_evidence import _prioritize_candidate_items
 from src.agent.financial_operand_resolution import (
-    _evidence_item_for_operand_row,
+    evidence_item_for_operand_row,
     filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
     _operand_row_matches_requirement,
@@ -4061,7 +4061,7 @@ class OperationContractTests(unittest.TestCase):
             }
         }
 
-        evidence_item = _evidence_item_for_operand_row(row, evidence_by_id)
+        evidence_item = evidence_item_for_operand_row(row, evidence_by_id)
         coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
 
         self.assertEqual(coerced["raw_unit"], "억원")
@@ -10975,7 +10975,7 @@ class OperationContractTests(unittest.TestCase):
             return_value=(expected_target_row, state["active_subtask"]["required_operands"][0]),
         ), patch.object(
             financial_graph_calculation,
-            "_evidence_item_for_operand_row",
+            "evidence_item_for_operand_row",
             return_value=None,
         ), patch.object(
             agent,

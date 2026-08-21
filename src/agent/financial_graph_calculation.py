@@ -193,7 +193,7 @@ from src.agent.financial_operand_resolution import (
     dependency_task_output_has_consistent_krw_unit,
     direct_target_metric_row_conflicts_existing_units,
     direct_lookup_row_is_ambiguous_context_table,
-    _evidence_item_for_operand_row,
+    evidence_item_for_operand_row,
     evidence_items_by_id,
     evidence_surface_contains_segment_label,
     evidence_item_conflicts_requested_scope,
@@ -1784,7 +1784,7 @@ class FinancialAgentCalculationMixin:
             if not preferred_slot:
                 continue
             current_score = 0.0
-            current_evidence = _evidence_item_for_operand_row(current, evidence_by_id)
+            current_evidence = evidence_item_for_operand_row(current, evidence_by_id)
             if current_evidence:
                 current_score = score_direct_structured_lookup_evidence(
                     DirectStructuredLookupEvidenceScoreInput(
@@ -1889,7 +1889,7 @@ class FinancialAgentCalculationMixin:
             preferred_slot: Dict[str, Any],
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
-            current_evidence = _evidence_item_for_operand_row(current_slot, evidence_by_id)
+            current_evidence = evidence_item_for_operand_row(current_slot, evidence_by_id)
             return lookup_recovery_value_refinement_allowed(
                 current_slot,
                 preferred_slot,
@@ -5142,10 +5142,10 @@ class FinancialAgentCalculationMixin:
             if not dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
                 continue
             source_slot_from_answer_slots = True
-            current_evidence = _evidence_item_for_operand_row(
+            current_evidence = evidence_item_for_operand_row(
                 source_slot,
                 sibling_evidence_by_id,
-            ) or _evidence_item_for_operand_row(source_slot, evidence_by_id)
+            ) or evidence_item_for_operand_row(source_slot, evidence_by_id)
             current_metadata = dict((current_evidence or {}).get("metadata") or {})
             current_score = (
                 score_direct_structured_lookup_evidence(
@@ -5167,7 +5167,7 @@ class FinancialAgentCalculationMixin:
                 )
                 if not current_scope:
                     return False
-                candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
+                candidate_evidence = evidence_item_for_operand_row(slot, evidence_by_id)
                 candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
                 candidate_scope = known_consolidation_scope_value(
                     slot.get("consolidation_scope"),
@@ -5187,7 +5187,7 @@ class FinancialAgentCalculationMixin:
                     candidate_slot = {}
                     candidate_score = 0.0
                 def _candidate_slot_has_sibling_input_context(slot: Dict[str, Any]) -> bool:
-                    candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
+                    candidate_evidence = evidence_item_for_operand_row(slot, evidence_by_id)
                     if not candidate_evidence:
                         return False
                     candidate_metadata = dict(candidate_evidence.get("metadata") or {})
@@ -5267,7 +5267,7 @@ class FinancialAgentCalculationMixin:
                 def _sibling_candidate_can_repair_task_output(slot: Dict[str, Any]) -> bool:
                     if not slot or not candidate_has_sibling_context:
                         return False
-                    candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
+                    candidate_evidence = evidence_item_for_operand_row(slot, evidence_by_id)
                     current_evidence_id = _normalise_spaces(str((current_evidence or {}).get("evidence_id") or ""))
                     candidate_evidence_id = _normalise_spaces(str((candidate_evidence or {}).get("evidence_id") or ""))
                     if (
@@ -5378,7 +5378,7 @@ class FinancialAgentCalculationMixin:
                     preferred_slot = {}
                     preferred_score = 0.0
             if preferred_slot and preferred_score > current_score:
-                preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+                preferred_evidence = evidence_item_for_operand_row(preferred_slot, evidence_by_id)
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
                 preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
@@ -5483,10 +5483,10 @@ class FinancialAgentCalculationMixin:
                 matched_operand_candidate.get("source_row_ids"),
                 sibling_result.get("source_row_ids"),
             ])
-            selected_evidence = _evidence_item_for_operand_row(
+            selected_evidence = evidence_item_for_operand_row(
                 source_slot,
                 sibling_evidence_by_id,
-            ) or _evidence_item_for_operand_row(source_slot, evidence_by_id)
+            ) or evidence_item_for_operand_row(source_slot, evidence_by_id)
             selected_metadata = dict((selected_evidence or current_evidence or {}).get("metadata") or {})
             source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
             if not source_anchor and selected_evidence:
@@ -5583,7 +5583,7 @@ class FinancialAgentCalculationMixin:
                         structured_provenance=structured_provenance,
                     )
                 ).dependency_row
-            source_evidence = _evidence_item_for_operand_row(dependency_row, evidence_by_id)
+            source_evidence = evidence_item_for_operand_row(dependency_row, evidence_by_id)
             dependency_rows.append(self._coerce_operand_row_from_evidence(dependency_row, source_evidence))
         return dependency_rows
 
@@ -7449,7 +7449,7 @@ class FinancialAgentCalculationMixin:
             ]
 
         def _candidate_has_other_operand_context(slot: Dict[str, Any], current_row: Dict[str, Any]) -> bool:
-            candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
+            candidate_evidence = evidence_item_for_operand_row(slot, evidence_by_id)
             if not candidate_evidence:
                 return False
             metadata = dict(candidate_evidence.get("metadata") or {})
@@ -7517,7 +7517,7 @@ class FinancialAgentCalculationMixin:
             if candidate_identity_surface and not operand_text_match(candidate_identity_surface, operand):
                 aligned.append(current_row)
                 continue
-            candidate_evidence = _evidence_item_for_operand_row(candidate_slot, evidence_by_id)
+            candidate_evidence = evidence_item_for_operand_row(candidate_slot, evidence_by_id)
             candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
             candidate_scope = known_consolidation_scope_value(
                 candidate_slot.get("consolidation_scope"),
@@ -9099,7 +9099,7 @@ class FinancialAgentCalculationMixin:
             direct_structured_rows = [
                 self._coerce_operand_row_from_evidence(
                     row,
-                    _evidence_item_for_operand_row(row, evidence_by_id),
+                    evidence_item_for_operand_row(row, evidence_by_id),
                 )
                 for row in direct_structured_rows
             ]
@@ -9138,7 +9138,7 @@ class FinancialAgentCalculationMixin:
             target_evidence_by_id = evidence_items_by_id(direct_target_evidence_pool)
             target_metric_row = self._coerce_operand_row_from_evidence(
                 target_metric_row,
-                _evidence_item_for_operand_row(target_metric_row, target_evidence_by_id),
+                evidence_item_for_operand_row(target_metric_row, target_evidence_by_id),
             )
         if target_metric_row and not operand_row_conflicts_requested_scope(
             target_metric_row,
@@ -10348,7 +10348,7 @@ class FinancialAgentCalculationMixin:
         runtime_operands = [
             self._coerce_operand_row_from_evidence(
                 row,
-                _evidence_item_for_operand_row(row, execution_evidence_by_id),
+                evidence_item_for_operand_row(row, execution_evidence_by_id),
             )
             for row in runtime_operands
         ]
@@ -11576,8 +11576,8 @@ class FinancialAgentCalculationMixin:
             )
             if not preferred_slot:
                 return source_slot
-            preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
-            source_evidence = _evidence_item_for_operand_row(source_slot, evidence_by_id)
+            preferred_evidence = evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+            source_evidence = evidence_item_for_operand_row(source_slot, evidence_by_id)
             if direct_lookup_row_is_ambiguous_context_table(
                 preferred_slot,
                 preferred_evidence,

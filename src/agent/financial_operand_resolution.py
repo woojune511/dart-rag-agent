@@ -943,7 +943,7 @@ def repair_krw_operand_units_from_table_metadata(
         if not raw_value or raw_unit not in krw_units:
             updated.append(next_row)
             continue
-        evidence_item = _evidence_item_for_operand_row(next_row, evidence_by_id)
+        evidence_item = evidence_item_for_operand_row(next_row, evidence_by_id)
         if not evidence_item or not is_table_backed(evidence_item):
             updated.append(next_row)
             continue
@@ -1402,7 +1402,7 @@ def evidence_items_by_id(
     }
 
 
-def _evidence_item_for_operand_row(
+def evidence_item_for_operand_row(
     row: Dict[str, Any],
     evidence_by_id: Dict[str, Dict[str, Any]],
 ) -> Optional[Dict[str, Any]]:
@@ -1673,7 +1673,7 @@ def _operand_row_satisfies_required_surface_contract(
     )
     if matching_operand is None:
         return False
-    evidence_item = _evidence_item_for_operand_row(row, evidence_by_id)
+    evidence_item = evidence_item_for_operand_row(row, evidence_by_id)
     segment_label = _normalise_spaces(
         str(
             operand_segment_label(matching_operand)
@@ -2744,7 +2744,7 @@ def resolve_direct_structured_operand_acceptance(
     ) -> bool:
         return direct_lookup_row_is_ambiguous_context_table(
             row,
-            _evidence_item_for_operand_row(row, evidence_by_id),
+            evidence_item_for_operand_row(row, evidence_by_id),
             query=str(acceptance_input.ambiguity_query or ""),
             active_subtask=dict(acceptance_input.ambiguity_active_subtask or {}),
             required_operands=acceptance_input.required_operands,
@@ -2783,7 +2783,7 @@ def resolve_direct_structured_operand_acceptance(
                 for row in accepted_operand_rows
                 if _llm_lookup_operand_has_direct_support(
                     row,
-                    _evidence_item_for_operand_row(row, evidence_by_id),
+                    evidence_item_for_operand_row(row, evidence_by_id),
                     acceptance_input.required_operands,
                 )
             ]

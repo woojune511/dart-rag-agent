@@ -7,7 +7,7 @@ from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
-    _evidence_item_for_operand_row,
+    evidence_item_for_operand_row,
     coerce_lookup_magnitude_value,
     coerce_operand_unit_from_evidence,
     operand_prefers_aggregate_value_role,
@@ -996,7 +996,7 @@ def normalize_lookup_slot_unit(
     updated = dict(slot)
     raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
     raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
-    evidence_item = _evidence_item_for_operand_row(updated, evidence_by_id)
+    evidence_item = evidence_item_for_operand_row(updated, evidence_by_id)
     metadata = dict((evidence_item or {}).get("metadata") or {})
     unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
     source_surface = _normalise_spaces(
@@ -1098,7 +1098,7 @@ def align_or_replace_successful_lookup_row(
             "unit_aligned_from_evidence_metadata": True,
         }
 
-    current_evidence = _evidence_item_for_operand_row(current_slot, evidence_by_id)
+    current_evidence = evidence_item_for_operand_row(current_slot, evidence_by_id)
     current_score = (
         score_direct_structured_lookup_evidence(
             DirectStructuredLookupEvidenceScoreInput(
@@ -1117,7 +1117,7 @@ def align_or_replace_successful_lookup_row(
     if not preferred_slot or preferred_score <= current_score:
         return unit_aligned_row or row
 
-    preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+    preferred_evidence = evidence_item_for_operand_row(preferred_slot, evidence_by_id)
     if not preferred_slot_has_evidence_surface_match(preferred_slot, preferred_evidence):
         return unit_aligned_row or row
 

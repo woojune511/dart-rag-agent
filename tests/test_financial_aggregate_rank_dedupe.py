@@ -15169,7 +15169,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ) as material_owner,
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=AssertionError("non-material slot must stop"),
             ) as evidence_owner,
         ):
@@ -15211,7 +15211,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=evidence_lookup,
             ),
             patch.object(
@@ -15259,7 +15259,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     ),
                     patch.object(
                         financial_aggregate_projection,
-                        "_evidence_item_for_operand_row",
+                        "evidence_item_for_operand_row",
                         return_value=evidence_item,
                     ),
                     patch.object(
@@ -15292,7 +15292,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 return_value=evidence_item,
             ),
             patch.object(
@@ -15376,7 +15376,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=evidence,
             ),
             patch.object(
@@ -15450,7 +15450,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 side_effect=evidence,
             ),
             patch.object(
@@ -15479,7 +15479,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_item_for_operand_row",
+                "evidence_item_for_operand_row",
                 return_value=changed_evidence,
             ),
             patch.object(
@@ -15642,7 +15642,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             self.assertEqual((graph_loads, owner_loads, selected_loads), (0, 1, 1))
         for live_name in (
             "evidence_items_by_id",
-            "_evidence_item_for_operand_row",
+            "evidence_item_for_operand_row",
             "coerce_operand_unit_from_evidence",
             "answer_slot_has_material",
             "_clean_source_row_ids",
