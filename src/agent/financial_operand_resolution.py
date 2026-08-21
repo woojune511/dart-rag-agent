@@ -1940,7 +1940,7 @@ def direct_lookup_row_is_ambiguous_context_table(
     return bool(scope_markers and any(marker in raw_surface for marker in scope_markers))
 
 
-def _operand_rows_have_single_table_context(rows: List[Dict[str, Any]]) -> bool:
+def operand_rows_have_single_table_context(rows: List[Dict[str, Any]]) -> bool:
     contexts = {
         _normalise_spaces(
             str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")

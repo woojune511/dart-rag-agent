@@ -201,7 +201,7 @@ from src.agent.financial_operand_resolution import (
     merge_operand_rows,
     _missing_required_operands,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
-    _operand_rows_have_single_table_context,
+    operand_rows_have_single_table_context,
     _operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
@@ -2152,7 +2152,7 @@ class FinancialAgentCalculationMixin:
                     return False
                 if not rows or _missing_required_operands(required_operands, rows):
                     return False
-                if not _operand_rows_have_single_table_context(rows):
+                if not operand_rows_have_single_table_context(rows):
                     return False
                 if _period_comparison_operand_rows_collapse_to_same_slot(rows):
                     return False
@@ -9232,7 +9232,7 @@ class FinancialAgentCalculationMixin:
         )
         direct_rows_have_coherent_context = bool(
             direct_rows_cover_required_operands
-            and _operand_rows_have_single_table_context(direct_structured_rows)
+            and operand_rows_have_single_table_context(direct_structured_rows)
             and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
             and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )

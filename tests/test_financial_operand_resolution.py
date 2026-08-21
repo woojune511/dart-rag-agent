@@ -29,7 +29,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
     operand_rows_conflict_by_required_role,
-    _operand_rows_have_single_table_context,
+    operand_rows_have_single_table_context,
     _period_comparison_operand_rows_collapse_to_same_slot,
     _ratio_operand_rows_collapse_to_same_slot,
     collect_retrieval_context_docs,
@@ -3731,12 +3731,12 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             },
         ]
 
-        self.assertTrue(_operand_rows_have_single_table_context(coherent_rows))
+        self.assertTrue(operand_rows_have_single_table_context(coherent_rows))
         self.assertEqual(operand_row_display_unit_set(coherent_rows), {"million"})
-        self.assertFalse(_operand_rows_have_single_table_context([]))
-        self.assertFalse(_operand_rows_have_single_table_context([{}]))
+        self.assertFalse(operand_rows_have_single_table_context([]))
+        self.assertFalse(operand_rows_have_single_table_context([{}]))
         self.assertFalse(
-            _operand_rows_have_single_table_context(
+            operand_rows_have_single_table_context(
                 [*coherent_rows, {"source_anchor": "table_b"}]
             )
         )
