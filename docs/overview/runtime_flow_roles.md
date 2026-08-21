@@ -1408,15 +1408,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+14/-14`, `+53/-53`, `+67/-67`, direct
   behavior 1/1, public identity 3/3, focused 1,004/1,004, audit 217, pycompile
   9/9, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 8-line
-  `_evidence_items_by_id(...)`를 public `evidence_items_by_id(...)`로
-  rename하고 owner-local call 네 개, aggregate/graph import 두 개와 external
-  call 열한 개, direct-name·owner-count·fingerprint 기대 57개만 갱신한다.
-  Ordered comprehension, blank-ID filter, retained ID의 반복 정규화, shallow
-  copy, duplicate last-value overwrite와 caller assignment 순서를 유지한다.
-  Exact temporary projection은 source/tests/whole `+18/-18`, `+56/-56`,
-  `+74/-74`, focused 1,004/1,004, audit 217, pycompile 7/7, unchanged 48/203
-  DAG이며 전체 구현 gate는
+- 완료된 `a7c02de` visibility batch는 같은 owner의 exact 8-line
+  evidence-item index를 public `evidence_items_by_id(...)`로 이름
+  수렴시키고 owner-local call 네 개, aggregate/graph import 두 개와 external
+  call 열한 개, direct-name·owner-count·fingerprint 기대 57개만 갱신했다.
+  Ordered comprehension, blank-ID filter, retained-ID 반복 정규화, shallow
+  copy, duplicate last-value overwrite와 caller assignment 순서는 유지됐다.
+  Source/tests/whole `+18/-18`, `+56/-56`, `+74/-74`, direct behavior
+  1/1, public identity 2/2, focused 1,004/1,004, audit 217, pycompile 7/7,
+  unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 10-line
+  `_missing_required_operands(...)`를 public
+  `missing_required_operands(...)`로 rename하고 owner-local call 두 개,
+  calculation-execution/dependency-projection/graph import 세 개와 external
+  call 22개, direct-name·owner-count·fingerprint 기대 61개만 갱신한다.
+  Required-operand 순서, 매 operand의 ordered row scan, matcher short circuit,
+  covered-row skip, missing-row shallow copy와 caller guard/adoption 순서를
+  유지한다. Exact temporary projection은 source/tests/whole `+28/-28`,
+  `+61/-61`, `+89/-89`, focused 1,084/1,084, audit 217, pycompile 11/11,
+  unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
