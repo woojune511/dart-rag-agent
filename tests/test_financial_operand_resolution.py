@@ -3135,7 +3135,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
     def test_evidence_identity_and_surface_helpers_have_operand_resolution_owner(self) -> None:
         helper_names = (
-            "_canonical_structured_reconciliation_id",
+            "canonical_structured_reconciliation_id",
             "canonicalize_structured_operand_reconciliation_refs",
             "_operand_slot_has_evidence_surface_match",
             "repair_operand_normalization_from_rendered_unit",
@@ -3159,7 +3159,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         for value, expected in identity_cases:
             with self.subTest(identity=value):
                 self.assertEqual(
-                    operand_resolution._canonical_structured_reconciliation_id(value),
+                    operand_resolution.canonical_structured_reconciliation_id(value),
                     expected,
                 )
 

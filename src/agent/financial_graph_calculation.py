@@ -184,7 +184,7 @@ from src.agent.financial_operand_resolution import (
     PostCoercionLlmOperandSelectionInput,
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
-    _canonical_structured_reconciliation_id,
+    canonical_structured_reconciliation_id,
     canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
@@ -10301,7 +10301,7 @@ class FinancialAgentCalculationMixin:
             candidate_slot.get("source_row_ids"),
         ])
         canonical_source_ids = [
-                _canonical_structured_reconciliation_id(source_id)
+                canonical_structured_reconciliation_id(source_id)
             for source_id in source_row_ids
         ]
         source_row_ids = list(dict.fromkeys(source_id for source_id in canonical_source_ids if source_id))

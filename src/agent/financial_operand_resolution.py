@@ -361,7 +361,7 @@ def operand_row_source_ids(row: Dict[str, Any]) -> FrozenSet[str]:
     )
 
 
-def _canonical_structured_reconciliation_id(value: Any) -> str:
+def canonical_structured_reconciliation_id(value: Any) -> str:
     source_id = _normalise_spaces(str(value or ""))
     if not source_id.startswith("recon::"):
         return source_id
@@ -379,12 +379,12 @@ def canonicalize_structured_operand_reconciliation_refs(
 ) -> Dict[str, Any]:
     updated = dict(row)
     for key in ("evidence_id", "source_row_id"):
-        canonical = _canonical_structured_reconciliation_id(updated.get(key))
+        canonical = canonical_structured_reconciliation_id(updated.get(key))
         if canonical:
             updated[key] = canonical
     source_row_ids = _clean_source_row_ids(updated.get("source_row_ids") or [])
     canonical_source_ids = [
-        _canonical_structured_reconciliation_id(source_id)
+        canonical_structured_reconciliation_id(source_id)
         for source_id in source_row_ids
     ]
     canonical_source_ids = [source_id for source_id in canonical_source_ids if source_id]
