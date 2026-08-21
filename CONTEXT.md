@@ -478,12 +478,20 @@ import/call 각 한 개와 기존 CURRENT-SOURCE 기대 다섯 개만 갱신했�
 Fresh-list/intent gate/lazy ontology/ordered dedupe와 caller sequencing은
 유지됐고 source/tests/whole `+3/-3`, `+5/-5`, `+8/-8`, identity/behavior
 10/10, focused 365/365, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
-2,143/2,143가 통과했다. 다음 batch는 같은 owner의 exact 9-line
-`_retrieval_hint_from_topic(query, topic, intent)`를 public
-`retrieval_hint_from_topic(...)`로 rename하고 retrieval-pipeline import/call
-각 한 개와 기존 test binding/fingerprint 아홉 개만 갱신한다. Narrative
-policy/ontology와 `_retrieve` orchestration은 제외한다. Exact projection
-source/tests/whole `+3/-3`, `+9/-9`, `+12/-12`와 focused 343/343 경계는
+2,143/2,143가 통과했다. 이어 `31e4c26`이 같은 owner의 exact 9-line
+topic-hint helper를 같은 위치와 본문으로 public
+`retrieval_hint_from_topic(...)`로 이름 수렴시키고 retrieval-pipeline
+import/call 각 한 개와 test binding/fingerprint 아홉 개만 갱신했다.
+Narrative-policy/ontology와 `_retrieve` orchestration은 유지됐고 source/tests/
+whole `+3/-3`, `+9/-9`, `+12/-12`, identity/behavior 10/10, focused 343/343,
+audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+다음 batch는 `financial_operand_resolution.py`의 exact 17-line
+`_canonicalize_structured_operand_reconciliation_refs(row)`를 public
+`canonicalize_structured_operand_reconciliation_refs(...)`로 rename하고
+graph-calculation import/call 각 한 개와 기존 CURRENT-SOURCE 기대 42개만
+갱신한다. Sibling canonicalizer/normalizer와 calculation orchestration은
+제외한다. Exact projection source/tests/whole `+3/-3`, `+42/-42`, `+45/-45`와
+focused 665/665 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

@@ -9357,9 +9357,9 @@ completion claim.
   behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
 
-### Retrieval topic-hint public API characterization checkpoint
+### Retrieval topic-hint public API milestone
 
-- The next bounded visibility batch renames only the exact nine-line
+- Commit `31e4c26` renames only the exact nine-line
   `financial_retrieval_hints._retrieval_hint_from_topic(query: str, topic:
   str, intent: str) -> str` definition in place to public
   `retrieval_hint_from_topic(...)`. Update exactly its one import and one
@@ -9399,19 +9399,88 @@ completion claim.
   `4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed` to
   `d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
   Add no test method and weaken no assertion.
-- Source/tests/whole project exactly project `+3/-3`, `+9/-9`, and `+12/-12`
-  across two source and two test files. The exact temporary diff SHA-256 is
+- Source/tests/whole commit transforms are `+3/-3`, `+9/-9`, and `+12/-12`
+  across two source and two test files. The committed diff SHA-256 is
   `e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
   Identity/behavior 10/10, focused graph-helper/retrieval-hints/retrieval-
-  scope/retrieval-pipeline/import-side-effects 343/343 in 182.671 seconds,
+  scope/retrieval-pipeline/import-side-effects 343/343 in 180.597 seconds,
   audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
-  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
-  implementation gate; exact scope and stop lines are governed by
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  unchanged acyclic 48/203 DAG and full 2,143/2,143 in 235.375 seconds passed.
 - Keep adjacent retrieval helpers, policy/ontology data, operation-family
   intent coercion, preferred-section/query-bundle construction, evidence
   adoption, graph state, artifact/ledger mutation, and final sequencing
   outside this batch. Add no body move, alias, wrapper, fallback, callback,
   trace field, or new exception boundary. Benchmark refresh and remote CI were
-  **NOT RUN**. This checkpoint establishes no behavior, quality, performance,
-  benchmark, schedule, ledger, or Phase 3 completion claim.
+  **NOT RUN**. This name-only milestone establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Structured reconciliation-reference public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 17-line
+  `financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
+  row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
+  `canonicalize_structured_operand_reconciliation_refs(...)`. Update exactly
+  its one import and one direct list-comprehension call in
+  `financial_graph_calculation.py`, plus two exact test-name references. Do not
+  move the body, rename sibling helpers, add an alias/wrapper, or broaden
+  operand-selection orchestration.
+- The definition stays at lines 377-393 with one positional argument, no
+  default or keyword-only arguments, and a `Dict[str, Any]` return. Preserve
+  the initial shallow `dict(row)` copy; exact `evidence_id` then
+  `source_row_id` order; truth-gated direct-field replacement;
+  `_clean_source_row_ids` after `or []`; ordered per-source sibling
+  canonicalization; falsey filtering; non-empty-only replacement; ordered
+  dedupe into a fresh list; nested identities; input immutability; and uncaught
+  failures. Its name-normalized AST hash is
+  `1d792b6cbe7b325d1daa0e24caee951b9c033934ed952587604fbd9a1fa5ec4d`.
+- The sole production call stays in `_extract_calculation_operands` at line
+  9390 of `financial_graph_calculation.py`, inside the existing list
+  comprehension, with exact one positional `row`, no keywords, and `try` depth
+  zero. Its normalized record hash is
+  `996c6e2a9adc679334704d24f6cda235fff30ba16cc9beed0fa89fb20652ca95`.
+  Owner/caller physical line counts remain 4,816/13,464.
+- Current production counts are one definition, one external import, one call,
+  and zero owner-local calls. The two exact test-name uses are one owner-name
+  string and one module-attribute call; the future public name has no pre-
+  existing exact source/test definition, import, call, patch, attribute,
+  dynamic, wildcard/`__all__`, introspection consumer, or collision. Projected
+  private refs finish zero, calculation/owner identity holds, and owner public/
+  private counts move only from 54/37 to 55/36.
+- Exactly 42 existing test expectations change: two direct names; 27 current
+  owner counts from 54/37 to 55/36; two derived counts from 53/37 to 54/36; one
+  owner/class tuple from 54/37/19 to 55/36/19; four copies of the caller hash
+  from `8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac`
+  to `4ed153c6ba332ae278786367a419359f74aed1d86197b93cd2bdc3bafa0a4c73`;
+  two desired-consolidation aggregate hashes from
+  `98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592`
+  to `b4109b5d882bd2932b32a3ca669d6cf317ae0227dc7906b731be356c068a7096`;
+  ratio aggregate
+  `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`
+  to `cd65b6aeb7264111c960a946888feee46790a7458ed9cc4a7d0517d4ec46370a`;
+  narrative aggregate
+  `ff28482c35a004f7abdd5587d007f674a0aaa8ab205a56a714cba04c7b0ad7ee`
+  to `31953638d15db09d9df0c8263576cd52aecb6f9b4ad604c13bb512fc1fd9a2f5`;
+  percent-point aggregate
+  `842df1bdd0864226a82f70dbd6bd4e1794fb734ea7d15f53900d21c86b9afd2f`
+  to `c4df271495d106f116f5e9575d265ff7f58a07bed22d0aac0a66bb848ab0a5a1`;
+  and direct-grounding aggregate
+  `c54161def8235e16506e68be3e11f3ad3366088f911f649465cd862d9d072cac`
+  to `64e2a49e996110e2fe654302376eaa276c71a9961f0b367f2103c21a2d358ec4`.
+  Add no test method and weaken no assertion.
+- Source/tests/whole project exactly project `+3/-3`, `+42/-42`, and
+  `+45/-45` across two source and two test files. The exact temporary diff
+  SHA-256 is
+  `91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
+  Identity/behavior 10/10, focused graph-helper/operand-resolution/calculation-
+  execution/operation-contract/import-side-effects 665/665 in 194.689 seconds,
+  audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
+  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
+  implementation gate; exact scope and stop lines are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Keep `_canonical_structured_reconciliation_id`, `_clean_source_row_ids`, all
+  other operand-resolution helpers, direct-row discovery/coverage/adoption,
+  evidence, graph state, trace/artifact mutation, and final sequencing outside
+  this batch. Add no body move, alias, wrapper, callback, fallback, trace field,
+  or new exception boundary. Benchmark refresh and remote CI were **NOT RUN**.
+  This checkpoint establishes no behavior, quality, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.

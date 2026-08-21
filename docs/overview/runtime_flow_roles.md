@@ -1320,15 +1320,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   import/call 각 한 개와 CURRENT-SOURCE 기대 다섯 개만 갱신했다. Source/tests/
   whole `+3/-3`, `+5/-5`, `+8/-8`, identity/behavior 10/10, focused 365/365,
   audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 9-line
-  `_retrieval_hint_from_topic(query, topic, intent)`를 public
-  `retrieval_hint_from_topic(...)`로 rename하고 retrieval-pipeline import/call
-  각 한 개와 기존 direct binding·owner count·`_retrieve` fingerprint 아홉 개만
-  갱신한다. Narrative-policy term ordering, lazy ontology, ordered dedupe와
-  caller intent/argument/adoption은 유지하고 adjacent helper, policy/ontology,
-  retrieval orchestration은 제외한다. Exact projection은 source/tests/whole
-  `+3/-3`, `+9/-9`, `+12/-12`, focused 343/343, audit 217, pycompile 4/4,
-  unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `31e4c26` visibility batch는 같은 owner의 exact 9-line topic-hint
+  helper를 public `retrieval_hint_from_topic(...)`로 이름 수렴시키고
+  retrieval-pipeline import/call 각 한 개와 기존 test 기대 아홉 개만
+  갱신했다. Source/tests/whole `+3/-3`, `+9/-9`, `+12/-12`, identity/behavior
+  10/10, focused 343/343, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_operand_resolution.py`의 exact 17-line
+  `_canonicalize_structured_operand_reconciliation_refs(row)`를 public
+  `canonicalize_structured_operand_reconciliation_refs(...)`로 rename하고
+  graph-calculation import/call 각 한 개와 direct binding·owner count·caller/
+  aggregate fingerprint 기대 42개만 갱신한다. Shallow copy, exact sibling
+  helper order, falsey preservation, ordered dedupe와 caller list-comprehension
+  adoption은 유지하고 sibling helper, broader operand selection, trace/artifact
+  orchestration은 제외한다. Exact projection은 source/tests/whole `+3/-3`,
+  `+42/-42`, `+45/-45`, focused 665/665, audit 217, pycompile 4/4, unchanged
+  48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `67bc02e` renamed only `financial_retrieval_hints._supplement_section_terms_for_query(...)` in place to public `supplement_section_terms_for_query(...)` and updated its one reconciliation import/call plus five exact CURRENT-SOURCE expectations |
-| What passed? | Public identity/behavior 10/10, focused tests 365/365, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `31e4c26` renamed only `financial_retrieval_hints._retrieval_hint_from_topic(...)` in place to public `retrieval_hint_from_topic(...)` and updated its one retrieval-pipeline import/call plus nine exact test expectations |
+| What passed? | Public identity/behavior 10/10, focused tests 343/343, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_retrieval_hints._retrieval_hint_from_topic(...)` in place to public `retrieval_hint_from_topic(...)`; update its one retrieval-pipeline import/call and nine exact test binding/fingerprint expectations |
+| What is next? | Rename only `financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(...)` in place to public `canonicalize_structured_operand_reconciliation_refs(...)`; update its one graph-calculation import/call and 42 exact test binding/count/fingerprint expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, supplement-section public identity/behavior 10 / 10; affected graph/retrieval-hint/reconciliation/import set 365 / 365 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after supplement-section public rename |
+| Latest focused owner checkpoint | PASS, topic-hint public identity/behavior 10 / 10; affected graph/retrieval-hint/retrieval-scope/retrieval-pipeline/import set 343 / 343 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after topic-hint public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,64 +799,103 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact nine-line
-`src.agent.financial_retrieval_hints._retrieval_hint_from_topic(query: str,
-topic: str, intent: str) -> str` definition in place to public
-`retrieval_hint_from_topic(...)`. Update its one import and one direct call in
-`financial_retrieval_pipeline.py`, plus the existing direct test import and two
-test calls. Do not move the body, add an alias or wrapper, rename adjacent
-retrieval helpers, change narrative policy or ontology data, or alter
-`FinancialRetrievalPipelineMixin._retrieve` orchestration.
+Rename only the exact 17-line
+`src.agent.financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
+row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
+`canonicalize_structured_operand_reconciliation_refs(...)`. Update its one
+import and one direct call in `financial_graph_calculation.py`, plus the two
+existing exact test-name references. Do not move the body, add an alias or
+wrapper, rename sibling helpers, or alter operand-selection orchestration.
 
-The definition remains at lines 164-172 with exactly three positional
-arguments, no defaults or keyword-only arguments, and a `str` return. Preserve
-the fresh `hints` list; ordered truth-filtered `query`/`topic` join; unconditional
-`active_narrative_policies(...)` lookup; truth-gated suffix then focus-term
-extension; comparison/trend-only lazy ontology query; ordered
-`dict.fromkeys` dedupe; single-space join; input/policy immutability; and every
-uncaught error. Its name-normalized AST hash is
-`f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16`.
+The definition remains at lines 377-393 with exactly one positional `row`
+argument, no default or keyword-only arguments, and a `Dict[str, Any]` return.
+Preserve the initial shallow `dict(row)` copy; exact `evidence_id` then
+`source_row_id` order; lazy truth-gated replacement; `_clean_source_row_ids`
+after `or []`; per-source canonicalization; falsey filtering; non-empty-only
+replacement; ordered `dict.fromkeys` dedupe into a fresh list; nested identity;
+input immutability; and every uncaught error. Its name-normalized AST hash is
+`1d792b6cbe7b325d1daa0e24caee951b9c033934ed952587604fbd9a1fa5ec4d`.
 
-The sole production call remains at retrieval-pipeline line 2096 with exact
-positional `query`, `state.get("topic") or query`, and `retrieval_intent`, no
-keywords, and `try` depth zero. Its record hash is
-`34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
-Preserve the caller's preceding operation-family intent coercion and subsequent
-preferred-section/query-bundle work. Owner and caller retain 318 and 2,641
-physical lines.
+The sole production call remains in `_extract_calculation_operands` at line
+9390 of `financial_graph_calculation.py`, inside the existing list
+comprehension, with exact one positional `row`, no keywords, and `try` depth
+zero. Its normalized record hash is
+`996c6e2a9adc679334704d24f6cda235fff30ba16cc9beed0fa89fb20652ca95`.
+Preserve the preceding direct-row recovery and the following clean-row
+short-circuit, evidence, trace, and artifact work. Owner and caller retain
+4,816 and 13,464 physical lines.
 
-Current production scope is one definition, one external import, and one
-direct call. Tests contain one direct import and two direct calls; the public
-name has no pre-existing source/test definition, import, call, patch,
-attribute, constant-dynamic, wildcard/`__all__`, reviewed introspection
-consumer, or collision. After the rename selected private refs must finish
-zero, the retrieval-pipeline binding must be identical to the public owner,
-and owner public/private counts must move exactly 6/8 to 7/7.
+Current production scope is one definition, one external import, one direct
+call, and zero owner-local calls. Tests contain one exact owner-name string and
+one direct module-attribute call. The future public name has no pre-existing
+exact source/test definition, import, call, patch, attribute, dynamic,
+wildcard/`__all__`, introspection consumer, or collision. After the rename
+selected private refs must finish zero, the graph-calculation binding must be
+identical to the public owner, and owner public/private counts must move exactly
+54/37 to 55/36.
 
-Update only nine existing test expectations: the direct test import/two calls,
-two owner counts, both copies of the `_retrieve` caller fingerprint from
-`fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf`
-to `3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
-the strict-company aggregate fingerprint from
-`b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67`
-to `f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
-and the source-receipts aggregate fingerprint from
-`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`
-to `d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
+Update exactly 42 existing test expectations: the two direct name references;
+27 current owner counts from 54/37 to 55/36; two derived counts from 53/37 to
+54/36; one owner/class tuple from 54/37/19 to 55/36/19; four copies of the
+`_extract_calculation_operands` caller hash from
+`8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac` to
+`4ed153c6ba332ae278786367a419359f74aed1d86197b93cd2bdc3bafa0a4c73`;
+two desired-consolidation aggregate hashes from
+`98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592`
+to `b4109b5d882bd2932b32a3ca669d6cf317ae0227dc7906b731be356c068a7096`;
+and the ratio, narrative, percent-point, and direct-grounding aggregates from
+`b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`,
+`ff28482c35a004f7abdd5587d007f674a0aaa8ab205a56a714cba04c7b0ad7ee`,
+`842df1bdd0864226a82f70dbd6bd4e1794fb734ea7d15f53900d21c86b9afd2f`,
+and `c54161def8235e16506e68be3e11f3ad3366088f911f649465cd862d9d072cac`
+to `cd65b6aeb7264111c960a946888feee46790a7458ed9cc4a7d0517d4ec46370a`,
+`31953638d15db09d9df0c8263576cd52aecb6f9b4ad604c13bb512fc1fd9a2f5`,
+`c4df271495d106f116f5e9575d265ff7f58a07bed22d0aac0a66bb848ab0a5a1`,
+and `64e2a49e996110e2fe654302376eaa276c71a9961f0b367f2103c21a2d358ec4`.
 Add no test method and weaken no assertion.
 
-Projected source/tests/whole transforms are `+3/-3`, `+9/-9`, and `+12/-12`
-across exactly two source and two test files. The exact temporary diff SHA-256
-is `e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+Projected source/tests/whole transforms are `+3/-3`, `+42/-42`, and
+`+45/-45` across exactly two source and two test files. The exact temporary
+diff SHA-256 is
+`91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
 The temporary projection passed public identity/absence plus direct behavior
-10/10, focused graph-helper/retrieval-hint/retrieval-scope/retrieval-pipeline/
-import tests 343/343 in 182.671 seconds, audit 217, pycompile 4/4, retired
-selected refs zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity
-at `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+10/10, focused graph-helper/operand-resolution/calculation-execution/
+operation-contract/import tests 665/665 in 194.689 seconds, audit 217,
+pycompile 4/4, retired selected refs zero, `git diff --check`, and unchanged
+acyclic 48/203 DAG parity at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
 and remote CI remain **NOT RUN**. This name-only visibility change would prove
 no behavior, answer-quality, ranking, performance, benchmark, schedule,
 ledger, or Phase 3 completion claim.
+
+Keep `_canonical_structured_reconciliation_id`, `_clean_source_row_ids`, all
+other operand-resolution helpers, direct-row discovery, requirement coverage,
+evidence adoption, graph state, trace/artifact mutation, and final sequencing
+outside this batch. Add no body move, alias, wrapper, callback, fallback,
+trace field, or new exception boundary.
+
+## Completed Retrieval Topic-Hint Public API
+
+Commit `31e4c26` renamed only the exact nine-line
+`financial_retrieval_hints._retrieval_hint_from_topic(...)` definition in place
+to public `retrieval_hint_from_topic(...)` and updated its one import/call in
+`financial_retrieval_pipeline.py` plus nine exact test expectations. The
+signature, body,
+policy-term ordering, lazy ontology access, ordered dedupe, caller arguments and
+placement, physical line counts, and retrieval orchestration remain unchanged.
+Selected private refs finish zero and owner public/private counts are 7/7.
+
+Production source, tests, and the whole commit are `+3/-3`, `+9/-9`, and
+`+12/-12` across two source and two test files. The committed diff SHA-256 is
+`e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+Public identity/behavior 10/10, focused graph-helper/retrieval-hint/retrieval-
+scope/retrieval-pipeline/import tests 343/343 in 180.597 seconds, audit 217,
+pycompile 4/4, unchanged acyclic 48/203 DAG, full discovery 2,143/2,143 in
+235.375 seconds, artifact hygiene, and diff checks passed. Benchmark refresh
+and remote CI were **NOT RUN**. This name-only visibility milestone establishes
+no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Retrieval Supplement-Section Public API
 

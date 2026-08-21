@@ -6080,60 +6080,79 @@ pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 238.281
 seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The active visibility contract renames only the exact nine-line
-`financial_retrieval_hints._retrieval_hint_from_topic(query: str, topic: str,
-intent: str) -> str` definition in place to public
-`retrieval_hint_from_topic(...)`. Update exactly the one
-`financial_retrieval_pipeline.py` import and sole direct production call, plus
-the existing direct test import and two calls. Preserve lines 164-172, all
-three positional arguments, absence of defaults and keyword-only arguments,
-and the `str` return annotation.
+Commit `31e4c26` completed the retrieval topic-hint visibility contract. It
+renamed only the exact nine-line helper in place to public
+`retrieval_hint_from_topic(...)` and updated its one import/call in
+`financial_retrieval_pipeline.py` plus nine exact test expectations. The
+signature, body, policy-term
+ordering, lazy ontology access, dedupe, call placement, physical line counts,
+and retrieval orchestration remain unchanged.
 
-Preserve the fresh `hints` list; ordered raw-truth filtering of `query` and
-`topic` into a single-space join; unconditional `active_narrative_policies`
-lookup; truth-gated `retrieval_query_suffixes` then `focus_terms` extension;
-comparison/trend-only lazy `get_financial_ontology().query_hints(query, topic,
-intent)`; ordered `dict.fromkeys` dedupe; final single-space join; immutability;
-and every uncaught error. The name-normalized definition AST hash is
-`f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16`.
-
-The sole production caller stays at retrieval-pipeline line 2096, passes exact
-positional `query`, `state.get("topic") or query`, and `retrieval_intent`
-without keywords at `try` depth zero, and retains record hash
-`34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
-Preserve the preceding operation-family intent coercion and the following
-preferred-section/query-bundle work. Owner and caller remain 318 and 2,641
-physical lines.
-
-The production surface is one definition, one external import, and one direct
-call. Tests have one import and two direct calls. The public name has no
-pre-existing source/test definition, import, call, patch, attribute,
-constant-dynamic, wildcard/`__all__`, reviewed introspection consumer, or
-collision. After the rename private selected refs finish zero, the caller
-binding is identical to the public owner, and owner public/private counts move
-only from 6/8 to 7/7.
-
-Update exactly nine test expectations without adding a method or weakening an
-assertion: direct import/two calls, two owner counts, both `_retrieve` hashes
-from `fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf`
-to `3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
-strict-company aggregate from
-`b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67`
-to `f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
-and source-receipts aggregate from
-`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`
-to `d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
-
-Do not rename adjacent helpers, change policy/ontology data, alter operation-
-family intent coercion, move preferred-section/query-bundle/budget/cache/search
-work, or broaden retrieval orchestration. Add no compatibility alias, wrapper,
-callback, fallback, trace field, or exception handling.
-
-Source/tests/whole project are projected at `+3/-3`, `+9/-9`, and `+12/-12`
-across two source and two test files; exact temporary diff SHA-256 is
+Source/tests/whole commit transforms are `+3/-3`, `+9/-9`, and `+12/-12`
+across two source and two test files; the committed diff SHA-256 is
 `e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+Public identity/behavior 10/10, focused 343/343 in 180.597 seconds, audit 217,
+pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 235.375
+seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
+CI were **NOT RUN**.
+
+The active visibility contract renames only the exact 17-line
+`financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
+row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
+`canonicalize_structured_operand_reconciliation_refs(...)`. Update exactly its
+one `financial_graph_calculation.py` import and sole direct production call,
+plus the existing exact owner-name string and direct module-attribute test
+call. Preserve lines 377-393, the one positional argument, absence of defaults
+and keyword-only arguments, and the `Dict[str, Any]` return annotation.
+
+Preserve the initial shallow `dict(row)` copy; exact `evidence_id` then
+`source_row_id` iteration; lazy truth-gated replacement; the
+`_clean_source_row_ids(updated.get("source_row_ids") or [])` boundary; ordered
+per-source `_canonical_structured_reconciliation_id` calls; falsey filtering;
+non-empty-only source-list replacement; ordered dedupe into a fresh list;
+nested identities; input immutability; and every uncaught error. The name-
+normalized definition AST hash is
+`1d792b6cbe7b325d1daa0e24caee951b9c033934ed952587604fbd9a1fa5ec4d`.
+
+The sole production caller stays in `_extract_calculation_operands` at line
+9390 of `financial_graph_calculation.py`, inside the existing list
+comprehension, with exact one positional `row`, no keywords, and `try` depth
+zero. Its normalized call-record hash is
+`996c6e2a9adc679334704d24f6cda235fff30ba16cc9beed0fa89fb20652ca95`.
+Preserve preceding direct-row recovery and following clean-row short-circuit,
+evidence, trace, and artifact work. Owner/caller remain 4,816/13,464 physical
+lines.
+
+The production surface is one definition, one external import, one direct
+call, and zero owner-local calls. Tests have two exact selected-name uses. The
+future public name has no pre-existing exact source/test definition, import,
+call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
+introspection consumer, or collision. After the rename private selected refs
+finish zero, the caller binding is identical to the public owner, and owner
+public/private counts move only from 54/37 to 55/36.
+
+Update exactly 42 existing test expectations without adding a method or
+weakening an assertion: two direct names; 27 current owner counts (54/37 to
+55/36); two derived counts (53/37 to 54/36); one owner/class tuple (54/37/19
+to 55/36/19); four `_extract_calculation_operands` hashes from
+`8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac` to
+`4ed153c6ba332ae278786367a419359f74aed1d86197b93cd2bdc3bafa0a4c73`;
+two desired-consolidation aggregates from
+`98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592`
+to `b4109b5d882bd2932b32a3ca669d6cf317ae0227dc7906b731be356c068a7096`;
+and four remaining aggregate hashes pinned in Project Status Next Work.
+
+Do not rename `_canonical_structured_reconciliation_id` or
+`_clean_source_row_ids`, move another operand-resolution helper, change row or
+nested-object copying, alter direct-row discovery/coverage/adoption, or broaden
+calculation orchestration. Add no compatibility alias, wrapper, callback,
+fallback, trace field, or exception handling.
+
+Source/tests/whole project are projected at `+3/-3`, `+42/-42`, and
+`+45/-45` across two source and two test files; exact temporary diff SHA-256 is
+`91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
 The temporary projection passed public identity/absence plus direct behavior
-10/10, focused 343/343 in 182.671 seconds, audit 217, pycompile 4/4, retired
+10/10, focused 665/665 in 194.689 seconds, audit 217, pycompile 4/4, retired
 selected refs zero, diff check, and unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; exact scope is governed by

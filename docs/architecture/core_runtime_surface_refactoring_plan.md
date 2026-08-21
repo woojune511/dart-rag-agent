@@ -2180,51 +2180,63 @@ selected refs zero, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
 `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility seam renames only the exact nine-line
-`financial_retrieval_hints._retrieval_hint_from_topic(query: str, topic: str,
-intent: str) -> str` definition in place to public
-`retrieval_hint_from_topic(...)`, then updates its one import and one direct
-call in `financial_retrieval_pipeline.py`. Preserve the fresh hints list;
-ordered raw-truth `query`/`topic` filtering and single-space join; unconditional
-active narrative-policy lookup; raw-truth policy gate; suffix-before-focus
-extension order; comparison/trend-only lazy ontology access; exact
-`query`/`topic`/`intent` delegation; ordered dedupe; final single-space join;
-input immutability; and uncaught exception behavior.
+The retrieval topic-hint visibility seam completed in `31e4c26`. Only the
+exact nine-line helper was renamed in place to public
+`retrieval_hint_from_topic(...)`; one retrieval-pipeline import, one direct
+call, and nine exact test expectations changed names or fingerprints. The
+signature, body, call placement, owner/caller line counts, policy/ontology
+behavior, and retrieval orchestration remain unchanged. Source/tests/whole
+were `+3/-3`, `+9/-9`, and `+12/-12`; focused 343/343 in 180.597 seconds,
+audit 217, pycompile 4/4, identity/behavior 10/10, retired selected refs zero,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 235.375 seconds passed.
+The committed diff SHA-256 is
+`e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+Benchmark refresh and remote CI were **NOT RUN**.
+
+The next bounded visibility seam renames only the exact 17-line
+`financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
+row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
+`canonicalize_structured_operand_reconciliation_refs(...)`, then updates its
+one import and one list-comprehension call in
+`financial_graph_calculation.py`. Preserve the shallow row copy; exact direct
+ID field order and truth gates; source-ID cleaning after `or []`; sibling
+canonicalizer order; falsey filtering; non-empty-only replacement; ordered
+dedupe into a fresh list; nested identity; input immutability; and uncaught
+exception behavior.
 
 The name-normalized body and sole production-call record hashes are
-`f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16` /
-`34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
-The call remains in `_retrieve` with exact positional `query`,
-`state.get("topic") or query`, and `retrieval_intent`, no keywords, and `try`
-depth zero. Owner/caller physical line counts remain 318/2,641. Current
-production counts are one definition, one external import, and one call; two
-direct test calls are the only other selected uses. The public name has no
-pre-existing source/test consumer or collision.
+`1d792b6cbe7b325d1daa0e24caee951b9c033934ed952587604fbd9a1fa5ec4d` /
+`996c6e2a9adc679334704d24f6cda235fff30ba16cc9beed0fa89fb20652ca95`.
+The call remains in `_extract_calculation_operands` at line 9390 with exact one
+positional `row`, no keywords, list-comprehension parent, and `try` depth zero.
+Owner/caller physical line counts remain 4,816/13,464. Current production
+counts are one definition, one external import, one call, and zero owner-local
+calls; two exact test-name references are the only other selected uses. The
+public name has no pre-existing exact source/test consumer or collision.
 
-Update exactly nine CURRENT-SOURCE expectations: one direct-test import, two
-direct-test calls, the graph-helper and retrieval-hints owner counts from 6/8
-to 7/7, both copies of the `_retrieve` caller-body hash from
-`fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf` to
-`3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
-the strict-company aggregate caller hash from
-`b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67` to
-`f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
-and the source-receipts aggregate caller hash from
-`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed` to
-`d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
-Add no test method and weaken no assertion.
+Update exactly 42 CURRENT-SOURCE expectations: two direct names; 27 current
+owner counts from 54/37 to 55/36; two derived counts from 53/37 to 54/36; one
+owner/class tuple from 54/37/19 to 55/36/19; four caller-body hashes from
+`8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac` to
+`4ed153c6ba332ae278786367a419359f74aed1d86197b93cd2bdc3bafa0a4c73`;
+two desired-consolidation aggregates from
+`98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592`
+to `b4109b5d882bd2932b32a3ca669d6cf317ae0227dc7906b731be356c068a7096`;
+and the four remaining aggregates listed in Project Status. Add no test method
+and weaken no assertion.
 
-Source/tests/whole project exactly project `+3/-3`, `+9/-9`, and `+12/-12`
+Source/tests/whole project exactly project `+3/-3`, `+42/-42`, and `+45/-45`
 across two source and two test files; exact temporary diff SHA-256 is
-`e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
-Keep adjacent retrieval helpers, policy/ontology data, operation-family intent
-coercion, preferred-section/query-bundle construction, evidence adoption,
-graph state, artifact/ledger mutation, and final sequencing outside this
-batch. Add no body move, alias, wrapper, fallback, callback, trace field, or
-new exception boundary. The temporary projection passed identity/behavior
-10/10, focused graph-helper/retrieval-hints/retrieval-scope/retrieval-pipeline/
-import-side-effects 343/343 in 182.671 seconds, audit 217, pycompile 4/4,
-retired selected refs zero, diff check, and the unchanged acyclic 48/203 DAG at
+`91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
+Keep both sibling helpers, other operand-resolution functions, direct-row
+discovery/coverage/adoption, evidence, graph state, trace/artifact mutation,
+and final sequencing outside this batch. Add no body move, alias, wrapper,
+fallback, callback, trace field, or new exception boundary. The temporary
+projection passed identity/behavior 10/10, focused graph-helper,
+operand-resolution, calculation-execution, operation-contract, and import-
+side-effects tests 665/665 in 194.689 seconds, audit 217, pycompile 4/4,
+retired selected refs
+zero, diff check, and the unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
 are authoritative only in
