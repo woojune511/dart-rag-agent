@@ -1427,17 +1427,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+28/-28`, `+61/-61`, `+89/-89`,
   direct behavior 1/1, public identity 3/3, focused 1,084/1,084, audit 217,
   pycompile 11/11, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 23-line
-  `_evidence_item_for_operand_row(...)`를 public
-  `evidence_item_for_operand_row(...)`로 rename하고 owner-local call 네
-  개, aggregate/graph/lookup-recovery import 세 개와 external call 22개,
-  direct-name·owner-count·fingerprint 기대 65개만 갱신한다. Ordered ID
-  cleanup, exact-before-recon-before-stripped fallback, truthy identity return,
-  falsey continuation과 caller adoption 순서를 유지한다. Exact temporary
-  projection은 source/tests/whole `+30/-30`, `+65/-65`, `+95/-95`,
-  focused 1,004/1,004, audit 217, pycompile 9/9, unchanged 48/203 DAG이며
-  전체 구현 gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `ecc074c` visibility batch는 같은 owner의 exact 23-line
+  evidence-row lookup을 public `evidence_item_for_operand_row(...)`로 이름
+  수렴시키고 owner-local call 네 개, aggregate/graph/lookup-recovery import
+  세 개와 external call 22개, direct-name·owner-count·fingerprint 기대
+  65개만 갱신했다. Ordered ID cleanup, exact-before-recon-before-stripped
+  lookup, truthy exact-object return, falsey continuation과 caller sequencing은
+  유지됐다. Source/tests/whole `+30/-30`, `+65/-65`, `+95/-95`,
+  direct/structure 7/7, public identity 3/3, focused 1,004/1,004, audit 217,
+  pycompile 9/9, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 24-line
+  `_operand_row_matches_requirement(...)`를 public
+  `operand_row_matches_requirement(...)`로 rename하고 owner-local call
+  열한 개, calculation-execution/dependency-projection/graph-evidence/graph-
+  calculation import 네 개와 external call 열한 개, direct-name·owner-count·
+  fingerprint 기대 67개만 갱신한다. Conflict-first rejection, role/label/
+  concept precedence, eager row-surface collection, lazy truthy surface matching
+  과 20 caller의 guard/adoption 순서를 유지한다. Exact temporary projection은
+  source/tests/whole `+27/-27`, `+67/-67`, `+94/-94`, focused
+  1,004/1,004, audit 217, pycompile 9/9, unchanged 48/203 DAG이며 전체 구현
+  gate는 [Project Status의 Next Work](project_status.md#next-work)가 단일
+  기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

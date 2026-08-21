@@ -9979,3 +9979,75 @@ completion claim.
   orchestration, graph state, trace/artifact mutation, and final sequencing
   outside this batch. This checkpoint establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Evidence-item-for-operand-row public API milestone
+
+- Commit `ecc074c` renamed only the exact 23-line
+  `financial_operand_resolution._evidence_item_for_operand_row(...)` definition
+  in place to public `evidence_item_for_operand_row(...)`. It updated four
+  owner-local calls, three imports, 22 external calls, and 65 exact test
+  expectations; it added no wrapper/alias and moved no body or adjacent helper.
+- Ordered evidence-ID gets and cleanup, eager truthy candidate construction,
+  exact-before-prefixed-before-stripped lookup, truthy exact-object return,
+  falsey continuation, prefix/removal order, final `None`, immutability,
+  evaluation order, and uncaught errors remain exact. The definition AST/body
+  hashes remain
+  `3e59995a2f598d36b2a3ebb442e70d8be99b19c24b8e06625e5b3832ff61d8bb` /
+  `3fd322a74ee131fa9a72495d04537217eebe0d0fa3431ebf600a552de4aecf8b`;
+  all 26 calls retain the normalized record hash
+  `7f4b42c9703318e7b89a176f9c0e5f6a37cb4ce144930cecc8c6f752efb7dfcd`.
+- Source/tests/whole transforms were `+30/-30`, `+65/-65`, and
+  `+95/-95`; the committed diff SHA-256 is
+  `984d4e75eda70c16ba56ae9eec3f8a78689a48062b30fc736ff8808bcaf3fc94`.
+  Direct behavior plus structure 7/7 passed in 33.045 seconds, three public-
+  owner identities held, focused 1,004/1,004 passed in 207.349 seconds, audit
+  217, pycompile 9/9, retired refs zero, selected public records 54, owner
+  public/private 67/24, unchanged acyclic 48/203 DAG, and full 2,143/2,143
+  passed in 217.647 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Operand-row requirement-match public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 24-line
+  `financial_operand_resolution._operand_row_matches_requirement(
+  row: Dict[str, Any], operand: Dict[str, Any]) -> bool` definition in place to
+  public `operand_row_matches_requirement(...)`. Update eleven owner-local
+  calls, four imports and eleven external calls, plus 27 selected exact test
+  refs across four files. Add no wrapper/alias and do not rename the conflict,
+  normalization, or operand-text-match helpers.
+- Preserve conflict-first rejection, role/label/concept read and normalization
+  order, role mismatch before label then concept acceptance, eager label/
+  source-anchor surface construction, lazy truthy surface matching, `any`
+  short circuit, immutability, evaluation order, and uncaught errors. The
+  name-normalized definition AST/body hashes are
+  `fa259318490bad18192e597defc31efa5088e8165c92340c6162c8822740a31c` /
+  `17876ccade2e60edcbfede49b44a01f3d07f7db28a36566cca63ff0920e48872`.
+- All 22 two-positional/no-keyword/try-depth-zero calls across 20 callers retain
+  a target-normalized combined call-record hash of
+  `7df6fa527d330c7c81d6385b6c85a98e77cebf1aef65001aa7dd8791437c20c6`.
+  Production scope is one definition, eleven owner-local calls, four imports,
+  and eleven external calls. Tests contain 27 selected refs; no public-name
+  collision exists.
+- Projected selected private/public records are 0/54, owner counts move 67/24
+  to 68/23, and owner/calculation-execution/dependency-projection/graph-
+  evidence/graph-calculation physical lines remain
+  4,816/1,074/3,419/4,220/13,464. Exactly 67 existing expectations change:
+  27 names, 30 count/tuple expectations, four repeated caller hashes, and six
+  aggregate fingerprints. No method or assertion is added, removed, or
+  weakened.
+- Projected source/tests/whole transforms are `+27/-27`, `+67/-67`, and
+  `+94/-94`; exact temporary diff SHA-256 is
+  `cd5d6a8dc83bac508c76f34185c2cbd99e52eb73d6d8dd580024a4c37b8a070e`.
+  The temporary projection passed direct behavior 2/2, four public-owner
+  identities, graph-helper 290/290 in 164.781 seconds, focused 1,004/1,004 in
+  212.209 seconds, audit 217, pycompile 9/9, retired refs zero, diff check, and
+  unchanged acyclic 48/203 DAG, then was restored cleanly. Full 2,143/2,143
+  remains the implementation gate. Benchmark refresh and remote CI were
+  **NOT RUN**.
+- Keep conflict/text-match helpers, all caller bodies, evidence/operand/
+  dependency/calculation orchestration, graph state, trace/artifact mutation,
+  and final sequencing outside this batch. Exact calls and fingerprint deltas
+  are authoritative in
+  [Project Status Next Work](../overview/project_status.md#next-work).
