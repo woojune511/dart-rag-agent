@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `c9a315f` renamed only `financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(...)` in place to public `canonicalize_structured_operand_reconciliation_refs(...)` and updated its one graph-calculation import/call plus 42 exact test expectations |
-| What passed? | Public identity/behavior 10/10, focused tests 665/665, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `dce0d63` renamed only `financial_operand_resolution._operand_rows_conflict_by_required_role(...)` in place to public `operand_rows_conflict_by_required_role(...)` and updated its one dependency-projection import/call plus 33 exact test expectations |
+| What passed? | Public identity/behavior 10/10, focused tests 695/695, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_operand_resolution._operand_rows_conflict_by_required_role(...)` in place to public `operand_rows_conflict_by_required_role(...)`; update its one dependency-projection import/call and 33 exact direct-name/count expectations |
+| What is next? | Rename only `financial_operand_resolution._operand_row_display_unit_set(...)` in place to public `operand_row_display_unit_set(...)`; update its one dependency-projection import, two calls, and 32 exact direct-name/count expectations |
 
 ## Product Boundary
 
@@ -799,64 +799,67 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 19-line
-`src.agent.financial_operand_resolution._operand_rows_conflict_by_required_role(
-left_rows: List[Dict[str, Any]], right_rows: List[Dict[str, Any]], *,
-operand_row_value_differs: Callable[[Dict[str, Any], Dict[str, Any]], bool]) ->
-bool` definition in place to public
-`operand_rows_conflict_by_required_role(...)`. Update its one import and one
-direct call in `financial_dependency_projection.py`, plus the existing direct
-test import and two test calls. Do not move the body, add an alias or wrapper,
-rename adjacent helpers, or alter dependency-precedence orchestration.
+Rename only the exact six-line
+`src.agent.financial_operand_resolution._operand_row_display_unit_set(
+rows: List[Dict[str, Any]]) -> set[str]` definition in place to public
+`operand_row_display_unit_set(...)`. Update its one import and exact two direct
+calls in `financial_dependency_projection.py`, plus the existing direct test
+import and one call. Do not move the body, add an alias or wrapper, rename an
+adjacent helper, or alter dependency-precedence orchestration.
 
-The definition remains at lines 1964-1982 with exactly two positional list
-arguments, one required keyword-only callback, no defaults, and a `bool`
-return. Preserve the fresh `right_by_role` mapping; right-row source order;
-`matched_operand_role` before `role`; exact `_normalise_spaces` cleanup of
-`str(value or "")` then lowercase normalization; falsey-role filtering; ordered
-`setdefault(...).append(...)` grouping; left-row source order and identical role
-normalization; callback invocation only for matching roles with original row
-identities; first-truthy early return; final false return; input immutability;
-and every uncaught error. Its name-excluded AST-record SHA-256 is
-`9bd624dbb16e10de8b01eb121211f56cba1690a5c2577541646309ad87a1dd03`.
+The definition remains at lines 1956-1961 with exactly one positional list
+argument, no defaults, and a `set[str]` return. Preserve the fresh set; source-
+row evaluation order despite unordered set output; exclusive `raw_unit` read;
+exact `str(row.get("raw_unit") or "")` conversion; `_normalise_spaces` filtering;
+the second identical conversion/normalization for retained rows; empty-value
+filtering; case preservation; exact-string dedupe; input and nested-row
+immutability; and every uncaught error. Its name-excluded signature/body record
+SHA-256 is
+`ec7b1497b8250f7b30f643903b0c8eb8762b15ed281fd020dbe554343aaa4751`;
+the exact body-source SHA-256 is
+`596f5a9e1c1e3e1b902326990438df6ca4f51119d386be70d9ab1d8c0e6cb018`.
 
-The sole production call remains in `resolve_main_operand_precedence` at line
-1694 of `financial_dependency_projection.py`, inside the existing ratio and
-recovered-context gate. It passes exact positional `dependency_rows` then
-`direct_rows`, plus required keyword
-`operand_row_value_differs=operand_row_values_differ`, with assignment parent
-and `try` depth zero. Its callee-normalized call-record SHA-256 is
-`87f4b09497b4ca5c597bdaabb26eaccfc5b7ac9e7dadc46b1c3b1848d7b5bea4`.
-The caller-body source hash changes only for the callee spelling from
-`ecd7e3d49c1f064700a49b8f87ce075f8de5a8bdc2ea574ba73ffdc90604c197`
-to `39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`.
-Preserve the preceding coverage/coherence gates and the following display-unit,
+The two production calls remain in `resolve_main_operand_precedence` at lines
+1699 and 1700 of `financial_dependency_projection.py`, inside the existing
+ratio and recovered-context gate and immediately after required-role conflict
+projection. They pass exact positional `dependency_rows` then `direct_rows`,
+with no keywords, assignment parents, and `try` depth zero. Their combined
+callee-normalized call-record SHA-256 is
+`c0c3845cc0fee932824c4dfea1a3f795ee329bb572a5459c452a337ab9db56d9`.
+The caller-body source hash changes only for the two call-site callee spellings
+from
+`39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`
+to `27bde775c46b25711f2a63f6ec1645232b5c7d3092cab325b0902464d2b40926`.
+Preserve dependency-unit evaluation before direct-unit evaluation, the exact
+`len(dependency_display_units) > 1` / `len(direct_display_units) <= 1` adoption
+test, all preceding coverage/coherence/conflict work, and all following
 override, source-selection, scope-filter, and result projection work. Owner and
 caller retain 4,816 and 3,419 physical lines.
 
-Current production scope is one definition, one external import, one direct
-call, and zero owner-local calls. Tests contain one direct import and two direct
-calls. The future public name has no pre-existing exact source/test definition,
-import, call, patch, attribute, dynamic, wildcard/`__all__`, reviewed
-introspection consumer, or collision. After the rename selected private refs
-must finish zero, dependency-projection binding must be identical to the public
-owner, exact public records must total six, and owner public/private counts must
-move exactly 55/36 to 56/35.
+Current production scope is one definition, one external import, two direct
+calls, and zero owner-local calls. Tests contain one direct import and one
+direct call. The future public name has no pre-existing exact source/test
+definition, import, call, patch, attribute, string-dynamic, wildcard/`__all__`,
+reviewed introspection consumer, or collision. After the rename selected
+private refs must finish zero, dependency-projection binding must be identical
+to the public owner, exact public records must total six, and owner public/
+private counts must move exactly 56/35 to 57/34.
 
-Update exactly 33 existing test expectations: the direct test import and two
-calls; 27 current owner counts from 55/36 to 56/35; two derived counts from
-54/36 to 55/35; and one owner/class tuple from 55/36/19 to 56/35/19.
-No existing caller or aggregate fingerprint expectations change. Add no test
-method and weaken no assertion.
+Update exactly 32 existing test expectations: the direct test import and call;
+27 current owner counts from 56/35 to 57/34; two derived counts from 55/35 to
+56/34; and one owner/class tuple from 56/35/19 to 57/34/19. No existing caller
+or aggregate fingerprint expectations change. Add no test method and weaken no
+assertion.
 
-Projected source/tests/whole transforms are `+3/-3`, `+33/-33`, and
+Projected source/tests/whole transforms are `+4/-4`, `+32/-32`, and
 `+36/-36` across exactly two source and two test files. The exact temporary
 diff SHA-256 is
-`49da7e5486a11db12a9561b9e5592bbfda82411ac96d2c9025f2a0679afdbb03`.
-The temporary projection passed public identity/behavior 10/10, focused
-graph-helper/operand-resolution/dependency-projection/operation-contract/import
-tests 695/695 in 256.012 seconds, audit 217, pycompile 4/4, retired selected
-refs zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity at
+`c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
+Current-private and projected-public identity/behavior probes each passed
+10/10. The temporary projection also passed focused graph-helper/operand-
+resolution/dependency-projection/operation-contract/import tests 695/695 in
+224.163 seconds, audit 217, pycompile 4/4, retired selected refs zero,
+`git diff --check`, and unchanged acyclic 48/203 DAG parity at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
 and remote CI remain **NOT RUN**. This name-only visibility change would prove
@@ -864,11 +867,33 @@ no behavior, answer-quality, ranking, performance, benchmark, schedule,
 ledger, or Phase 3 completion claim.
 
 Keep `_normalise_spaces`, `_operand_rows_have_single_table_context`,
-`_operand_row_display_unit_set`, the collapse helpers,
+`operand_rows_conflict_by_required_role`, the collapse helpers,
 `operand_row_values_differ`, all other operand-resolution helpers, dependency
-coverage/coherence, selection, scope filtering, trace/artifact mutation, and
-final sequencing outside this batch. Add no body move, alias, wrapper, callback
-adapter, fallback, trace field, or new exception boundary.
+coverage/coherence/conflict logic, override policy, selection, scope filtering,
+trace/artifact mutation, and final sequencing outside this batch. Add no body
+move, alias, wrapper, fallback, trace field, or new exception boundary.
+
+## Completed Required-Role Operand-Conflict Public API
+
+Commit `dce0d63` renamed only the exact 19-line
+`financial_operand_resolution._operand_rows_conflict_by_required_role(...)`
+definition in place to public `operand_rows_conflict_by_required_role(...)` and
+updated its one dependency-projection import/call plus 33 exact test
+expectations. The signature, body, role precedence/normalization, callback
+identity/order, early return, caller placement, physical line counts, and
+dependency-precedence orchestration remain unchanged. Selected private refs
+finish zero and owner public/private counts are 56/35.
+
+Production source, tests, and the whole commit are `+3/-3`, `+33/-33`, and
+`+36/-36` across two source and two test files. The committed diff SHA-256 is
+`49da7e5486a11db12a9561b9e5592bbfda82411ac96d2c9025f2a0679afdbb03`.
+Public identity/behavior 10/10, focused graph-helper/operand-resolution/
+dependency-projection/operation-contract/import tests 695/695 in 254.222
+seconds, audit 217, pycompile 4/4, unchanged acyclic 48/203 DAG, full discovery
+2,143/2,143 in 316.854 seconds, artifact hygiene, and diff checks passed.
+Benchmark refresh and remote CI were **NOT RUN**. This name-only visibility
+milestone establishes no behavior, quality, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Structured Reconciliation-Reference Public API
 

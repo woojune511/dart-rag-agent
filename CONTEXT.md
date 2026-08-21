@@ -492,14 +492,20 @@ graph-calculation import/call 각 한 개와 기존 test 기대 42개만 갱신�
 Sibling canonicalizer/normalizer와 calculation orchestration은 유지됐고
 source/tests/whole `+3/-3`, `+42/-42`, `+45/-45`, identity/behavior 10/10,
 focused 665/665, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
-2,143/2,143가 통과했다. 다음 batch는 같은 owner의 exact 19-line
-`_operand_rows_conflict_by_required_role(...)`를 public
-`operand_rows_conflict_by_required_role(...)`로 rename하고
-`financial_dependency_projection.py` import/call 각 한 개와 기존
-CURRENT-SOURCE 기대 33개만 갱신한다.
-Role normalization/callback order와 precedence orchestration은 유지하고
-adjacent operand helpers는 제외한다. Exact projection source/tests/whole
-`+3/-3`, `+33/-33`, `+36/-36`와 focused 695/695 경계는
+2,143/2,143가 통과했다. 이어 `dce0d63`이 같은 owner의 exact 19-line
+required-role conflict helper를 같은 위치와 본문으로 public
+`operand_rows_conflict_by_required_role(...)`로 이름 수렴시키고 dependency-
+projection import/call 각 한 개와 기존 test 기대 33개만 갱신했다. Role
+normalization/callback order와 precedence orchestration은 유지됐고 source/
+tests/whole `+3/-3`, `+33/-33`, `+36/-36`, identity/behavior 10/10, focused
+695/695, audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가
+통과했다. 다음 batch는 같은 owner의 exact six-line
+`_operand_row_display_unit_set(...)`를 public
+`operand_row_display_unit_set(...)`로 rename하고 dependency-projection import
+한 개와 연속된 두 call, 기존 test 기대 32개만 갱신한다. Raw-unit-only
+cleanup/dedupe와 caller precedence sequencing은 유지하고 adjacent helpers는
+제외한다. Exact projection source/tests/whole `+4/-4`, `+32/-32`, `+36/-36`와
+focused 695/695 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
