@@ -9838,51 +9838,94 @@ completion claim.
   quality, performance, benchmark, schedule, ledger, or Phase 3 completion
   claim.
 
-### Ratio operand same-slot predicate public API characterization checkpoint
+### Ratio operand same-slot predicate public API milestone
 
-- The next bounded visibility batch renames only the exact 13-line
+- Commit `b5ec9ae` renamed only the exact 13-line
   `financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(
   rows: List[Dict[str, Any]]) -> bool` definition in place to public
-  `ratio_operand_rows_collapse_to_same_slot(...)`. Update three imports and ten
-  calls across calculation execution, dependency projection, and graph
-  calculation, plus twelve selected exact test refs across five files. Add no
-  wrapper/alias and do not rename the private group predicate.
-- Preserve the single group-predicate delegation and raw result; eager
-  numerator-before-denominator group construction; independent `rows or []`
-  evaluation twice; ordered row iteration; falsey-row fallback; exact role
-  normalization and case-sensitive prefix checks; condition-before-copy order;
-  shallow `dict(row)` copies only for matches; immutability, evaluation order,
-  and uncaught errors. The definition AST/body hashes are
+  `ratio_operand_rows_collapse_to_same_slot(...)`. It updated three imports,
+  ten calls across calculation execution, dependency projection, and graph
+  calculation, plus 53 exact test expectations; it added no wrapper/alias and
+  moved no body or adjacent helper.
+- The single group-predicate delegation and raw result; eager numerator-before-
+  denominator group construction; independent `rows or []` evaluation twice;
+  ordered row iteration; falsey-row fallback; role normalization and case-
+  sensitive prefix checks; condition-before-copy order; shallow matching-row
+  copies; immutability, evaluation order, and uncaught errors remain exact. The
+  definition AST/body hashes are
   `26515f7c58597706fe203eea6e6bb3ea2b11ab74f46780fc01edafc716c1f0e6` /
   `846665a02fde05cd9ab8372cef04836bf8283e91b7d1ec17c958daa9f7bacc31`.
 - All ten one-positional/no-keyword/try-depth-zero calls remain in the operation
   guard, dependency guards, graph recalculation, ratio-answer, period-table,
   coherent-context, extraction, and task-output/retrieved-context append
-  callers. Their normalized combined call-record hash is
+  callers. Their normalized combined call-record hash remains
   `1de7c69edeb5f073f10d6f255252dfa9abf250ce7de6f3733f2f31aad6abba34`;
+  exact caller hashes are preserved in
+  [Project Status Completed Ratio Slot](../overview/project_status.md#completed-ratio-operand-same-slot-predicate-public-api).
+- Final private/public records are 0/26, owner counts moved 63/28 to 64/27,
+  and owner/dependency/graph physical lines remain 4,816/3,419/13,464.
+  Source/tests/whole transforms were `+14/-14`, `+53/-53`, and `+67/-67`;
+  the committed diff SHA-256 is
+  `377f47657a869cc9933945009f56ef4e78ee98fbdd1cf6dcaaf81a6e43c3a495`.
+- Direct behavior plus six structure tests passed 7/7 in 38.752 seconds, three
+  public-owner identities held, focused 1,004/1,004 passed in 255.994 seconds,
+  audit 217, pycompile 9/9, retired refs zero, diff check, unchanged acyclic
+  48/203 DAG, and full 2,143/2,143 passed in 259.261 seconds. An earlier
+  focused command's two loader errors came from two nonexistent module names
+  and are excluded as command-selection failures. Benchmark refresh and remote
+  CI were **NOT RUN**.
+- Keep the private group predicate, role normalization/copy behavior, all ten
+  caller bodies, evidence orchestration, graph state, trace/artifact mutation,
+  and final sequencing outside this batch. This milestone establishes no
+  behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Evidence-item index public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 8-line
+  `financial_operand_resolution._evidence_items_by_id(
+  evidence_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]`
+  definition in place to public `evidence_items_by_id(...)`. Update four owner-
+  local calls, two imports and eleven external calls across aggregate projection
+  and graph calculation, plus sixteen selected exact test refs across three
+  files. Add no wrapper/alias and do not rename
+  `_evidence_item_for_operand_row`.
+- Preserve direct ordered input iteration; filter-before-key/value evaluation;
+  exact evidence-ID get/or/string/strip order; one normalization for rejected
+  items and two for retained items; blank omission; key-before-shallow-copy
+  order; duplicate normalized-key last-value replacement with normal dict
+  ordering; fresh-result/input immutability; evaluation order; and uncaught
+  errors. The definition AST/body hashes are
+  `cf1070ae2003b97c8736f30794ebbb4c59894299735e85ac98579102565424b4` /
+  `cda0b25d737a22348b6a0f8f3c3e7085a1ba5c86f4c31bdda95297fd1f1fa511`.
+- All fifteen one-positional/no-keyword calls remain in four owner-local callers,
+  aggregate own-evidence unit alignment, and seven graph caller bodies. Only
+  graph extraction line 9580 remains at caller `try` depth one; the other
+  fourteen remain at zero. Their normalized combined call-record hash is
+  `ec5c3f809b5428c017c595e7d0157ccb7c39b181ed49c6fc1ae0de4321f2091e`;
   exact caller old/new hashes are recorded in
   [Project Status Next Work](../overview/project_status.md#next-work).
-- Production scope is one definition, three imports, ten external calls, and
-  no owner-local call. Tests contain twelve selected refs; the public name has
-  no collision. Projected private/public records are 0/26, owner counts move
-  63/28 to 64/27, and owner/dependency/graph physical lines remain
-  4,816/3,419/13,464.
-- Exactly 53 existing expectations change: twelve selected names, 30 owner
+- Production scope is one definition, four owner-local calls, two imports, and
+  eleven external calls. Tests contain sixteen selected refs; the public name
+  has no collision. Projected private/public records are 0/34, owner counts
+  move 64/27 to 65/26, and owner/aggregate/graph physical lines remain
+  4,816/3,946/13,464.
+- Exactly 57 existing expectations change: sixteen selected names, 30 owner
   count/tuple expectations, four extraction-caller hashes, and seven aggregate
   fingerprints. No method or assertion is added, removed, or weakened.
-  Projected source/tests/whole transforms are `+14/-14`, `+53/-53`, and
-  `+67/-67`; exact temporary diff SHA-256 is
-  `377f47657a869cc9933945009f56ef4e78ee98fbdd1cf6dcaaf81a6e43c3a495`.
-- The temporary projection passed direct behavior 1/1, three public-owner
+  Projected source/tests/whole transforms are `+18/-18`, `+56/-56`, and
+  `+74/-74`; exact temporary diff SHA-256 is
+  `8c85749a8ef2e97e7c043211f3d0ff11d8907bc6f66323d487da33638541162f`.
+- The temporary projection passed direct behavior 1/1, two public-owner
   identities, six fingerprint-specific structure tests, affected focused
   graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
   projection/calculation-execution/task-artifact/operation-contract/import-
-  side-effects/lookup-recovery/aggregate-rank 1,004/1,004 in 232.511 seconds,
-  audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged acyclic
+  side-effects/lookup-recovery/aggregate-rank 1,004/1,004 in 261.344 seconds,
+  audit 217, pycompile 7/7, retired refs zero, diff check, and unchanged acyclic
   48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
   implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
-- Keep the private group predicate, role normalization/copy behavior, all ten
-  caller bodies, evidence orchestration, graph state, trace/artifact mutation,
+- Keep the row-lookup helper, all evidence-ID consumers and caller bodies,
+  evidence/unit/operand orchestration, graph state, trace/artifact mutation,
   and final sequencing outside this batch. This checkpoint establishes no
   behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.

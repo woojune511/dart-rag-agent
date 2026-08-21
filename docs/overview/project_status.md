@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `3198927` renamed only `financial_operand_resolution._operand_slot_has_evidence_surface_match(...)` in place to public `operand_slot_has_evidence_surface_match(...)` and updated its graph import/six calls and 39 exact test expectations |
-| What passed? | Direct behavior 1/1, graph/public-owner identity, focused tests 911/911, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `3198927` |
+| What just changed? | `b5ec9ae` renamed only `financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(...)` in place to public `ratio_operand_rows_collapse_to_same_slot(...)` and updated its three imports/ten calls and 53 exact test expectations |
+| What passed? | Direct behavior 1/1, three public-owner identities, six structure fingerprints, focused tests 1,004/1,004, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `b5ec9ae` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(...)` in place to public `ratio_operand_rows_collapse_to_same_slot(...)`; update its three imports/ten calls and 53 exact direct-name/count/fingerprint expectations |
+| What is next? | Rename only `financial_operand_resolution._evidence_items_by_id(...)` in place to public `evidence_items_by_id(...)`; update its four owner-local calls, two imports/eleven external calls, and 57 exact direct-name/count/fingerprint expectations |
 
 ## Product Boundary
 
@@ -799,121 +799,148 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 13-line
-`src.agent.financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(
-rows: List[Dict[str, Any]]) -> bool` definition in place to public
-`ratio_operand_rows_collapse_to_same_slot(...)`. Update its imports and ten
-direct calls across `financial_calculation_execution.py`,
-`financial_dependency_projection.py`, and `financial_graph_calculation.py`,
-plus twelve existing exact test import/call/patch-name references across five
-test files. Do not move the body, add an alias or wrapper, rename its private
-group predicate, or broaden calculation-plan guards, dependency precedence,
-ratio answer construction, operand extraction, or result orchestration.
+Rename only the exact 8-line
+`src.agent.financial_operand_resolution._evidence_items_by_id(
+evidence_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]` definition
+in place to public `evidence_items_by_id(...)`. Update its four owner-local
+calls, its imports and eleven external calls in
+`financial_aggregate_projection.py` and `financial_graph_calculation.py`, plus
+sixteen existing exact test import/call/patch-name/attribute references across
+three test files. Do not move the body, add an alias or wrapper, rename
+`_evidence_item_for_operand_row`, or broaden evidence lookup, unit repair,
+required-surface filtering, direct acceptance, dependency construction,
+operand extraction, or result orchestration.
 
-The definition remains at lines 2029-2041 with one positional argument, no
-default or keyword-only arguments, and a `bool` return. Preserve the single
-`_operand_row_groups_collapse_to_same_slot(...)` delegation and its exact
-returned object; eager outer-list construction; complete numerator-group
-construction before denominator-group construction; two independent
-evaluations of `rows or []`; direct ordered row iteration; exact falsey-row
-fallback; normalized `matched_operand_role`; case-sensitive `startswith`
-checks for `numerator` and `denominator`; condition-before-copy order; shallow
-`dict(row)` copies only for matching rows; input immutability; evaluation
-order; and every uncaught error. The name-normalized definition AST SHA-256 is
-`26515f7c58597706fe203eea6e6bb3ea2b11ab74f46780fc01edafc716c1f0e6`;
+The definition remains at lines 1395-1402 with one positional list argument,
+no default or keyword-only arguments, and a
+`Dict[str, Dict[str, Any]]` return. Preserve direct ordered iteration over
+`evidence_items` with no falsey fallback; filter evaluation before key/value;
+exact `item.get("evidence_id")`, raw `or ""`, `str(...)`, and `.strip()` order;
+one normalization for rejected items and a second identical normalization for
+retained keys; blank-ID omission; key construction before `dict(item)`;
+shallow copies only for retained items; normalized duplicate-key last-value
+replacement while retaining normal dict insertion order; a fresh result dict;
+input/nested-object immutability; evaluation order; and every uncaught error.
+The name-normalized definition AST SHA-256 is
+`cf1070ae2003b97c8736f30794ebbb4c59894299735e85ac98579102565424b4`;
 the exact body-source SHA-256 is
-`846665a02fde05cd9ab8372cef04836bf8283e91b7d1ec17c958daa9f7bacc31`.
+`cda0b25d737a22348b6a0f8f3c3e7085a1ba5c86f4c31bdda95297fd1f1fa511`.
 
-The ten calls remain at calculation-execution line 201, dependency-projection
-lines 1688 and 1889, and graph-calculation lines 2223, 5870, 7677, 7707,
-9236, 11800, and 11992. Every call retains one positional argument, no
-keywords, and caller `try` depth zero. Preserve the operation-plan guard; two
-dependency negated guards; recalculation operation-family guard; ratio-answer,
-period-table, coherent-context, task-output, and retrieved-context early
-guards; and operand-extraction negated guard. Their callee-normalized combined
-call-record SHA-256 is
-`1de7c69edeb5f073f10d6f255252dfa9abf250ce7de6f3733f2f31aad6abba34`.
-The ten nearest-caller body hashes change only for callee spelling:
+The fifteen calls remain at aggregate-projection line 1559; graph-calculation
+lines 1755, 1880, 5060, 5077, 7430, 9098, 9138, 9580, 10345, and 11486; and
+owner lines 825, 1724, 2754, and 2778. Every call retains one positional
+argument and no keywords. The graph extraction call at line 9580 remains at
+caller `try` depth one; all other calls remain at depth zero. Preserve all
+assignments, the two eager filtered-list arguments, four owner-local index
+uses, repeated-caller placement, and every caller-owned guard/adoption stop.
+Their callee-normalized combined call-record SHA-256 is
+`ec5c3f809b5428c017c595e7d0157ccb7c39b181ed49c6fc1ae0de4321f2091e`.
+The eleven unique nearest-caller body hashes change only for callee spelling:
 
-- calculation guard: `73bd8cb00bccf91951cd62c93cb8505791d5c216931b2e3535acafba602ac745`
-  to `394692d2d7bb94d4b340c13c38d63a96b209527d81fc9c27071b078fbc643670`;
-- dependency main/late: `144d5ea5ded6bc29ea34df4aff50fbba4b39b33ee0f91553c248239a08089131` /
-  `f6262783f4ec98767a281769959c36de07ebcaf45a333fc28887235c3d29e9d2`
-  to `bf9c69f34244acb92efe3e3a1387d6b4deb2600cd8a3e5e56f76594a14f82326` /
-  `63c9614d02c5b3eabe55de6a4c4412239c96f22cdaf3976d91464fb377a73eb9`;
-- graph recalculation/ratio-answer/period-table:
-  `2491cbc59f1802c011e2f6c0fb83c11595f10205adfaa56bc0accdad79d145c6` /
-  `b39b0a41bc9cf6d36cd066ac8c404cf7582d172ba3895febefab28bf478570d6` /
-  `fe713e7cfc049522d0380057fd84badafc617bf34d9553a9df965814751ec4c2`
-  to `4eec473764ef86c95b9cf1448e9317b53771ebb4ac07acdc044350b709b508aa` /
-  `8c020c55eed508ab38df485bfca79f90948c2179e2a4bb93f3874cc5206cb377` /
-  `8bd4ae4856912a322ddcfa94c710bfa009fae8579d431a20d00078760d5cc8c6`;
-- graph coherent-context/extraction:
-  `ea99da2b39f0ef128be435638855b34acc85ea94b0936f33b6fd70bfd7f07125` /
-  `6d90e15c2d17991755550fac996e45d3fd08eff4f5f7ba817b9f503a4b6b9fc9`
-  to `2c78b55f68a6cc6ca220e2749482dcf8692477c3876434f1aff8907ed012ff2e` /
-  `a45041f7a1fbd6283fc1855045dcf33082f255ba4516e1254e025305058eef49`;
-- graph task-output/retrieved-context append:
-  `e0cc548acf5fa5bdd2eab5c91b238c8d748ba8903874964fefd5e70a913eac14` /
-  `7ea0b47f7969b894d06232b5ed554db0eeb4e7ea2d5201500c5301a2fb36452e`
-  to `3e8d786c63e1163e6ea376117ce62e6d51c8a31e6980e3b78778c9a9a1a37ac3` /
-  `ef83de29c2f8ad456579742ceb2df6389f3a18a755456de1c1cfe0cf2930a9c0`.
+- aggregate own-evidence unit alignment:
+  `46d87faab9fc3d8abce001a70f3a3b5d12d026324d8ebef1dbac971bce8d3deb`
+  to `7c662b565906d98d962862fc8fa7ff0b2c1d24e2dfbe61dfdd6c2a67783a527d`;
+- owner KRW repair / required-surface filter / direct acceptance:
+  `3082067ff911d9b79381524eb52f02becba0c6ea10c3f1ee0c6226e005dca6f4` /
+  `ae96bb3282fbaff2d8d1231a2e64acf811c1946e5d32266712f6d9a2213f6c58` /
+  `e2fd0f020b56e1fe59abb9f98733141da1803be6de726e2f2a3ad77a5aebf88e`
+  to `e45142ee898d991c326afef1183b3a3eb8da906c8516d1fde9d2245dc409e6ca` /
+  `722f241b29bda0cb9c1872471f19644aa6cc35580719d6e6341f166f25911bae` /
+  `4a1787b425f70874359946ad80dc20b84fe6c0d04610177fb4d99d66ed8849a3`;
+- graph direct-row preference / sibling lookup recovery / dependency rows:
+  `100f3b9978e80f130dc467781a7bb2a6da2c3ddbbd9579f2ea8badc80f9f7e41` /
+  `45f2dc9d60eb066ae38b00f03177f73d59f94233520d17bf70448acf391d5a35` /
+  `c01ab1a8a3231a1aca68c64c211f81a7a4c2a81a6121866d095ab5b2f68d824e`
+  to `6e2c5bc05363e3819deed26628c1aa6553a109edf0d3bf0d059e5e478837c405` /
+  `29d517d683f177a76435716e28fba9e5791bcd79a5a02d4e306370527d9aa1cb` /
+  `b9d5756138cf28bc890224b899531b4994e12643ccdf635decbc35de52993183`;
+- graph ratio alignment / operand extraction / candidate preparation /
+  task-output append:
+  `167aa22aca021aab8f42bdc57d6b574496c973e49fe56c74094184dc31b50d73` /
+  `a45041f7a1fbd6283fc1855045dcf33082f255ba4516e1254e025305058eef49` /
+  `7b8d3ba774a84689d9906dcc670c67b760fed4ddef69fb8e512f36404faa6a4f` /
+  `3e8d786c63e1163e6ea376117ce62e6d51c8a31e6980e3b78778c9a9a1a37ac3`
+  to `47705e59241a4814d4dd72b70b2026d47dc349d5b8a94d5559a663c809b2d19a` /
+  `01bad5d9ccc3f43d05df0a30396ee92344fc6f715cb2e212fe6227775fe16f46` /
+  `f90cba4c2425417db92beaffa7fcff948d2bbdecc57152c3f17c481ebb756498` /
+  `700741d045d756ae0d9acba6c536b574067b9e0d6b444eb7b0015dcf81ed401f`.
 
-Owner/dependency/graph physical line counts remain 4,816/3,419/13,464.
-Current production scope is one definition, three external imports, ten
-external calls, and zero owner-local calls. Tests contain twelve selected exact
-name references. The future public name has no pre-existing exact source/test
-definition, import, call, patch, attribute, string constant, wildcard/`__all__`,
-reviewed introspection consumer, or collision. After the rename selected
-private refs must finish zero, all three external bindings must be identical to
-the public owner, exact public records must total 26, and owner public/private
-counts must move exactly 63/28 to 64/27.
+Owner/aggregate/graph physical line counts remain 4,816/3,946/13,464.
+Current production scope is one definition, four owner-local calls, two
+external imports, and eleven external calls. Tests contain sixteen selected
+exact name references. The future public name has no pre-existing exact
+source/test definition, import, call, patch, attribute, string constant,
+wildcard/`__all__`, reviewed introspection consumer, or collision. After the
+rename selected private refs must finish zero, both external bindings must be
+identical to the public owner, exact public records must total 34, and owner
+public/private counts must move exactly 64/27 to 65/26.
 
-Update exactly 53 existing test expectations: twelve selected import/call/
-patch names; 27 current owner counts from 63/28 to 64/27; two derived counts
-from 62/28 to 63/27; one owner/class tuple from 63/28/19 to 64/27/19; four
-`_extract_calculation_operands` caller-body expectations from
-`6d90e15c2d17991755550fac996e45d3fd08eff4f5f7ba817b9f503a4b6b9fc9`
-to `a45041f7a1fbd6283fc1855045dcf33082f255ba4516e1254e025305058eef49`;
+Update exactly 57 existing test expectations: sixteen selected import/call/
+patch/attribute names; 27 current owner counts from 64/27 to 65/26; two derived
+counts from 63/27 to 64/26; one owner/class tuple from 64/27/19 to 65/26/19;
+four `_extract_calculation_operands` caller-body expectations from
+`a45041f7a1fbd6283fc1855045dcf33082f255ba4516e1254e025305058eef49`
+to `01bad5d9ccc3f43d05df0a30396ee92344fc6f715cb2e212fe6227775fe16f46`;
 and seven aggregate fingerprints. The latter are operand-text-match,
 ratio-percent, narrative-context, percent-point, and direct-grounding hashes
-`949fcf432f16c8b368a5083af21d398b919906b64061edfb196818174a542dee` /
-`1282a17328f8f2d0c8a69ab3718c3ad84f47d009a3ecad2b0ed2e2afb968ed17` /
-`3957109d9479409bb1ef5145e2170c129a7577f5b9935b7062c06c5828d27a9b` /
-`6a8f69674a105d30e6675d01745a106a3726d147a3d0f7e0fabec402d426978e` /
-`14c778675708be6e42981dd0451cb1a7e3bf9dab112d60a13218fb032083db58`
-to
 `2d2efbd84fef19d2f54141b4fdd37aa0e26ec299fe58d065c1bd241d68ceb13c` /
 `9c982485d6e857b7d5e3c9cc26102e3d45b036ae2c303a5c9acc871758ce1efb` /
 `9544de13800ecf8aaccc40adcf2229e7d9ff44896b0a4121010fb03f6e233623` /
 `d5a46deb4886a2974f22b1c0c4b3a60c678c26b79210b6c8108a41f1e4ed4114` /
-`ae656932c72857cb47c7c36a0b26decd49b83cf8b095471278c172da9cb37ab5`,
-plus the two desired-consolidation current/projected expectations from
-`316a81b26bac288689b0d04d4801e236305218d3c584a841b04b9928829a53b8`
-to `84361d956faa28817c3c618e8e9417ff75421fdfec38a1b030e50107efe81e32`.
+`ae656932c72857cb47c7c36a0b26decd49b83cf8b095471278c172da9cb37ab5`
+to
+`85dbeeae58a7b7325a7dce83d9f707167f23a9395692ebab4ebd0c0c3016e7b2` /
+`04f19fd033c6ffe036bbce3a99a88b7c8e162646c01471bd41f2cc40f7de6ae4` /
+`5e42f1a40f8ff9dced1b903510af8a10bf9327217d52b12ad78ce0ec808c0957` /
+`40be8d4fda403750cfc3b7e6545ae4f5e55a8e809e9c95cea17ac2d41f7e7b32` /
+`d64ad556454992c68bd9c9dbb4b30954603efbbe53b1f922d54254fd8237beac`,
+plus the two desired-consolidation expectations from
+`84361d956faa28817c3c618e8e9417ff75421fdfec38a1b030e50107efe81e32`
+to `2b95b243d13d54d57c5f493d0b59eb9aedcb9bc8621d16a5d3720ab0ef7cbb6b`.
 Add no test method and weaken no assertion.
 
-Projected source/tests/whole transforms are `+14/-14`, `+53/-53`, and
-`+67/-67` across exactly four source and five test files. The exact temporary
+Projected source/tests/whole transforms are `+18/-18`, `+56/-56`, and
+`+74/-74` across exactly three source and four test files. The exact temporary
 diff SHA-256 is
-`377f47657a869cc9933945009f56ef4e78ee98fbdd1cf6dcaaf81a6e43c3a495`.
-The projected direct behavior test passed 1/1, three external/public-owner
+`8c85749a8ef2e97e7c043211f3d0ff11d8907bc6f66323d487da33638541162f`.
+The projected direct behavior test passed 1/1, two external/public-owner
 identity checks and six fingerprint-specific structure tests passed, and the
 affected graph-helper/operand-resolution/dependency-projection/aggregate-
 subtask-projection/calculation-execution/task-artifact/operation-contract/
 import-side-effects/lookup-recovery/aggregate-rank set passed 1,004/1,004 in
-232.511 seconds. Audit 217, pycompile 9/9, retired selected refs zero,
+261.344 seconds. Audit 217, pycompile 7/7, retired selected refs zero,
 `git diff --check`, and unchanged acyclic 48/203 DAG also passed. The
 projection was restored cleanly. Full discovery 2,143/2,143 remains the
 implementation gate. Benchmark refresh and remote CI remain **NOT RUN**. This
 name-only visibility change would prove no behavior, answer-quality, ranking,
 performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-Keep `_operand_row_groups_collapse_to_same_slot`, role normalization and row-
-copy behavior, all ten caller bodies, calculation/dependency/evidence
-orchestration, graph state, trace/artifact mutation, and final sequencing
-outside this batch. Add no body move, alias, wrapper, fallback, vocabulary,
-trace field, or new exception boundary.
+Keep `_evidence_item_for_operand_row`, all evidence-ID consumers and caller
+bodies, evidence/unit/operand orchestration, graph state, trace/artifact
+mutation, and final sequencing outside this batch. Add no body move, alias,
+wrapper, fallback, vocabulary, trace field, or new exception boundary.
+
+## Completed Ratio Operand Same-Slot Predicate Public API
+
+Commit `b5ec9ae` renamed only the exact 13-line
+`financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(...)`
+definition in place to public `ratio_operand_rows_collapse_to_same_slot(...)`
+and updated its three imports/ten calls and 53 exact test expectations. The
+signature, body, group-construction/copy semantics, caller placement, physical
+line counts, and orchestration remain unchanged. Source/tests/whole commit
+transforms are `+14/-14`, `+53/-53`, and `+67/-67`; the committed diff SHA-256
+is `377f47657a869cc9933945009f56ef4e78ee98fbdd1cf6dcaaf81a6e43c3a495`.
+Direct behavior and six structure tests passed 7/7 in 38.752 seconds, three
+public-owner identities passed, and focused 1,004/1,004 in 255.994 seconds,
+audit 217, pycompile 9/9, retired selected refs zero, exact public records 26,
+owner public/private 64/27, unchanged acyclic 48/203 DAG, and full
+2,143/2,143 in 259.261 seconds passed under
+`uv run --with-requirements requirements.txt`. An earlier focused command used
+two nonexistent module names; its two loader errors are a command-selection
+failure, not a code failure, and are excluded from pass counts. Benchmark
+refresh and remote CI were **NOT RUN**. This name-only milestone establishes no
+behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Operand-Slot Evidence-Surface Predicate Public API
 

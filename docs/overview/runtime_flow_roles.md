@@ -1399,17 +1399,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Source/tests/whole `+8/-8`, `+39/-39`, `+47/-47`, direct behavior 1/1,
   graph identity, focused 911/911, audit 217, pycompile 4/4, unchanged 48/203
   DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 13-line
-  `_ratio_operand_rows_collapse_to_same_slot(...)`를 public
-  `ratio_operand_rows_collapse_to_same_slot(...)`로 rename하고 calculation-
-  execution/dependency-projection/graph import 세 개와 call 열 개, direct-
-  name·owner-count·fingerprint 기대 53개만 갱신한다. Numerator group을 먼저
-  만들고 denominator group을 만드는 순서, 독립적인 `rows or []` 평가,
-  prefix match, shallow row copy, shared collapse delegation과 열 caller의
-  guard/negation/adoption 순서를 유지한다. Exact temporary projection은
-  source/tests/whole `+14/-14`, `+53/-53`, `+67/-67`, focused
-  1,004/1,004, audit 217, pycompile 9/9, unchanged 48/203 DAG이며 전체 구현
-  gate는
+- 완료된 `b5ec9ae` visibility batch는 같은 owner의 exact 13-line ratio
+  same-slot predicate를 public `ratio_operand_rows_collapse_to_same_slot(...)`
+  로 이름 수렴시키고 calculation-execution/dependency-projection/graph
+  import 세 개와 call 열 개, direct-name·owner-count·fingerprint 기대
+  53개만 갱신했다. Numerator-before-denominator group 구성, 독립적인
+  `rows or []` 평가, prefix match, shallow row copy와 caller sequencing은
+  유지됐다. Source/tests/whole `+14/-14`, `+53/-53`, `+67/-67`, direct
+  behavior 1/1, public identity 3/3, focused 1,004/1,004, audit 217, pycompile
+  9/9, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 8-line
+  `_evidence_items_by_id(...)`를 public `evidence_items_by_id(...)`로
+  rename하고 owner-local call 네 개, aggregate/graph import 두 개와 external
+  call 열한 개, direct-name·owner-count·fingerprint 기대 57개만 갱신한다.
+  Ordered comprehension, blank-ID filter, retained ID의 반복 정규화, shallow
+  copy, duplicate last-value overwrite와 caller assignment 순서를 유지한다.
+  Exact temporary projection은 source/tests/whole `+18/-18`, `+56/-56`,
+  `+74/-74`, focused 1,004/1,004, audit 217, pycompile 7/7, unchanged 48/203
+  DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

@@ -553,12 +553,19 @@ path, evidence metadata/cell surface assembly와 여섯 caller의 guard/adoption
 순서는 유지됐고 source/tests/whole `+8/-8`, `+39/-39`, `+47/-47`, direct
 behavior 1/1, graph identity, focused 911/911 in 189.724 seconds, audit 217,
 pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143 in 241.129 seconds가
-통과했다. 다음 batch는 exact 13-line
-`_ratio_operand_rows_collapse_to_same_slot(...)`를 public
-`ratio_operand_rows_collapse_to_same_slot(...)`로 rename하고 source import 세
-개와 call 열 개, 기존 direct-name/count/fingerprint 기대 53개만 갱신한다.
-Exact temporary projection source/tests/whole `+14/-14`, `+53/-53`,
-`+67/-67`와 focused 1,004/1,004 경계는
+통과했다. 이어 `b5ec9ae`가 exact 13-line ratio same-slot predicate를 같은
+위치와 본문으로 public `ratio_operand_rows_collapse_to_same_slot(...)`로
+이름 수렴시키고 source import 세 개와 call 열 개, 기존 기대 53개만
+갱신했다. Numerator-before-denominator group 구성, 독립적인 `rows or []`
+평가, role prefix와 shallow row copy 순서는 유지됐고 source/tests/whole
+`+14/-14`, `+53/-53`, `+67/-67`, direct behavior 1/1, public identity 3/3,
+focused 1,004/1,004 in 255.994 seconds, audit 217, pycompile 9/9, unchanged
+48/203 DAG, full 2,143/2,143 in 259.261 seconds가 통과했다. 다음 batch는
+exact 8-line `_evidence_items_by_id(...)`를 public
+`evidence_items_by_id(...)`로 rename하고 owner-local call 네 개, external
+import 두 개/call 열한 개와 기존 direct-name/count/fingerprint 기대 57개만
+갱신한다. Exact temporary projection source/tests/whole `+18/-18`,
+`+56/-56`, `+74/-74`와 focused 1,004/1,004 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
