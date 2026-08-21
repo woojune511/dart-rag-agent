@@ -808,7 +808,7 @@ def _is_document_like(doc: Any) -> bool:
     return hasattr(doc, "page_content") and hasattr(doc, "metadata")
 
 
-def _make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
+def make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
     return document(page_content=page_content, metadata=metadata)
 
 

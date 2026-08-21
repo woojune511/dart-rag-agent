@@ -38,7 +38,7 @@ from src.agent.financial_langchain_loaders import (
 from src.agent.financial_retrieval_pipeline import (
     _COUNT_VALUE_UNIT_RE,
     _lookup_numeric_extraction_has_direct_support,
-    _make_document,
+    make_document,
     _numeric_extractor_query_for_state,
     _period_comparison_count_value_from_text,
     _period_scoped_count_value_from_text,
@@ -239,7 +239,7 @@ class FinancialAgentEvidenceMixin:
             seed_metadata = dict(metadata)
             if include_parent_context and parent_id:
                 seed_metadata["graph_seed_with_parent_context"] = True
-            add_doc(_make_document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
+            add_doc(make_document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
 
             if include_parent_context and parent_id:
                 parent_text = self.vsm.get_parent(parent_id)
@@ -252,7 +252,7 @@ class FinancialAgentEvidenceMixin:
                         "chunk_uid": f"{chunk_uid}::parent_context" if chunk_uid else f"{parent_id}::parent_context",
                     }
                     add_doc(
-                        _make_document(page_content=parent_text, metadata=parent_metadata),
+                        make_document(page_content=parent_text, metadata=parent_metadata),
                         float(score) - 0.005,
                         "parent_context",
                     )
@@ -302,7 +302,7 @@ class FinancialAgentEvidenceMixin:
                         "chunk_uid": f"{chunk_uid}::table_context" if chunk_uid else f"{parent_id}::table_context",
                     }
                     add_doc(
-                        _make_document(page_content=table_context, metadata=table_metadata),
+                        make_document(page_content=table_context, metadata=table_metadata),
                         float(score) - 0.007,
                         "table_context",
                     )
