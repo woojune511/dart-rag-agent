@@ -22,7 +22,7 @@ from src.agent.financial_operand_resolution import (
     _filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
     _missing_required_operands,
-    _operand_row_display_unit_set,
+    operand_row_display_unit_set,
     _operand_row_conflicts_with_requirement,
     _operand_row_groups_collapse_to_same_slot,
     _operand_row_has_direct_evidence_surface,
@@ -3732,7 +3732,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         ]
 
         self.assertTrue(_operand_rows_have_single_table_context(coherent_rows))
-        self.assertEqual(_operand_row_display_unit_set(coherent_rows), {"million"})
+        self.assertEqual(operand_row_display_unit_set(coherent_rows), {"million"})
         self.assertFalse(_operand_rows_have_single_table_context([]))
         self.assertFalse(_operand_rows_have_single_table_context([{}]))
         self.assertFalse(

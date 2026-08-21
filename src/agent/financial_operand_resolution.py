@@ -1953,7 +1953,7 @@ def _operand_rows_have_single_table_context(rows: List[Dict[str, Any]]) -> bool:
     return len(contexts) == 1
 
 
-def _operand_row_display_unit_set(rows: List[Dict[str, Any]]) -> set[str]:
+def operand_row_display_unit_set(rows: List[Dict[str, Any]]) -> set[str]:
     return {
         _normalise_spaces(str(row.get("raw_unit") or ""))
         for row in rows

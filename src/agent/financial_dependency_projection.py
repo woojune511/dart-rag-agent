@@ -14,7 +14,7 @@ from src.agent.financial_operand_resolution import (
     merge_operand_rows,
     _missing_required_operands,
     operand_row_conflicts_requested_scope,
-    _operand_row_display_unit_set,
+    operand_row_display_unit_set,
     _operand_row_matches_requirement,
     operand_rows_conflict_by_required_role,
     _operand_rows_have_single_table_context,
@@ -1696,8 +1696,8 @@ def resolve_main_operand_precedence(
             direct_rows,
             operand_row_value_differs=operand_row_values_differ,
         )
-        dependency_display_units = _operand_row_display_unit_set(dependency_rows)
-        direct_display_units = _operand_row_display_unit_set(direct_rows)
+        dependency_display_units = operand_row_display_unit_set(dependency_rows)
+        direct_display_units = operand_row_display_unit_set(direct_rows)
         ratio_direct_context_should_override_dependency = bool(
             direct_rows_have_coherent_context
             and (
