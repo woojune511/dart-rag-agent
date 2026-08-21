@@ -1623,7 +1623,7 @@ def _llm_lookup_operand_has_direct_support(
     return _operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
 
 
-def _evidence_surface_contains_segment_label(
+def evidence_surface_contains_segment_label(
     segment_label: str,
     surfaces: Sequence[Any],
 ) -> bool:
@@ -1696,7 +1696,7 @@ def _operand_row_satisfies_required_surface_contract(
             metadata.get("table_row_labels_text"),
             metadata.get("table_value_labels_text"),
         )
-        if not _evidence_surface_contains_segment_label(segment_label, segment_surfaces):
+        if not evidence_surface_contains_segment_label(segment_label, segment_surfaces):
             return False
     binding_policy = dict(matching_operand.get("binding_policy") or {})
     requires_surface_contract = bool(

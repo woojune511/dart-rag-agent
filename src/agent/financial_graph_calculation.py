@@ -195,7 +195,7 @@ from src.agent.financial_operand_resolution import (
     direct_lookup_row_is_ambiguous_context_table,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
-    _evidence_surface_contains_segment_label,
+    evidence_surface_contains_segment_label,
     evidence_item_conflicts_requested_scope,
     _filter_operand_rows_by_required_surface_contract,
     merge_operand_rows,
@@ -7555,7 +7555,7 @@ class FinancialAgentCalculationMixin:
                     candidate_metadata.get("table_row_labels_text"),
                     candidate_metadata.get("table_value_labels_text"),
                 )
-                if not _evidence_surface_contains_segment_label(segment_label, candidate_segment_surfaces):
+                if not evidence_surface_contains_segment_label(segment_label, candidate_segment_surfaces):
                     aligned.append(current_row)
                     continue
             if not _candidate_has_other_operand_context(candidate_slot, current_row):

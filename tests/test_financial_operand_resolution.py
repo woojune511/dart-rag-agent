@@ -18,7 +18,7 @@ from src.agent.financial_operand_resolution import (
     RequiredOperandCandidateMergeInput,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
-    _evidence_surface_contains_segment_label,
+    evidence_surface_contains_segment_label,
     _filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
     _missing_required_operands,
@@ -3708,7 +3708,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         for label, segment_label, surfaces, expected in cases:
             with self.subTest(label=label):
                 self.assertEqual(
-                    _evidence_surface_contains_segment_label(segment_label, surfaces),
+                    evidence_surface_contains_segment_label(segment_label, surfaces),
                     expected,
                 )
 
