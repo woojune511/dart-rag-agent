@@ -6160,7 +6160,8 @@ pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 231.057
 seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The active visibility contract renames only the exact 11-line
+The pre-implementation table-context contract completed by `c1d3b8c` renamed
+only the exact 11-line
 `financial_operand_resolution._operand_rows_have_single_table_context(
 rows: List[Dict[str, Any]]) -> bool` definition in place to public
 `operand_rows_have_single_table_context(...)`. Update exactly its two imports
@@ -6237,9 +6238,67 @@ Current-private and projected-public identity/behavior probes each passed
 audit 217, pycompile 5/5, retired selected refs zero, diff check, and unchanged
 acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Full 2,143/2,143 remains the implementation gate; exact scope is governed by
-[Project Status Next Work](../overview/project_status.md#next-work). Benchmark
-refresh and remote CI were **NOT RUN**.
+At characterization time full 2,143/2,143 remained the implementation gate.
+Commit `c1d3b8c` later satisfied it in 221.803 seconds. Its exact commit
+source/tests/whole transforms are `+7/-7`, `+45/-45`, and `+52/-52`, and its
+committed diff SHA-256 is
+`9733468d7282cb15279adcf01dadc30bd4e07329abff21cd611a22350023c668`.
+Direct behavior 1/1, both public-owner identities, focused 879/879 in 189.090
+seconds, audit 217, pycompile 5/5, selected private refs zero, exact public
+records 12, owner public/private 59/32, unchanged acyclic 48/203 DAG, artifact
+hygiene, and diff checks passed. Benchmark refresh and remote CI were
+**NOT RUN**.
+
+The active visibility contract now renames only the exact 13-line
+`financial_operand_resolution._period_comparison_operand_rows_collapse_to_same_slot(
+rows: List[Dict[str, Any]]) -> bool` definition in place to public
+`period_comparison_operand_rows_collapse_to_same_slot(...)`. Update exactly
+its two imports and six direct production calls across dependency projection
+and graph calculation, plus the existing direct test import and three calls.
+Preserve lines 2044-2056, the one positional list argument, no defaults or
+keyword-only arguments, and the `bool` return annotation.
+
+Preserve the single delegation to `_operand_row_groups_collapse_to_same_slot`;
+fresh outer/inner lists; two independent `rows or []` iterations; per-row
+falsey fallback; exact role lookup/string/space normalization; case-sensitive
+membership in `current_period`/`minuend` and `prior_period`/`subtrahend`;
+ordered shallow copies of selected rows; ignored unmatched rows; callee-owned
+collapse semantics; immutability; and uncaught errors. The name-normalized
+definition AST/body-source hashes are
+`d48a08da237d822799926916a0c3147da9182f4746322ce2e252eb3b76465548` /
+`60a7ff7c915c22320de4eeb31b779013da85cc0dd2bca08b70f65ff8dc7eeda0`.
+
+The six calls remain in `resolve_main_operand_precedence` line 1689,
+`resolve_late_dependency_remerge` line 1890,
+`_has_complete_direct_period_context_operands` line 2157,
+`_build_period_comparison_operands_from_table_label_context` line 7859,
+`_extract_calculation_operands` line 9237, and
+`_repair_stale_calculation_result_from_operands` line 10929. Each keeps one
+positional argument, no keywords, and caller `try` depth zero. The
+callee-normalized call-record hash is
+`69d583e1b272d93e6936d0047cf2477734a360483f8973821d7b1226f7899576`.
+The exact six caller-body old/new hashes and seven aggregate caller-map
+replacements are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+Production scope is one definition, two imports, six calls, and zero owner-
+local calls; tests contain one import and three calls. Projected private refs
+are zero, public records 13, owner counts 59/32 to 60/31, and physical owner/
+dependency/graph lines stay 4,816/3,419/13,464. Update exactly 46 existing
+test expectations: four names, 30 count/tuple expectations, five direct caller
+hashes, and seven aggregate hashes. Add no test and weaken no assertion.
+
+Projected source/tests/whole transforms are `+9/-9`, `+46/-46`, and
+`+55/-55`; exact temporary diff SHA-256 is
+`63feeb89244685251b5ba7a62302828a91219cbb9c74af0cdf5bec8d1c5ddb2d`.
+The projected direct behavior test passed 1/1, both owner identities passed,
+and focused 879/879 in 217.993 seconds, audit 217, pycompile 5/5, retired refs
+zero, diff check, and unchanged acyclic 48/203 DAG passed. Full 2,143/2,143
+remains the implementation gate. Keep the shared group predicate, ratio
+collapse helper, normalizers, evidence helpers, caller policy/orchestration,
+state, trace/artifact mutation, and final sequencing outside this batch. Add
+no body move, alias, wrapper, fallback, trace field, or exception boundary.
+Benchmark refresh and remote CI were **NOT RUN**.
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

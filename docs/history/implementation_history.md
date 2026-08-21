@@ -9572,9 +9572,9 @@ completion claim.
   **NOT RUN**. This name-only milestone establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Single table-context predicate public API characterization checkpoint
+### Single table-context predicate public API milestone
 
-- The next bounded visibility batch renames only the exact 11-line
+- Commit `c1d3b8c` renamed only the exact 11-line
   `financial_operand_resolution._operand_rows_have_single_table_context(
   rows: List[Dict[str, Any]]) -> bool` definition in place to public
   `operand_rows_have_single_table_context(...)`. Update exactly two imports,
@@ -9622,18 +9622,20 @@ completion claim.
   grounding/desired-consolidation old/new hashes are recorded in
   [Project Status Next Work](../overview/project_status.md#next-work). Add no
   test method and weaken no assertion.
-- Source/tests/whole project exactly project `+7/-7`, `+45/-45`, and
-  `+52/-52` across three source and two test files. The exact temporary diff
-  SHA-256 is
+- The characterization projected source/tests/whole `+7/-7`, `+45/-45`, and
+  `+52/-52` across three source and two test files. The projection became the
+  exact commit diff; its SHA-256 is
   `9733468d7282cb15279adcf01dadc30bd4e07329abff21cd611a22350023c668`.
   Current-private and projected-public identity/behavior probes each passed
   10/10. Focused graph-helper/operand-resolution/dependency-projection/
   aggregate-subtask-projection/calculation-execution/task-artifact/operation-
   contract/import-side-effects passed 879/879 in 202.661 seconds, audit 217,
   pycompile 5/5, retired selected refs zero, diff check, and the unchanged
-  acyclic 48/203 DAG passed. Full 2,143/2,143 remains the implementation gate;
-  exact scope and stop lines are governed by
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  acyclic 48/203 DAG passed at characterization time. The committed
+  implementation then passed direct behavior 1/1, both public-owner identity
+  checks, focused 879/879 in 189.090 seconds, audit 217, pycompile 5/5,
+  private/public records 0/12, owner counts 59/32, and full 2,143/2,143 in
+  221.803 seconds.
 - Keep normalizers, public display-unit/conflict helpers, missing/collapse and
   all other operand-resolution helpers, dependency coverage/conflict/override,
   direct-target evidence behavior, graph state, trace/artifact mutation, and
@@ -9641,3 +9643,50 @@ completion claim.
   fallback, trace field, or new exception boundary. Benchmark refresh and
   remote CI were **NOT RUN**. This checkpoint establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Period-comparison collapse predicate public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 13-line
+  `financial_operand_resolution._period_comparison_operand_rows_collapse_to_same_slot(
+  rows: List[Dict[str, Any]]) -> bool` definition in place to public
+  `period_comparison_operand_rows_collapse_to_same_slot(...)`. Update two
+  imports, six production calls, one test import, and three direct test calls;
+  add no wrapper/alias and move no body or adjacent helper.
+- Preserve the single shared-group delegation; two independent current/prior
+  list constructions; falsey row fallback; exact role string/space
+  normalization and case-sensitive membership; ordered shallow copies of
+  selected rows; ignored unmatched rows; callee-owned collapse semantics;
+  input immutability; and uncaught errors. The definition AST/body hashes are
+  `d48a08da237d822799926916a0c3147da9182f4746322ce2e252eb3b76465548` /
+  `60a7ff7c915c22320de4eeb31b779013da85cc0dd2bca08b70f65ff8dc7eeda0`.
+- The six positional/no-keyword/try-depth-zero calls remain in dependency main
+  precedence and late remerge plus graph direct-period validation, period-pair
+  building, operand extraction, and stale-result repair. Their normalized
+  call-record hash is
+  `69d583e1b272d93e6936d0047cf2477734a360483f8973821d7b1226f7899576`;
+  exact caller old/new hashes are recorded in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Production scope is one definition, two imports, six calls, and no owner-
+  local call. Tests contain one import and three direct calls. The public name
+  has no collision. Projected private/public records are 0/13, owner counts
+  move 59/32 to 60/31, and owner/dependency/graph physical lines remain
+  4,816/3,419/13,464.
+- Exactly 46 existing expectations change: four names, 30 count/tuple
+  expectations, five direct caller hashes, and seven aggregate hashes. No
+  method or assertion is added, removed, or weakened. Projected source/tests/
+  whole transforms are `+9/-9`, `+46/-46`, and `+55/-55`; exact temporary diff
+  SHA-256 is
+  `63feeb89244685251b5ba7a62302828a91219cbb9c74af0cdf5bec8d1c5ddb2d`.
+- The temporary projection passed direct behavior 1/1, both public-owner
+  identities, focused graph-helper/operand-resolution/dependency-projection/
+  aggregate-subtask-projection/calculation-execution/task-artifact/operation-
+  contract/import-side-effects 879/879 in 217.993 seconds, audit 217,
+  pycompile 5/5, retired refs zero, diff check, and unchanged acyclic 48/203
+  DAG. Full 2,143/2,143 remains the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**.
+- Keep the shared group predicate, ratio collapse helper, normalizers,
+  evidence helpers, dependency/graph policies, period-pair building,
+  stale-result repair, graph state, trace/artifact mutation, and final
+  sequencing outside this batch. This checkpoint establishes no behavior,
+  quality, performance, benchmark, schedule, ledger, or Phase 3 completion
+  claim.

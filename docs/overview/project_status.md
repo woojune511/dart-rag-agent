@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 ## At A Glance
 
@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `48130ab` renamed only `financial_operand_resolution._canonical_structured_reconciliation_id(...)` in place to public `canonical_structured_reconciliation_id(...)` and updated its three calls, one graph-calculation import, and 32 exact test expectations |
-| What passed? | Public identity/behavior 10/10, focused tests 804/804, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `48130ab` |
+| What just changed? | `c1d3b8c` renamed only `financial_operand_resolution._operand_rows_have_single_table_context(...)` in place to public `operand_rows_have_single_table_context(...)` and updated its two imports, four calls, and 45 exact test expectations |
+| What passed? | Direct behavior 1/1, two public-owner identity checks, focused tests 879/879, runtime audit 217, pycompile 5/5, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `c1d3b8c` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_operand_resolution._operand_rows_have_single_table_context(...)` in place to public `operand_rows_have_single_table_context(...)`; update its two imports, four calls, and 45 exact direct-name/count/fingerprint expectations |
+| What is next? | Rename only `financial_operand_resolution._period_comparison_operand_rows_collapse_to_same_slot(...)` in place to public `period_comparison_operand_rows_collapse_to_same_slot(...)`; update its two imports, six calls, and 46 exact direct-name/count/fingerprint expectations |
 
 ## Product Boundary
 
@@ -799,7 +799,142 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 11-line
+Rename only the exact 13-line
+`src.agent.financial_operand_resolution._period_comparison_operand_rows_collapse_to_same_slot(
+rows: List[Dict[str, Any]]) -> bool` definition in place to public
+`period_comparison_operand_rows_collapse_to_same_slot(...)`. Update its two
+imports and six direct calls across `financial_dependency_projection.py` and
+`financial_graph_calculation.py`, plus the existing direct test import and
+three calls. Do not move the body, add an alias or wrapper, rename the ratio
+collapse helper or shared group predicate, or broaden dependency precedence,
+period-pair construction, result repair, or calculation orchestration.
+
+The definition remains at lines 2044-2056 with exactly one positional list
+argument, no defaults or keyword-only arguments, and a `bool` return. Preserve
+the single return into `_operand_row_groups_collapse_to_same_slot`; fresh outer
+and inner lists; two independent `rows or []` iterations; per-row `(row or {})`
+fallback; `matched_operand_role` lookup, raw truthiness, exact `str(...)`, and
+`_normalise_spaces(...)`; case-sensitive exact role membership; current group
+roles `current_period`/`minuend`; prior group roles
+`prior_period`/`subtrahend`; ordered selection; shallow `dict(row)` copies only
+for selected rows; ignored unmatched rows; callee-owned collapse semantics;
+input/nested-object immutability; and every uncaught error. The
+name-normalized definition AST SHA-256 is
+`d48a08da237d822799926916a0c3147da9182f4746322ce2e252eb3b76465548`;
+the exact body-source SHA-256 is
+`60a7ff7c915c22320de4eeb31b779013da85cc0dd2bca08b70f65ff8dc7eeda0`.
+
+The dependency calls remain in `resolve_main_operand_precedence` at line 1689
+with positional `direct_rows` under negation and in
+`resolve_late_dependency_remerge` at line 1890 with positional
+`active_direct_context_rows` under negation. The graph calls remain in
+`_has_complete_direct_period_context_operands` at line 2157 with positional
+`rows`, `_build_period_comparison_operands_from_table_label_context` at line
+7859 with positional `rows`, `_extract_calculation_operands` at line 9237 with
+positional `direct_structured_rows` under negation, and
+`_repair_stale_calculation_result_from_operands` at line 10929 with positional
+`operands` inside the existing operation-family conjunction. All six have no
+keywords and caller `try` depth zero. Their callee-normalized combined
+call-record SHA-256 is
+`69d583e1b272d93e6936d0047cf2477734a360483f8973821d7b1226f7899576`.
+The six caller-body hashes change only for callee spelling:
+
+- dependency main precedence:
+  `4dff58f02f80c8904c71e9c9a40e08a18fecfc3eb0b8ec7897d74cffb463e065`
+  to `144d5ea5ded6bc29ea34df4aff50fbba4b39b33ee0f91553c248239a08089131`;
+- dependency late remerge:
+  `b47724caf75ffdceeb1e51ef177047461a649152ef68c3df3404191970b3d774`
+  to `f6262783f4ec98767a281769959c36de07ebcaf45a333fc28887235c3d29e9d2`;
+- graph direct-period predicate:
+  `9bc0a0d76dd87fddc0adf5b7d6f98c86380d14f9eb2cc8bd673fbb2316f0f885`
+  to `138445b4767669215c629c712e4e991e048579b74b4b4eb4c5b55dc1d10f89ff`;
+- graph period-comparison builder:
+  `92d6a14434df6de4679e37e7b07e19bb99f089ffdb6430a07491d74bd65c19e9`
+  to `fdd9dcac55f8418ae0ed7f0f2223d6b47718b00c0ef2544dff391777cc85dbf8`;
+- graph operand extraction:
+  `572936a307d17648acd61f292cf72f567925579ade4c62b03833bc2b847439d5`
+  to `6d90e15c2d17991755550fac996e45d3fd08eff4f5f7ba817b9f503a4b6b9fc9`;
+- graph stale-result repair:
+  `4fc12f8e88950c298962a13a60c10ca29e618fbe03f5223316e70a6732343502`
+  to `30b0e170a6eaf66e9835f2bdf3d1ebb9be16914cb5ab88e83f69d675552afba4`.
+
+Owner/dependency/graph physical line counts remain 4,816/3,419/13,464.
+Current production scope is one definition, two external imports, six direct
+calls, and zero owner-local calls. Tests contain one direct import and three
+direct calls. The future public name has no pre-existing exact source/test
+definition, import, call, patch, attribute, string constant, wildcard/
+`__all__`, reviewed introspection consumer, or collision. After the rename,
+selected private refs must finish zero, both caller bindings must be identical
+to the public owner, exact public records must total 13, and owner public/
+private counts must move exactly 59/32 to 60/31.
+
+Update exactly 46 existing test expectations: four direct names; 27 current
+owner counts from 59/32 to 60/31; two derived counts from 58/32 to 59/31; one
+owner/class tuple from 59/32/19 to 60/31/19; four copies of the graph-
+extraction caller hash above; one period-comparison-builder caller hash; and
+seven aggregate caller-map hashes. The aggregate hashes change from
+operand-text-match `bf117326bbbbbcd736c2c689962ba08ff0686f00a119ebe0a80e12e72757f99e`
+to `669ee29a37ca47066d4b54a503136b429e7f3d7afd620754085c5c9059fe784d`,
+ratio `239a1e1ffe97741c56eabace69a4dfb56dabbcb94c0a8c8f62ef78eea01ab78a`
+to `1282a17328f8f2d0c8a69ab3718c3ad84f47d009a3ecad2b0ed2e2afb968ed17`,
+narrative `fe06e2d3d20b1ca21c28dc0eef8c387418e133cc253cf3479d2dec2dcf3cf2ee`
+to `3957109d9479409bb1ef5145e2170c129a7577f5b9935b7062c06c5828d27a9b`,
+percent-point `bdc38b513f4b7e016077484962cc875539bcdae2a7a05821ef845e939eb79691`
+to `6a8f69674a105d30e6675d01745a106a3726d147a3d0f7e0fabec402d426978e`,
+direct-grounding `9dd76b103df6b790a1ab1485a816e535489d7594eed7a02aa57470075c7cfd85`
+to `14c778675708be6e42981dd0451cb1a7e3bf9dab112d60a13218fb032083db58`,
+and both desired-consolidation copies from
+`5c5b8f1f890fe540a59413440575e37c357745cbd65b98e045ca33a9dbc9a03d`
+to `56bdf9bd6df18f5d75cd17391e041d73c7a02c87468d684af6c272e4dab76cf5`.
+Add no test method and weaken no assertion.
+
+Projected source/tests/whole transforms are `+9/-9`, `+46/-46`, and
+`+55/-55` across exactly three source and two test files. The exact temporary
+diff SHA-256 is
+`63feeb89244685251b5ba7a62302828a91219cbb9c74af0cdf5bec8d1c5ddb2d`.
+The projected public direct behavior test passed 1/1, both public-owner
+identity checks passed, and the temporary projection passed focused graph-
+helper/operand-resolution/dependency-projection/aggregate-subtask-projection/
+calculation-execution/task-artifact/operation-contract/import-side-effects
+879/879 in 217.993 seconds, audit 217, pycompile 5/5, retired selected refs
+zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
+and remote CI remain **NOT RUN**. This name-only visibility change would prove
+no behavior, answer-quality, ranking, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
+
+Keep `_normalise_spaces`, `_operand_row_groups_collapse_to_same_slot`,
+`_ratio_operand_rows_collapse_to_same_slot`, `_missing_required_operands`,
+evidence indexing/resolution, public table-context/display-unit/conflict
+helpers, dependency coverage/conflict/override policy, period-pair building,
+stale-result repair logic, graph state, evidence, trace/artifact mutation, and
+final sequencing outside this batch. Add no body move, alias, wrapper,
+fallback, trace field, or new exception boundary.
+
+## Completed Single Table-Context Predicate Public API
+
+Commit `c1d3b8c` renamed only the exact 11-line
+`financial_operand_resolution._operand_rows_have_single_table_context(...)`
+definition in place to public `operand_rows_have_single_table_context(...)`
+and updated its two imports, four direct production calls, and 45 exact test
+expectations. The signature, body, fallback/normalization/dedupe semantics,
+caller placement, physical line counts, and dependency/calculation
+orchestration remain unchanged. Source/tests/whole commit transforms are
+`+7/-7`, `+45/-45`, and `+52/-52`; the committed diff SHA-256 is
+`9733468d7282cb15279adcf01dadc30bd4e07329abff21cd611a22350023c668`.
+Direct behavior 1/1, both public-owner identity checks, focused 879/879 in
+189.090 seconds, audit 217, pycompile 5/5, retired selected refs zero, exact
+public records 12, owner public/private 59/32, unchanged acyclic 48/203 DAG,
+and full 2,143/2,143 in 221.803 seconds passed. Benchmark refresh and remote
+CI were **NOT RUN**. This name-only milestone establishes no behavior,
+quality, performance, benchmark, schedule, ledger, or Phase 3 completion
+claim.
+
+The preserved pre-implementation contract follows. It characterized the batch
+that `c1d3b8c` has now completed.
+
+The characterized batch renamed only the exact 11-line
 `src.agent.financial_operand_resolution._operand_rows_have_single_table_context(
 rows: List[Dict[str, Any]]) -> bool` definition in place to public
 `operand_rows_have_single_table_context(...)`. Update its two imports and four
@@ -888,10 +1023,11 @@ execution/task-artifact/operation-contract/import-side-effects tests 879/879
 in 202.661 seconds, audit 217, pycompile 5/5, retired selected refs zero,
 `git diff --check`, and unchanged acyclic 48/203 DAG parity at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
-and remote CI remain **NOT RUN**. This name-only visibility change would prove
-no behavior, answer-quality, ranking, performance, benchmark, schedule,
-ledger, or Phase 3 completion claim.
+At characterization time full discovery 2,143/2,143 remained the
+implementation gate; commit `c1d3b8c` later satisfied it in 221.803 seconds as
+recorded above. Benchmark refresh and remote CI remain **NOT RUN**. This
+name-only visibility change proves no behavior, answer-quality, ranking,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 Keep `_normalise_spaces`, public `operand_row_display_unit_set`, public
 `operand_rows_conflict_by_required_role`, `_missing_required_operands`, both
