@@ -470,14 +470,20 @@ document wrapper를 같은 위치와 본문으로 public `make_document(...)`로
 이름 수렴시키고 evidence import 한 개와 direct call 세 개만 갱신했다. Loader
 edge, 세 keyword call, unrelated storage-local helper는 유지됐고 source/whole
 `+5/-5`, tests 변경 0, public identity/behavior 4/4, focused 339/339, audit
-217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음
-batch는 `financial_retrieval_hints.py`의 exact 6-line
-`_supplement_section_terms_for_query(query, topic, intent)`를 같은 위치와
-본문으로 public `supplement_section_terms_for_query(...)`로 rename하고
-reconciliation import/call 각 한 개와 기존 CURRENT-SOURCE 기대 다섯 개만
-갱신한다. Adjacent retrieval helper, ontology/policy, caller sequencing은
-제외한다. Exact projection source/tests/whole `+3/-3`, `+5/-5`, `+8/-8`와
-focused 365/365 경계는
+217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 이어
+`67bc02e`가 `financial_retrieval_hints.py`의 exact 6-line supplement-section
+helper를 같은 위치와 본문으로 public
+`supplement_section_terms_for_query(...)`로 이름 수렴시키고 reconciliation
+import/call 각 한 개와 기존 CURRENT-SOURCE 기대 다섯 개만 갱신했다.
+Fresh-list/intent gate/lazy ontology/ordered dedupe와 caller sequencing은
+유지됐고 source/tests/whole `+3/-3`, `+5/-5`, `+8/-8`, identity/behavior
+10/10, focused 365/365, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
+2,143/2,143가 통과했다. 다음 batch는 같은 owner의 exact 9-line
+`_retrieval_hint_from_topic(query, topic, intent)`를 public
+`retrieval_hint_from_topic(...)`로 rename하고 retrieval-pipeline import/call
+각 한 개와 기존 test binding/fingerprint 아홉 개만 갱신한다. Narrative
+policy/ontology와 `_retrieve` orchestration은 제외한다. Exact projection
+source/tests/whole `+3/-3`, `+9/-9`, `+12/-12`와 focused 343/343 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

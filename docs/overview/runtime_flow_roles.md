@@ -1314,14 +1314,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/whole `+5/-5`, tests 변경 0, public identity/behavior 4/4,
   focused 339/339, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_retrieval_hints.py`의 exact 6-line
-  `_supplement_section_terms_for_query(query, topic, intent)`를 같은 위치와
-  본문으로 public `supplement_section_terms_for_query(...)`로 rename하고
-  reconciliation import/call 각 한 개와 기존 CURRENT-SOURCE 기대 다섯 개만
-  갱신한다. Fresh-list/intent gate/lazy ontology/ordered dedupe와 caller order는
-  유지하고 adjacent helper, ontology/policy, orchestration은 제외한다. Exact
-  projection은 source/tests/whole `+3/-3`, `+5/-5`, `+8/-8`, focused 365/365,
-  audit 217, pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `67bc02e` visibility batch는 `financial_retrieval_hints.py`의 exact
+  6-line supplement-section helper를 같은 위치와 본문으로 public
+  `supplement_section_terms_for_query(...)`로 이름 수렴시키고 reconciliation
+  import/call 각 한 개와 CURRENT-SOURCE 기대 다섯 개만 갱신했다. Source/tests/
+  whole `+3/-3`, `+5/-5`, `+8/-8`, identity/behavior 10/10, focused 365/365,
+  audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 9-line
+  `_retrieval_hint_from_topic(query, topic, intent)`를 public
+  `retrieval_hint_from_topic(...)`로 rename하고 retrieval-pipeline import/call
+  각 한 개와 기존 direct binding·owner count·`_retrieve` fingerprint 아홉 개만
+  갱신한다. Narrative-policy term ordering, lazy ontology, ordered dedupe와
+  caller intent/argument/adoption은 유지하고 adjacent helper, policy/ontology,
+  retrieval orchestration은 제외한다. Exact projection은 source/tests/whole
+  `+3/-3`, `+9/-9`, `+12/-12`, focused 343/343, audit 217, pycompile 4/4,
+  unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

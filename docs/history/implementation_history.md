@@ -9311,9 +9311,9 @@ completion claim.
   establishes no behavior, quality, performance, benchmark, schedule, ledger,
   or Phase 3 completion claim.
 
-### Retrieval supplement-section public API characterization checkpoint
+### Retrieval supplement-section public API milestone
 
-- The next bounded visibility batch renames only the exact six-line
+- Commit `67bc02e` renames only the exact six-line
   `financial_retrieval_hints._supplement_section_terms_for_query(query: str,
   topic: str, intent: str) -> List[str]` definition in place to public
   `supplement_section_terms_for_query(...)`. Update exactly its one import and
@@ -9345,18 +9345,73 @@ completion claim.
   `0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e`
   to `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`.
   Add no test method and weaken no assertion.
-- Source/tests/whole project exactly project `+3/-3`, `+5/-5`, and `+8/-8`
-  across two source and two test files. The exact temporary diff SHA-256 is
+- Source/tests/whole commit transforms are `+3/-3`, `+5/-5`, and `+8/-8`
+  across two source and two test files. The committed diff SHA-256 is
   `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
   Identity/absence plus direct behavior 10/10, focused graph-helper/retrieval-
-  hint/reconciliation-plan/import 365/365 in 184.397 seconds, audit 217,
+  hint/reconciliation-plan/import 365/365 in 200.892 seconds, audit 217,
   pycompile 4/4, retired selected refs zero, diff check, and unchanged acyclic
-  48/203 DAG passed. Full 2,143/2,143 remains the implementation gate; exact
-  scope and stop lines are governed by
-  [Project Status Next Work](../overview/project_status.md#next-work).
-- A first review-only dependency invocation stopped during imports because it
-  omitted runtime requirements; it is not counted as a source-test result. The
-  correctly provisioned rerun produced the 365/365 result above. Benchmark
-  refresh and remote CI were **NOT RUN**. This checkpoint establishes no
+  48/203 DAG and full 2,143/2,143 in 238.281 seconds passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This name-only milestone
+  establishes no
   behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
+
+### Retrieval topic-hint public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact nine-line
+  `financial_retrieval_hints._retrieval_hint_from_topic(query: str, topic:
+  str, intent: str) -> str` definition in place to public
+  `retrieval_hint_from_topic(...)`. Update exactly its one import and one
+  direct call in `financial_retrieval_pipeline.py`. Do not move the body,
+  rename adjacent retrieval helpers, add an alias/wrapper, change policy or
+  ontology data, or broaden retrieval orchestration.
+- The definition stays at lines 164-172 with three positional arguments, no
+  defaults or keyword-only arguments, and a `str` return. Preserve the fresh
+  hints list; ordered raw-truth `query`/`topic` filtering and single-space
+  join; unconditional active narrative-policy lookup; raw-truth policy gate;
+  suffix-before-focus extension order; comparison/trend-only lazy ontology
+  access; exact `query`/`topic`/`intent` delegation; ordered dedupe; final
+  single-space join; input immutability; and uncaught failures. Its normalized
+  body hash is
+  `f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16`.
+- The sole production call stays in `_retrieve` at pipeline line 2096 with
+  exact positional `query`, `state.get("topic") or query`, and
+  `retrieval_intent`, no keywords, and `try` depth zero. Its record hash is
+  `34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
+  Owner/caller physical line counts remain 318/2,641.
+- Current production counts are one definition, one external import, and one
+  call. Two direct test calls plus one direct-test import are the only other
+  selected uses; the future public name has no pre-existing source/test
+  definition, import, call, patch, attribute, dynamic, wildcard/`__all__`,
+  introspection consumer, or collision. Projected private refs finish zero,
+  pipeline/owner identity holds, and owner public/private counts move only
+  from 6/8 to 7/7.
+- Nine exact CURRENT-SOURCE expectations change: one direct-test import, two
+  direct-test calls, two owner counts, both copies of the `_retrieve` caller-
+  body hash from
+  `fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf` to
+  `3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
+  the strict-company aggregate caller hash from
+  `b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67` to
+  `f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
+  and the source-receipts aggregate caller hash from
+  `4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed` to
+  `d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
+  Add no test method and weaken no assertion.
+- Source/tests/whole project exactly project `+3/-3`, `+9/-9`, and `+12/-12`
+  across two source and two test files. The exact temporary diff SHA-256 is
+  `e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+  Identity/behavior 10/10, focused graph-helper/retrieval-hints/retrieval-
+  scope/retrieval-pipeline/import-side-effects 343/343 in 182.671 seconds,
+  audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
+  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
+  implementation gate; exact scope and stop lines are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Keep adjacent retrieval helpers, policy/ontology data, operation-family
+  intent coercion, preferred-section/query-bundle construction, evidence
+  adoption, graph state, artifact/ledger mutation, and final sequencing
+  outside this batch. Add no body move, alias, wrapper, fallback, callback,
+  trace field, or new exception boundary. Benchmark refresh and remote CI were
+  **NOT RUN**. This checkpoint establishes no behavior, quality, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.

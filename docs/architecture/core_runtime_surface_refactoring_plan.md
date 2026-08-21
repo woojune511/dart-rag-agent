@@ -2167,37 +2167,64 @@ unchanged. Source/tests/whole were `+5/-5`, `+0/-0`, and `+5/-5`; focused
 4/4, unchanged 48/203 DAG, and full 2,143/2,143 in 271.268 seconds passed.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility seam renames only the exact six-line
-`financial_retrieval_hints._supplement_section_terms_for_query(query, topic,
-intent)` definition in place to public
-`supplement_section_terms_for_query(...)`, then updates its one reconciliation
-import and one direct call. Preserve lines 108-113, the three positional
-arguments and `List[str]` return, fresh-list construction, exact comparison/
-trend early gate, lazy ontology delegation, ordered dedupe, fresh return, and
-uncaught exception behavior.
-
-The name-normalized body and sole-call record hashes are
-`d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468` /
-`e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
-The call stays at reconciliation line 1007 with exact positional
-`query`/`topic`/`intent`, no keywords, and `try` depth zero. Owner/caller line
-counts remain 318/1,462. Production counts are one definition, one external
-import, and one call; the sole exact test-name consumer is one patch string and
-the public name has no pre-existing consumer or collision.
-
-Update only the patch target, two owner public/private expectations (5/9 to
-6/8), and the selected/aggregate caller hashes. Add no test method or weakened
-assertion. Source/tests/whole project exactly project `+3/-3`, `+5/-5`, and
-`+8/-8` across two source and two test files; exact temporary diff SHA-256 is
+The retrieval supplement-section visibility seam completed in `67bc02e`.
+Only the exact six-line helper was renamed in place to public
+`supplement_section_terms_for_query(...)`; one reconciliation import, one
+direct call, and five exact CURRENT-SOURCE expectations changed names or
+fingerprints. The signature, body, call placement, owner/caller line counts,
+ontology/policy behavior, and reconciliation orchestration remain unchanged.
+Source/tests/whole were `+3/-3`, `+5/-5`, and `+8/-8`; focused 365/365 in
+200.892 seconds, audit 217, pycompile 4/4, identity/behavior 10/10, retired
+selected refs zero, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
+238.281 seconds passed. The committed diff SHA-256 is
 `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Keep adjacent retrieval helpers, ontology/policy, state/query/topic/intent
-resolution, active-preferred-section extension, candidate construction,
-evidence adoption, graph state, artifact/ledger mutation, and final sequencing
-outside this batch. Add no alias, wrapper, fallback, callback, trace field, or
-new exception boundary. The projection passed identity/absence and direct
-behavior 10/10, focused 365/365 in 184.397 seconds, audit 217, pycompile 4/4,
-retired selected refs zero, diff check, and unchanged acyclic 48/203 DAG at
+The next bounded visibility seam renames only the exact nine-line
+`financial_retrieval_hints._retrieval_hint_from_topic(query: str, topic: str,
+intent: str) -> str` definition in place to public
+`retrieval_hint_from_topic(...)`, then updates its one import and one direct
+call in `financial_retrieval_pipeline.py`. Preserve the fresh hints list;
+ordered raw-truth `query`/`topic` filtering and single-space join; unconditional
+active narrative-policy lookup; raw-truth policy gate; suffix-before-focus
+extension order; comparison/trend-only lazy ontology access; exact
+`query`/`topic`/`intent` delegation; ordered dedupe; final single-space join;
+input immutability; and uncaught exception behavior.
+
+The name-normalized body and sole production-call record hashes are
+`f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16` /
+`34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
+The call remains in `_retrieve` with exact positional `query`,
+`state.get("topic") or query`, and `retrieval_intent`, no keywords, and `try`
+depth zero. Owner/caller physical line counts remain 318/2,641. Current
+production counts are one definition, one external import, and one call; two
+direct test calls are the only other selected uses. The public name has no
+pre-existing source/test consumer or collision.
+
+Update exactly nine CURRENT-SOURCE expectations: one direct-test import, two
+direct-test calls, the graph-helper and retrieval-hints owner counts from 6/8
+to 7/7, both copies of the `_retrieve` caller-body hash from
+`fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf` to
+`3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
+the strict-company aggregate caller hash from
+`b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67` to
+`f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
+and the source-receipts aggregate caller hash from
+`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed` to
+`d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
+Add no test method and weaken no assertion.
+
+Source/tests/whole project exactly project `+3/-3`, `+9/-9`, and `+12/-12`
+across two source and two test files; exact temporary diff SHA-256 is
+`e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
+Keep adjacent retrieval helpers, policy/ontology data, operation-family intent
+coercion, preferred-section/query-bundle construction, evidence adoption,
+graph state, artifact/ledger mutation, and final sequencing outside this
+batch. Add no body move, alias, wrapper, fallback, callback, trace field, or
+new exception boundary. The temporary projection passed identity/behavior
+10/10, focused graph-helper/retrieval-hints/retrieval-scope/retrieval-pipeline/
+import-side-effects 343/343 in 182.671 seconds, audit 217, pycompile 4/4,
+retired selected refs zero, diff check, and the unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
 are authoritative only in

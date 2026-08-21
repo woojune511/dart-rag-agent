@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `f04e774` renamed only `financial_retrieval_pipeline._make_document(...)` in place to public `make_document(...)` and updated its one evidence import plus three direct calls; the exact wrapper body, loader edge, and call placement remain |
-| What passed? | Public identity/behavior 4/4, focused tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What just changed? | `67bc02e` renamed only `financial_retrieval_hints._supplement_section_terms_for_query(...)` in place to public `supplement_section_terms_for_query(...)` and updated its one reconciliation import/call plus five exact CURRENT-SOURCE expectations |
+| What passed? | Public identity/behavior 10/10, focused tests 365/365, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_retrieval_hints._supplement_section_terms_for_query(...)` in place to public `supplement_section_terms_for_query(...)`; update its one reconciliation import/call and five exact CURRENT-SOURCE expectations |
+| What is next? | Rename only `financial_retrieval_hints._retrieval_hint_from_topic(...)` in place to public `retrieval_hint_from_topic(...)`; update its one retrieval-pipeline import/call and nine exact test binding/fingerprint expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, retrieval document-factory public identity/behavior 4 / 4; affected graph/text/import set 339 / 339 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after retrieval document-factory public rename |
+| Latest focused owner checkpoint | PASS, supplement-section public identity/behavior 10 / 10; affected graph/retrieval-hint/reconciliation/import set 365 / 365 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after supplement-section public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,56 +799,85 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact six-line
-`src.agent.financial_retrieval_hints._supplement_section_terms_for_query(query:
-str, topic: str, intent: str) -> List[str]` definition in place to public
-`supplement_section_terms_for_query(...)`. Update its one import and one direct
-call in `financial_graph_reconciliation.py`. Do not move the body, add an alias
-or wrapper, rename adjacent `_preferred_calc_sections` or other retrieval-hint
-helpers, change ontology/policy data, or alter reconciliation sequencing.
+Rename only the exact nine-line
+`src.agent.financial_retrieval_hints._retrieval_hint_from_topic(query: str,
+topic: str, intent: str) -> str` definition in place to public
+`retrieval_hint_from_topic(...)`. Update its one import and one direct call in
+`financial_retrieval_pipeline.py`, plus the existing direct test import and two
+test calls. Do not move the body, add an alias or wrapper, rename adjacent
+retrieval helpers, change narrative policy or ontology data, or alter
+`FinancialRetrievalPipelineMixin._retrieve` orchestration.
 
-The definition remains at lines 108-113 with exactly three positional
-arguments, no defaults or keyword-only arguments, and a `List[str]` return.
-Preserve the fresh `sections` list, exact `comparison`/`trend` early gate,
-lazy `get_financial_ontology()` access, exact `supplement_sections(query,
-topic, intent)` delegation, ordered `dict.fromkeys` dedupe, fresh return list,
-and every uncaught error. Its name-normalized AST hash is
-`d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468`.
-The sole call remains at reconciliation line 1007 with exact positional
-`query`, `topic`, and `intent`, no keywords, and `try` depth zero. Its record
-hash is
-`e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
-The owner and caller retain 318 and 1,462 physical lines.
+The definition remains at lines 164-172 with exactly three positional
+arguments, no defaults or keyword-only arguments, and a `str` return. Preserve
+the fresh `hints` list; ordered truth-filtered `query`/`topic` join; unconditional
+`active_narrative_policies(...)` lookup; truth-gated suffix then focus-term
+extension; comparison/trend-only lazy ontology query; ordered
+`dict.fromkeys` dedupe; single-space join; input/policy immutability; and every
+uncaught error. Its name-normalized AST hash is
+`f0ba9544890a6af3f641496bf39035a247e2444ffc1c088cc982e3f0915eff16`.
+
+The sole production call remains at retrieval-pipeline line 2096 with exact
+positional `query`, `state.get("topic") or query`, and `retrieval_intent`, no
+keywords, and `try` depth zero. Its record hash is
+`34985f9f917f4105dc1b7f6fa5dd626edcff2cc73b13a7c8768f2751554142c5`.
+Preserve the caller's preceding operation-family intent coercion and subsequent
+preferred-section/query-bundle work. Owner and caller retain 318 and 2,641
+physical lines.
 
 Current production scope is one definition, one external import, and one
-direct call; one exact patch string is the only selected test-name consumer.
-The public name has no pre-existing source/test definition, import, call,
-patch, attribute, constant-dynamic, wildcard/`__all__`, or reviewed
-introspection consumer. After the rename selected private refs must finish
-zero, the reconciliation binding must be identical to the public owner, and
-owner public/private counts must move exactly 5/9 to 6/8.
+direct call. Tests contain one direct import and two direct calls; the public
+name has no pre-existing source/test definition, import, call, patch,
+attribute, constant-dynamic, wildcard/`__all__`, reviewed introspection
+consumer, or collision. After the rename selected private refs must finish
+zero, the retrieval-pipeline binding must be identical to the public owner,
+and owner public/private counts must move exactly 6/8 to 7/7.
 
-Update only five existing CURRENT-SOURCE expectations: the reconciliation
-patch target, two owner public/private counts, the selected caller fingerprint
-`8befdd9b9baf7734744d0923e12523f83ce2aba73f4fc7c0968b474a40c7a9a0`
-to `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01`,
-and its aggregate fingerprint
-`0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e`
-to `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`.
+Update only nine existing test expectations: the direct test import/two calls,
+two owner counts, both copies of the `_retrieve` caller fingerprint from
+`fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf`
+to `3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`,
+the strict-company aggregate fingerprint from
+`b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67`
+to `f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`,
+and the source-receipts aggregate fingerprint from
+`4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed`
+to `d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`.
 Add no test method and weaken no assertion.
 
-Projected source/tests/whole transforms are `+3/-3`, `+5/-5`, and `+8/-8`
+Projected source/tests/whole transforms are `+3/-3`, `+9/-9`, and `+12/-12`
 across exactly two source and two test files. The exact temporary diff SHA-256
-is `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+is `e2c2cebe14cef74c92d19cff9b5c7445c3aaa6e74bd0e44f11baa583dc8f6942`.
 The temporary projection passed public identity/absence plus direct behavior
-10/10, focused graph-helper/retrieval-hint/reconciliation-plan/import tests
-365/365 in 184.397 seconds, audit 217, pycompile 4/4, retired selected refs
-zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+10/10, focused graph-helper/retrieval-hint/retrieval-scope/retrieval-pipeline/
+import tests 343/343 in 182.671 seconds, audit 217, pycompile 4/4, retired
+selected refs zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity
+at `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
 and remote CI remain **NOT RUN**. This name-only visibility change would prove
 no behavior, answer-quality, ranking, performance, benchmark, schedule,
 ledger, or Phase 3 completion claim.
+
+## Completed Retrieval Supplement-Section Public API
+
+Commit `67bc02e` renamed only the exact six-line
+`financial_retrieval_hints._supplement_section_terms_for_query(...)` definition
+in place to public `supplement_section_terms_for_query(...)` and updated its one
+reconciliation import/call plus five exact CURRENT-SOURCE expectations. The
+signature, body, fresh-list/intent-gate/lazy-ontology/ordered-dedupe behavior,
+caller ordering, physical line counts, and adjacent helpers remain unchanged.
+Selected private refs finish zero and owner public/private counts are 6/8.
+
+Production source, tests, and the whole commit are `+3/-3`, `+5/-5`, and
+`+8/-8` across two source and two test files. The committed diff SHA-256 is
+`a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+Public identity/behavior 10/10, focused graph-helper/retrieval-hint/
+reconciliation-plan/import tests 365/365 in 200.892 seconds, audit 217,
+pycompile 4/4, unchanged acyclic 48/203 DAG, full discovery 2,143/2,143 in
+238.281 seconds, artifact hygiene, and diff checks passed. Benchmark refresh
+and remote CI were **NOT RUN**. This name-only visibility milestone establishes
+no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
 ## Completed Retrieval Document-Factory Public API
 
