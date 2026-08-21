@@ -17,7 +17,7 @@ from src.agent.financial_operand_resolution import (
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _evidence_item_for_operand_row,
-    _evidence_items_by_id,
+    evidence_items_by_id,
     evidence_surface_contains_segment_label,
     filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
@@ -3603,7 +3603,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         ]
         evidence_items_before = deepcopy(evidence_items)
 
-        evidence_by_id = _evidence_items_by_id(evidence_items)
+        evidence_by_id = evidence_items_by_id(evidence_items)
 
         self.assertEqual(evidence_by_id["duplicate"]["marker"], "last")
         self.assertIsNot(evidence_by_id["duplicate"], evidence_items[1])
@@ -4102,7 +4102,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(operand_resolution, "_operand_row_satisfies_required_surface_contract", side_effect=has_surface),
             patch.object(operand_resolution, "direct_lookup_row_is_ambiguous_context_table", side_effect=is_ambiguous),
             patch.object(operand_resolution, "_llm_lookup_operand_has_direct_support", side_effect=has_direct_support),
-            patch.object(operand_resolution, "_evidence_items_by_id", wraps=operand_resolution._evidence_items_by_id) as evidence_index,
+            patch.object(operand_resolution, "evidence_items_by_id", wraps=operand_resolution.evidence_items_by_id) as evidence_index,
         ):
             result = resolve_direct_structured_operand_acceptance(acceptance_input)
 
@@ -6158,7 +6158,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         exception_before = deepcopy((exception_operands, exception_evidence))
         with patch.object(
             operand_resolution,
-            "_evidence_items_by_id",
+            "evidence_items_by_id",
             side_effect=RuntimeError("index failed"),
         ), self.assertRaisesRegex(RuntimeError, "index failed"):
             repair(exception_operands, exception_evidence)

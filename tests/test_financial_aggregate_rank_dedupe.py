@@ -15106,7 +15106,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={},
             ) as index_owner,
             patch.object(
@@ -15125,7 +15125,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev": evidence_item},
             ),
             patch.object(
@@ -15149,7 +15149,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev": evidence_item},
             ),
             patch.object(
@@ -15196,7 +15196,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev": evidence_item},
             ),
             patch.object(
@@ -15244,7 +15244,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 with (
                     patch.object(
                         financial_aggregate_projection,
-                        "_evidence_items_by_id",
+                        "evidence_items_by_id",
                         return_value={"ev": evidence_item},
                     ),
                     patch.object(
@@ -15285,7 +15285,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev": evidence_item},
             ),
             patch.object(financial_aggregate_projection, "lookup_primary_slot", return_value=base_slot),
@@ -15364,7 +15364,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev-same": same_evidence, "ev-changed": changed_evidence},
             ),
             patch.object(
@@ -15443,7 +15443,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev-same": same_evidence, "ev-changed": changed_evidence},
             ),
             patch.object(financial_aggregate_projection, "lookup_primary_slot", side_effect=primary),
@@ -15472,7 +15472,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         with (
             patch.object(
                 financial_aggregate_projection,
-                "_evidence_items_by_id",
+                "evidence_items_by_id",
                 return_value={"ev-changed": changed_evidence},
             ),
             patch.object(financial_aggregate_projection, "lookup_primary_slot", return_value=changed_slot),
@@ -15641,7 +15641,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
             self.assertEqual((graph_loads, owner_loads, selected_loads), (0, 1, 1))
         for live_name in (
-            "_evidence_items_by_id",
+            "evidence_items_by_id",
             "_evidence_item_for_operand_row",
             "coerce_operand_unit_from_evidence",
             "answer_slot_has_material",

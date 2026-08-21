@@ -46,7 +46,7 @@ from src.agent.financial_numeric_surface import (
 )
 from src.agent.financial_operand_resolution import (
     _evidence_item_for_operand_row,
-    _evidence_items_by_id,
+    evidence_items_by_id,
     coerce_operand_unit_from_evidence,
     ratio_context_has_metric_surface,
 )
@@ -1556,7 +1556,7 @@ def align_lookup_result_units_from_own_evidence(
     ordered_results: List[Dict[str, Any]],
     evidence_items: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    evidence_by_id = _evidence_items_by_id(evidence_items)
+    evidence_by_id = evidence_items_by_id(evidence_items)
     if not evidence_by_id:
         return ordered_results
 

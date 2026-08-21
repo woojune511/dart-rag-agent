@@ -2463,7 +2463,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 stack.enter_context(
                     patch.object(financial_graph_calculation, "surface_contract_numeric_evidence_items", return_value=[])
                 )
-                stack.enter_context(patch.object(financial_graph_calculation, "_evidence_items_by_id", return_value={}))
+                stack.enter_context(patch.object(financial_graph_calculation, "evidence_items_by_id", return_value={}))
                 stack.enter_context(patch.object(financial_graph_calculation, "_evidence_item_for_operand_row", return_value={}))
                 stack.enter_context(
                     patch.object(financial_graph_calculation, "operand_row_conflicts_requested_scope", return_value=False)

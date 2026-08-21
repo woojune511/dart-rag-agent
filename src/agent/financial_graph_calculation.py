@@ -194,7 +194,7 @@ from src.agent.financial_operand_resolution import (
     direct_target_metric_row_conflicts_existing_units,
     direct_lookup_row_is_ambiguous_context_table,
     _evidence_item_for_operand_row,
-    _evidence_items_by_id,
+    evidence_items_by_id,
     evidence_surface_contains_segment_label,
     evidence_item_conflicts_requested_scope,
     filter_operand_rows_by_required_surface_contract,
@@ -1752,7 +1752,7 @@ class FinancialAgentCalculationMixin:
         if operation_family not in {"lookup", "single_value", "ratio"} or not required_operands:
             return direct_structured_rows
 
-        evidence_by_id = _evidence_items_by_id(evidence_items)
+        evidence_by_id = evidence_items_by_id(evidence_items)
         refined_rows = [dict(row) for row in direct_structured_rows]
 
         for operand in [dict(item) for item in required_operands]:
@@ -1877,7 +1877,7 @@ class FinancialAgentCalculationMixin:
                 evidence_pool.append(dict(item))
         if not evidence_pool:
             return ordered_results
-        evidence_by_id = _evidence_items_by_id(evidence_pool)
+        evidence_by_id = evidence_items_by_id(evidence_pool)
 
         desired_scope = desired_consolidation_scope(
             str(state.get("query") or ""),
@@ -5057,7 +5057,7 @@ class FinancialAgentCalculationMixin:
         ]
         dependency_evidence_items.extend(list(state.get("evidence_items") or []))
         dependency_evidence_items.extend(list(state.get("runtime_evidence") or []))
-        evidence_by_id = _evidence_items_by_id(dependency_evidence_items)
+        evidence_by_id = evidence_items_by_id(dependency_evidence_items)
         evidence_pool = list(evidence_by_id.values())
         dependency_rows: List[Dict[str, Any]] = []
         for index, binding in enumerate(input_bindings, start=1):
@@ -5074,7 +5074,7 @@ class FinancialAgentCalculationMixin:
             sibling_row = sibling_rows.get(preferred_task_id)
             if not sibling_row:
                 continue
-            sibling_evidence_by_id = _evidence_items_by_id(
+            sibling_evidence_by_id = evidence_items_by_id(
                 [dict(item) for item in (sibling_row.get("runtime_evidence") or []) if isinstance(item, dict)]
             )
             sibling_result = dict(sibling_row.get("calculation_result") or {})
@@ -7427,7 +7427,7 @@ class FinancialAgentCalculationMixin:
         evidence_pool = [dict(item) for item in (evidence_items or []) if isinstance(item, dict)]
         if not evidence_pool:
             return align_ratio_operand_units_with_shared_table_context(ordered_operands)
-        evidence_by_id = _evidence_items_by_id(evidence_pool)
+        evidence_by_id = evidence_items_by_id(evidence_pool)
 
         def _row_as_operand(row: Dict[str, Any]) -> Dict[str, Any]:
             return {
@@ -9095,7 +9095,7 @@ class FinancialAgentCalculationMixin:
                     len(evidence_items),
                 )
         if direct_structured_rows:
-            evidence_by_id = _evidence_items_by_id(evidence_items)
+            evidence_by_id = evidence_items_by_id(evidence_items)
             direct_structured_rows = [
                 self._coerce_operand_row_from_evidence(
                     row,
@@ -9135,7 +9135,7 @@ class FinancialAgentCalculationMixin:
             direct_target_evidence_pool,
         )
         if target_metric_row:
-            target_evidence_by_id = _evidence_items_by_id(direct_target_evidence_pool)
+            target_evidence_by_id = evidence_items_by_id(direct_target_evidence_pool)
             target_metric_row = self._coerce_operand_row_from_evidence(
                 target_metric_row,
                 _evidence_item_for_operand_row(target_metric_row, target_evidence_by_id),
@@ -9577,7 +9577,7 @@ class FinancialAgentCalculationMixin:
                 {"query": query, "evidence": evidence_text}
             )
             operand_rows: List[Dict[str, Any]] = []
-            evidence_by_id = _evidence_items_by_id(evidence_items)
+            evidence_by_id = evidence_items_by_id(evidence_items)
             for index, item in enumerate(extracted.operands, start=1):
                 row = item.model_dump()
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
@@ -10342,7 +10342,7 @@ class FinancialAgentCalculationMixin:
 
         runtime_operands = [dict(row) for row in candidate_input.calculation_operands]
         execution_evidence_items = list(candidate_input.evidence_items) + list(candidate_input.runtime_evidence)
-        execution_evidence_by_id = _evidence_items_by_id(
+        execution_evidence_by_id = evidence_items_by_id(
             [dict(item) for item in execution_evidence_items if isinstance(item, dict)]
         )
         runtime_operands = [
@@ -11483,7 +11483,7 @@ class FinancialAgentCalculationMixin:
         evidence_pool: List[Dict[str, Any]] = _collect_nested_result_evidence(ordered_results)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
-        evidence_by_id = _evidence_items_by_id(evidence_pool)
+        evidence_by_id = evidence_items_by_id(evidence_pool)
 
         def _direct_operand_source_ids(row: Dict[str, Any]) -> set[str]:
             operands = [

@@ -822,7 +822,7 @@ def repair_krw_operand_units_from_table_metadata(
     operands: List[Dict[str, Any]],
     evidence_items: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    evidence_by_id = _evidence_items_by_id(evidence_items)
+    evidence_by_id = evidence_items_by_id(evidence_items)
     if not evidence_by_id:
         return operands
 
@@ -1392,7 +1392,7 @@ def _missing_required_operands(
     return missing
 
 
-def _evidence_items_by_id(
+def evidence_items_by_id(
     evidence_items: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
     return {
@@ -1721,7 +1721,7 @@ def filter_operand_rows_by_required_surface_contract(
 ) -> List[Dict[str, Any]]:
     if not rows or not required_operands:
         return rows
-    evidence_by_id = _evidence_items_by_id(evidence_items)
+    evidence_by_id = evidence_items_by_id(evidence_items)
     return [
         row
         for row in rows
@@ -2751,7 +2751,7 @@ def resolve_direct_structured_operand_acceptance(
         )
 
     if accepted_operand_rows and acceptance_input.required_operands:
-        evidence_by_id = _evidence_items_by_id(acceptance_input.evidence_items)
+        evidence_by_id = evidence_items_by_id(acceptance_input.evidence_items)
         required_surface_filter_applied = True
         accepted_operand_rows = [
             row
@@ -2775,7 +2775,7 @@ def resolve_direct_structured_operand_acceptance(
         ]
 
     if accepted_operand_rows and acceptance_input.operation_family in {"lookup", "single_value"}:
-        evidence_by_id = _evidence_items_by_id(acceptance_input.evidence_items)
+        evidence_by_id = evidence_items_by_id(acceptance_input.evidence_items)
         if acceptance_input.required_operands:
             lookup_direct_support_filter_applied = True
             accepted_operand_rows = [
