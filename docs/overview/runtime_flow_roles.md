@@ -1347,16 +1347,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   gate/adoption은 유지됐다. Source/tests/whole `+4/-4`, `+32/-32`, `+36/-36`,
   identity/behavior 10/10, focused 695/695, audit 217, pycompile 4/4, unchanged
   48/203 DAG, full 2,143/2,143가 통과했다.
+- 완료된 `48130ab` visibility batch는 같은 owner의 exact 11-line
+  reconciliation-ID canonicalizer를 public
+  `canonical_structured_reconciliation_id(...)`로 이름 수렴시키고 owner-local
+  call 두 개, graph-calculation import/call 각 한 개, direct-name·owner-count
+  기대 32개만 갱신했다. Exact prefix/marker/raw-row identity semantics와 public
+  sibling canonicalizer/graph caller sequencing은 유지됐다. Source/tests/whole
+  `+5/-5`, `+32/-32`, `+37/-37`, identity/behavior 10/10, focused 804/804,
+  audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
 - 다음 visibility batch는 같은 owner의 exact 11-line
-  `_canonical_structured_reconciliation_id(...)`를 public
-  `canonical_structured_reconciliation_id(...)`로 rename하고 owner-local call
-  두 개, `financial_graph_calculation.py` import/call 각 한 개, direct-name·
-  owner-count 기대 32개만 갱신한다. Exact prefix/marker/raw-row identity
-  semantics, public sibling canonicalizer와 graph caller sequencing을 유지하고
-  normalizers, table-context/other operand helpers, direct-target evidence
-  behavior와 broader graph orchestration은 제외한다. Exact temporary projection은
-  source/tests/whole `+5/-5`, `+32/-32`, `+37/-37`, focused 804/804, audit 217,
-  pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
+  `_operand_rows_have_single_table_context(...)`를 public
+  `operand_rows_have_single_table_context(...)`로 rename하고 dependency/graph
+  import 두 개와 call 네 개, direct-name·owner-count·fingerprint 기대 45개만
+  갱신한다. Table/source/anchor fallback, repeated normalization, blank filter,
+  set dedupe와 네 caller의 coverage/coherence sequencing을 유지하고
+  normalizers, public display/conflict helpers, missing/collapse helpers와
+  broader graph orchestration은 제외한다. Exact temporary projection은 source/
+  tests/whole `+7/-7`, `+45/-45`, `+52/-52`, focused 879/879, audit 217,
+  pycompile 5/5, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

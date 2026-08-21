@@ -6,7 +6,7 @@
 > [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), 완료된 변경은
 > [implementation_history.md](docs/history/implementation_history.md)를 따른다.
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 ## 현재 범위
 
@@ -21,7 +21,7 @@ Last updated: 2026-08-21
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `6aeb0d1` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `48130ab` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -506,14 +506,19 @@ import 한 개와 연속된 두 call, 기존 test 기대 32개만 갱신했다. 
 cleanup/dedupe와 caller precedence sequencing은 유지됐고 source/tests/whole
 `+4/-4`, `+32/-32`, `+36/-36`, identity/behavior 10/10, focused 695/695,
 audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-다음 batch는 같은 owner의 exact 11-line
-`_canonical_structured_reconciliation_id(...)`를 public
-`canonical_structured_reconciliation_id(...)`로 rename하고 owner-local call
-두 개, graph-calculation import/call 각 한 개와 기존 direct-name/count 기대
-32개만 갱신한다. Prefix/marker/raw-row identity semantics와 두 caller의
-sequencing은 유지하고 adjacent helpers는 제외한다. Exact temporary
-projection source/tests/whole `+5/-5`, `+32/-32`, `+37/-37`와 focused
-804/804 경계는
+이어 `48130ab`이 같은 owner의 exact 11-line reconciliation-ID canonicalizer를
+같은 위치와 본문으로 public `canonical_structured_reconciliation_id(...)`로
+이름 수렴시키고 owner-local call 두 개, graph-calculation import/call 각 한
+개와 기존 direct-name/count 기대 32개만 갱신했다. Prefix/marker/raw-row
+semantics와 두 caller sequencing은 유지됐고 source/tests/whole `+5/-5`,
+`+32/-32`, `+37/-37`, identity/behavior 10/10, focused 804/804, audit 217,
+pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는
+같은 owner의 exact 11-line `_operand_rows_have_single_table_context(...)`를
+public `operand_rows_have_single_table_context(...)`로 rename하고 dependency/
+graph import 두 개와 call 네 개, 기존 direct-name/count/fingerprint 기대
+45개만 갱신한다. Table-id fallback/normalization/dedupe semantics와 네 caller의
+sequencing은 유지하고 adjacent helpers는 제외한다. Exact temporary projection
+source/tests/whole `+7/-7`, `+45/-45`, `+52/-52`와 focused 879/879 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
