@@ -28,7 +28,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_has_direct_evidence_surface,
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
-    _operand_rows_conflict_by_required_role,
+    operand_rows_conflict_by_required_role,
     _operand_rows_have_single_table_context,
     _period_comparison_operand_rows_collapse_to_same_slot,
     _ratio_operand_rows_collapse_to_same_slot,
@@ -3776,7 +3776,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         compared_pairs: List[tuple[str, str]] = []
 
         self.assertFalse(
-            _operand_rows_conflict_by_required_role(
+            operand_rows_conflict_by_required_role(
                 left_rows,
                 right_rows,
                 operand_row_value_differs=lambda left, right: (
@@ -3795,7 +3795,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         right_rows[0]["normalized_value"] = 101.0
         self.assertTrue(
-            _operand_rows_conflict_by_required_role(
+            operand_rows_conflict_by_required_role(
                 left_rows,
                 right_rows,
                 operand_row_value_differs=lambda left, right: (

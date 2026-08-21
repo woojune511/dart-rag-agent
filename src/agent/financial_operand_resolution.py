@@ -1961,7 +1961,7 @@ def _operand_row_display_unit_set(rows: List[Dict[str, Any]]) -> set[str]:
     }
 
 
-def _operand_rows_conflict_by_required_role(
+def operand_rows_conflict_by_required_role(
     left_rows: List[Dict[str, Any]],
     right_rows: List[Dict[str, Any]],
     *,
