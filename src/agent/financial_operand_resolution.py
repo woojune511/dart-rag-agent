@@ -374,7 +374,7 @@ def _canonical_structured_reconciliation_id(value: Any) -> str:
     return source_id
 
 
-def _canonicalize_structured_operand_reconciliation_refs(
+def canonicalize_structured_operand_reconciliation_refs(
     row: Dict[str, Any],
 ) -> Dict[str, Any]:
     updated = dict(row)

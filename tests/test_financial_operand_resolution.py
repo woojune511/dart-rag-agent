@@ -3136,7 +3136,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
     def test_evidence_identity_and_surface_helpers_have_operand_resolution_owner(self) -> None:
         helper_names = (
             "_canonical_structured_reconciliation_id",
-            "_canonicalize_structured_operand_reconciliation_refs",
+            "canonicalize_structured_operand_reconciliation_refs",
             "_operand_slot_has_evidence_surface_match",
             "repair_operand_normalization_from_rendered_unit",
             "align_ratio_operand_units_with_shared_table_context",
@@ -3174,7 +3174,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             ],
         }
         original_row = deepcopy(row)
-        canonical_row = operand_resolution._canonicalize_structured_operand_reconciliation_refs(
+        canonical_row = operand_resolution.canonicalize_structured_operand_reconciliation_refs(
             row
         )
 

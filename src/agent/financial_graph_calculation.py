@@ -185,7 +185,7 @@ from src.agent.financial_operand_resolution import (
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
-    _canonicalize_structured_operand_reconciliation_refs,
+    canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
     coerce_operand_period_from_evidence_surface,
@@ -9387,7 +9387,7 @@ class FinancialAgentCalculationMixin:
             }
         if direct_structured_rows:
             direct_structured_rows = [
-                _canonicalize_structured_operand_reconciliation_refs(row)
+                canonicalize_structured_operand_reconciliation_refs(row)
                 for row in direct_structured_rows
             ]
         # If reconciliation already found every required operand as clean
