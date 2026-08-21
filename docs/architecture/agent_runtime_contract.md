@@ -6096,64 +6096,81 @@ pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 235.375
 seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The active visibility contract renames only the exact 17-line
-`financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
-row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
-`canonicalize_structured_operand_reconciliation_refs(...)`. Update exactly its
-one `financial_graph_calculation.py` import and sole direct production call,
-plus the existing exact owner-name string and direct module-attribute test
-call. Preserve lines 377-393, the one positional argument, absence of defaults
-and keyword-only arguments, and the `Dict[str, Any]` return annotation.
+Commit `c9a315f` completed the structured reconciliation-reference visibility
+contract. It renamed only the exact 17-line helper in place to public
+`canonicalize_structured_operand_reconciliation_refs(...)` and updated its one
+`financial_graph_calculation.py` import/call plus 42 exact test expectations.
+The signature, body, shallow-copy behavior, sibling calls, dedupe, call
+placement, physical line counts, and calculation orchestration remain
+unchanged.
 
-Preserve the initial shallow `dict(row)` copy; exact `evidence_id` then
-`source_row_id` iteration; lazy truth-gated replacement; the
-`_clean_source_row_ids(updated.get("source_row_ids") or [])` boundary; ordered
-per-source `_canonical_structured_reconciliation_id` calls; falsey filtering;
-non-empty-only source-list replacement; ordered dedupe into a fresh list;
-nested identities; input immutability; and every uncaught error. The name-
-normalized definition AST hash is
-`1d792b6cbe7b325d1daa0e24caee951b9c033934ed952587604fbd9a1fa5ec4d`.
+Source/tests/whole commit transforms are `+3/-3`, `+42/-42`, and `+45/-45`
+across two source and two test files; the committed diff SHA-256 is
+`91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
+Public identity/behavior 10/10, focused 665/665 in 182.182 seconds, audit 217,
+pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 235.494
+seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
+CI were **NOT RUN**.
 
-The sole production caller stays in `_extract_calculation_operands` at line
-9390 of `financial_graph_calculation.py`, inside the existing list
-comprehension, with exact one positional `row`, no keywords, and `try` depth
-zero. Its normalized call-record hash is
-`996c6e2a9adc679334704d24f6cda235fff30ba16cc9beed0fa89fb20652ca95`.
-Preserve preceding direct-row recovery and following clean-row short-circuit,
-evidence, trace, and artifact work. Owner/caller remain 4,816/13,464 physical
-lines.
+The active visibility contract renames only the exact 19-line
+`financial_operand_resolution._operand_rows_conflict_by_required_role(
+left_rows: List[Dict[str, Any]], right_rows: List[Dict[str, Any]], *,
+operand_row_value_differs: Callable[[Dict[str, Any], Dict[str, Any]], bool]) ->
+bool` definition in place to public
+`operand_rows_conflict_by_required_role(...)`. Update exactly its one
+`financial_dependency_projection.py` import and sole direct production call,
+plus the existing direct test import and two calls. Preserve lines 1964-1982,
+the two positional arguments, required keyword-only callback, absence of
+defaults, and `bool` return annotation.
+
+Preserve the fresh `right_by_role` mapping; right-row order;
+`matched_operand_role` before `role`; exact whitespace normalization then
+lowercase conversion; falsey-role filtering; ordered per-role list append;
+left-row order and identical role normalization; callback calls only across
+matching roles with original row identities; first-truthy early return; final
+false return; input immutability; and every uncaught error. The name-excluded
+AST-record SHA-256 is
+`9bd624dbb16e10de8b01eb121211f56cba1690a5c2577541646309ad87a1dd03`.
+
+The sole production caller stays in `resolve_main_operand_precedence` at line
+1694 of `financial_dependency_projection.py`, inside the existing ratio and
+recovered-context gate. It passes positional `dependency_rows` and
+`direct_rows`, then keyword
+`operand_row_value_differs=operand_row_values_differ`, under an assignment
+parent at `try` depth zero. The callee-normalized call-record hash is
+`87f4b09497b4ca5c597bdaabb26eaccfc5b7ac9e7dadc46b1c3b1848d7b5bea4`.
+The caller-body source hash changes only for the callee name from
+`ecd7e3d49c1f064700a49b8f87ce075f8de5a8bdc2ea574ba73ffdc90604c197`
+to `39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`.
+Owner/caller remain 4,816/3,419 physical lines.
 
 The production surface is one definition, one external import, one direct
-call, and zero owner-local calls. Tests have two exact selected-name uses. The
-future public name has no pre-existing exact source/test definition, import,
-call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
+call, and zero owner-local calls. Tests have one import and two direct calls.
+The future public name has no pre-existing exact source/test definition,
+import, call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
 introspection consumer, or collision. After the rename private selected refs
-finish zero, the caller binding is identical to the public owner, and owner
-public/private counts move only from 54/37 to 55/36.
+finish zero, the caller binding is identical to the public owner, public exact
+records total six, and owner public/private counts move only from 55/36 to
+56/35.
 
-Update exactly 42 existing test expectations without adding a method or
-weakening an assertion: two direct names; 27 current owner counts (54/37 to
-55/36); two derived counts (53/37 to 54/36); one owner/class tuple (54/37/19
-to 55/36/19); four `_extract_calculation_operands` hashes from
-`8127401da0b0392eadcfe4730463c2b5fbd267f80eb6e944144559cf986fa5ac` to
-`4ed153c6ba332ae278786367a419359f74aed1d86197b93cd2bdc3bafa0a4c73`;
-two desired-consolidation aggregates from
-`98683c3e8ffe2cd83811601c8309ad72fd76c38e3672c4b4b982fa823c188592`
-to `b4109b5d882bd2932b32a3ca669d6cf317ae0227dc7906b731be356c068a7096`;
-and four remaining aggregate hashes pinned in Project Status Next Work.
+Update exactly 33 existing test expectations without adding a method or
+weakening an assertion: three direct names; 27 current owner counts (55/36 to
+56/35); two derived counts (54/36 to 55/35); and one owner/class tuple
+(55/36/19 to 56/35/19). No existing caller or aggregate fingerprint
+expectations change.
 
-Do not rename `_canonical_structured_reconciliation_id` or
-`_clean_source_row_ids`, move another operand-resolution helper, change row or
-nested-object copying, alter direct-row discovery/coverage/adoption, or broaden
-calculation orchestration. Add no compatibility alias, wrapper, callback,
-fallback, trace field, or exception handling.
+Do not rename adjacent operand helpers, change role normalization or callback
+semantics, alter the ratio/recovered-context gate, move display-unit/override/
+selection/scope work, or broaden dependency precedence orchestration. Add no
+compatibility alias, wrapper, callback adapter, fallback, trace field, or
+exception handling.
 
-Source/tests/whole project are projected at `+3/-3`, `+42/-42`, and
-`+45/-45` across two source and two test files; exact temporary diff SHA-256 is
-`91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
-The temporary projection passed public identity/absence plus direct behavior
-10/10, focused 665/665 in 194.689 seconds, audit 217, pycompile 4/4, retired
-selected refs zero, diff check, and unchanged acyclic 48/203 DAG at
+Source/tests/whole project are projected at `+3/-3`, `+33/-33`, and
+`+36/-36` across two source and two test files; exact temporary diff SHA-256 is
+`49da7e5486a11db12a9561b9e5592bbfda82411ac96d2c9025f2a0679afdbb03`.
+The temporary projection passed public identity/behavior 10/10, focused
+695/695 in 256.012 seconds, audit 217, pycompile 4/4, retired selected refs
+zero, diff check, and unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; exact scope is governed by
 [Project Status Next Work](../overview/project_status.md#next-work). Benchmark

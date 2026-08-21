@@ -9414,9 +9414,9 @@ completion claim.
   **NOT RUN**. This name-only milestone establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Structured reconciliation-reference public API characterization checkpoint
+### Structured reconciliation-reference public API milestone
 
-- The next bounded visibility batch renames only the exact 17-line
+- Commit `c9a315f` renames only the exact 17-line
   `financial_operand_resolution._canonicalize_structured_operand_reconciliation_refs(
   row: Dict[str, Any]) -> Dict[str, Any]` definition in place to public
   `canonicalize_structured_operand_reconciliation_refs(...)`. Update exactly
@@ -9467,20 +9467,79 @@ completion claim.
   `c54161def8235e16506e68be3e11f3ad3366088f911f649465cd862d9d072cac`
   to `64e2a49e996110e2fe654302376eaa276c71a9961f0b367f2103c21a2d358ec4`.
   Add no test method and weaken no assertion.
-- Source/tests/whole project exactly project `+3/-3`, `+42/-42`, and
-  `+45/-45` across two source and two test files. The exact temporary diff
+- Source/tests/whole commit transforms are `+3/-3`, `+42/-42`, and
+  `+45/-45` across two source and two test files. The committed diff
   SHA-256 is
   `91d6ee8a832e27c2ba2afb049559ab33ce4c5e95ce5653bf43bdf3ed248e79a4`.
   Identity/behavior 10/10, focused graph-helper/operand-resolution/calculation-
-  execution/operation-contract/import-side-effects 665/665 in 194.689 seconds,
+  execution/operation-contract/import-side-effects 665/665 in 182.182 seconds,
   audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
-  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
-  implementation gate; exact scope and stop lines are governed by
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  unchanged acyclic 48/203 DAG and full 2,143/2,143 in 235.494 seconds passed.
 - Keep `_canonical_structured_reconciliation_id`, `_clean_source_row_ids`, all
   other operand-resolution helpers, direct-row discovery/coverage/adoption,
   evidence, graph state, trace/artifact mutation, and final sequencing outside
   this batch. Add no body move, alias, wrapper, callback, fallback, trace field,
   or new exception boundary. Benchmark refresh and remote CI were **NOT RUN**.
-  This checkpoint establishes no behavior, quality, performance, benchmark,
-  schedule, ledger, or Phase 3 completion claim.
+  This name-only milestone establishes no behavior, quality, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Required-role operand-conflict public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 19-line
+  `financial_operand_resolution._operand_rows_conflict_by_required_role(
+  left_rows: List[Dict[str, Any]], right_rows: List[Dict[str, Any]], *,
+  operand_row_value_differs: Callable[[Dict[str, Any], Dict[str, Any]], bool]) ->
+  bool` definition in place to public
+  `operand_rows_conflict_by_required_role(...)`. Update exactly its one import
+  and one assignment call in `financial_dependency_projection.py`, plus the
+  direct test import and two calls. Do not move the body, rename adjacent
+  helpers, add an alias/wrapper, or broaden dependency precedence.
+- The definition stays at lines 1964-1982 with two positional list arguments,
+  one required keyword-only callback, no defaults, and a `bool` return.
+  Preserve the fresh right-role mapping; right-row order;
+  `matched_operand_role` before `role`; whitespace normalization then lowercase;
+  falsey-role filtering; ordered per-role grouping; left-row order and identical
+  normalization; original row identities passed to the callback; first-truthy
+  early return; final false return; input immutability; and uncaught failures.
+  Its name-excluded AST-record SHA-256 is
+  `9bd624dbb16e10de8b01eb121211f56cba1690a5c2577541646309ad87a1dd03`.
+- The sole production call stays in `resolve_main_operand_precedence` at line
+  1694 of `financial_dependency_projection.py`, inside the ratio and recovered-
+  context gate. It passes positional `dependency_rows`, `direct_rows`, and
+  keyword `operand_row_value_differs=operand_row_values_differ`, under an
+  assignment parent at `try` depth zero. Its callee-normalized record hash is
+  `87f4b09497b4ca5c597bdaabb26eaccfc5b7ac9e7dadc46b1c3b1848d7b5bea4`.
+  The caller-body source hash changes only for the callee spelling from
+  `ecd7e3d49c1f064700a49b8f87ce075f8de5a8bdc2ea574ba73ffdc90604c197`
+  to `39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`.
+  Owner/caller physical line counts remain 4,816/3,419.
+- Current production counts are one definition, one external import, one call,
+  and zero owner-local calls. Tests contain one import and two direct calls; the
+  future public name has no pre-existing exact source/test definition, import,
+  call, patch, attribute, dynamic, wildcard/`__all__`, introspection consumer,
+  or collision. Projected private refs finish zero, dependency/owner identity
+  holds, exact public records total six, and owner public/private counts move
+  only from 55/36 to 56/35.
+- Exactly 33 existing test expectations change: three direct names; 27 current
+  owner counts from 55/36 to 56/35; two derived counts from 54/36 to 55/35; and
+  one owner/class tuple from 55/36/19 to 56/35/19. The initial graph-helper
+  projection passed 290/290 in 207.812 seconds, so no existing caller or
+  aggregate fingerprint expectations change. Add no test method and weaken no
+  assertion.
+- Source/tests/whole project exactly project `+3/-3`, `+33/-33`, and
+  `+36/-36` across two source and two test files. The exact temporary diff
+  SHA-256 is
+  `49da7e5486a11db12a9561b9e5592bbfda82411ac96d2c9025f2a0679afdbb03`.
+  Identity/behavior 10/10, focused graph-helper/operand-resolution/dependency-
+  projection/operation-contract/import-side-effects 695/695 in 256.012 seconds,
+  audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
+  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
+  implementation gate; exact scope and stop lines are governed by
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Keep adjacent operand-resolution helpers, role normalization, display-unit
+  comparison, ratio override policy, source selection, scope filtering,
+  evidence, graph state, trace/artifact mutation, and final sequencing outside
+  this batch. Add no body move, alias, wrapper, callback adapter, fallback,
+  trace field, or new exception boundary. Benchmark refresh and remote CI were
+  **NOT RUN**. This checkpoint establishes no behavior, quality, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.

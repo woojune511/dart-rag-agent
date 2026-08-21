@@ -485,13 +485,21 @@ import/call 각 한 개와 test binding/fingerprint 아홉 개만 갱신했다.
 Narrative-policy/ontology와 `_retrieve` orchestration은 유지됐고 source/tests/
 whole `+3/-3`, `+9/-9`, `+12/-12`, identity/behavior 10/10, focused 343/343,
 audit 217, pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-다음 batch는 `financial_operand_resolution.py`의 exact 17-line
-`_canonicalize_structured_operand_reconciliation_refs(row)`를 public
-`canonicalize_structured_operand_reconciliation_refs(...)`로 rename하고
-graph-calculation import/call 각 한 개와 기존 CURRENT-SOURCE 기대 42개만
-갱신한다. Sibling canonicalizer/normalizer와 calculation orchestration은
-제외한다. Exact projection source/tests/whole `+3/-3`, `+42/-42`, `+45/-45`와
-focused 665/665 경계는
+이어 `c9a315f`가 `financial_operand_resolution.py`의 exact 17-line
+reconciliation-reference canonicalizer를 같은 위치와 본문으로 public
+`canonicalize_structured_operand_reconciliation_refs(...)`로 이름 수렴시키고
+graph-calculation import/call 각 한 개와 기존 test 기대 42개만 갱신했다.
+Sibling canonicalizer/normalizer와 calculation orchestration은 유지됐고
+source/tests/whole `+3/-3`, `+42/-42`, `+45/-45`, identity/behavior 10/10,
+focused 665/665, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
+2,143/2,143가 통과했다. 다음 batch는 같은 owner의 exact 19-line
+`_operand_rows_conflict_by_required_role(...)`를 public
+`operand_rows_conflict_by_required_role(...)`로 rename하고
+`financial_dependency_projection.py` import/call 각 한 개와 기존
+CURRENT-SOURCE 기대 33개만 갱신한다.
+Role normalization/callback order와 precedence orchestration은 유지하고
+adjacent operand helpers는 제외한다. Exact projection source/tests/whole
+`+3/-3`, `+33/-33`, `+36/-36`와 focused 695/695 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
