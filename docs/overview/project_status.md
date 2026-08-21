@@ -16,10 +16,10 @@ Last updated: 2026-08-21
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `eea2935` removed only the unused `TYPE_CHECKING` entry from the existing typing import in `financial_graph_calculation.py`; the physical line and all seven live typing imports remain |
-| What passed? | Selected consumer and guard zero, focused tests 339/339, runtime audit 217, pycompile 1/1, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a dead-import-only cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_retrieval_pipeline._make_document(...)` in place to public `make_document(...)` and update its one evidence import plus three direct calls; preserve its exact body, lines, loader edge, and call placement |
+| What just changed? | `f04e774` renamed only `financial_retrieval_pipeline._make_document(...)` in place to public `make_document(...)` and updated its one evidence import plus three direct calls; the exact wrapper body, loader edge, and call placement remain |
+| What passed? | Public identity/behavior 4/4, focused tests 339/339, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
+| What is next? | Rename only `financial_retrieval_hints._supplement_section_terms_for_query(...)` in place to public `supplement_section_terms_for_query(...)`; update its one reconciliation import/call and five exact CURRENT-SOURCE expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, graph-calculation `TYPE_CHECKING` consumer and guard zero; affected graph/text/import set 339 / 339 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after graph-calculation `TYPE_CHECKING` import cleanup |
+| Latest focused owner checkpoint | PASS, retrieval document-factory public identity/behavior 4 / 4; affected graph/text/import set 339 / 339 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after retrieval document-factory public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,52 +799,75 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact two-line
-`src.agent.financial_retrieval_pipeline._make_document(*, page_content: str,
-metadata: Dict[str, Any]) -> Document` definition in place to public
-`make_document(...)`. Update its one import in
-`financial_graph_evidence.py` and the three direct calls in
-`FinancialAgentEvidenceMixin._expand_via_structure_graph`. Do not move or
-delete the wrapper, redirect the caller to `financial_langchain_loaders`,
-change another private retrieval helper, or alter the unrelated storage-local
-`_make_document` definitions.
+Rename only the exact six-line
+`src.agent.financial_retrieval_hints._supplement_section_terms_for_query(query:
+str, topic: str, intent: str) -> List[str]` definition in place to public
+`supplement_section_terms_for_query(...)`. Update its one import and one direct
+call in `financial_graph_reconciliation.py`. Do not move the body, add an alias
+or wrapper, rename adjacent `_preferred_calc_sections` or other retrieval-hint
+helpers, change ontology/policy data, or alter reconciliation sequencing.
 
-The definition remains at lines 811-812 with two keyword-only arguments, a
-`Document` return annotation, and one exact return statement:
-`document(page_content=page_content, metadata=metadata)`. Its normalized body
+The definition remains at lines 108-113 with exactly three positional
+arguments, no defaults or keyword-only arguments, and a `List[str]` return.
+Preserve the fresh `sections` list, exact `comparison`/`trend` early gate,
+lazy `get_financial_ontology()` access, exact `supplement_sections(query,
+topic, intent)` delegation, ordered `dict.fromkeys` dedupe, fresh return list,
+and every uncaught error. Its name-normalized AST hash is
+`d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468`.
+The sole call remains at reconciliation line 1007 with exact positional
+`query`, `topic`, and `intent`, no keywords, and `try` depth zero. Its record
 hash is
-`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e`.
-The three calls remain at evidence lines 242, 255, and 305, have zero positional
-arguments, preserve the exact `page_content`/`metadata` keyword expressions,
-and stay at `try` depth zero. Their record hash is
-`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
-Both source files keep their current 2,641 and 4,220 physical lines.
+`e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
+The owner and caller retain 318 and 1,462 physical lines.
 
-Before the rename there is one selected definition, one external import, and
-three direct calls; the public name has no pre-existing definition, import,
-call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
-introspection, or exact test consumer. After the rename the selected private
-agent binding must be zero and the evidence binding must be identical to the
-public owner at runtime. The same-named storage-private helpers are outside the
-selected namespace and remain unchanged.
+Current production scope is one definition, one external import, and one
+direct call; one exact patch string is the only selected test-name consumer.
+The public name has no pre-existing source/test definition, import, call,
+patch, attribute, constant-dynamic, wildcard/`__all__`, or reviewed
+introspection consumer. After the rename selected private refs must finish
+zero, the reconciliation binding must be identical to the public owner, and
+owner public/private counts must move exactly 5/9 to 6/8.
 
-An initial direct-loader deletion projection was rejected for this batch: it
-removed the retrieval-to-loader edge, changed the DAG to 48/202, and triggered
-45 graph-wide CURRENT-SOURCE failures before their expected contract updates.
-That consolidation may be characterized separately; it must not be folded into
-this name-only seam. The accepted projection keeps the DAG at 48/203 with edge
-hash `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Update only five existing CURRENT-SOURCE expectations: the reconciliation
+patch target, two owner public/private counts, the selected caller fingerprint
+`8befdd9b9baf7734744d0923e12523f83ce2aba73f4fc7c0968b474a40c7a9a0`
+to `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01`,
+and its aggregate fingerprint
+`0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e`
+to `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`.
+Add no test method and weaken no assertion.
 
-Projected source/tests/whole transforms are `+5/-5`, `+0/-0`, and `+5/-5`
-across exactly two source files. The exact temporary diff SHA-256 is
-`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
-The temporary projection passed public identity/behavior 4/4, focused graph-
-helper/text-surface/import 339/339 in 171.750 seconds, audit 217, pycompile 2/2,
-retired selected agent refs zero, `git diff --check`, and unchanged DAG parity.
+Projected source/tests/whole transforms are `+3/-3`, `+5/-5`, and `+8/-8`
+across exactly two source and two test files. The exact temporary diff SHA-256
+is `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+The temporary projection passed public identity/absence plus direct behavior
+10/10, focused graph-helper/retrieval-hint/reconciliation-plan/import tests
+365/365 in 184.397 seconds, audit 217, pycompile 4/4, retired selected refs
+zero, `git diff --check`, and unchanged acyclic 48/203 DAG parity at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
 and remote CI remain **NOT RUN**. This name-only visibility change would prove
 no behavior, answer-quality, ranking, performance, benchmark, schedule,
 ledger, or Phase 3 completion claim.
+
+## Completed Retrieval Document-Factory Public API
+
+Commit `f04e774` renamed only the exact two-line
+`financial_retrieval_pipeline._make_document(...)` wrapper in place to public
+`make_document(...)` and updated its one evidence import plus three direct
+calls. The keyword-only signature, exact loader delegation, call expressions
+and placement, loader edge, physical line counts, and unrelated storage-local
+helpers remain unchanged. Selected private agent refs finish zero.
+
+Production source, tests, and the whole commit are `+5/-5`, `+0/-0`, and
+`+5/-5` across two source files. The committed diff SHA-256 is
+`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
+Public identity/behavior 4/4, focused graph-helper/text-surface/import tests
+339/339 in 203.334 seconds, audit 217, pycompile 2/2, unchanged acyclic 48/203
+DAG, full discovery 2,143/2,143 in 271.268 seconds, artifact hygiene, and diff
+checks passed. Benchmark refresh and remote CI were **NOT RUN**. This name-only
+visibility milestone establishes no behavior, quality, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Graph-Calculation TYPE_CHECKING Import Cleanup
 

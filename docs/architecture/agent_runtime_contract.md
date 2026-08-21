@@ -6047,44 +6047,75 @@ and the acyclic DAG remained 48 modules/203 edges. Full discovery passed
 2,143/2,143 in 214.291 seconds. Benchmark refresh and remote CI were **NOT
 RUN**.
 
-The active visibility contract renames only the exact two-line
+Commit `f04e774` completed the retrieval document-factory visibility contract.
+It renamed only the exact two-line
 `financial_retrieval_pipeline._make_document(*, page_content: str, metadata:
-Dict[str, Any]) -> Document` definition in place to public `make_document(...)`.
-Update exactly the one evidence import and three direct evidence calls. Preserve
-the definition at lines 811-812, both keyword-only arguments, the `Document`
-return annotation, and the sole exact delegation to
-`document(page_content=page_content, metadata=metadata)`.
+Dict[str, Any]) -> Document` definition in place to public `make_document(...)`
+and updated its one evidence import plus three direct calls. The keyword-only
+signature, `Document` return, exact loader delegation, three call expressions
+and placement, physical line counts, loader edge, and unrelated storage-local
+helpers remain unchanged. Selected private agent refs finish zero.
 
-The normalized definition-body hash is
-`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e`.
-All three calls remain in `_expand_via_structure_graph` at lines 242, 255, and
-305, with zero positional arguments, exact `page_content` and `metadata`
-keyword expressions, and `try` depth zero. Their record hash is
-`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
-Retrieval and evidence remain at 2,641 and 4,220 physical lines.
-
-The current selected surface has one definition, one external import, and
-three calls. The future public name has no pre-existing source/test definition,
-import, call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
-introspection, or exact test consumer. After the rename, selected agent-private
-refs finish zero and `financial_graph_evidence.make_document` is identical to
-the public retrieval owner. Unrelated `_make_document` definitions under
-`src/storage` are distinct private namespaces and remain unchanged.
-
-Do not delete the wrapper or its `financial_langchain_loaders.document` import.
-The rejected direct-loader projection changed the DAG from 48/203 to 48/202 and
-triggered 45 graph-wide CURRENT-SOURCE failures before expected contract
-updates. That consolidation requires its own characterization. The accepted
-name-only projection keeps the DAG at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-
-Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5` across two source
-files; exact temporary diff SHA-256 is
+Source/tests/whole commit transforms are `+5/-5`, `+0/-0`, and `+5/-5` across
+two source files; the committed diff SHA-256 is
 `87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
-The temporary projection passed public identity/behavior 4/4, focused 339/339
-in 171.750 seconds, audit 217, pycompile 2/2, retired selected agent refs zero,
-diff check, and unchanged 48/203 DAG parity. Full 2,143/2,143 remains the
-implementation gate; exact scope is governed by
+Public identity/behavior 4/4, focused 339/339 in 203.334 seconds, audit 217,
+pycompile 2/2, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 271.268
+seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
+CI were **NOT RUN**.
+
+The active visibility contract renames only the exact six-line
+`financial_retrieval_hints._supplement_section_terms_for_query(query: str,
+topic: str, intent: str) -> List[str]` definition in place to public
+`supplement_section_terms_for_query(...)`. Update exactly the one
+`financial_graph_reconciliation.py` import and the sole direct call in
+`_supplement_section_seed_docs`. Preserve lines 108-113, all three positional
+arguments, absence of defaults and keyword-only arguments, and the `List[str]`
+return annotation.
+
+Preserve a fresh annotated `sections` list; the exact
+`intent not in {"comparison", "trend"}` early return before ontology access;
+lazy `get_financial_ontology().supplement_sections(query, topic, intent)`;
+ordered `dict.fromkeys` dedupe; fresh list results; and all uncaught failures.
+The name-normalized definition AST hash is
+`d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468`.
+The sole caller stays at reconciliation line 1007, passes exact positional
+`query`, `topic`, and `intent` without keywords at `try` depth zero, and retains
+record hash
+`e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
+Owner and caller remain 318 and 1,462 physical lines.
+
+The selected production surface is one definition, one external import, and
+one direct call. One exact patch string is the only selected test-name consumer;
+the public name has no pre-existing source/test definition, import, call,
+patch, attribute, constant-dynamic, wildcard/`__all__`, or reviewed
+introspection consumer. After the rename private selected refs finish zero,
+the reconciliation binding is identical to the public owner, and owner
+public/private counts change only from 5/9 to 6/8.
+
+Update exactly five existing CURRENT-SOURCE expectations without adding a test
+or weakening an assertion: the patch target, two owner counts, the selected
+caller hash from
+`8befdd9b9baf7734744d0923e12523f83ce2aba73f4fc7c0968b474a40c7a9a0`
+to `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01`,
+and the aggregate caller hash from
+`0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e`
+to `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`.
+
+Do not rename adjacent `_preferred_calc_sections`, move another retrieval-hint
+helper, change ontology or policy data, modify state/query/topic/intent
+resolution, reorder the subsequent `_active_preferred_sections` extension and
+dedupe, or broaden reconciliation orchestration. Add no compatibility alias,
+wrapper, callback, fallback, trace field, or exception handling.
+
+Source/tests/whole project are projected at `+3/-3`, `+5/-5`, and `+8/-8`
+across two source and two test files; exact temporary diff SHA-256 is
+`a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+The temporary projection passed public identity/absence plus direct behavior
+10/10, focused 365/365 in 184.397 seconds, audit 217, pycompile 4/4, retired
+selected refs zero, diff check, and unchanged acyclic 48/203 DAG at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Full 2,143/2,143 remains the implementation gate; exact scope is governed by
 [Project Status Next Work](../overview/project_status.md#next-work). Benchmark
 refresh and remote CI were **NOT RUN**.
 

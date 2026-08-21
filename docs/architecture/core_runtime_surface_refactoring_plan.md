@@ -2158,33 +2158,49 @@ and guard zero, unchanged 48/203 DAG, full 2,143/2,143 in 214.291 seconds,
 artifact hygiene, and diff checks passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The next bounded visibility seam renames only the exact two-line
-`financial_retrieval_pipeline._make_document(...)` definition in place to
-public `make_document(...)`, then updates its one evidence import and three
-direct calls. Preserve lines 811-812, keyword-only `page_content`/`metadata`,
-the `Document` return, the exact loader delegation, all three call lines and
-keyword expressions, and `try` depth zero.
+The retrieval document-factory visibility seam completed in `f04e774`. Only
+the exact two-line wrapper was renamed in place to public `make_document(...)`;
+one evidence import and three direct calls changed names. The signature, body,
+loader edge, call placement, source lines, and unrelated storage helpers remain
+unchanged. Source/tests/whole were `+5/-5`, `+0/-0`, and `+5/-5`; focused
+339/339 in 203.334 seconds, audit 217, pycompile 2/2, public identity/behavior
+4/4, unchanged 48/203 DAG, and full 2,143/2,143 in 271.268 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-Normalized body and three-call record hashes are
-`750d355368ac00dbda6bc8c99170cdfe3dae0cfc1e41550cc217fd676fb8150e` /
-`3d198cada1c995990bc593c176974d327a2da4b028075fceda0c67e7f7a29090`.
-Both source physical line counts stay 2,641/4,220. Selected current counts are
-one definition, one external import, and three calls; the public name has zero
-pre-existing source/test consumer. Retire only the selected agent-private
-binding, not unrelated storage-local `_make_document` helpers.
+The next bounded visibility seam renames only the exact six-line
+`financial_retrieval_hints._supplement_section_terms_for_query(query, topic,
+intent)` definition in place to public
+`supplement_section_terms_for_query(...)`, then updates its one reconciliation
+import and one direct call. Preserve lines 108-113, the three positional
+arguments and `List[str]` return, fresh-list construction, exact comparison/
+trend early gate, lazy ontology delegation, ordered dedupe, fresh return, and
+uncaught exception behavior.
 
-Do not delete the wrapper or direct the evidence caller to the loader in this
-batch. That rejected projection changed the DAG to 48/202 and triggered 45
-CURRENT-SOURCE failures; it requires a separate contract. The name-only
-projection remains 48/203 at
+The name-normalized body and sole-call record hashes are
+`d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468` /
+`e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
+The call stays at reconciliation line 1007 with exact positional
+`query`/`topic`/`intent`, no keywords, and `try` depth zero. Owner/caller line
+counts remain 318/1,462. Production counts are one definition, one external
+import, and one call; the sole exact test-name consumer is one patch string and
+the public name has no pre-existing consumer or collision.
+
+Update only the patch target, two owner public/private expectations (5/9 to
+6/8), and the selected/aggregate caller hashes. Add no test method or weakened
+assertion. Source/tests/whole project exactly project `+3/-3`, `+5/-5`, and
+`+8/-8` across two source and two test files; exact temporary diff SHA-256 is
+`a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+
+Keep adjacent retrieval helpers, ontology/policy, state/query/topic/intent
+resolution, active-preferred-section extension, candidate construction,
+evidence adoption, graph state, artifact/ledger mutation, and final sequencing
+outside this batch. Add no alias, wrapper, fallback, callback, trace field, or
+new exception boundary. The projection passed identity/absence and direct
+behavior 10/10, focused 365/365 in 184.397 seconds, audit 217, pycompile 4/4,
+retired selected refs zero, diff check, and unchanged acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5`; exact temporary
-diff SHA-256 is
-`87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
-The projection passed public identity/behavior 4/4, focused 339/339 in 171.750
-seconds, audit 217, pycompile 2/2, retired selected refs zero, and diff/DAG
-checks. Full 2,143/2,143 remains the implementation gate; exact scope and stop
-lines are authoritative only in
+Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
+are authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 Benchmark refresh and remote CI were **NOT RUN**.
 

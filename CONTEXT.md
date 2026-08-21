@@ -465,12 +465,19 @@ full 2,143/2,143가 통과했다. 이어 `eea2935`가
 항목만 같은 typing import 줄에서 삭제했다. 나머지 일곱 typing binding과 모든
 line fingerprint는 유지됐고 source/whole `+1/-1`, tests 변경 0, focused
 339/339, audit 217, pycompile 1/1, unchanged 48/203 DAG, full 2,143/2,143가
-통과했다. 다음 batch는 `financial_retrieval_pipeline.py`의 exact 2-line
-`_make_document(...)` wrapper를 같은 위치와 본문으로 public
-`make_document(...)`로 rename하고 evidence import 한 개와 direct call 세 개만
-갱신한다. Direct-loader deletion, 다른 retrieval helper, storage-local 동명
-helper는 제외한다. Exact projection source/whole `+5/-5`, tests 변경 0,
-focused 339/339 경계는
+통과했다. 이어 `f04e774`가 `financial_retrieval_pipeline.py`의 exact 2-line
+document wrapper를 같은 위치와 본문으로 public `make_document(...)`로
+이름 수렴시키고 evidence import 한 개와 direct call 세 개만 갱신했다. Loader
+edge, 세 keyword call, unrelated storage-local helper는 유지됐고 source/whole
+`+5/-5`, tests 변경 0, public identity/behavior 4/4, focused 339/339, audit
+217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음
+batch는 `financial_retrieval_hints.py`의 exact 6-line
+`_supplement_section_terms_for_query(query, topic, intent)`를 같은 위치와
+본문으로 public `supplement_section_terms_for_query(...)`로 rename하고
+reconciliation import/call 각 한 개와 기존 CURRENT-SOURCE 기대 다섯 개만
+갱신한다. Adjacent retrieval helper, ontology/policy, caller sequencing은
+제외한다. Exact projection source/tests/whole `+3/-3`, `+5/-5`, `+8/-8`와
+focused 365/365 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

@@ -9271,9 +9271,9 @@ completion claim.
   milestone is not a behavior, answer-quality, ranking, performance,
   benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Retrieval document-factory public API characterization checkpoint
+### Retrieval document-factory public API milestone
 
-- The next bounded visibility batch renames only the exact two-line
+- Commit `f04e774` renames only the exact two-line
   `financial_retrieval_pipeline._make_document(*, page_content: str, metadata:
   Dict[str, Any]) -> Document` definition in place to public
   `make_document(...)`. Update exactly its one evidence import and three calls
@@ -9300,14 +9300,63 @@ completion claim.
   updates. It is a separate consolidation contract. The accepted name-only
   projection keeps the 48/203 DAG at
   `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-- Source/tests/whole project are `+5/-5`, `+0/-0`, and `+5/-5` across two
-  source files. The exact temporary diff SHA-256 is
+- Source/tests/whole commit transforms are `+5/-5`, `+0/-0`, and `+5/-5`
+  across two source files. The committed diff SHA-256 is
   `87b8eb4bbafb1f461d6671f7753d6de21a607ac038fecbc47ed7d34f532a0d9e`.
   Public identity/behavior 4/4, focused graph-helper/text-surface/import 339/339
-  in 171.750 seconds, audit 217, pycompile 2/2, retired selected refs zero,
-  artifact hygiene, diff check, and unchanged DAG passed. Full 2,143/2,143
-  remains the implementation gate; exact scope and stop lines are governed by
+  in 203.334 seconds, audit 217, pycompile 2/2, retired selected refs zero,
+  artifact hygiene, diff check, and unchanged DAG passed. Full discovery passed
+  2,143/2,143 in 271.268 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This name-only milestone
+  establishes no behavior, quality, performance, benchmark, schedule, ledger,
+  or Phase 3 completion claim.
+
+### Retrieval supplement-section public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact six-line
+  `financial_retrieval_hints._supplement_section_terms_for_query(query: str,
+  topic: str, intent: str) -> List[str]` definition in place to public
+  `supplement_section_terms_for_query(...)`. Update exactly its one import and
+  one direct call in `financial_graph_reconciliation.py`. Do not move the body,
+  rename adjacent retrieval helpers, add an alias/wrapper, change ontology or
+  policy data, or broaden reconciliation orchestration.
+- The definition stays at lines 108-113 with three positional arguments, no
+  defaults or keyword-only arguments, and a `List[str]` return. Preserve the
+  fresh annotated list, exact comparison/trend early gate before ontology
+  access, lazy `supplement_sections(query, topic, intent)` delegation, ordered
+  dedupe, fresh return, and uncaught failures. Its name-normalized AST hash is
+  `d4d297a9b8552e20eaf8d7d46fc49d446743d3e074acf1e08ea670f702d74468`.
+- The sole production call stays at reconciliation line 1007 with exact
+  positional `query`, `topic`, and `intent`, no keywords, and `try` depth zero.
+  Its record hash is
+  `e000be70acb3ffafce4974895677d66cad1aeb908843f90849f6097bac1b690c`.
+  Owner/caller physical line counts remain 318/1,462.
+- Current production counts are one definition, one external import, and one
+  call. One exact patch string is the only selected test-name consumer; the
+  public name has no pre-existing source/test definition, import, call, patch,
+  attribute, dynamic, wildcard/`__all__`, introspection consumer, or collision.
+  Projected private refs finish zero, reconciliation/owner identity holds, and
+  owner public/private counts move only from 5/9 to 6/8.
+- Five exact CURRENT-SOURCE expectations change: the patch target, two owner
+  counts, the selected caller fingerprint from
+  `8befdd9b9baf7734744d0923e12523f83ce2aba73f4fc7c0968b474a40c7a9a0`
+  to `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01`,
+  and its aggregate fingerprint from
+  `0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e`
+  to `b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14`.
+  Add no test method and weaken no assertion.
+- Source/tests/whole project exactly project `+3/-3`, `+5/-5`, and `+8/-8`
+  across two source and two test files. The exact temporary diff SHA-256 is
+  `a2d27efd562dd2134ea1f0f86a41877a9522811236d59b4d998a2ac99efe774c`.
+  Identity/absence plus direct behavior 10/10, focused graph-helper/retrieval-
+  hint/reconciliation-plan/import 365/365 in 184.397 seconds, audit 217,
+  pycompile 4/4, retired selected refs zero, diff check, and unchanged acyclic
+  48/203 DAG passed. Full 2,143/2,143 remains the implementation gate; exact
+  scope and stop lines are governed by
   [Project Status Next Work](../overview/project_status.md#next-work).
-- Benchmark refresh and remote CI were **NOT RUN**. The projection establishes
-  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+- A first review-only dependency invocation stopped during imports because it
+  omitted runtime requirements; it is not counted as a source-test result. The
+  correctly provisioned rerun produced the 365/365 result above. Benchmark
+  refresh and remote CI were **NOT RUN**. This checkpoint establishes no
+  behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
