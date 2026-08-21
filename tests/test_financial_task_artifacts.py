@@ -2690,7 +2690,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return_value=["doc"],
         ), patch.object(
             financial_graph_calculation,
-            "_missing_required_operands",
+            "missing_required_operands",
             return_value=False,
         ), patch.object(
             financial_graph_calculation,
@@ -2727,7 +2727,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return_value=["doc"],
         ), patch.object(
             financial_graph_calculation,
-            "_missing_required_operands",
+            "missing_required_operands",
             return_value=False,
         ), patch.object(
             financial_graph_calculation,

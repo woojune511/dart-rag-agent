@@ -2393,7 +2393,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                 "_build_period_comparison_operands_from_table_label_context",
                 return_value=planning_operands,
             ),
-            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(graph_calculation, "missing_required_operands", return_value=[]),
             patch.object(
                 graph_calculation,
                 "_resolve_runtime_calculation_trace",
@@ -2909,7 +2909,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(agent, "_calc_query", return_value="ratio query"),
             patch.object(agent, "_calc_metric_family", side_effect=metric_owner),
             patch.object(agent, "_build_deterministic_lookup_plan", return_value=None),
-            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(graph_calculation, "missing_required_operands", return_value=[]),
             patch.object(graph_calculation, "get_financial_ontology", return_value=ontology),
             patch.object(
                 graph_calculation,
@@ -2938,7 +2938,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(agent, "_calc_query", return_value="ratio query"),
             patch.object(agent, "_calc_metric_family", side_effect=RuntimeError("metric failed")),
             patch.object(agent, "_build_deterministic_lookup_plan", return_value=None),
-            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(graph_calculation, "missing_required_operands", return_value=[]),
             patch.object(graph_calculation, "get_financial_ontology", return_value=ontology),
             patch.object(graph_calculation, "guard_operation_plan", later_guard),
             self.assertRaisesRegex(RuntimeError, "metric failed"),

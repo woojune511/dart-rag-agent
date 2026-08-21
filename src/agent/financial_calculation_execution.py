@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 from src.agent.financial_answer_slots import build_answer_slots, build_calculated_value_slot
 from src.agent.financial_formula_eval import _safe_eval_formula
 from src.agent.financial_operand_resolution import (
-    _missing_required_operands,
+    missing_required_operands,
     _operand_row_matches_requirement,
     ratio_operand_rows_collapse_to_same_slot,
 )
@@ -162,7 +162,7 @@ def guard_operation_plan(
 
     selected_rows = [operand_by_id[operand_id] for operand_id in unique_ids]
     if family == "ratio" and required_operands:
-        missing_required = _missing_required_operands(required_operands, selected_rows)
+        missing_required = missing_required_operands(required_operands, selected_rows)
         missing_info.extend(
             _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
             for item in missing_required

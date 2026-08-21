@@ -21,7 +21,7 @@ from src.agent.financial_operand_resolution import (
     evidence_surface_contains_segment_label,
     filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
-    _missing_required_operands,
+    missing_required_operands,
     operand_row_display_unit_set,
     _operand_row_conflicts_with_requirement,
     _operand_row_groups_collapse_to_same_slot,
@@ -3483,7 +3483,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         required_before = deepcopy(required)
         rows_before = deepcopy(rows)
 
-        missing = _missing_required_operands(required, rows)
+        missing = missing_required_operands(required, rows)
 
         self.assertEqual(missing, [required[0], required[2]])
         self.assertIsNot(missing[0], required[0])

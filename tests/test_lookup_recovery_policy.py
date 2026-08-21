@@ -1562,7 +1562,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 side_effect=period_row_builder,
             ),
             patch.object(financial_graph_calculation, "score_direct_structured_lookup_evidence", return_value=Score()),
-            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "missing_required_operands", return_value=False),
             patch.object(financial_graph_calculation, "ratio_operand_rows_collapse_to_same_slot", return_value=False),
             patch.object(financial_graph_calculation, "merge_operand_rows", side_effect=merge_rows),
             patch.object(

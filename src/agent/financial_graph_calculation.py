@@ -199,7 +199,7 @@ from src.agent.financial_operand_resolution import (
     evidence_item_conflicts_requested_scope,
     filter_operand_rows_by_required_surface_contract,
     merge_operand_rows,
-    _missing_required_operands,
+    missing_required_operands,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     operand_rows_have_single_table_context,
     operand_slot_has_evidence_surface_match,
@@ -2150,7 +2150,7 @@ class FinancialAgentCalculationMixin:
             def _has_complete_direct_period_context_operands(rows: List[Dict[str, Any]]) -> bool:
                 if operation_family not in {"difference", "growth_rate"} or not required_operands:
                     return False
-                if not rows or _missing_required_operands(required_operands, rows):
+                if not rows or missing_required_operands(required_operands, rows):
                     return False
                 if not operand_rows_have_single_table_context(rows):
                     return False
@@ -7672,7 +7672,7 @@ class FinancialAgentCalculationMixin:
                 if not best_row:
                     return []
                 direct_rows.append(best_row)
-            if _missing_required_operands(required_operands, direct_rows):
+            if missing_required_operands(required_operands, direct_rows):
                 return []
             if ratio_operand_rows_collapse_to_same_slot(direct_rows):
                 return []
@@ -7702,7 +7702,7 @@ class FinancialAgentCalculationMixin:
                     required_operands,
                     require_direct_support=True,
                 )
-            if _missing_required_operands(required_operands, rows):
+            if missing_required_operands(required_operands, rows):
                 continue
             if ratio_operand_rows_collapse_to_same_slot(rows):
                 continue
@@ -7854,7 +7854,7 @@ class FinancialAgentCalculationMixin:
                         "stated_change_raw_unit": _normalise_spaces(str(best_slot.get("stated_change_raw_unit") or "")),
                     }
                 )
-            if _missing_required_operands(required_operands, rows):
+            if missing_required_operands(required_operands, rows):
                 continue
             if period_comparison_operand_rows_collapse_to_same_slot(rows):
                 continue
@@ -7992,7 +7992,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 operation_family=operation_family,
             )
-            if _missing_required_operands(required_operands, context_rows):
+            if missing_required_operands(required_operands, context_rows):
                 updated_results.append(result_row)
                 continue
             context_has_source_stated_change = bool(
@@ -8972,7 +8972,7 @@ class FinancialAgentCalculationMixin:
             fallback_rows,
             required_operands=required_operands,
         )
-        return operand_rows, _missing_required_operands(required_operands, operand_rows) if required_operands else []
+        return operand_rows, missing_required_operands(required_operands, operand_rows) if required_operands else []
 
     def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build the operand set for the current calculation subtask.
@@ -9223,12 +9223,12 @@ class FinancialAgentCalculationMixin:
         direct_rows_cover_required_operands = bool(
             required_operands
             and direct_structured_rows
-            and not _missing_required_operands(required_operands, direct_structured_rows)
+            and not missing_required_operands(required_operands, direct_structured_rows)
         )
         dependency_rows_cover_required_operands = bool(
             required_operands
             and dependency_rows
-            and not _missing_required_operands(required_operands, dependency_rows)
+            and not missing_required_operands(required_operands, dependency_rows)
         )
         direct_rows_have_coherent_context = bool(
             direct_rows_cover_required_operands
@@ -9436,7 +9436,7 @@ class FinancialAgentCalculationMixin:
             if synthesis_operands:
                 coverage = (
                     "sufficient"
-                    if not _missing_required_operands(required_operands, synthesis_operands)
+                    if not missing_required_operands(required_operands, synthesis_operands)
                     else "partial"
                 )
             logger.info(
@@ -9612,7 +9612,7 @@ class FinancialAgentCalculationMixin:
                 )
                 operand_rows = llm_operand_selection.selected_operand_rows
 
-            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            missing_required = missing_required_operands(required_operands, operand_rows) if required_operands else []
             operand_rows, missing_required = self._merge_required_operand_fallback_rows(
                 state,
                 operand_rows,
@@ -9712,19 +9712,19 @@ class FinancialAgentCalculationMixin:
                 elif required_operands:
                     merged_coverage = (
                         "sufficient"
-                        if not _missing_required_operands(required_operands, operand_rows)
+                        if not missing_required_operands(required_operands, operand_rows)
                         else "partial"
                     )
             elif direct_structured_rows and operand_rows and required_operands:
                 merged_coverage = (
                     "sufficient"
-                    if not _missing_required_operands(required_operands, operand_rows)
+                    if not missing_required_operands(required_operands, operand_rows)
                     else "partial"
                 )
             elif preserved_operand_source and operand_rows:
                 merged_coverage = (
                     "sufficient"
-                    if required_operands and not _missing_required_operands(required_operands, operand_rows)
+                    if required_operands and not missing_required_operands(required_operands, operand_rows)
                     else "partial"
                 )
             logger.info("[calc_operands] coverage=%s operands=%s", merged_coverage, len(operand_rows))
@@ -9823,7 +9823,7 @@ class FinancialAgentCalculationMixin:
             if isinstance(item, dict) and bool(item.get("required", True))
         ]
         if required_operands and operation_family in {"ratio", "difference", "growth_rate", "sum"}:
-            missing_required = _missing_required_operands(required_operands, operands)
+            missing_required = missing_required_operands(required_operands, operands)
             if missing_required:
                 missing_labels = [
                     _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
@@ -11795,7 +11795,7 @@ class FinancialAgentCalculationMixin:
                         }
                     )
                 )
-            if _missing_required_operands(bindings, dependency_rows):
+            if missing_required_operands(bindings, dependency_rows):
                 continue
             if ratio_operand_rows_collapse_to_same_slot(dependency_rows):
                 continue
@@ -11987,7 +11987,7 @@ class FinancialAgentCalculationMixin:
                 topic=str(state.get("topic") or ""),
                 report_scope=dict(state.get("report_scope") or {}),
             )
-            if _missing_required_operands(context_required_operands, context_rows):
+            if missing_required_operands(context_required_operands, context_rows):
                 continue
             if ratio_operand_rows_collapse_to_same_slot(context_rows):
                 continue
@@ -12049,7 +12049,7 @@ class FinancialAgentCalculationMixin:
                 )
             dependency_rows_cover_required = bool(
                 dependency_rows
-                and not _missing_required_operands(context_required_operands, dependency_rows)
+                and not missing_required_operands(context_required_operands, dependency_rows)
             )
             if dependency_rows_cover_required:
                 context_by_role: Dict[str, List[Dict[str, Any]]] = {}

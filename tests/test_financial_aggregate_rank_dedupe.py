@@ -6886,7 +6886,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 conflict_owner,
             ),
             patch.object(financial_graph_calculation, "collect_retrieval_context_docs", return_value=["doc"]),
-            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "missing_required_operands", return_value=False),
             patch.object(financial_graph_calculation, "ratio_operand_rows_collapse_to_same_slot", return_value=False),
             patch.object(financial_graph_calculation.calculation_rendering, "ratio_result_projection", return_value=projection),
         ):
@@ -6920,7 +6920,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 failing_conflict_owner,
             ),
             patch.object(financial_graph_calculation, "collect_retrieval_context_docs", return_value=["doc"]),
-            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "missing_required_operands", return_value=False),
             patch.object(financial_graph_calculation, "ratio_operand_rows_collapse_to_same_slot", return_value=False),
             patch.object(financial_graph_calculation.calculation_rendering, "ratio_result_projection", return_value=projection),
             self.assertRaisesRegex(RuntimeError, "conflict failed"),

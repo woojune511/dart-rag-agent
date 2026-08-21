@@ -1380,7 +1380,7 @@ def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any
     return any(operand_text_match(surface, operand) for surface in surfaces if surface)
 
 
-def _missing_required_operands(
+def missing_required_operands(
     required_operands: List[Dict[str, Any]],
     operand_rows: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
@@ -2352,7 +2352,7 @@ def merge_operand_rows(
             merged.append(candidate)
         return merged
 
-    remaining_required = _missing_required_operands(required_operands, merged)
+    remaining_required = missing_required_operands(required_operands, merged)
     ordered_required: List[Tuple[Tuple[str, str, str], Dict[str, Any]]] = []
     required_by_key: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
     for operand in remaining_required:
@@ -2420,7 +2420,7 @@ def resolve_required_operand_candidate_merge(
             required_operands=merge_input.required_operands,
         )
 
-    candidate_rows_cover_required = not _missing_required_operands(
+    candidate_rows_cover_required = not missing_required_operands(
         merge_input.required_operands,
         merged_candidate_rows,
     )

@@ -23,7 +23,7 @@ from src.agent.financial_graph_helpers import (
 from src.agent.financial_scope_policies import query_period_focus
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
-    _missing_required_operands,
+    missing_required_operands,
 )
 from src.agent.financial_row_surfaces import (
     extract_numeric_value_after_operand_text,
@@ -2281,7 +2281,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertIn("2023년 지역시장", queries)
 
     def test_percent_result_row_does_not_satisfy_raw_period_operand(self) -> None:
-        missing = _missing_required_operands(
+        missing = missing_required_operands(
             [
                 {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
                 {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
@@ -2301,7 +2301,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(len(missing), 2)
 
     def test_period_specific_row_does_not_satisfy_other_period_operand(self) -> None:
-        missing = _missing_required_operands(
+        missing = missing_required_operands(
             [
                 {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
                 {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
@@ -2389,7 +2389,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
             },
         ]
 
-        missing = _missing_required_operands(required_operands, direct_rows)
+        missing = missing_required_operands(required_operands, direct_rows)
         merged = merge_operand_rows(
             direct_rows,
             fallback_rows,

@@ -12,7 +12,7 @@ from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
-    _missing_required_operands,
+    missing_required_operands,
     operand_row_conflicts_requested_scope,
     operand_row_display_unit_set,
     _operand_row_matches_requirement,
@@ -970,7 +970,7 @@ def prefer_complete_ratio_direct_context_rows(
 
     if not operand_rows or not direct_rows or not required_operands:
         return operand_rows
-    if _missing_required_operands(required_operands, direct_rows):
+    if missing_required_operands(required_operands, direct_rows):
         return operand_rows
 
     def _row_key(row: Dict[str, Any]) -> tuple[str, str]:
@@ -1671,12 +1671,12 @@ def resolve_main_operand_precedence(
     direct_rows_cover_required_operands = bool(
         required_operands
         and direct_rows
-        and not _missing_required_operands(required_operands, direct_rows)
+        and not missing_required_operands(required_operands, direct_rows)
     )
     dependency_rows_cover_required_operands = bool(
         required_operands
         and dependency_rows
-        and not _missing_required_operands(required_operands, dependency_rows)
+        and not missing_required_operands(required_operands, dependency_rows)
     )
     required_prefers_aggregate_stage = any(
         bool(dict(row.get("binding_policy") or {}).get("prefer_aggregation_stages"))
@@ -1882,7 +1882,7 @@ def resolve_late_dependency_remerge(
             )
             complete_direct_context_blocks_dependency_remerge = bool(
                 operand_rows_have_single_table_context(active_direct_context_rows)
-                and not _missing_required_operands(
+                and not missing_required_operands(
                     remerge_input.required_operands,
                     active_direct_context_rows,
                 )
