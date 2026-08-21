@@ -205,7 +205,7 @@ from src.agent.financial_operand_resolution import (
     _operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
-    _period_comparison_operand_rows_collapse_to_same_slot,
+    period_comparison_operand_rows_collapse_to_same_slot,
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
@@ -2154,7 +2154,7 @@ class FinancialAgentCalculationMixin:
                     return False
                 if not operand_rows_have_single_table_context(rows):
                     return False
-                if _period_comparison_operand_rows_collapse_to_same_slot(rows):
+                if period_comparison_operand_rows_collapse_to_same_slot(rows):
                     return False
                 for operand_row in rows:
                     source_ids = _clean_source_row_ids(
@@ -7856,7 +7856,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(required_operands, rows):
                 continue
-            if _period_comparison_operand_rows_collapse_to_same_slot(rows):
+            if period_comparison_operand_rows_collapse_to_same_slot(rows):
                 continue
             surface = _group_surface(group_items)
             score = float(len(rows) * 100)
@@ -9234,7 +9234,7 @@ class FinancialAgentCalculationMixin:
             direct_rows_cover_required_operands
             and operand_rows_have_single_table_context(direct_structured_rows)
             and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-            and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
+            and not period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
 
         retrieved_ratio_context_recovered = False
@@ -10926,7 +10926,7 @@ class FinancialAgentCalculationMixin:
             active_subtask["operation_family"] = operation_family
         if metric_label:
             active_subtask["metric_label"] = metric_label
-        if operation_family in {"difference", "growth_rate"} and _period_comparison_operand_rows_collapse_to_same_slot(
+        if operation_family in {"difference", "growth_rate"} and period_comparison_operand_rows_collapse_to_same_slot(
             operands
         ):
             return _unchanged("same_slot")

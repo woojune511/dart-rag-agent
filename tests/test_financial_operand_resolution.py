@@ -30,7 +30,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_satisfies_required_surface_contract,
     operand_rows_conflict_by_required_role,
     operand_rows_have_single_table_context,
-    _period_comparison_operand_rows_collapse_to_same_slot,
+    period_comparison_operand_rows_collapse_to_same_slot,
     _ratio_operand_rows_collapse_to_same_slot,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
@@ -3823,17 +3823,17 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _period_comparison_operand_rows_collapse_to_same_slot(
+            period_comparison_operand_rows_collapse_to_same_slot(
                 [current_row, stale_prior_row]
             )
         )
         self.assertFalse(
-            _period_comparison_operand_rows_collapse_to_same_slot(
+            period_comparison_operand_rows_collapse_to_same_slot(
                 [current_row, real_prior_row]
             )
         )
         self.assertTrue(
-            _period_comparison_operand_rows_collapse_to_same_slot(
+            period_comparison_operand_rows_collapse_to_same_slot(
                 [
                     {**current_row, "matched_operand_role": "minuend"},
                     {**stale_prior_row, "matched_operand_role": "subtrahend"},
