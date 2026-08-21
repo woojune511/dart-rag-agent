@@ -6375,12 +6375,13 @@ wrapper, fallback, vocabulary, trace field, or exception boundary. Benchmark
 refresh and remote CI were **NOT RUN**. Full completed details are preserved in
 [Project Status Completed Evidence Surface](../overview/project_status.md#completed-evidence-surface-segment-label-predicate-public-api).
 
-The active visibility contract now renames only the exact 21-line
+Commit `03da7b8` completed the visibility contract that renamed only the exact
+21-line
 `financial_operand_resolution._filter_operand_rows_by_required_surface_contract(
 rows: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]],
 required_operands: List[Dict[str, Any]], *, require_direct_support: bool = False)
 -> List[Dict[str, Any]]` definition in place to public
-`filter_operand_rows_by_required_surface_contract(...)`. Update exactly its
+`filter_operand_rows_by_required_surface_contract(...)`. It updated exactly its
 graph-calculation import and two calls, plus nine selected test import/call/
 patch-name references. Preserve lines 1715-1735, three positional arguments,
 one keyword-only default, and the list return annotation.
@@ -6419,12 +6420,67 @@ Projected source/tests/whole transforms are `+4/-4`, `+39/-39`, and
 `9050fa7476700f2041db5a1fedfefbb55ca41315c447c1d98b4fa80ebecb543c`.
 The projected direct behavior test, graph identity, graph-helper 290/290 in
 244.163 seconds, focused 911/911 in 303.417 seconds, audit 217, pycompile 6/6,
-retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed. Full
-2,143/2,143 remains the implementation gate. Keep private callees, caller
+retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed. The
+committed implementation then passed direct behavior 1/1, graph/public-owner
+identity, focused 911/911 in 308.132 seconds, audit 217, pycompile 6/6,
+private/public records 0/13, owner counts 62/29, unchanged 48/203 DAG, and full
+2,143/2,143 in 350.243 seconds. Keep private callees, caller
 bodies, evidence orchestration, state, trace/artifact mutation, and final
 sequencing outside this batch. Add no body move, alias, wrapper, fallback,
 vocabulary, trace field, or exception boundary. Benchmark refresh and remote
 CI were **NOT RUN**. Full hash/count details are authoritative in
+[Project Status Completed Required Surface](../overview/project_status.md#completed-required-surface-operand-row-filter-public-api).
+
+The active visibility contract now renames only the exact 53-line
+`financial_operand_resolution._operand_slot_has_evidence_surface_match(
+slot: Dict[str, Any], evidence_item: Optional[Dict[str, Any]],
+operand: Dict[str, Any], *, metric_label: str = "") -> bool` definition in
+place to public `operand_slot_has_evidence_surface_match(...)`. Update exactly
+its graph-calculation import and six calls, plus four selected graph-helper and
+operand-resolution test owner-name/attribute references. Preserve lines
+396-448, three positional arguments, one keyword-only string default, and the
+`bool` return annotation.
+
+Preserve the normalized matched-line fast path; ordered/eager label,
+`metric_label`, and alias projection; compact comparison; direct operand match
+before lazy surface containment; and early success before evidence access.
+Preserve falsey-evidence rejection; shallow metadata/cell copies; exact
+claim/quote/raw-row/context, metadata, alias/header, and structured-cell
+surface order; final surface normalization; blank rejection; direct operand
+match before lazy positive-surface fallback; input immutability; evaluation
+order; and uncaught errors. The name-normalized definition AST/body-source
+hashes are
+`a5cc74df4eabc4fa161369c1fe8a190250390bdbdf8678d06ff9093536d8cd28` /
+`985699a8dea2881dd793165698802c0016f05ac392d14b58f206a2b4a83cc726`.
+
+The six graph calls remain at lines 1921, 5276, 5304, 5401, 11589, and
+11612 in the preferred-slot predicate, sibling repair predicate twice,
+dependency-row builder, and direct-evidence repair predicate twice. All retain
+three positional arguments, one `metric_label` keyword, and caller `try` depth
+zero. Preserve their return, two short-circuit guards, assignment/adoption,
+negated guard, and source-evidence guard. Their callee-normalized call-record
+hash is
+`2626e94f3c5b6a2736f7a65482c65a0226555241bf81308398c87cf06ce39c62`.
+
+Production scope is one definition, one graph import, six graph calls, and no
+owner-local call; tests contain four selected name refs. Projected private/
+public records are 0/12, graph owner identity holds, owner counts move 62/29 to
+63/28, and owner/dependency/graph physical lines remain 4,816/3,419/13,464.
+Update exactly 39 existing expectations: four direct names, 30 owner count/
+tuple expectations, and five operand-text-match/desired-consolidation indirect
+fingerprints. Add no test and weaken no assertion.
+
+Projected source/tests/whole transforms are `+8/-8`, `+39/-39`, and
+`+47/-47`; exact temporary diff SHA-256 is
+`8460f0be379113b651f409164b7fda8cb859d94b0c3c5481ce24d40e073c945e`.
+The temporary projection passed direct behavior 1/1, graph identity, the two
+fingerprint-specific structure tests, focused 911/911 in 282.039 seconds,
+audit 217, pycompile 4/4, retired refs zero, diff check, and unchanged acyclic
+48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+implementation gate. Keep text matchers, surface assembly, lookup/dependency
+repair bodies, evidence orchestration, state, trace/artifact mutation, and
+final sequencing outside this batch. Benchmark refresh and remote CI were
+**NOT RUN**. Exact call/hash and five-fingerprint pairs are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

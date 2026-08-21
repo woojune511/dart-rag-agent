@@ -1381,16 +1381,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+4/-4`, `+38/-38`, `+42/-42`, direct behavior
   1/1, graph identity, focused 879/879, audit 217, pycompile 4/4, unchanged
   48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 21-line
-  `_filter_operand_rows_by_required_surface_contract(...)`를 public
-  `filter_operand_rows_by_required_surface_contract(...)`로 rename하고 graph
-  import 한 개와 call 두 개, direct-name·owner-count 기대 39개만 갱신한다.
-  Early-return identity, single evidence indexing, ordered row filter, lazy
-  operand matching, keyword propagation과 두 graph caller sequencing을
-  유지하고 private callee bodies, evidence orchestration과 broader graph
-  state는 제외한다. Exact temporary projection은 source/tests/whole `+4/-4`,
-  `+39/-39`, `+43/-43`, focused 911/911, audit 217, pycompile 6/6, unchanged
-  48/203 DAG이며 전체 구현 gate는
+- 완료된 `03da7b8` visibility batch는 같은 owner의 exact 21-line required-
+  surface operand-row filter를 public
+  `filter_operand_rows_by_required_surface_contract(...)`로 이름 수렴시키고
+  graph import 한 개와 call 두 개, direct-name·owner-count 기대 39개만
+  갱신했다. Early-return identity, single evidence indexing, ordered row
+  filter, lazy operand matching, keyword propagation과 두 graph caller
+  sequencing은 유지됐다. Source/tests/whole `+4/-4`, `+39/-39`, `+43/-43`,
+  direct behavior 1/1, graph identity, focused 911/911, audit 217, pycompile
+  6/6, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 53-line
+  `_operand_slot_has_evidence_surface_match(...)`를 public
+  `operand_slot_has_evidence_surface_match(...)`로 rename하고 graph import 한
+  개와 call 여섯 개, direct-name·owner-count·fingerprint 기대 39개만
+  갱신한다. Matched-line fast path, evidence metadata/cell surface assembly,
+  lazy positive matching, 여섯 graph caller의 guard/negation/adoption 순서를
+  유지하고 text matcher bodies, lookup/dependency orchestration과 broader
+  graph state는 제외한다. Exact temporary projection은 source/tests/whole
+  `+8/-8`, `+39/-39`, `+47/-47`, focused 911/911, audit 217, pycompile 4/4,
+  unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

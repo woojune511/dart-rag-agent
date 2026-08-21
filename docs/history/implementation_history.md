@@ -9743,15 +9743,15 @@ completion claim.
   establishes no behavior, quality, performance, benchmark, schedule, ledger,
   or Phase 3 completion claim.
 
-### Required-surface operand-row filter public API characterization checkpoint
+### Required-surface operand-row filter public API milestone
 
-- The next bounded visibility batch renames only the exact 21-line
+- Commit `03da7b8` renamed only the exact 21-line
   `financial_operand_resolution._filter_operand_rows_by_required_surface_contract(
   rows: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]],
   required_operands: List[Dict[str, Any]], *, require_direct_support: bool = False)
   -> List[Dict[str, Any]]` definition in place to public
-  `filter_operand_rows_by_required_surface_contract(...)`. Update one graph
-  import, two graph calls, and nine selected test name refs; add no wrapper/
+  `filter_operand_rows_by_required_surface_contract(...)`. It updated one graph
+  import, two graph calls, and nine selected test name refs; added no wrapper/
   alias and move no body or adjacent helper.
 - Preserve raw-truth short-circuit exits and exact input-list identity, single
   evidence indexing, fresh ordered filter output, direct row iteration, lazy
@@ -9766,22 +9766,74 @@ completion claim.
   record hash is
   `da493840be72e6fdc75d63747aa2c2ab5d3aea5b6c1ed4e226378357655a51a3`;
   exact caller old/new hashes are recorded in
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  [Project Status Completed Required Surface](../overview/project_status.md#completed-required-surface-operand-row-filter-public-api).
 - Production scope is one definition, one import, two calls, and no owner-local
   call. Tests contain nine selected name refs. The public name has no collision.
-  Projected private/public records are 0/13, owner counts move 61/30 to 62/29,
+  Final private/public records are 0/13, owner counts moved 61/30 to 62/29,
   and owner/dependency/graph physical lines remain 4,816/3,419/13,464.
-- Exactly 39 existing expectations change: nine names, 29 count expectations,
-  and one owner/class tuple. No caller hash, method, or assertion changes.
-  Projected source/tests/whole transforms are `+4/-4`, `+39/-39`, and
-  `+43/-43`; exact temporary diff SHA-256 is
+- Exactly 39 existing expectations changed: nine names, 29 count expectations,
+  and one owner/class tuple. No caller hash, method, or assertion changed.
+  Projected source/tests/whole transforms `+4/-4`, `+39/-39`, and
+  `+43/-43` became the exact commit diff; its SHA-256 is
   `9050fa7476700f2041db5a1fedfefbb55ca41315c447c1d98b4fa80ebecb543c`.
 - The temporary projection passed direct behavior 1/1, graph/public-owner
   identity, graph-helper 290/290 in 244.163 seconds, affected focused 911/911 in
   303.417 seconds, audit 217, pycompile 6/6, retired refs zero, diff check, and
-  unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation
-  gate. Benchmark refresh and remote CI were **NOT RUN**.
+  unchanged acyclic 48/203 DAG. The committed implementation then passed
+  direct behavior 1/1, graph/public-owner identity, focused 911/911 in 308.132
+  seconds, audit 217, pycompile 6/6, private/public records 0/13, owner counts
+  62/29, unchanged 48/203 DAG, and full 2,143/2,143 in 350.243 seconds.
+  Benchmark refresh and remote CI were **NOT RUN**.
 - Keep private callees, both caller bodies, evidence orchestration, graph state,
   trace/artifact mutation, and final sequencing outside this batch. This
   checkpoint establishes no behavior, quality, performance, benchmark,
   schedule, ledger, or Phase 3 completion claim.
+
+### Operand-slot evidence-surface predicate public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 53-line
+  `financial_operand_resolution._operand_slot_has_evidence_surface_match(
+  slot: Dict[str, Any], evidence_item: Optional[Dict[str, Any]],
+  operand: Dict[str, Any], *, metric_label: str = "") -> bool` definition in
+  place to public `operand_slot_has_evidence_surface_match(...)`. Update one
+  graph import, six graph calls, and four selected test name refs; add no
+  wrapper/alias and move no body or adjacent helper.
+- Preserve matched-line normalization; ordered/eager label, metric-label, and
+  alias surfaces; compact/direct/lazy match order; success before evidence
+  access; falsey-evidence rejection; shallow metadata/cell copies; exact
+  evidence-surface assembly order; final direct-before-positive lazy match;
+  immutability, evaluation order, and uncaught errors. The definition AST/body
+  hashes are
+  `a5cc74df4eabc4fa161369c1fe8a190250390bdbdf8678d06ff9093536d8cd28` /
+  `985699a8dea2881dd793165698802c0016f05ac392d14b58f206a2b4a83cc726`.
+- The six three-positional/one-keyword/try-depth-zero graph calls remain in the
+  preferred-slot predicate, sibling repair predicate twice, dependency-row
+  builder, and direct-evidence repair predicate twice. Preserve direct return,
+  current-evidence/equality guard, period-table guard, assignment/adoption,
+  negated guard, and source-evidence guard. Their normalized call-record hash
+  is `2626e94f3c5b6a2736f7a65482c65a0226555241bf81308398c87cf06ce39c62`;
+  exact caller and indirect fingerprint old/new hashes are recorded in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Production scope is one definition, one import, six calls, and no owner-local
+  call. Tests contain four selected name refs. The public name has no collision.
+  Projected private/public records are 0/12, owner counts move 62/29 to 63/28,
+  and owner/dependency/graph physical lines remain 4,816/3,419/13,464.
+- Exactly 39 existing expectations change: four names, 30 count/tuple
+  expectations, and five operand-text-match/desired-consolidation indirect
+  fingerprints. No method or assertion is added, removed, or weakened.
+  Projected source/tests/whole transforms are `+8/-8`, `+39/-39`, and
+  `+47/-47`; exact temporary diff SHA-256 is
+  `8460f0be379113b651f409164b7fda8cb859d94b0c3c5481ce24d40e073c945e`.
+- The temporary projection passed direct behavior 1/1, graph/public-owner
+  identity, two fingerprint-specific structure tests, affected focused
+  graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
+  projection/calculation-execution/task-artifact/operation-contract/import-
+  side-effects/lookup-recovery 911/911 in 282.039 seconds, audit 217,
+  pycompile 4/4, retired refs zero, diff check, and unchanged acyclic 48/203
+  DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
+  gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep text matchers, surface assembly, lookup/dependency repair bodies,
+  evidence orchestration, graph state, trace/artifact mutation, and final
+  sequencing outside this batch. This checkpoint establishes no behavior,
+  quality, performance, benchmark, schedule, ledger, or Phase 3 completion
+  claim.

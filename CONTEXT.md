@@ -537,13 +537,21 @@ dedupe, shallow policy copy와 case-sensitive segment/scope matching은
 유지됐고 source/tests/whole `+4/-4`, `+38/-38`, `+42/-42`, direct behavior
 1/1, graph identity, focused 879/879 in 276.791 seconds, audit 217, pycompile
 4/4, unchanged 48/203 DAG, full 2,143/2,143 in 326.614 seconds가 통과했다.
-다음 batch는 exact 21-line
-`_filter_operand_rows_by_required_surface_contract(...)`를 public
-`filter_operand_rows_by_required_surface_contract(...)`로 rename하고 graph
-import 한 개와 call 두 개, 기존 기대 39개만 갱신한다. Exact temporary
-projection source/tests/whole `+4/-4`, `+39/-39`, `+43/-43`와 focused
-911/911 경계는 [Next Work](docs/overview/project_status.md#next-work)가 단일
-기준이다.
+이어 `03da7b8`이 exact 21-line required-surface operand-row filter를 같은
+위치와 본문으로 public
+`filter_operand_rows_by_required_surface_contract(...)`로 이름 수렴시키고
+graph import 한 개와 call 두 개, 기존 기대 39개만 갱신했다. Early-return
+identity, single evidence indexing, ordered row filtering, lazy operand match와
+keyword propagation은 유지됐고 source/tests/whole `+4/-4`, `+39/-39`,
+`+43/-43`, direct behavior 1/1, graph identity, focused 911/911 in 308.132
+seconds, audit 217, pycompile 6/6, unchanged 48/203 DAG, full 2,143/2,143 in
+350.243 seconds가 통과했다. 다음 batch는 exact 53-line
+`_operand_slot_has_evidence_surface_match(...)`를 public
+`operand_slot_has_evidence_surface_match(...)`로 rename하고 graph import 한
+개와 call 여섯 개, 기존 direct-name/count/fingerprint 기대 39개만 갱신한다.
+Exact temporary projection source/tests/whole `+8/-8`, `+39/-39`, `+47/-47`와
+focused 911/911 경계는
+[Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
 

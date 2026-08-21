@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `5bff185` renamed only `financial_operand_resolution._evidence_surface_contains_segment_label(...)` in place to public `evidence_surface_contains_segment_label(...)` and updated its owner-local call, graph import/call, and 38 exact test expectations |
-| What passed? | Direct behavior 1/1, graph/public-owner identity, focused tests 879/879, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `5bff185` |
+| What just changed? | `03da7b8` renamed only `financial_operand_resolution._filter_operand_rows_by_required_surface_contract(...)` in place to public `filter_operand_rows_by_required_surface_contract(...)` and updated its graph import/two calls and 39 exact test expectations |
+| What passed? | Direct behavior 1/1, graph/public-owner identity, focused tests 911/911, runtime audit 217, pycompile 6/6, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `03da7b8` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_operand_resolution._filter_operand_rows_by_required_surface_contract(...)` in place to public `filter_operand_rows_by_required_surface_contract(...)`; update its graph import/two calls and 39 exact direct-name/count expectations |
+| What is next? | Rename only `financial_operand_resolution._operand_slot_has_evidence_surface_match(...)` in place to public `operand_slot_has_evidence_surface_match(...)`; update its graph import/six calls and 39 exact direct-name/count/fingerprint expectations |
 
 ## Product Boundary
 
@@ -799,89 +799,123 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 21-line
-`src.agent.financial_operand_resolution._filter_operand_rows_by_required_surface_contract(
-rows: List[Dict[str, Any]], evidence_items: List[Dict[str, Any]],
-required_operands: List[Dict[str, Any]], *, require_direct_support: bool = False)
--> List[Dict[str, Any]]` definition in place to public
-`filter_operand_rows_by_required_surface_contract(...)`. Update its import and
-two direct calls in `financial_graph_calculation.py`, plus nine existing exact
-test import/call/patch-name references across operand-resolution, operation-
-contract, and lookup-recovery tests. Do not move the body, add an alias or
-wrapper, rename its private callees, or broaden ratio construction, candidate
-building, evidence resolution, or graph orchestration.
+Rename only the exact 53-line
+`src.agent.financial_operand_resolution._operand_slot_has_evidence_surface_match(
+slot: Dict[str, Any], evidence_item: Optional[Dict[str, Any]],
+operand: Dict[str, Any], *, metric_label: str = "") -> bool` definition in
+place to public `operand_slot_has_evidence_surface_match(...)`. Update its
+import and six direct calls in `financial_graph_calculation.py`, plus four
+existing exact test owner-name/attribute references across graph-helper and
+operand-resolution tests. Do not move the body, add an alias or wrapper, rename
+its text-match callees, or broaden lookup recovery, dependency repair,
+evidence resolution, or graph orchestration.
 
-The definition remains at lines 1715-1735 with three positional arguments, one
-keyword-only argument defaulting to `False`, and a list return. Preserve raw
-truth and short-circuit order in `if not rows or not required_operands`; exact
-same-object `rows` return for either early exit without building evidence;
-single eager `_evidence_items_by_id(evidence_items)` evaluation otherwise;
-fresh ordered list-comprehension output; direct row iteration; per-row lazy
-`any(...)` over required operands; `_operand_row_matches_requirement` argument
-order; short-circuit suppression of the surface-contract call for unmatched
-rows; exact `_operand_row_satisfies_required_surface_contract` positional
-arguments and propagated keyword; original row-object identity, order, and
-duplicates; callee-owned behavior; and every uncaught error. The name-normalized
-definition AST SHA-256 is
-`5455b109407195ff8a0f5669d64f07e047fc6d18016731ebeefd937d1923d8d9`;
+The definition remains at lines 396-448 with three positional arguments, one
+keyword-only string default, and a `bool` return. Preserve matched-line-label
+normalization; ordered/eager projection of operand label, `metric_label`, and
+aliases; repeated per-surface normalization; compact whitespace removal;
+`operand_text_match(...)` before lazy `any(...)`; and the matched-line early
+`True` before any evidence access. Preserve the falsey-evidence early `False`;
+shallow metadata copy; ordered claim/quote/raw-row/context and metadata surface
+collection; direct semantic-alias/row-header iteration; snapshotted structured-
+cell iteration and shallow cell copies; aggregate-label-before-column-header
+order; exact string filtering/join normalization; blank-surface early `False`;
+final `operand_text_match(...)` before lazy `text_has_positive_surface(...)`;
+input immutability, evaluation order, and every uncaught error. The name-
+normalized definition AST SHA-256 is
+`a5cc74df4eabc4fa161369c1fe8a190250390bdbdf8678d06ff9093536d8cd28`;
 the exact body-source SHA-256 is
-`ae96bb3282fbaff2d8d1231a2e64acf811c1946e5d32266712f6d9a2213f6c58`.
+`985699a8dea2881dd793165698802c0016f05ac392d14b58f206a2b4a83cc726`.
 
-The graph call in `_build_complete_ratio_operands_from_coherent_context` remains
-at line 7699 as assignment to `rows`, with positional `rows, group_items,
-required_operands` and `require_direct_support=True`. The call in
-`_required_operand_rows_from_candidates` remains at line 8932 as its direct
-return, with the nested candidate-builder result, `candidate_items`, and
-`required_operands` positional plus keyword propagation
-`require_direct_support=require_direct_support`. Both remain at caller `try`
-depth zero. Their callee-normalized combined call-record SHA-256 is
-`da493840be72e6fdc75d63747aa2c2ab5d3aea5b6c1ed4e226378357655a51a3`.
-The caller-body hashes change only for callee spelling:
+The six graph calls remain at lines 1921, 5276, 5304, 5401, 11589, and
+11612. They stay in `_preferred_slot_has_evidence_surface_match`,
+`_sibling_candidate_can_repair_task_output` twice,
+`_build_dependency_operand_rows`, and
+`_repair_source_slot_from_direct_evidence` twice. Every call retains three
+positional arguments, one `metric_label` keyword, and caller `try` depth zero.
+Preserve the direct return; current-evidence/equality guard; period-table guard;
+assignment/adoption; negated mismatch guard; and source-evidence guard in that
+order. Their callee-normalized combined call-record SHA-256 is
+`2626e94f3c5b6a2736f7a65482c65a0226555241bf81308398c87cf06ce39c62`.
+The four unique nearest-caller body hashes change only for callee spelling:
 
-- coherent ratio operand builder:
-  `dbfe2b7bf05b3f7a67d14011bd526a477e4bbdf4df180184093ced04bafb28ad`
-  to `ea99da2b39f0ef128be435638855b34acc85ea94b0936f33b6fd70bfd7f07125`;
-- required-row candidate builder:
-  `d03b65acb75798f88e6bd79c9c100d8e4b9f8ae8814adf7af3835b4a71520051`
-  to `25e48ea9e95faf25d745eb55d1cf18a616993cef000f4426a41ddb3b8b88c929`.
+- preferred-slot predicate: `4b97bd092b1988e601c25d854487a6d69dc48aa0dcbdf91baf269c3f8a5d421c`
+  to `3ea3e192ddf10f6c3f59e2eb6e86178213c83e5ff690a8b747ab04641e1b9850`;
+- sibling repair predicate: `742087f35bd0fde06876ab7a66b3fdf42dbf96de9a35230dc3a6c5c9f18ef370`
+  to `07c3d0792a3e439e96f737cbe3de17fe9bbeded90eecf348b6477db8c299d9c4`;
+- dependency-row builder: `f7e3dd6bc7d295177d4b7fee8c9a4e110444bf8551477dcf2ecfd7e625718e2f`
+  to `c01ab1a8a3231a1aca68c64c211f81a7a4c2a81a6121866d095ab5b2f68d824e`;
+- direct-evidence repair predicate: `3d99fedbcd439f85cbe6aa302a15c0e0a83755eaceab00b6030ea5de293a930f`
+  to `7b5ceaa51cdc761911b5876f70b6cdb6f8bcaf7cf269eb4ea9e13c0e9dfc0cc3`.
 
 Owner/graph physical line counts remain 4,816/13,464; dependency remains
-3,419. Current production scope is one definition, one external import, two
-external calls, and zero owner-local calls. Tests contain nine selected exact
+3,419. Current production scope is one definition, one external import, six
+external calls, and zero owner-local calls. Tests contain four selected exact
 name references. The future public name has no pre-existing exact source/test
 definition, import, call, patch, attribute, string constant, wildcard/`__all__`,
-reviewed introspection consumer, or collision. After the rename selected private
-refs must finish zero, the graph binding must be identical to the public owner,
-exact public records must total 13, and owner public/private counts must move
-exactly 61/30 to 62/29.
+reviewed introspection consumer, or collision. After the rename selected
+private refs must finish zero, the graph binding must be identical to the
+public owner, exact public records must total 12, and owner public/private
+counts must move exactly 62/29 to 63/28.
 
-Update exactly 39 existing test expectations: nine selected import/call/patch
-names; 27 current owner counts from 61/30 to 62/29; two derived counts from
-60/30 to 61/29; and one owner/class tuple from 61/30/19 to 62/29/19. No raw or
-aggregate caller-hash expectation changes. Add no test method and weaken no
-assertion.
+Update exactly 39 existing test expectations: four selected owner-name/
+attribute references; 27 current owner counts from 62/29 to 63/28; two derived
+counts from 61/29 to 62/28; one owner/class tuple from 62/29/19 to 63/28/19;
+and five indirect fingerprints. Those five are the operand-text-match call-
+record, caller-name-set, and caller-map hashes
+`6f8b9eafbdccd7b4744f27988a7f5056a8e189703e377ca4b039966f91b290ab` /
+`433a7e82075c6d8b3d27bf8bbd727f7997fd7121cc48a7fbd0e616dec7addbfe` /
+`194440e30de0fd64151b9fbf608255efab3e6eef18daea7879f2a6345b39b7b7`
+to
+`f1b261c57069f0ea0ef76f7277960c26d65c09ada36699e9aaa90af743824f82` /
+`cc8098e636783328bbb67a678b8bf941d267c57cecb47119a4140e2097344701` /
+`949fcf432f16c8b368a5083af21d398b919906b64061edfb196818174a542dee`,
+plus the two desired-consolidation current/projected caller-map expectations
+from `56bdf9bd6df18f5d75cd17391e041d73c7a02c87468d684af6c272e4dab76cf5`
+to `316a81b26bac288689b0d04d4801e236305218d3c584a841b04b9928829a53b8`.
+Add no test method and weaken no assertion.
 
-Projected source/tests/whole transforms are `+4/-4`, `+39/-39`, and
-`+43/-43` across exactly two source and four test files. The exact temporary
+Projected source/tests/whole transforms are `+8/-8`, `+39/-39`, and
+`+47/-47` across exactly two source and two test files. The exact temporary
 diff SHA-256 is
-`9050fa7476700f2041db5a1fedfefbb55ca41315c447c1d98b4fa80ebecb543c`.
-The projected direct behavior test passed 1/1, graph/public-owner identity
-passed, graph-helper tests passed 290/290 in 244.163 seconds, and the affected
-graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
-projection/calculation-execution/task-artifact/operation-contract/import-side-
-effects/lookup-recovery set passed 911/911 in 303.417 seconds. Audit 217,
-pycompile 6/6, retired selected refs zero, `git diff --check`, and unchanged
-acyclic 48/203 DAG also passed. Full discovery 2,143/2,143 remains the
-implementation gate. Benchmark refresh and remote CI remain **NOT RUN**. This
-name-only visibility change would prove no behavior, answer-quality, ranking,
-performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+`8460f0be379113b651f409164b7fda8cb859d94b0c3c5481ce24d40e073c945e`.
+The projected direct behavior test passed 1/1, graph/public-owner identity and
+the two fingerprint-specific structure tests passed, and the affected graph-
+helper/operand-resolution/dependency-projection/aggregate-subtask-projection/
+calculation-execution/task-artifact/operation-contract/import-side-effects/
+lookup-recovery set passed 911/911 in 282.039 seconds. Audit 217, pycompile
+4/4, retired selected refs zero, `git diff --check`, and unchanged acyclic
+48/203 DAG also passed. The projection was restored cleanly. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only visibility change would prove no behavior,
+answer-quality, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
 
-Keep `_evidence_items_by_id`, `_operand_row_matches_requirement`,
-`_operand_row_satisfies_required_surface_contract`, their downstream helpers,
-ratio/candidate caller bodies, evidence orchestration, graph state,
-trace/artifact mutation, and final sequencing outside this batch. Add no body
-move, alias, wrapper, fallback, vocabulary, trace field, or new exception
-boundary.
+Keep `operand_text_match`, `text_has_positive_surface`, normalization and
+surface-assembly bodies, lookup/dependency repair bodies, evidence
+orchestration, graph state, trace/artifact mutation, and final sequencing
+outside this batch. Add no body move, alias, wrapper, fallback, vocabulary,
+trace field, or new exception boundary.
+
+## Completed Required-Surface Operand-Row Filter Public API
+
+Commit `03da7b8` renamed only the exact 21-line
+`financial_operand_resolution._filter_operand_rows_by_required_surface_contract(...)`
+definition in place to public
+`filter_operand_rows_by_required_surface_contract(...)` and updated its graph
+import/two calls and 39 exact test expectations. The signature, body, early-
+return identity, evidence indexing, ordered filtering, lazy matching, caller
+placement, physical line counts, and graph orchestration remain unchanged.
+Source/tests/whole commit transforms are `+4/-4`, `+39/-39`, and `+43/-43`;
+the committed diff SHA-256 is
+`9050fa7476700f2041db5a1fedfefbb55ca41315c447c1d98b4fa80ebecb543c`.
+Direct behavior 1/1, graph/public-owner identity, focused 911/911 in 308.132
+seconds, audit 217, pycompile 6/6, retired selected refs zero, exact public
+records 13, owner public/private 62/29, unchanged acyclic 48/203 DAG, and full
+2,143/2,143 in 350.243 seconds passed under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Evidence-Surface Segment-Label Predicate Public API
 
