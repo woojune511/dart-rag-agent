@@ -6128,62 +6128,84 @@ pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 316.854
 seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
 CI were **NOT RUN**.
 
-The active visibility contract renames only the exact six-line
-`financial_operand_resolution._operand_row_display_unit_set(
-rows: List[Dict[str, Any]]) -> set[str]` definition in place to public
-`operand_row_display_unit_set(...)`. Update exactly its one
-`financial_dependency_projection.py` import and two direct production calls,
-plus the existing direct test import and one call. Preserve lines 1956-1961,
-the one positional argument, absence of defaults, and `set[str]` return
-annotation.
+Commit `6aeb0d1` completed the operand display-unit set visibility contract. It
+renamed only the exact six-line helper in place to public
+`operand_row_display_unit_set(...)` and updated its one
+`financial_dependency_projection.py` import, two direct calls, and 32 exact
+test expectations. The signature, body, raw-unit-only normalization, case-
+preserving dedupe, call placement, physical line counts, and dependency-
+precedence orchestration remain unchanged.
 
-Preserve the fresh set; source-row evaluation order; exclusive `raw_unit`
-lookup; exact `str(row.get("raw_unit") or "")` conversion; whitespace
-normalization first in the filter and again in the retained set element; empty-
-value filtering; case preservation; exact-string dedupe; input/nested-row
-immutability; and every uncaught error. The name-excluded signature/body record
-SHA-256 is
-`ec7b1497b8250f7b30f643903b0c8eb8762b15ed281fd020dbe554343aaa4751`;
-the body-source hash is
-`596f5a9e1c1e3e1b902326990438df6ca4f51119d386be70d9ab1d8c0e6cb018`.
+Source/tests/whole commit transforms are `+4/-4`, `+32/-32`, and `+36/-36`
+across two source and two test files; the committed diff SHA-256 is
+`c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
+Public identity/behavior 10/10, focused 695/695 in 186.694 seconds, audit 217,
+pycompile 4/4, unchanged acyclic 48/203 DAG, full 2,143/2,143 in 229.386
+seconds, artifact hygiene, and diff checks passed. Benchmark refresh and remote
+CI were **NOT RUN**.
 
-The two production calls stay in `resolve_main_operand_precedence` at lines
-1699 and 1700 of `financial_dependency_projection.py`, inside the existing
-ratio and recovered-context gate. They pass positional `dependency_rows` then
-`direct_rows`, with no keywords, assignment parents, and `try` depth zero. The
-callee-normalized combined call-record hash is
-`c0c3845cc0fee932824c4dfea1a3f795ee329bb572a5459c452a337ab9db56d9`.
-The caller-body source hash changes only for the callee name from
-`39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`
-to `27bde775c46b25711f2a63f6ec1645232b5c7d3092cab325b0902464d2b40926`.
-Owner/caller remain 4,816/3,419 physical lines.
+The active visibility contract renames only the exact 11-line
+`financial_operand_resolution._canonical_structured_reconciliation_id(
+value: Any) -> str` definition in place to public
+`canonical_structured_reconciliation_id(...)`. Update exactly its two owner-
+local calls, its one `financial_graph_calculation.py` import and direct call,
+plus one direct owner-name string and one module-attribute test call. Preserve
+lines 364-374, the one positional argument, absence of defaults and keyword-
+only arguments, and the `str` return annotation.
 
-The production surface is one definition, one external import, two direct
-calls, and zero owner-local calls. Tests have one import and one direct call.
-The future public name has no pre-existing exact source/test definition,
-import, call, patch, attribute, constant-dynamic, wildcard/`__all__`, reviewed
-introspection consumer, or collision. After the rename private selected refs
-finish zero, the caller binding is identical to the public owner, public exact
-records total six, and owner public/private counts move only from 56/35 to
-57/34.
+Preserve exact `_normalise_spaces(str(value or ""))`; the case-sensitive
+`"recon::"` prefix gate and early return; `removeprefix`; the non-empty stripped
+value gate; exact `"::raw_row"` suffix exclusion; ordered `any(...)` evaluation
+over `("::value:", "::rowrec:", "::colrec:")`; stripped-ID return only when all
+three gates hold; normalized original-ID return otherwise; input immutability;
+and every uncaught error. The name-normalized definition AST and exact body-
+source SHA-256 values are
+`ceb7abcc53d61af379685cbc79fb1a76bc9fea36f081ea03ff8cda5b38f870ab` and
+`55b503ddd2cd0bc87c4761bd2a5e91263911216bfeb9638326c3cbba9a0b63d9`.
+
+The two owner-local calls remain in
+`canonicalize_structured_operand_reconciliation_refs` at lines 382 and 387,
+with positional `updated.get(key)` then comprehension-local `source_id`. The
+sole external call remains in
+`financial_graph_calculation._direct_target_metric_operand_from_evidence` at
+line 10304, passing positional `source_id` in the existing list comprehension.
+All three have no keywords and caller `try` depth zero. Their callee-normalized
+combined call-record SHA-256 is
+`f1bc164333313c88c062a522bcb2991faaa45065da3c4e2ddc568fa04f884cf2`.
+The owner canonicalizer body hash changes only for two callee spellings from
+`6d79a1d586aae1baefd0f2608fe2ed2426f36e43b0152d643223d582a17ff6db`
+to `9075dec60bd0d6a3c0279654022b0835b7f3fc8d8c2bb14bb08e049ca5aba392`;
+the graph caller body hash changes only for one spelling from
+`31ba76e4a769cf999e400156372d208d9f3e07fa7fa68ca2dea385318111c5df`
+to `d41ffe61daa49e4cc29361d53d8cfb87f49a48e65a03449a297e3f68ebe486dd`.
+Owner/graph-caller remain 4,816/13,464 physical lines.
+
+The production surface is one definition, one external import, three direct
+calls of which two are owner-local, plus two exact test-name uses. The future
+public name has no pre-existing exact source/test definition, import, call,
+patch, attribute, string constant, wildcard/`__all__`, reviewed introspection
+consumer, or collision. After the rename private selected refs finish zero,
+the graph binding is identical to the public owner, exact public records total
+seven, and owner public/private counts move only from 57/34 to 58/33.
 
 Update exactly 32 existing test expectations without adding a method or
-weakening an assertion: two direct names; 27 current owner counts (56/35 to
-57/34); two derived counts (55/35 to 56/34); and one owner/class tuple
-(56/35/19 to 57/34/19). No existing caller or aggregate fingerprint
+weakening an assertion: two direct names; 27 current owner counts (57/34 to
+58/33); two derived counts (56/34 to 57/33); and one owner/class tuple
+(57/34/19 to 58/33/19). No existing caller or aggregate fingerprint
 expectations change.
 
-Do not rename adjacent operand helpers, change raw-unit normalization, alter
-the ratio/recovered-context gate or required-role conflict behavior, move
-override/selection/scope work, or broaden dependency precedence orchestration.
-Add no compatibility alias, wrapper, fallback, trace field, or exception
-handling.
+Do not rename `_normalise_spaces`, `_clean_source_row_ids`, public
+`canonicalize_structured_operand_reconciliation_refs`, table-context or other
+operand helpers; change reconciliation-ID semantics; alter direct-target
+evidence selection; or move graph state, evidence, trace/artifact mutation, or
+final sequencing. Add no compatibility alias, wrapper, fallback, trace field,
+or exception handling.
 
-Source/tests/whole project are projected at `+4/-4`, `+32/-32`, and
-`+36/-36` across two source and two test files; exact temporary diff SHA-256 is
-`c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
+Source/tests/whole project at `+5/-5`, `+32/-32`, and `+37/-37` across two
+source and two test files; exact temporary diff SHA-256 is
+`3ef507bd750b6725df6db06c12a51cf21778797b2a1d81510c48f3efb854ab7f`.
 Current-private and projected-public identity/behavior probes each passed
-10/10. The temporary projection passed focused 695/695 in 224.163 seconds,
+10/10. The temporary projection passed focused 804/804 in 192.567 seconds,
 audit 217, pycompile 4/4, retired selected refs zero, diff check, and unchanged
 acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.

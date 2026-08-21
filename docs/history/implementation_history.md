@@ -9513,60 +9513,95 @@ completion claim.
   establishes no behavior, quality, performance, benchmark, schedule, ledger,
   or Phase 3 completion claim.
 
-### Operand display-unit set public API characterization checkpoint
+### Operand display-unit set public API milestone
 
-- The next bounded visibility batch renames only the exact six-line
+- Commit `6aeb0d1` renames only the exact six-line
   `financial_operand_resolution._operand_row_display_unit_set(
   rows: List[Dict[str, Any]]) -> set[str]` definition in place to public
-  `operand_row_display_unit_set(...)`. Update exactly its one dependency-
-  projection import and two assignment calls, plus the direct test import and
-  one call. Do not move the body, rename adjacent helpers, add an alias/wrapper,
-  or broaden dependency precedence.
-- The definition stays at lines 1956-1961 with one positional list argument,
-  no defaults, and a `set[str]` return. Preserve the fresh set; source-row
-  evaluation order; exclusive `raw_unit` read; exact `str(value or "")`
-  conversion; normalization first for filtering and again for a retained set
-  element; empty filtering; case preservation; exact-string dedupe; input and
-  nested-row immutability; and uncaught failures. Its name-excluded signature/
-  body record SHA-256 is
-  `ec7b1497b8250f7b30f643903b0c8eb8762b15ed281fd020dbe554343aaa4751`;
-  the body-source hash is
-  `596f5a9e1c1e3e1b902326990438df6ca4f51119d386be70d9ab1d8c0e6cb018`.
-- The two production calls stay in `resolve_main_operand_precedence` at lines
-  1699-1700 of `financial_dependency_projection.py`, inside the ratio and
-  recovered-context gate. They pass positional `dependency_rows` then
-  `direct_rows`, with no keywords, assignment parents, and `try` depth zero.
-  Their callee-normalized combined record hash is
-  `c0c3845cc0fee932824c4dfea1a3f795ee329bb572a5459c452a337ab9db56d9`.
-  The caller-body source hash changes only for the callee spelling from
-  `39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`
-  to `27bde775c46b25711f2a63f6ec1645232b5c7d3092cab325b0902464d2b40926`.
-  Owner/caller physical line counts remain 4,816/3,419.
-- Current production counts are one definition, one external import, two calls,
-  and zero owner-local calls. Tests contain one import and one direct call; the
-  future public name has no pre-existing exact source/test definition, import,
-  call, patch, attribute, dynamic, wildcard/`__all__`, introspection consumer,
-  or collision. Projected private refs finish zero, dependency/owner identity
-  holds, exact public records total six, and owner public/private counts move
-  only from 56/35 to 57/34.
-- Exactly 32 existing test expectations change: two direct names; 27 current
-  owner counts from 56/35 to 57/34; two derived counts from 55/35 to 56/34; and
-  one owner/class tuple from 56/35/19 to 57/34/19. Focused graph-helper testing
-  confirms no existing caller or aggregate fingerprint expectation changes.
-  Add no test method and weaken no assertion.
-- Source/tests/whole project exactly project `+4/-4`, `+32/-32`, and
-  `+36/-36` across two source and two test files. The exact temporary diff
-  SHA-256 is
+  `operand_row_display_unit_set(...)`. Exactly one dependency-projection import,
+  two assignment calls, and 32 existing test expectations change; no body,
+  alias, wrapper, or adjacent helper changes.
+- The one positional list argument, no defaults, `set[str]` return, fresh set,
+  source-row evaluation order, exclusive `raw_unit` read, exact string and
+  whitespace normalization, empty filtering, case preservation, exact-string
+  dedupe, immutability, and uncaught failures remain unchanged. The two calls
+  remain in `resolve_main_operand_precedence` under the ratio/recovered-context
+  gate, with dependency rows before direct rows, no keywords, assignment
+  parents, and `try` depth zero. Selected private refs finish zero, exact public
+  records total six, and owner public/private counts are 57/34.
+- Source/tests/whole commit transforms are `+4/-4`, `+32/-32`, and `+36/-36`
+  across two source and two test files. The committed diff SHA-256 is
   `c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
-  Current-private and projected-public identity/behavior probes each passed
-  10/10. Focused graph-helper/operand-resolution/dependency-projection/
-  operation-contract/import-side-effects passed 695/695 in 224.163 seconds,
-  audit 217, pycompile 4/4, retired selected refs zero, diff check, and the
-  unchanged acyclic 48/203 DAG passed. Full 2,143/2,143 remains the
-  implementation gate; exact scope and stop lines are governed by
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  Identity/behavior 10/10, focused graph-helper/operand-resolution/dependency-
+  projection/operation-contract/import-side-effects 695/695 in 186.694
+  seconds, audit 217, pycompile 4/4, retired selected refs zero, diff check,
+  unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 229.386 seconds passed.
 - Keep adjacent operand-resolution helpers, required-role conflict behavior,
   ratio override policy, source selection, scope filtering, evidence, graph
+  state, trace/artifact mutation, and final sequencing outside this milestone.
+  Benchmark refresh and remote CI were **NOT RUN**. This name-only milestone
+  establishes no behavior, quality, performance, benchmark, schedule, ledger,
+  or Phase 3 completion claim.
+
+### Structured reconciliation-ID public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 11-line
+  `financial_operand_resolution._canonical_structured_reconciliation_id(
+  value: Any) -> str` definition in place to public
+  `canonical_structured_reconciliation_id(...)`. Update exactly its two owner-
+  local calls, one graph-calculation import and direct call, plus two direct
+  test-name uses. Do not move the body, rename adjacent helpers, add an alias/
+  wrapper, or broaden reconciliation or calculation orchestration.
+- The definition stays at lines 364-374 with one positional argument, no
+  defaults or keyword-only arguments, and a `str` return. Preserve exact
+  `_normalise_spaces(str(value or ""))`; case-sensitive `recon::` prefix gate
+  and early return; `removeprefix`; non-empty stripped gate; `::raw_row` suffix
+  exclusion; ordered value/rowrec/colrec marker search; stripped-ID return only
+  when all gates hold; normalized original return otherwise; immutability; and
+  uncaught failures. Its name-normalized definition AST SHA-256 is
+  `ceb7abcc53d61af379685cbc79fb1a76bc9fea36f081ea03ff8cda5b38f870ab`;
+  the body-source hash is
+  `55b503ddd2cd0bc87c4761bd2a5e91263911216bfeb9638326c3cbba9a0b63d9`.
+- The two owner-local calls stay in
+  `canonicalize_structured_operand_reconciliation_refs` at lines 382 and 387,
+  with positional `updated.get(key)` then local `source_id`. The sole external
+  call stays in `_direct_target_metric_operand_from_evidence` at line 10304 of
+  `financial_graph_calculation.py`, with positional `source_id` inside the
+  existing list comprehension. All have no keywords and `try` depth zero.
+  Their callee-normalized combined record hash is
+  `f1bc164333313c88c062a522bcb2991faaa45065da3c4e2ddc568fa04f884cf2`.
+  The two caller-body hashes change only for the callee spelling from
+  `6d79a1d586aae1baefd0f2608fe2ed2426f36e43b0152d643223d582a17ff6db` /
+  `31ba76e4a769cf999e400156372d208d9f3e07fa7fa68ca2dea385318111c5df`
+  to
+  `9075dec60bd0d6a3c0279654022b0835b7f3fc8d8c2bb14bb08e049ca5aba392` /
+  `d41ffe61daa49e4cc29361d53d8cfb87f49a48e65a03449a297e3f68ebe486dd`.
+  Owner/graph-caller physical line counts remain 4,816/13,464.
+- Current production counts are one definition, one external import, and three
+  calls including two owner-local calls. Tests contain one owner-name string
+  and one module-attribute call; the future public name has no pre-existing
+  exact source/test definition, import, call, patch, attribute, string,
+  dynamic, wildcard/`__all__`, introspection consumer, or collision. Projected
+  private refs finish zero, graph/owner identity holds, exact public records
+  total seven, and owner public/private counts move only from 57/34 to 58/33.
+- Exactly 32 existing test expectations change: two direct names; 27 current
+  owner counts from 57/34 to 58/33; two derived counts from 56/34 to 57/33; and
+  one owner/class tuple from 57/34/19 to 58/33/19. Focused graph-helper testing
+  confirms no existing caller or aggregate fingerprint expectation changes.
+  Add no test method and weaken no assertion.
+- Source/tests/whole project exactly project `+5/-5`, `+32/-32`, and
+  `+37/-37` across two source and two test files. The exact temporary diff
+  SHA-256 is
+  `3ef507bd750b6725df6db06c12a51cf21778797b2a1d81510c48f3efb854ab7f`.
+  Current-private and projected-public identity/behavior probes each passed
+  10/10. Focused graph-helper/operand-resolution/aggregate-subtask-projection/
+  calculation-execution/task-artifact/operation-contract/import-side-effects
+  passed 804/804 in 192.567 seconds, audit 217, pycompile 4/4, retired selected
+  refs zero, diff check, and the unchanged acyclic 48/203 DAG passed. Full
+  2,143/2,143 remains the implementation gate; exact scope and stop lines are
+  governed by [Project Status Next Work](../overview/project_status.md#next-work).
+- Keep normalizers, the public sibling canonicalizer, table-context and all
+  other operand-resolution helpers, direct-target evidence behavior, graph
   state, trace/artifact mutation, and final sequencing outside this batch. Add
   no body move, alias, wrapper, fallback, trace field, or new exception
   boundary. Benchmark refresh and remote CI were **NOT RUN**. This checkpoint

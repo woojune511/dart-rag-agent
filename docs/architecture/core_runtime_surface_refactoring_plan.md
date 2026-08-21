@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-18
+Last revised: 2026-08-21
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -2221,49 +2221,70 @@ SHA-256 is
 `49da7e5486a11db12a9561b9e5592bbfda82411ac96d2c9025f2a0679afdbb03`.
 Benchmark refresh and remote CI were **NOT RUN**.
 
-The next bounded visibility seam renames only the exact six-line
-`financial_operand_resolution._operand_row_display_unit_set(
-rows: List[Dict[str, Any]]) -> set[str]` definition in place to public
-`operand_row_display_unit_set(...)`, then updates its one import and two
-assignment calls in `financial_dependency_projection.py`. Preserve the fresh
-set, source-row evaluation order, exclusive `raw_unit` lookup, exact
-`str(value or "")` conversion, whitespace normalization in both the filter and
-retained element, empty-value filtering, case preservation, exact-string
-dedupe, input immutability, and uncaught exception behavior.
+The operand display-unit set visibility seam completed in `6aeb0d1`. Only
+the exact six-line helper was renamed in place to public
+`operand_row_display_unit_set(...)`; one dependency-projection import, two
+direct calls, and 32 exact test expectations changed names or counts. The
+signature, body, call placement, owner/caller line counts, raw-unit
+normalization, dedupe, and dependency-precedence orchestration remain
+unchanged. Source/tests/whole were `+4/-4`, `+32/-32`, and `+36/-36`;
+focused 695/695 in 186.694 seconds, audit 217, pycompile 4/4,
+identity/behavior 10/10, retired selected refs zero, unchanged acyclic 48/203
+DAG, and full 2,143/2,143 in 229.386 seconds passed. The committed diff
+SHA-256 is
+`c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
+Benchmark refresh and remote CI were **NOT RUN**.
 
-The name-excluded signature/body record and exact body-source hashes are
-`ec7b1497b8250f7b30f643903b0c8eb8762b15ed281fd020dbe554343aaa4751` /
-`596f5a9e1c1e3e1b902326990438df6ca4f51119d386be70d9ab1d8c0e6cb018`.
-The two calls remain in `resolve_main_operand_precedence` at lines 1699-1700,
-inside the ratio/recovered-context gate, with positional `dependency_rows`
-then `direct_rows`, no keywords, assignment parents, and `try` depth zero.
-Their callee-normalized combined call-record hash is
-`c0c3845cc0fee932824c4dfea1a3f795ee329bb572a5459c452a337ab9db56d9`.
-The caller-body source hash changes only for the callee spelling from
-`39a60c5b0c66e13e7e41a2e4f9f9235d1d612c088c7e71272805998444252337`
-to `27bde775c46b25711f2a63f6ec1645232b5c7d3092cab325b0902464d2b40926`.
-Owner/caller physical line counts remain 4,816/3,419. Current production
-counts are one definition, one external import, two calls, and zero owner-local
-calls; one test import plus one test call are the only other selected uses. The
-public name has no pre-existing exact source/test consumer or collision.
+The next bounded visibility seam renames only the exact 11-line
+`financial_operand_resolution._canonical_structured_reconciliation_id(
+value: Any) -> str` definition in place to public
+`canonical_structured_reconciliation_id(...)`, then updates its two owner-
+local calls and the one import/direct call in
+`financial_graph_calculation.py`. Preserve exact value fallback, string and
+whitespace normalization, case-sensitive `recon::` detection, prefix removal,
+non-empty stripped gate, raw-row suffix exclusion, ordered value/rowrec/colrec
+marker search, return selection, input immutability, and uncaught exception
+behavior.
+
+The name-normalized definition AST and exact body-source hashes are
+`ceb7abcc53d61af379685cbc79fb1a76bc9fea36f081ea03ff8cda5b38f870ab` /
+`55b503ddd2cd0bc87c4761bd2a5e91263911216bfeb9638326c3cbba9a0b63d9`.
+The two local calls remain in public
+`canonicalize_structured_operand_reconciliation_refs` at lines 382/387; the
+external call remains in `_direct_target_metric_operand_from_evidence` at line
+10304. All use one positional argument, no keywords, and caller `try` depth
+zero. Their callee-normalized combined call-record hash is
+`f1bc164333313c88c062a522bcb2991faaa45065da3c4e2ddc568fa04f884cf2`.
+The two affected caller-body hashes change only for the callee spelling from
+`6d79a1d586aae1baefd0f2608fe2ed2426f36e43b0152d643223d582a17ff6db` /
+`31ba76e4a769cf999e400156372d208d9f3e07fa7fa68ca2dea385318111c5df`
+to
+`9075dec60bd0d6a3c0279654022b0835b7f3fc8d8c2bb14bb08e049ca5aba392` /
+`d41ffe61daa49e4cc29361d53d8cfb87f49a48e65a03449a297e3f68ebe486dd`.
+Owner/graph-caller physical line counts remain 4,816/13,464. Current production
+counts are one definition, one external import, and three calls including two
+owner-local calls; one test owner-name string and one module-attribute call are
+the only other selected uses. The public name has no pre-existing exact
+source/test consumer or collision.
 
 Update exactly 32 CURRENT-SOURCE expectations: two direct names; 27 current
-owner counts from 56/35 to 57/34; two derived counts from 55/35 to 56/34; and
-one owner/class tuple from 56/35/19 to 57/34/19. No existing caller or aggregate
+owner counts from 57/34 to 58/33; two derived counts from 56/34 to 57/33; and
+one owner/class tuple from 57/34/19 to 58/33/19. No existing caller or aggregate
 fingerprint expectations change. Add no test method and weaken no assertion.
 
-Source/tests/whole project exactly project `+4/-4`, `+32/-32`, and `+36/-36`
+Source/tests/whole project exactly project `+5/-5`, `+32/-32`, and `+37/-37`
 across two source and two test files; exact temporary diff SHA-256 is
-`c274aeabfb62d913064ef53ca5cd945e975fbd1629f30202c0fe19db8509afe3`.
-Keep adjacent operand-resolution helpers, required-role conflict behavior,
-ratio override policy, source selection, scope filtering, evidence, graph
-state, trace/artifact mutation, and final sequencing outside this batch. Add no
-body move, alias, wrapper, fallback, trace field, or new exception boundary.
+`3ef507bd750b6725df6db06c12a51cf21778797b2a1d81510c48f3efb854ab7f`.
+Keep normalizers, the public sibling canonicalizer, table-context and other
+operand-resolution helpers, direct-target evidence behavior, graph state,
+trace/artifact mutation, and final sequencing outside this batch. Add no body
+move, alias, wrapper, fallback, trace field, or new exception boundary.
 Current-private and projected-public identity/behavior probes each passed
 10/10. The temporary projection also passed focused graph-helper/operand-
-resolution/dependency-projection/operation-contract/import-side-effects
-695/695 in 224.163 seconds, audit 217, pycompile 4/4, retired selected refs
-zero, diff check, and the unchanged acyclic 48/203 DAG at
+resolution/aggregate-subtask-projection/calculation-execution/task-artifact/
+operation-contract/import-side-effects 804/804 in 192.567 seconds, audit 217,
+pycompile 4/4, retired selected refs zero, diff check, and the unchanged
+acyclic 48/203 DAG at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
 Full 2,143/2,143 remains the implementation gate; exact scope and stop lines
 are authoritative only in
