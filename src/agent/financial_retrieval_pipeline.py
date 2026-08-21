@@ -27,7 +27,7 @@ from src.agent.financial_langchain_loaders import document
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
-    _retrieval_hint_from_topic,
+    retrieval_hint_from_topic,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
@@ -2093,7 +2093,7 @@ class FinancialRetrievalPipelineMixin:
             "numeric_fact",
         }:
             retrieval_intent = "comparison"
-        retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, retrieval_intent)
+        retrieval_hint = retrieval_hint_from_topic(query, state.get("topic") or query, retrieval_intent)
         preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", retrieval_intent)
         query_bundle = (
             active_subtask_retrieval_queries

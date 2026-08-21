@@ -36,7 +36,7 @@ from src.agent.financial_runtime_normalization import _display_operand_label
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _preferred_calc_sections,
-    _retrieval_hint_from_topic,
+    retrieval_hint_from_topic,
 )
 
 
@@ -61,7 +61,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIn("\uc6d0\uc7ac\ub8cc \ubc0f \uc0dd\uc0b0\uc124\ube44", sections)
 
     def test_retrieval_hint_is_resolved_from_ontology(self) -> None:
-        hint = _retrieval_hint_from_topic(
+        hint = retrieval_hint_from_topic(
             "2023\ub144 \uc124\ube44\ud22c\uc790 \ucd1d\uc561\uc744 \ucc3e\uc544\uc918.",
             "",
             "comparison",
@@ -72,7 +72,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
     def test_forward_looking_questions_use_caution_section_policy(self) -> None:
         query = "2026년 1분기 예상 영업이익과 판매량을 예측해 줘."
 
-        hint = _retrieval_hint_from_topic(query, "", "qa")
+        hint = retrieval_hint_from_topic(query, "", "qa")
         sections = _active_preferred_sections({}, query, "", "qa")
 
         self.assertIn("예측정보", hint)
@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (6, 8))
+        self.assertEqual(owner_counts, (7, 7))
 
         def imported_names(module_name, imported_module):
             return {
@@ -74746,7 +74746,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             {
                 ("financial_retrieval_pipeline", "_retrieve"): (
-                    "fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf"
+                    "3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209"
                     if target_name == future_public_name
                     else "527df34043cea865ecec8a482383cb6ebf775892f301774a192f8577ed009341"
                 )
@@ -74766,7 +74766,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "b3a4dd0a90995775a2c28f079e30778e615b2459a8b929dcd12d650290c02b67"
+                "f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9"
                 if target_name == future_public_name
                 else "e493e701554347a4058bce545bd4b428dee453fed3ca9ca78717446f4def0f34"
             ),
@@ -75739,7 +75739,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         expected_caller_hashes = {
             ("financial_retrieval_pipeline", "_retrieve"): (
-                "fb15cdfba59242d19a8fed120f5396c15b4c4448349874f5afb4359ada55fcbf"
+                "3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209"
                 if target_name == future_public_name
                 else "42f3e9a7359e4c72ddfaeedfdd4441b342ba31b768150db37194d20eeef9f2b4"
             ),
@@ -75769,7 +75769,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "4a8265bb5bebf1accedc9f46475fc0bf0d44c0cbeb5aace1d52b474230fec0ed"
+                "d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5"
                 if target_name == future_public_name
                 else "d08e16c1409894af5ab351f27ac9c4a6e2b8292da8f749d4942a05dabd4f0759"
             ),

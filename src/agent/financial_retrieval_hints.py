@@ -161,7 +161,7 @@ def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: 
     return list(dict.fromkeys(types))
 
 
-def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
+def retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
     hints: List[str] = []
     narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
     if narrative_policies:
