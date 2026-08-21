@@ -6249,7 +6249,8 @@ records 12, owner public/private 59/32, unchanged acyclic 48/203 DAG, artifact
 hygiene, and diff checks passed. Benchmark refresh and remote CI were
 **NOT RUN**.
 
-The active visibility contract now renames only the exact 13-line
+The pre-implementation period-comparison contract completed by `0b2b66d`
+renamed only the exact 13-line
 `financial_operand_resolution._period_comparison_operand_rows_collapse_to_same_slot(
 rows: List[Dict[str, Any]]) -> bool` definition in place to public
 `period_comparison_operand_rows_collapse_to_same_slot(...)`. Update exactly
@@ -6278,8 +6279,8 @@ positional argument, no keywords, and caller `try` depth zero. The
 callee-normalized call-record hash is
 `69d583e1b272d93e6936d0047cf2477734a360483f8973821d7b1226f7899576`.
 The exact six caller-body old/new hashes and seven aggregate caller-map
-replacements are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+replacements are preserved in
+[Project Status Completed Period Comparison](../overview/project_status.md#completed-period-comparison-collapse-predicate-public-api).
 
 Production scope is one definition, two imports, six calls, and zero owner-
 local calls; tests contain one import and three calls. Projected private refs
@@ -6293,12 +6294,76 @@ Projected source/tests/whole transforms are `+9/-9`, `+46/-46`, and
 `63feeb89244685251b5ba7a62302828a91219cbb9c74af0cdf5bec8d1c5ddb2d`.
 The projected direct behavior test passed 1/1, both owner identities passed,
 and focused 879/879 in 217.993 seconds, audit 217, pycompile 5/5, retired refs
-zero, diff check, and unchanged acyclic 48/203 DAG passed. Full 2,143/2,143
-remains the implementation gate. Keep the shared group predicate, ratio
+zero, diff check, and unchanged acyclic 48/203 DAG passed. At characterization
+time full 2,143/2,143 remained the implementation gate. Commit `0b2b66d`
+later satisfied it in 319.738 seconds. Its exact source/tests/whole transforms
+are `+9/-9`, `+46/-46`, and `+55/-55`; committed diff SHA-256 is
+`63feeb89244685251b5ba7a62302828a91219cbb9c74af0cdf5bec8d1c5ddb2d`.
+Direct behavior 1/1, both public-owner identities, focused 879/879 in 265.674
+seconds, audit 217, pycompile 5/5, selected private refs zero, exact public
+records 13, owner public/private 60/31, unchanged acyclic 48/203 DAG, artifact
+hygiene, and diff checks passed. Keep the shared group predicate, ratio
 collapse helper, normalizers, evidence helpers, caller policy/orchestration,
 state, trace/artifact mutation, and final sequencing outside this batch. Add
 no body move, alias, wrapper, fallback, trace field, or exception boundary.
 Benchmark refresh and remote CI were **NOT RUN**.
+
+The active visibility contract now renames only the exact 31-line
+`financial_operand_resolution._evidence_surface_contains_segment_label(
+segment_label: str, surfaces: Sequence[Any]) -> bool` definition in place to
+public `evidence_surface_contains_segment_label(...)`. Update exactly its
+owner-local call in `_operand_row_satisfies_required_surface_contract`, its
+graph-calculation import and call in
+`_align_ratio_operands_with_sibling_table_context`, and seven selected exact
+test name/caller references. Preserve lines 1626-1656, both positional
+arguments, absence of defaults and keyword-only arguments, and the `bool`
+return annotation.
+
+Preserve ordered `surface_match_variants` projection; edge-punctuation
+replacement followed by whitespace normalization; truthy ordered dedupe;
+empty-variant `True`; shallow affinity-policy copying; ordered and duplicate-
+preserving scope-term normalization; direct surface iteration; falsey-to-empty
+string conversion and blank skip; case-sensitive escaped segment word-boundary
+matching; exact segment-plus-scope `\s*` matching; early returns, final `False`,
+immutability, evaluation order, and uncaught errors. The name-normalized
+definition AST/body-source hashes are
+`ff91e27eb3e656a49e3e7f829f76603467e9eec0ae281427b0bb0272205d8b37` /
+`5a97f20c87ab8dce966863512ecd4cce63518b6c60d45c92820076049d7f2705`.
+
+The owner-local and graph calls remain at lines 1699 and 7558, respectively.
+Both stay under negation, take two positional arguments, use no keywords, and
+have caller `try` depth zero. Their callee-normalized call-record hash is
+`eafc75a21e56ec515578d76c1be7d34621ecb0a513a2eb99fc55555dea9eb6c6`.
+The graph caller hash changes only for callee spelling from
+`a4026ae1da460a6217d2b38ac7925cca664b886d35eecda9d12728910162d6e9`
+to `167aa22aca021aab8f42bdc57d6b574496c973e49fe56c74094184dc31b50d73`;
+the owner caller changes from
+`1d7e55158faf8cfc1642dc5e4a61c881c94cbb06d3c8321c63a8d6b8863050c7`
+to `8589bae67df35b3ad342d50de1c14da5beff65bba398074a4252ede239e0cf3e`.
+
+Production scope is one definition, one owner-local call, one graph import,
+and one graph call; tests contain seven selected name/caller references.
+Projected private/public records are 0/11, graph owner identity holds, owner
+counts move 60/31 to 61/30, and physical owner/dependency/graph lines stay
+4,816/3,419/13,464. Update exactly 38 existing test expectations: seven names,
+30 count/tuple expectations, and one operand-text-match caller-map hash from
+`669ee29a37ca47066d4b54a503136b429e7f3d7afd620754085c5c9059fe784d`
+to `194440e30de0fd64151b9fbf608255efab3e6eef18daea7879f2a6345b39b7b7`.
+Add no test and weaken no assertion.
+
+Projected source/tests/whole transforms are `+4/-4`, `+38/-38`, and
+`+42/-42`; exact temporary diff SHA-256 is
+`5dcaeb4a7ac08c85a27ced40cfc5159542e1a48a562d489bfb79bab80b9c8e85`.
+The projected direct behavior test passed 1/1 with five internal cases, graph
+owner identity passed, and focused 879/879 in 288.061 seconds, audit 217,
+pycompile 4/4, retired refs zero, diff check, and unchanged acyclic 48/203 DAG
+passed. Full 2,143/2,143 remains the implementation gate. Keep variants,
+normalization, policy data, required-surface and ratio-alignment bodies,
+evidence orchestration, state, trace/artifact mutation, and final sequencing
+outside this batch. Add no body move, alias, wrapper, fallback, vocabulary,
+trace field, or exception boundary. Benchmark refresh and remote CI were
+**NOT RUN**. Full hash/count details are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

@@ -1363,16 +1363,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   coherence sequencing은 유지됐다. Source/tests/whole `+7/-7`, `+45/-45`,
   `+52/-52`, direct behavior 1/1, identity 2/2, focused 879/879, audit 217,
   pycompile 5/5, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 13-line
-  `_period_comparison_operand_rows_collapse_to_same_slot(...)`를 public
-  `period_comparison_operand_rows_collapse_to_same_slot(...)`로 rename하고 두
-  import, 여섯 production call, direct-name·owner-count·fingerprint 기대 46개만
-  갱신한다. Current/prior role list construction, exact normalization/
-  membership, shallow-copy order, shared same-slot predicate와 여섯 caller의
-  sequencing을 유지하고 ratio collapse, evidence helpers, period-pair/
-  stale-result policy와 broader graph orchestration은 제외한다. Exact temporary
-  projection은 source/tests/whole `+9/-9`, `+46/-46`, `+55/-55`, focused
-  879/879, audit 217, pycompile 5/5, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `0b2b66d` visibility batch는 같은 owner의 exact 13-line period-
+  comparison collapse predicate를 public
+  `period_comparison_operand_rows_collapse_to_same_slot(...)`로 이름 수렴시키고
+  dependency/graph import 두 개와 call 여섯 개, direct-name·owner-count·
+  fingerprint 기대 46개만 갱신했다. Current/prior role construction, exact
+  normalization/membership, shallow-copy order, shared same-slot predicate와
+  여섯 caller sequencing은 유지됐다. Source/tests/whole `+9/-9`, `+46/-46`,
+  `+55/-55`, direct behavior 1/1, identity 2/2, focused 879/879, audit 217,
+  pycompile 5/5, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 31-line
+  `_evidence_surface_contains_segment_label(...)`을 public
+  `evidence_surface_contains_segment_label(...)`로 rename하고 owner-local call
+  한 개, graph import/call 각 한 개, direct-name·owner-count·fingerprint 기대
+  38개만 갱신한다. Variant/punctuation/space normalization, ordered dedupe,
+  shallow policy copy, case-sensitive segment/scope regex matching과 두 caller
+  sequencing을 유지하고 required-surface/ratio-alignment body, policy data,
+  evidence orchestration과 broader graph state는 제외한다. Exact temporary
+  projection은 source/tests/whole `+4/-4`, `+38/-38`, `+42/-42`, focused
+  879/879, audit 217, pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
