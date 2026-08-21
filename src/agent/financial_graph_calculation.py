@@ -197,7 +197,7 @@ from src.agent.financial_operand_resolution import (
     _evidence_items_by_id,
     evidence_surface_contains_segment_label,
     evidence_item_conflicts_requested_scope,
-    _filter_operand_rows_by_required_surface_contract,
+    filter_operand_rows_by_required_surface_contract,
     merge_operand_rows,
     _missing_required_operands,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
@@ -7696,7 +7696,7 @@ class FinancialAgentCalculationMixin:
                     require_direct_support=True,
                 )
             else:
-                rows = _filter_operand_rows_by_required_surface_contract(
+                rows = filter_operand_rows_by_required_surface_contract(
                     rows,
                     group_items,
                     required_operands,
@@ -8929,7 +8929,7 @@ class FinancialAgentCalculationMixin:
         report_scope: Dict[str, Any],
         require_direct_support: bool = False,
     ) -> List[Dict[str, Any]]:
-        return _filter_operand_rows_by_required_surface_contract(
+        return filter_operand_rows_by_required_surface_contract(
             self._build_required_operands_from_candidates(
                 candidate_items,
                 required_operands=required_operands,

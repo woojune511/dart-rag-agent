@@ -1567,7 +1567,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_graph_calculation, "merge_operand_rows", side_effect=merge_rows),
             patch.object(
                 financial_graph_calculation,
-                "_filter_operand_rows_by_required_surface_contract",
+                "filter_operand_rows_by_required_surface_contract",
                 side_effect=lambda rows, *_args, **_kwargs: rows,
             ),
             patch.object(financial_graph_calculation, "scoped_surface_affinity_priority", return_value=0.0),

@@ -1712,7 +1712,7 @@ def _operand_row_satisfies_required_surface_contract(
     return _operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
 
 
-def _filter_operand_rows_by_required_surface_contract(
+def filter_operand_rows_by_required_surface_contract(
     rows: List[Dict[str, Any]],
     evidence_items: List[Dict[str, Any]],
     required_operands: List[Dict[str, Any]],

@@ -50,7 +50,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_graph_evidence import _prioritize_candidate_items
 from src.agent.financial_operand_resolution import (
     _evidence_item_for_operand_row,
-    _filter_operand_rows_by_required_surface_contract,
+    filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
@@ -566,7 +566,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = _filter_operand_rows_by_required_surface_contract(
+        filtered = filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,
@@ -737,7 +737,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = _filter_operand_rows_by_required_surface_contract(
+        filtered = filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,

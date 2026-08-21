@@ -19,7 +19,7 @@ from src.agent.financial_operand_resolution import (
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
     evidence_surface_contains_segment_label,
-    _filter_operand_rows_by_required_surface_contract,
+    filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
     _missing_required_operands,
     operand_row_display_unit_set,
@@ -3662,14 +3662,14 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         empty_rows: List[Dict[str, Any]] = []
 
         self.assertIs(
-            _filter_operand_rows_by_required_surface_contract(empty_rows, [], [permissive_operand]),
+            filter_operand_rows_by_required_surface_contract(empty_rows, [], [permissive_operand]),
             empty_rows,
         )
         self.assertIs(
-            _filter_operand_rows_by_required_surface_contract(rows, evidence_items, []),
+            filter_operand_rows_by_required_surface_contract(rows, evidence_items, []),
             rows,
         )
-        permissive = _filter_operand_rows_by_required_surface_contract(
+        permissive = filter_operand_rows_by_required_surface_contract(
             rows,
             evidence_items,
             [permissive_operand],
@@ -3679,7 +3679,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertIs(permissive[0], rows[0])
         self.assertIs(permissive[1], rows[1])
 
-        contracted = _filter_operand_rows_by_required_surface_contract(
+        contracted = filter_operand_rows_by_required_surface_contract(
             rows,
             evidence_items,
             [contracted_operand],
