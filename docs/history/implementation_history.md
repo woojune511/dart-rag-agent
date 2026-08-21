@@ -9789,15 +9789,15 @@ completion claim.
   checkpoint establishes no behavior, quality, performance, benchmark,
   schedule, ledger, or Phase 3 completion claim.
 
-### Operand-slot evidence-surface predicate public API characterization checkpoint
+### Operand-slot evidence-surface predicate public API milestone
 
-- The next bounded visibility batch renames only the exact 53-line
+- Commit `3198927` renamed only the exact 53-line
   `financial_operand_resolution._operand_slot_has_evidence_surface_match(
   slot: Dict[str, Any], evidence_item: Optional[Dict[str, Any]],
   operand: Dict[str, Any], *, metric_label: str = "") -> bool` definition in
-  place to public `operand_slot_has_evidence_surface_match(...)`. Update one
-  graph import, six graph calls, and four selected test name refs; add no
-  wrapper/alias and move no body or adjacent helper.
+  place to public `operand_slot_has_evidence_surface_match(...)`. It updated one
+  graph import, six graph calls, and four selected test name refs; it added no
+  wrapper/alias and moved no body or adjacent helper.
 - Preserve matched-line normalization; ordered/eager label, metric-label, and
   alias surfaces; compact/direct/lazy match order; success before evidence
   access; falsey-evidence rejection; shallow metadata/cell copies; exact
@@ -9813,27 +9813,76 @@ completion claim.
   negated guard, and source-evidence guard. Their normalized call-record hash
   is `2626e94f3c5b6a2736f7a65482c65a0226555241bf81308398c87cf06ce39c62`;
   exact caller and indirect fingerprint old/new hashes are recorded in
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  [Project Status Completed Operand Slot](../overview/project_status.md#completed-operand-slot-evidence-surface-predicate-public-api).
 - Production scope is one definition, one import, six calls, and no owner-local
   call. Tests contain four selected name refs. The public name has no collision.
-  Projected private/public records are 0/12, owner counts move 62/29 to 63/28,
+  Final private/public records are 0/12, owner counts moved 62/29 to 63/28,
   and owner/dependency/graph physical lines remain 4,816/3,419/13,464.
-- Exactly 39 existing expectations change: four names, 30 count/tuple
+- Exactly 39 existing expectations changed: four names, 30 count/tuple
   expectations, and five operand-text-match/desired-consolidation indirect
   fingerprints. No method or assertion is added, removed, or weakened.
-  Projected source/tests/whole transforms are `+8/-8`, `+39/-39`, and
-  `+47/-47`; exact temporary diff SHA-256 is
+  Source/tests/whole transforms were `+8/-8`, `+39/-39`, and
+  `+47/-47`; the committed diff SHA-256 is
   `8460f0be379113b651f409164b7fda8cb859d94b0c3c5481ce24d40e073c945e`.
-- The temporary projection passed direct behavior 1/1, graph/public-owner
+- The committed implementation passed direct behavior 1/1, graph/public-owner
   identity, two fingerprint-specific structure tests, affected focused
   graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
   projection/calculation-execution/task-artifact/operation-contract/import-
-  side-effects/lookup-recovery 911/911 in 282.039 seconds, audit 217,
+  side-effects/lookup-recovery 911/911 in 189.724 seconds, audit 217,
   pycompile 4/4, retired refs zero, diff check, and unchanged acyclic 48/203
-  DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-  gate. Benchmark refresh and remote CI were **NOT RUN**.
+  DAG. Full 2,143/2,143 passed in 241.129 seconds. Benchmark refresh and remote
+  CI were **NOT RUN**.
 - Keep text matchers, surface assembly, lookup/dependency repair bodies,
   evidence orchestration, graph state, trace/artifact mutation, and final
-  sequencing outside this batch. This checkpoint establishes no behavior,
+  sequencing outside this batch. This milestone establishes no behavior,
   quality, performance, benchmark, schedule, ledger, or Phase 3 completion
   claim.
+
+### Ratio operand same-slot predicate public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 13-line
+  `financial_operand_resolution._ratio_operand_rows_collapse_to_same_slot(
+  rows: List[Dict[str, Any]]) -> bool` definition in place to public
+  `ratio_operand_rows_collapse_to_same_slot(...)`. Update three imports and ten
+  calls across calculation execution, dependency projection, and graph
+  calculation, plus twelve selected exact test refs across five files. Add no
+  wrapper/alias and do not rename the private group predicate.
+- Preserve the single group-predicate delegation and raw result; eager
+  numerator-before-denominator group construction; independent `rows or []`
+  evaluation twice; ordered row iteration; falsey-row fallback; exact role
+  normalization and case-sensitive prefix checks; condition-before-copy order;
+  shallow `dict(row)` copies only for matches; immutability, evaluation order,
+  and uncaught errors. The definition AST/body hashes are
+  `26515f7c58597706fe203eea6e6bb3ea2b11ab74f46780fc01edafc716c1f0e6` /
+  `846665a02fde05cd9ab8372cef04836bf8283e91b7d1ec17c958daa9f7bacc31`.
+- All ten one-positional/no-keyword/try-depth-zero calls remain in the operation
+  guard, dependency guards, graph recalculation, ratio-answer, period-table,
+  coherent-context, extraction, and task-output/retrieved-context append
+  callers. Their normalized combined call-record hash is
+  `1de7c69edeb5f073f10d6f255252dfa9abf250ce7de6f3733f2f31aad6abba34`;
+  exact caller old/new hashes are recorded in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+- Production scope is one definition, three imports, ten external calls, and
+  no owner-local call. Tests contain twelve selected refs; the public name has
+  no collision. Projected private/public records are 0/26, owner counts move
+  63/28 to 64/27, and owner/dependency/graph physical lines remain
+  4,816/3,419/13,464.
+- Exactly 53 existing expectations change: twelve selected names, 30 owner
+  count/tuple expectations, four extraction-caller hashes, and seven aggregate
+  fingerprints. No method or assertion is added, removed, or weakened.
+  Projected source/tests/whole transforms are `+14/-14`, `+53/-53`, and
+  `+67/-67`; exact temporary diff SHA-256 is
+  `377f47657a869cc9933945009f56ef4e78ee98fbdd1cf6dcaaf81a6e43c3a495`.
+- The temporary projection passed direct behavior 1/1, three public-owner
+  identities, six fingerprint-specific structure tests, affected focused
+  graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
+  projection/calculation-execution/task-artifact/operation-contract/import-
+  side-effects/lookup-recovery/aggregate-rank 1,004/1,004 in 232.511 seconds,
+  audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged acyclic
+  48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep the private group predicate, role normalization/copy behavior, all ten
+  caller bodies, evidence orchestration, graph state, trace/artifact mutation,
+  and final sequencing outside this batch. This checkpoint establishes no
+  behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.

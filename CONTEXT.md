@@ -545,12 +545,20 @@ identity, single evidence indexing, ordered row filtering, lazy operand match와
 keyword propagation은 유지됐고 source/tests/whole `+4/-4`, `+39/-39`,
 `+43/-43`, direct behavior 1/1, graph identity, focused 911/911 in 308.132
 seconds, audit 217, pycompile 6/6, unchanged 48/203 DAG, full 2,143/2,143 in
-350.243 seconds가 통과했다. 다음 batch는 exact 53-line
-`_operand_slot_has_evidence_surface_match(...)`를 public
-`operand_slot_has_evidence_surface_match(...)`로 rename하고 graph import 한
-개와 call 여섯 개, 기존 direct-name/count/fingerprint 기대 39개만 갱신한다.
-Exact temporary projection source/tests/whole `+8/-8`, `+39/-39`, `+47/-47`와
-focused 911/911 경계는
+350.243 seconds가 통과했다. 이어 `3198927`이 exact 53-line operand-slot
+evidence-surface predicate를 같은 위치와 본문으로 public
+`operand_slot_has_evidence_surface_match(...)`로 이름 수렴시키고 graph
+import 한 개와 call 여섯 개, 기존 기대 39개만 갱신했다. Matched-line fast
+path, evidence metadata/cell surface assembly와 여섯 caller의 guard/adoption
+순서는 유지됐고 source/tests/whole `+8/-8`, `+39/-39`, `+47/-47`, direct
+behavior 1/1, graph identity, focused 911/911 in 189.724 seconds, audit 217,
+pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143 in 241.129 seconds가
+통과했다. 다음 batch는 exact 13-line
+`_ratio_operand_rows_collapse_to_same_slot(...)`를 public
+`ratio_operand_rows_collapse_to_same_slot(...)`로 rename하고 source import 세
+개와 call 열 개, 기존 direct-name/count/fingerprint 기대 53개만 갱신한다.
+Exact temporary projection source/tests/whole `+14/-14`, `+53/-53`,
+`+67/-67`와 focused 1,004/1,004 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙
