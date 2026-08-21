@@ -2694,7 +2694,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_graph_calculation,
-            "_ratio_operand_rows_collapse_to_same_slot",
+            "ratio_operand_rows_collapse_to_same_slot",
             return_value=False,
         ), patch.object(
             financial_graph_calculation.calculation_rendering,
@@ -2731,7 +2731,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_graph_calculation,
-            "_ratio_operand_rows_collapse_to_same_slot",
+            "ratio_operand_rows_collapse_to_same_slot",
             return_value=False,
         ), patch.object(
             financial_graph_calculation.calculation_rendering,

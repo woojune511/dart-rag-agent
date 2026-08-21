@@ -19,7 +19,7 @@ from src.agent.financial_operand_resolution import (
     operand_rows_conflict_by_required_role,
     operand_rows_have_single_table_context,
     period_comparison_operand_rows_collapse_to_same_slot,
-    _ratio_operand_rows_collapse_to_same_slot,
+    ratio_operand_rows_collapse_to_same_slot,
     operand_row_source_ids,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
@@ -1685,7 +1685,7 @@ def resolve_main_operand_precedence(
     direct_rows_have_coherent_context = bool(
         direct_rows_cover_required_operands
         and operand_rows_have_single_table_context(direct_rows)
-        and not _ratio_operand_rows_collapse_to_same_slot(direct_rows)
+        and not ratio_operand_rows_collapse_to_same_slot(direct_rows)
         and not period_comparison_operand_rows_collapse_to_same_slot(direct_rows)
     )
 
@@ -1886,7 +1886,7 @@ def resolve_late_dependency_remerge(
                     remerge_input.required_operands,
                     active_direct_context_rows,
                 )
-                and not _ratio_operand_rows_collapse_to_same_slot(active_direct_context_rows)
+                and not ratio_operand_rows_collapse_to_same_slot(active_direct_context_rows)
                 and not period_comparison_operand_rows_collapse_to_same_slot(
                     active_direct_context_rows
                 )

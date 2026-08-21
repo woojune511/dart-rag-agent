@@ -2026,7 +2026,7 @@ def _operand_row_groups_collapse_to_same_slot(
     return False
 
 
-def _ratio_operand_rows_collapse_to_same_slot(rows: List[Dict[str, Any]]) -> bool:
+def ratio_operand_rows_collapse_to_same_slot(rows: List[Dict[str, Any]]) -> bool:
     return _operand_row_groups_collapse_to_same_slot([
         [
             dict(row)

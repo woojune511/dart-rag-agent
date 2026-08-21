@@ -8,7 +8,7 @@ from src.agent.financial_formula_eval import _safe_eval_formula
 from src.agent.financial_operand_resolution import (
     _missing_required_operands,
     _operand_row_matches_requirement,
-    _ratio_operand_rows_collapse_to_same_slot,
+    ratio_operand_rows_collapse_to_same_slot,
 )
 from src.agent.financial_operation_policies import should_coerce_percent_point_unit
 from src.agent.financial_runtime_normalization import (
@@ -198,7 +198,7 @@ def guard_operation_plan(
             missing_info.append("denominator")
         if numerator_ids and denominator_ids and not (numerator_ids - denominator_ids or denominator_ids - numerator_ids):
             missing_info.append("distinct_ratio_roles")
-        if _ratio_operand_rows_collapse_to_same_slot(selected_rows):
+        if ratio_operand_rows_collapse_to_same_slot(selected_rows):
             missing_info.append("distinct_ratio_roles")
 
     if not missing_info:

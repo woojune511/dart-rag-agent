@@ -3118,7 +3118,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_calculation,
-                "_ratio_operand_rows_collapse_to_same_slot",
+                "ratio_operand_rows_collapse_to_same_slot",
                 return_value=False,
             ) as collapse_gate,
             patch.object(
@@ -6887,7 +6887,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(financial_graph_calculation, "collect_retrieval_context_docs", return_value=["doc"]),
             patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
-            patch.object(financial_graph_calculation, "_ratio_operand_rows_collapse_to_same_slot", return_value=False),
+            patch.object(financial_graph_calculation, "ratio_operand_rows_collapse_to_same_slot", return_value=False),
             patch.object(financial_graph_calculation.calculation_rendering, "ratio_result_projection", return_value=projection),
         ):
             appended = financial_graph_calculation.FinancialAgentCalculationMixin._append_ratio_result_from_retrieved_context(
@@ -6921,7 +6921,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(financial_graph_calculation, "collect_retrieval_context_docs", return_value=["doc"]),
             patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
-            patch.object(financial_graph_calculation, "_ratio_operand_rows_collapse_to_same_slot", return_value=False),
+            patch.object(financial_graph_calculation, "ratio_operand_rows_collapse_to_same_slot", return_value=False),
             patch.object(financial_graph_calculation.calculation_rendering, "ratio_result_projection", return_value=projection),
             self.assertRaisesRegex(RuntimeError, "conflict failed"),
         ):

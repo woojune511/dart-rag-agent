@@ -206,7 +206,7 @@ from src.agent.financial_operand_resolution import (
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
     period_comparison_operand_rows_collapse_to_same_slot,
-    _ratio_operand_rows_collapse_to_same_slot,
+    ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
     align_growth_operand_units_when_raw_scale_matches,
@@ -2220,7 +2220,7 @@ class FinancialAgentCalculationMixin:
                     source_task_id_for_operand=_source_task_id_for_operand,
                 )
                 changed = changed or filled_any
-                if operation_family == "ratio" and _ratio_operand_rows_collapse_to_same_slot(updated_operands):
+                if operation_family == "ratio" and ratio_operand_rows_collapse_to_same_slot(updated_operands):
                     return row
             if not changed:
                 return row
@@ -5867,7 +5867,7 @@ class FinancialAgentCalculationMixin:
             denominator_task_id,
             "denominator_1",
         )
-        if _ratio_operand_rows_collapse_to_same_slot([numerator_slot, denominator_slot]):
+        if ratio_operand_rows_collapse_to_same_slot([numerator_slot, denominator_slot]):
             return ""
         numerator_value = financial_answer_slots.coerce_slot_numeric(numerator_slot.get("normalized_value"))
         denominator_value = financial_answer_slots.coerce_slot_numeric(denominator_slot.get("normalized_value"))
@@ -7674,7 +7674,7 @@ class FinancialAgentCalculationMixin:
                 direct_rows.append(best_row)
             if _missing_required_operands(required_operands, direct_rows):
                 return []
-            if _ratio_operand_rows_collapse_to_same_slot(direct_rows):
+            if ratio_operand_rows_collapse_to_same_slot(direct_rows):
                 return []
             return merge_operand_rows(
                 direct_rows,
@@ -7704,7 +7704,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(required_operands, rows):
                 continue
-            if _ratio_operand_rows_collapse_to_same_slot(rows):
+            if ratio_operand_rows_collapse_to_same_slot(rows):
                 continue
             unit_count = len(
                 {
@@ -9233,7 +9233,7 @@ class FinancialAgentCalculationMixin:
         direct_rows_have_coherent_context = bool(
             direct_rows_cover_required_operands
             and operand_rows_have_single_table_context(direct_structured_rows)
-            and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+            and not ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
             and not period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
 
@@ -11797,7 +11797,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(bindings, dependency_rows):
                 continue
-            if _ratio_operand_rows_collapse_to_same_slot(dependency_rows):
+            if ratio_operand_rows_collapse_to_same_slot(dependency_rows):
                 continue
             numerator_rows = [
                 dict(row)
@@ -11989,7 +11989,7 @@ class FinancialAgentCalculationMixin:
             )
             if _missing_required_operands(context_required_operands, context_rows):
                 continue
-            if _ratio_operand_rows_collapse_to_same_slot(context_rows):
+            if ratio_operand_rows_collapse_to_same_slot(context_rows):
                 continue
             dependency_rows: List[Dict[str, Any]] = []
             result_by_task_id = {

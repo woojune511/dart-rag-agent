@@ -31,7 +31,7 @@ from src.agent.financial_operand_resolution import (
     operand_rows_conflict_by_required_role,
     operand_rows_have_single_table_context,
     period_comparison_operand_rows_collapse_to_same_slot,
-    _ratio_operand_rows_collapse_to_same_slot,
+    ratio_operand_rows_collapse_to_same_slot,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
     direct_lookup_row_is_ambiguous_context_table,
@@ -3844,10 +3844,10 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         numerator = {**current_row, "matched_operand_role": "numerator_1"}
         denominator = {**stale_prior_row, "matched_operand_role": "denominator_1"}
         self.assertTrue(
-            _ratio_operand_rows_collapse_to_same_slot([numerator, denominator])
+            ratio_operand_rows_collapse_to_same_slot([numerator, denominator])
         )
         self.assertFalse(
-            _ratio_operand_rows_collapse_to_same_slot(
+            ratio_operand_rows_collapse_to_same_slot(
                 [numerator, {**denominator, "source_row_id": "row_other", "source_row_ids": ["row_other"]}]
             )
         )
