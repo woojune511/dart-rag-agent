@@ -56,7 +56,7 @@ from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
     _preferred_calc_sections,
-    _supplement_section_terms_for_query,
+    supplement_section_terms_for_query,
 )
 from src.agent.financial_surface_contracts import candidate_is_descriptor_row, operand_needles
 from src.agent.financial_row_surfaces import (
@@ -1004,7 +1004,7 @@ class FinancialAgentReconciliationMixin:
         query = state["query"]
         topic = state.get("topic") or query
         intent = state.get("intent") or state.get("query_type", "qa")
-        section_terms = _supplement_section_terms_for_query(query, topic, intent)
+        section_terms = supplement_section_terms_for_query(query, topic, intent)
         section_terms.extend(_active_preferred_sections(state, query, topic, intent))
         section_terms = list(dict.fromkeys(term for term in section_terms if term))
         active_subtask = dict(state.get("active_subtask") or {})

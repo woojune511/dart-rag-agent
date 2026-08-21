@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (5, 9))
+        self.assertEqual(owner_counts, (6, 8))
 
         def imported_names(module_name, imported_module):
             return {
@@ -59592,7 +59592,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_supplement_section_seed_docs",
-                    ): "8befdd9b9baf7734744d0923e12523f83ce2aba73f4fc7c0968b474a40c7a9a0",
+                    ): "b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01",
                     (
                         "financial_graph_reconciliation",
                         "_infer_missing_info",
@@ -59648,7 +59648,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "0e13e85fed6712b333aa659427686113e24d47022ecd7d28f3a1c2f06be5d53e"
+                "b7cbc7c0fdce629eedfe83a1fffd19f6a7ee93a2816288c64b014343a64e5e14"
                 if target_name == future_public_name
                 else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
             ),
@@ -60290,7 +60290,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_reconciliation,
-                "_supplement_section_terms_for_query",
+                "supplement_section_terms_for_query",
                 return_value=["section"],
             ),
             patch.object(

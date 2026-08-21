@@ -105,7 +105,7 @@ def _preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
     return get_financial_ontology().preferred_sections(query, topic, intent)
 
 
-def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> List[str]:
+def supplement_section_terms_for_query(query: str, topic: str, intent: str) -> List[str]:
     sections: List[str] = []
     if intent not in {"comparison", "trend"}:
         return list(dict.fromkeys(sections))
