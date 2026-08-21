@@ -393,7 +393,7 @@ def canonicalize_structured_operand_reconciliation_refs(
     return updated
 
 
-def _operand_slot_has_evidence_surface_match(
+def operand_slot_has_evidence_surface_match(
     slot: Dict[str, Any],
     evidence_item: Optional[Dict[str, Any]],
     operand: Dict[str, Any],

@@ -3137,7 +3137,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         helper_names = (
             "canonical_structured_reconciliation_id",
             "canonicalize_structured_operand_reconciliation_refs",
-            "_operand_slot_has_evidence_surface_match",
+            "operand_slot_has_evidence_surface_match",
             "repair_operand_normalization_from_rendered_unit",
             "align_ratio_operand_units_with_shared_table_context",
         )
@@ -3233,7 +3233,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             with self.subTest(surface=name):
                 original_inputs = deepcopy((slot, evidence, operand))
                 self.assertEqual(
-                    operand_resolution._operand_slot_has_evidence_surface_match(
+                    operand_resolution.operand_slot_has_evidence_surface_match(
                         slot,
                         evidence,
                         operand,

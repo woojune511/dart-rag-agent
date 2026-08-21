@@ -202,7 +202,7 @@ from src.agent.financial_operand_resolution import (
     _missing_required_operands,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     operand_rows_have_single_table_context,
-    _operand_slot_has_evidence_surface_match,
+    operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
     period_comparison_operand_rows_collapse_to_same_slot,
@@ -1918,7 +1918,7 @@ class FinancialAgentCalculationMixin:
             preferred_slot: Dict[str, Any],
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
-            return _operand_slot_has_evidence_surface_match(
+            return operand_slot_has_evidence_surface_match(
                 preferred_slot,
                 preferred_evidence,
                 operand,
@@ -5273,7 +5273,7 @@ class FinancialAgentCalculationMixin:
                     if (
                         current_evidence_id
                         and current_evidence_id == candidate_evidence_id
-                        and _operand_slot_has_evidence_surface_match(
+                        and operand_slot_has_evidence_surface_match(
                             slot,
                             candidate_evidence,
                             binding,
@@ -5301,7 +5301,7 @@ class FinancialAgentCalculationMixin:
                                 and re.search(fiscal_period_presence_pattern, header_text)
                             )
                         )
-                        if has_period_table_surface and _operand_slot_has_evidence_surface_match(
+                        if has_period_table_surface and operand_slot_has_evidence_surface_match(
                             slot,
                             candidate_evidence,
                             binding,
@@ -5398,7 +5398,7 @@ class FinancialAgentCalculationMixin:
                     or preferred_unit != current_unit
                     or normalized_differs
                 ):
-                    preferred_surface_matches = _operand_slot_has_evidence_surface_match(
+                    preferred_surface_matches = operand_slot_has_evidence_surface_match(
                         preferred_slot,
                         preferred_evidence,
                         binding,
@@ -11586,7 +11586,7 @@ class FinancialAgentCalculationMixin:
                 required_operands=[binding],
             ):
                 return source_slot
-            if not _operand_slot_has_evidence_surface_match(
+            if not operand_slot_has_evidence_surface_match(
                 preferred_slot,
                 preferred_evidence,
                 binding,
@@ -11609,7 +11609,7 @@ class FinancialAgentCalculationMixin:
             )
             if source_slot_ids and preferred_slot_ids and source_slot_ids.isdisjoint(preferred_slot_ids):
                 return source_slot
-            if source_evidence and _operand_slot_has_evidence_surface_match(
+            if source_evidence and operand_slot_has_evidence_surface_match(
                 source_slot,
                 source_evidence,
                 binding,
