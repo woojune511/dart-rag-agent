@@ -9906,55 +9906,76 @@ completion claim.
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
 
-### Missing-required-operands public API characterization checkpoint
+### Missing-required-operands public API milestone
 
-- The next bounded visibility batch renames only the exact 10-line
-  `financial_operand_resolution._missing_required_operands(
-  required_operands: List[Dict[str, Any]],
-  operand_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]` definition in
-  place to public `missing_required_operands(...)`. Update two owner-local
-  calls, three imports and 22 external calls across calculation execution,
-  dependency projection, and graph calculation, plus seventeen selected exact
-  test refs across seven files. Add no wrapper/alias and do not rename the row
-  matcher.
-- Preserve the fresh result list, ordered required-operand iteration, fresh
-  ordered row scan per operand, row/operand matcher order, generator truth
-  testing and first-match short circuit, covered-row skip before copying, one
-  shallow copy per missing occurrence, duplicate occurrence retention,
-  input/nested-object immutability, evaluation order, and uncaught errors. The
-  definition AST/body hashes are
+- Commit `bd29a11` renamed only the exact 10-line
+  `financial_operand_resolution._missing_required_operands(...)` definition
+  in place to public `missing_required_operands(...)`. It updated two
+  owner-local calls, three imports, 22 external calls, and 61 exact test
+  expectations; it added no wrapper/alias and moved no body or adjacent helper.
+- Ordered required-operand iteration, fresh row scan per operand, matcher
+  argument order, first-match short circuit, covered-row skip before copying,
+  one shallow copy per missing occurrence, duplicate occurrence retention,
+  immutability, evaluation order, and uncaught errors remain exact. The
+  definition AST/body hashes remain
   `24640a6ba6442b89c9d37bcfa7ca674c2b1448a999e660ecf70a62ae0554588d` /
   `d22dcfc377128ada24478863e9458d7e3bebd32533707c9a922e63cdc34ca9e0`.
-- All 24 two-positional/no-keyword calls retain their assignments, ternaries,
-  negations, short-circuit operands, return/continue guards, and caller-owned
-  adoption stops. Only graph extraction lines 9615, 9715, 9721, and 9727
-  remain at nearest-caller `try` depth one. Their normalized combined
-  call-record hash is
-  `ade5c496653812a4bd89d3171131128a8cb4c85779226d3ad03b85e34d684e2c`;
+- Source/tests/whole transforms were `+28/-28`, `+61/-61`, and
+  `+89/-89`; the committed diff SHA-256 is
+  `7311e33650e0467a58bb150b7cb0f3127385d48eaa6c5a85d1e59e9cd42e57d3`.
+  Direct behavior 1/1, three public-owner identities, seven structure
+  fingerprints in 50.475 seconds, focused 1,084/1,084 in 341.291 seconds,
+  audit 217, pycompile 11/11, retired refs zero, selected public records 45,
+  owner public/private 66/25, unchanged acyclic 48/203 DAG, and full
+  2,143/2,143 in 352.063 seconds passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Evidence-item-for-operand-row public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 23-line
+  `financial_operand_resolution._evidence_item_for_operand_row(
+  row: Dict[str, Any],
+  evidence_by_id: Dict[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]`
+  definition in place to public `evidence_item_for_operand_row(...)`. Update
+  four owner-local calls, three imports and 22 external calls across aggregate
+  projection, graph calculation, and lookup recovery, plus 24 selected exact
+  test refs across four files. Add no wrapper/alias and do not rename the
+  source-row ID cleaner.
+- Preserve eager ordered row-ID gets, one cleaner call, eager truthy candidate
+  filtering, candidate order, exact-ID before prefixed-ID before stripped-ID
+  lookup, truthy exact-value identity return, falsey continuation, prefix
+  check/removal order, final `None`, immutability, evaluation order, and
+  uncaught errors. The definition AST/body hashes are
+  `3e59995a2f598d36b2a3ebb442e70d8be99b19c24b8e06625e5b3832ff61d8bb` /
+  `3fd322a74ee131fa9a72495d04537217eebe0d0fa3431ebf600a552de4aecf8b`.
+- All 26 two-positional/no-keyword/try-depth-zero calls retain assignments,
+  left-to-right `or` fallback, nested coercion arguments, guard/adoption
+  ordering, and caller-owned stops. Their normalized combined call-record hash
+  is `7f4b42c9703318e7b89a176f9c0e5f6a37cb4ce144930cecc8c6f752efb7dfcd`;
   exact caller and indirect fingerprint old/new hashes are recorded in
   [Project Status Next Work](../overview/project_status.md#next-work).
-- Production scope is one definition, two owner-local calls, three imports,
-  and 22 external calls. Tests contain seventeen selected refs. The one
-  pre-existing graph reason string `"missing_required_operands"` is
-  non-binding and remains unchanged. Projected selected private/public records
-  are 0/45, owner counts move 65/26 to 66/25, and owner/execution/dependency/
-  graph physical lines remain 4,816/1,074/3,419/13,464.
-- Exactly 61 existing expectations change: seventeen names, 30 owner count/
-  tuple expectations, six caller-body hashes, and eight aggregate
+- Production scope is one definition, four owner-local calls, three imports,
+  and 22 external calls. Tests contain 24 selected refs and the public name has
+  no collision. Projected selected private/public records are 0/54, owner
+  counts move 66/25 to 67/24, and owner/aggregate/graph/lookup physical lines
+  remain 4,816/3,946/13,464/1,154.
+- Exactly 65 existing expectations change: 24 names, 30 owner count/tuple
+  expectations, four extraction-caller hashes, and seven aggregate
   fingerprints. No method or assertion is added, removed, or weakened.
-  Projected source/tests/whole transforms are `+28/-28`, `+61/-61`, and
-  `+89/-89`; exact temporary diff SHA-256 is
-  `7311e33650e0467a58bb150b7cb0f3127385d48eaa6c5a85d1e59e9cd42e57d3`.
+  Projected source/tests/whole transforms are `+30/-30`, `+65/-65`, and
+  `+95/-95`; exact temporary diff SHA-256 is
+  `984d4e75eda70c16ba56ae9eec3f8a78689a48062b30fc736ff8808bcaf3fc94`.
 - The temporary projection passed direct behavior 1/1, three public-owner
-  identities, seven fingerprint-specific structure tests, affected focused
+  identities, six fingerprint-specific structure tests, affected focused
   graph-helper/operand-resolution/dependency-projection/aggregate-subtask-
   projection/calculation-execution/task-artifact/operation-contract/import-
-  side-effects/lookup-recovery/aggregate-rank/semantic-numeric-plan
-  1,084/1,084 in 253.268 seconds, audit 217, pycompile 11/11, retired refs
-  zero, diff check, and unchanged acyclic 48/203 DAG, then was restored
-  cleanly. Full 2,143/2,143 remains the implementation gate. Benchmark refresh
-  and remote CI were **NOT RUN**.
-- Keep the matcher, all caller bodies, operand/evidence/dependency
+  side-effects/lookup-recovery/aggregate-rank 1,004/1,004 in 254.402 seconds,
+  audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
+  acyclic 48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep the ID cleaner, all caller bodies, evidence/unit/operand/dependency
   orchestration, graph state, trace/artifact mutation, and final sequencing
   outside this batch. This checkpoint establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.

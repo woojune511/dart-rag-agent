@@ -1417,16 +1417,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Source/tests/whole `+18/-18`, `+56/-56`, `+74/-74`, direct behavior
   1/1, public identity 2/2, focused 1,004/1,004, audit 217, pycompile 7/7,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 10-line
-  `_missing_required_operands(...)`를 public
-  `missing_required_operands(...)`로 rename하고 owner-local call 두 개,
-  calculation-execution/dependency-projection/graph import 세 개와 external
-  call 22개, direct-name·owner-count·fingerprint 기대 61개만 갱신한다.
-  Required-operand 순서, 매 operand의 ordered row scan, matcher short circuit,
-  covered-row skip, missing-row shallow copy와 caller guard/adoption 순서를
-  유지한다. Exact temporary projection은 source/tests/whole `+28/-28`,
-  `+61/-61`, `+89/-89`, focused 1,084/1,084, audit 217, pycompile 11/11,
-  unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `bd29a11` visibility batch는 같은 owner의 exact 10-line
+  missing-required-operands detector를 public
+  `missing_required_operands(...)`로 이름 수렴시키고 owner-local call 두
+  개, calculation-execution/dependency-projection/graph import 세 개와
+  external call 22개, direct-name·owner-count·fingerprint 기대 61개만
+  갱신했다. Ordered required/row scan, first-match short circuit,
+  covered-row skip, missing-row shallow copy와 caller guard/adoption 순서는
+  유지됐다. Source/tests/whole `+28/-28`, `+61/-61`, `+89/-89`,
+  direct behavior 1/1, public identity 3/3, focused 1,084/1,084, audit 217,
+  pycompile 11/11, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 23-line
+  `_evidence_item_for_operand_row(...)`를 public
+  `evidence_item_for_operand_row(...)`로 rename하고 owner-local call 네
+  개, aggregate/graph/lookup-recovery import 세 개와 external call 22개,
+  direct-name·owner-count·fingerprint 기대 65개만 갱신한다. Ordered ID
+  cleanup, exact-before-recon-before-stripped fallback, truthy identity return,
+  falsey continuation과 caller adoption 순서를 유지한다. Exact temporary
+  projection은 source/tests/whole `+30/-30`, `+65/-65`, `+95/-95`,
+  focused 1,004/1,004, audit 217, pycompile 9/9, unchanged 48/203 DAG이며
+  전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

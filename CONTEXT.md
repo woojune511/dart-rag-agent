@@ -568,12 +568,20 @@ call 네 개, aggregate/graph import 두 개와 external call 열한 개, 기존
 순서는 유지됐고 source/tests/whole `+18/-18`, `+56/-56`, `+74/-74`,
 direct behavior 1/1, public identity 2/2, focused 1,004/1,004 in 253.742
 seconds, audit 217, pycompile 7/7, unchanged 48/203 DAG, full 2,143/2,143 in
-292.697 seconds가 통과했다. 다음 batch는 exact 10-line
-`_missing_required_operands(...)`를 public
-`missing_required_operands(...)`로 rename하고 owner-local call 두 개,
+292.697 seconds가 통과했다. 이어 `bd29a11`이 exact 10-line missing-required-operands detector를
+같은 위치와 본문으로 public `missing_required_operands(...)`로 이름
+수렴시키고 owner-local call 두 개, calculation-execution/dependency-
+projection/graph import 세 개와 external call 22개, 기존 기대 61개만
+갱신했다. Ordered required/row scan, first-match short circuit, covered-row
+skip와 missing-row shallow copy는 유지됐고 source/tests/whole `+28/-28`,
+`+61/-61`, `+89/-89`, direct behavior 1/1, public identity 3/3, focused
+1,084/1,084 in 341.291 seconds, audit 217, pycompile 11/11, unchanged 48/203
+DAG, full 2,143/2,143 in 352.063 seconds가 통과했다. 다음 batch는 exact
+23-line `_evidence_item_for_operand_row(...)`를 public
+`evidence_item_for_operand_row(...)`로 rename하고 owner-local call 네 개,
 external import 세 개/call 22개와 기존 direct-name/count/fingerprint 기대
-61개만 갱신한다. Exact temporary projection source/tests/whole
-`+28/-28`, `+61/-61`, `+89/-89`와 focused 1,084/1,084 경계는
+65개만 갱신한다. Exact temporary projection source/tests/whole
+`+30/-30`, `+65/-65`, `+95/-95`와 focused 1,004/1,004 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

@@ -6480,53 +6480,66 @@ zero, exact public records 34, owner public/private 65/26, unchanged acyclic
 and remote CI were **NOT RUN**. Full details are preserved in
 [Project Status Completed Evidence Index](../overview/project_status.md#completed-evidence-item-index-public-api).
 
-The active visibility contract now renames only the exact 10-line
-`financial_operand_resolution._missing_required_operands(
-required_operands: List[Dict[str, Any]],
-operand_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]` definition in
-place to public `missing_required_operands(...)`. Update exactly two
-owner-local calls, three imports and 22 external calls across calculation
-execution, dependency projection, and graph calculation, plus seventeen
-selected exact test refs across seven files. Add no alias or wrapper and do not
-rename `_operand_row_matches_requirement`.
-
-Preserve the fresh result list, direct required-operand iteration, fresh
-ordered row scan per operand, row/operand matcher argument order, generator
-truth testing and first-match short circuit, covered-row skip before copying,
-one shallow `dict(operand)` copy per missing occurrence, ordered append,
-duplicate occurrence retention, input/nested-object immutability, evaluation
-order, and uncaught errors. The name-normalized definition AST/body hashes are
-`24640a6ba6442b89c9d37bcfa7ca674c2b1448a999e660ecf70a62ae0554588d` /
-`d22dcfc377128ada24478863e9458d7e3bebd32533707c9a922e63cdc34ca9e0`.
-All 24 calls retain two positional arguments and no keywords. Only the four
-graph-extraction calls at lines 9615, 9715, 9721, and 9727 remain at nearest-
-caller `try` depth one; the other twenty remain at zero. Their target-
-normalized combined call-record hash is
-`ade5c496653812a4bd89d3171131128a8cb4c85779226d3ad03b85e34d684e2c`.
-
-Production scope is one definition, two owner-local calls, three imports, and
-22 external calls; tests contain seventeen selected refs. A non-binding graph
-reason string already equals `"missing_required_operands"` and remains
-unchanged; no future public definition/import/executable-name/attribute/test-
-patch collision exists. Projected selected private/public records are 0/45
-across source/tests, all three public-owner identities hold, owner counts move
-65/26 to 66/25, and owner/execution/dependency/graph physical lines remain
-4,816/1,074/3,419/13,464. Update exactly 61 existing expectations: seventeen
-names, 30 owner count/tuple expectations, six caller-body hashes, and eight
-aggregate fingerprints. Add no test and weaken no assertion.
-
-Projected source/tests/whole transforms are `+28/-28`, `+61/-61`, and
-`+89/-89` across four source and seven test files; exact temporary diff
+Commit `bd29a11` completed the visibility contract that renamed only the exact
+10-line `financial_operand_resolution._missing_required_operands(...)`
+definition in place to public `missing_required_operands(...)`. It updated
+two owner-local calls, three imports, 22 external calls, and 61 exact test
+expectations without changing the signature, ordered scan/copy body, caller
+placement, physical line counts, or orchestration. Source/tests/whole
+transforms were `+28/-28`, `+61/-61`, and `+89/-89`; the committed diff
 SHA-256 is
 `7311e33650e0467a58bb150b7cb0f3127385d48eaa6c5a85d1e59e9cd42e57d3`.
+Direct behavior 1/1, three public-owner identities, seven structure
+fingerprints, focused 1,084/1,084 in 341.291 seconds, audit 217, pycompile
+11/11, retired selected refs zero, selected public records 45, owner
+public/private 66/25, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
+352.063 seconds passed. Benchmark refresh and remote CI were **NOT RUN**. Full
+details are preserved in
+[Project Status Completed Missing Operands](../overview/project_status.md#completed-missing-required-operands-public-api).
+
+The active visibility contract now renames only the exact 23-line
+`financial_operand_resolution._evidence_item_for_operand_row(
+row: Dict[str, Any],
+evidence_by_id: Dict[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]`
+definition in place to public `evidence_item_for_operand_row(...)`. Update
+exactly four owner-local calls, three imports and 22 external calls across
+aggregate projection, graph calculation, and lookup recovery, plus 24 selected
+exact test refs across four files. Add no alias or wrapper and do not rename
+`_clean_source_row_ids`.
+
+Preserve eager ordered row-ID gets and the single cleaner call, eager truthy
+candidate filtering, candidate order, exact-ID before prefixed-ID before
+stripped-ID lookup, truthiness-gated exact-value identity return, falsey-value
+continuation, prefix check/removal order, final `None`, immutability,
+evaluation order, and uncaught errors. The name-normalized definition AST/body
+hashes are
+`3e59995a2f598d36b2a3ebb442e70d8be99b19c24b8e06625e5b3832ff61d8bb` /
+`3fd322a74ee131fa9a72495d04537217eebe0d0fa3431ebf600a552de4aecf8b`.
+All 26 calls retain two positional arguments, no keywords, and nearest-caller
+`try` depth zero. Their target-normalized combined call-record hash is
+`7f4b42c9703318e7b89a176f9c0e5f6a37cb4ce144930cecc8c6f752efb7dfcd`.
+
+Production scope is one definition, four owner-local calls, three imports, and
+22 external calls; tests contain 24 selected refs. No future public-name
+collision exists. Projected selected private/public records are 0/54 across
+source/tests, all three public-owner identities hold, owner counts move 66/25
+to 67/24, and owner/aggregate/graph/lookup physical lines remain
+4,816/3,946/13,464/1,154. Update exactly 65 existing expectations: 24 names,
+30 owner count/tuple expectations, four extraction-caller hashes, and seven
+aggregate fingerprints. Add no test and weaken no assertion.
+
+Projected source/tests/whole transforms are `+30/-30`, `+65/-65`, and
+`+95/-95` across four source and five test files; exact temporary diff
+SHA-256 is
+`984d4e75eda70c16ba56ae9eec3f8a78689a48062b30fc736ff8808bcaf3fc94`.
 The restored projection passed direct behavior 1/1, three public-owner
-identities, seven fingerprint-specific structure tests, focused 1,084/1,084 in
-253.268 seconds, audit 217, pycompile 11/11, retired selected refs zero, diff
+identities, six fingerprint-specific structure tests, focused 1,004/1,004 in
+254.402 seconds, audit 217, pycompile 9/9, retired selected refs zero, diff
 check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep the matcher, all caller bodies, operand/evidence/
-dependency orchestration, state, trace/artifact mutation, and final sequencing
-outside this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
-caller/fingerprint hashes and scope are authoritative in
+implementation gate. Keep the ID cleaner, all caller bodies, evidence/unit/
+operand/dependency orchestration, state, trace/artifact mutation, and final
+sequencing outside this batch. Benchmark refresh and remote CI remain **NOT
+RUN**. Exact caller/fingerprint hashes and scope are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
