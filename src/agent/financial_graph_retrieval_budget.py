@@ -181,7 +181,7 @@ def _apply_query_budget(
     }
 
 
-def _summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]:
+def summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]:
     summary: Dict[str, Any] = {
         "executed_query_count": len(executed_queries),
         "cache_hit_count": 0,

@@ -21,7 +21,7 @@ from src.agent.financial_graph_retrieval_budget import (
     lookup_query_result_cache,
     query_budget_int,
     store_query_result_cache,
-    _summarize_executed_query_telemetry,
+    summarize_executed_query_telemetry,
 )
 from src.agent.financial_langchain_loaders import document
 from src.agent.financial_retrieval_hints import (
@@ -2579,7 +2579,7 @@ class FinancialRetrievalPipelineMixin:
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
             "reused_queries": reused_queries,
-            "search_summary": _summarize_executed_query_telemetry(executed_queries),
+            "search_summary": summarize_executed_query_telemetry(executed_queries),
             "where_filter": where_filter,
             "effective_k": effective_k,
             "reflection_count": reflection_count,

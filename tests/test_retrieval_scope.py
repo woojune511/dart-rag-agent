@@ -6,7 +6,7 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
-    _summarize_executed_query_telemetry,
+    summarize_executed_query_telemetry,
 )
 from src.agent.financial_scope_policies import should_apply_strict_company_scope
 
@@ -83,7 +83,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["deduped_count"], 3)
 
     def test_executed_query_telemetry_summary_groups_by_source(self) -> None:
-        summary = _summarize_executed_query_telemetry(
+        summary = summarize_executed_query_telemetry(
             [
                 {
                     "source": "primary",
