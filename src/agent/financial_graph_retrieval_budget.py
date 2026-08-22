@@ -251,7 +251,7 @@ def _query_result_cache_key(
     return "\0".join((source_key, query_signature, _filter_signature(where_filter)))
 
 
-def _lookup_query_result_cache(
+def lookup_query_result_cache(
     cache: Dict[str, Dict[str, Any]],
     *,
     source: str,

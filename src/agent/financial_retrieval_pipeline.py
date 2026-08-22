@@ -18,7 +18,7 @@ from src.agent.financial_graph_retrieval_budget import (
     drop_duplicate_executed_query,
     drop_queries_already_selected,
     limit_query_context_terms,
-    _lookup_query_result_cache,
+    lookup_query_result_cache,
     query_budget_int,
     store_query_result_cache,
     _summarize_executed_query_telemetry,
@@ -2230,7 +2230,7 @@ class FinancialRetrievalPipelineMixin:
                 },
                 "objective_signature": lookup_objective_signature,
             }
-            cached_result = _lookup_query_result_cache(
+            cached_result = lookup_query_result_cache(
                 retrieval_query_result_cache,
                 source="primary",
                 executed_query=enriched_query,
@@ -2328,7 +2328,7 @@ class FinancialRetrievalPipelineMixin:
                     "where_filter": where_filter,
                     "objective_signature": lookup_objective_signature,
                 }
-                cached_result = _lookup_query_result_cache(
+                cached_result = lookup_query_result_cache(
                     retrieval_query_result_cache,
                     source="operand_focus",
                     executed_query=focused_query,
@@ -2406,7 +2406,7 @@ class FinancialRetrievalPipelineMixin:
                     "where_filter": where_filter,
                     "objective_signature": lookup_objective_signature,
                 }
-                cached_result = _lookup_query_result_cache(
+                cached_result = lookup_query_result_cache(
                     retrieval_query_result_cache,
                     source="retry",
                     executed_query=retry_query,
