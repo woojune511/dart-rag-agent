@@ -42,7 +42,7 @@ from src.agent.financial_retrieval_pipeline import (
     _numeric_extractor_query_for_state,
     _period_comparison_count_value_from_text,
     _period_scoped_count_value_from_text,
-    _sentence_matches_operand_context,
+    sentence_matches_operand_context,
 )
 from src.agent.financial_retrieval_hints import (
     _desired_statement_types,
@@ -1380,7 +1380,7 @@ class FinancialAgentEvidenceMixin:
                 period_count_context_match = (
                     bool(re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, context_text or raw_row))
                     and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
-                    and _sentence_matches_operand_context(context_text or raw_row, operand)
+                    and sentence_matches_operand_context(context_text or raw_row, operand)
                 )
                 location_context_pattern = str(assembly_policy.get("location_context_pattern") or "")
                 period_count_location_context = bool(

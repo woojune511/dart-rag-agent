@@ -47372,7 +47372,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hashes,
             {
-                "financial_graph_evidence": "7daf66fdb3e8826f2d4fa529bb12559570fec5ed8d73f41d2f8d2ce39f3d27eb",
+                "financial_graph_evidence": "fb18a246baa465ce44a1dedd28b6608f70c98a4f87a367877fdb12cbeaa3ffa0",
                 "financial_graph_helpers": "82d4d0686211475edd75a212d4874c21bfdae7af20c7fa4f1378aa0740302996",
                 "financial_graph_reconciliation": "525fe48574d25c2a433d75a307bba11feb5de0b05e81a6668a04b1c6bfc36440",
             },
@@ -53190,7 +53190,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "80eae7c3bf18189126b81661cecd49e11b0daff6128217807181392d4741d334"
+                "efa5d25a3706730944b5479b1ccfeb2126814b5fd4748d87be2e8b2c60ec337b"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -54552,7 +54552,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_build_required_operands_from_candidates",
-                    ): "7daf66fdb3e8826f2d4fa529bb12559570fec5ed8d73f41d2f8d2ce39f3d27eb",
+                    ): "fb18a246baa465ce44a1dedd28b6608f70c98a4f87a367877fdb12cbeaa3ffa0",
                     (
                         "financial_operand_resolution",
                         "surface_contract_numeric_evidence_items",
@@ -54588,7 +54588,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "96c724ba6bd3e8898933df5047579ed0159332d68746433ea02e556de04f919f"
+                "1f820b7045a94cf148ad54820da13e8a776a9cd70cccb864867fa190ff24e4e7"
                 if target_name == future_public_name
                 else "c989a345e8d1dd065db8cfb2427b244a650f174cf39cba5aa84f0d2a2c47bc0a"
             ),
@@ -57029,7 +57029,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_build_required_operands_from_candidates",
-                    ): "7daf66fdb3e8826f2d4fa529bb12559570fec5ed8d73f41d2f8d2ce39f3d27eb",
+                    ): "fb18a246baa465ce44a1dedd28b6608f70c98a4f87a367877fdb12cbeaa3ffa0",
                     (
                         "financial_graph_helpers",
                         "_build_table_row_reconciliation_candidates",
@@ -57093,7 +57093,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "28d06691aebeb03bc693a56f4939746e6d23347771e9d99e33c2a376ba4a7123"
+                "a6273233319441846be103f79de6973af45676a0dae496ba75c130b721a8fe93"
                 if target_name == future_public_name
                 else "d9baa809818738f83553b8eb486972848e9510c6a353ed4520b09164c9214e72"
             ),
@@ -58225,7 +58225,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_evidence",
                         "_build_required_operands_from_candidates",
-                    ): "7daf66fdb3e8826f2d4fa529bb12559570fec5ed8d73f41d2f8d2ce39f3d27eb",
+                    ): "fb18a246baa465ce44a1dedd28b6608f70c98a4f87a367877fdb12cbeaa3ffa0",
                     (
                         "financial_lookup_recovery",
                         "coerce_operand_value_from_direct_structured_evidence",
@@ -58273,7 +58273,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "b9f5cc90e1fd34bc7651e86608a45248408a7e4c08a614194fa991542621ae1f"
+                "f677868e583a96c46685167e56b8287d676031a874a7104fbedd75e68a843d09"
                 if target_name == future_public_name
                 else "0c001d08e2e10c64ad9dab82bf1ab50a892064e21341a3b6c2c42f5939875222"
             ),

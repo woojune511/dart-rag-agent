@@ -204,7 +204,7 @@ def _operand_context_surface_variants(operand: Dict[str, Any]) -> List[str]:
     return list(dict.fromkeys(item for item in expanded if item))
 
 
-def _sentence_matches_operand_context(sentence: str, operand: Dict[str, Any]) -> bool:
+def sentence_matches_operand_context(sentence: str, operand: Dict[str, Any]) -> bool:
     normalized = _normalise_spaces(sentence)
     compact = re.sub(r"\s+", "", normalized)
     for surface in _operand_context_surface_variants(operand):
@@ -636,7 +636,7 @@ def _period_comparison_count_value_from_text(
     context_indexes = [
         index
         for index, sentence in enumerate(sentences)
-        if _sentence_matches_operand_context(sentence, operand)
+        if sentence_matches_operand_context(sentence, operand)
     ]
     if not context_indexes:
         return None
@@ -660,7 +660,7 @@ def _period_comparison_count_value_from_text(
         if not value_matches:
             continue
 
-        context_hit = _sentence_matches_operand_context(sentence, operand)
+        context_hit = sentence_matches_operand_context(sentence, operand)
         subject_context_hit = _sentence_has_subject_after_location_context(sentence)
         follows_context = any(0 <= index - context_index <= 2 for context_index in subject_context_indexes)
         if not context_hit and not follows_context:
@@ -843,7 +843,7 @@ def _required_operand_coverage_from_docs(
                 continue
             if not _doc_has_numeric_signal(doc, ignored_numeric_periods):
                 continue
-            if not _sentence_matches_operand_context(_doc_operand_context_text(doc), operand):
+            if not sentence_matches_operand_context(_doc_operand_context_text(doc), operand):
                 continue
             if not _doc_matches_target_period(doc, target_period):
                 continue
@@ -894,7 +894,7 @@ def _doc_period_count_operand_matches(doc: Document, required_operands: List[Dic
     return [
         index
         for index, operand in enumerate(required_operands)
-        if _sentence_matches_operand_context(text, operand)
+        if sentence_matches_operand_context(text, operand)
     ]
 
 
