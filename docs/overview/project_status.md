@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `cd8315d` renamed only `financial_retrieval_pipeline._sentence_matches_operand_context(...)` in place to public `sentence_matches_operand_context(...)` and updated four owner-local calls, one importer binding, one external call, and eight derived hash expectations |
-| What passed? | Direct behavior/public identity 12/12, focused tests 701/701, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cd8315d` |
+| What just changed? | `fe31f2e` renamed only `financial_graph_helpers._concept_spec_for_key(...)` in place to public `concept_spec_for_key(...)` and updated three owner-local calls, one importer binding, one external call, and 43 owner-count expectations |
+| What passed? | Direct behavior/public identity 12/12, focused tests 783/783, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `fe31f2e` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_helpers._concept_spec_for_key(...)` in place to public `concept_spec_for_key(...)`; update three owner-local calls, one import, one external call, and 43 owner-count expectations |
+| What is next? | Rename only `financial_runtime_trace._structured_result_subtask_rows_and_answer(...)` in place to public `structured_result_subtask_rows_and_answer(...)`; update one owner-local call, three imports, four external calls, 21 exact-name expectations, and one owner-count expectation |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, sentence-operand-context direct behavior/public identity 12 / 12 and affected focused set 701 / 701 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after sentence-operand-context public rename |
+| Latest focused owner checkpoint | PASS, concept-spec-for-key direct behavior/public identity 12 / 12 and affected focused set 783 / 783 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after concept-spec-for-key public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,119 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 16-line
+`src.agent.financial_runtime_trace._structured_result_subtask_rows_and_answer(
+structured_result: Mapping[str, Any]) -> tuple[List[Dict[str, Any]], str]`
+definition at lines 1240-1255 in place to public
+`structured_result_subtask_rows_and_answer(...)`. Update its sole owner-local
+call, the imports in `financial_agent_run_projection.py`,
+`financial_aggregate_projection.py`, and `financial_graph.py`, and those
+importers' four external calls. Update 21 existing exact-name expectations and
+one runtime-trace owner-count expectation across
+`test_aggregate_subtask_projection.py`,
+`test_financial_agent_run_projection.py`, and
+`test_financial_aggregate_rank_dedupe.py`. Add no alias, wrapper, body move,
+test method, vocabulary, policy, fallback, cache, or exception boundary. Do
+not rename or move adjacent runtime-projection helpers, caller bodies, state,
+trace, artifact, answer selection, or final sequencing.
+
+Shorter core-runtime inventory entries are not authorized substitutes. The
+2-line `_normalise_spaces(...)` foundation remains too broadly shared for a
+bounded visibility batch. `_active_preferred_statement_types(...)` and the
+equal-length `_desired_statement_types(...)` both have future-public caller-
+local binding collisions. `_find_task_record_in_list(...)` is explicitly
+pinned as a non-exported low-level helper by the task-artifact `__all__`
+contract. Parser, evaluator, ops, and Researcher diagnostic helpers remain
+outside this core-runtime visibility sequence.
+
+Preserve exact evaluation semantics. Evaluate `(structured_result or {})`,
+read `subtask_results`, apply raw `or []`, and eagerly materialize `list(...)`
+before the comprehension scans. Iterate the materialized items once in order,
+evaluate `isinstance(row, Mapping)` for every item, drop non-mappings, and call
+`dict(row)` exactly once for each retained item into a fresh ordered list.
+Then evaluate a fresh `(structured_result or {})` for `formatted_result`; only
+when that value is falsey evaluate another fresh `(structured_result or {})`
+for `rendered_value`; use exact `""` only when both are falsey. Apply `str(...)`
+and then `_normalise_spaces(...)` exactly once to the selected answer, and
+return the fresh row list and exact normalized answer as a tuple. Preserve raw
+truthiness call counts, eager materialization, Mapping checks, shallow nested
+identities, order, duplicates, short-circuit fallback, global lookup timing,
+mapping access, iteration, conversion, normalization, and every uncaught
+error. The name-normalized definition AST/body SHA-256 values are
+`03bc7296e50a20900bd2c6a9fd9bfd113051091143208da0a6658575017bfe87` /
+`f001584589b74f388ba8503c4f40cf06c22e198668ecbe6c715ad14ecc06d7cf`.
+
+All five calls remain one-positional/no-keyword assignments at caller `try`
+depth zero. Preserve line 98 in
+`structured_result_answer_for_missing_public_answer(...)`, line 400 in
+`structured_subtask_projection_for_public_answer(...)`, lines 109 and 854 in
+`FinancialAgent._structured_result_projection_for_stale_public_numeric_answer`
+and `FinancialAgent.run(...)`, and line 1263 in owner-local
+`_structured_result_subtask_projection_if_public_aligned(...)`. Preserve each
+exact `structured_result` argument, all preceding normalization/dict
+construction, immediate tuple unpacking, following guard/adoption, and later-
+work stops. The combined call-record SHA-256 over ordered `(module, line,
+caller, arguments, keywords, direct parent, try depth)` tuples is
+`38711a15d97d5d0fc59a5da7915b8265fad5aad2fe5a0228d42e51206cdaa723`.
+
+Current production scope is one definition, one owner-local call, three
+external imports, and four external calls: nine selected private source API
+records. Tests contain 21 selected exact private-name string records, and the
+future public name has no pre-existing exact definition, import, executable
+name, attribute, string constant, patch target, local binding, or collision.
+After the rename selected private/public records must be 0/30 across source/
+tests; all three external bindings must be identical to the public owner;
+runtime-trace owner public/private counts must move exactly 3/28 to 4/27; and
+runtime-trace/agent-run/aggregate/graph physical lines must remain
+1,412/302/3,946/938.
+
+Update exactly 22 existing test expectations: eight exact names and the sole
+owner count `(3, 28)` to `(4, 27)` in aggregate-subtask projection, eleven
+exact names in agent-run projection, and two exact names in aggregate-rank-
+dedupe. Add no test and weaken no assertion. Projected source/tests/whole
+transforms are `+9/-9`, `+22/-22`, and `+31/-31` across exactly four source
+and three test files. The exact temporary diff SHA-256 is
+`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
+The restored projection passed direct behavior/public identity 12/12, the
+affected aggregate-subtask/agent-run/aggregate-rank-dedupe/graph-helper/
+operation-contract/import-side-effect focused set 839/839 in 357.419 seconds,
+audit 217, pycompile 4/4, retired selected refs zero, `git diff --check`, and
+the unchanged acyclic 48/203 import topology. Full discovery 2,143/2,143
+remains the implementation gate. Benchmark refresh and remote CI remain
+**NOT RUN**. This name-only projection establishes no behavior, answer-
+quality, trace-quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+## Completed Concept-Spec-For-Key Public API
+
+Commit `fe31f2e` renamed only the exact 10-line
+`financial_graph_helpers._concept_spec_for_key(...)` definition in place to
+public `concept_spec_for_key(...)`. It updated three owner-local calls, one
+external import, one external call, and 43 existing owner-count expectations
+without moving the body, adding a compatibility surface, or changing adjacent
+binding/group/task helpers, ontology/calculation behavior, state, trace,
+artifact, or final sequencing. Raw-key normalization, blank-key early return,
+eager provider-list materialization, ordered group skip, first normalized
+concept match, shallow-copy return, fresh exhaustion mapping, evaluation
+order, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+6/-6`, `+43/-43`, and `+49/-49`; the
+committed diff SHA-256 is
+`6849365d09393baf9464423400acf505730a04ac091770ca7bb1d621e8f92b1e`.
+Direct behavior/public identity passed 12/12, focused 783/783 passed in
+282.888 seconds, audit 217, pycompile 2/2, retired selected refs zero, selected
+public records 6, owner public/private 10/70, unchanged acyclic 48/203 DAG,
+and full discovery 2,143/2,143 passed in 339.369 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Concept-Spec-For-Key Characterization Checkpoint
+
+The characterization below predates `fe31f2e`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 10-line
 `src.agent.financial_graph_helpers._concept_spec_for_key(
@@ -872,9 +985,10 @@ affected graph-helper/semantic-plan/semantic-planner/concept-runtime/
 calculation-execution/calculation-rendering/numeric-provenance/dependency-
 projection/operation-contract/import-side-effect focused set 783/783 in
 259.587 seconds, audit 217, pycompile 2/2, retired selected refs zero,
-`git diff --check`, and the unchanged acyclic 48/203 DAG. Full discovery
-2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
-remain **NOT RUN**. This name-only projection establishes no behavior,
+`git diff --check`, and the unchanged acyclic 48/203 DAG. At that checkpoint
+full discovery 2,143/2,143 remained the implementation gate; `fe31f2e` later
+passed it. Benchmark refresh and remote CI remain **NOT RUN**. This name-only
+projection establishes no behavior,
 ontology-quality, answer-quality, calculation-performance, benchmark,
 schedule, ledger, or Phase 3 completion claim.
 

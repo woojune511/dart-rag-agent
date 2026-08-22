@@ -6679,41 +6679,65 @@ counts are 2/27. Direct behavior/public identity 12/12, focused 701/701 in
 and remote CI were **NOT RUN**. Full details are preserved in
 [Project Status Completed Sentence Context](../overview/project_status.md#completed-sentence-operand-context-public-api).
 
-The active visibility contract now renames only the exact 10-line
-`financial_graph_helpers._concept_spec_for_key(
-ontology: Any, key: str) -> Dict[str, Any]` definition in place to public
-`concept_spec_for_key(...)`, then updates three owner-local calls, one external
-import/call pair, and 43 owner-count expectations. Preserve exact raw-key
-truthiness, string conversion, one normalization, and the fresh blank-key early
-return before ontology access. For a nonblank key, preserve one `getattr` with
-the empty-list lambda fallback, provider invocation, raw `or []`, and eager
-`list(...)` materialization before the ordered scan. Each item must evaluate
-`bool(spec.get("is_group"))` first; a group skips concept access. Retained items
-must normalize exact `str(spec.get("concept") or "")`, compare to the key,
-return a shallow `dict(spec)` at the first match, and return a fresh `{}` only
-after exhaustion. Preserve global lookup timing, mapping access, nested
-identities, branch laziness, evaluation order, and every uncaught error. The
-normalized definition AST/body hashes are
+Commit `fe31f2e` completed the exact 10-line concept-spec-for-key visibility
+contract. It renamed the definition in place to public
+`concept_spec_for_key(...)`, updated three owner-local calls, one external
+import/call pair, and 43 owner-count expectations, and added no alias, wrapper,
+body move, test method, or adjacent behavior change. Raw-key truthiness,
+normalization, blank-key early return, default-provider call, eager list
+materialization, ordered group skip, first normalized concept match, shallow-
+copy return, fresh exhaustion mapping, nested identities, evaluation order,
+and all uncaught errors remain exact. The normalized definition/body/call
+hashes remain
 `6edc73d35582549697232944d03af9d5b66e2e7b788c908400b30277456c5b0d` /
-`4efa2fc85cd424edd17e3b9f2423fd77140e5ebd8da03045ceaab6083c17a697`.
+`4efa2fc85cd424edd17e3b9f2423fd77140e5ebd8da03045ceaab6083c17a697` /
+`3b9ed0537310c112a86911bca55695e11e7803c803c0050bf705c2bbd5c70a11`.
 
-All four calls remain two-positional/no-keyword at caller `try` depth zero.
-Preserve the group-query list-comprehension element, group-task assignment with
-`str(concept_key).strip()`, lookup-producer assignment with eager
-`get_financial_ontology()`, and calculation operand-completion assignment
-before its falsey-result early return. Their ordered combined call-record hash
-is `3b9ed0537310c112a86911bca55695e11e7803c803c0050bf705c2bbd5c70a11`.
-Selected private/public records project 0/6 across source/tests, owner counts
-9/71 to 10/70, and owner/calculation lines remain 4,285/13,464. Projected
-source/tests/whole transforms are `+6/-6`, `+43/-43`, and `+49/-49`; exact
-temporary diff SHA-256 is
+Source/tests/whole transforms were `+6/-6`, `+43/-43`, and `+49/-49`; the
+committed diff SHA-256 is
 `6849365d09393baf9464423400acf505730a04ac091770ca7bb1d621e8f92b1e`.
+Selected private/public records are 0/6, public-owner identity holds, and owner
+counts are 10/70. Direct behavior/public identity 12/12, focused 783/783 in
+282.888 seconds, audit 217, pycompile 2/2, retired refs zero, unchanged acyclic
+48/203 DAG, and full 2,143/2,143 in 339.369 seconds passed. Benchmark refresh
+and remote CI were **NOT RUN**. Full details are preserved in
+[Project Status Completed Concept Spec](../overview/project_status.md#completed-concept-spec-for-key-public-api).
+
+The active visibility contract now renames only the exact 16-line
+`financial_runtime_trace._structured_result_subtask_rows_and_answer(
+structured_result: Mapping[str, Any]) -> tuple[List[Dict[str, Any]], str]`
+definition in place to public
+`structured_result_subtask_rows_and_answer(...)`, then updates one owner-local
+call, three external imports, four external calls, 21 exact-name expectations,
+and one owner-count expectation. Preserve the first fresh
+`(structured_result or {})` selection, `subtask_results` lookup, raw `or []`,
+eager `list(...)` materialization, ordered `isinstance(row, Mapping)` filters,
+and exactly one shallow `dict(row)` conversion per retained item. Preserve the
+later fresh structured-result truth checks, formatted-result-before-rendered-
+value short circuit, exact empty-string fallback, one `str(...)`, one
+normalization, and tuple return. Preserve truthiness call counts, global lookup
+timing, mapping access, iteration, duplicates, nested identities, evaluation
+order, and every uncaught error. The normalized definition AST/body hashes are
+`03bc7296e50a20900bd2c6a9fd9bfd113051091143208da0a6658575017bfe87` /
+`f001584589b74f388ba8503c4f40cf06c22e198668ecbe6c715ad14ecc06d7cf`.
+
+All five calls remain one-positional/no-keyword assignments at caller `try`
+depth zero across agent-run projection, aggregate projection, two graph call
+sites, and the owner-local public-alignment helper. Preserve exact arguments,
+preceding normalization/dict construction, tuple adoption, following guards,
+and later-work stops. Their ordered combined call-record hash is
+`38711a15d97d5d0fc59a5da7915b8265fad5aad2fe5a0228d42e51206cdaa723`.
+Selected private/public records project 0/30 across source/tests, owner counts
+3/28 to 4/27, and runtime-trace/agent-run/aggregate/graph lines remain
+1,412/302/3,946/938. Projected source/tests/whole transforms are `+9/-9`,
+`+22/-22`, and `+31/-31`; exact temporary diff SHA-256 is
+`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
 The restored projection passed direct behavior/public identity 12/12, focused
-783/783 in 259.587 seconds, audit 217, pycompile 2/2, retired refs zero, diff
-check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep adjacent group/task helpers, caller-side ontology/
-calculation behavior, state, trace/artifact mutation, and final sequencing
-outside this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
+839/839 in 357.419 seconds, audit 217, pycompile 4/4, retired refs zero, diff
+check, and unchanged acyclic 48/203 import topology. Full 2,143/2,143 remains
+the implementation gate. Keep adjacent runtime-projection helpers, caller-side
+state/trace/answer behavior, artifact mutation, and final sequencing outside
+this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
 expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 

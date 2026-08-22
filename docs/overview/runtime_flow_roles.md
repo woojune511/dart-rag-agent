@@ -1502,15 +1502,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   guard/adoption 순서는 유지됐다. Source/tests/whole `+7/-7`, `+8/-8`,
   `+15/-15`, direct/identity 12/12, focused 701/701, audit 217, pycompile 3/3,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_graph_helpers.py`의 exact 10-line
-  `_concept_spec_for_key(...)`를 public `concept_spec_for_key(...)`로 rename하고
-  owner-local call 세 개, calculation import/call 각 한 개와 기존 owner-count
-  기대 43개만 갱신한다. Key normalization/blank early return, eager provider
-  list materialization, group skip, first normalized concept match와 shallow-copy
-  return, 네 caller의 argument/adoption 순서를 유지한다. Exact temporary
-  projection은 source/tests/whole `+6/-6`, `+43/-43`, `+49/-49`, direct/
-  identity 12/12, focused 783/783, audit 217, pycompile 2/2, unchanged 48/203
-  DAG이며 전체 구현 gate는
+- 완료된 `fe31f2e` visibility batch는 `financial_graph_helpers.py`의 exact
+  10-line concept-spec lookup helper를 public `concept_spec_for_key(...)`로
+  이름 수렴시키고 owner-local call 세 개, calculation import/call 각 한 개와
+  기존 owner-count 기대 43개만 갱신했다. Key normalization/blank early return,
+  eager provider list materialization, group skip, first normalized concept
+  match와 shallow-copy return, 네 caller의 argument/adoption 순서는 유지됐다.
+  Source/tests/whole `+6/-6`, `+43/-43`, `+49/-49`, direct/identity 12/12,
+  focused 783/783, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_runtime_trace.py`의 exact 16-line
+  `_structured_result_subtask_rows_and_answer(...)`를 public
+  `structured_result_subtask_rows_and_answer(...)`로 rename하고 owner-local call
+  한 개, agent-run/aggregate/graph import 세 개와 external call 네 개, 기존
+  exact-name 기대 21개와 owner-count 기대 한 개만 갱신한다. Eager subtask-row
+  materialization, Mapping filter와 shallow-copy projection, formatted-result-
+  before-rendered-value fallback, normalization과 다섯 caller의 adoption
+  순서를 유지한다. Exact temporary projection은 source/tests/whole `+9/-9`,
+  `+22/-22`, `+31/-31`, direct/identity 12/12, focused 839/839, audit 217,
+  pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
