@@ -6608,36 +6608,64 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. Full details are
 preserved in
 [Project Status Completed Preferred Sections](../overview/project_status.md#completed-preferred-calculation-sections-public-api).
 
-The active visibility contract now renames only the exact 6-line
-`financial_runtime_normalization._display_operand_label(label: str) -> str`
-definition in place to public `display_operand_label(...)`, then updates three
-external imports, twelve external calls, and five exact test references.
-Preserve one `_normalise_spaces(label)` call, followed by three exact
-previous-result-fed `re.sub` calls that remove the optional company/year prefix,
-Korean leading year, and bare leading year in that order. Preserve replacement
-strings, default regex flags, exact final-result return, input/result identity
-behavior, evaluation order, and all uncaught errors. The normalized definition
-AST/body hashes are
+Commit `b8f78a5` completed the exact 6-line display-operand-label visibility
+contract. It renamed the definition in place to public
+`display_operand_label(...)`, updated three external imports, twelve external
+calls, and five exact test references, and added no alias, wrapper, body move,
+test method, or adjacent behavior change. One normalization call, three exact
+previous-result-fed regex substitutions, replacement strings, default flags,
+the exact final result, input/result identity behavior, evaluation order, and
+all uncaught errors remain exact. The normalized definition/body/call hashes
+remain
 `71d3f3115dfbf1ecfaffbc363040599dee20bab19b53cbb7f838174d2a1e8bca` /
-`0fb4b38e37636460887eff35fe8b350ded66d815c7f00b8ad7b5c14417d3a491`.
-
-All twelve calls remain one-positional/no-keyword across ten callers. Six stay
-dictionary values, four assignments, and two list-comprehension elements;
-eleven stay at caller `try` depth zero and one prepared-candidate projection
-call stays at depth one. Their normalized combined call-record hash is
+`0fb4b38e37636460887eff35fe8b350ded66d815c7f00b8ad7b5c14417d3a491` /
 `b1635ca1838467284ad847fd7c7f9fa492d742c0f2b3870884cf65226cd36466`.
-Selected private/public records project 0/21 across source/tests, owner counts
-0/7 to 1/6, and owner/answer-slots/calculation/rendering lines remain
-162/734/13,464/708. Projected source/tests/whole transforms are `+16/-16`,
-`+5/-5`, and `+21/-21`; exact temporary diff SHA-256 is
+
+Source/tests/whole transforms were `+16/-16`, `+5/-5`, and `+21/-21`; the
+committed diff SHA-256 is
 `2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
-The restored projection passed direct behavior/public identity 10/10, focused
-626/626 in 255.843 seconds, audit 217, pycompile 6/6, retired refs zero, diff
+Selected private/public records are 0/21, all three public-owner identities
+hold, and owner counts are 1/6. Direct behavior/public identity 10/10, focused
+626/626 in 235.511 seconds, audit 217, pycompile 6/6, retired refs zero,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 279.103 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. Full details are preserved in
+[Project Status Completed Display Label](../overview/project_status.md#completed-display-operand-label-public-api).
+
+The active visibility contract now renames only the exact 8-line
+`financial_retrieval_hints._section_hint_alias(section: str) -> str`
+definition in place to public `section_hint_alias(...)`, then updates one
+external import, three external calls, seven exact private-name expectations,
+and two owner-count expectations. Preserve one `_normalise_spaces(section)`
+call and exact-result binding. A falsey normalized result must return the exact
+empty-string literal before membership, split, strip, or regex work. A truthy
+result must evaluate `">" in text` once; only the true branch calls
+`text.split(">")[-1].strip()` and rebinds its exact result. Then preserve one
+`re.sub(r"^\d+\.\s*", "", text)` call with default flags and return its exact
+result. Preserve branch laziness, input/result identity behavior, evaluation
+order, and every uncaught error. The normalized definition AST/body hashes are
+`e754d9767ed465032abce3d3e66893f6a17ef5ac27a279f0f8398f6955bb226d` /
+`60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1`.
+
+All three calls remain one-positional/no-keyword in
+`finalize_retry_queries(...)` at caller `try` depth zero. The list-
+comprehension filter call must run before the element call for each section;
+the element call remains conditional on the filter's truthy result and neither
+result is memoized. The later assignment preserves exact `str(raw_section)`
+evaluation and finishes before normalization/replacement work. Their target-
+normalized combined call-record hash is
+`3a50e1974904fe2e93f329cf2edfdfbae72b1cf5c203eb77dfe8d1f68999b38c`.
+Selected private/public records project 0/12 across source/tests, owner counts
+9/5 to 10/4, and owner/reflection-projection lines remain 318/374. Projected
+source/tests/whole transforms are `+5/-5`, `+9/-9`, and `+14/-14`; exact
+temporary diff SHA-256 is
+`e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+The restored projection passed direct behavior/public identity 12/12, focused
+660/660 in 233.855 seconds, audit 217, pycompile 5/5, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep adjacent normalization helpers, caller-side slot/
-ratio/lookup/calculation/rendering behavior, state, trace/artifact mutation,
-and final sequencing outside this batch. Benchmark refresh and remote CI
-remain **NOT RUN**. Exact expectations and stop lines are authoritative in
+implementation gate. Keep adjacent section/preference/normalization helpers,
+caller-side reflection/retrieval behavior, state, trace/artifact mutation, and
+final sequencing outside this batch. Benchmark refresh and remote CI remain
+**NOT RUN**. Exact expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

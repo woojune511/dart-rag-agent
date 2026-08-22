@@ -10276,7 +10276,32 @@ completion claim.
   stop lines are authoritative in
   [Project Status Completed Preferred Sections](../overview/project_status.md#completed-preferred-calculation-sections-public-api).
 
-### Display-operand-label public API characterization checkpoint
+### Display-operand-label public API milestone
+
+- Commit `b8f78a5` renamed only the exact 6-line
+  `financial_runtime_normalization._display_operand_label(label: str) -> str`
+  definition in place to public `display_operand_label(...)`. It updated three
+  external imports, twelve external calls, and five exact existing test
+  references; it added no wrapper/alias and moved no body or adjacent helper.
+- The single normalization call, three ordered previous-result-fed regex
+  substitutions, exact final result, ten-caller argument/stop placements,
+  input/result identity behavior, evaluation order, and uncaught errors remain
+  exact. The normalized definition/body/call hashes are
+  `71d3f3115dfbf1ecfaffbc363040599dee20bab19b53cbb7f838174d2a1e8bca` /
+  `0fb4b38e37636460887eff35fe8b350ded66d815c7f00b8ad7b5c14417d3a491` /
+  `b1635ca1838467284ad847fd7c7f9fa492d742c0f2b3870884cf65226cd36466`.
+- Source/tests/whole transforms were `+16/-16`, `+5/-5`, and `+21/-21`; the
+  committed diff SHA-256 is
+  `2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
+  Direct behavior/public identity 10/10 passed, focused 626/626 passed in
+  235.511 seconds, audit 217, pycompile 6/6, retired refs zero, selected public
+  records 21, owner public/private 1/6, unchanged acyclic 48/203 DAG, and full
+  2,143/2,143 passed in 279.103 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Historical display-operand-label public API characterization checkpoint
 
 - The next bounded visibility batch renames only the exact 6-line
   `financial_runtime_normalization._display_operand_label(label: str) -> str`
@@ -10317,6 +10342,52 @@ completion claim.
   gate. Benchmark refresh and remote CI were **NOT RUN**.
 - Keep adjacent normalization helpers, caller-side slot/ratio/lookup/
   calculation/rendering behavior, state/trace/artifact mutation, and final
+  sequencing outside the batch. Exact expectations and stop lines are
+  authoritative in
+  [Project Status Completed Display Label](../overview/project_status.md#completed-display-operand-label-public-api).
+
+### Section-hint-alias public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 8-line
+  `financial_retrieval_hints._section_hint_alias(section: str) -> str`
+  definition in place to public `section_hint_alias(...)`. Update the sole
+  reflection-projection import, three external calls, seven exact private-name
+  expectations, and two derived owner-count expectations; add no alias,
+  wrapper, body move, test method, or adjacent hint/normalization change.
+- Preserve one `_normalise_spaces(section)` call and exact binding. Preserve
+  the falsey empty-string early return before all later work. For a truthy
+  result, test `">" in text` once and only then evaluate exact
+  `text.split(">")[-1].strip()` and rebind its result. Preserve one
+  `re.sub(r"^\d+\.\s*", "", text)` call with default flags and return its
+  exact result. Preserve branch laziness, input/result identity behavior,
+  evaluation order, and uncaught errors. The normalized definition AST/body
+  hashes are
+  `e754d9767ed465032abce3d3e66893f6a17ef5ac27a279f0f8398f6955bb226d` /
+  `60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1`.
+- All three calls remain one-positional/no-keyword in
+  `finalize_retry_queries(...)` at caller try depth zero. Preserve the list-
+  comprehension filter-before-conditional-element runtime order without
+  memoization, and the later assignment's exact `str(raw_section)` argument,
+  adoption, and stop line. Their target-normalized combined call-record hash is
+  `3a50e1974904fe2e93f329cf2edfdfbae72b1cf5c203eb77dfe8d1f68999b38c`.
+  Production scope is one definition, one import, three external calls, zero
+  owner-local calls, seven exact test-name refs, and two owner-count
+  expectations. No future public-name collision exists; selected private/
+  public records project 0/12, owner counts 9/5 to 10/4, and owner/reflection-
+  projection lines remain 318/374.
+- Update exactly nine existing expectations: seven reflection-capability names
+  and one owner count each in retrieval-hints and graph-helper tests. Projected
+  source/tests/whole transforms are `+5/-5`, `+9/-9`, and `+14/-14`; exact
+  temporary diff SHA-256 is
+  `e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+- The restored projection passed direct behavior/public identity 12/12,
+  focused reflection-capability/retrieval-hints/graph-helper/semantic-plan/
+  operation-contract/import-side-effect tests 660/660 in 233.855 seconds,
+  audit 217, pycompile 5/5, retired refs zero, diff check, and unchanged
+  acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**.
+- Keep adjacent preferred-section, ontology, statement-type, normalization,
+  retry-query, reflection/retrieval, state/trace/artifact mutation, and final
   sequencing outside the batch. Exact expectations and stop lines are
   authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

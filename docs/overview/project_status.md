@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `cf2faf4` renamed only `financial_retrieval_hints._preferred_calc_sections(...)` in place to public `preferred_calc_sections(...)` and updated one owner-local call, two importer bindings, four external calls, and 36 exact expectations |
-| What passed? | Direct behavior/public identity 7/7, structure tests 2/2, focused tests 655/655, runtime audit 217, pycompile 7/7, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cf2faf4` |
+| What just changed? | `b8f78a5` renamed only `financial_runtime_normalization._display_operand_label(...)` in place to public `display_operand_label(...)` and updated three importer bindings, twelve external calls, and five exact test references |
+| What passed? | Direct behavior/public identity 10/10, focused tests 626/626, runtime audit 217, pycompile 6/6, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `b8f78a5` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_runtime_normalization._display_operand_label(...)` in place to public `display_operand_label(...)`; update three imports, twelve calls, and five exact test references |
+| What is next? | Rename only `financial_retrieval_hints._section_hint_alias(...)` in place to public `section_hint_alias(...)`; update one import, three calls, seven exact name references, and two owner-count expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, preferred-section direct behavior/public identity 7 / 7, structure 2 / 2, and affected focused set 655 / 655 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after preferred-calculation-sections public rename |
+| Latest focused owner checkpoint | PASS, display-label direct behavior/public identity 10 / 10 and affected focused set 626 / 626 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after display-operand-label public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,100 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 8-line
+`src.agent.financial_retrieval_hints._section_hint_alias(
+section: str) -> str` definition at lines 28-35 in place to public
+`section_hint_alias(...)`. Update the sole importer binding in
+`financial_reflection_projection.py` and its three calls. Update seven exact
+name/string expectations in `test_reflection_capability_contract.py` plus the
+two retrieval-hint-owner public/private count expectations in
+`test_financial_retrieval_hints.py` and `test_financial_graph_helpers.py`.
+Add no alias, wrapper, body move, test method, vocabulary, policy, fallback,
+cache, or exception boundary. Do not rename adjacent preferred-section,
+statement-type, ontology, normalization, or retry-query helpers and do not
+change reflection, retrieval, state, trace, artifact, or final sequencing.
+
+Preserve exact evaluation semantics. Call `_normalise_spaces(section)` once
+and bind its exact result to `text`. Test that result for falsiness once; a
+falsey result returns the exact `""` literal before membership, split, strip,
+or regex work. For a truthy result, evaluate `">" in text` once. Only when it
+is true, call `text.split(">")` once, index the exact `[-1]` item, call its
+`strip()` once, and rebind `text`. Then call
+`re.sub(r"^\d+\.\s*", "", text)` once with default flags, bind its exact
+result, and return it without further truth filtering, coercion, or copying.
+Preserve global lookup timing, pattern bytes, input/result identity behavior,
+evaluation order, branch laziness, and every uncaught truthiness, membership,
+split, indexing, strip, regex, assignment, or return error. The name-normalized
+definition AST/body SHA-256 values are
+`e754d9767ed465032abce3d3e66893f6a17ef5ac27a279f0f8398f6955bb226d` /
+`60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1`.
+
+All three calls remain one-positional/no-keyword calls in
+`finalize_retry_queries(...)` at caller `try` depth zero. The calls at lines
+106 and 111 remain respectively the list-comprehension element and filter;
+runtime evaluation must call the filter first for each section and call the
+element only after a truthy filter result, without memoizing either result.
+The line-130 assignment retains exact `str(raw_section)` evaluation before the
+later raw-section normalization and replacement work. Preserve the source
+iteration, duplicate calls, stable dedupe, loop order, adoption, and every
+later-work stop line. The target-normalized combined call-record SHA-256 over
+module, line, caller, arguments, keywords, direct parent, and `try` depth is
+`3a50e1974904fe2e93f329cf2edfdfbae72b1cf5c203eb77dfe8d1f68999b38c`.
+
+Current production scope is one definition, one external import, three
+external calls, and zero owner-local calls: five selected private source API
+records. Tests contain seven selected exact private-name records and two
+derived owner-count expectations. The future public name has no pre-existing
+exact definition, import, executable name, attribute, string constant, patch
+target, or collision. After the rename selected private/public records must be
+0/12 across source/tests; the external binding must be identical to the public
+owner; owner public/private counts must move exactly 9/5 to 10/4; and owner/
+reflection-projection physical lines must remain 318/374.
+
+Update exactly the nine existing expectations described above, add no test,
+and weaken no assertion. Projected source/tests/whole transforms are `+5/-5`,
+`+9/-9`, and `+14/-14` across exactly two source and three test files. The
+exact temporary diff SHA-256 is
+`e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+The restored projection passed direct behavior/public identity 12/12, the
+affected reflection-capability/retrieval-hints/graph-helper/semantic-plan/
+operation-contract/import-side-effect focused set 660/660 in 233.855 seconds,
+audit 217, pycompile 5/5, retired selected refs zero, `git diff --check`, and
+the retained acyclic 48/203 DAG. Full discovery 2,143/2,143 remains the
+implementation gate. Benchmark refresh and remote CI remain **NOT RUN**. This
+name-only projection establishes no behavior, answer-quality, reflection-
+quality, retrieval-performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+## Completed Display-Operand-Label Public API
+
+Commit `b8f78a5` renamed only the exact 6-line
+`financial_runtime_normalization._display_operand_label(...)` definition in
+place to public `display_operand_label(...)`. It updated three external
+imports, twelve external calls, and five exact existing test references
+without moving the body, adding a compatibility surface, or changing adjacent
+normalization, slot, ratio, lookup, calculation, rendering, state, trace,
+artifact, or final sequencing. The single normalization call, three ordered
+previous-result-fed regex substitutions, exact final result, evaluation order,
+identity behavior, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+16/-16`, `+5/-5`, and `+21/-21`; the
+committed diff SHA-256 is
+`2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
+Direct behavior/public identity passed 10/10, focused 626/626 passed in
+235.511 seconds, audit 217, pycompile 6/6, retired selected refs zero, selected
+public records 21, owner public/private 1/6, unchanged acyclic 48/203 DAG, and
+full discovery 2,143/2,143 passed in 279.103 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Display-Operand-Label Characterization Checkpoint
+
+The characterization below predates `b8f78a5`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 6-line
 `src.agent.financial_runtime_normalization._display_operand_label(

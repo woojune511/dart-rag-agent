@@ -2575,36 +2575,53 @@ Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
 authoritative in
 [Project Status Completed Preferred Sections](../overview/project_status.md#completed-preferred-calculation-sections-public-api).
 
-The next bounded visibility seam renames only the exact 6-line
-`financial_runtime_normalization._display_operand_label(label: str) -> str`
-definition in place to public `display_operand_label(...)`, then updates three
-external imports, twelve external calls, and five exact test references.
-Preserve the single normalization call; the three exact sequential regex
-substitutions with previous-result binding, empty replacement, and default
-flags; the exact final return; evaluation order; identity behavior; and
-uncaught errors. Add no wrapper, alias, body move, test method, vocabulary,
-policy, caller behavior, trace field, or adjacent normalization move.
+The display-operand-label visibility seam completed in `b8f78a5`. It renamed
+only the exact 6-line definition in place to public
+`display_operand_label(...)`, then updated three external imports, twelve
+external calls, and five exact existing test references. It added no wrapper,
+alias, body move, test method, vocabulary, policy change, trace field, or
+adjacent normalization move. Source/tests/whole transforms were `+16/-16`,
+`+5/-5`, and `+21/-21`; the committed diff SHA-256 is
+`2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
+Direct behavior/public identity 10/10, focused 626/626 in 235.511 seconds,
+audit 217, pycompile 6/6, retired refs zero, owner public/private 1/6,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 279.103 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
+authoritative in
+[Project Status Completed Display Label](../overview/project_status.md#completed-display-operand-label-public-api).
+
+The next bounded visibility seam renames only the exact 8-line
+`financial_retrieval_hints._section_hint_alias(section: str) -> str`
+definition in place to public `section_hint_alias(...)`, then updates one
+external import, three external calls, seven exact private-name expectations,
+and two derived owner-count expectations. Preserve the single normalization
+call and falsey empty-string early return; truthy hierarchy membership and
+split-last/strip branch; the exact numbered-prefix regex call and result;
+evaluation order; branch laziness; identity behavior; and uncaught errors. Add
+no wrapper, alias, body move, test method, vocabulary, policy, caller behavior,
+trace field, or adjacent hint/normalization move.
 
 The normalized definition AST/body hashes are
-`71d3f3115dfbf1ecfaffbc363040599dee20bab19b53cbb7f838174d2a1e8bca` /
-`0fb4b38e37636460887eff35fe8b350ded66d815c7f00b8ad7b5c14417d3a491`;
-twelve one-positional calls across ten callers hash to
-`b1635ca1838467284ad847fd7c7f9fa492d742c0f2b3870884cf65226cd36466`.
-Selected private/public records project zero/21 across source/tests, owner
-counts 0/7 to 1/6, and owner/answer-slots/calculation/rendering physical lines
-remain 162/734/13,464/708.
+`e754d9767ed465032abce3d3e66893f6a17ef5ac27a279f0f8398f6955bb226d` /
+`60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1`;
+three one-positional calls in one caller hash to
+`3a50e1974904fe2e93f329cf2edfdfbae72b1cf5c203eb77dfe8d1f68999b38c`.
+The list-comprehension filter remains before the conditional element call and
+the later assignment retains `str(raw_section)`. Selected private/public
+records project zero/12 across source/tests, owner counts 9/5 to 10/4, and
+owner/reflection-projection physical lines remain 318/374.
 
-Projected source/tests/whole transforms are `+16/-16`, `+5/-5`, and
-`+21/-21`; exact temporary diff SHA-256 is
-`2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
-The temporary projection passed direct behavior/public identity 10/10,
-focused 626/626 in 255.843 seconds, audit 217, pycompile 6/6, retired refs
+Projected source/tests/whole transforms are `+5/-5`, `+9/-9`, and `+14/-14`;
+exact temporary diff SHA-256 is
+`e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+The temporary projection passed direct behavior/public identity 12/12,
+focused 660/660 in 233.855 seconds, audit 217, pycompile 5/5, retired refs
 zero, diff check, and unchanged acyclic 48/203 DAG, then was restored cleanly.
-Full 2,143/2,143 remains the implementation gate. Keep adjacent normalization
-helpers, caller-side slot/ratio/lookup/calculation/rendering behavior, state/
-trace/artifact mutation, and final sequencing outside the batch. Benchmark
-refresh and remote CI remain **NOT RUN**; exact scope is authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+Full 2,143/2,143 remains the implementation gate. Keep adjacent section/
+preference/normalization helpers, caller-side reflection/retrieval behavior,
+state/trace/artifact mutation, and final sequencing outside the batch.
+Benchmark refresh and remote CI remain **NOT RUN**; exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line
