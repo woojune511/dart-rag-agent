@@ -20,7 +20,7 @@ from src.agent.financial_graph_retrieval_budget import (
     limit_query_context_terms,
     _lookup_query_result_cache,
     query_budget_int,
-    _store_query_result_cache,
+    store_query_result_cache,
     _summarize_executed_query_telemetry,
 )
 from src.agent.financial_langchain_loaders import document
@@ -2257,7 +2257,7 @@ class FinancialRetrievalPipelineMixin:
             search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
             if isinstance(search_telemetry, dict) and search_telemetry:
                 query_trace["search_telemetry"] = dict(search_telemetry)
-            _store_query_result_cache(
+            store_query_result_cache(
                 retrieval_query_result_cache,
                 source="primary",
                 executed_query=enriched_query,
@@ -2354,7 +2354,7 @@ class FinancialRetrievalPipelineMixin:
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
-                _store_query_result_cache(
+                store_query_result_cache(
                     retrieval_query_result_cache,
                     source="operand_focus",
                     executed_query=focused_query,
@@ -2432,7 +2432,7 @@ class FinancialRetrievalPipelineMixin:
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
-                _store_query_result_cache(
+                store_query_result_cache(
                     retrieval_query_result_cache,
                     source="retry",
                     executed_query=retry_query,

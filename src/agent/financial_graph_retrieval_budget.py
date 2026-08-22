@@ -298,7 +298,7 @@ def _lookup_query_result_cache(
     }
 
 
-def _store_query_result_cache(
+def store_query_result_cache(
     cache: Dict[str, Dict[str, Any]],
     *,
     source: str,
