@@ -1456,15 +1456,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   assignment 순서는 유지됐다. Source/tests/whole `+7/-7`, `+4/-4`,
   `+11/-11`, direct/identity 5/5, focused 338/338, audit 217, pycompile 2/2,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_retrieval_hints.py`의 exact 7-line
-  `_matched_ontology_concept_specs(query, topic="")`를 같은 위치에서 public
-  `matched_ontology_concept_specs(...)`로 rename하고 owner-local call 한 개,
-  graph import/call 각 한 개, direct-name·owner-count 기대 세 개만
-  갱신한다. Ontology lookup, comparison-mode concept call, raw falsey fallback,
-  first/second `dict(spec)` conversion과 두 caller의 loop stop 순서를
-  유지한다. Exact temporary projection은 source/tests/whole `+4/-4`,
-  `+3/-3`, `+7/-7`, direct/identity 6/6, focused 556/556, audit 217,
-  pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `820dbd9` visibility batch는 `financial_retrieval_hints.py`의 exact
+  7-line matched-ontology concept-spec helper를 같은 위치에서 public
+  `matched_ontology_concept_specs(...)`로 이름 수렴시키고 owner-local call 한
+  개, graph import/call 각 한 개, direct-name·owner-count 기대 세 개만
+  갱신했다. Ontology lookup, comparison-mode concept call, raw falsey fallback,
+  first/second `dict(spec)` conversion과 두 caller의 loop stop 순서는
+  유지됐다. Source/tests/whole `+4/-4`, `+3/-3`, `+7/-7`, direct/identity
+  6/6, focused 556/556, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 4-line
+  `_preferred_calc_sections(query, topic, intent)`를 public
+  `preferred_calc_sections(...)`로 rename하고 owner-local call 한 개,
+  reconciliation/reflection-projection import 두 개와 external call 네 개,
+  기존 direct-name·owner-count·caller/aggregate-hash 기대 36개만 갱신한다.
+  Non-comparison/trend fresh-empty-list early return, ontology lookup과 exact
+  preferred-section result identity, 다섯 caller의 argument/stop 순서를
+  유지한다. Exact temporary projection은 source/tests/whole `+8/-8`,
+  `+36/-36`, `+44/-44`, direct/identity 7/7, focused 655/655, audit 217,
+  pycompile 7/7, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

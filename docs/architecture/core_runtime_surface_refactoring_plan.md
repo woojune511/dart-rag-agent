@@ -2545,35 +2545,53 @@ Direct behavior/public identity 5/5, focused 338/338 in 177.154 seconds, audit
 **NOT RUN**. The preserved contract is authoritative in
 [Project Status Completed Query Budget](../overview/project_status.md#completed-query-budget-integer-public-api).
 
-The next bounded visibility seam renames only the exact 7-line
-`financial_retrieval_hints._matched_ontology_concept_specs(
-query: str, topic: str = "") -> List[Dict[str, Any]]` definition in place to
-public `matched_ontology_concept_specs(...)`, then updates one owner-local call,
-one graph-helper import/call, and three exact existing expectations. Preserve
-one ontology lookup, one comparison-mode concept-spec call, raw falsey fallback,
-ordered iteration, first filter `dict(spec)` conversion, second retained
-conversion, exact second-result append, nested identities, immutability,
-evaluation order, and uncaught errors. Add no wrapper, alias, body move, test
-method, vocabulary, ontology/policy change, trace field, or adjacent hint move.
+The matched-ontology concept-spec visibility seam completed in `820dbd9`. It
+renamed only the exact 7-line definition in place to public
+`matched_ontology_concept_specs(...)`, then updated one owner-local call, one
+graph-helper import/call, and three exact existing expectations. It added no
+wrapper, alias, body move, test method, vocabulary, ontology/policy change,
+trace field, or adjacent hint move. Source/tests/whole transforms were
+`+4/-4`, `+3/-3`, and `+7/-7`; the committed diff SHA-256 is
+`5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+Direct behavior/public identity 6/6, focused 556/556 in 182.895 seconds, audit
+217, pycompile 4/4, retired refs zero, owner public/private 8/6, unchanged
+acyclic 48/203 DAG, and full 2,143/2,143 in 236.016 seconds passed. Benchmark
+refresh and remote CI were **NOT RUN**. The preserved contract is authoritative
+in
+[Project Status Completed Matched Ontology](../overview/project_status.md#completed-matched-ontology-concept-spec-public-api).
+
+The next bounded visibility seam renames only the exact 4-line
+`financial_retrieval_hints._preferred_calc_sections(
+query: str, topic: str, intent: str) -> List[str]` definition in place to public
+`preferred_calc_sections(...)`, then updates one owner-local call, two external
+imports, four external calls, and 36 exact existing expectations. Preserve the
+fresh empty list and zero ontology lookup for every non-comparison/trend intent;
+for admitted intents preserve one ontology lookup, one exact three-positional
+preferred-section call, the unmodified return identity, evaluation order, and
+uncaught errors. Add no wrapper, alias, body move, test method, vocabulary,
+ontology/policy change, reflection/reconciliation change, trace field, or
+adjacent hint move.
 
 The normalized definition AST/body hashes are
-`9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
-`0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb`;
-two direct `For`-iterable calls at try depth zero hash to
-`cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
-Selected private/public records project zero/five, owner counts 7/7 to 8/6,
-and owner/graph-helper physical lines remain 318/4,285.
+`be261f1fcd96660559c2f1a3f9f388ee36cd12bc9511281adfbac327d60c4343` /
+`4e4d9768bd564c536d570b822df79cb0dac0fc1bff3842a1a70dd3703923c7ad`;
+five direct three-positional calls at try depth zero hash to
+`4d04eb041a60c30d91c148fac82b490fe29b8e229a4f738215f34e35e13bbfe1`.
+Selected private/public records project zero/34 across source/tests, owner
+counts 8/6 to 9/5, and owner/reconciliation/reflection physical lines remain
+318/1,462/374.
 
-Projected source/tests/whole transforms are `+4/-4`, `+3/-3`, and `+7/-7`;
-exact temporary diff SHA-256 is
-`5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
-The temporary projection passed direct behavior/public identity 6/6, focused
-556/556 in 182.165 seconds, audit 217, pycompile 4/4, retired refs zero, diff
+Projected source/tests/whole transforms are `+8/-8`, `+36/-36`, and
+`+44/-44`; exact temporary diff SHA-256 is
+`9fa17f67478b1b844b190fcf99ce1752293ea18663cb963aabef2de411e750ff`.
+The temporary projection passed direct behavior/public identity 7/7, focused
+655/655 in 186.459 seconds, audit 217, pycompile 7/7, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG, then was restored cleanly. Full
 2,143/2,143 remains the implementation gate. Keep adjacent hint/query helpers,
-caller bodies, ontology policy, planning/retrieval, state/trace/artifact
-mutation, and final sequencing outside the batch. Benchmark refresh and remote
-CI remain **NOT RUN**; exact scope is authoritative only in
+caller bodies, ontology policy, reflection/reconciliation behavior, retrieval,
+state/trace/artifact mutation, and final sequencing outside the batch.
+Benchmark refresh and remote CI remain **NOT RUN**; exact scope is
+authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded

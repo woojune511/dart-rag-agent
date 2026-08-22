@@ -10143,7 +10143,33 @@ completion claim.
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
 
-### Matched-ontology-concept-spec public API characterization checkpoint
+### Matched-ontology-concept-spec public API milestone
+
+- Commit `820dbd9` renamed only the exact 7-line
+  `financial_retrieval_hints._matched_ontology_concept_specs(...)` definition
+  in place to public `matched_ontology_concept_specs(...)`. It updated one
+  owner-local call, one graph-helper import/call, and three exact existing
+  expectations; it added no wrapper/alias and moved no body or adjacent helper.
+- One ontology lookup, one left-to-right comparison-mode concept-spec call,
+  raw falsey fallback, ordered iteration, first filter conversion, second
+  retained conversion, shallow nested identity, caller loop placement, input
+  immutability, evaluation order, and uncaught errors remain exact. The
+  normalized definition/body/call hashes are
+  `9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
+  `0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb` /
+  `cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
+- Source/tests/whole transforms were `+4/-4`, `+3/-3`, and `+7/-7`; the
+  committed diff SHA-256 is
+  `5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+  Direct behavior/public identity 6/6 passed, focused 556/556 passed in
+  182.895 seconds, audit 217, pycompile 4/4, retired refs zero, selected public
+  records 5, owner public/private 8/6, unchanged acyclic 48/203 DAG, and full
+  2,143/2,143 passed in 236.016 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Historical matched-ontology-concept-spec public API characterization checkpoint
 
 - The next bounded visibility batch renames only the exact 7-line
   `financial_retrieval_hints._matched_ontology_concept_specs(
@@ -10181,4 +10207,46 @@ completion claim.
 - Keep adjacent hint/query helpers, all caller bodies, ontology policy,
   planning/retrieval, state/trace/artifact mutation, and final sequencing
   outside the batch. Exact expectations and stop lines are authoritative in
+  [Project Status Completed Matched Ontology](../overview/project_status.md#completed-matched-ontology-concept-spec-public-api).
+
+### Preferred-calculation-sections public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 4-line
+  `financial_retrieval_hints._preferred_calc_sections(
+  query: str, topic: str, intent: str) -> List[str]` definition in place to
+  public `preferred_calc_sections(...)`. Update one owner-local call, two
+  external imports, four external calls, and 36 exact existing expectations;
+  add no alias, wrapper, body move, test method, or adjacent hint change.
+- Preserve the exact non-comparison/trend membership gate, fresh empty-list
+  return, and zero ontology lookup. For comparison/trend, preserve one ontology
+  lookup, one left-to-right `preferred_sections(query, topic, intent)` call,
+  exact returned-object identity, input immutability, evaluation order, and
+  uncaught errors. The normalized definition AST/body hashes are
+  `be261f1fcd96660559c2f1a3f9f388ee36cd12bc9511281adfbac327d60c4343` /
+  `4e4d9768bd564c536d570b822df79cb0dac0fc1bff3842a1a70dd3703923c7ad`.
+- All five calls remain three-positional/no-keyword at caller try depth zero:
+  one owner extend call, two reconciliation assignments, and two reflection-
+  projection assignments. Preserve each exact local or state-derived argument
+  expression and all later-work stop lines. Their target-normalized combined
+  call-record hash is
+  `4d04eb041a60c30d91c148fac82b490fe29b8e229a4f738215f34e35e13bbfe1`.
+  Production scope is one definition, one owner-local call, two imports, four
+  external calls, and 26 exact test-name refs. No future public-name collision
+  exists; selected private/public records project 0/34, owner counts 8/6 to
+  9/5, and owner/reconciliation/reflection lines remain 318/1,462/374.
+- Update exactly 36 existing expectations: 26 direct names, two owner counts,
+  four caller hashes, and four caller-map aggregate hashes. Projected source/
+  tests/whole transforms are `+8/-8`, `+36/-36`, and `+44/-44`; exact
+  temporary diff SHA-256 is
+  `9fa17f67478b1b844b190fcf99ce1752293ea18663cb963aabef2de411e750ff`.
+- The restored projection passed direct behavior/public identity 7/7, focused
+  graph-helper/retrieval-hints/dependency-projection/reflection-capability/
+  operation-contract/import-side-effect tests 655/655 in 186.459 seconds,
+  audit 217, pycompile 7/7, retired refs zero, diff check, and unchanged
+  acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**.
+- Keep adjacent hint/query helpers, all caller bodies, ontology policy,
+  reflection/reconciliation behavior, retrieval, state/trace/artifact
+  mutation, and final sequencing outside the batch. Exact expectations and
+  stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
