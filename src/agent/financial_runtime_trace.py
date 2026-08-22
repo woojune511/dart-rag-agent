@@ -489,7 +489,7 @@ def _extract_subtask_source_evidence_ids(
     return _clean_source_row_ids(values)
 
 
-def _collect_nested_result_evidence(
+def collect_nested_result_evidence(
     rows: List[Mapping[str, Any]],
     *,
     max_depth: int = 6,

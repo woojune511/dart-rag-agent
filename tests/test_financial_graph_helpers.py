@@ -53190,7 +53190,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "efa5d25a3706730944b5479b1ccfeb2126814b5fd4748d87be2e8b2c60ec337b"
+                "da5624b50fc980cd95421087f5bff03eab5dd1120691e293b2273a2a8d0e13c0"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -71146,7 +71146,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_caller_map_hash,
             (
-                "148f27a6b538068e8ab491afa5b9589d3cee769c99f8dc97104577e6158484ad"
+                "888e04218e9dd3dd6e9ba4aacf65d32a218c78bcd96859c0ed517e3fd81422b8"
                 if target_name == future_public_name
                 else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
             ),
@@ -71407,7 +71407,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "148f27a6b538068e8ab491afa5b9589d3cee769c99f8dc97104577e6158484ad",
+            "888e04218e9dd3dd6e9ba4aacf65d32a218c78bcd96859c0ed517e3fd81422b8",
         )
 
         import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering

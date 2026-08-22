@@ -265,7 +265,7 @@ from src.agent.financial_scope_policies import (
 )
 from src.agent.financial_text_surface import strip_rerank_metadata, tokenize_terms
 from src.agent.financial_runtime_trace import (
-    _collect_nested_result_evidence,
+    collect_nested_result_evidence,
     _resolve_runtime_calculation_trace,
     _runtime_trace_state_update,
     overlay_calculation_operands_from_slots,
@@ -1837,7 +1837,7 @@ class FinancialAgentCalculationMixin:
             for task in (state.get("calc_subtasks") or [])
             if str(task.get("task_id") or "").strip()
         }
-        evidence_pool: List[Dict[str, Any]] = _collect_nested_result_evidence(ordered_results)
+        evidence_pool: List[Dict[str, Any]] = collect_nested_result_evidence(ordered_results)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
         context_docs = list(state.get("seed_retrieved_docs") or []) + list(state.get("retrieved_docs") or [])
@@ -11480,7 +11480,7 @@ class FinancialAgentCalculationMixin:
             ]
             if artifact_operands:
                 artifact_operands_by_task_id.setdefault(artifact_task_id, []).extend(artifact_operands)
-        evidence_pool: List[Dict[str, Any]] = _collect_nested_result_evidence(ordered_results)
+        evidence_pool: List[Dict[str, Any]] = collect_nested_result_evidence(ordered_results)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
         evidence_by_id = evidence_items_by_id(evidence_pool)
