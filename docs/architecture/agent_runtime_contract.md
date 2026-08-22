@@ -6871,49 +6871,66 @@ Direct/identity 12/12, structural 2/2, focused 370/370, audit 217, pycompile
 Benchmark refresh and remote CI were **NOT RUN**. Full details are in
 [Project Status Completed Query Result Cache Lookup](../overview/project_status.md#completed-query-result-cache-lookup-public-api).
 
-The active visibility contract now renames only the exact 46-line
-`financial_graph_retrieval_budget._summarize_executed_query_telemetry(
-executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]` definition in place
-to public `summarize_executed_query_telemetry(...)`, then updates one pipeline
-import/call pair, one direct-test import/call pair, and four derived CURRENT-
-SOURCE hash expectations.
-
-Preserve fresh ordered summary construction with `len(executed_queries)` as
-the first input operation. Per item, retain source get/fallback/string/
-normalization, eager per-source default construction, and executed-count
-increment before shallow telemetry materialization. A falsey telemetry mapping
-continues immediately. Cache-hit truth precedes vector-attempt truth, with each
-global increment before its per-source increment. Shallow embedding-usage
-materialization then precedes four ordered integer conversions; all four
-conversions finish before the four global totals and two per-source API-call
-totals mutate. Per-source text-count fields remain intentionally absent.
-
-Preserve first-seen source order, same-source aggregation, input and nested-
-object immutability, fresh output identities, mapping/list-of-pairs coercion,
-partial counters before later failures, and every uncaught error. The sole
-production call remains the `"search_summary"` value in ordered
-`retrieval_debug_trace` construction, at try depth zero, with one positional
-`executed_queries` argument and no keywords. Earlier reuse/cross-trace work and
-later trace/state work remain caller-owned; the direct test changes only its
-imported/called symbol name.
-
-Future definition/body hashes are
+Commit `877de9e` completed the exact 46-line executed-query telemetry summary
+visibility contract by renaming the definition in place to public
+`summarize_executed_query_telemetry(...)`, updating one pipeline import/call
+pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hash
+expectations. Fresh ordered summary construction, first length operation,
+source normalization/per-source adoption, falsey telemetry continue, boolean
+and embedding coercion/addition order, intentionally absent per-source text
+totals, input immutability, fresh identities, partial counters, uncaught errors,
+and caller trace-construction sequencing remain exact. Final definition/body
+hashes are
 `337dc3020b1c4cbae763c47899a739be080739e4f46920a2c21330985b69d492` /
 `ed8caa2821864709c369977941c1369e84563800c979f97a3687dc4c7ee45ae4`;
-the caller body projects
-`7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`
-to
+the caller hash is
 `d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`.
-Selected private/public records project 0/5, owner counts 6/9 to 7/8, and
-physical lines remain 419/2,641. Source/tests/whole project `+3/-3`, `+6/-6`,
-and `+9/-9` across four files; exact temporary diff SHA-256 is
+Source/tests/whole were `+3/-3`, `+6/-6`, and `+9/-9`; committed diff
+SHA-256 is
 `b79b3cf3a4f3295d1a2f33fa42b7069c18e74df03ee934b9bce8dc58cc6296bf`.
+Direct/identity 12/12, structural 2/2, focused 369/369, audit 217, pycompile
+4/4, owner counts 7/8, unchanged 48/203 DAG, and full 2,143/2,143 passed.
+Benchmark refresh and remote CI were **NOT RUN**. Full details are in
+[Project Status Completed Executed Query Telemetry](../overview/project_status.md#completed-executed-query-telemetry-summary-public-api).
+
+The active visibility contract now renames only the exact 23-line
+`financial_graph_retrieval_budget._apply_query_budget(queries: List[str],
+budget: int, *, dedupe: bool = True) -> tuple[List[str], Dict[str, Any]]`
+definition in place to public `apply_query_budget(...)`, then updates one
+pipeline import, three production calls, one direct-test import, two direct-
+test calls, and four derived CURRENT-SOURCE hash expectations.
+
+Preserve two eager normalization/filter comprehensions before dedupe truth,
+truthy helper-based first-occurrence dedupe versus falsey normalized-list
+adoption, and `budget <= 0` short-circuit before candidate length comparison.
+Nonpositive or sufficient budgets keep selected/candidate identity. Only an
+insufficient positive budget rebalances candidates by period and slices the
+selected head. Preserve original budget/dedupe objects, fresh ordered trace,
+post-balance counts and dropped tail, input immutability, output identities,
+helper timing, comparisons, slices, and every uncaught error.
+
+The three calls remain tuple assignments at try depth zero with exact primary
+`list(query_bundle)`/budget/dedupe, operand-focus query/budget/dedupe, and retry
+query/budget/dedupe arguments. All budget derivation, later trace enrichment,
+duplicate dropping, retrieval/cache work, and failure stops remain caller-
+owned. The direct tests change only their imported/called name. Future
+definition/body hashes are
+`a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
+`c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`;
+the caller body projects
+`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`
+to
+`3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
+Selected private/public records project 0/8, owner counts 7/8 to 8/7, and
+physical lines remain 419/2,641. Source/tests/whole project `+5/-5`, `+7/-7`,
+and `+12/-12`; exact temporary diff SHA-256 is
+`3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
 The restored projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2, focused 369/369 in 231.486 seconds, audit 217, pycompile
+exact structural 2/2, focused 369/369 in 159.553 seconds, audit 217, pycompile
 4/4, diff check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep telemetry policy, retrieval/search/cache, graph
-state, trace/artifact/ledger mutation, and final sequencing outside this batch.
-Exact expectations and stop lines are authoritative in
+implementation gate. Keep retrieval/search/cache/telemetry policy, cross-trace
+diagnostics, graph state, trace/artifact/ledger mutation, and final sequencing
+outside this batch. Exact expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

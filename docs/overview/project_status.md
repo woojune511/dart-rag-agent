@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `01959ca` renamed only `financial_graph_retrieval_budget._lookup_query_result_cache(...)` in place to public `lookup_query_result_cache(...)` and updated one pipeline import, three calls, and four derived CURRENT-SOURCE hashes |
-| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 370/370, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `01959ca` |
+| What just changed? | `877de9e` renamed only `financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)` in place to public `summarize_executed_query_telemetry(...)` and updated one pipeline import/call pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 369/369, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `877de9e` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)` in place to public `summarize_executed_query_telemetry(...)`; update one pipeline import/call pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hash expectations |
+| What is next? | Rename only `financial_graph_retrieval_budget._apply_query_budget(...)` in place to public `apply_query_budget(...)`; update one pipeline import and three calls, one direct-test import and two calls, and four derived CURRENT-SOURCE hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, query-result-cache lookup direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 370 / 370 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after query-result-cache lookup public rename |
+| Latest focused owner checkpoint | PASS, executed-query telemetry summary direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 369 / 369 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after executed-query telemetry summary public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,142 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 23-line
+`src.agent.financial_graph_retrieval_budget._apply_query_budget(
+queries: List[str], budget: int, *, dedupe: bool = True) ->
+tuple[List[str], Dict[str, Any]]` definition at lines 159-181 in place to public
+`apply_query_budget(...)`. Update the sole pipeline import and its three
+`_retrieve(...)` calls, the direct import and two calls in
+`tests/test_retrieval_scope.py`, and exactly four existing derived CURRENT-
+SOURCE hash expectations in `tests/test_financial_graph_helpers.py`. Add no
+alias, wrapper, body move, test method, normalization/dedupe/period policy,
+trace field, retrieval branch, state/artifact/ledger mutation, exception
+boundary, or adjacent telemetry/cache/cross-trace change.
+
+This is the smallest remaining correct-owner core-runtime visibility transform.
+It has one definition, one production import, three production calls, one
+direct-test import, and two direct-test calls: eight selected AST records. The
+five-record 80-line `_cross_trace_reuse_candidate_diagnostics(...)` is a
+review-trace diagnostic surface and requires a separate ownership/public-
+surface decision rather than automatic core API exposure. Owner-local query
+signature, dedupe, period-balance, filter, key, and trace-context helpers remain
+private and outside this batch.
+
+Preserve eager iteration of `queries` and, for every item, exact raw falsey
+fallback through `item or ""`, string conversion, `_normalise_spaces(...)`,
+then the second full-list truthy filter. `input_count` therefore remains the
+length after normalization and blank removal, not the raw input length. Only
+after both eager comprehensions evaluate `dedupe`; truthy dedupe calls
+`_dedupe_queries_for_retrieval(normalized)`, while falsey dedupe retains that
+exact normalized list as `candidates`.
+
+Keep `budget <= 0` as the first capacity condition and preserve its short-
+circuit before `len(candidates) <= budget`. Either a nonpositive budget or a
+sufficient positive budget adopts the exact `candidates` list as `selected`.
+Only an insufficient positive budget calls
+`_period_balanced_queries_for_retrieval(candidates)`, replaces `candidates`
+with its result, and forms `selected` through exact `candidates[:budget]`.
+Preserve Python comparison and slicing behavior for custom/integer-like
+objects and every uncaught truth, comparison, length, helper, and slice error.
+
+Return the selected list and a fresh trace mapping with exact ordered fields
+`input_count`, `deduped_count`, `selected_count`, `budget`, `dropped_count`,
+`dropped_queries`, and `dedupe_enabled`. Preserve the original `budget` and
+`dedupe` objects in the trace, post-balance candidate order/count, repeated
+length evaluations, `max(len(candidates) - len(selected), 0)`, and fresh tail
+slice `candidates[len(selected):]`. Keep input immutability, first-occurrence
+dedupe, nonpositive unlimited behavior, no-truncation selected/candidate
+identity, truncation slice identities, period-diverse ordering, fresh outputs,
+and all uncaught iteration, truth, string, normalization, helper, comparison,
+length, subtraction, maximum, and slicing failures.
+
+All three production calls remain tuple assignments in `_retrieve` at caller
+try depth zero with two positional arguments and ordered `dedupe` keyword. The
+primary call keeps exact `list(query_bundle)`, `primary_budget`, and
+`primary_budget > 0`; operand focus keeps `focused_operand_queries`,
+`focused_budget`, and `configured_focused_budget > 0`; retry keeps
+`retry_queries`, `retry_budget`, and `configured_retry_budget > 0`. Preserve
+all budget derivation, assignment/adoption, later hint enrichment, operand-
+coverage projection, duplicate dropping, search/cache work, trace mutation,
+and exception stops as caller-owned. The two direct tests change only their
+imported/called symbol name and retain all payloads and assertions.
+
+Future definition/body AST SHA-256 values are
+`a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
+`c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`.
+The `_retrieve` caller-body hash projects from
+`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`
+to
+`3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
+Update both repeated caller-body expectations and the derived strict/report
+caller-map expectations respectively from
+`a82e2580dee323d01bf929a7a9eb546218c47a8f4f4dc107bdc2821580c38242`
+to
+`d26fdf84d2486d306bc3d8d0f8c4392f7c4711b4e6e8f0b56bc2973398a05a88`
+and from
+`e9503c7a416ebdb1e9baae88e71c1ec2e2261837590f4390f9586909ad6d0ee9`
+to
+`dbc2e79b6189b2399a28a3eabb2440d473a45f5cd8e3732077e130d5b47d4e17`.
+No assertion or test method may be added, removed, or weakened.
+
+After the rename selected private/public records must be 0/8, the pipeline and
+direct-test bindings must be identical to the public owner, owner public/private
+counts must move exactly 7/8 to 8/7, and budget/pipeline physical lines must
+remain 419/2,641. Projected source/tests/whole transforms are `+5/-5`,
+`+7/-7`, and `+12/-12` across exactly four files. The exact temporary diff
+SHA-256 is
+`3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
+
+The restored projection passed current-private and projected-public direct
+behavior/identity 12/12 each, exact structural tests 2/2 in 13.490 seconds,
+focused tests 369/369 in 159.553 seconds, audit 217, pycompile 4/4, retired
+selected refs zero, diff check, and unchanged acyclic 48/203 import topology.
+Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
+and remote CI remain **NOT RUN**. This name-only projection establishes no
+behavior, answer-quality, retrieval-performance, budget-effectiveness,
+benchmark, schedule, ledger, review-trace, or Phase 3 completion claim.
+
+## Completed Executed-Query Telemetry Summary Public API
+
+Commit `877de9e` renamed only the exact 46-line
+`financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)`
+definition in place to public `summarize_executed_query_telemetry(...)`. It
+updated one pipeline import/call pair, one direct-test import/call pair, and
+four derived CURRENT-SOURCE hash expectations without moving the body or
+changing adjacent budget, cache, cross-trace, retrieval, state, trace,
+artifact, ledger, or final sequencing.
+
+Fresh ordered summary construction, first `len(...)`, source normalization and
+per-source adoption, executed-count timing, shallow telemetry materialization,
+falsey continue, cache-hit then vector-attempt truth/counter order, embedding-
+usage materialization, four integer conversions before all embedding totals,
+four global and two per-source additions, absent per-source text totals,
+input immutability, fresh identities, repeated-source aggregation, partial
+counters, uncaught errors, and the caller's ordered trace-construction boundary
+remain exact. Definition/body hashes are
+`337dc3020b1c4cbae763c47899a739be080739e4f46920a2c21330985b69d492` /
+`ed8caa2821864709c369977941c1369e84563800c979f97a3687dc4c7ee45ae4`;
+the final caller-body hash is
+`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`.
+Final selected private/public records are 0/5, owner counts are 7/8, and
+physical lines remain 419/2,641.
+
+Actual source/tests/whole transforms were `+3/-3`, `+6/-6`, and `+9/-9`;
+committed diff SHA-256 is
+`b79b3cf3a4f3295d1a2f33fa42b7069c18e74df03ee934b9bce8dc58cc6296bf`.
+Direct behavior/public identity 12/12, exact structural 2/2 in 14.817 seconds,
+focused 369/369 in 171.572 seconds, audit 217, pycompile 4/4, retired refs zero,
+unchanged 48/203 DAG, and full discovery 2,143/2,143 in 254.573 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+no behavior, answer-quality, retrieval-performance, telemetry-effectiveness,
+benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Executed-Query Telemetry Summary Characterization Checkpoint
+
+The characterization below predates `877de9e`; its projected rename and full
+gate are complete. It is retained only as an audit record and is not active
+work.
 
 Rename only the exact 46-line
 `src.agent.financial_graph_retrieval_budget._summarize_executed_query_telemetry(
@@ -883,10 +1019,11 @@ The restored projection passed current-private and projected-public direct
 behavior/identity 12/12 each, exact structural tests 2/2 in 19.134 seconds,
 focused tests 369/369 in 231.486 seconds, audit 217, pycompile 4/4, retired
 selected refs zero, diff check, and unchanged acyclic 48/203 import topology.
-Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
-and remote CI remain **NOT RUN**. This name-only projection establishes no
-behavior, answer-quality, retrieval-performance, telemetry-effectiveness,
-benchmark, schedule, ledger, or Phase 3 completion claim.
+Commit `877de9e` later passed full discovery 2,143/2,143 in 254.573 seconds and
+completed that gate. Benchmark refresh and remote CI were **NOT RUN**. This
+historical name-only projection establishes no behavior, answer-quality,
+retrieval-performance, telemetry-effectiveness, benchmark, schedule, ledger,
+or Phase 3 completion claim.
 
 ## Completed Query-Result-Cache Lookup Public API
 

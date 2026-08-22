@@ -11027,9 +11027,9 @@ are complete. It remains only as an audit record, not an active priority.
   and establishes no behavior, quality, performance, benchmark, schedule,
   cache-effectiveness, ledger, or Phase 3 completion claim.
 
-### Executed-query telemetry summary public API characterization checkpoint
+### Historical executed-query telemetry summary public API characterization checkpoint
 
-- The next bounded visibility batch renames only the exact 46-line
+- The bounded visibility projection renamed only the exact 46-line
   `financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)`
   definition in place to public `summarize_executed_query_telemetry(...)`.
   Update one pipeline import/call pair, the direct import/call pair in
@@ -11062,6 +11062,77 @@ are complete. It remains only as an audit record, not an active priority.
 - The restored projection passed current-private and projected-public direct
   behavior/identity 12/12 each, exact structural 2/2 in 19.134 seconds,
   focused 369/369 in 231.486 seconds, audit 217, pycompile 4/4, retired refs
+  zero, diff check, and unchanged acyclic 48/203 DAG. Commit `877de9e` later
+  passed full 2,143/2,143 and completed the implementation gate. Benchmark
+  refresh and remote CI were **NOT RUN**. The completed scope is authoritative
+  in
+  [Project Status Completed Executed Query Telemetry](../overview/project_status.md#completed-executed-query-telemetry-summary-public-api).
+
+### Executed-query telemetry summary public API completed
+
+- Commit `877de9e` renamed only the exact 46-line
+  `financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)`
+  definition in place to public `summarize_executed_query_telemetry(...)`, then
+  updated one pipeline import/call pair, one direct-test import/call pair, and
+  exactly four derived CURRENT-SOURCE hash expectations. It added no alias,
+  wrapper, body move, test method, telemetry field/policy, retrieval branch,
+  or adjacent budget/cache/cross-trace change.
+- Fresh ordered summary construction, first `len(...)`, source normalization
+  and per-source adoption, executed-count timing, shallow telemetry coercion,
+  falsey continue, boolean counter order, embedding-usage coercion, four
+  integer conversions before embedding additions, absent per-source text
+  totals, input immutability, fresh identities, partial counters, uncaught
+  errors, and caller trace-construction sequencing remain exact. Definition/
+  body hashes are
+  `337dc3020b1c4cbae763c47899a739be080739e4f46920a2c21330985b69d492` /
+  `ed8caa2821864709c369977941c1369e84563800c979f97a3687dc4c7ee45ae4`.
+- The production call remains the `"search_summary"` dictionary value at try
+  depth zero with exact positional `executed_queries`; the final caller hash is
+  `d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`.
+- Actual source/tests/whole transforms were `+3/-3`, `+6/-6`, and `+9/-9`;
+  committed diff SHA-256 is
+  `b79b3cf3a4f3295d1a2f33fa42b7069c18e74df03ee934b9bce8dc58cc6296bf`.
+  Direct behavior/public identity 12/12, exact structural 2/2 in 14.817
+  seconds, focused 369/369 in 171.572 seconds, audit 217, pycompile 4/4,
+  selected private/public 0/5, owner counts 7/8, unchanged 419/2,641 lines,
+  unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 254.573 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. The milestone is name-only
+  and establishes no behavior, quality, performance, benchmark, schedule,
+  telemetry-effectiveness, ledger, or Phase 3 completion claim.
+
+### Query-budget application public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 23-line
+  `financial_graph_retrieval_budget._apply_query_budget(...)` definition in
+  place to public `apply_query_budget(...)`. Update one pipeline import, three
+  production calls, one direct-test import, two direct-test calls, and exactly
+  four derived CURRENT-SOURCE hash expectations; add no alias, wrapper, body
+  move, test method, budget/dedupe/period policy, trace field, retrieval branch,
+  or adjacent telemetry/cache/cross-trace change.
+- Preserve two eager normalize/filter comprehensions before dedupe truth;
+  optional helper dedupe versus normalized-list adoption; nonpositive budget
+  short-circuit; sufficient-budget selected/candidate identity; and only for
+  insufficient positive budget, period rebalance followed by a head slice.
+  Keep the fresh ordered trace, original budget/dedupe objects, post-balance
+  counts, exact dropped tail, input immutability, identities, helper timing,
+  comparison/slice behavior, and every uncaught error.
+- Three production calls remain tuple assignments at try depth zero with exact
+  primary, operand-focus, and retry query/budget/dedupe arguments. Direct tests
+  change only their import/call symbol. Future definition/body hashes are
+  `a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
+  `c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`;
+  the caller body projects
+  `d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`
+  to
+  `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
+- Production/test selected records are 5/3; selected private/public records
+  project 0/8, owner counts 7/8 to 8/7, and lines remain 419/2,641. Projected
+  source/tests/whole transforms are `+5/-5`, `+7/-7`, and `+12/-12` across
+  four files; exact temporary diff SHA-256 is
+  `3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
+- The restored projection passed current-private and projected-public direct
+  behavior/identity 12/12 each, exact structural 2/2 in 13.490 seconds,
+  focused 369/369 in 159.553 seconds, audit 217, pycompile 4/4, retired refs
   zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains
   the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
   Exact expectations and stop lines are authoritative in
