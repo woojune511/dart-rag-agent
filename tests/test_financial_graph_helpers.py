@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (7, 7))
+        self.assertEqual(owner_counts, (8, 6))
 
         def imported_names(module_name, imported_module):
             return {
@@ -8213,7 +8213,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertTrue(
             {
                 "_infer_statement_and_section_hints",
-                "_matched_ontology_concept_specs",
+                "matched_ontology_concept_specs",
             }.issubset(graph_owner_imports)
         )
         self.assertTrue(public_names.issubset(graph_owner_imports))

@@ -35,7 +35,7 @@ def _section_hint_alias(section: str) -> str:
     return text
 
 
-def _matched_ontology_concept_specs(query: str, topic: str = "") -> List[Dict[str, Any]]:
+def matched_ontology_concept_specs(query: str, topic: str = "") -> List[Dict[str, Any]]:
     ontology = get_financial_ontology()
     return [
         dict(spec)
@@ -51,7 +51,7 @@ def _desired_statement_types(query: str, topic: str) -> List[str]:
         markers = tuple(str(item) for item in (policy.get("markers") or ()) if str(item))
         if any(marker in text for marker in markers):
             desired.extend(str(item).strip() for item in (policy.get("statement_types") or ()) if str(item).strip())
-    for spec in _matched_ontology_concept_specs(query, topic):
+    for spec in matched_ontology_concept_specs(query, topic):
         desired.extend(str(item).strip() for item in (spec.get("preferred_statement_types") or []) if str(item).strip())
         for member_spec in (spec.get("member_specs") or []):
             desired.extend(

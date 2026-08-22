@@ -57,7 +57,7 @@ from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_retrieval_hints import (
     _infer_statement_and_section_hints,
-    _matched_ontology_concept_specs,
+    matched_ontology_concept_specs,
     query_component_match_count,
     query_mentions_metric,
 )
@@ -676,7 +676,7 @@ def _extract_generic_operand_labels(query: str) -> List[str]:
             labels.extend(str(item) for item in (dict(expansion).get("labels") or ()) if str(item))
 
     labels.extend(_extract_quoted_metric_labels(text))
-    for spec in _matched_ontology_concept_specs(query):
+    for spec in matched_ontology_concept_specs(query):
         if bool(spec.get("is_group")):
             continue
         visible_surfaces: List[str] = []
