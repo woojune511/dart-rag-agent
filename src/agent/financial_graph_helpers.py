@@ -742,7 +742,7 @@ def _infer_generic_unit_family(label: str) -> str:
     return ""
 
 
-def _build_generic_metric_aliases(label: str) -> List[str]:
+def build_generic_metric_aliases(label: str) -> List[str]:
     base = str(label or "").strip()
     if not base:
         return []
@@ -889,7 +889,7 @@ def _build_generic_required_operands(
         rows: List[Dict[str, Any]] = []
         for spec in ratio_operand_specs:
             label = str(spec.get("label") or "").strip()
-            aliases = _build_generic_metric_aliases(label)
+            aliases = build_generic_metric_aliases(label)
             concept_spec = _infer_generic_concept_spec(label, ontology)
             role = str(spec.get("role") or "").strip()
             binding_policy: Dict[str, Any] = {}
@@ -925,7 +925,7 @@ def _build_generic_required_operands(
         current_label_template = str(period_policy.get("current_label_template") or "{period_hint} {label}")
         prior_label_template = str(period_policy.get("prior_label_template") or "{period_hint} {label}")
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
-        aliases = _build_generic_metric_aliases(base_label)
+        aliases = build_generic_metric_aliases(base_label)
         unit_family = _infer_generic_unit_family(base_label)
         concept_spec = _infer_generic_concept_spec(base_label, ontology)
         year_tokens = extract_year_tokens(query, report_scope)
@@ -983,7 +983,7 @@ def _build_generic_required_operands(
 
     rows: List[Dict[str, Any]] = []
     for label in operand_labels:
-        aliases = _build_generic_metric_aliases(label)
+        aliases = build_generic_metric_aliases(label)
         concept_spec = _infer_generic_concept_spec(label, ontology)
         rows.append(
             _augment_generic_operand_with_concept(

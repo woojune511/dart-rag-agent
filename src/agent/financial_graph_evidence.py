@@ -16,7 +16,7 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.agent.financial_graph_helpers import (
-    _build_generic_metric_aliases,
+    build_generic_metric_aliases,
     _extract_generic_operand_labels,
 )
 from src.agent.financial_aggregate_projection import compose_supported_quantitative_impact_answer
@@ -3859,7 +3859,7 @@ class FinancialAgentEvidenceMixin:
 
         aliases: List[str] = []
         for label in _extract_generic_operand_labels(query):
-            aliases.extend(_build_generic_metric_aliases(label))
+            aliases.extend(build_generic_metric_aliases(label))
         aliases = list(dict.fromkeys(_normalise_spaces(alias) for alias in aliases if _normalise_spaces(alias)))
         if not aliases:
             return None
