@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `4506c9f` renamed only `financial_graph_retrieval_budget._apply_query_budget(...)` in place to public `apply_query_budget(...)` and updated one pipeline import and three calls, one direct-test import and two calls, and four derived CURRENT-SOURCE hashes |
-| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 369/369, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `4506c9f` |
+| What just changed? | `e17d165` renamed only the trace-only `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)` in place to public `cross_trace_reuse_candidate_diagnostics(...)` and updated one pipeline import/call pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 13/13, exact structural tests 2/2, focused tests 369/369, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `e17d165` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the trace-only `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)` in place to public `cross_trace_reuse_candidate_diagnostics(...)`; update one pipeline import/call pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hash expectations |
+| What is next? | Rename only the exact 20-line `financial_runtime_trace._attach_runtime_projection_metadata(...)` in place to public `attach_runtime_projection_metadata(...)`; update five owner-local calls, three external imports/four calls, eight existing test symbol strings, and one derived owner-count expectation |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, query-budget application direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 369 / 369 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after query-budget application public rename |
+| Latest focused owner checkpoint | PASS, cross-trace diagnostics direct behavior/public identity 13 / 13, exact structural tests 2 / 2, and affected focused set 369 / 369 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after cross-trace diagnostics public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -792,12 +792,115 @@ The durable Phase 3 debt is:
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, desired consolidation-scope, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference and complete operand-candidate scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, ratio-component and direct acceptance, and direct-grounding classification, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, reconciliation candidate construction/ranking, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
-| Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, desired consolidation-scope policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
+| Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, desired consolidation-scope policy, lookup answer-slot/support, read-only retrieval-hint projection, quantitative-impact projection, and retrieval cost-control/trace diagnostics moved; broader evidence, runtime-trace, and orchestration seams remain |
 
 These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 20-line
+`src.agent.financial_runtime_trace._attach_runtime_projection_metadata(
+trace: Dict[str, Any], *, source: str, source_task_id: str = "",
+legacy_fallback: bool = False) -> Dict[str, Any]` definition at lines 384-403
+in place to public `attach_runtime_projection_metadata(...)`. Update its five
+owner-local calls, the three external imports and four external calls in
+`financial_agent_run_projection.py`, `financial_aggregate_projection.py`, and
+`financial_graph.py`, eight existing exact symbol strings across
+`tests/test_financial_agent_run_projection.py` and
+`tests/test_aggregate_subtask_projection.py`, and the one existing runtime-
+trace owner-count expectation from `(5, 26)` to `(6, 25)`. Add no alias,
+wrapper, body/owner move, new module, test method, trace field, answer branch,
+evidence selection, artifact/ledger mutation, exception boundary, or adjacent
+trace construction/normalization change.
+
+Keep the helper in `financial_runtime_trace.py`. It is the generic owner of
+calculation-trace projection and already owns the private
+`_trace_has_material(...)` predicate used by the helper. Moving the 20-line
+body would either expose another owner-private predicate or duplicate material-
+trace policy. The public binding is a core runtime-trace composition contract;
+it does not grant answer, evidence, evaluator, cache-serving, or orchestration
+authority.
+
+Preserve the first exact `_trace_has_material(trace)` call and same-object,
+unchanged early return when no calculation operands, plan, or result are
+material. On the material path, preserve exact shallow construction through
+`dict(trace.get("runtime_projection") or {})`, including propagated mapping
+errors; ordered overwrite of stripped `source` and boolean-coerced
+`legacy_fallback`; the raw truth gate on `source_task_id` before
+`str(...).strip()`; preservation of unrelated metadata and of an existing task
+ID when the new value is falsey; assignment of a fresh metadata mapping into
+the original trace; and same-trace return identity. Do not copy nested trace
+payloads, catch errors, or change truth/coercion/evaluation order.
+
+Preserve all nine calls in place: five owner-local calls in runtime-trace
+construction/resolution, two `financial_graph.py` calls, one aggregate-
+projection call, and one run-projection call. Their exact source labels,
+source-task IDs, legacy flags, surrounding empty-result gates, later metadata
+overwrites, state adoption, and final sequencing remain caller-owned. The two
+test files change only existing patch/count symbol strings plus the derived
+owner count; no assertion or test method may be added, removed, or weakened.
+
+Current-private/future-public definition SHA-256 values are
+`d572f2044f98deaf5853c8b0a185ee120084a201befd75839254b9e71c1cc7e5` /
+`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448`;
+the unchanged body hash is
+`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
+After the rename selected private/public exact-name records must be 0/21,
+source definition/import/load records must remain 1/3/9, owner public/private
+counts must move exactly 5/26 to 6/25, and runtime-trace/graph/aggregate-
+projection/run-projection physical lines must remain 1,412/938/3,946/302.
+
+Projected source/tests/whole transforms are `+13/-13`, `+9/-9`, and
+`+22/-22` across exactly four source and two test files. The exact temporary
+diff SHA-256 is
+`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
+The restored projection passed current-private and projected-public direct
+behavior/identity 14/14 each, exact structural tests 5/5 in 4.993 seconds,
+affected focused modules 195/195 in 9.814 seconds, audit 217, pycompile 6/6,
+retired selected refs zero, diff check, and unchanged acyclic 48/203 import
+topology. Full discovery 2,143/2,143 remains the implementation gate.
+Benchmark refresh and remote CI remain **NOT RUN**. This name-only projection
+establishes no behavior, answer-quality, trace-quality, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+## Completed Cross-Trace Reuse Candidate Diagnostics Public API
+
+Commit `e17d165` renamed only the exact 80-line trace-only
+`financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)`
+definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`.
+It updated one pipeline import/call pair, one direct-test import/call pair, and
+four derived CURRENT-SOURCE hash expectations without moving the body or
+changing query/filter/task identity, matching, cap policy, cache behavior,
+retrieval, state, artifact/ledger, or final sequencing.
+
+One-based prior-trace enumeration, eager executed/reused materialization,
+invalid-record and blank-signature skips, exact source/query/filter identity,
+task/cache flags, insertion order, direct current-query iteration, aggregate
+counts before candidate capping, five-row prior slices, ordered fresh result,
+immutability, identities, uncaught errors, and the single try-depth-zero caller
+adoption boundary remain exact. Final definition/body hashes are
+`06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
+`dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
+the final `_retrieve` caller-body hash is
+`3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
+
+Actual source/tests/whole transforms were `+3/-3`, `+6/-6`, and `+9/-9`;
+committed diff SHA-256 is
+`b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
+Direct behavior/public identity 13/13, exact structural tests 2/2 in 14.213
+seconds, focused tests 369/369 in 166.132 seconds, audit 217, pycompile 4/4,
+selected private/public 0/5, owner counts 9/6, unchanged 419/2,641 lines,
+unchanged acyclic 48/203 DAG, and full discovery 2,143/2,143 in 231.614
+seconds passed. Benchmark refresh and remote CI were **NOT RUN**. This trace-
+only name cleanup establishes no answer behavior, quality, performance, reuse/
+cost effectiveness, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Cross-Trace Reuse Candidate Diagnostics Characterization Checkpoint
+
+The characterization below predates `e17d165`; its projected rename and full
+gate are complete. It is retained only as an audit record and is not active
+work.
 
 Rename only the exact 80-line
 `src.agent.financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(
@@ -894,10 +997,10 @@ The restored projection passed current-private and projected-public direct
 behavior/identity 13/13 each, exact structural tests 2/2 in 14.591 seconds,
 focused tests 369/369 in 164.433 seconds, audit 217, pycompile 4/4, retired
 selected refs zero, diff check, and unchanged acyclic 48/203 import topology.
-Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
-and remote CI remain **NOT RUN**. This name-only projection establishes no
-behavior, answer-quality, retrieval-performance, reuse/cost-effectiveness,
-cache-serving, benchmark, schedule, ledger, or Phase 3 completion claim.
+Commit `e17d165` later passed full discovery 2,143/2,143 and completed the
+implementation gate. Benchmark refresh and remote CI were **NOT RUN**. The
+completed scope is authoritative in
+[Completed Cross-Trace Reuse Candidate Diagnostics](#completed-cross-trace-reuse-candidate-diagnostics-public-api).
 
 ## Completed Query Budget Application Public API
 

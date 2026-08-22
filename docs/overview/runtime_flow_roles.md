@@ -1606,17 +1606,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   adoption 경계는 유지됐다. Source/tests/whole `+5/-5`, `+7/-7`, `+12/-12`,
   direct/identity 12/12, exact structural 2/2, focused 369/369, audit 217,
   pycompile 4/4, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 80-line trace-only
-  `_cross_trace_reuse_candidate_diagnostics(...)`를 public
-  `cross_trace_reuse_candidate_diagnostics(...)`로 rename하고 retrieval-
+- 완료된 `e17d165` visibility batch는 같은 owner의 exact 80-line trace-only
+  cross-trace reuse candidate diagnostics helper를 public
+  `cross_trace_reuse_candidate_diagnostics(...)`로 이름 수렴시키고 retrieval-
   pipeline import/call 한 쌍, direct test import/call 한 쌍과 기존 caller/
-  caller-map hash 기대 네 개만 갱신한다. Owner 이동 없이 previous/current
-  trace 순회, exact source/query/filter identity, cap-independent aggregate
-  counts, five-row prior detail slice, cache-hit flags와 ordered trace mapping을
-  유지한다. Exact temporary projection은 source/tests/whole `+3/-3`,
-  `+6/-6`, `+9/-9`, current/private와 projected/public direct/identity 각
-  13/13, exact structural 2/2, focused 369/369, audit 217, pycompile 4/4,
-  unchanged 48/203 DAG이며 전체 구현 gate는
+  caller-map hash 기대 네 개만 갱신했다. Previous/current trace 순회, exact
+  source/query/filter identity, cap-independent aggregate counts, five-row prior
+  detail slice, cache-hit flags와 ordered trace mapping은 유지됐다. Source/
+  tests/whole `+3/-3`, `+6/-6`, `+9/-9`, direct/identity 13/13, exact
+  structural 2/2, focused 369/369, audit 217, pycompile 4/4, unchanged 48/203
+  DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_runtime_trace.py`의 exact 20-line
+  `_attach_runtime_projection_metadata(...)`를 public
+  `attach_runtime_projection_metadata(...)`로 rename하고 owner-local call
+  다섯 개, external import 세 개/call 네 개, 기존 test symbol string 여덟
+  개와 owner-count 기대 한 개만 갱신한다. No-material same-object early
+  return, shallow metadata copy/update, source/task normalization, legacy flag,
+  in-place trace adoption과 모든 caller sequencing을 유지한다. Exact
+  temporary projection은 source/tests/whole `+13/-13`, `+9/-9`, `+22/-22`,
+  current/private와 projected/public direct/identity 각 14/14, exact
+  structural 5/5, focused 195/195, audit 217, pycompile 6/6, unchanged 48/203
+  DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

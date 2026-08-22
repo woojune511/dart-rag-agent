@@ -6916,12 +6916,13 @@ Direct/identity 12/12, structural 2/2, focused 369/369, audit 217, pycompile
 Benchmark refresh and remote CI were **NOT RUN**. Full details are in
 [Project Status Completed Query Budget Application](../overview/project_status.md#completed-query-budget-application-public-api).
 
-The active visibility contract now renames only the exact 80-line trace-only
+Commit `e17d165` completed the exact 80-line trace-only visibility contract by
+renaming
 `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(
 current_queries: List[Dict[str, Any]], previous_traces: List[Dict[str, Any]],
 *, current_trace_index: int, max_candidates: int = 20) -> Dict[str, Any]`
 definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`,
-then updates one pipeline import/call pair, one direct-test import/call pair,
+then updating one pipeline import/call pair, one direct-test import/call pair,
 and four derived CURRENT-SOURCE hash expectations. It stays in the owner that
 already contains its query/filter/task identity mechanisms; no private import,
 duplicate identity implementation, owner move, or new module is allowed.
@@ -6946,21 +6947,59 @@ call remains the try-depth-zero assignment over exact unpacked executed/reused
 queries, materialized history, and `len(history) + 1`; later trace adoption and
 all retrieval/final sequencing remain caller-owned.
 
-Future definition/body hashes are
+Final definition/body hashes are
 `06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
 `dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
 the caller body projects
 `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`
 to
 `3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
-Selected private/public records project 0/5, owner counts 8/7 to 9/6, and
-physical lines remain 419/2,641. Source/tests/whole project `+3/-3`, `+6/-6`,
-and `+9/-9`; exact temporary diff SHA-256 is
+Selected private/public records are 0/5, owner counts are 9/6, and physical
+lines remain 419/2,641. Source/tests/whole were `+3/-3`, `+6/-6`, and
+`+9/-9`; committed diff SHA-256 is
 `b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
-The restored projection passed current/projected direct/identity 13/13 each,
-exact structural 2/2, focused 369/369 in 164.433 seconds, audit 217, pycompile
-4/4, diff check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Exact expectations and stop lines are authoritative in
+Direct/identity 13/13, exact structural 2/2, focused 369/369, audit 217,
+pycompile 4/4, diff check, unchanged 48/203 DAG, and full 2,143/2,143 passed.
+Benchmark refresh and remote CI were **NOT RUN**. Exact completion evidence is
+authoritative in
+[Project Status Completed Cross-Trace Diagnostics](../overview/project_status.md#completed-cross-trace-reuse-candidate-diagnostics-public-api).
+
+The active visibility contract now renames only the exact 20-line
+`financial_runtime_trace._attach_runtime_projection_metadata(
+trace: Dict[str, Any], *, source: str, source_task_id: str = "",
+legacy_fallback: bool = False) -> Dict[str, Any]` definition in place to public
+`attach_runtime_projection_metadata(...)`. Update five owner-local calls,
+three external imports/four calls across run projection, aggregate projection,
+and graph, eight existing test symbol strings, and one derived runtime-trace
+owner-count expectation. Do not add an alias or wrapper, move the body, add a
+test, or change any trace, answer, evidence, state, artifact, ledger, evaluator,
+cache, or exception boundary.
+
+The helper stays in the runtime-trace owner with its private
+`_trace_has_material(...)` dependency. Preserve the material predicate as the
+first operation and the same-object unchanged early return. On a material
+trace, preserve shallow metadata construction from the existing projection,
+ordered overwrite of stripped source and boolean legacy flag, the raw truth
+gate before source-task string normalization, unrelated-key preservation,
+fresh metadata identity, in-place trace assignment, same-trace return, and all
+uncaught errors. Keep all five owner-local and four external calls in place,
+including exact labels, task IDs, surrounding gates, later metadata adoption,
+and final sequencing.
+
+Current-private/future-public definition hashes are
+`d572f2044f98deaf5853c8b0a185ee120084a201befd75839254b9e71c1cc7e5` /
+`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448`;
+the unchanged body hash is
+`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
+Selected private/public exact-name records project 0/21, source definition/
+import/load records remain 1/3/9, and owner counts move 5/26 to 6/25.
+Projected source/tests/whole are `+13/-13`, `+9/-9`, and `+22/-22`; exact
+temporary diff SHA-256 is
+`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
+The restored projection passed current/projected direct/identity 14/14 each,
+exact structural 5/5, focused 195/195, audit 217, pycompile 6/6, diff check, and
+unchanged 48/203 DAG. Full 2,143/2,143 remains the implementation gate. Exact
+expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

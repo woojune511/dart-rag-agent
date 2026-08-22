@@ -2789,10 +2789,10 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Query Budget Application](../overview/project_status.md#completed-query-budget-application-public-api).
 
-The next bounded visibility seam renames only the exact 80-line trace-only
+The exact 80-line trace-only visibility seam completed in `e17d165`. It renamed
 `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)`
 definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`,
-then updates one pipeline import/call pair, one direct-test import/call pair,
+then updated one pipeline import/call pair, one direct-test import/call pair,
 and four derived CURRENT-SOURCE hash expectations. The ownership decision is
 to keep the helper with the retrieval cost-control mechanics extracted by
 `481ffe4`: moving it alone would either import owner-private query/filter/task
@@ -2808,22 +2808,53 @@ all uncaught errors. The pipeline call remains the exact try-depth-zero
 assignment over unpacked executed/reused queries and materialized history; all
 later trace adoption and retrieval sequencing remain caller-owned.
 
-Future definition/body hashes are
+Final definition/body hashes are
 `06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
 `dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
 the `_retrieve` caller body projects
 `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`
 to
 `3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
-Selected private/public records project zero/5, owner counts 8/7 to 9/6, and
-physical lines remain 419/2,641. Projected source/tests/whole transforms are
-`+3/-3`, `+6/-6`, and `+9/-9`; exact temporary diff SHA-256 is
+Selected private/public records are zero/5, owner counts are 9/6, and physical
+lines remain 419/2,641. Actual source/tests/whole transforms were `+3/-3`,
+`+6/-6`, and `+9/-9`; committed diff SHA-256 is
 `b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
-The temporary projection passed current/projected direct/identity 13/13 each,
-exact structural 2/2 in 14.591 seconds, focused 369/369 in 164.433 seconds,
-audit 217, pycompile 4/4, retired refs zero, diff check, and unchanged 48/203
-DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate. Benchmark refresh and remote CI remain **NOT RUN**; exact scope is
+Direct/identity 13/13, exact structural 2/2, focused 369/369, audit 217,
+pycompile 4/4, retired refs zero, diff check, unchanged 48/203 DAG, and full
+2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**; exact
+completion evidence is authoritative in
+[Project Status Completed Cross-Trace Diagnostics](../overview/project_status.md#completed-cross-trace-reuse-candidate-diagnostics-public-api).
+
+The next bounded visibility seam renames only the exact 20-line
+`financial_runtime_trace._attach_runtime_projection_metadata(...)` definition
+in place to public `attach_runtime_projection_metadata(...)`. Update the five
+owner-local calls, three external imports/four calls in run projection,
+aggregate projection, and graph, eight existing test symbol strings, and one
+derived owner public/private count. Add no alias, wrapper, body/owner move, new
+module, test method, trace field, answer/evidence decision, artifact/ledger
+mutation, exception boundary, or adjacent projection change.
+
+Keep the helper with the runtime-trace projection mechanisms and its private
+material predicate. Preserve no-material same-object/no-mutation return;
+shallow existing-metadata copy; ordered source/legacy overwrite; raw task-ID
+truth gate before normalization; unrelated-key and falsey-task-ID
+preservation; fresh metadata but original trace identity; all propagated
+errors; and all five local/four external caller gates and sequencing.
+
+Current-private/future-public definition hashes are
+`d572f2044f98deaf5853c8b0a185ee120084a201befd75839254b9e71c1cc7e5` /
+`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448`;
+the body remains
+`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
+Selected private/public exact-name records project zero/21, owner counts move
+5/26 to 6/25, and projected source/tests/whole transforms are `+13/-13`,
+`+9/-9`, and `+22/-22`. Exact temporary diff SHA-256 is
+`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
+The temporary projection passed current/projected direct/identity 14/14 each,
+exact structural 5/5 in 4.993 seconds, focused 195/195 in 9.814 seconds, audit
+217, pycompile 6/6, retired refs zero, diff check, and unchanged 48/203 DAG,
+then was restored cleanly. Full 2,143/2,143 remains the implementation gate;
+benchmark refresh and remote CI remain **NOT RUN**. Exact scope is
 authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
