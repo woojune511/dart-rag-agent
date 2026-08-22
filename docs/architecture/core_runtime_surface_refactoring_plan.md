@@ -2605,39 +2605,54 @@ Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
 authoritative in
 [Project Status Completed Section Hint](../overview/project_status.md#completed-section-hint-alias-public-api).
 
-The next bounded visibility seam renames only the exact 9-line
-`financial_retrieval_pipeline._sentence_matches_operand_context(
-sentence: str, operand: Dict[str, Any]) -> bool` definition in place to public
-`sentence_matches_operand_context(...)`, then updates four owner-local calls,
-one external import/call pair, and eight derived hash expectations. Preserve
-eager sentence normalization and compact regex; ordered surface generation;
-per-surface normalization and compact regex; normalized-before-compact lazy
-containment; falsey compact short circuit; first-match return; full-exhaustion
-false return; evaluation order; identity behavior; and every uncaught error.
-Add no wrapper, alias, body move, test method, vocabulary, policy, caller
-behavior, trace field, or adjacent surface/context move.
+The sentence-operand-context visibility seam completed in `cd8315d`. It
+renamed only the exact 9-line definition in place to public
+`sentence_matches_operand_context(...)`, then updated four owner-local calls,
+one external import/call pair, and eight derived hash expectations. It added
+no wrapper, alias, body move, test method, vocabulary, policy change, trace
+field, or adjacent context move. Source/tests/whole transforms were `+7/-7`,
+`+8/-8`, and `+15/-15`; the committed diff SHA-256 is
+`19d465f4e34c0af94999e5dfb17c43e488125450889b9f9610c821f0237d55b1`.
+Direct behavior/public identity 12/12, focused 701/701 in 281.277 seconds,
+audit 217, pycompile 3/3, retired refs zero, owner public/private 2/27,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 352.324 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
+authoritative in
+[Project Status Completed Sentence Context](../overview/project_status.md#completed-sentence-operand-context-public-api).
+
+The next bounded visibility seam renames only the exact 10-line
+`financial_graph_helpers._concept_spec_for_key(
+ontology: Any, key: str) -> Dict[str, Any]` definition in place to public
+`concept_spec_for_key(...)`, then updates three owner-local calls, one external
+import/call pair, and 43 owner-count expectations. Preserve raw-key truthiness,
+string conversion, normalization, blank-key early return, default provider,
+eager provider-result list materialization, ordered group skip, normalized
+concept equality, first-match shallow copy, exhaustion fresh mapping,
+evaluation order, identity behavior, and every uncaught error. Add no wrapper,
+alias, body move, test method, vocabulary, ontology policy, caller behavior,
+trace field, or adjacent group/task move.
 
 The normalized definition AST/body hashes are
-`cf77ecff283091f04f0726d9a5e9bdb7dbea9991b92a9ecc4d59753c8a5ed90c` /
-`143dc586d49519d06da16d5c4607344ca95da4170c3abdd01e4e817b53d165c8`;
-five two-positional calls across four callers hash to
-`368e1e8f7348803c51e1efc27431ecd0e5735f453e48681e745d13d43628b2d2`.
-Preserve both period-comparison calls, the coverage call under unary `not`,
-the period-count comprehension filter, and the graph-evidence call as the
-third lazy `and` operand after both regex guards. Selected private/public
-records project zero/7 across source/tests, owner counts 1/28 to 2/27, and
-owner/graph-evidence physical lines remain 2,641/4,220.
+`6edc73d35582549697232944d03af9d5b66e2e7b788c908400b30277456c5b0d` /
+`4efa2fc85cd424edd17e3b9f2423fd77140e5ebd8da03045ceaab6083c17a697`;
+four two-positional calls across four callers hash to
+`3b9ed0537310c112a86911bca55695e11e7803c803c0050bf705c2bbd5c70a11`.
+Preserve the group-query comprehension call, group-task stripped-key call,
+lookup-producer eager ontology call, and calculation operand-completion call.
+Selected private/public records project zero/6 across source/tests, owner
+counts 9/71 to 10/70, and owner/calculation physical lines remain
+4,285/13,464.
 
-Projected source/tests/whole transforms are `+7/-7`, `+8/-8`, and `+15/-15`;
-exact temporary diff SHA-256 is
-`19d465f4e34c0af94999e5dfb17c43e488125450889b9f9610c821f0237d55b1`.
+Projected source/tests/whole transforms are `+6/-6`, `+43/-43`, and
+`+49/-49`; exact temporary diff SHA-256 is
+`6849365d09393baf9464423400acf505730a04ac091770ca7bb1d621e8f92b1e`.
 The temporary projection passed direct behavior/public identity 12/12,
-focused 701/701 in 264.994 seconds, audit 217, pycompile 2/2, retired refs
+focused 783/783 in 259.587 seconds, audit 217, pycompile 2/2, retired refs
 zero, diff check, and unchanged acyclic 48/203 DAG, then was restored cleanly.
-Full 2,143/2,143 remains the implementation gate. Keep adjacent surface/
-context helpers, caller-side period/retrieval/evidence behavior, state/trace/
-artifact mutation, and final sequencing outside the batch. Benchmark refresh
-and remote CI remain **NOT RUN**; exact scope is authoritative only in
+Full 2,143/2,143 remains the implementation gate. Keep adjacent group/task
+helpers, caller-side ontology/calculation behavior, state/trace/artifact
+mutation, and final sequencing outside the batch. Benchmark refresh and remote
+CI remain **NOT RUN**; exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded

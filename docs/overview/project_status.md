@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `28c3798` renamed only `financial_retrieval_hints._section_hint_alias(...)` in place to public `section_hint_alias(...)` and updated one importer binding, three external calls, seven exact name references, and two owner-count expectations |
-| What passed? | Direct behavior/public identity 12/12, focused tests 660/660, runtime audit 217, pycompile 5/5, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `28c3798` |
+| What just changed? | `cd8315d` renamed only `financial_retrieval_pipeline._sentence_matches_operand_context(...)` in place to public `sentence_matches_operand_context(...)` and updated four owner-local calls, one importer binding, one external call, and eight derived hash expectations |
+| What passed? | Direct behavior/public identity 12/12, focused tests 701/701, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cd8315d` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_retrieval_pipeline._sentence_matches_operand_context(...)` in place to public `sentence_matches_operand_context(...)`; update four owner-local calls, one import, one external call, and eight derived hash expectations |
+| What is next? | Rename only `financial_graph_helpers._concept_spec_for_key(...)` in place to public `concept_spec_for_key(...)`; update three owner-local calls, one import, one external call, and 43 owner-count expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, section-hint-alias direct behavior/public identity 12 / 12 and affected focused set 660 / 660 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after section-hint-alias public rename |
+| Latest focused owner checkpoint | PASS, sentence-operand-context direct behavior/public identity 12 / 12 and affected focused set 701 / 701 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after sentence-operand-context public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,116 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 10-line
+`src.agent.financial_graph_helpers._concept_spec_for_key(
+ontology: Any, key: str) -> Dict[str, Any]` definition at lines 2279-2288 in
+place to public `concept_spec_for_key(...)`. Update its three owner-local calls,
+the sole importer binding in `financial_graph_calculation.py`, and that
+importer's one external call. Update 43 existing derived owner-count
+expectations in `test_financial_graph_helpers.py`. Add no alias, wrapper, body
+move, test method, vocabulary, ontology policy, fallback, cache, or exception
+boundary. Do not rename or move adjacent binding/group/task helpers, caller
+bodies, calculation behavior, state, trace, artifact, or final sequencing.
+
+Shorter inventory entries are not authorized substitutes. The 2-line
+`_normalise_spaces(...)` foundation has 30 importers and 2,371 external calls,
+so it is not a bounded visibility batch. `_active_preferred_statement_types`
+has a future-public caller-local binding collision. `_find_task_record_in_list`
+is explicitly pinned as a non-exported low-level helper by the task-artifact
+`__all__` contract; publicizing it would weaken an existing boundary.
+
+Preserve exact evaluation semantics. Evaluate raw `key or ""`, then `str(...)`,
+then `_normalise_spaces(...)` once and bind its exact result. A falsey normalized
+key returns a fresh exact `{}` before ontology access. Otherwise evaluate one
+`getattr(ontology, "all_concept_specs", lambda: [])`, call its exact result,
+apply `or []`, and eagerly materialize `list(...)` before scanning. Iterate the
+materialized items in order. For each item, evaluate
+`bool(spec.get("is_group"))` first and skip group specs without reading their
+concept. For each retained spec, evaluate exact
+`_normalise_spaces(str(spec.get("concept") or "")) == concept_key`. Return a
+shallow `dict(spec)` copy at the first match and stop; return a fresh exact `{}`
+only after exhaustion. Preserve raw truthiness, string conversion, global
+lookup timing, default-provider behavior, eager materialization, mapping
+access, normalization, equality, iteration, shallow nested identities, branch
+laziness, and every uncaught error. The name-normalized definition AST/body
+SHA-256 values are
+`6edc73d35582549697232944d03af9d5b66e2e7b788c908400b30277456c5b0d` /
+`4efa2fc85cd424edd17e3b9f2423fd77140e5ebd8da03045ceaab6083c17a697`.
+
+All four calls remain two-positional/no-keyword calls at caller `try` depth
+zero. In `_group_decomposition_query_matches(...)`, preserve the line-2344
+list-comprehension element with exact `(ontology, key)` arguments. In
+`_build_group_decomposition_task(...)`, preserve the line-2391 assignment with
+exact `(ontology, str(concept_key).strip())` evaluation. In
+`_build_lookup_producer_task_from_binding(...)`, preserve the line-2684
+assignment with eager `get_financial_ontology()` before `binding_concept`. In
+calculation `_complete_required_operand_from_ontology(...)`, preserve the line-
+10244 assignment with exact `(ontology, concept_key)` arguments before the
+falsey-result early return and later field adoption. The combined call-record
+SHA-256 over ordered `(module, line, caller, arguments, keywords, direct
+parent, try depth)` tuples is
+`3b9ed0537310c112a86911bca55695e11e7803c803c0050bf705c2bbd5c70a11`.
+
+Current production scope is one definition, three owner-local calls, one
+external import, and one external call: six selected private source API
+records. Tests contain no selected exact private-name record, and the future
+public name has no pre-existing exact definition, import, executable name,
+attribute, string constant, patch target, local binding, or collision. After
+the rename selected private/public records must be 0/6 across source/tests;
+the external binding must be identical to the public owner; graph-helper owner
+public/private counts must move exactly 9/71 to 10/70; and owner/calculation
+physical lines must remain 4,285/13,464.
+
+Update exactly 43 existing expectations in
+`test_financial_graph_helpers.py`: 40 direct owner-count records from `(9, 71)`
+to `(10, 70)`, two derived `(public, private + 1)` expectations from `(9, 72)`
+to `(10, 71)`, and one `(public, private, imports)` record from `(9, 71, 0)`
+to `(10, 70, 0)`. Add no test and weaken no assertion. Projected source/tests/
+whole transforms are `+6/-6`, `+43/-43`, and `+49/-49` across exactly two
+source and one test file. The exact temporary diff SHA-256 is
+`6849365d09393baf9464423400acf505730a04ac091770ca7bb1d621e8f92b1e`.
+The restored projection passed direct behavior/public identity 12/12, the
+affected graph-helper/semantic-plan/semantic-planner/concept-runtime/
+calculation-execution/calculation-rendering/numeric-provenance/dependency-
+projection/operation-contract/import-side-effect focused set 783/783 in
+259.587 seconds, audit 217, pycompile 2/2, retired selected refs zero,
+`git diff --check`, and the unchanged acyclic 48/203 DAG. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only projection establishes no behavior,
+ontology-quality, answer-quality, calculation-performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+## Completed Sentence-Operand-Context Public API
+
+Commit `cd8315d` renamed only the exact 9-line
+`financial_retrieval_pipeline._sentence_matches_operand_context(...)`
+definition in place to public `sentence_matches_operand_context(...)`. It
+updated four owner-local calls, one external import, one external call, and
+eight existing derived hash expectations without moving the body, adding a
+compatibility surface, or changing adjacent surface/context helpers, period/
+retrieval/evidence behavior, state, trace, artifact, or final sequencing. The
+eager sentence/compact normalization, ordered surface scan, per-surface
+normalization, normalized-before-compact lazy containment, falsey compact
+short circuit, first-match return, full-exhaustion false return, evaluation
+order, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+7/-7`, `+8/-8`, and `+15/-15`; the
+committed diff SHA-256 is
+`19d465f4e34c0af94999e5dfb17c43e488125450889b9f9610c821f0237d55b1`.
+Direct behavior/public identity passed 12/12, focused 701/701 passed in
+281.277 seconds, audit 217, pycompile 3/3, retired selected refs zero, selected
+public records 7, owner public/private 2/27, unchanged acyclic 48/203 DAG, and
+full discovery 2,143/2,143 passed in 352.324 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Sentence-Operand-Context Characterization Checkpoint
+
+The characterization below predates `cd8315d`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 9-line
 `src.agent.financial_retrieval_pipeline._sentence_matches_operand_context(
@@ -866,9 +976,10 @@ The restored projection passed direct behavior/public identity 12/12, the
 affected graph-helper/retrieval-pipeline/retrieval-scope/numeric-provenance/
 text-surface/semantic-plan/operation-contract/import-side-effect focused set
 701/701 in 264.994 seconds, audit 217, pycompile 2/2, retired selected refs
-zero, `git diff --check`, and the unchanged acyclic 48/203 DAG. Full discovery
-2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
-remain **NOT RUN**. This name-only projection establishes no behavior, answer-
+zero, `git diff --check`, and the unchanged acyclic 48/203 DAG. At that
+checkpoint full discovery 2,143/2,143 remained the implementation gate;
+`cd8315d` later passed it. Benchmark refresh and remote CI remain **NOT RUN**.
+This name-only projection establishes no behavior, answer-
 quality, evidence-quality, retrieval-performance, benchmark, schedule, ledger,
 or Phase 3 completion claim.
 
