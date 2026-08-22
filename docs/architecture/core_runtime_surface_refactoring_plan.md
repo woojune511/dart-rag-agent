@@ -2517,43 +2517,50 @@ owner public/private 67/24, unchanged acyclic 48/203 DAG, and full
 **NOT RUN**. The preserved contract is authoritative in
 [Project Status Completed Evidence Row Lookup](../overview/project_status.md#completed-evidence-item-for-operand-row-public-api).
 
-The next bounded visibility seam renames only the exact 24-line
-`financial_operand_resolution._operand_row_matches_requirement(
-row: Dict[str, Any], operand: Dict[str, Any]) -> bool` definition in place to
-public `operand_row_matches_requirement(...)`, then updates eleven owner-local
-calls, four imports and eleven external calls, and 27 selected exact test refs.
-Preserve conflict-first rejection, role/label/concept read and normalization
-order, label-before-concept acceptance, eager label/source-anchor surface
-construction, lazy truthy operand-text matching, `any` short circuit,
-immutability, evaluation order, and uncaught errors. Add no wrapper, alias,
-body move, vocabulary, or policy change.
-
-The definition AST/body hashes are
-`fa259318490bad18192e597defc31efa5088e8165c92340c6162c8822740a31c` /
-`17876ccade2e60edcbfede49b44a01f3d07f7db28a36566cca63ff0920e48872`;
-the 22 normalized call records across 20 callers hash to
-`7df6fa527d330c7c81d6385b6c85a98e77cebf1aef65001aa7dd8791437c20c6`.
-Every call remains two-positional/no-keyword/try-depth-zero. Exact caller
-placements and hashes are recorded in
-[Project Status Next Work](../overview/project_status.md#next-work).
-
-Projected owner counts move 67/24 to 68/23 and selected private/public API
-records finish zero/54 across source/tests. Owner/calculation-execution/
-dependency-projection/graph-evidence/graph-calculation physical lines remain
-4,816/1,074/3,419/4,220/13,464. Exactly 67 existing expectations change:
-27 selected names, 30 count/tuple expectations, four repeated caller hashes,
-and six aggregate fingerprints. Projected source/tests/whole are
-`+27/-27`, `+67/-67`, and `+94/-94`; exact temporary diff SHA-256 is
+The operand-row requirement-match visibility seam completed in `9ab7e64`. It
+renamed only the exact 24-line definition in place to public
+`operand_row_matches_requirement(...)`, then updated eleven owner-local calls,
+four imports, eleven external calls, and 67 exact existing expectations. It
+added no wrapper, alias, body move, test method, vocabulary, policy, or
+orchestration change. Source/tests/whole transforms were `+27/-27`,
+`+67/-67`, and `+94/-94`; the committed diff SHA-256 is
 `cd5d6a8dc83bac508c76f34185c2cbd99e52eb73d6d8dd580024a4c37b8a070e`.
-The temporary projection passed direct behavior 2/2, four public-owner
-identities, graph-helper 290/290 in 164.781 seconds, focused 1,004/1,004 in
-212.209 seconds, audit 217, pycompile 9/9, retired refs zero, diff check, and
-unchanged acyclic 48/203 DAG, then was restored cleanly. Full 2,143/2,143
-remains the implementation gate. Keep conflict/text matching, caller bodies,
-evidence/operand/dependency/calculation orchestration, state and artifact
-mutation, and final sequencing outside the batch. Benchmark refresh and remote
-CI remain **NOT RUN**; exact scope is authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+Direct behavior plus structure 7/7, four public-owner identities, focused
+1,004/1,004 in 201.883 seconds, audit 217, pycompile 9/9, retired refs zero,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 222.306 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
+authoritative in
+[Project Status Completed Operand Row Matcher](../overview/project_status.md#completed-operand-row-requirement-match-public-api).
+
+The next bounded visibility seam renames only the exact 6-line
+`financial_graph_retrieval_budget._query_budget_int(value: Any) -> int`
+definition in place to public `query_budget_int(...)`, then updates the sole
+retrieval-pipeline import, five calls in `_retrieve(...)`, and four existing
+graph-helper fingerprint expectations. Preserve raw `value or 0` evaluation,
+one `int(...)` conversion, TypeError/ValueError-only fallback to exact zero,
+the outside-`try` `max(parsed, 0)` clamp, and all caller assignment/stop order.
+Add no wrapper, alias, body move, test method, vocabulary, policy, trace field,
+or adjacent retrieval change.
+
+The normalized definition AST/body hashes are
+`083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
+`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9`;
+five one-positional/no-keyword/try-depth-zero assignment calls hash to
+`2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
+Selected private/public records project zero/seven, owner counts 0/15 to 1/14,
+and owner/pipeline physical lines remain 419/2,641.
+
+Projected source/tests/whole transforms are `+7/-7`, `+4/-4`, and
+`+11/-11`; exact temporary diff SHA-256 is
+`1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+The temporary projection passed direct behavior/public identity 5/5, focused
+338/338 in 171.077 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+check, and unchanged acyclic 48/203 DAG, then was restored cleanly. Full
+2,143/2,143 remains the implementation gate. Keep adjacent query signature,
+dedupe, limit, telemetry and scope helpers, caller bodies, retrieval execution,
+state/trace/artifact mutation, and final sequencing outside the batch.
+Benchmark refresh and remote CI remain **NOT RUN**; exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `ecc074c` renamed only `financial_operand_resolution._evidence_item_for_operand_row(...)` in place to public `evidence_item_for_operand_row(...)` and updated its four owner-local calls, three imports/22 external calls, and 65 exact test expectations |
-| What passed? | Direct behavior plus structure 7/7, three public-owner identities, focused tests 1,004/1,004, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `ecc074c` |
+| What just changed? | `9ab7e64` renamed only `financial_operand_resolution._operand_row_matches_requirement(...)` in place to public `operand_row_matches_requirement(...)` and updated its eleven owner-local calls, four imports/eleven external calls, and 67 exact test expectations |
+| What passed? | Direct behavior plus structure 7/7, four public-owner identities, focused tests 1,004/1,004, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `9ab7e64` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_operand_resolution._operand_row_matches_requirement(...)` in place to public `operand_row_matches_requirement(...)`; update eleven owner-local calls, four imports/eleven external calls, and 67 exact direct-name/count/fingerprint expectations |
+| What is next? | Rename only `financial_graph_retrieval_budget._query_budget_int(...)` in place to public `query_budget_int(...)`; update one retrieval-pipeline import, five `_retrieve(...)` calls, and four existing fingerprint expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, evidence-surface direct behavior 1 / 1, graph/public-owner identity, and affected graph/operand-resolution/dependency/calculation/task-artifact/operation/import set 879 / 879 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after evidence-surface predicate public rename |
+| Latest focused owner checkpoint | PASS, operand-row requirement-match direct/structure 7 / 7, four public-owner identities, and affected focused set 1,004 / 1,004 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after operand-row requirement matcher public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,108 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 6-line
+`src.agent.financial_graph_retrieval_budget._query_budget_int(
+value: Any) -> int` definition at lines 10-15 in place to public
+`query_budget_int(...)`. Update the sole import in
+`financial_retrieval_pipeline.py` and its five calls inside `_retrieve(...)` at
+lines 2165, 2171, 2172, 2271, and 2369. Add no alias, wrapper, body move, new
+test method, vocabulary, policy, fallback, or exception boundary. Do not
+rename any adjacent retrieval signature, dedupe, query-limit, telemetry, or
+scope helper and do not change retrieval ordering, execution, state, trace, or
+final sequencing.
+
+Preserve exact evaluation semantics: evaluate `value or 0` inside the existing
+`try` with raw truth behavior, call `int(...)` once on that selected value,
+catch only `TypeError` and `ValueError` raised before assignment and return
+exact integer `0`, then evaluate `max(parsed, 0)` outside the `try`. Falsey
+values therefore select integer zero, positive integer-like values retain the
+parsed integer, and negatives clamp to zero. Preserve global lookup timing,
+input immutability, evaluation order, and every uncaught truth, conversion,
+assignment, `max`, comparison, or return error. The name-normalized definition
+AST/body SHA-256 values are
+`083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
+`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9`.
+
+All five calls remain one-positional/no-keyword, direct `Assign` children, and
+nearest-caller `try` depth zero. Preserve the exact left-to-right `getattr`
+arguments and defaults: `retrieval_query_budget/0`,
+`retrieval_hint_query_token_budget/16`, `preferred_section_query_budget/8`,
+`focused_retrieval_query_budget/0`, and `retry_retrieval_query_budget/0`.
+Each assignment must finish before the surrounding primary, hint/section,
+focused, or retry budget logic continues; an uncaught helper/getattr error
+stops all later `_retrieve` work. The target-normalized combined call-record
+SHA-256 is
+`2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
+
+Current production scope is one definition, one external import, five external
+calls, zero owner-local calls, and zero exact test-name refs: seven selected
+private API records. The future public name has no pre-existing exact source or
+test definition, import, executable name, attribute, string constant, patch
+target, or collision. After the rename selected private/public records must be
+0/7, the pipeline binding must be identical to the owner, owner public/private
+counts must move exactly 0/15 to 1/14, and owner/pipeline physical lines must
+remain 419/2,641.
+
+Update exactly four existing expectations in
+`tests/test_financial_graph_helpers.py`: two copies of the `_retrieve` caller-
+body hash from
+`3436a3b8e7c2af128d3ac787267b0aaf95e6d77fbba675ebd056d8800f3f0209`
+to
+`c1331b23dbb50ee6b77b2457135ad664175e4fa7c1fc1a6eebcee897060683e9`,
+the strict-company-scope aggregate from
+`f4467c95f3a1cfb355f56c52d6255e7c18b826fb60fb23153254a1f35276c3e9`
+to
+`506364f9e375c873bfd1cce1b07723d3643ad0d3e3fd4cc8062c2efb1aae002d`,
+and the report-scope aggregate from
+`d09cf164e466909f4bf24be94961bcd659fc5d0bcd25e162264853ddcf67c8d5`
+to
+`13e150520116c19dd0a14fd1847d7c4ccd8de068aed81bfb4a867133d2ec5d20`.
+Weaken no assertion.
+
+Projected source/tests/whole transforms are `+7/-7`, `+4/-4`, and
+`+11/-11` across exactly two source files and one test file. The exact
+temporary diff SHA-256 is
+`1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+The restored projection passed direct behavior/public identity 5/5, focused
+retrieval-scope/retrieval-pipeline/graph-helper/import-side-effect tests
+338/338 in 171.077 seconds, audit 217, pycompile 2/2, retired selected refs
+zero, `git diff --check`, and the retained acyclic 48/203 DAG. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only projection establishes no behavior,
+answer-quality, ranking, retrieval-performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
+
+## Completed Operand-Row Requirement-Match Public API
+
+Commit `9ab7e64` renamed only the exact 24-line
+`financial_operand_resolution._operand_row_matches_requirement(...)`
+definition in place to public `operand_row_matches_requirement(...)`. It
+updated eleven owner-local calls, four imports/eleven external calls, and 67
+exact existing expectations without moving the body, adding a compatibility
+surface, or changing adjacent conflict/text-match helpers or orchestration.
+Conflict-first rejection, role/label/concept precedence, eager row-surface
+construction, lazy truthy matching, all 22 caller placements, evaluation
+order, immutability, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+27/-27`, `+67/-67`, and `+94/-94`;
+the committed diff SHA-256 is
+`cd5d6a8dc83bac508c76f34185c2cbd99e52eb73d6d8dd580024a4c37b8a070e`.
+Direct behavior plus structure passed 7/7 in 10.148 seconds, four public-owner
+identities held, focused 1,004/1,004 passed in 201.883 seconds, audit 217,
+pycompile 9/9, retired selected refs zero, selected public records 54, owner
+public/private 68/23, unchanged acyclic 48/203 DAG, and full discovery
+2,143/2,143 passed in 222.306 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Operand-Row Requirement-Match Characterization Checkpoint
+
+The characterization below predates `9ab7e64`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 24-line
 `src.agent.financial_operand_resolution._operand_row_matches_requirement(

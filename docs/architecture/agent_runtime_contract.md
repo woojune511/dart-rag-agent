@@ -6513,51 +6513,60 @@ zero, owner public/private 67/24, unchanged acyclic 48/203 DAG, and full
 **NOT RUN**. Full details are preserved in
 [Project Status Completed Evidence Row Lookup](../overview/project_status.md#completed-evidence-item-for-operand-row-public-api).
 
-The active visibility contract now renames only the exact 24-line
-`financial_operand_resolution._operand_row_matches_requirement(
-row: Dict[str, Any], operand: Dict[str, Any]) -> bool` definition in place to
-public `operand_row_matches_requirement(...)`. Update exactly eleven owner-local
-calls, four imports and eleven external calls across calculation execution,
-dependency projection, graph evidence, and graph calculation, plus 27 selected
-exact test refs across four files. Add no alias or wrapper and do not rename
-the conflict predicate, normalizer, or operand-text matcher.
-
-Preserve conflict-first rejection; eager role/label/concept mapping reads,
-truthiness, string conversion, and stripping; role mismatch before label then
-concept equality; eager two-item label/source-anchor surface construction; lazy
-truthy filtering and operand-text matching; `any` short circuit; final Boolean;
-immutability, evaluation order, and uncaught errors. The name-normalized
-definition AST/body hashes are
+Commit `9ab7e64` completed the exact 24-line operand-row requirement-match
+visibility contract. It renamed the definition in place to public
+`operand_row_matches_requirement(...)`, updated eleven owner-local calls, four
+imports, eleven external calls, and 67 existing expectations, and added no
+alias, wrapper, body move, test method, or adjacent behavior change.
+Conflict-first rejection; eager role/label/concept reads and normalization;
+role mismatch before label then concept equality; eager label/source-anchor
+surface construction; lazy truthy operand-text matching; `any` short circuit;
+all 22 call placements across 20 callers; immutability, evaluation order, and
+uncaught errors remain exact. The definition AST/body and normalized call
+hashes remain
 `fa259318490bad18192e597defc31efa5088e8165c92340c6162c8822740a31c` /
-`17876ccade2e60edcbfede49b44a01f3d07f7db28a36566cca63ff0920e48872`.
-All 22 calls retain two positional arguments, no keywords, and nearest-caller
-`try` depth zero across 20 unique callers. Their target-normalized combined
-call-record hash is
+`17876ccade2e60edcbfede49b44a01f3d07f7db28a36566cca63ff0920e48872` /
 `7df6fa527d330c7c81d6385b6c85a98e77cebf1aef65001aa7dd8791437c20c6`.
 
-Production scope is one definition, eleven owner-local calls, four imports,
-and eleven external calls; tests contain 27 selected refs. No future public-
-name collision exists. Projected selected private/public records are 0/54
-across source/tests, all four public-owner identities hold, owner counts move
-67/24 to 68/23, and owner/calculation-execution/dependency-projection/graph-
-evidence/graph-calculation physical lines remain
-4,816/1,074/3,419/4,220/13,464. Update exactly 67 existing expectations:
-27 names, 30 owner count/tuple expectations, four repeated graph-evidence
-caller hashes, and six aggregate fingerprints. Add no test and weaken no
-assertion.
+Source/tests/whole transforms were `+27/-27`, `+67/-67`, and `+94/-94`;
+the committed diff SHA-256 is
+`cd5d6a8dc83bac508c76f34185c2cbd99e52eb73d6d8dd580024a4c37b8a070e`.
+Selected private/public records are 0/54, all four public-owner identities hold,
+and owner counts are 68/23. Direct behavior plus structure 7/7 in 10.148
+seconds, focused 1,004/1,004 in 201.883 seconds, audit 217, pycompile 9/9,
+retired refs zero, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
+222.306 seconds passed. Benchmark refresh and remote CI were **NOT RUN**. Full
+details are preserved in
+[Project Status Completed Operand Row Matcher](../overview/project_status.md#completed-operand-row-requirement-match-public-api).
 
-Projected source/tests/whole transforms are `+27/-27`, `+67/-67`, and
-`+94/-94` across five source and four test files; exact temporary diff SHA-256
-is `cd5d6a8dc83bac508c76f34185c2cbd99e52eb73d6d8dd580024a4c37b8a070e`.
-The restored projection passed direct behavior 2/2, four public-owner
-identities, graph-helper 290/290 in 164.781 seconds, focused 1,004/1,004 in
-212.209 seconds, audit 217, pycompile 9/9, retired selected refs zero, diff
+The active visibility contract now renames only the exact 6-line
+`financial_graph_retrieval_budget._query_budget_int(value: Any) -> int`
+definition in place to public `query_budget_int(...)`, then updates one import,
+five calls inside `financial_retrieval_pipeline._retrieve(...)`, and four
+existing graph-helper fingerprint expectations. Preserve raw `value or 0`
+evaluation inside the `try`, one `int(...)` conversion, only TypeError/
+ValueError fallback to exact zero, the outside-`try` `max(parsed, 0)` clamp,
+input immutability, evaluation order, and all uncaught errors. The normalized
+definition AST/body hashes are
+`083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
+`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9`.
+
+All five calls remain one-positional/no-keyword direct assignments at caller
+`try` depth zero, with exact `getattr` defaults 0/16/8/0/0 and normalized
+combined call-record hash
+`2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
+Selected private/public records project 0/7, owner counts 0/15 to 1/14, and
+owner/pipeline lines remain 419/2,641. Projected source/tests/whole transforms
+are `+7/-7`, `+4/-4`, and `+11/-11`; exact temporary diff SHA-256 is
+`1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+The restored projection passed direct behavior/public identity 5/5, focused
+338/338 in 171.077 seconds, audit 217, pycompile 2/2, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep conflict/text-match helpers, all caller bodies,
-evidence/operand/dependency/calculation orchestration, state, trace/artifact
-mutation, and final sequencing outside this batch. Benchmark refresh and remote
-CI remain **NOT RUN**. Exact calls and fingerprint changes are authoritative
-in [Project Status Next Work](../overview/project_status.md#next-work).
+implementation gate. Keep adjacent retrieval helpers, caller bodies, retrieval
+ordering/execution, state, trace/artifact mutation, and final sequencing
+outside this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
+fingerprints and stop lines are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical
