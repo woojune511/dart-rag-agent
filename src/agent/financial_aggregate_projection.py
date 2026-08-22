@@ -57,7 +57,7 @@ from src.agent.financial_runtime_normalization import (
     _normalise_spaces,
 )
 from src.agent.financial_runtime_trace import (
-    _attach_runtime_projection_metadata,
+    attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
     structured_result_subtask_rows_and_answer,
     operand_row_has_material_numeric_payload,
@@ -422,7 +422,7 @@ def structured_subtask_projection_for_public_answer(
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return {}
-    return _attach_runtime_projection_metadata(
+    return attach_runtime_projection_metadata(
         projection,
         source="structured_result_subtasks",
     )

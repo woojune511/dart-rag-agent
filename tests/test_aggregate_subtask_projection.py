@@ -12985,7 +12985,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (5, 26),
+            (6, 25),
         )
 
         class BindingVisitor(ast.NodeVisitor):
@@ -13721,7 +13721,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_build_aggregate_calculation_projection",
                 side_effect=runtime_builder,
             ),
-            patch.object(financial_aggregate_projection, "_attach_runtime_projection_metadata", side_effect=attach),
+            patch.object(financial_aggregate_projection, "attach_runtime_projection_metadata", side_effect=attach),
         ):
             projection = financial_aggregate_projection.structured_subtask_projection_for_public_answer(
                 state,
@@ -13816,7 +13816,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_build_aggregate_calculation_projection",
                 return_value={"calculation_result": {}},
             ),
-            patch.object(financial_aggregate_projection, "_attach_runtime_projection_metadata") as stopped_attach,
+            patch.object(financial_aggregate_projection, "attach_runtime_projection_metadata") as stopped_attach,
         ):
             self.assertEqual(
                 financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
@@ -14114,7 +14114,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "preferred_complete_aggregate_subtask_answer",
                     "growth_row_has_conflicting_periods",
                     "material_gap_feedback_for_subtask_result",
-                    "_attach_runtime_projection_metadata",
+                    "attach_runtime_projection_metadata",
                     "_build_aggregate_calculation_projection",
                     "structured_result_subtask_rows_and_answer",
                 )
@@ -14123,7 +14123,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "preferred_complete_aggregate_subtask_answer": 0,
                 "growth_row_has_conflicting_periods": 0,
                 "material_gap_feedback_for_subtask_result": 0,
-                "_attach_runtime_projection_metadata": 0,
+                "attach_runtime_projection_metadata": 0,
                 "_build_aggregate_calculation_projection": 0,
                 "structured_result_subtask_rows_and_answer": 0,
             },

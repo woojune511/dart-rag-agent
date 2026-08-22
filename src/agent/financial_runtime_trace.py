@@ -381,7 +381,7 @@ def repair_collapsed_ratio_trace_from_evidence(
     return updated_trace
 
 
-def _attach_runtime_projection_metadata(
+def attach_runtime_projection_metadata(
     trace: Dict[str, Any],
     *,
     source: str,
@@ -417,7 +417,7 @@ def _build_runtime_calculation_trace(
         "calculation_plan": dict(calculation_plan or {}),
         "calculation_result": dict(calculation_result or {}),
     }
-    return _attach_runtime_projection_metadata(
+    return attach_runtime_projection_metadata(
         trace,
         source=source,
         source_task_id=source_task_id,
@@ -1310,7 +1310,7 @@ def _structured_result_subtask_projection_if_public_aligned(
         ]
         if current_operands and not stale_current_operands:
             return {}
-    return _attach_runtime_projection_metadata(
+    return attach_runtime_projection_metadata(
         projection,
         source="structured_result_subtasks",
     )
@@ -1362,7 +1362,7 @@ def _resolve_runtime_calculation_trace(
                     or projected_active.get("calculation_plan")
                     or projected_active.get("calculation_result")
                 ):
-                    return _attach_runtime_projection_metadata(
+                    return attach_runtime_projection_metadata(
                         projected_active,
                         source="task_artifact_ledger",
                         source_task_id=active_task_id,
@@ -1387,7 +1387,7 @@ def _resolve_runtime_calculation_trace(
             or projected["calculation_plan"]
             or projected["calculation_result"]
         ):
-            return _attach_runtime_projection_metadata(
+            return attach_runtime_projection_metadata(
                 projected,
                 source="task_artifact_ledger",
                 source_task_id=active_task_id,
@@ -1395,7 +1395,7 @@ def _resolve_runtime_calculation_trace(
 
     if subtask_results:
         final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
-        return _attach_runtime_projection_metadata(
+        return attach_runtime_projection_metadata(
             _build_aggregate_calculation_projection(subtask_results, final_answer),
             source="aggregate_subtasks",
         )

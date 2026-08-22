@@ -15,7 +15,7 @@ from src.agent.financial_graph_state import (
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
-    _attach_runtime_projection_metadata,
+    attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
     structured_result_subtask_rows_and_answer,
 )
@@ -131,7 +131,7 @@ def complete_aggregate_public_answer_projection(
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return complete_answer, {}
-    projection = _attach_runtime_projection_metadata(
+    projection = attach_runtime_projection_metadata(
         projection,
         source="structured_result_subtasks",
     )

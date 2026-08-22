@@ -4828,7 +4828,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_attach_runtime_projection_metadata",
+                "attach_runtime_projection_metadata",
                 side_effect=attach,
             ),
         ):
@@ -4899,7 +4899,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 "_build_aggregate_calculation_projection",
                 return_value=projection_without_rows,
             ),
-            patch.object(owner, "_attach_runtime_projection_metadata", attach_owner),
+            patch.object(owner, "attach_runtime_projection_metadata", attach_owner),
         ):
             self.assertEqual(
                 owner.complete_aggregate_public_answer_projection(
@@ -4942,7 +4942,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_attach_runtime_projection_metadata",
+                "attach_runtime_projection_metadata",
                 side_effect=RuntimeError("attach failed"),
             ),
             self.assertRaisesRegex(RuntimeError, "attach failed"),
@@ -5365,7 +5365,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(graph_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 0)
         self.assertEqual(owner_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 1)
         self.assertEqual(graph_name_loads.count("preferred_complete_aggregate_subtask_answer"), 1)
-        self.assertEqual(graph_name_loads.count("_attach_runtime_projection_metadata"), 2)
+        self.assertEqual(graph_name_loads.count("attach_runtime_projection_metadata"), 2)
         self.assertEqual(graph_name_loads.count("_build_aggregate_calculation_projection"), 1)
         self.assertEqual(graph_name_loads.count("structured_result_subtask_rows_and_answer"), 2)
         graph_imports = [

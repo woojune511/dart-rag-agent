@@ -71,7 +71,7 @@ from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
-    _attach_runtime_projection_metadata,
+    attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
     _resolve_runtime_calculation_trace,
     structured_result_subtask_rows_and_answer,
@@ -132,7 +132,7 @@ class FinancialAgent(
         projection_result = dict(projection.get("calculation_result") or {})
         if not projection_result.get("subtask_results"):
             return "", {}
-        projection = _attach_runtime_projection_metadata(
+        projection = attach_runtime_projection_metadata(
             projection,
             source="structured_result_subtasks",
         )
@@ -230,7 +230,7 @@ class FinancialAgent(
                 if not row_answer or not answer_covers_numeric_answer(answer_text, row_answer):
                     continue
             projection = self._rebuild_aggregate_projection([row], answer_text)
-            projection = _attach_runtime_projection_metadata(
+            projection = attach_runtime_projection_metadata(
                 projection,
                 source="retrieved_ratio_context",
             )
