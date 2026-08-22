@@ -10209,7 +10209,32 @@ completion claim.
   outside the batch. Exact expectations and stop lines are authoritative in
   [Project Status Completed Matched Ontology](../overview/project_status.md#completed-matched-ontology-concept-spec-public-api).
 
-### Preferred-calculation-sections public API characterization checkpoint
+### Preferred-calculation-sections public API milestone
+
+- Commit `cf2faf4` renamed only the exact 4-line
+  `financial_retrieval_hints._preferred_calc_sections(...)` definition in place
+  to public `preferred_calc_sections(...)`. It updated one owner-local call,
+  two external imports, four external calls, and 36 exact existing
+  expectations; it added no wrapper/alias and moved no body or adjacent helper.
+- The non-comparison/trend fresh-empty-list gate, zero early ontology lookup,
+  admitted-intent ontology call, exact returned-object identity, five caller
+  argument/stop placements, input immutability, evaluation order, and uncaught
+  errors remain exact. The normalized definition/body/call hashes are
+  `be261f1fcd96660559c2f1a3f9f388ee36cd12bc9511281adfbac327d60c4343` /
+  `4e4d9768bd564c536d570b822df79cb0dac0fc1bff3842a1a70dd3703923c7ad` /
+  `4d04eb041a60c30d91c148fac82b490fe29b8e229a4f738215f34e35e13bbfe1`.
+- Source/tests/whole transforms were `+8/-8`, `+36/-36`, and `+44/-44`; the
+  committed diff SHA-256 is
+  `9fa17f67478b1b844b190fcf99ce1752293ea18663cb963aabef2de411e750ff`.
+  Direct behavior/public identity 7/7 passed, structure 2/2 passed, focused
+  655/655 passed in 241.308 seconds, audit 217, pycompile 7/7, retired refs
+  zero, selected public records 34, owner public/private 9/5, unchanged acyclic
+  48/203 DAG, and full 2,143/2,143 passed in 292.304 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Historical preferred-calculation-sections public API characterization checkpoint
 
 - The next bounded visibility batch renames only the exact 4-line
   `financial_retrieval_hints._preferred_calc_sections(
@@ -10249,4 +10274,49 @@ completion claim.
   reflection/reconciliation behavior, retrieval, state/trace/artifact
   mutation, and final sequencing outside the batch. Exact expectations and
   stop lines are authoritative in
+  [Project Status Completed Preferred Sections](../overview/project_status.md#completed-preferred-calculation-sections-public-api).
+
+### Display-operand-label public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 6-line
+  `financial_runtime_normalization._display_operand_label(label: str) -> str`
+  definition in place to public `display_operand_label(...)`. Update three
+  external imports, twelve external calls, and five exact test references; add
+  no alias, wrapper, body move, test method, or adjacent normalization change.
+- Preserve one `_normalise_spaces(label)` call and bind its exact result. Then
+  preserve three exact `re.sub` calls in source order, each using empty
+  replacement, default flags, and the previous result: company-plus-Korean-
+  year prefix, Korean leading year, then bare leading year. Return the exact
+  third result. Preserve pattern bytes, input/result identity behavior,
+  evaluation order, and uncaught errors. The normalized definition AST/body
+  hashes are
+  `71d3f3115dfbf1ecfaffbc363040599dee20bab19b53cbb7f838174d2a1e8bca` /
+  `0fb4b38e37636460887eff35fe8b350ded66d815c7f00b8ad7b5c14417d3a491`.
+- All twelve calls remain one-positional/no-keyword across ten callers: six
+  dictionary values, four assignments, and two list-comprehension elements.
+  Eleven remain at caller try depth zero and one prepared-candidate projection
+  remains at depth one. Preserve caller-side `str`, raw `or`, row/slot access,
+  numerator-before-denominator ordering, adoption, and later-work stop lines.
+  Their target-normalized combined call-record hash is
+  `b1635ca1838467284ad847fd7c7f9fa492d742c0f2b3870884cf65226cd36466`.
+  Production scope is one definition, three imports, twelve external calls,
+  zero owner-local calls, and five exact test refs. No future public-name
+  collision exists; selected private/public records project 0/21, owner counts
+  0/7 to 1/6, and owner/answer-slots/calculation/rendering lines remain
+  162/734/13,464/708.
+- Update exactly one graph-helper import, three graph-helper calls, and one
+  ratio-readiness patch target. Do not rename the two descriptive test method
+  names containing the substring. Projected source/tests/whole transforms are
+  `+16/-16`, `+5/-5`, and `+21/-21`; exact temporary diff SHA-256 is
+  `2d827e522b519f6dbc5225654b844c94057209c7369f224be639d7366164501b`.
+- The restored projection passed direct behavior/public identity 10/10,
+  focused graph-helper/ratio-readiness/answer-slots/calculation-rendering/
+  calculation-execution/operation-contract/import-side-effect tests 626/626
+  in 255.843 seconds, audit 217, pycompile 6/6, retired refs zero, diff check,
+  and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation
+  gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep adjacent normalization helpers, caller-side slot/ratio/lookup/
+  calculation/rendering behavior, state/trace/artifact mutation, and final
+  sequencing outside the batch. Exact expectations and stop lines are
+  authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

@@ -1465,16 +1465,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+4/-4`, `+3/-3`, `+7/-7`, direct/identity
   6/6, focused 556/556, audit 217, pycompile 4/4, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 4-line
-  `_preferred_calc_sections(query, topic, intent)`를 public
-  `preferred_calc_sections(...)`로 rename하고 owner-local call 한 개,
-  reconciliation/reflection-projection import 두 개와 external call 네 개,
-  기존 direct-name·owner-count·caller/aggregate-hash 기대 36개만 갱신한다.
-  Non-comparison/trend fresh-empty-list early return, ontology lookup과 exact
-  preferred-section result identity, 다섯 caller의 argument/stop 순서를
-  유지한다. Exact temporary projection은 source/tests/whole `+8/-8`,
-  `+36/-36`, `+44/-44`, direct/identity 7/7, focused 655/655, audit 217,
-  pycompile 7/7, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `cf2faf4` visibility batch는 같은 owner의 exact 4-line preferred-
+  calculation-sections helper를 public `preferred_calc_sections(...)`로 이름
+  수렴시키고 owner-local call 한 개, reconciliation/reflection-projection
+  import 두 개와 external call 네 개, 기존 direct-name·owner-count·caller/
+  aggregate-hash 기대 36개만 갱신했다. Non-comparison/trend fresh-empty-list
+  early return, ontology lookup과 exact preferred-section result identity,
+  다섯 caller의 argument/stop 순서는 유지됐다. Source/tests/whole
+  `+8/-8`, `+36/-36`, `+44/-44`, direct/identity 7/7, structure 2/2,
+  focused 655/655, audit 217, pycompile 7/7, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_runtime_normalization.py`의 exact 6-line
+  `_display_operand_label(label)`을 public `display_operand_label(...)`로
+  rename하고 answer-slots/calculation/rendering import 세 개와 external call
+  열두 개, 기존 exact test ref 다섯 개만 갱신한다. 한 번의 whitespace
+  normalization, 세 regex substitution의 패턴/순서/previous-result binding,
+  caller-side `str`/`or`와 ten-caller adoption/stop 순서를 유지한다. Exact
+  temporary projection은 source/tests/whole `+16/-16`, `+5/-5`, `+21/-21`,
+  direct/identity 10/10, focused 626/626, audit 217, pycompile 6/6, unchanged
+  48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
