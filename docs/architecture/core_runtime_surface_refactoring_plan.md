@@ -2851,38 +2851,63 @@ pycompile 6/6, retired refs zero, diff check, unchanged 48/203 DAG, and full
 completion evidence is authoritative in
 [Project Status Completed Runtime-Projection Metadata](../overview/project_status.md#completed-runtime-projection-metadata-public-api).
 
-The next bounded visibility seam renames only the exact 22-line
-`financial_runtime_trace._runtime_trace_state_update(...)` definition in place
-to public `runtime_trace_state_update(...)`. Update two external imports, all
-26 external calls, ten existing test symbol references, one derived owner
-public/private count, and twelve derived CURRENT-SOURCE hash expectations. Add
-no alias, wrapper, body/owner move, module, test method, trace/answer/evidence
-decision, report-cache policy, artifact/ledger mutation, exception boundary, or
-adjacent calculation change.
+The exact 22-line canonical runtime-trace state-update visibility seam
+completed in `cb470e0`. It renamed
+`financial_runtime_trace._runtime_trace_state_update(...)` in place to public
+`runtime_trace_state_update(...)`, then updated two external imports, 26 calls,
+ten existing test symbol references, one owner-count expectation, and twelve
+derived CURRENT-SOURCE hash expectations. The helper remains with canonical
+trace construction and report-cache-candidate projection; publicizing the
+binding did not expand answer, evidence, calculation, or cache-serving policy.
 
-Keep the helper with runtime-trace construction and report-cache-candidate
-projection. Preserve canonical trace construction first with exact payloads,
-the existing source label and false legacy flag; fresh two-key state update;
-resolved-trace identity; shallow structured-result copy; candidate
-classification after update construction; truthy-only attachment to the same
-trace; propagated errors; and all 26 external caller gates and sequencing.
+Preserve canonical trace construction first with exact payloads, the existing
+source label and false legacy flag; fresh two-key state update; resolved-trace
+identity; shallow structured-result copy; candidate classification after update
+construction; truthy-only attachment to the same trace; propagated errors; and
+all 26 external caller gates and sequencing. Final definition/body hashes are
+`28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5` /
+`8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
+Selected executable/test-symbol private/public records are zero/39, owner
+counts are 7/24, and actual source/tests/whole transforms were `+29/-29`,
+`+23/-23`, and `+52/-52`. Committed diff SHA-256 is
+`8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
+Direct behavior/public identity 18/18, exact affected contracts 8/8, focused
+597/597, audit 217, pycompile 9/9, retired refs zero, diff check, unchanged
+48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote CI were
+**NOT RUN**; exact completion evidence is authoritative in
+[Project Status Completed Runtime-Trace State Update](../overview/project_status.md#completed-runtime-trace-state-update-public-api).
+
+The next bounded visibility seam renames only the exact 92-line
+`financial_runtime_trace._project_task_trace_from_state(...)` definition in
+place to public `project_task_trace_from_state(...)`. Update one planning
+import/call pair, four existing test patch strings, and one derived owner
+public/private count. Add no alias, wrapper, body/owner move, module, test
+method, artifact/trace/answer/evidence decision, state/artifact/ledger mutation,
+reconciliation policy, exception boundary, or adjacent calculation change.
+
+Keep the helper with task-artifact lookup and runtime-trace normalization.
+Preserve ID normalization, eager task/artifact row copies, the four ordered
+artifact lookups, active canonical-trace normalization and strict fallback,
+aggregate-sibling suppression, truthy active-field override, falsey-only state
+reconciliation fallback, task-record/artifact-ID projection, ordered fresh
+output copies, propagated errors, and the sole try-depth-zero two-positional-
+argument caller plus all later caller sequencing.
 
 Current-private/future-public definition hashes are
-`d56ff456e5002c4d8dc37058c03389307923e8db13ad8dde8310366f0bfad83d` /
-`28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5`;
+`6bebb3a58aa8e815ab79cde7b7f9487dd9e9d42f2358b905b3294bbe447522f1` /
+`a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221`;
 the body remains
-`8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
-Selected executable/test-symbol private/public records project zero/39, owner
-counts move 6/25 to 7/24, and the unchanged public-name trace source literal is
-excluded from that symbol count. Projected source/tests/whole transforms are
-`+29/-29`, `+23/-23`, and `+52/-52`. Exact temporary diff SHA-256 is
-`8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
-The temporary projection passed current/projected direct/identity 18/18 each,
-exact affected contracts 8/8 in 1.713 seconds, focused 597/597 in 183.706
-seconds, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
-48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
-implementation gate; benchmark refresh and remote CI remain **NOT RUN**. Exact
-scope is authoritative only in
+`6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`.
+Selected executable/test-symbol private/public records project zero/7, owner
+counts move 7/24 to 8/23, and projected source/tests/whole transforms are
+`+3/-3`, `+5/-5`, and `+8/-8`. Exact temporary diff SHA-256 is
+`fdc9ca5a15e92ecce512e94f362908c4bd7a81db6c759ccca1534854b404e07d`.
+The temporary projection passed projected-public direct/identity 33/33, exact
+affected contracts 3/3 in 1.790 seconds, focused 766/766 in 34.628 seconds,
+audit 217, pycompile 5/5, retired refs zero, diff check, and unchanged 48/203
+DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
+gate; benchmark refresh and remote CI remain **NOT RUN**. Exact scope is
+authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical

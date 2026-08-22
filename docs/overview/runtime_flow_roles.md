@@ -1626,17 +1626,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Source/tests/whole `+13/-13`, `+9/-9`, `+22/-22`, direct/identity 14/14,
   exact structural 5/5, focused 195/195, audit 217, pycompile 6/6, unchanged
   48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 22-line
-  `_runtime_trace_state_update(...)`를 public
-  `runtime_trace_state_update(...)`로 rename하고 external import 두 개/call
-  26개, 기존 test symbol ref 열 개, owner-count 기대 한 개와 파생 CURRENT-
-  SOURCE hash 기대 열두 개만 갱신한다. Canonical trace build, shallow
-  structured-result copy, read-only report-cache candidate 분류/조건부 trace
-  adoption과 모든 caller sequencing을 유지한다. Exact temporary projection은
-  source/tests/whole `+29/-29`, `+23/-23`, `+52/-52`, current/private와
-  projected/public direct/identity 각 18/18, exact affected contracts 8/8,
-  focused 597/597, audit 217, pycompile 9/9, unchanged 48/203 DAG이며 전체
-  구현 gate는
+- 완료된 `cb470e0` visibility batch는 같은 owner의 exact 22-line canonical
+  runtime-trace state-update helper를 public `runtime_trace_state_update(...)`로
+  이름 수렴시키고 external import 두 개/call 26개, 기존 test symbol ref 열
+  개, owner-count 기대 한 개와 파생 CURRENT-SOURCE hash 기대 열두 개만
+  갱신했다. Canonical trace build, shallow structured-result copy, read-only
+  report-cache candidate 분류/조건부 trace adoption과 모든 caller sequencing은
+  유지됐다. Source/tests/whole `+29/-29`, `+23/-23`, `+52/-52`, direct/
+  identity 18/18, exact affected contracts 8/8, focused 597/597, audit 217,
+  pycompile 9/9, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 92-line
+  `_project_task_trace_from_state(...)`를 public
+  `project_task_trace_from_state(...)`로 rename하고 planning external import/
+  call 각 한 개, 기존 test symbol string 네 개와 owner-count 기대 한 개만
+  갱신한다. Task/artifact copy, four-artifact lookup order, active canonical-
+  trace override, aggregate-sibling suppression, reconciliation fallback과
+  caller sequencing을 유지한다. Exact temporary projection은 source/tests/
+  whole `+3/-3`, `+5/-5`, `+8/-8`, projected-public direct/identity 33/33,
+  exact affected contracts 3/3, focused 766/766, audit 217, pycompile 5/5,
+  unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

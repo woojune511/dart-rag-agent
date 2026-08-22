@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `cd443a4` renamed only the exact 20-line `financial_runtime_trace._attach_runtime_projection_metadata(...)` definition in place to public `attach_runtime_projection_metadata(...)` and updated five owner-local calls, three external imports/four calls, eight existing test symbol strings, and one derived owner-count expectation |
-| What passed? | Direct behavior/public identity 14/14, exact structural tests 5/5, focused tests 195/195, runtime audit 217, pycompile 6/6, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cd443a4` |
+| What just changed? | `cb470e0` renamed only the exact 22-line `financial_runtime_trace._runtime_trace_state_update(...)` definition in place to public `runtime_trace_state_update(...)` and updated two imports, 26 calls, ten existing test symbol references, one owner-count expectation, and twelve derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 18/18, exact affected contracts 8/8, focused tests 597/597, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cb470e0` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 22-line `financial_runtime_trace._runtime_trace_state_update(...)` definition in place to public `runtime_trace_state_update(...)`; update two imports, 26 calls, ten existing test symbol references, one owner-count expectation, and twelve derived CURRENT-SOURCE hash expectations |
+| What is next? | Rename only the exact 92-line `financial_runtime_trace._project_task_trace_from_state(...)` definition in place to public `project_task_trace_from_state(...)`; update one planning import/call pair, four existing test patch strings, and one owner-count expectation |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, runtime-projection metadata direct behavior/public identity 14 / 14, exact structural tests 5 / 5, and affected focused set 195 / 195 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-projection metadata public rename |
+| Latest focused owner checkpoint | PASS, runtime-trace state-update direct behavior/public identity 18 / 18, exact affected contracts 8 / 8, and affected focused set 597 / 597 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace state-update public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,111 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 92-line
+`src.agent.financial_runtime_trace._project_task_trace_from_state(
+state: Dict[str, Any], task_id: str) -> Dict[str, Any]` definition at lines
+790-881 in place to public `project_task_trace_from_state(...)`. Update the one
+external import and sole external call in `financial_graph_planning.py`; four
+existing exact patch strings across `tests/test_financial_answer_projection.py`
+and `tests/test_lookup_recovery_policy.py`; and the one existing runtime-trace
+owner-count expectation in `tests/test_aggregate_subtask_projection.py` from
+`(7, 24)` to `(8, 23)`. Add no alias, wrapper, body/owner move, module, test
+method, artifact lookup, trace/answer/evidence decision, reconciliation policy,
+state/artifact/ledger mutation, exception boundary, or adjacent calculation
+change. No derived CURRENT-SOURCE hash expectation changes are required.
+
+Keep the helper in `financial_runtime_trace.py`. It composes owner-private task-
+artifact lookup, canonical-trace normalization/resolution, and operation-family
+inspection into the task-scoped trace projection consumed by planning. Moving
+the 92-line body would expose multiple private mechanisms or duplicate task-
+trace precedence policy. The public binding is a core runtime-trace projection
+contract; it does not grant answer, evidence, evaluator, cache-serving,
+calculation-policy, reconciliation, or orchestration authority.
+
+Preserve stripped string normalization of the requested and active task IDs;
+eager shallow `dict(...)` copies of every `tasks` and `artifacts` row; and the
+four exact latest-artifact lookups in operand, plan, result, reconciliation
+order with unchanged kinds and payload keys. For the active task, preserve
+canonical trace normalization first, strict resolver fallback only when that is
+falsey, copied plan/result operation inspection, and suppression of an
+`aggregate_subtasks` sibling projection for a non-aggregate active task.
+Preserve truthy-only active operand/plan/result overrides, state reconciliation
+fallback only when artifact reconciliation is falsey, final task-record lookup,
+the repeated string/strip artifact-ID filter, ordered fresh output copies, and
+all propagated truth, coercion, mapping, iteration, and helper failures.
+
+The sole production call remains in the exact 240-line
+`FinancialAgentPlanningMixin._capture_current_subtask_result(...)` body at try
+depth zero with two positional arguments: original `state`, then
+`str(active_subtask.get("task_id") or "")`. Keep the active-subtask empty gate,
+projected-field copies, nested-result promotion, narrative handling, later
+artifact/state adoption, and all final sequencing caller-owned.
+
+Current-private/future-public definition SHA-256 values are
+`6bebb3a58aa8e815ab79cde7b7f9487dd9e9d42f2358b905b3294bbe447522f1` /
+`a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221`;
+the unchanged body hash is
+`6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`.
+The caller definition/body hashes must move from
+`64b55bf4f1d294f1a68109efede95551874348ce2f1e6385ff3887943009ed32` /
+`ace17894d22bc9fcc7ddeacdbd1ff02f2a4f8c503bcd54e98fe9acfc2d3907e2`
+to
+`4459952c8d693efe3ebbfb64636408459e28458808f23e4bcd07ee6354fd42a7` /
+`e507a12a1355e7cd0e610c36072f3e0524cefe8d22641cab32272cf72768ffba`.
+After the rename selected executable/test-symbol private/public records must be
+0/7, source definition/import/load records must remain 1/1/1, and owner public/
+private counts must move exactly 7/24 to 8/23.
+
+Projected source/tests/whole transforms are `+3/-3`, `+5/-5`, and `+8/-8`
+across exactly two source and three test files. The exact temporary diff SHA-256
+is `fdc9ca5a15e92ecce512e94f362908c4bd7a81db6c759ccca1534854b404e07d`.
+The restored projection passed projected-public direct behavior/identity 33/33,
+exact affected contracts 3/3 in 1.790 seconds, affected focused modules 766/766
+in 34.628 seconds, audit 217, pycompile 5/5, retired executable/test symbol refs
+zero, diff check, and unchanged acyclic 48/203 import topology. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. After implementation, also update the current reference in
+`docs/architecture/internal_calculation_mirror_cleanup.md`, then synchronize the
+six authority documents; historical snapshots remain immutable. This name-only
+projection establishes no behavior, answer/trace quality, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Runtime-Trace State Update Public API
+
+Commit `cb470e0` renamed only the exact 22-line
+`financial_runtime_trace._runtime_trace_state_update(...)` definition in place
+to public `runtime_trace_state_update(...)`. It updated two external imports,
+all 26 external calls, ten existing test symbol references, one owner-count
+expectation, and twelve derived CURRENT-SOURCE hash expectations without moving
+the body or changing trace construction, structured-result projection, report-
+cache classification, answer/evidence behavior, state, artifact/ledger,
+evaluator, exception, or caller sequencing.
+
+Canonical trace construction remains first with exact operand/plan/result
+keywords, source literal `"runtime_trace_state_update"`, and false legacy flag.
+The fresh two-key update, resolved-trace identity, shallow structured-result
+copy, candidate call order, truthy-only same-trace attachment, propagated
+errors, and all 26 caller boundaries remain exact. Final definition/body hashes
+are
+`28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5` /
+`8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
+
+Actual source/tests/whole transforms were `+29/-29`, `+23/-23`, and `+52/-52`;
+committed diff SHA-256 is
+`8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
+Direct behavior/public identity 18/18, exact affected contracts 8/8 in 1.713
+seconds, focused tests 597/597 in 177.377 seconds, audit 217, pycompile 9/9,
+selected private/public 0/39, owner counts 7/24, unchanged acyclic 48/203 DAG,
+and full discovery 2,143/2,143 in 323.315 seconds passed. Benchmark refresh and
+remote CI were **NOT RUN**. This name-only cleanup establishes no answer/trace
+quality, performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Runtime-Trace State-Update Characterization Checkpoint
+
+The characterization below predates `cb470e0`; its projected rename and full
+gate are complete. It is retained only as an audit record and is not active
+work.
 
 Rename only the exact 22-line
 `src.agent.financial_runtime_trace._runtime_trace_state_update(
@@ -883,13 +988,10 @@ The restored projection passed current-private and projected-public direct
 behavior/identity 18/18 each, exact affected contracts 8/8 in 1.713 seconds,
 affected focused modules 597/597 in 183.706 seconds, audit 217, pycompile 9/9,
 retired executable/test symbol refs zero, diff check, and unchanged acyclic
-48/203 import topology. Full discovery 2,143/2,143 remains the implementation
-gate. Benchmark refresh and remote CI remain **NOT RUN**. After implementation,
-also update current references in `docs/planning/backlog_and_next_epics.md` and
-`docs/architecture/internal_calculation_mirror_cleanup.md`, then synchronize
-the six authority documents; historical snapshots remain immutable. This
-name-only projection establishes no behavior, answer/trace quality,
-performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+48/203 import topology. Commit `cb470e0` later passed full discovery
+2,143/2,143 and completed the implementation gate. Benchmark refresh and remote
+CI were **NOT RUN**. The completed scope is authoritative in
+[Completed Runtime-Trace State Update](#completed-runtime-trace-state-update-public-api).
 
 ## Completed Runtime-Projection Metadata Public API
 

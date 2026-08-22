@@ -11334,8 +11334,72 @@ are complete. It remains only as an audit record, not an active priority.
   The restored projection passed current-private and projected-public direct
   behavior/identity 18/18 each, exact affected contracts 8/8 in 1.713 seconds,
   focused 597/597 in 183.706 seconds, audit 217, pycompile 9/9, retired refs
-  zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains
-  the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
-  Exact hash replacements, secondary-doc synchronization, and stop lines are
-  authoritative in
+  zero, diff check, and unchanged acyclic 48/203 DAG. Commit `cb470e0` later
+  passed full 2,143/2,143 and completed the implementation gate. Benchmark
+  refresh and remote CI were **NOT RUN**. The completed scope is authoritative
+  in
+  [Project Status Completed Runtime-Trace State Update](../overview/project_status.md#completed-runtime-trace-state-update-public-api).
+
+### Runtime-trace state-update public API completed
+
+- Commit `cb470e0` renamed only the exact 22-line
+  `financial_runtime_trace._runtime_trace_state_update(...)` definition in
+  place to public `runtime_trace_state_update(...)`, then updated two external
+  imports, all 26 calls, ten existing test symbol references, one owner-count
+  expectation, and twelve derived CURRENT-SOURCE hash expectations. It added
+  no alias, wrapper, body/owner move, test method, trace/answer/evidence/
+  calculation behavior, state/artifact/ledger mutation, report-cache policy,
+  exception boundary, or adjacent cleanup.
+- Canonical trace construction remains first with exact payloads, source label,
+  and false legacy flag. Fresh update construction, resolved-trace identity,
+  shallow structured-result copy, candidate-call order, truthy-only attachment,
+  propagated errors, and all 26 caller gates and sequencing remain exact. Final
+  definition/body hashes are
+  `28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5` /
+  `8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
+- Actual source/tests/whole transforms were `+29/-29`, `+23/-23`, and
+  `+52/-52`; committed diff SHA-256 is
+  `8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
+  Direct behavior/public identity 18/18, exact affected contracts 8/8 in 1.713
+  seconds, focused 597/597 in 177.377 seconds, audit 217, pycompile 9/9,
+  selected private/public 0/39, owner counts 7/24, unchanged acyclic 48/203
+  DAG, and full 2,143/2,143 in 323.315 seconds passed. Benchmark refresh and
+  remote CI were **NOT RUN**. This name-only cleanup establishes no answer/
+  trace quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Task-trace-from-state public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 92-line
+  `financial_runtime_trace._project_task_trace_from_state(...)` definition in
+  place to public `project_task_trace_from_state(...)`. Update one planning
+  import/call pair, four existing test patch strings, and one owner-count
+  expectation; add no alias, wrapper, body/owner move, module, test method,
+  artifact/trace/answer/evidence decision, state/artifact/ledger mutation,
+  reconciliation policy, exception boundary, or adjacent calculation change.
+- Keep the helper with its private task-artifact and trace-normalization
+  dependencies. Preserve task/active IDs, eager row copies, four artifact
+  lookups in order, canonical active-trace normalization and strict fallback,
+  aggregate-sibling suppression, truthy field override, falsey reconciliation
+  fallback, task-record/artifact-ID projection, fresh ordered output copies,
+  propagated errors, and the sole try-depth-zero two-positional-argument caller
+  plus all later sequencing.
+- Current-private/future-public definition hashes are
+  `6bebb3a58aa8e815ab79cde7b7f9487dd9e9d42f2358b905b3294bbe447522f1` /
+  `a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221`;
+  the unchanged body hash is
+  `6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`.
+  Source definition/import/load records remain 1/1/1, selected executable/
+  test-symbol private/public records project 0/7, and owner counts move 7/24
+  to 8/23. The sole 240-line caller definition/body hashes project
+  `64b55bf4...` / `ace17894...` to `4459952c...` / `e507a12a...`.
+- Projected source/tests/whole transforms are `+3/-3`, `+5/-5`, and `+8/-8`
+  across two source and three test files; exact temporary diff SHA-256 is
+  `fdc9ca5a15e92ecce512e94f362908c4bd7a81db6c759ccca1534854b404e07d`.
+  The restored projection passed projected-public direct behavior/identity
+  33/33, exact affected contracts 3/3 in 1.790 seconds, focused 766/766 in
+  34.628 seconds, audit 217, pycompile 5/5, retired refs zero, diff check, and
+  unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation
+  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations,
+  secondary-doc synchronization, and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
