@@ -96,7 +96,7 @@ def _drop_duplicate_executed_query(
     return True
 
 
-def _limit_query_context_terms(
+def limit_query_context_terms(
     items: List[str],
     budget: int,
     *,

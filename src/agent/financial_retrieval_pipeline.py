@@ -17,7 +17,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _cross_trace_reuse_candidate_diagnostics,
     _drop_duplicate_executed_query,
     drop_queries_already_selected,
-    _limit_query_context_terms,
+    limit_query_context_terms,
     _lookup_query_result_cache,
     query_budget_int,
     _store_query_result_cache,
@@ -2171,11 +2171,11 @@ class FinancialRetrievalPipelineMixin:
         hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
         section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
         retrieval_hint_terms = [item for item in _normalise_spaces(retrieval_hint).split(" ") if item]
-        selected_retrieval_hint_terms, hint_enrichment_trace = _limit_query_context_terms(
+        selected_retrieval_hint_terms, hint_enrichment_trace = limit_query_context_terms(
             retrieval_hint_terms,
             hint_budget,
         )
-        selected_preferred_sections, section_enrichment_trace = _limit_query_context_terms(
+        selected_preferred_sections, section_enrichment_trace = limit_query_context_terms(
             list(preferred_sections or []),
             section_budget,
             strategy="head_tail",
