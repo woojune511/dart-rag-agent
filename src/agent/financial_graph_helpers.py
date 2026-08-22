@@ -2276,7 +2276,7 @@ def _lookup_constraint_from_binding(binding: Dict[str, Any], base_constraints: D
     return constraints
 
 
-def _concept_spec_for_key(ontology: Any, key: str) -> Dict[str, Any]:
+def concept_spec_for_key(ontology: Any, key: str) -> Dict[str, Any]:
     concept_key = _normalise_spaces(str(key or ""))
     if not concept_key:
         return {}
@@ -2341,7 +2341,7 @@ def _group_decomposition_query_matches(
         for item in (hints.get("denominator_concepts") or [])
         if str(item).strip()
     ]
-    denominator_specs = [_concept_spec_for_key(ontology, key) for key in denominator_concepts]
+    denominator_specs = [concept_spec_for_key(ontology, key) for key in denominator_concepts]
     denominator_specs = [spec for spec in denominator_specs if spec]
     if bool(hints.get("require_denominator_mentions", False)) and any(
         not _spec_mentions_query(spec, query) for spec in denominator_specs
@@ -2388,7 +2388,7 @@ def _build_group_decomposition_task(
         ]
         denominator_specs: List[Dict[str, Any]] = []
         for index, concept_key in enumerate((hints.get("denominator_concepts") or []), start=1):
-            concept_spec = _concept_spec_for_key(ontology, str(concept_key).strip())
+            concept_spec = concept_spec_for_key(ontology, str(concept_key).strip())
             if not concept_spec:
                 continue
             denominator_specs.append({**concept_spec, "role": f"denominator_{index}"})
@@ -2681,7 +2681,7 @@ def _build_lookup_producer_task_from_binding(
     binding_concept = _normalise_spaces(str(binding.get("concept") or operand.get("concept") or ""))
     if binding_concept:
         operand["concept"] = binding_concept
-        concept_spec = _concept_spec_for_key(get_financial_ontology(), binding_concept)
+        concept_spec = concept_spec_for_key(get_financial_ontology(), binding_concept)
         if concept_spec:
             operand = _augment_generic_operand_with_concept(operand, concept_spec=concept_spec)
     explicit_binding_policy = dict(binding.get("binding_policy") or {})

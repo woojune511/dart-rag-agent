@@ -228,7 +228,7 @@ from src.agent.financial_operand_resolution import (
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
-    _concept_spec_for_key,
+    concept_spec_for_key,
     _resolve_candidate_local_unit_hint,
 )
 from src.agent.financial_structured_cells import (
@@ -10241,7 +10241,7 @@ class FinancialAgentCalculationMixin:
                 updated["concept"] = concept_key
         if not concept_key:
             return updated
-        concept_spec = _concept_spec_for_key(ontology, concept_key)
+        concept_spec = concept_spec_for_key(ontology, concept_key)
         if not concept_spec:
             return updated
 
