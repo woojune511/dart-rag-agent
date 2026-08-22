@@ -156,7 +156,7 @@ def _period_balanced_queries_for_retrieval(queries: List[str]) -> List[str]:
     return balanced
 
 
-def _apply_query_budget(
+def apply_query_budget(
     queries: List[str],
     budget: int,
     *,

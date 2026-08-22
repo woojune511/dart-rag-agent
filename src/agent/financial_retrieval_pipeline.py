@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.agent.financial_graph_retrieval_budget import (
-    _apply_query_budget,
+    apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
     drop_duplicate_executed_query,
     drop_queries_already_selected,
@@ -2163,7 +2163,7 @@ class FinancialRetrievalPipelineMixin:
             "state_retrieval_query_count": len(retrieval_queries),
         }
         primary_budget = query_budget_int(getattr(self, "retrieval_query_budget", 0))
-        query_bundle, query_budget_trace["primary"] = _apply_query_budget(
+        query_bundle, query_budget_trace["primary"] = apply_query_budget(
             list(query_bundle),
             primary_budget,
             dedupe=primary_budget > 0,
@@ -2271,7 +2271,7 @@ class FinancialRetrievalPipelineMixin:
         configured_focused_budget = query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
         focused_budget = configured_focused_budget or 8
         primary_operand_coverage = _required_operand_coverage_from_docs(docs, active_subtask, query, report_scope)
-        focused_operand_queries, query_budget_trace["operand_focus"] = _apply_query_budget(
+        focused_operand_queries, query_budget_trace["operand_focus"] = apply_query_budget(
             focused_operand_queries,
             focused_budget,
             dedupe=configured_focused_budget > 0,
@@ -2368,7 +2368,7 @@ class FinancialRetrievalPipelineMixin:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
         configured_retry_budget = query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
         retry_budget = configured_retry_budget or 3
-        retry_queries, query_budget_trace["retry"] = _apply_query_budget(
+        retry_queries, query_budget_trace["retry"] = apply_query_budget(
             retry_queries,
             retry_budget,
             dedupe=configured_retry_budget > 0,

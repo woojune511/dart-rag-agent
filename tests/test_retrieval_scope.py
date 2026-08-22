@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_retrieval_budget import (
-    _apply_query_budget,
+    apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
     summarize_executed_query_telemetry,
 )
@@ -43,7 +43,7 @@ class _BM25OnlyVSM:
 
 class RetrievalScopeTests(unittest.TestCase):
     def test_query_budget_preserves_period_diversity_when_truncating(self) -> None:
-        selected, trace = _apply_query_budget(
+        selected, trace = apply_query_budget(
             [
                 "2023년 current primary",
                 "2023년 current statement",
@@ -62,7 +62,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["dropped_count"], 2)
 
     def test_query_budget_preserves_cjk_spacing_variants(self) -> None:
-        selected, trace = _apply_query_budget(
+        selected, trace = apply_query_budget(
             [
                 "2023년 커머스 매출액",
                 "2023년 커머스매출액",
