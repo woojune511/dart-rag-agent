@@ -16,7 +16,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
     _drop_duplicate_executed_query,
-    _drop_queries_already_selected,
+    drop_queries_already_selected,
     _limit_query_context_terms,
     _lookup_query_result_cache,
     query_budget_int,
@@ -2281,7 +2281,7 @@ class FinancialRetrievalPipelineMixin:
         if _has_narrative_sibling_subtask(state, active_subtask):
             skip_blocked_reason = "narrative_sibling_subtask_present"
         if not skip_blocked_reason:
-            focused_operand_queries, duplicate_focus_trace = _drop_queries_already_selected(
+            focused_operand_queries, duplicate_focus_trace = drop_queries_already_selected(
                 focused_operand_queries,
                 query_bundle,
             )
@@ -2374,7 +2374,7 @@ class FinancialRetrievalPipelineMixin:
             dedupe=configured_retry_budget > 0,
         )
         if not skip_blocked_reason:
-            retry_queries, duplicate_retry_trace = _drop_queries_already_selected(
+            retry_queries, duplicate_retry_trace = drop_queries_already_selected(
                 retry_queries,
                 [*query_bundle, *focused_operand_queries],
             )

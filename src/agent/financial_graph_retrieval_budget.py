@@ -37,7 +37,7 @@ def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
     return deduped
 
 
-def _drop_queries_already_selected(
+def drop_queries_already_selected(
     queries: List[str],
     selected_queries: List[str],
 ) -> tuple[List[str], Dict[str, Any]]:
