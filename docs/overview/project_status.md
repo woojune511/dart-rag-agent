@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `b530b38` renamed only `financial_runtime_trace._structured_result_subtask_rows_and_answer(...)` in place to public `structured_result_subtask_rows_and_answer(...)` and updated one owner-local call, three imports, four external calls, 21 exact-name expectations, and one owner-count expectation |
-| What passed? | Direct behavior/public identity 12/12, focused tests 839/839, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `b530b38` |
+| What just changed? | `2b74563` renamed only `financial_graph_helpers._build_generic_metric_aliases(...)` in place to public `build_generic_metric_aliases(...)` and updated three owner-local calls, one import/call pair, eight exact-name expectations, 43 owner-count expectations, and eight structural hashes |
+| What passed? | Direct behavior/public identity 12/12, focused tests 645/645, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `2b74563` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_helpers._build_generic_metric_aliases(...)` in place to public `build_generic_metric_aliases(...)`; update three owner-local calls, one import/call pair, eight exact-name expectations, 43 owner-count expectations, and eight derived structural hashes |
+| What is next? | Rename only `financial_graph_retrieval_budget._drop_queries_already_selected(...)` in place to public `drop_queries_already_selected(...)`; update one pipeline import and two external calls, with no test expectation change |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, structured-result subtask-row/answer direct behavior/public identity 12 / 12 and affected focused set 839 / 839 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after structured-result subtask-row/answer public rename |
+| Latest focused owner checkpoint | PASS, generic-metric-alias direct behavior/public identity 12 / 12 and affected focused set 645 / 645 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after generic-metric-alias public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,85 +799,97 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 19-line
-`src.agent.financial_graph_helpers._build_generic_metric_aliases(
-label: str) -> List[str]` definition at lines 745-763 in place to public
-`build_generic_metric_aliases(...)`. Update its three owner-local calls and the
-sole import/call pair in `financial_graph_evidence.py`. Update eight existing
-exact-name expectations, 43 existing graph-helper owner-count expectations,
-and eight existing structural-hash expectations in
-`test_financial_graph_helpers.py`. Add no alias, wrapper, body move, test
-method, vocabulary, policy entry, fallback, cache, or exception boundary. Do
-not rename or move `_normalise_spaces(...)`, adjacent operand builders,
-candidate/evidence construction, scoring/ranking, state, trace, artifact, or
-final sequencing.
+Rename only the exact 21-line
+`src.agent.financial_graph_retrieval_budget._drop_queries_already_selected(
+queries: List[str], selected_queries: List[str]) -> tuple[List[str],
+Dict[str, Any]]` definition at lines 40-60 in place to public
+`drop_queries_already_selected(...)`. Update the sole import in
+`financial_retrieval_pipeline.py` and its two external calls. Add no test or
+expectation change, alias, wrapper, body move, vocabulary, policy, fallback,
+cache, exception boundary, trace field, or adjacent query-budget change.
 
-This is the smallest currently legal core-runtime visibility seam. The 2-line
-`_normalise_spaces(...)` foundation has 30 importers and 2,371 external calls.
-`_active_preferred_statement_types(...)` and `_desired_statement_types(...)`
-have future-public caller-local collisions. `_find_task_record_in_list(...)`
-is explicitly pinned as a non-exported low-level helper. The 17-line
-`_clean_source_row_ids(...)` and 19-line `_parse_number_text(...)` are broader
-foundations, while `_query_years_from_state(...)` reads graph state.
+This is the smallest remaining cross-module transform, not merely the shortest
+definition. Owner-local private helpers are not public-API seams. The 2-line
+`_normalise_spaces(...)` and 17/19-line normalization helpers remain broad
+foundations; `_find_task_record_in_list(...)` is explicitly non-exported;
+preferred/desired statement-type helpers have caller-local collisions; and
+`_query_years_from_state(...)` reads graph state. The shorter 20-line
+`_attach_runtime_projection_metadata(...)` spans 13 source and eight test-name
+records, while this seam spans four source and zero test-name records.
 
-Preserve exact evaluation semantics. Evaluate `str(label or "").strip()` and
-return a fresh exact `[]` for a blank base before regex or policy access.
-Otherwise start with exact `[base]`; normalize the parenthesis-stripped
-`re.sub(...)` result and append it only when truthy and different from `base`.
-Then eagerly obtain `re.findall(...)`, normalize each inner parenthetical text
-in order, and append each truthy result. For every
-`GENERIC_METRIC_ALIAS_SUBSTITUTIONS` item, eagerly read and stringify `source`
-and `target`, then eagerly materialize the filtered/stringified
-`blocked_if_present` tuple before testing the branch. Append
-`base.replace(source, target)` only when source and target are truthy, source
-is in base, and no blocked token is in base. Finish with exact ordered first-
-occurrence dedupe through `list(dict.fromkeys(alias for alias in aliases if
-alias))`. Preserve raw truthiness, string/regex/normalization counts, eager
-policy-field order, policy iteration, membership and `any(...)` short circuit,
-duplicate order, input/config immutability, fresh-list identity, global lookup
-timing, and every uncaught error. The name-normalized definition AST/body
-SHA-256 values are
-`45cc7f741d06cb4d7c97242ac3eb6878bc44fdfb4a866d86d4c22dc65c9e2365` /
-`d64b599201485d188be4cb7b2cbfe337de30f659a9b30eb2009ab18775e14fd9`.
+Preserve exact evaluation semantics. Eagerly consume `selected_queries` through
+the nested generator/set comprehension, call `_retrieval_query_signature(...)`
+once per selected item, discard falsey signatures, and dedupe truthy signatures
+in the set before scanning `queries`. Create fresh exact `kept` and `dropped`
+lists, then iterate `queries` once in order. Call the signature helper once for
+each query. Only a truthy signature present in the selected-signature set
+appends the original query object to `dropped` and continues; a falsey or
+nonselected signature appends the original object to `kept`. Return the exact
+fresh kept list and a fresh insertion-ordered mapping whose count is
+`len(dropped)` and whose dropped-query value is the exact dropped list.
+Preserve phase order, normalization/case behavior delegated to the signature
+helper, set membership, duplicate handling, original object identities and
+order, input immutability, fresh-container identity, global lookup timing, and
+every uncaught iteration, signature, truth, hash, equality, membership, append,
+or length error. The name-normalized definition AST/body SHA-256 values are
+`00100a4f22ae070aaff3a107c772e24cf9dc6d0e71ca7e1f312fcf26f339becf` /
+`c8a570015c088711678a8b444a7fe0af0bb5c56925f327772455620b9c93d079`.
 
-All four calls remain one-positional/no-keyword at caller `try` depth zero:
-owner-local calls at lines 892, 928, and 986 receive exact `label`,
-`base_label`, and `label`; graph-evidence line 3862 receives exact `label`
-inside its existing `aliases.extend(...)` parent. Preserve each caller's
-preceding construction, immediate adoption, following guards, and later-work
-stops. The ordered combined call-record SHA-256 is
-`068520cd71937e74b34b9e24428e94030f1a5c8f196da2a7740dd951d4c974be`.
+Both calls remain two-positional/no-keyword tuple assignments in `_retrieve`
+at caller `try` depth zero. Line 2284 receives exact
+`focused_operand_queries, query_bundle`; line 2377 receives exact
+`retry_queries, [*query_bundle, *focused_operand_queries]`. Preserve the
+narrative-sibling guard, budget preparation, immediate trace update and count
+rewrite, later coverage/retry execution, and every exception stop. The ordered
+projected call-record SHA-256 is
+`979b5eda0966ab88651544f303601624f952ceb1213ab5d5195af374624c8cd0`;
+the projected `_retrieve` body SHA-256 is
+`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`.
 
-Current production scope is one definition, three owner-local calls, one
-external import, and one external call: six selected private source records.
-Tests contain eight selected exact private-name records, and the future public
-name has no collision. After the rename selected private/public records must
-be 0/14 across source/tests; the external binding must be identical to the
-public owner; graph-helper public/private counts must move exactly 10/70 to
-11/69; and graph-helper/graph-evidence physical lines must remain 4,285/4,220.
+Current production scope is one definition, one import, and two external calls:
+four selected private source records. Tests contain zero selected exact-name
+records, and the future public name has no source/test collision. After the
+rename selected private/public records must be 0/4, the pipeline binding must
+be identical to the public owner, retrieval-budget public/private counts must
+move exactly 1/14 to 2/13, and budget/pipeline physical lines must remain
+419/2,641.
 
-Update exactly 59 existing test expectations: eight exact names; 40 direct
-`(10, 70)` owner counts, two derived `(10, 71)` counts, one
-`(10, 70, 0)` count; two call-record hashes, three caller-body hashes, and
-three caller-map aggregate hashes. Add no test and weaken no assertion.
-Projected source/tests/whole transforms are `+6/-6`, `+59/-59`, and
-`+65/-65` across exactly two source files and one test file. The exact
-temporary diff SHA-256 is
+Projected source/tests/whole transforms are `+4/-4`, `+0/-0`, and `+4/-4`
+across exactly two source files. The exact temporary diff SHA-256 is
+`6c13fab2ab5dc234740c688816e39271263d1179febe60160c839827a36d5178`.
+The restored projection passed direct behavior/public identity 12/12, the
+retrieval-scope/retrieval-pipeline/semantic-plan/operation-contract/import-
+side-effect focused set 370/370 in 21.874 seconds, audit 217, pycompile 2/2,
+retired selected refs zero, diff check, and unchanged acyclic 48/203 import
+topology. Full discovery 2,143/2,143 remains the implementation gate.
+Benchmark refresh and remote CI remain **NOT RUN**. This name-only projection
+establishes no behavior, answer-quality, retrieval-quality, performance,
+benchmark, schedule, cache, ledger, or Phase 3 completion claim.
+
+## Completed Generic-Metric-Alias Public API
+
+Commit `2b74563` renamed only the exact 19-line
+`financial_graph_helpers._build_generic_metric_aliases(...)` definition in
+place to public `build_generic_metric_aliases(...)`. It updated three owner-
+local calls, one external import/call pair, eight exact-name expectations, 43
+owner-count expectations, and eight structural-hash expectations without
+moving the body or changing adjacent operand/evidence behavior.
+
+Blank-label early return, base/parenthesis/inner alias order, eager substitution
+field access, blocked-token checks, policy-order replacement, ordered first-
+occurrence dedupe, fresh-list identity, evaluation order, and all uncaught
+errors remain exact. Source/tests/whole transforms were `+6/-6`, `+59/-59`,
+and `+65/-65`; the committed diff SHA-256 is
 `9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
 
-The restored projection passed corrected direct behavior/public identity
-12/12, the graph-helper/numeric-provenance/semantic-plan/concept-runtime/
-operation-contract/import-side-effect focused set 645/645 in 185.243 seconds,
-audit 217, pycompile 2/2, retired selected refs zero, diff check, and the
-unchanged acyclic 48/203 import topology. The first direct probe incorrectly
-assumed lazy `blocked_if_present` access; source inspection fixed the probe to
-the actual eager three-field order. The first focused run exposed only three
-stale CURRENT-SOURCE hash assertions; the eight characterized hash updates
-removed those structural mismatches without a behavior change. Full discovery
-2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
-remain **NOT RUN**. This name-only projection establishes no behavior, answer-
-quality, trace-quality, performance, benchmark, schedule, ledger, or Phase 3
-completion claim.
+Direct behavior/public identity passed 12/12, focused 645/645 passed in
+199.963 seconds, audit 217, pycompile 2/2, retired selected refs zero, selected
+private/public records 0/14, owner public/private counts became 11/69,
+physical lines remained 4,285/4,220, the acyclic import topology remained
+48/203, and full discovery 2,143/2,143 passed in 244.527 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Structured-Result Subtask Rows And Answer Public API
 

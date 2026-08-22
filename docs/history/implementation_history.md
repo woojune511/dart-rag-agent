@@ -10659,7 +10659,33 @@ are complete. It remains only as an audit record, not an active priority.
   Exact preserved behavior and milestone evidence are authoritative in
   [Project Status Completed Structured Result](../overview/project_status.md#completed-structured-result-subtask-rows-and-answer-public-api).
 
-### Generic-metric-alias public API characterization checkpoint
+### Generic-metric-alias public API milestone
+
+- Commit `2b74563` renamed only the exact 19-line
+  `financial_graph_helpers._build_generic_metric_aliases(label: str) ->
+  List[str]` definition in place to public
+  `build_generic_metric_aliases(...)`. It updated three owner-local calls, one
+  graph-evidence import/call pair, eight exact-name expectations, 43 owner-
+  count expectations, and eight structural hashes without a wrapper, alias,
+  body move, new test, or adjacent behavior change.
+- Blank-label return, base/parenthesis/inner alias order, eager substitution
+  field access, blocked checks, policy-order replacement, ordered dedupe,
+  fresh-list identity, evaluation order, and uncaught errors remain exact.
+  Source/tests/whole transforms were `+6/-6`, `+59/-59`, and `+65/-65`; the
+  committed diff SHA-256 is
+  `9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
+- Direct behavior/public identity 12/12 passed, focused 645/645 passed in
+  199.963 seconds, audit 217, pycompile 2/2, retired refs zero, selected
+  private/public records 0/14, owner public/private 11/69, unchanged 48/203
+  DAG, and full 2,143/2,143 passed in 244.527 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Historical generic-metric-alias public API characterization checkpoint
+
+This characterization predates `2b74563`; its projected rename and full gate
+are complete. It remains only as an audit record, not an active priority.
 
 - The next bounded visibility batch renames only the exact 19-line
   `financial_graph_helpers._build_generic_metric_aliases(
@@ -10714,4 +10740,49 @@ are complete. It remains only as an audit record, not an active priority.
   construction, scoring/ranking, state/trace/artifact mutation, and final
   sequencing outside the batch. Exact expectations and stop lines are
   authoritative in
+  [Project Status Completed Generic Metric Alias](../overview/project_status.md#completed-generic-metric-alias-public-api).
+
+### Drop-queries-already-selected public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 21-line
+  `financial_graph_retrieval_budget._drop_queries_already_selected(
+  queries: List[str], selected_queries: List[str]) -> tuple[List[str],
+  Dict[str, Any]]` definition in place to public
+  `drop_queries_already_selected(...)`. Update the sole pipeline import and two
+  external calls; add no test/expectation change, alias, wrapper, body move, or
+  adjacent budget/cache/retrieval change.
+- Preserve eager selected-signature generator/set completion before query
+  scanning, one signature call per selected item, falsey-signature filtering,
+  and truthy-signature set dedupe. Preserve fresh kept/dropped lists, one
+  signature call per query, truthy selected-signature membership, original
+  query identity/order, falsey and nonselected keep behavior, exact duplicate
+  count/list mapping, input immutability, evaluation order, and every uncaught
+  error. The normalized definition AST/body hashes are
+  `00100a4f22ae070aaff3a107c772e24cf9dc6d0e71ca7e1f312fcf26f339becf` /
+  `c8a570015c088711678a8b444a7fe0af0bb5c56925f327772455620b9c93d079`.
+- Both calls remain two-positional/no-keyword tuple assignments in `_retrieve`
+  at caller try depth zero: focused queries against exact `query_bundle`, then
+  retry queries against exact `[*query_bundle, *focused_operand_queries]`.
+  Preserve narrative-sibling gating, budget preparation, trace adoption/count
+  rewrite, later query execution, and exception stops. The projected call-
+  record hash is
+  `979b5eda0966ab88651544f303601624f952ceb1213ab5d5195af374624c8cd0`;
+  the projected caller-body hash is
+  `8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`.
+- Production scope is one definition, one import, and two external calls.
+  Tests contain zero exact private-name records and the public name has no
+  collision. Selected private/public records project 0/4, owner counts 1/14
+  to 2/13, and budget/pipeline lines remain 419/2,641. Source/tests/whole
+  transforms project `+4/-4`, `+0/-0`, and `+4/-4`; exact temporary diff
+  SHA-256 is
+  `6c13fab2ab5dc234740c688816e39271263d1179febe60160c839827a36d5178`.
+- The restored projection passed direct behavior/public identity 12/12,
+  focused retrieval-scope/retrieval-pipeline/semantic-plan/operation-contract/
+  import-side-effect tests 370/370 in 21.874 seconds, audit 217, pycompile 2/2,
+  retired refs zero, diff check, and unchanged 48/203 DAG. Full 2,143/2,143
+  remains the implementation gate. Benchmark refresh and remote CI were
+  **NOT RUN**.
+- Keep adjacent budget application, cache, telemetry, retrieval execution,
+  state/trace/artifact mutation, and final sequencing outside the batch. Exact
+  expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

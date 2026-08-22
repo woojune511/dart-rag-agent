@@ -1521,17 +1521,25 @@ Aggregate/narrative row의 state-free answer policy owner다.
   순서는 유지됐다. Source/tests/whole `+9/-9`, `+22/-22`, `+31/-31`,
   direct/identity 12/12, focused 839/839, audit 217, pycompile 4/4, unchanged
   48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_graph_helpers.py`의 exact 19-line
-  `_build_generic_metric_aliases(label)`를 public
-  `build_generic_metric_aliases(...)`로 rename하고 owner-local call 세 개,
-  graph-evidence import/call 각 한 개, 기존 exact-name 기대 여덟 개,
-  owner-count 기대 43개와 이름을 포함하는 structural-hash 기대 여덟 개만
-  갱신한다. Blank-label early return, parenthesis 제거/내부 alias 순서,
-  substitution의 `source`/`target`/`blocked_if_present` eager access,
-  policy-order append와 first-occurrence dedupe를 유지한다. Exact temporary
-  projection은 source/tests/whole `+6/-6`, `+59/-59`, `+65/-65`,
-  direct/identity 12/12, focused 645/645, audit 217, pycompile 2/2, unchanged
-  48/203 DAG이며 전체 구현 gate는
+- 완료된 `2b74563` visibility batch는 `financial_graph_helpers.py`의 exact
+  19-line generic metric-alias helper를 public
+  `build_generic_metric_aliases(...)`로 이름 수렴시키고 owner-local call 세
+  개, graph-evidence import/call 각 한 개, 기존 exact-name 기대 여덟 개,
+  owner-count 기대 43개와 structural-hash 기대 여덟 개만 갱신했다. Blank-
+  label early return, parenthesis alias 순서, substitution field eager access,
+  policy-order append와 first-occurrence dedupe는 유지됐다. Source/tests/
+  whole `+6/-6`, `+59/-59`, `+65/-65`, direct/identity 12/12, focused
+  645/645, audit 217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가
+  통과했다.
+- 다음 visibility batch는 `financial_graph_retrieval_budget.py`의 exact
+  21-line `_drop_queries_already_selected(...)`를 public
+  `drop_queries_already_selected(...)`로 rename하고 retrieval-pipeline import
+  한 개와 `_retrieve(...)` call 두 개만 갱신한다. Selected-signature phase의
+  eager completion, falsey-signature filter, query-order kept/dropped identity,
+  exact duplicate trace와 caller guard/adoption 순서를 유지한다. Test-name
+  기대 변경은 없다. Exact temporary projection은 source/tests/whole
+  `+4/-4`, `+0/-0`, `+4/-4`, direct/identity 12/12, focused 370/370,
+  audit 217, pycompile 2/2, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -1544,6 +1552,7 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - `structured_result` / `resolved_calculation_trace` compatibility projection
 - source row/evidence id cleanup
 - numeric parsing and unit normalization helpers
+- generic metric-alias projection consumed by operand and evidence paths
 - caller-side reconciliation candidate construction/ranking orchestration
 - semantic planner scope normalization, plan-shape validation, segment-label
   projection, and planner-task contract helpers

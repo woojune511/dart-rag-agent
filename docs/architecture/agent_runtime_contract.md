@@ -6741,37 +6741,48 @@ artifact mutation, and final sequencing remain outside this contract.
 Benchmark refresh and remote CI were **NOT RUN**. Full details are preserved in
 [Project Status Completed Structured Result](../overview/project_status.md#completed-structured-result-subtask-rows-and-answer-public-api).
 
-The active visibility contract now renames only the exact 19-line
-`financial_graph_helpers._build_generic_metric_aliases(label: str) ->
-List[str]` definition in place to public `build_generic_metric_aliases(...)`,
-then updates three owner-local calls, one graph-evidence import/call pair, eight
-exact-name expectations, 43 owner-count expectations, and eight structural-
-hash expectations. Preserve `str(label or "").strip()`, the fresh blank-label
-return, parenthesis-stripped alias, ordered normalized inner-parenthesis
-aliases, and policy iteration. For each substitution preserve eager
-`source`, `target`, and `blocked_if_present` access/stringification before the
-branch; preserve source/target truth checks, source membership, blocked-token
-`any(...)`, base replacement, and final ordered first-occurrence dedupe through
-`list(dict.fromkeys(...))`. Preserve all truthiness, regex, normalization,
-iteration, membership, branch laziness, identity, global lookup timing, and
-uncaught-error behavior. The normalized definition/body hashes are
-`45cc7f741d06cb4d7c97242ac3eb6878bc44fdfb4a866d86d4c22dc65c9e2365` /
-`d64b599201485d188be4cb7b2cbfe337de30f659a9b30eb2009ab18775e14fd9`.
-
-All four one-positional/no-keyword calls remain at caller `try` depth zero:
-three owner-local operand-builder calls and the graph-evidence numeric-
-impairment lookup call. Their ordered combined call-record hash is
-`068520cd71937e74b34b9e24428e94030f1a5c8f196da2a7740dd951d4c974be`.
-Selected private/public records project 0/14, owner counts 10/70 to 11/69,
-and graph-helper/graph-evidence lines remain 4,285/4,220. Projected source/
-tests/whole transforms are `+6/-6`, `+59/-59`, and `+65/-65`; exact temporary
-diff SHA-256 is
+Commit `2b74563` completed the exact 19-line generic-metric-alias visibility
+contract. It renamed the definition in place to public
+`build_generic_metric_aliases(...)`, updated three owner-local calls, one
+graph-evidence import/call pair, eight exact-name expectations, 43 owner-count
+expectations, and eight structural hashes, and changed no adjacent behavior.
+Blank-label return, parenthesis alias order, eager substitution fields, blocked
+checks, policy-order replacement, ordered dedupe, identity, evaluation order,
+and uncaught errors remain exact. Source/tests/whole transforms were `+6/-6`,
+`+59/-59`, and `+65/-65`; committed diff SHA-256 is
 `9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
-The restored projection passed corrected direct behavior/public identity
-12/12, focused 645/645 in 185.243 seconds, audit 217, pycompile 2/2, retired
-refs zero, diff check, and unchanged acyclic 48/203 import topology. Full
-2,143/2,143 remains the implementation gate. Keep adjacent normalization,
-operand construction, candidate/evidence work, scoring/ranking, state/trace/
+Direct behavior/public identity 12/12, focused 645/645 in 199.963 seconds,
+audit 217, pycompile 2/2, retired refs zero, owner counts 11/69, unchanged
+48/203 DAG, and full 2,143/2,143 in 244.527 seconds passed. Benchmark refresh
+and remote CI were **NOT RUN**. Full details are preserved in
+[Project Status Completed Generic Metric Alias](../overview/project_status.md#completed-generic-metric-alias-public-api).
+
+The active visibility contract now renames only the exact 21-line
+`financial_graph_retrieval_budget._drop_queries_already_selected(queries:
+List[str], selected_queries: List[str]) -> tuple[List[str], Dict[str, Any]]`
+definition in place to public `drop_queries_already_selected(...)`, then updates
+one pipeline import and two external calls. Preserve eager selected-signature
+set construction before query scanning, falsey-signature filtering, fresh kept
+and dropped lists, one signature call per query, truthy selected-signature
+membership, original query identities/order, exact duplicate count/list trace,
+input immutability, evaluation order, and every uncaught error. The normalized
+definition/body hashes are
+`00100a4f22ae070aaff3a107c772e24cf9dc6d0e71ca7e1f312fcf26f339becf` /
+`c8a570015c088711678a8b444a7fe0af0bb5c56925f327772455620b9c93d079`.
+
+Both two-positional/no-keyword tuple-assignment calls remain in `_retrieve` at
+caller `try` depth zero. Their projected call-record hash is
+`979b5eda0966ab88651544f303601624f952ceb1213ab5d5195af374624c8cd0`;
+the projected caller-body hash is
+`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`.
+Selected private/public records project 0/4, owner counts 1/14 to 2/13, and
+budget/pipeline lines remain 419/2,641. Source/tests/whole transforms project
+`+4/-4`, `+0/-0`, and `+4/-4`; exact temporary diff SHA-256 is
+`6c13fab2ab5dc234740c688816e39271263d1179febe60160c839827a36d5178`.
+The restored projection passed direct behavior/public identity 12/12, focused
+370/370 in 21.874 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the implementation
+gate. Keep adjacent budget, cache, telemetry, retrieval execution, state/trace/
 artifact mutation, and final sequencing outside this batch. Benchmark refresh
 and remote CI remain **NOT RUN**. Exact expectations and stop lines are
 authoritative in
