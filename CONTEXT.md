@@ -21,7 +21,7 @@ Last updated: 2026-08-22
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `9ab7e64` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `d8a41af` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -596,12 +596,20 @@ role/label/concept precedence, eager row-surface 구성, lazy truthy matching과
 `+27/-27`, `+67/-67`, `+94/-94`, direct/structure 7/7 in 10.148 seconds,
 public identity 4/4, focused 1,004/1,004 in 201.883 seconds, audit 217,
 pycompile 9/9, unchanged 48/203 DAG, full 2,143/2,143 in 222.306 seconds가
-통과했다. 다음 batch는 exact 6-line
-`financial_graph_retrieval_budget._query_budget_int(...)`를 public
-`query_budget_int(...)`로 rename하고 retrieval-pipeline import 한 개와
-`_retrieve(...)` call 다섯 개, 기존 caller/aggregate fingerprint 기대 네
-개만 갱신한다. Exact temporary projection source/tests/whole `+7/-7`,
-`+4/-4`, `+11/-11`와 focused 338/338 경계는
+통과했다. 이어 `d8a41af`가 exact 6-line query-budget integer coercion을
+같은 위치와 본문으로 public `query_budget_int(...)`로 이름 수렴시키고
+retrieval-pipeline import 한 개와 `_retrieve(...)` call 다섯 개, 기존
+caller/aggregate fingerprint 기대 네 개만 갱신했다. Raw `value or 0`,
+단일 `int`, TypeError/ValueError fallback, outside-try zero clamp와 다섯
+budget assignment 순서는 유지됐고 source/tests/whole `+7/-7`, `+4/-4`,
+`+11/-11`, direct/identity 5/5, focused 338/338 in 177.154 seconds, audit
+217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143 in 220.001
+seconds가 통과했다. 다음 batch는 exact 7-line
+`financial_retrieval_hints._matched_ontology_concept_specs(...)`를 public
+`matched_ontology_concept_specs(...)`로 rename하고 owner-local call 한 개,
+graph import/call 각 한 개와 기존 direct-name/owner-count 기대 세 개만
+갱신한다. Exact temporary projection source/tests/whole `+4/-4`, `+3/-3`,
+`+7/-7`와 focused 556/556 경계는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

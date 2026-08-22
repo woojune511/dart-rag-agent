@@ -2532,35 +2532,49 @@ Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
 authoritative in
 [Project Status Completed Operand Row Matcher](../overview/project_status.md#completed-operand-row-requirement-match-public-api).
 
-The next bounded visibility seam renames only the exact 6-line
-`financial_graph_retrieval_budget._query_budget_int(value: Any) -> int`
-definition in place to public `query_budget_int(...)`, then updates the sole
-retrieval-pipeline import, five calls in `_retrieve(...)`, and four existing
-graph-helper fingerprint expectations. Preserve raw `value or 0` evaluation,
-one `int(...)` conversion, TypeError/ValueError-only fallback to exact zero,
-the outside-`try` `max(parsed, 0)` clamp, and all caller assignment/stop order.
-Add no wrapper, alias, body move, test method, vocabulary, policy, trace field,
-or adjacent retrieval change.
+The query-budget integer visibility seam completed in `d8a41af`. It renamed
+only the exact 6-line definition in place to public `query_budget_int(...)`,
+then updated one import, five `_retrieve(...)` calls, and four exact existing
+fingerprint expectations. It added no wrapper, alias, body move, test method,
+vocabulary, policy, trace field, or retrieval change. Source/tests/whole
+transforms were `+7/-7`, `+4/-4`, and `+11/-11`; the committed diff SHA-256
+is `1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+Direct behavior/public identity 5/5, focused 338/338 in 177.154 seconds, audit
+217, pycompile 2/2, retired refs zero, unchanged acyclic 48/203 DAG, and full
+2,143/2,143 in 220.001 seconds passed. Benchmark refresh and remote CI were
+**NOT RUN**. The preserved contract is authoritative in
+[Project Status Completed Query Budget](../overview/project_status.md#completed-query-budget-integer-public-api).
+
+The next bounded visibility seam renames only the exact 7-line
+`financial_retrieval_hints._matched_ontology_concept_specs(
+query: str, topic: str = "") -> List[Dict[str, Any]]` definition in place to
+public `matched_ontology_concept_specs(...)`, then updates one owner-local call,
+one graph-helper import/call, and three exact existing expectations. Preserve
+one ontology lookup, one comparison-mode concept-spec call, raw falsey fallback,
+ordered iteration, first filter `dict(spec)` conversion, second retained
+conversion, exact second-result append, nested identities, immutability,
+evaluation order, and uncaught errors. Add no wrapper, alias, body move, test
+method, vocabulary, ontology/policy change, trace field, or adjacent hint move.
 
 The normalized definition AST/body hashes are
-`083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
-`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9`;
-five one-positional/no-keyword/try-depth-zero assignment calls hash to
-`2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
-Selected private/public records project zero/seven, owner counts 0/15 to 1/14,
-and owner/pipeline physical lines remain 419/2,641.
+`9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
+`0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb`;
+two direct `For`-iterable calls at try depth zero hash to
+`cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
+Selected private/public records project zero/five, owner counts 7/7 to 8/6,
+and owner/graph-helper physical lines remain 318/4,285.
 
-Projected source/tests/whole transforms are `+7/-7`, `+4/-4`, and
-`+11/-11`; exact temporary diff SHA-256 is
-`1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
-The temporary projection passed direct behavior/public identity 5/5, focused
-338/338 in 171.077 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+Projected source/tests/whole transforms are `+4/-4`, `+3/-3`, and `+7/-7`;
+exact temporary diff SHA-256 is
+`5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+The temporary projection passed direct behavior/public identity 6/6, focused
+556/556 in 182.165 seconds, audit 217, pycompile 4/4, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG, then was restored cleanly. Full
-2,143/2,143 remains the implementation gate. Keep adjacent query signature,
-dedupe, limit, telemetry and scope helpers, caller bodies, retrieval execution,
-state/trace/artifact mutation, and final sequencing outside the batch.
-Benchmark refresh and remote CI remain **NOT RUN**; exact scope is authoritative
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+2,143/2,143 remains the implementation gate. Keep adjacent hint/query helpers,
+caller bodies, ontology policy, planning/retrieval, state/trace/artifact
+mutation, and final sequencing outside the batch. Benchmark refresh and remote
+CI remain **NOT RUN**; exact scope is authoritative only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line

@@ -6539,33 +6539,57 @@ retired refs zero, unchanged acyclic 48/203 DAG, and full 2,143/2,143 in
 details are preserved in
 [Project Status Completed Operand Row Matcher](../overview/project_status.md#completed-operand-row-requirement-match-public-api).
 
-The active visibility contract now renames only the exact 6-line
-`financial_graph_retrieval_budget._query_budget_int(value: Any) -> int`
-definition in place to public `query_budget_int(...)`, then updates one import,
-five calls inside `financial_retrieval_pipeline._retrieve(...)`, and four
-existing graph-helper fingerprint expectations. Preserve raw `value or 0`
-evaluation inside the `try`, one `int(...)` conversion, only TypeError/
-ValueError fallback to exact zero, the outside-`try` `max(parsed, 0)` clamp,
-input immutability, evaluation order, and all uncaught errors. The normalized
-definition AST/body hashes are
+Commit `d8a41af` completed the exact 6-line query-budget integer visibility
+contract. It renamed the definition in place to public `query_budget_int(...)`,
+updated one import, five `_retrieve(...)` calls, and four exact existing
+fingerprint expectations, and added no alias, wrapper, body move, test method,
+or adjacent behavior change. Raw `value or 0` evaluation, one `int(...)`
+conversion, TypeError/ValueError-only zero fallback, outside-`try` clamp, all
+five assignment placements, input immutability, evaluation order, and uncaught
+errors remain exact. The normalized definition/body/call hashes remain
 `083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
-`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9`.
-
-All five calls remain one-positional/no-keyword direct assignments at caller
-`try` depth zero, with exact `getattr` defaults 0/16/8/0/0 and normalized
-combined call-record hash
+`cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9` /
 `2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
-Selected private/public records project 0/7, owner counts 0/15 to 1/14, and
-owner/pipeline lines remain 419/2,641. Projected source/tests/whole transforms
-are `+7/-7`, `+4/-4`, and `+11/-11`; exact temporary diff SHA-256 is
+
+Source/tests/whole transforms were `+7/-7`, `+4/-4`, and `+11/-11`; the
+committed diff SHA-256 is
 `1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
-The restored projection passed direct behavior/public identity 5/5, focused
-338/338 in 171.077 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+Selected private/public records are 0/7, the public-owner identity holds, and
+owner counts are 1/14. Direct behavior/public identity 5/5, focused 338/338 in
+177.154 seconds, audit 217, pycompile 2/2, retired refs zero, unchanged acyclic
+48/203 DAG, and full 2,143/2,143 in 220.001 seconds passed. Benchmark refresh
+and remote CI were **NOT RUN**. Full details are preserved in
+[Project Status Completed Query Budget](../overview/project_status.md#completed-query-budget-integer-public-api).
+
+The active visibility contract now renames only the exact 7-line
+`financial_retrieval_hints._matched_ontology_concept_specs(
+query: str, topic: str = "") -> List[Dict[str, Any]]` definition in place to
+public `matched_ontology_concept_specs(...)`, then updates one owner-local call,
+one graph-helper import/call, and three exact existing expectations. Preserve
+one ontology lookup, one comparison-mode concept-spec call, raw falsey fallback
+to a fresh empty iterable, ordered list-comprehension iteration, first
+`dict(spec)` filter conversion, second retained conversion, exact second-result
+append, shallow nested identities, input immutability, evaluation order, and
+all uncaught errors. The normalized definition AST/body hashes are
+`9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
+`0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb`.
+
+Both calls remain direct `For` iterable expressions at caller `try` depth zero:
+owner `query, topic` and graph `query` using the unchanged empty-topic default.
+Their normalized combined call-record hash is
+`cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
+Selected private/public records project 0/5 across source/tests, owner counts
+7/7 to 8/6, and owner/graph-helper lines remain 318/4,285. Projected
+source/tests/whole transforms are `+4/-4`, `+3/-3`, and `+7/-7`; exact
+temporary diff SHA-256 is
+`5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+The restored projection passed direct behavior/public identity 6/6, focused
+556/556 in 182.165 seconds, audit 217, pycompile 4/4, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep adjacent retrieval helpers, caller bodies, retrieval
-ordering/execution, state, trace/artifact mutation, and final sequencing
+implementation gate. Keep adjacent hint/query helpers, caller bodies, ontology
+policy, planning/retrieval, state, trace/artifact mutation, and final sequencing
 outside this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
-fingerprints and stop lines are authoritative in
+expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

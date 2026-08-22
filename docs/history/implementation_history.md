@@ -10080,7 +10080,7 @@ completion claim.
   no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
   completion claim.
 
-### Query-budget integer public API characterization checkpoint
+### Historical query-budget integer public API characterization checkpoint
 
 - The next bounded visibility batch renames only the exact 6-line
   `financial_graph_retrieval_budget._query_budget_int(value: Any) -> int`
@@ -10114,6 +10114,71 @@ completion claim.
   implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
 - Keep adjacent query-signature, dedupe, limit, telemetry and scope helpers,
   all caller bodies, retrieval ordering/execution, state/trace/artifact
-  mutation, and final sequencing outside the batch. Exact fingerprints and
-  stop lines are authoritative in
+  mutation, and final sequencing outside the batch. The completed scope is
+  authoritative in
+  [Project Status Completed Query Budget](../overview/project_status.md#completed-query-budget-integer-public-api).
+
+### Query-budget integer public API milestone
+
+- Commit `d8a41af` renamed only the exact 6-line
+  `financial_graph_retrieval_budget._query_budget_int(...)` definition in place
+  to public `query_budget_int(...)`. It updated one retrieval-pipeline import,
+  five `_retrieve(...)` calls, and four exact existing fingerprint
+  expectations; it added no wrapper/alias and moved no body or adjacent helper.
+- Raw `value or 0` evaluation, one `int(...)` conversion, TypeError/ValueError-
+  only zero fallback, outside-`try` clamp, five assignment placements,
+  `getattr` defaults 0/16/8/0/0, input immutability, evaluation order, and
+  uncaught errors remain exact. The normalized definition/body/call hashes are
+  `083f828e9bcf0d064e444b6fdfcb67db0eb291599d9dace462a94c6ea0bf016a` /
+  `cf56a8766003063a6fee8a93f720ed1b0748d75a148abdc5cd9a67e501fc28d9` /
+  `2d56622fc0ddfc8aac39ebb1999a7ab4386cec4a5d1cc241abb1d4f538a63fee`.
+- Source/tests/whole transforms were `+7/-7`, `+4/-4`, and `+11/-11`; the
+  committed diff SHA-256 is
+  `1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+  Direct behavior/public identity 5/5 passed, focused 338/338 passed in
+  177.154 seconds, audit 217, pycompile 2/2, retired refs zero, selected public
+  records 7, owner public/private 1/14, unchanged acyclic 48/203 DAG, and full
+  2,143/2,143 passed in 220.001 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Matched-ontology-concept-spec public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 7-line
+  `financial_retrieval_hints._matched_ontology_concept_specs(
+  query: str, topic: str = "") -> List[Dict[str, Any]]` definition in place to
+  public `matched_ontology_concept_specs(...)`. Update one owner-local call,
+  one graph-helper import/call, and three exact existing expectations; add no
+  alias, wrapper, body move, test method, or adjacent hint change.
+- Preserve one ontology lookup, one left-to-right
+  `concept_specs(query, topic, "comparison")` call, raw `or []` truth, ordered
+  iteration, first `dict(spec)` filter conversion, falsey drop, second retained
+  conversion and exact second-result append, stateful/non-repeatable mapping
+  behavior, order, duplicates, shallow nested identity, immutability,
+  evaluation order, and uncaught errors. The normalized definition AST/body
+  hashes are
+  `9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
+  `0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb`.
+- Both calls remain direct `For` iterable expressions at caller try depth zero:
+  owner positional `query, topic` and graph positional `query` using the empty-
+  topic default. Their normalized combined call-record hash is
+  `cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
+  Production scope is one definition, one owner-local call, one external
+  import/call, and one exact test-name ref. No future public-name collision
+  exists; selected private/public records project 0/5, owner counts 7/7 to
+  8/6, and owner/graph-helper lines remain 318/4,285.
+- Update exactly three existing expectations: graph-helper selected import
+  string and owner count, plus retrieval-hints owner count. Projected source/
+  tests/whole transforms are `+4/-4`, `+3/-3`, and `+7/-7`; exact temporary
+  diff SHA-256 is
+  `5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+- The restored projection passed direct behavior/public identity 6/6, focused
+  graph-helper/retrieval-hints/operation-contract/import-side-effect tests
+  556/556 in 182.165 seconds, audit 217, pycompile 4/4, retired refs zero, diff
+  check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep adjacent hint/query helpers, all caller bodies, ontology policy,
+  planning/retrieval, state/trace/artifact mutation, and final sequencing
+  outside the batch. Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

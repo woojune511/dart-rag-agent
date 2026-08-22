@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `9ab7e64` renamed only `financial_operand_resolution._operand_row_matches_requirement(...)` in place to public `operand_row_matches_requirement(...)` and updated its eleven owner-local calls, four imports/eleven external calls, and 67 exact test expectations |
-| What passed? | Direct behavior plus structure 7/7, four public-owner identities, focused tests 1,004/1,004, runtime audit 217, pycompile 9/9, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `9ab7e64` |
+| What just changed? | `d8a41af` renamed only `financial_graph_retrieval_budget._query_budget_int(...)` in place to public `query_budget_int(...)` and updated its retrieval-pipeline import, five `_retrieve(...)` calls, and four exact fingerprint expectations |
+| What passed? | Direct behavior/public identity 5/5, focused tests 338/338, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `d8a41af` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_retrieval_budget._query_budget_int(...)` in place to public `query_budget_int(...)`; update one retrieval-pipeline import, five `_retrieve(...)` calls, and four existing fingerprint expectations |
+| What is next? | Rename only `financial_retrieval_hints._matched_ontology_concept_specs(...)` in place to public `matched_ontology_concept_specs(...)`; update one owner-local call, one graph import/call, and three exact test expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, operand-row requirement-match direct/structure 7 / 7, four public-owner identities, and affected focused set 1,004 / 1,004 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after operand-row requirement matcher public rename |
+| Latest focused owner checkpoint | PASS, query-budget direct behavior/public identity 5 / 5 and affected focused set 338 / 338 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after query-budget integer public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,99 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 7-line
+`src.agent.financial_retrieval_hints._matched_ontology_concept_specs(
+query: str, topic: str = "") -> List[Dict[str, Any]]` definition at lines
+38-44 in place to public `matched_ontology_concept_specs(...)`. Update the
+owner-local call in `_desired_statement_types(...)`, the sole import and call
+in `financial_graph_helpers._extract_generic_operand_labels(...)`, and three
+existing exact test expectations. Add no alias, wrapper, body move, new test
+method, vocabulary, policy, fallback, cache, or exception boundary. Do not
+rename any adjacent section/statement/query-matching helper and do not change
+ontology policy, planning, retrieval, state, trace, or final sequencing.
+
+Preserve exact evaluation semantics: call `get_financial_ontology()` once and
+bind its exact result, then call `ontology.concept_specs(query, topic,
+"comparison")` once with left-to-right arguments. Apply raw truth through
+`or []`, iterate the selected result once in source order, and evaluate
+`dict(spec)` in the comprehension filter for every item. Drop a falsey first
+mapping; for a retained item call `dict(spec)` again and append that exact
+second mapping to a fresh list. Preserve once-versus-twice conversion,
+stateful/non-repeatable mapping behavior, order, duplicates, shallow nested
+identity, input immutability, list identity, evaluation order, and every
+uncaught ontology lookup/call, truth, iteration, mapping conversion, filter,
+append, or return error. The name-normalized definition AST/body SHA-256 values
+are
+`9da2a81f36fe2615c97aa66dab541110eb2cb5a476debe1485c031cbf480d3bf` /
+`0c5cba8a103a6668d30f4a513d7419b74a1aeda025a063591c15484796e86eeb`.
+
+Both calls remain direct `For` iterable expressions at nearest-caller `try`
+depth zero. The owner call receives exact positional `query, topic`; the graph
+call receives exact positional `query` and therefore uses the unchanged empty-
+topic default. Preserve caller loop order and all later statement-type or
+operand-label construction; an uncaught helper error stops each caller before
+its loop body and later work. The target-normalized combined call-record
+SHA-256 is
+`cde545dcb90fe8321875ad65acd88eaaf033e7d8000ea3cc24ed41ef079e4fc2`.
+
+Current production scope is one definition, one owner-local call, one external
+import, and one external call: four selected private source API records. Tests
+contain one selected exact string reference. The future public name has no
+pre-existing exact source or test definition, import, executable name,
+attribute, string constant, patch target, or collision. After the rename
+selected private/public records must be 0/5 across source/tests, the graph
+binding must be identical to the public owner, owner public/private counts must
+move exactly 7/7 to 8/6, and owner/graph-helper physical lines must remain
+318/4,285.
+
+Update exactly three existing expectations: in
+`tests/test_financial_graph_helpers.py`, change the selected import string from
+`_matched_ontology_concept_specs` to `matched_ontology_concept_specs` and owner
+counts from `(7, 7)` to `(8, 6)`; in
+`tests/test_financial_retrieval_hints.py`, change the owner counts from
+`(7, 7)` to `(8, 6)`. Add no test method and weaken no assertion.
+
+Projected source/tests/whole transforms are `+4/-4`, `+3/-3`, and `+7/-7`
+across exactly two source and two test files. The exact temporary diff SHA-256
+is `5c919646835e34215b7235349b6381c0d3387ee24c61cd3c748c2e2648f0121f`.
+The restored projection passed direct behavior/public identity 6/6, focused
+graph-helper/retrieval-hints/operation-contract/import-side-effect tests
+556/556 in 182.165 seconds, audit 217, pycompile 4/4, retired selected refs
+zero, `git diff --check`, and the retained acyclic 48/203 DAG. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only projection establishes no behavior,
+answer-quality, ontology-quality, ranking, retrieval-performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
+
+## Completed Query-Budget Integer Public API
+
+Commit `d8a41af` renamed only the exact 6-line
+`financial_graph_retrieval_budget._query_budget_int(...)` definition in place
+to public `query_budget_int(...)`. It updated the sole retrieval-pipeline
+import, five `_retrieve(...)` calls, and four exact existing fingerprint
+expectations without moving the body, adding a compatibility surface, or
+changing adjacent query, dedupe, budget, telemetry, scope, or retrieval logic.
+Raw `value or 0` evaluation, one `int(...)` conversion, TypeError/ValueError-
+only fallback, outside-`try` zero clamp, all five assignment placements,
+evaluation order, immutability, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+7/-7`, `+4/-4`, and `+11/-11`; the
+committed diff SHA-256 is
+`1c3ed12532406de9b9bf1275487291ab1811cb00c8db3027f5035a3c1b58430b`.
+Direct behavior/public identity passed 5/5, focused 338/338 passed in 177.154
+seconds, audit 217, pycompile 2/2, retired selected refs zero, selected public
+records 7, owner public/private 1/14, unchanged acyclic 48/203 DAG, and full
+discovery 2,143/2,143 passed in 220.001 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Query-Budget Integer Characterization Checkpoint
+
+The characterization below predates `d8a41af`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 6-line
 `src.agent.financial_graph_retrieval_budget._query_budget_int(
