@@ -19,7 +19,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _drop_queries_already_selected,
     _limit_query_context_terms,
     _lookup_query_result_cache,
-    _query_budget_int,
+    query_budget_int,
     _store_query_result_cache,
     _summarize_executed_query_telemetry,
 )
@@ -2162,14 +2162,14 @@ class FinancialRetrievalPipelineMixin:
             "active_subtask_retrieval_query_count": len(active_subtask_retrieval_queries),
             "state_retrieval_query_count": len(retrieval_queries),
         }
-        primary_budget = _query_budget_int(getattr(self, "retrieval_query_budget", 0))
+        primary_budget = query_budget_int(getattr(self, "retrieval_query_budget", 0))
         query_bundle, query_budget_trace["primary"] = _apply_query_budget(
             list(query_bundle),
             primary_budget,
             dedupe=primary_budget > 0,
         )
-        hint_budget = _query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
-        section_budget = _query_budget_int(getattr(self, "preferred_section_query_budget", 8))
+        hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
+        section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
         retrieval_hint_terms = [item for item in _normalise_spaces(retrieval_hint).split(" ") if item]
         selected_retrieval_hint_terms, hint_enrichment_trace = _limit_query_context_terms(
             retrieval_hint_terms,
@@ -2268,7 +2268,7 @@ class FinancialRetrievalPipelineMixin:
             )
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
-        configured_focused_budget = _query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
+        configured_focused_budget = query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
         focused_budget = configured_focused_budget or 8
         primary_operand_coverage = _required_operand_coverage_from_docs(docs, active_subtask, query, report_scope)
         focused_operand_queries, query_budget_trace["operand_focus"] = _apply_query_budget(
@@ -2366,7 +2366,7 @@ class FinancialRetrievalPipelineMixin:
                 focused_docs.extend(batch_docs)
             if focused_docs:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
-        configured_retry_budget = _query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
+        configured_retry_budget = query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
         retry_budget = configured_retry_budget or 3
         retry_queries, query_budget_trace["retry"] = _apply_query_budget(
             retry_queries,

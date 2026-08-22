@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from src.agent.financial_runtime_normalization import _normalise_spaces
 
 
-def _query_budget_int(value: Any) -> int:
+def query_budget_int(value: Any) -> int:
     try:
         parsed = int(value or 0)
     except (TypeError, ValueError):
