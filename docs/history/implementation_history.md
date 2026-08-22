@@ -10950,9 +10950,9 @@ are complete. It remains only as an audit record, not an active priority.
   and establishes no behavior, quality, performance, benchmark, schedule,
   cache-effectiveness, ledger, or Phase 3 completion claim.
 
-### Query-result-cache lookup public API characterization checkpoint
+### Historical query-result-cache lookup public API characterization checkpoint
 
-- The next bounded visibility batch renames only the exact 45-line
+- The bounded visibility projection renamed only the exact 45-line
   `financial_graph_retrieval_budget._lookup_query_result_cache(...)` definition
   in place to public `lookup_query_result_cache(...)`. Update one pipeline
   import, three external `_retrieve(...)` assignments, and exactly four
@@ -10987,7 +10987,82 @@ are complete. It remains only as an audit record, not an active priority.
 - The restored projection passed current-private and projected-public direct
   behavior/identity 12/12 each, exact structural 2/2 in 18.334 seconds,
   focused tests 370/370 in 20.245 seconds, audit 217, pycompile 3/3, retired
-  refs zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143
-  remains the implementation gate. Benchmark refresh and remote CI were
-  **NOT RUN**. Exact expectations and stop lines are authoritative in
+  refs zero, diff check, and unchanged acyclic 48/203 DAG. Commit `01959ca`
+  later passed full 2,143/2,143 and completed the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**. The completed scope is
+  authoritative in
+  [Project Status Completed Query Result Cache Lookup](../overview/project_status.md#completed-query-result-cache-lookup-public-api).
+
+### Query-result-cache lookup public API completed
+
+- Commit `01959ca` renamed only the exact 45-line
+  `financial_graph_retrieval_budget._lookup_query_result_cache(...)` definition
+  in place to public `lookup_query_result_cache(...)`, then updated one pipeline
+  import, three external `_retrieve(...)` assignments, and exactly four
+  derived CURRENT-SOURCE hash expectations. It added no alias, wrapper, body
+  move, test method, cache policy, trace field, retrieval branch, or adjacent
+  key/store/telemetry change.
+- Key-first evaluation, falsey-key fresh-empty return, exact-entry shallow copy,
+  exact-hit precedence, insertion-ordered objective fallback, objective/filter/
+  capacity gates, no fallback for a truthy undersized exact entry, final
+  capacity validation, explicit key/mode overwrite, fresh docs slicing, zero/
+  negative slice behavior, shallow identities, immutability, field order,
+  uncaught errors, and caller hit/miss boundaries remain exact. Definition/body
+  hashes are
+  `5f87a6549de7f549e34eb13e793d8187d58e60b862473f8d0bb54c413f02cf47` /
+  `00e514a48d043ee84dc6a293fac0ae84029a7666fa7dcf3f401cfb4e19f2e01b`.
+- All three calls remain `cached_result` assignments at try depth zero with
+  exact primary/enriched, operand-focus/focused, and retry/retry arguments.
+  Final call/caller hashes are
+  `6d210f2a7681587b978d4c692041e183b99c2a691a77d7b8617ee2c6da97a73c` /
+  `7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`.
+- Actual source/tests/whole transforms were `+5/-5`, `+4/-4`, and `+9/-9`;
+  committed diff SHA-256 is
+  `9821d3cdca76be72cc4139d628abfb4aa9141c00dce65b76cbcfbf5feb416536`.
+  Direct behavior/public identity 12/12, exact structural 2/2 in 17.405
+  seconds, focused 370/370 in 19.947 seconds, audit 217, pycompile 3/3,
+  selected private/public 0/5, owner counts 6/9, unchanged 419/2,641 lines,
+  unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 302.217 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. The milestone is name-only
+  and establishes no behavior, quality, performance, benchmark, schedule,
+  cache-effectiveness, ledger, or Phase 3 completion claim.
+
+### Executed-query telemetry summary public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 46-line
+  `financial_graph_retrieval_budget._summarize_executed_query_telemetry(...)`
+  definition in place to public `summarize_executed_query_telemetry(...)`.
+  Update one pipeline import/call pair, the direct import/call pair in
+  `tests/test_retrieval_scope.py`, and exactly four derived CURRENT-SOURCE
+  hash expectations; add no alias, wrapper, body move, test method, telemetry
+  policy, retrieval branch, or adjacent budget/cache/cross-trace change.
+- Preserve fresh eight-field summary construction with `len(...)` first;
+  source normalization/default, eager per-source adoption and executed-count
+  increment; shallow telemetry coercion and falsey continue; cache-hit then
+  vector-attempt truth/counter order; shallow embedding-usage coercion; four
+  ordered integer conversions before four global and two per-source API-call
+  additions. Keep per-source text-count fields absent, first-seen source order,
+  repeated-source aggregation, fresh outputs, immutable inputs, partial
+  counters on later failures, and every uncaught error.
+- The one production call remains the `"search_summary"` value during ordered
+  `retrieval_debug_trace` construction at try depth zero, with exact positional
+  `executed_queries` and no keywords. The direct test changes only its import/
+  call symbol. Future definition/body hashes are
+  `337dc3020b1c4cbae763c47899a739be080739e4f46920a2c21330985b69d492` /
+  `ed8caa2821864709c369977941c1369e84563800c979f97a3687dc4c7ee45ae4`;
+  the caller body projects
+  `7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`
+  to
+  `d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`.
+- Production/test selected records are 3/2; selected private/public records
+  project 0/5, owner counts 6/9 to 7/8, and lines remain 419/2,641. Projected
+  source/tests/whole transforms are `+3/-3`, `+6/-6`, and `+9/-9` across four
+  files; exact temporary diff SHA-256 is
+  `b79b3cf3a4f3295d1a2f33fa42b7069c18e74df03ee934b9bce8dc58cc6296bf`.
+- The restored projection passed current-private and projected-public direct
+  behavior/identity 12/12 each, exact structural 2/2 in 19.134 seconds,
+  focused 369/369 in 231.486 seconds, audit 217, pycompile 4/4, retired refs
+  zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains
+  the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+  Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

@@ -2741,16 +2741,75 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Executed Query Duplicate Drop](../overview/project_status.md#completed-executed-query-duplicate-drop-public-api).
 
-The next bounded visibility seam renames only the exact 45-line
+The query-result-cache lookup visibility seam completed in `01959ca`. It
+renamed only the exact 45-line helper in place to public
+`lookup_query_result_cache(...)`, then updated one pipeline import, three
+`cached_result` assignments, and four derived CURRENT-SOURCE hash expectations.
+Key-first/falsey early return, exact-hit precedence, insertion-ordered
+objective fallback, capacity gates, shallow-copy/fresh-doc-slice identities,
+uncaught errors, and caller hit/miss sequencing remain exact. Source/tests/
+whole transforms were `+5/-5`, `+4/-4`, and `+9/-9`; committed diff SHA-256
+is `9821d3cdca76be72cc4139d628abfb4aa9141c00dce65b76cbcfbf5feb416536`.
+Direct/identity 12/12, exact structural 2/2, focused 370/370, audit 217,
+pycompile 3/3, owner counts 6/9, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
+contract is authoritative in
+[Project Status Completed Query Result Cache Lookup](../overview/project_status.md#completed-query-result-cache-lookup-public-api).
+
+The next bounded visibility seam renames only the exact 46-line
+`financial_graph_retrieval_budget._summarize_executed_query_telemetry(
+executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]` definition in place
+to public `summarize_executed_query_telemetry(...)`, then updates one pipeline
+import/call pair, one direct-test import/call pair, and four derived CURRENT-
+SOURCE hash expectations. Its five selected AST records make it the smallest
+remaining correct-owner transform; the shorter `_apply_query_budget(...)` has
+eight records and exposes a composite dedupe/period-balance policy contract.
+
+Preserve the fresh eight-field summary and first `len(...)`, per-item source
+normalization/default, eager per-source adoption, executed-count increment,
+shallow telemetry materialization, and falsey continue. Cache-hit truth and
+global/per-source increments precede vector-attempt truth and its increments.
+Then preserve shallow embedding-usage materialization, four ordered integer
+conversions before any embedding total changes, four global additions, and two
+per-source API-call additions. Keep per-source text counts absent, source
+insertion order and repeated-source aggregation exact, inputs immutable,
+outputs fresh, partial counters on later failure, and all errors uncaught.
+
+The sole production call remains the `"search_summary"` dictionary value in
+`_retrieve` at try depth zero with one positional `executed_queries` argument.
+Earlier reuse/cross-trace work, ordered trace construction, assignment, and
+later state work stay caller-owned. The direct test changes only its import and
+call symbol. Future definition/body hashes are
+`337dc3020b1c4cbae763c47899a739be080739e4f46920a2c21330985b69d492` /
+`ed8caa2821864709c369977941c1369e84563800c979f97a3687dc4c7ee45ae4`;
+the `_retrieve` caller body projects
+`7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`
+to
+`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`.
+Selected private/public records project zero/5, owner counts 6/9 to 7/8, and
+physical lines remain 419/2,641.
+
+Projected source/tests/whole transforms are `+3/-3`, `+6/-6`, and `+9/-9`
+across four files; exact temporary diff SHA-256 is
+`b79b3cf3a4f3295d1a2f33fa42b7069c18e74df03ee934b9bce8dc58cc6296bf`.
+The temporary projection passed current/projected direct/identity 12/12 each,
+exact structural 2/2 in 19.134 seconds, focused 369/369 in 231.486 seconds,
+audit 217, pycompile 4/4, retired refs zero, diff check, and unchanged 48/203
+DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
+gate. Keep retrieval/search/cache policy, graph state, trace/artifact/ledger
+work, and final sequencing outside the batch. Benchmark refresh and remote CI
+remain **NOT RUN**; exact scope is authoritative only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
+
+The following query-result-cache lookup inventory is the historical checkpoint
+that preceded `01959ca`; it is not active work. At that checkpoint the bounded
+visibility seam projected the exact 45-line
 `financial_graph_retrieval_budget._lookup_query_result_cache(cache:
 Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
 where_filter: Any, k: int, objective_signature: str = "") -> Dict[str, Any]`
-definition in place to public `lookup_query_result_cache(...)`, then updates
-one pipeline import, three `_retrieve(...)` calls, and four derived CURRENT-
-SOURCE hash expectations. It is the smallest remaining correct-owner transform
-by equal five-record count and shorter span than the 46-line telemetry summary;
-the shorter `_apply_query_budget(...)` has eight records and exposes a
-composite policy contract.
+definition for an in-place public rename to `lookup_query_result_cache(...)`,
+with one pipeline import, three `_retrieve(...)` calls, and four derived
+CURRENT-SOURCE hash expectations.
 
 Preserve key construction and falsey-key early return before cache/objective/
 `k` work. Exact lookup keeps a shallow copied entry and exact mode. Objective
@@ -2783,11 +2842,12 @@ exact temporary diff SHA-256 is
 The temporary projection passed current/projected direct/identity 12/12 each,
 exact structural 2/2 in 18.334 seconds, focused 370/370 in 20.245 seconds,
 audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203
-DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate. Keep cache-key/store policy, retrieval/search/telemetry, graph state,
-trace/artifact/ledger work, and final sequencing outside the batch. Benchmark
-refresh and remote CI remain **NOT RUN**; exact scope is authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+DAG, then was restored cleanly. Commit `01959ca` later passed full 2,143/2,143
+and completed the implementation gate without expanding cache-key/store policy,
+retrieval/search/telemetry, graph state, trace/artifact/ledger work, or final
+sequencing. Benchmark refresh and remote CI were **NOT RUN**; the completed
+scope is authoritative in
+[Project Status Completed Query Result Cache Lookup](../overview/project_status.md#completed-query-result-cache-lookup-public-api).
 
 The following formatter inventory is the historical checkpoint that preceded
 `72eb1b8`; it is not active work. It selected the exact then-current 24-line
