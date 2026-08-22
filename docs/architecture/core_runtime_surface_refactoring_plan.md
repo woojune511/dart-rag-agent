@@ -2825,37 +2825,64 @@ pycompile 4/4, retired refs zero, diff check, unchanged 48/203 DAG, and full
 completion evidence is authoritative in
 [Project Status Completed Cross-Trace Diagnostics](../overview/project_status.md#completed-cross-trace-reuse-candidate-diagnostics-public-api).
 
-The next bounded visibility seam renames only the exact 20-line
-`financial_runtime_trace._attach_runtime_projection_metadata(...)` definition
-in place to public `attach_runtime_projection_metadata(...)`. Update the five
-owner-local calls, three external imports/four calls in run projection,
-aggregate projection, and graph, eight existing test symbol strings, and one
-derived owner public/private count. Add no alias, wrapper, body/owner move, new
-module, test method, trace field, answer/evidence decision, artifact/ledger
-mutation, exception boundary, or adjacent projection change.
+The exact 20-line runtime-projection metadata visibility seam completed in
+`cd443a4`. It renamed
+`financial_runtime_trace._attach_runtime_projection_metadata(...)` in place to
+public `attach_runtime_projection_metadata(...)`, then updated five owner-local
+calls, three external imports/four calls, eight existing test symbol strings,
+and one derived owner public/private count. The ownership decision remains to
+keep the helper with its private runtime-trace material predicate; publicizing
+the binding did not move policy or expand answer/evidence/cache authority.
 
-Keep the helper with the runtime-trace projection mechanisms and its private
-material predicate. Preserve no-material same-object/no-mutation return;
-shallow existing-metadata copy; ordered source/legacy overwrite; raw task-ID
-truth gate before normalization; unrelated-key and falsey-task-ID
-preservation; fresh metadata but original trace identity; all propagated
-errors; and all five local/four external caller gates and sequencing.
+Preserve no-material same-object/no-mutation return; shallow existing-metadata
+copy; ordered source/legacy overwrite; raw task-ID truth before normalization;
+unrelated-key and falsey-task-ID preservation; fresh metadata but original
+trace identity; all propagated errors; and all five local/four external caller
+gates and sequencing. Final definition/body hashes are
+`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448` /
+`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
+Selected private/public records are zero/21, owner counts are 6/25, and actual
+source/tests/whole transforms were `+13/-13`, `+9/-9`, and `+22/-22`.
+Committed diff SHA-256 is
+`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
+Direct/identity 14/14, exact structural 5/5, focused 195/195, audit 217,
+pycompile 6/6, retired refs zero, diff check, unchanged 48/203 DAG, and full
+2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**; exact
+completion evidence is authoritative in
+[Project Status Completed Runtime-Projection Metadata](../overview/project_status.md#completed-runtime-projection-metadata-public-api).
+
+The next bounded visibility seam renames only the exact 22-line
+`financial_runtime_trace._runtime_trace_state_update(...)` definition in place
+to public `runtime_trace_state_update(...)`. Update two external imports, all
+26 external calls, ten existing test symbol references, one derived owner
+public/private count, and twelve derived CURRENT-SOURCE hash expectations. Add
+no alias, wrapper, body/owner move, module, test method, trace/answer/evidence
+decision, report-cache policy, artifact/ledger mutation, exception boundary, or
+adjacent calculation change.
+
+Keep the helper with runtime-trace construction and report-cache-candidate
+projection. Preserve canonical trace construction first with exact payloads,
+the existing source label and false legacy flag; fresh two-key state update;
+resolved-trace identity; shallow structured-result copy; candidate
+classification after update construction; truthy-only attachment to the same
+trace; propagated errors; and all 26 external caller gates and sequencing.
 
 Current-private/future-public definition hashes are
-`d572f2044f98deaf5853c8b0a185ee120084a201befd75839254b9e71c1cc7e5` /
-`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448`;
+`d56ff456e5002c4d8dc37058c03389307923e8db13ad8dde8310366f0bfad83d` /
+`28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5`;
 the body remains
-`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
-Selected private/public exact-name records project zero/21, owner counts move
-5/26 to 6/25, and projected source/tests/whole transforms are `+13/-13`,
-`+9/-9`, and `+22/-22`. Exact temporary diff SHA-256 is
-`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
-The temporary projection passed current/projected direct/identity 14/14 each,
-exact structural 5/5 in 4.993 seconds, focused 195/195 in 9.814 seconds, audit
-217, pycompile 6/6, retired refs zero, diff check, and unchanged 48/203 DAG,
-then was restored cleanly. Full 2,143/2,143 remains the implementation gate;
-benchmark refresh and remote CI remain **NOT RUN**. Exact scope is
-authoritative only in
+`8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
+Selected executable/test-symbol private/public records project zero/39, owner
+counts move 6/25 to 7/24, and the unchanged public-name trace source literal is
+excluded from that symbol count. Projected source/tests/whole transforms are
+`+29/-29`, `+23/-23`, and `+52/-52`. Exact temporary diff SHA-256 is
+`8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
+The temporary projection passed current/projected direct/identity 18/18 each,
+exact affected contracts 8/8 in 1.713 seconds, focused 597/597 in 183.706
+seconds, audit 217, pycompile 9/9, retired refs zero, diff check, and unchanged
+48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+implementation gate; benchmark refresh and remote CI remain **NOT RUN**. Exact
+scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical

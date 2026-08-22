@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `e17d165` renamed only the trace-only `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)` in place to public `cross_trace_reuse_candidate_diagnostics(...)` and updated one pipeline import/call pair, one direct-test import/call pair, and four derived CURRENT-SOURCE hashes |
-| What passed? | Direct behavior/public identity 13/13, exact structural tests 2/2, focused tests 369/369, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `e17d165` |
+| What just changed? | `cd443a4` renamed only the exact 20-line `financial_runtime_trace._attach_runtime_projection_metadata(...)` definition in place to public `attach_runtime_projection_metadata(...)` and updated five owner-local calls, three external imports/four calls, eight existing test symbol strings, and one derived owner-count expectation |
+| What passed? | Direct behavior/public identity 14/14, exact structural tests 5/5, focused tests 195/195, runtime audit 217, pycompile 6/6, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `cd443a4` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 20-line `financial_runtime_trace._attach_runtime_projection_metadata(...)` in place to public `attach_runtime_projection_metadata(...)`; update five owner-local calls, three external imports/four calls, eight existing test symbol strings, and one derived owner-count expectation |
+| What is next? | Rename only the exact 22-line `financial_runtime_trace._runtime_trace_state_update(...)` definition in place to public `runtime_trace_state_update(...)`; update two imports, 26 calls, ten existing test symbol references, one owner-count expectation, and twelve derived CURRENT-SOURCE hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, cross-trace diagnostics direct behavior/public identity 13 / 13, exact structural tests 2 / 2, and affected focused set 369 / 369 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after cross-trace diagnostics public rename |
+| Latest focused owner checkpoint | PASS, runtime-projection metadata direct behavior/public identity 14 / 14, exact structural tests 5 / 5, and affected focused set 195 / 195 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-projection metadata public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,134 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 22-line
+`src.agent.financial_runtime_trace._runtime_trace_state_update(
+state: Dict[str, Any], *, calculation_operands: List[Dict[str, Any]],
+calculation_plan: Dict[str, Any], calculation_result: Dict[str, Any]) ->
+Dict[str, Any]` definition at lines 766-787 in place to public
+`runtime_trace_state_update(...)`. Update the two external imports and all 26
+external calls in `financial_calculation_execution.py` and
+`financial_graph_calculation.py`; ten existing exact symbol references across
+`tests/test_evaluator_runtime_projection.py`,
+`tests/test_report_scoped_cache_contract.py`,
+`tests/test_financial_graph_helpers.py`,
+`tests/test_financial_task_artifacts.py`, and
+`tests/test_reflection_capability_contract.py`; the one existing runtime-trace
+owner-count expectation in `tests/test_aggregate_subtask_projection.py`; and
+exactly twelve derived CURRENT-SOURCE hash expectations in
+`tests/test_financial_graph_helpers.py`. Add no alias, wrapper, body/owner move,
+module, test method, trace field, answer/evidence decision, report-cache policy,
+artifact/ledger mutation, exception boundary, or adjacent calculation change.
+
+Keep the helper in `financial_runtime_trace.py`. It composes the owner-private
+`_build_runtime_calculation_trace(...)` and
+`_report_cache_candidate_for_trace(...)` mechanisms into the canonical state
+update consumed by two external owners. Moving the 22-line body would expose
+both private mechanisms or duplicate trace/cache-candidate policy. The public
+binding is a core runtime-trace composition contract; it does not grant answer,
+evidence, evaluator, cache-serving, calculation-policy, or orchestration
+authority.
+
+Preserve `_build_runtime_calculation_trace(...)` as the first operation with
+the exact three keyword payloads, unchanged source literal
+`"runtime_trace_state_update"`, and `legacy_fallback=False`. Preserve the fresh
+two-key update mapping, the exact resolved-trace identity, shallow
+`dict(calculation_result)` copy and its propagated errors, then the exact
+`_report_cache_candidate_for_trace(state, resolved_trace)` call. A truthy
+candidate must be attached to that same resolved trace before returning the
+original update mapping; a falsey candidate must not add the field. Keep all
+26 external calls, their exact arguments, dictionary-unpack adoption, caller
+gates, later updates, and final sequencing in place.
+
+Current-private/future-public definition SHA-256 values are
+`d56ff456e5002c4d8dc37058c03389307923e8db13ad8dde8310366f0bfad83d` /
+`28aa4b233773458b47d4fa257c2a7e7ee48a4ca58c81d6d84415971325bdffb5`;
+the unchanged body hash is
+`8cfe40a3df52967e6260dea74f8bf9b65e93ce321e634013e0a9dc3460ccbeb8`.
+After the rename selected executable/test-symbol private/public records must be
+0/39, source definition/import/load records must remain 1/2/26, and owner
+public/private counts must move exactly 6/25 to 7/24. The existing trace source-
+label literal `"runtime_trace_state_update"` is intentionally unchanged and is
+not a symbol record.
+
+The twelve derived expectations are four
+`_extract_calculation_operands(...)` hashes from
+`5af180cb12e2eef0ad7c8e3a8b5331d4d7aed5cf032d36d110f1910b1d41c637`
+to `acba480ac92f6ff21edb8fa9b675c4254e0c35c3f459c985dc50a559cd637220`;
+one `_plan_formula_calculation_from_operation_decision(...)` hash from
+`e1f6f5b5416c350941a7032ffbf20dca7fecd359d2c0e4c0cb49b2d3c7956728`
+to `abc1ef92d06d13a73f09fbc75666cdbf7a3038250458e9e24a7882bd86f31394`;
+two desired-consolidation caller-map hashes from
+`888e04218e9dd3dd6e9ba4aacf65d32a218c78bcd96859c0ed517e3fd81422b8`
+to `63e9839cacc5b5cf50cb0f9c4d80cf23828dd48d769d43d421b5cd20eb48a7d5`;
+and five dependent manifest hashes: ratio
+`f70a596c6d1834b8dcb87060467ec9033af9f9c2a854104efc9c185393ed7b1e`
+to `6038eeca9b069bf651ab2bb6519d562920055208b83b22e632a6f597bc7f309b`;
+narrative
+`e1d306ce583613f9d90cbe73f3c7e222a3f542635bcd754ba6ad488654609d89`
+to `20eb7b5cc5335f485e96ec5113385fd0a6c171331374e31a6c199fb0b592ab7a`;
+percent-point
+`5e7cff1c5feba8a28fbf62b0c2b5065e28d7bf459a6ad77415cfa8ab8f19a23f`
+to `0d56d5ad9c5ce88cb789f78d643282519f6d2a3428fd770226a2a2dfc4599b21`;
+percent-point coercion
+`a01ac156957d31271d60112110b034c8c49829d45853977e8c88cebd39878a3a`
+to `51f9d6f5b84df45d3a9fd908ff601bfcc19813a902e7ae72e10749c48574abef`;
+and direct-grounding
+`d270817814dc5cd6b903efa7a365d6f97638ad6f0912e3c35de63fdedec23b29`
+to `8836821ea75224d4404fb654b979ded69e38706b6398add652b0d0978eb9e818`.
+
+Projected source/tests/whole transforms are `+29/-29`, `+23/-23`, and
+`+52/-52` across exactly three source and six test files. The exact temporary
+diff SHA-256 is
+`8727787795ad2c14aa707e77ad058f221a7541954fca3cbd9e84068ea20cd4bf`.
+The restored projection passed current-private and projected-public direct
+behavior/identity 18/18 each, exact affected contracts 8/8 in 1.713 seconds,
+affected focused modules 597/597 in 183.706 seconds, audit 217, pycompile 9/9,
+retired executable/test symbol refs zero, diff check, and unchanged acyclic
+48/203 import topology. Full discovery 2,143/2,143 remains the implementation
+gate. Benchmark refresh and remote CI remain **NOT RUN**. After implementation,
+also update current references in `docs/planning/backlog_and_next_epics.md` and
+`docs/architecture/internal_calculation_mirror_cleanup.md`, then synchronize
+the six authority documents; historical snapshots remain immutable. This
+name-only projection establishes no behavior, answer/trace quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Runtime-Projection Metadata Public API
+
+Commit `cd443a4` renamed only the exact 20-line
+`financial_runtime_trace._attach_runtime_projection_metadata(...)` definition
+in place to public `attach_runtime_projection_metadata(...)`. It updated five
+owner-local calls, three external imports/four calls, eight existing test
+symbol strings, and one derived owner-count expectation without moving the
+body or changing trace construction, normalization, answer/evidence behavior,
+state, artifact/ledger, evaluator, cache, or caller sequencing.
+
+The material predicate remains first; the no-material path returns the same
+unchanged trace; and the material path preserves shallow existing-metadata
+copy, ordered source/legacy overwrite, raw task-ID truth before normalization,
+unrelated-key and falsey-task-ID preservation, fresh metadata/original trace
+identities, propagated errors, and all nine caller boundaries. Final
+definition/body hashes are
+`f12ea6601f111b4fb94c8c534e6b147a609bfc80597a8fdee6d500a9c671b448` /
+`da844614ef884c0dfbefa5be6c0d05351a1e3051cc0bcc52f05e58c6f611199e`.
+
+Actual source/tests/whole transforms were `+13/-13`, `+9/-9`, and `+22/-22`;
+committed diff SHA-256 is
+`0fb0da5224fd85a211c5b30482399dba06bf1930f42a059f64c34026e2547a40`.
+Direct behavior/public identity 14/14, exact structural tests 5/5 in 5.514
+seconds, focused tests 195/195 in 10.520 seconds, audit 217, pycompile 6/6,
+selected private/public 0/21, owner counts 6/25, unchanged acyclic 48/203 DAG,
+and full discovery 2,143/2,143 in 249.989 seconds passed. Benchmark refresh and
+remote CI were **NOT RUN**. This name-only cleanup establishes no answer
+behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+## Historical Runtime-Projection Metadata Characterization Checkpoint
+
+The characterization below predates `cd443a4`; its projected rename and full
+gate are complete. It is retained only as an audit record and is not active
+work.
 
 Rename only the exact 20-line
 `src.agent.financial_runtime_trace._attach_runtime_projection_metadata(
@@ -859,10 +987,10 @@ The restored projection passed current-private and projected-public direct
 behavior/identity 14/14 each, exact structural tests 5/5 in 4.993 seconds,
 affected focused modules 195/195 in 9.814 seconds, audit 217, pycompile 6/6,
 retired selected refs zero, diff check, and unchanged acyclic 48/203 import
-topology. Full discovery 2,143/2,143 remains the implementation gate.
-Benchmark refresh and remote CI remain **NOT RUN**. This name-only projection
-establishes no behavior, answer-quality, trace-quality, performance, benchmark,
-schedule, ledger, or Phase 3 completion claim.
+topology. Commit `cd443a4` later passed full discovery 2,143/2,143 and completed
+the implementation gate. Benchmark refresh and remote CI were **NOT RUN**. The
+completed scope is authoritative in
+[Completed Runtime-Projection Metadata](#completed-runtime-projection-metadata-public-api).
 
 ## Completed Cross-Trace Reuse Candidate Diagnostics Public API
 
