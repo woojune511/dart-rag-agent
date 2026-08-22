@@ -253,7 +253,7 @@ from src.agent.financial_operation_policies import (
 )
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _display_operand_label,
+    display_operand_label,
     _normalise_operand_value,
     _normalise_spaces,
     _parse_number_text,
@@ -8780,8 +8780,8 @@ class FinancialAgentCalculationMixin:
 
         numerator_value = _component_value(numerator_slot)
         denominator_value = _component_value(denominator_slot)
-        numerator_label = _display_operand_label(str(numerator_slot.get("label") or ""))
-        denominator_label = _display_operand_label(str(denominator_slot.get("label") or ""))
+        numerator_label = display_operand_label(str(numerator_slot.get("label") or ""))
+        denominator_label = display_operand_label(str(denominator_slot.get("label") or ""))
         if (
             metric_label
             and rendered_value
@@ -8792,7 +8792,7 @@ class FinancialAgentCalculationMixin:
             def _component_expression(slots: List[Dict[str, Any]]) -> str:
                 terms: List[str] = []
                 for slot in slots:
-                    label = _display_operand_label(str(slot.get("label") or ""))
+                    label = display_operand_label(str(slot.get("label") or ""))
                     value = _component_value(slot)
                     if not (label and value):
                         continue
@@ -8904,7 +8904,7 @@ class FinancialAgentCalculationMixin:
         if not operand_id:
             return None
         result_unit = str(row.get("raw_unit") or "").strip()
-        operation_text = _display_operand_label(str(row.get("label") or active_subtask.get("metric_label") or "조회값"))
+        operation_text = display_operand_label(str(row.get("label") or active_subtask.get("metric_label") or "조회값"))
         return {
             "status": "ok",
             "mode": "single_value",
@@ -10659,7 +10659,7 @@ class FinancialAgentCalculationMixin:
         if mode == "time_series":
             try:
                 labels = [
-                    _display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
+                    display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
                     for row in ordered_operands
                 ]
                 metric_names = [re.sub(r"^\d{4}년\s*", "", label).strip() for label in labels]
@@ -10735,7 +10735,7 @@ class FinancialAgentCalculationMixin:
         )
         rendered_with_unit = display_state["rendered_with_unit"]
         labels = [
-            _display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
+            display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
             for row in ordered_operands
         ]
         result_series = calculation_rendering.scalar_result_series(

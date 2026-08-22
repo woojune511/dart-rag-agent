@@ -32,7 +32,7 @@ import src.agent.financial_surface_contracts as financial_surface_contracts
 import src.agent.financial_task_artifacts as financial_task_artifacts
 import src.agent.financial_text_surface as financial_text_surface
 
-from src.agent.financial_runtime_normalization import _display_operand_label
+from src.agent.financial_runtime_normalization import display_operand_label
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     preferred_calc_sections,
@@ -43,13 +43,13 @@ from src.agent.financial_retrieval_hints import (
 class FinancialGraphHelperTests(unittest.TestCase):
     def test_display_operand_label_removes_generic_company_year_prefix(self) -> None:
         self.assertEqual(
-            _display_operand_label("\uc0bc\uc131\uc804\uc790 2023\ub144 \uc601\uc5c5\uc774\uc775"),
+            display_operand_label("\uc0bc\uc131\uc804\uc790 2023\ub144 \uc601\uc5c5\uc774\uc775"),
             "\uc601\uc5c5\uc774\uc775",
         )
-        self.assertEqual(_display_operand_label("NAVER 2023\ub144 \ub9e4\ucd9c\uc561"), "\ub9e4\ucd9c\uc561")
+        self.assertEqual(display_operand_label("NAVER 2023\ub144 \ub9e4\ucd9c\uc561"), "\ub9e4\ucd9c\uc561")
 
     def test_display_operand_label_removes_leading_year(self) -> None:
-        self.assertEqual(_display_operand_label("2023\ub144 \uc601\uc5c5\uc774\uc775"), "\uc601\uc5c5\uc774\uc775")
+        self.assertEqual(display_operand_label("2023\ub144 \uc601\uc5c5\uc774\uc775"), "\uc601\uc5c5\uc774\uc775")
 
     def test_calc_sections_are_resolved_from_ontology(self) -> None:
         sections = preferred_calc_sections(

@@ -18,7 +18,7 @@ from src.agent.financial_numeric_surface import (
 )
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _display_operand_label,
+    display_operand_label,
     _normalise_spaces,
 )
 from src.config.retrieval_policy import (
@@ -299,7 +299,7 @@ def build_missing_value_slot(
     return {
         "status": "missing",
         "role": role,
-        "label": _display_operand_label(label),
+        "label": display_operand_label(label),
         "concept": concept,
         "period": str(period or ""),
         "raw_value": "",
@@ -342,7 +342,7 @@ def build_operand_value_slot(
             raw_value=str(row.get("raw_value") or ""),
         ),
         "role": str(row.get("matched_operand_role") or default_role),
-        "label": _display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
+        "label": display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
         "concept": str(row.get("matched_operand_concept") or ""),
         "period": str(row.get("period") or ""),
         "raw_value": str(row.get("raw_value") or ""),
@@ -391,7 +391,7 @@ def build_calculated_value_slot(
             raw_value="",
         ),
         "role": role,
-        "label": _display_operand_label(label),
+        "label": display_operand_label(label),
         "concept": "",
         "period": str(period or ""),
         "raw_value": "",

@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional
 from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _display_operand_label,
+    display_operand_label,
     _format_korean_won_compact,
     _normalise_spaces,
 )
@@ -264,7 +264,7 @@ def scalar_result_series(
             )
         result_series.append(
             {
-                "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                "label": display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
                 "period": str(row.get("period") or ""),
                 "raw_value": str(row.get("raw_value") or ""),
                 "raw_unit": str(row.get("raw_unit") or ""),
@@ -291,7 +291,7 @@ def time_series_result_series(
         )
         result_series.append(
             {
-                "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                "label": display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
                 "period": str(row.get("period") or ""),
                 "raw_value": str(row.get("raw_value") or ""),
                 "raw_unit": str(row.get("raw_unit") or ""),
@@ -398,7 +398,7 @@ def collect_negative_subtrahend_slots(
                     continue
                 rows.append(
                     {
-                        "label": _display_operand_label(str(slot.get("label") or "")),
+                        "label": display_operand_label(str(slot.get("label") or "")),
                         "negative": rendered,
                         "positive": positive,
                     }

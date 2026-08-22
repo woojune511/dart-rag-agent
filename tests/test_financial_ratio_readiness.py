@@ -1012,7 +1012,7 @@ class FinancialRatioReadinessTests(unittest.TestCase):
                 "ratio_component_consolidation_scope",
                 side_effect=RuntimeError("scope owner failed"),
             ),
-            patch.object(financial_graph_calculation, "_display_operand_label", stopped_display),
+            patch.object(financial_graph_calculation, "display_operand_label", stopped_display),
         ):
             with self.assertRaisesRegex(RuntimeError, "scope owner failed"):
                 agent._compact_ratio_answer({}, scope_result, calculation_operands=[operand])
