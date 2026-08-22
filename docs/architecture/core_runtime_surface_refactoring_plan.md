@@ -2726,50 +2726,67 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Query Result Cache Store](../overview/project_status.md#completed-query-result-cache-store-public-api).
 
-The next bounded visibility seam renames only the exact 34-line
-`financial_graph_retrieval_budget._drop_duplicate_executed_query(
-seen_signatures_by_source: Dict[str, set[str]], trace: Dict[str, Any], *,
-source: str, executed_query: str, base_query: str) -> bool` definition in place
-to public `drop_duplicate_executed_query(...)`, then updates one pipeline
-import, three `_retrieve(...)` calls, and four derived CURRENT-SOURCE hash
-expectations. It is the smallest remaining correct-owner transform by equal
-record count and shorter span than the 45-line cache lookup and 46-line
-telemetry summary; the shorter `_apply_query_budget(...)` has eight records and
-exposes a composite policy contract.
+The executed-query duplicate-drop visibility seam completed in `7321eed`. It
+renamed only the exact 34-line helper in place to public
+`drop_duplicate_executed_query(...)`, then updated one pipeline import, three
+`if ...: continue` calls, and four derived CURRENT-SOURCE hash expectations.
+Source/signature normalization, no-mutation and set-only returns, duplicate-
+only trace mutation, identities, coercions, partial-mutation exceptions, and
+caller continue boundaries remain exact. Source/tests/whole transforms were
+`+5/-5`, `+4/-4`, and `+9/-9`; committed diff SHA-256 is
+`89fe5aaffda11ae12aedfe42089c8b1fd5daaa8c38115287d15026ce3836b56a`.
+Direct/identity 12/12, exact structural 2/2, focused 370/370, audit 217,
+pycompile 3/3, owner counts 5/10, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
+contract is authoritative in
+[Project Status Completed Executed Query Duplicate Drop](../overview/project_status.md#completed-executed-query-duplicate-drop-public-api).
 
-Preserve source normalization, signature construction, falsey-signature no-
-mutation return, per-source set adoption, and new-signature set-only mutation.
-For a duplicate preserve by-source trace adoption, per-source count increment,
-exact base/executed query append, global count increment, and `True` return in
-that order. Keep existing mapping/set/list identities, per-source isolation,
-default field order, integer coercions, partial mutation on exceptions, and all
-uncaught errors. The three `if helper(...): continue` calls remain at try depth
-zero with exact primary/enriched-plus-base, operand-focus/focused, and retry/
-retry arguments; cache/search/telemetry sequencing stays in the caller.
+The next bounded visibility seam renames only the exact 45-line
+`financial_graph_retrieval_budget._lookup_query_result_cache(cache:
+Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
+where_filter: Any, k: int, objective_signature: str = "") -> Dict[str, Any]`
+definition in place to public `lookup_query_result_cache(...)`, then updates
+one pipeline import, three `_retrieve(...)` calls, and four derived CURRENT-
+SOURCE hash expectations. It is the smallest remaining correct-owner transform
+by equal five-record count and shorter span than the 46-line telemetry summary;
+the shorter `_apply_query_budget(...)` has eight records and exposes a
+composite policy contract.
+
+Preserve key construction and falsey-key early return before cache/objective/
+`k` work. Exact lookup keeps a shallow copied entry and exact mode. Objective
+fallback remains conditional on falsey exact entry plus truthy objective, with
+one filter signature, insertion-order candidate copies, objective/filter/
+capacity gates, first-eligible adoption, stringified key, and objective mode.
+A truthy undersized exact entry must not fall back. Final capacity validation,
+entry expansion, explicit cache-key/mode overwrite, and fresh docs-list slice
+retain zero/negative behavior, shallow identities, immutability, field order,
+and uncaught errors. The three cached-result assignments stay at try depth zero
+with exact primary/enriched, operand-focus/focused, and retry/retry arguments;
+hit/miss search/store sequencing remains caller-owned.
 
 Future definition/body hashes are
-`36eb8ed0423899bf26b1b4621ca20908cbddbc34aba347c49f7331630112c432` /
-`50d4a9a5a442699277e992bd80fb1d7d110e210bf58e84b1b5d17eec421fe56d`.
+`5f87a6549de7f549e34eb13e793d8187d58e60b862473f8d0bb54c413f02cf47` /
+`00e514a48d043ee84dc6a293fac0ae84029a7666fa7dcf3f401cfb4e19f2e01b`.
 Current/projected call-record hashes are
-`865c968125b299d569a6683638e46c8d186d0c57fd36c642f7392338a6524979` /
-`b2881aa9a6b0fcd34590f54d02bb0803bd3c62e9a8276471a63886bbde7d8cf3`;
+`0911e57e5faf2fae07d68394f91e583e56f91466d305efe1a2aecc4d49f50b5d` /
+`6d210f2a7681587b978d4c692041e183b99c2a691a77d7b8617ee2c6da97a73c`;
 the `_retrieve` caller body projects
-`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`
+`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`
 to
-`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`.
-Selected private/public records project zero/5, owner counts 4/11 to 5/10,
+`7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`.
+Selected private/public records project zero/5, owner counts 5/10 to 6/9,
 and physical lines remain 419/2,641.
 
 Projected source/tests/whole transforms are `+5/-5`, `+4/-4`, and `+9/-9`;
 exact temporary diff SHA-256 is
-`89fe5aaffda11ae12aedfe42089c8b1fd5daaa8c38115287d15026ce3836b56a`.
+`9821d3cdca76be72cc4139d628abfb4aa9141c00dce65b76cbcfbf5feb416536`.
 The temporary projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2 in 18.899 seconds, focused 370/370 in 21.406 seconds,
+exact structural 2/2 in 18.334 seconds, focused 370/370 in 20.245 seconds,
 audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203
 DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate. Keep cache/search/telemetry execution, graph state, trace/artifact/ledger
-work, and final sequencing outside the batch. Benchmark refresh and remote CI
-remain **NOT RUN**; exact scope is authoritative only in
+gate. Keep cache-key/store policy, retrieval/search/telemetry, graph state,
+trace/artifact/ledger work, and final sequencing outside the batch. Benchmark
+refresh and remote CI remain **NOT RUN**; exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded

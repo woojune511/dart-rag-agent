@@ -1567,17 +1567,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `+5/-5`, `+4/-4`, `+9/-9`, direct/identity 12/12, exact structural 2/2,
   focused 370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 34-line
-  `_drop_duplicate_executed_query(...)`를 public
-  `drop_duplicate_executed_query(...)`로 rename하고 retrieval-pipeline import
-  한 개, `_retrieve(...)`의 `if ...: continue` call 세 개와 기존 caller/
-  caller-map hash 기대 네 개만 갱신한다. Source normalization, falsey-
-  signature no-mutation return, per-source set adoption, duplicate-only trace
-  mutation, partial-mutation exception 순서와 caller continue 경계를
-  유지한다. Exact temporary projection은 source/tests/whole `+5/-5`,
-  `+4/-4`, `+9/-9`, current/private와 projected/public direct/identity 각
-  12/12, exact structural 2/2, focused 370/370, audit 217, pycompile 3/3,
-  unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `7321eed` visibility batch는 같은 owner의 exact 34-line executed-
+  query duplicate-drop helper를 public `drop_duplicate_executed_query(...)`로
+  이름 수렴시키고 retrieval-pipeline import 한 개, `_retrieve(...)`의
+  `if ...: continue` call 세 개와 기존 caller/caller-map hash 기대 네 개만
+  갱신했다. Source normalization, falsey-signature no-mutation return, per-
+  source set adoption, duplicate-only trace mutation, partial-mutation exception
+  순서와 caller continue 경계는 유지됐다. Source/tests/whole `+5/-5`,
+  `+4/-4`, `+9/-9`, direct/identity 12/12, exact structural 2/2, focused
+  370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가
+  통과했다.
+- 다음 visibility batch는 같은 owner의 exact 45-line
+  `_lookup_query_result_cache(...)`를 public
+  `lookup_query_result_cache(...)`로 rename하고 retrieval-pipeline import 한
+  개, `_retrieve(...)`의 `cached_result` assignment call 세 개와 기존 caller/
+  caller-map hash 기대 네 개만 갱신한다. Key-first/falsey early return,
+  exact-hit precedence, insertion-ordered objective fallback, capacity gate,
+  shallow-copy/fresh-doc-slice identity와 caller hit/miss 경계를 유지한다.
+  Exact temporary projection은 source/tests/whole `+5/-5`, `+4/-4`,
+  `+9/-9`, current/private와 projected/public direct/identity 각 12/12,
+  exact structural 2/2, focused 370/370, audit 217, pycompile 3/3, unchanged
+  48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

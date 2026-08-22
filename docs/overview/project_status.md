@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `ea3ee9f` renamed only `financial_graph_retrieval_budget._store_query_result_cache(...)` in place to public `store_query_result_cache(...)` and updated one pipeline import, three calls, and four derived CURRENT-SOURCE hashes |
-| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 370/370, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `ea3ee9f` |
+| What just changed? | `7321eed` renamed only `financial_graph_retrieval_budget._drop_duplicate_executed_query(...)` in place to public `drop_duplicate_executed_query(...)` and updated one pipeline import, three calls, and four derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 370/370, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `7321eed` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_retrieval_budget._drop_duplicate_executed_query(...)` in place to public `drop_duplicate_executed_query(...)`; update one pipeline import, three calls, and four derived CURRENT-SOURCE hash expectations |
+| What is next? | Rename only `financial_graph_retrieval_budget._lookup_query_result_cache(...)` in place to public `lookup_query_result_cache(...)`; update one pipeline import, three calls, and four derived CURRENT-SOURCE hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, query-result-cache store direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 370 / 370 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after query-result-cache store public rename |
+| Latest focused owner checkpoint | PASS, executed-query duplicate-drop direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 370 / 370 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after executed-query duplicate-drop public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,141 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 45-line
+`src.agent.financial_graph_retrieval_budget._lookup_query_result_cache(
+cache: Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
+where_filter: Any, k: int, objective_signature: str = "") -> Dict[str, Any]`
+definition at lines 254-298 in place to public
+`lookup_query_result_cache(...)`. Update the sole pipeline import, its three
+`_retrieve(...)` assignment calls, and exactly four existing derived CURRENT-
+SOURCE hash expectations in `tests/test_financial_graph_helpers.py`. Add no
+alias, wrapper, body move, test method, cache-key or lookup policy, trace field,
+retrieval branch, state/artifact/ledger mutation, exception boundary, or
+adjacent store/telemetry change.
+
+This is the smallest remaining correct-owner visibility transform by changed
+record count and implementation span. It has one definition, one import, three
+external calls, and zero exact-name test records. The equal five-record
+`_summarize_executed_query_telemetry(...)` is 46 lines and has two direct test
+records; the shorter 23-line `_apply_query_budget(...)` has eight production/
+test records and exposes a composite dedupe/period-balance contract. The
+remaining owner-local key/signature/filter/context helpers and the broader
+cross-trace diagnostic remain outside this batch.
+
+Preserve `_query_result_cache_key(...)` as the first operation with the exact
+`source`, `executed_query`, and `where_filter` objects. A falsey key returns a
+fresh empty dict before cache, objective, or `k` evaluation. For a truthy key,
+preserve exact `dict(cache.get(key) or {})` shallow copying and initial
+`hit_mode = "exact"`.
+
+Objective fallback runs only when that exact entry is falsey and the original
+`objective_signature` is truthy. Preserve one filter-signature computation,
+cache insertion-order iteration, eager `dict(candidate_entry or {})`, empty-
+candidate skip, repeated string coercion of candidate/objective values, filter-
+signature equality, left-then-right integer `k` capacity comparison, and first-
+eligible break. Acceptance must adopt the copied candidate, stringify the
+candidate key, and set mode `"objective"`. A truthy exact entry that later
+fails the requested-`k` capacity gate must return empty without searching an
+objective alternative.
+
+After selection, preserve the second falsey-entry fresh-empty return, cached-
+`k` conversion before requested-`k` conversion, and the exact insufficient-
+capacity return. The successful return keeps entry expansion before explicit
+`cache_key`, `cache_hit_mode`, and `docs` fields; docs remain a fresh
+`list(entry.get("docs") or [])[: int(k or 0)]` slice. Preserve zero and negative
+Python slice behavior, original cache/entry/docs immutability, shallow nested-
+object identity, fresh returned mappings/lists, overwritten key values and
+field order, global lookup timing, and every uncaught mapping, truth, string,
+iteration, integer, list, slice, and dict-construction error.
+
+All three calls remain assignments to `cached_result` in `_retrieve` at caller
+`try` depth zero. Each retains exact positional `retrieval_query_result_cache`
+and ordered keywords `source`, `executed_query`, `where_filter`, `k`, and
+`objective_signature`. The source/query pairs remain
+`"primary"`/`enriched_query` at line 2233,
+`"operand_focus"`/`focused_query` at line 2331, and
+`"retry"`/`retry_query` at line 2409, with exact `where_filter`, `search_k`,
+and `lookup_objective_signature`. Preserve hit trace construction, docs
+materialization, merge/continue, miss search/store, and every caller-owned
+failure stop.
+
+Name-normalized future definition/body AST SHA-256 values are
+`5f87a6549de7f549e34eb13e793d8187d58e60b862473f8d0bb54c413f02cf47` /
+`00e514a48d043ee84dc6a293fac0ae84029a7666fa7dcf3f401cfb4e19f2e01b`.
+Normalized call records include positional arguments, ordered keyword/value
+pairs, parent assignments, lines, and caller try depth; their current/projected
+hashes are
+`0911e57e5faf2fae07d68394f91e583e56f91466d305efe1a2aecc4d49f50b5d` /
+`6d210f2a7681587b978d4c692041e183b99c2a691a77d7b8617ee2c6da97a73c`.
+The `_retrieve` caller-body hash projects from
+`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`
+to
+`7ed511b849bd104b185c19b3f699ac73588d71a900b664d0d52297e30b1a7e5d`.
+Update both repeated caller-body expectations and the derived strict/report
+caller-map expectations respectively from
+`3252b82e0bc75a030f71c5a649f9a0741dbc75449464a80b11ca9870cb47cde2`
+to
+`bef815569c36700cfeae87179ebdb3a4a94f59b311544a736ca37da1b47bc6bb`
+and from
+`eb98d9d46f14f43f6202d22cfc7a159bf0cc46425f55d5b1d3782dad9ae7a845`
+to
+`61232cf8b95b0a62ff9441aa063ef6aa956022d9df5aaecad353f2ce4dab5bf4`.
+No assertion or test method may be added, removed, or weakened.
+
+After the rename selected private/public records must be 0/5, the pipeline
+binding must be identical to the public owner, owner public/private counts
+must move exactly 5/10 to 6/9, and budget/pipeline physical lines must remain
+419/2,641. Projected source/tests/whole transforms are `+5/-5`, `+4/-4`, and
+`+9/-9` across exactly three files. The exact temporary diff SHA-256 is
+`9821d3cdca76be72cc4139d628abfb4aa9141c00dce65b76cbcfbf5feb416536`.
+
+The restored projection passed current-private and projected-public direct
+behavior/owner-pipeline identity 12/12 each, exact structural tests 2/2 in
+18.334 seconds, focused tests 370/370 in 20.245 seconds, audit 217, pycompile
+3/3, retired selected refs zero, diff check, and unchanged acyclic 48/203
+import topology. Full discovery 2,143/2,143 remains the implementation gate.
+Benchmark refresh and remote CI remain **NOT RUN**. This name-only projection
+establishes no behavior, answer-quality, retrieval-performance, cache-
+effectiveness, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Executed-Query Duplicate-Drop Public API
+
+Commit `7321eed` renamed only the exact 34-line
+`financial_graph_retrieval_budget._drop_duplicate_executed_query(...)`
+definition in place to public `drop_duplicate_executed_query(...)`. It updated
+one pipeline import, three `_retrieve(...)` calls, and four derived CURRENT-
+SOURCE hash expectations without moving the body or changing adjacent cache,
+search, telemetry, retrieval, state, trace, artifact, ledger, or final
+sequencing.
+
+Source normalization, signature construction, falsey-signature no-mutation
+return, per-source set adoption, new-signature set-only mutation, duplicate-
+only trace mutation, identity preservation, integer coercions, and partial-
+mutation exception order remain exact. Definition/body hashes remain
+`36eb8ed0423899bf26b1b4621ca20908cbddbc34aba347c49f7331630112c432` /
+`50d4a9a5a442699277e992bd80fb1d7d110e210bf58e84b1b5d17eec421fe56d`;
+final call/caller hashes are
+`b2881aa9a6b0fcd34590f54d02bb0803bd3c62e9a8276471a63886bbde7d8cf3` /
+`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`.
+Final selected private/public records are 0/5, owner counts are 5/10, and
+physical lines remain 419/2,641.
+
+Actual source/tests/whole transforms were `+5/-5`, `+4/-4`, and `+9/-9`;
+committed diff SHA-256 is
+`89fe5aaffda11ae12aedfe42089c8b1fd5daaa8c38115287d15026ce3836b56a`.
+Direct behavior/public identity 12/12, exact structural 2/2 in 18.118 seconds,
+focused 370/370 in 19.897 seconds, audit 217, pycompile 3/3, retired refs zero,
+unchanged 48/203 DAG, and full discovery 2,143/2,143 in 297.563 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+no behavior, answer-quality, retrieval-performance, cache-effectiveness,
+benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Executed-Query Duplicate-Drop Characterization Checkpoint
+
+The characterization below predates `7321eed`; its projected rename and full
+gate are complete. It is retained only as an audit record and is not active
+work.
 
 Rename only the exact 34-line
 `src.agent.financial_graph_retrieval_budget._drop_duplicate_executed_query(
