@@ -60,7 +60,7 @@ def drop_queries_already_selected(
     }
 
 
-def _drop_duplicate_executed_query(
+def drop_duplicate_executed_query(
     seen_signatures_by_source: Dict[str, set[str]],
     trace: Dict[str, Any],
     *,

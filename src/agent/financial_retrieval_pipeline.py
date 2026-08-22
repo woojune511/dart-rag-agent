@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
-    _drop_duplicate_executed_query,
+    drop_duplicate_executed_query,
     drop_queries_already_selected,
     limit_query_context_terms,
     _lookup_query_result_cache,
@@ -2209,7 +2209,7 @@ class FinancialRetrievalPipelineMixin:
                 enriched_query = f"{enriched_query} {' '.join(selected_retrieval_hint_terms)}".strip()
             if selected_preferred_sections:
                 enriched_query = f"{enriched_query} {' '.join(selected_preferred_sections)}".strip()
-            if _drop_duplicate_executed_query(
+            if drop_duplicate_executed_query(
                 seen_executed_query_signatures_by_source,
                 executed_duplicate_trace,
                 source="primary",
@@ -2311,7 +2311,7 @@ class FinancialRetrievalPipelineMixin:
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries:
-                if _drop_duplicate_executed_query(
+                if drop_duplicate_executed_query(
                     seen_executed_query_signatures_by_source,
                     executed_duplicate_trace,
                     source="operand_focus",
@@ -2389,7 +2389,7 @@ class FinancialRetrievalPipelineMixin:
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries:
-                if _drop_duplicate_executed_query(
+                if drop_duplicate_executed_query(
                     seen_executed_query_signatures_by_source,
                     executed_duplicate_trace,
                     source="retry",
