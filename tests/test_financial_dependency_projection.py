@@ -5062,7 +5062,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             or ["retry query"],
         ), patch.object(
             graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             side_effect=lambda *args: reflection_events.append(("sections", args)) or ["section"],
         ):
             reflection_plan = agent._heuristic_reflection_query_plan(

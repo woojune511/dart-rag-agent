@@ -55,7 +55,7 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
-    _preferred_calc_sections,
+    preferred_calc_sections,
     supplement_section_terms_for_query,
 )
 from src.agent.financial_surface_contracts import candidate_is_descriptor_row, operand_needles
@@ -1276,7 +1276,7 @@ class FinancialAgentReconciliationMixin:
         if not missing_info:
             missing_info = self._infer_missing_info(state, operands)
         subqueries = build_retry_queries(state, missing_info)
-        preferred_sections = _preferred_calc_sections(
+        preferred_sections = preferred_calc_sections(
             state["query"],
             state.get("topic") or state["query"],
             state.get("intent") or state.get("query_type", "qa"),
@@ -1304,7 +1304,7 @@ class FinancialAgentReconciliationMixin:
         intent = state.get("intent") or state.get("query_type", "qa")
         years = [int(year) for year in (state.get("years") or [])]
         companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
-        preferred_sections = _preferred_calc_sections(query, topic, intent)
+        preferred_sections = preferred_calc_sections(query, topic, intent)
 
         missing_info = [
             str(item).strip()

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence
 
 from src.agent.financial_retrieval_hints import (
-    _preferred_calc_sections,
+    preferred_calc_sections,
     _section_hint_alias,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
@@ -43,7 +43,7 @@ def build_retry_queries(state: FinancialAgentState, missing_info: List[str]) -> 
     query = state["query"]
     topic = state.get("topic") or query
     intent = state.get("intent") or state.get("query_type", "qa")
-    preferred_sections = _preferred_calc_sections(query, topic, intent)
+    preferred_sections = preferred_calc_sections(query, topic, intent)
 
     queries: List[str] = []
     for item in missing_info:
@@ -97,7 +97,7 @@ def finalize_retry_queries(
                 report_company_hint = company
                 break
 
-    global_preferred_sections = _preferred_calc_sections(
+    global_preferred_sections = preferred_calc_sections(
         state["query"],
         state.get("topic") or state["query"],
         state.get("intent") or state.get("query_type", "qa"),

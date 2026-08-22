@@ -35,7 +35,7 @@ import src.agent.financial_text_surface as financial_text_surface
 from src.agent.financial_runtime_normalization import _display_operand_label
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
-    _preferred_calc_sections,
+    preferred_calc_sections,
     retrieval_hint_from_topic,
 )
 
@@ -52,7 +52,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(_display_operand_label("2023\ub144 \uc601\uc5c5\uc774\uc775"), "\uc601\uc5c5\uc774\uc775")
 
     def test_calc_sections_are_resolved_from_ontology(self) -> None:
-        sections = _preferred_calc_sections(
+        sections = preferred_calc_sections(
             "2023\ub144 \uc124\ube44\ud22c\uc790 \ucd1d\uc561\uc744 \ucc3e\uc544\uc918.",
             "",
             "comparison",
@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (8, 6))
+        self.assertEqual(owner_counts, (9, 5))
 
         def imported_names(module_name, imported_module):
             return {
@@ -59600,7 +59600,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "1797f79af32c1e06b6627a0e25ba0457a8288f9eb001b692c43a86c90678cfb9",
+                    ): "546a1ce04b7640bdafb40c577fea586ab22d7491bd79e32d2239edf3abfc37a3",
                 }
                 if target_name == future_public_name
                 else {
@@ -59631,7 +59631,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "75fc89ad38fd9a6a3003a14ad045f5905db9d6c0bd1632497ed041c059cb8f8b",
+                    ): "dcb5bcbcfb0dde6c1759841b79779eb587f94fde403c2e48cfc3ebbec18ba468",
                 }
             ),
         )
@@ -59648,9 +59648,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "934a331d6f0011318c4c6964079e61d9bdd80b4a34603d76a2b1e985531b283a"
+                "f70a596c6d1834b8dcb87060467ec9033af9f9c2a854104efc9c185393ed7b1e"
                 if target_name == future_public_name
-                else "53b03c8e7d8175b868aea94c24dd259a23cdf691676a370a38fb8b129f42168b"
+                else "9e8d598ca726e32e45dcc57030d74bca068d2c8475c2837d23a06408048182c0"
             ),
         )
 
@@ -60346,7 +60346,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_reconciliation,
-                "_preferred_calc_sections",
+                "preferred_calc_sections",
                 return_value=[],
             ),
             patch.object(
@@ -66101,7 +66101,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "1797f79af32c1e06b6627a0e25ba0457a8288f9eb001b692c43a86c90678cfb9",
+                    ): "546a1ce04b7640bdafb40c577fea586ab22d7491bd79e32d2239edf3abfc37a3",
                     (
                         "financial_operand_resolution",
                         "collect_retrieved_operand_evidence_candidates",
@@ -66132,7 +66132,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_plan_reflection_retry",
-                    ): "35814c29aab330afd0b10f389f8ea6e66a55cb2b57043029b3087d0917d5ecc1",
+                    ): "be196aa8199bc0b3c94e0784405ffb7c2980dba901b11cf7484988f02885b6d5",
                     (
                         "financial_operand_resolution",
                         "collect_retrieved_operand_evidence_candidates",
@@ -66157,9 +66157,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "938de8796bfd57a378cedadfb8c8d9c22535548afa21bfdf5e19c845272a88a6"
+                "5e7cff1c5feba8a28fbf62b0c2b5065e28d7bf459a6ad77415cfa8ab8f19a23f"
                 if target_name == future_public_name
-                else "bd50213612267e31535a9c35410ccc547d051fdcdabe959386dcb1b66b2c4dad"
+                else "186d1b5d890c2c42a9df2206304dde30e1d7fbdd3d3f9e161ade96c118a91b72"
             ),
         )
 
@@ -67157,7 +67157,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 patch.object(
                     financial_graph_reconciliation,
-                    "_preferred_calc_sections",
+                    "preferred_calc_sections",
                     return_value=[],
                 ),
                 patch.object(
@@ -67228,7 +67228,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_reconciliation,
-                "_preferred_calc_sections",
+                "preferred_calc_sections",
                 return_value=[],
             ),
             patch.object(

@@ -1253,7 +1253,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             side_effect=resolve,
         ), patch.object(
             financial_graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
@@ -1334,7 +1334,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=runtime_trace,
         ), patch.object(
             financial_graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
@@ -1377,7 +1377,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=runtime_trace,
         ), patch.object(
             financial_graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=["section"],
         ), patch.object(
             financial_graph_reconciliation,
@@ -1486,7 +1486,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         access_events.clear()
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             side_effect=preferred,
         ):
             result = financial_reflection_projection.build_retry_queries(
@@ -1550,7 +1550,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=[],
         ):
             fallback = financial_reflection_projection.build_retry_queries(
@@ -1598,7 +1598,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         normalizer_owner = Mock()
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             preferred_owner,
         ), patch.object(
             financial_reflection_projection,
@@ -1617,7 +1617,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         missing_query_preferred = Mock()
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             missing_query_preferred,
         ):
             with self.assertRaises(KeyError):
@@ -1639,7 +1639,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         metadata_preferred = Mock()
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             metadata_preferred,
         ):
             with self.assertRaisesRegex(RuntimeError, "seed metadata failed"):
@@ -1656,7 +1656,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=[],
         ), patch.object(
             financial_reflection_projection,
@@ -1750,7 +1750,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             side_effect=preferred,
         ), patch.object(
             financial_reflection_projection,
@@ -1858,7 +1858,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             return_value=[],
         ), patch.object(
             financial_reflection_projection,
@@ -1893,7 +1893,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             side_effect=RuntimeError("subquery normalization failed"),
         ), patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             normalize_sections,
         ), patch.object(
             financial_reflection_projection,
@@ -1918,7 +1918,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         downstream_sections = Mock()
         with patch.object(
             financial_reflection_projection,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             downstream_sections,
         ), patch.object(
             financial_reflection_projection,
@@ -2122,19 +2122,19 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
                 and node.id == name
                 for node in ast.walk(reconciliation_tree)
             )
-            for name in {"_preferred_calc_sections", "_section_hint_alias"}
+            for name in {"preferred_calc_sections", "_section_hint_alias"}
         }
         selected_loads = {
             name: load_count(selected_nodes, name)
-            for name in {"_preferred_calc_sections", "_section_hint_alias"}
+            for name in {"preferred_calc_sections", "_section_hint_alias"}
         }
         self.assertEqual(
             all_reconciliation_loads,
-            {"_preferred_calc_sections": 2, "_section_hint_alias": 0},
+            {"preferred_calc_sections": 2, "_section_hint_alias": 0},
         )
         self.assertEqual(
             selected_loads,
-            {"_preferred_calc_sections": 2, "_section_hint_alias": 3},
+            {"preferred_calc_sections": 2, "_section_hint_alias": 3},
         )
         module_graph = {}
         for path in Path("src/agent").glob("*.py"):
@@ -2189,7 +2189,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             for alias in node.names
         }
         self.assertTrue(
-            {"_preferred_calc_sections", "_section_hint_alias"}.issubset(
+            {"preferred_calc_sections", "_section_hint_alias"}.issubset(
                 owner_retrieval_bindings
             )
         )
@@ -2277,7 +2277,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             side_effect=lambda actual_state: events.append("preference") or False,
         ), patch.object(
             financial_graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             side_effect=preferred,
         ), patch.object(
             financial_graph_reconciliation,
@@ -2318,7 +2318,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=False,
         ), patch.object(
             financial_graph_reconciliation,
-            "_preferred_calc_sections",
+            "preferred_calc_sections",
             downstream_sections,
         ), patch.object(
             financial_graph_reconciliation,

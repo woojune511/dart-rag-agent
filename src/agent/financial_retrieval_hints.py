@@ -99,7 +99,7 @@ def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]
     return list(dict.fromkeys(statement_types)), list(dict.fromkeys(preferred_sections))
 
 
-def _preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
+def preferred_calc_sections(query: str, topic: str, intent: str) -> List[str]:
     if intent not in {"comparison", "trend"}:
         return []
     return get_financial_ontology().preferred_sections(query, topic, intent)
@@ -145,7 +145,7 @@ def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, in
     sections = list(query_section_hints)
     sections.extend(active_sections)
     if not active_sections:
-        sections.extend(_preferred_calc_sections(query, topic, intent))
+        sections.extend(preferred_calc_sections(query, topic, intent))
     if narrative_policies:
         sections.extend(narrative_policy_preferred_sections(narrative_policies))
     return list(dict.fromkeys(sections))
