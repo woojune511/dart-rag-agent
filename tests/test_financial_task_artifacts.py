@@ -2458,7 +2458,7 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
                 )
                 stack.enter_context(patch.object(financial_graph_calculation, "desired_consolidation_scope", return_value=""))
                 stack.enter_context(patch.object(financial_graph_calculation, "_calculation_debug_state_update", return_value={}))
-                stack.enter_context(patch.object(financial_graph_calculation, "_runtime_trace_state_update", return_value={}))
+                stack.enter_context(patch.object(financial_graph_calculation, "runtime_trace_state_update", return_value={}))
                 stack.enter_context(patch.object(financial_graph_calculation, "requires_direct_numeric_grounding", return_value=False))
                 stack.enter_context(
                     patch.object(financial_graph_calculation, "surface_contract_numeric_evidence_items", return_value=[])

@@ -267,7 +267,7 @@ from src.agent.financial_text_surface import strip_rerank_metadata, tokenize_ter
 from src.agent.financial_runtime_trace import (
     collect_nested_result_evidence,
     _resolve_runtime_calculation_trace,
-    _runtime_trace_state_update,
+    runtime_trace_state_update,
     overlay_calculation_operands_from_slots,
 )
 from src.agent.financial_reflection_projection import (
@@ -8998,7 +8998,7 @@ class FinancialAgentCalculationMixin:
             "answer": "",
             "evidence_items": evidence_items,
             "evidence_bullets": evidence_bullets,
-            **_runtime_trace_state_update(
+            **runtime_trace_state_update(
                 state,
                 calculation_operands=[],
                 calculation_plan={},
@@ -9378,7 +9378,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": coverage,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
@@ -9421,7 +9421,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_status": "sufficient",
                 "active_subtask": active_subtask,
                 **artifact_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
@@ -9480,7 +9480,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": coverage,
                 **updates,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=synthesis_operands,
                     calculation_plan={},
@@ -9747,7 +9747,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": str(merged_coverage),
                 **artifact_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operand_rows,
                     calculation_plan={},
@@ -9761,7 +9761,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": "missing",
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=[],
                     calculation_plan={},
@@ -9809,7 +9809,7 @@ class FinancialAgentCalculationMixin:
                     "reason": "no operands",
                     "missing_info": missing_info,
                 },
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=empty_plan,
@@ -9850,7 +9850,7 @@ class FinancialAgentCalculationMixin:
                         "reason": "missing_required_operands",
                         "missing_info": missing_labels,
                     },
-                    **_runtime_trace_state_update(
+                    **runtime_trace_state_update(
                         state,
                         calculation_operands=operands,
                         calculation_plan=incomplete_plan,
@@ -9885,7 +9885,7 @@ class FinancialAgentCalculationMixin:
                     "raw_plan": deterministic_lookup_plan,
                 },
                 **ledger_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_lookup_plan,
@@ -9920,7 +9920,7 @@ class FinancialAgentCalculationMixin:
                     "raw_plan": dict(operation_plan_decision.raw_plan),
                     "missing_info": list(guarded_plan.get("missing_info") or []),
                 },
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=guarded_plan,
@@ -9944,7 +9944,7 @@ class FinancialAgentCalculationMixin:
                     "raw_plan": deterministic_operation_plan,
                 },
                 **ledger_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_operation_plan,
@@ -9981,7 +9981,7 @@ class FinancialAgentCalculationMixin:
                     "reason": "lookup_non_direct_or_ambiguous",
                     "missing_info": missing_info,
                 },
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=guard_plan,
@@ -10013,7 +10013,7 @@ class FinancialAgentCalculationMixin:
                         "raw_plan": deterministic_plan,
                         "missing_info": list(guarded_plan.get("missing_info") or []),
                     },
-                    **_runtime_trace_state_update(
+                    **runtime_trace_state_update(
                         state,
                         calculation_operands=operands,
                         calculation_plan=guarded_plan,
@@ -10041,7 +10041,7 @@ class FinancialAgentCalculationMixin:
                     "raw_plan": deterministic_plan,
                 },
                 **ledger_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_plan,
@@ -10152,7 +10152,7 @@ class FinancialAgentCalculationMixin:
                     "guarded_plan": plan_data if guard_applied else {},
                 },
                 **ledger_update,
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan_data,
@@ -10182,7 +10182,7 @@ class FinancialAgentCalculationMixin:
                     "guard_applied": False,
                     "error": str(exc),
                 },
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=failed_plan,
@@ -10819,7 +10819,7 @@ class FinancialAgentCalculationMixin:
                 "dropped_claim_ids": [],
                 "unsupported_sentences": [],
                 "sentence_checks": [],
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan,
@@ -11057,7 +11057,7 @@ class FinancialAgentCalculationMixin:
                 "answer": slot_based_difference_answer,
                 "compressed_answer": slot_based_difference_answer,
                 "draft_points": [slot_based_difference_answer],
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan,
@@ -11104,7 +11104,7 @@ class FinancialAgentCalculationMixin:
             "answer": answer,
             "compressed_answer": answer,
             "draft_points": [answer] if answer else [],
-            **_runtime_trace_state_update(
+            **runtime_trace_state_update(
                 state,
                 calculation_operands=operands,
                 calculation_plan=plan,
@@ -11141,7 +11141,7 @@ class FinancialAgentCalculationMixin:
                         "reason": "calculation_status_not_ok",
                     },
                 ),
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan,
@@ -11226,7 +11226,7 @@ class FinancialAgentCalculationMixin:
                         "direction_hint": direction_hint,
                     },
                 ),
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan,
@@ -11247,7 +11247,7 @@ class FinancialAgentCalculationMixin:
                         "rendered_value": rendered_value,
                     },
                 ),
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan,
@@ -11295,7 +11295,7 @@ class FinancialAgentCalculationMixin:
                 "reconciliation_retry_count": 0,
                 "reflection_plan": {},
                 "reconciliation_result": {},
-                **_runtime_trace_state_update(
+                **runtime_trace_state_update(
                     state,
                     calculation_operands=[],
                     calculation_plan={},
@@ -12515,7 +12515,7 @@ class FinancialAgentCalculationMixin:
                 replan_blocked_reason=replan_blocked_reason,
                 aggregate_synthesis_debug=aggregate_synthesis_debug,
             ),
-            **_runtime_trace_state_update(
+            **runtime_trace_state_update(
                 state,
                 calculation_operands=aggregate_projection["calculation_operands"],
                 calculation_plan=aggregate_projection["calculation_plan"],
@@ -13411,7 +13411,7 @@ class FinancialAgentCalculationMixin:
             **_clear_calculation_debug_state(),
             "planner_debug_trace": {},
             "reflection_plan": reflection_plan,
-            **_runtime_trace_state_update(
+            **runtime_trace_state_update(
                 state,
                 calculation_operands=[],
                 calculation_plan={},

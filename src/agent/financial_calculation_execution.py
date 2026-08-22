@@ -16,7 +16,7 @@ from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
 )
-from src.agent.financial_runtime_trace import _runtime_trace_state_update
+from src.agent.financial_runtime_trace import runtime_trace_state_update
 from src.agent.financial_scope_policies import extract_period_sort_key
 from src.agent.financial_task_artifacts import calculation_result_artifact_update as _calculation_result_artifact_update
 from src.config import get_financial_ontology
@@ -871,7 +871,7 @@ def build_success_calculation_state_payload(
     result_payload["tasks"] = list(ledger_update["tasks"])
     result_payload["artifacts"] = list(ledger_update["artifacts"])
     result_payload.update(
-        _runtime_trace_state_update(
+        runtime_trace_state_update(
             state,
             calculation_operands=list(runtime_operands),
             calculation_plan=dict(calculation_plan),

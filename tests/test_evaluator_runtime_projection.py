@@ -45,7 +45,7 @@ from src.ops.evaluator import (
     _should_override_structured_summary_faithfulness,
 )
 from src.agent import financial_runtime_trace
-from src.agent.financial_runtime_trace import _runtime_trace_state_update
+from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
 class _DummyDoc:
@@ -1796,7 +1796,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_result_source", trace["runtime_projection"])
 
     def test_runtime_trace_state_update_omits_compatibility_mirrors_by_default(self) -> None:
-        update = _runtime_trace_state_update(
+        update = runtime_trace_state_update(
             {
                 "resolved_calculation_trace": {},
                 "structured_result": {},

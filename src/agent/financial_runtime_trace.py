@@ -763,7 +763,7 @@ def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, An
     return projection
 
 
-def _runtime_trace_state_update(
+def runtime_trace_state_update(
     state: Dict[str, Any],
     *,
     calculation_operands: List[Dict[str, Any]],

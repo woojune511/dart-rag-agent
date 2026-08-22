@@ -12985,7 +12985,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (6, 25),
+            (7, 24),
         )
 
         class BindingVisitor(ast.NodeVisitor):

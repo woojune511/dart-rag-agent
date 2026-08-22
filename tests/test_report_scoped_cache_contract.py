@@ -46,7 +46,7 @@ from src.config.report_scoped_cache import (
     validate_report_cache_calculation_contract_projection,
 )
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
-from src.agent.financial_runtime_trace import _runtime_trace_state_update
+from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
 class ReportScopedCacheContractTests(unittest.TestCase):
@@ -1200,7 +1200,7 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertIn("ambiguous_rehydration_match", result["reasons"])
 
     def test_runtime_trace_state_update_adds_read_only_cache_candidate(self) -> None:
-        update = _runtime_trace_state_update(
+        update = runtime_trace_state_update(
             {
                 "report_scope": {
                     "company": "ACME",
@@ -1241,7 +1241,7 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(candidate["retrieval_bypass"]["mode"], "trace_only")
 
     def test_runtime_trace_cache_candidate_derives_section_from_table_id(self) -> None:
-        update = _runtime_trace_state_update(
+        update = runtime_trace_state_update(
             {
                 "report_scope": {
                     "company": "ACME",

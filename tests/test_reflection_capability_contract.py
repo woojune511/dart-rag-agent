@@ -2469,7 +2469,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             side_effect=clear_debug,
         ), patch.object(
             financial_graph_calculation,
-            "_runtime_trace_state_update",
+            "runtime_trace_state_update",
             side_effect=trace_update,
         ), patch.object(
             financial_graph_calculation,
