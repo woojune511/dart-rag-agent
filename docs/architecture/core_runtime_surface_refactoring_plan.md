@@ -2664,36 +2664,60 @@ audit 217, pycompile 2/2, retired refs zero, owner counts 11/69, unchanged
 and remote CI were **NOT RUN**. The preserved contract is authoritative in
 [Project Status Completed Generic Metric Alias](../overview/project_status.md#completed-generic-metric-alias-public-api).
 
-The next bounded visibility seam renames only the exact 21-line
-`financial_graph_retrieval_budget._drop_queries_already_selected(queries:
-List[str], selected_queries: List[str]) -> tuple[List[str], Dict[str, Any]]`
-definition in place to public `drop_queries_already_selected(...)`, then updates
-one pipeline import and two calls. Preserve selected-signature eager completion,
-falsey filtering, query-order kept/dropped identity, exact duplicate trace,
-fresh containers, input immutability, evaluation order, and all uncaught
-errors. Add no test/expectation change, wrapper, alias, body move, vocabulary,
-policy, cache, trace, telemetry, or adjacent retrieval change.
+The selected-query-dedupe visibility seam completed in `7a4f847`. It renamed
+only the exact 21-line definition in place to public
+`drop_queries_already_selected(...)`, then updated one pipeline import, two
+calls, two `_retrieve` caller hashes, and two derived caller-map hashes.
+Source/tests/whole transforms were `+4/-4`, `+4/-4`, and `+8/-8`; committed
+diff SHA-256 is
+`248f847f7ae92a04a81c60ed8206d8b3deac095127570c624d07cb929035d3de`.
+Direct behavior/public identity 12/12, exact structural 2/2, focused 370/370 in
+19.499 seconds, audit 217, pycompile 3/3, retired refs zero, owner counts 2/13,
+unchanged 48/203 DAG, and full 2,143/2,143 in 286.986 seconds passed. Benchmark
+refresh and remote CI were **NOT RUN**. The preserved contract is authoritative
+in
+[Project Status Completed Selected Query Dedupe](../overview/project_status.md#completed-selected-query-dedupe-public-api).
 
-The normalized definition/body hashes are
-`00100a4f22ae070aaff3a107c772e24cf9dc6d0e71ca7e1f312fcf26f339becf` /
-`c8a570015c088711678a8b444a7fe0af0bb5c56925f327772455620b9c93d079`.
-Two tuple-assignment calls in `_retrieve` hash to
-`979b5eda0966ab88651544f303601624f952ceb1213ab5d5195af374624c8cd0`;
-the projected caller body hashes to
-`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`.
-Selected private/public records project zero/4, owner counts 1/14 to 2/13,
-and budget/pipeline physical lines remain 419/2,641.
+The next bounded visibility seam renames only the exact 28-line
+`financial_runtime_trace._collect_nested_result_evidence(rows:
+List[Mapping[str, Any]], *, max_depth: int = 6) -> List[Dict[str, Any]]`
+definition in place to public `collect_nested_result_evidence(...)`, then
+updates one graph-calculation import, two calls, and one owner-count
+expectation. This is the smallest correct-owner state-free transform after
+excluding state-reading, evidence-only wrong-owner, explicitly non-exported,
+and broad foundation helpers.
 
-Projected source/tests/whole transforms are `+4/-4`, `+0/-0`, and `+4/-4`;
+Preserve fresh-list/closure construction, eager top-level and payload-list
+materialization, Mapping filters, exact `depth > max_depth` inclusion,
+calculation answer-slot precedence, row/calculation and runtime/evidence order,
+ordered shallow copies, nested identity, calculation-subtask-before-answer-
+slot depth-first recursion, duplicate preservation, input immutability,
+evaluation order, and all uncaught errors. The normalized definition/body
+hashes are
+`85f171139d2f7bb938db3e4bd252951e711fbec711c93117e2b94ee20bd74f07` /
+`9e1ea64a954dced11f80eb2190ba072ab6d0c28734d7922100852cbae6af2670`.
+Current/projected ordered call-record hashes are
+`fbe09b412099983fa3effe95696b280c1c68fa38bf6e4368aa44e93a82a7f428` /
+`5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`;
+the two caller bodies project from
+`2a0612b09c211617299322388d2450723d02dd549a9f2e047630f0e18786ab1f` /
+`10ba74606aa6dbd3baf9a53e0a2b9d90bc4e6f19823fa66acf9864fd61ce6ea7`
+to
+`833b2f0f26d5c50e5827e7664ca84dadb8ac7f5ccec7616f6d6496814e4f6f7c` /
+`9c600c7294b1299f5db822e7207cec02b6f146f61fc802937abff0c822d1181e`.
+Selected private/public records project zero/4, owner counts 4/27 to 5/26,
+and runtime-trace/calculation physical lines remain 1,412/13,464.
+
+Projected source/tests/whole transforms are `+4/-4`, `+1/-1`, and `+5/-5`;
 exact temporary diff SHA-256 is
-`6c13fab2ab5dc234740c688816e39271263d1179febe60160c839827a36d5178`.
-The temporary projection passed direct behavior/public identity 12/12,
-focused 370/370 in 21.874 seconds, audit 217, pycompile 2/2, retired refs zero,
-diff check, and unchanged 48/203 DAG, then was restored cleanly. Full
-2,143/2,143 remains the implementation gate. Keep adjacent budget/cache/
-telemetry, retrieval execution, state/trace/artifact mutation, and final
-sequencing outside the batch. Benchmark refresh and remote CI remain **NOT
-RUN**; exact scope is authoritative only in
+`a871a2ed4debdd592e3c621de26d2df0d594dfed7cfcf9ec5515d82209364671`.
+The temporary projection passed direct behavior/public identity 12/12, exact
+static owner/DAG 1/1 in 2.025 seconds, focused 744/744 in 33.882 seconds, audit
+217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203 DAG,
+then was restored cleanly. Full 2,143/2,143 remains the implementation gate.
+Keep lookup/ratio repair, evidence adoption, mutable state/trace/artifact/
+ledger work, and final sequencing outside the batch. Benchmark refresh and
+remote CI remain **NOT RUN**; exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded

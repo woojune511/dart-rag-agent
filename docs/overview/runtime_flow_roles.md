@@ -1531,15 +1531,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   whole `+6/-6`, `+59/-59`, `+65/-65`, direct/identity 12/12, focused
   645/645, audit 217, pycompile 2/2, unchanged 48/203 DAG, full 2,143/2,143가
   통과했다.
-- 다음 visibility batch는 `financial_graph_retrieval_budget.py`의 exact
-  21-line `_drop_queries_already_selected(...)`를 public
-  `drop_queries_already_selected(...)`로 rename하고 retrieval-pipeline import
-  한 개와 `_retrieve(...)` call 두 개만 갱신한다. Selected-signature phase의
-  eager completion, falsey-signature filter, query-order kept/dropped identity,
-  exact duplicate trace와 caller guard/adoption 순서를 유지한다. Test-name
-  기대 변경은 없다. Exact temporary projection은 source/tests/whole
-  `+4/-4`, `+0/-0`, `+4/-4`, direct/identity 12/12, focused 370/370,
-  audit 217, pycompile 2/2, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `7a4f847` visibility batch는
+  `financial_graph_retrieval_budget.py`의 exact 21-line selected-query dedupe
+  helper를 public `drop_queries_already_selected(...)`로 이름 수렴시키고
+  retrieval-pipeline import 한 개와 `_retrieve(...)` call 두 개, 기존 caller
+  hash 두 개와 파생 caller-map hash 두 개만 갱신했다. Selected-signature
+  phase의 eager completion, falsey-signature filter, query-order kept/dropped
+  identity, exact duplicate trace와 caller guard/adoption 순서는 유지됐다.
+  Source/tests/whole `+4/-4`, `+4/-4`, `+8/-8`, direct/identity 12/12,
+  focused 370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_runtime_trace.py`의 exact 28-line
+  `_collect_nested_result_evidence(...)`를 public
+  `collect_nested_result_evidence(...)`로 rename하고 graph-calculation import
+  한 개, call 두 개와 owner-count 기대 한 개만 갱신한다. Root/calculation/
+  nested evidence order, Mapping filter, shallow-copy identity와 inclusive
+  depth bound를 유지한다. Exact temporary projection은 source/tests/whole
+  `+4/-4`, `+1/-1`, `+5/-5`, direct/identity 12/12, focused 744/744,
+  audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

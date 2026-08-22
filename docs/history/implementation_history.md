@@ -10742,7 +10742,7 @@ are complete. It remains only as an audit record, not an active priority.
   authoritative in
   [Project Status Completed Generic Metric Alias](../overview/project_status.md#completed-generic-metric-alias-public-api).
 
-### Drop-queries-already-selected public API characterization checkpoint
+### Drop-queries-already-selected characterization checkpoint preceding `7a4f847`
 
 - The next bounded visibility batch renames only the exact 21-line
   `financial_graph_retrieval_budget._drop_queries_already_selected(
@@ -10785,4 +10785,84 @@ are complete. It remains only as an audit record, not an active priority.
 - Keep adjacent budget application, cache, telemetry, retrieval execution,
   state/trace/artifact mutation, and final sequencing outside the batch. Exact
   expectations and stop lines are authoritative in
+  [Project Status Completed Selected Query Dedupe](../overview/project_status.md#completed-selected-query-dedupe-public-api).
+
+### Selected-query-dedupe public API completed
+
+- Commit `7a4f847` renamed only the exact 21-line
+  `financial_graph_retrieval_budget._drop_queries_already_selected(...)`
+  definition in place to public `drop_queries_already_selected(...)`, then
+  updated one pipeline import and two external `_retrieve(...)` calls. It added
+  no alias, wrapper, body move, policy, trace field, or adjacent budget/cache/
+  telemetry/retrieval change.
+- The implementation preserved eager selected-signature completion, one
+  signature call per selected/query item, falsey filtering, truthy set dedupe,
+  fresh kept/dropped lists, original query identities/order, exact duplicate
+  count/list mapping, input immutability, evaluation order, and all uncaught
+  errors. Definition/body hashes remained
+  `00100a4f22ae070aaff3a107c772e24cf9dc6d0e71ca7e1f312fcf26f339becf` /
+  `c8a570015c088711678a8b444a7fe0af0bb5c56925f327772455620b9c93d079`;
+  final call/caller hashes became
+  `979b5eda0966ab88651544f303601624f952ceb1213ab5d5195af374624c8cd0` /
+  `8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`.
+- The earlier characterization correctly predicted the source transform but
+  undercounted derived CURRENT-SOURCE tests. The first full run failed only the
+  two tests whose `_retrieve` caller hashes still expected the private name;
+  updating those two hashes and their two caller-map aggregates produced the
+  actual source/tests/whole transforms `+4/-4`, `+4/-4`, and `+8/-8`. The
+  committed diff SHA-256 is
+  `248f847f7ae92a04a81c60ed8206d8b3deac095127570c624d07cb929035d3de`.
+- Direct behavior/public identity 12/12, corrected exact structural 2/2 in
+  17.216 seconds, focused 370/370 in 19.499 seconds, audit 217, pycompile 3/3,
+  retired refs zero, selected private/public 0/4, owner counts 2/13, unchanged
+  419/2,641 physical lines, unchanged acyclic 48/203 DAG, and final full
+  2,143/2,143 in 286.986 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. The milestone is name-only and establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Nested-result-evidence public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 28-line
+  `financial_runtime_trace._collect_nested_result_evidence(rows:
+  List[Mapping[str, Any]], *, max_depth: int = 6) -> List[Dict[str, Any]]`
+  definition in place to public `collect_nested_result_evidence(...)`. Update
+  the sole graph-calculation import, two external calls, and one existing owner-
+  count expectation; add no alias, wrapper, body move, or adjacent lookup/ratio
+  repair, evidence adoption, mutable state, trace, artifact, or ledger change.
+- Preserve fresh evidence-list and closure construction, exact
+  `list(rows or [])`, Mapping filters, `depth > max_depth` inclusive bound,
+  calculation-result materialization, calculation answer-slot precedence over
+  row fallback, row-before-calculation payload order, runtime-evidence-before-
+  evidence-items order, eager payload-list materialization, dict-only shallow
+  copies with nested identity, calculation-subtask-before-answer-slot depth-
+  first recursion, duplicate preservation, input immutability, global lookup
+  timing, and every uncaught error. The normalized definition/body hashes are
+  `85f171139d2f7bb938db3e4bd252951e711fbec711c93117e2b94ee20bd74f07` /
+  `9e1ea64a954dced11f80eb2190ba072ab6d0c28734d7922100852cbae6af2670`.
+- Both calls remain one-positional/no-keyword annotated assignments with exact
+  `ordered_results` at caller try depth zero in
+  `_recover_lookup_results_from_sibling_table_evidence(...)` and
+  `_append_ratio_result_from_task_outputs(...)`. Current/projected ordered
+  call-record hashes are
+  `fbe09b412099983fa3effe95696b280c1c68fa38bf6e4368aa44e93a82a7f428` /
+  `5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`.
+  Current/projected caller hashes are
+  `2a0612b09c211617299322388d2450723d02dd549a9f2e047630f0e18786ab1f` /
+  `833b2f0f26d5c50e5827e7664ca84dadb8ac7f5ccec7616f6d6496814e4f6f7c`
+  and
+  `10ba74606aa6dbd3baf9a53e0a2b9d90bc4e6f19823fa66acf9864fd61ce6ea7` /
+  `9c600c7294b1299f5db822e7207cec02b6f146f61fc802937abff0c822d1181e`.
+- Production scope is one definition, one import, and two external calls.
+  Tests contain zero exact private-name records and the public name has no
+  collision. Selected private/public records project 0/4, owner counts 4/27 to
+  5/26, and runtime-trace/calculation lines remain 1,412/13,464. One existing
+  owner-count expectation changes. Projected source/tests/whole transforms are
+  `+4/-4`, `+1/-1`, and `+5/-5`; exact temporary diff SHA-256 is
+  `a871a2ed4debdd592e3c621de26d2df0d594dfed7cfcf9ec5515d82209364671`.
+- The restored projection passed direct behavior/public identity 12/12, exact
+  static owner/DAG 1/1 in 2.025 seconds, aggregate/dependency/lookup/operation/
+  subtask/import focused tests 744/744 in 33.882 seconds, audit 217, pycompile
+  3/3, retired refs zero, diff check, and unchanged 48/203 DAG. Full
+  2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+  were **NOT RUN**. Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
