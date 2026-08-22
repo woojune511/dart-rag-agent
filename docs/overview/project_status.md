@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `7a4f847` renamed only `financial_graph_retrieval_budget._drop_queries_already_selected(...)` in place to public `drop_queries_already_selected(...)` and updated one pipeline import, two calls, two caller hashes, and two derived caller-map hashes |
-| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 370/370, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `7a4f847` |
+| What just changed? | `67537a1` renamed only `financial_runtime_trace._collect_nested_result_evidence(...)` in place to public `collect_nested_result_evidence(...)` and updated one graph-calculation import, two calls, one owner-count, and three derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 12/12, exact static owner/DAG 1/1, corrected structural tests 2/2, focused tests 744/744, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `67537a1` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_runtime_trace._collect_nested_result_evidence(...)` in place to public `collect_nested_result_evidence(...)`; update one graph-calculation import, two external calls, and one owner-count expectation |
+| What is next? | Rename only `financial_graph_retrieval_budget._limit_query_context_terms(...)` in place to public `limit_query_context_terms(...)`; update one pipeline import, two calls, and four derived CURRENT-SOURCE hash expectations |
 
 ## Product Boundary
 
@@ -724,7 +724,7 @@ Commit-level diffs and validation are kept in
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, shared sentence/token surfaces, query-focus marker projection, and source-visible term preservation |
 | Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition |
-| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; runtime trace includes structured-result subtask-row/answer projection and collapsed-ratio evidence repair, and the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection, but neither owns ledger mutation orchestration |
+| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; runtime trace includes structured-result subtask-row/answer projection, nested-result evidence collection, and collapsed-ratio evidence repair, and the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection, but neither owns ledger mutation orchestration |
 | Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation, agent-answer/review/debug, structured missing-answer selection, aggregate completion, and prepared public-answer state projection, excluding evidence selection, dynamic answer/trace repair, graph execution, and final sequencing |
 | Reflection projection | `financial_reflection_projection.py`; deterministic retry-query construction/finalization, action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, selected-query-dedupe direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 370 / 370 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after selected-query-dedupe public rename |
+| Latest focused owner checkpoint | PASS, nested-result-evidence direct behavior/public identity 12 / 12, exact static owner/DAG 1 / 1, and affected focused set 744 / 744 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after nested-result-evidence public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,27 +799,111 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 28-line
-`src.agent.financial_runtime_trace._collect_nested_result_evidence(
-rows: List[Mapping[str, Any]], *, max_depth: int = 6) ->
-List[Dict[str, Any]]` definition at lines 492-519 in place to public
-`collect_nested_result_evidence(...)`. Update the sole import in
-`financial_graph_calculation.py`, its two external calls, and the one existing
-runtime-trace owner-count expectation. Add no alias, wrapper, body move, new
-test method, vocabulary, policy, state/ledger mutation, evidence adoption,
-exception boundary, or adjacent lookup/ratio-repair change.
+Rename only the exact 30-line
+`src.agent.financial_graph_retrieval_budget._limit_query_context_terms(
+items: List[str], budget: int, *, strategy: str = "head") ->
+tuple[List[str], Dict[str, Any]]` definition at lines 99-128 in place to public
+`limit_query_context_terms(...)`. Update the sole import in
+`financial_retrieval_pipeline.py`, its two `_retrieve(...)` calls, and exactly
+four existing CURRENT-SOURCE hash expectations in
+`tests/test_financial_graph_helpers.py`. Add no alias, wrapper, body move, test
+method, vocabulary, budget policy, trace field, state/artifact mutation,
+exception boundary, or adjacent retrieval/cache/telemetry change.
 
-This is the smallest remaining state-free cross-module visibility transform in
-the correct owner. The 25-line `_numeric_extractor_query_for_state(...)` reads
-graph state, while the evidence-only `_period_scoped_count_value_from_text(...)`
-has no owner-local caller and needs a separate ownership contract instead of a
-public retrieval-pipeline API. `_find_task_record_in_list(...)` is explicitly
-non-exported, and the 249-line direct-support predicate is not a bounded name
-cleanup. The next comparable correct-owner helper,
-`_limit_query_context_terms(...)`, is 30 lines; this seam is 28 lines with four
-source and zero exact-name test records.
+This is now the smallest correct-owner state-free cross-module visibility
+transform. The 25-line `_numeric_extractor_query_for_state(...)` reads graph
+state; the 34-line evidence-only `_period_scoped_count_value_from_text(...)`
+has no owner-local caller and needs a separate ownership contract rather than a
+public retrieval-pipeline API; `_find_task_record_in_list(...)` is explicitly
+non-exported; and the 249-line direct-support predicate is not a bounded name
+cleanup. The selected helper has one definition, one import, two external calls,
+and zero exact-name test records.
 
-Preserve exact evaluation semantics. Allocate a fresh `evidence` list and
+Preserve eager iteration of exact `items` and exact
+`_normalise_spaces(str(item or ""))` evaluation for every item before the
+second truthy filter. Preserve the resulting `input_count` as the post-filter
+cleaned length, ordered first-occurrence dedupe through
+`list(dict.fromkeys(cleaned))`, input immutability, fresh result/trace objects,
+global normalizer lookup timing, and all uncaught iteration, truth, string,
+normalization, hashing, comparison, arithmetic, membership, allocation, and
+mapping-construction errors.
+
+When `budget <= 0` or the deduped length is within budget, preserve the exact
+fresh `deduped` list without truncation. For exact `strategy == "head_tail"`,
+preserve ceiling head count `(budget + 1) // 2`, remaining tail count, copied
+head slice, conditional tail-slice iteration, and append-only-if-absent order.
+All other strategy values retain ordinary head slicing. Preserve ordered
+`dropped_terms` membership projection and exact trace field order/values:
+`input_count`, `deduped_count`, `selected_count`, the original `budget`, the
+original `selection_strategy`, `dropped_count = max(...)`, then
+`dropped_terms`. Zero and negative budgets remain unlimited; an unknown
+strategy remains head selection.
+
+Both calls remain tuple assignments at caller `try` depth zero in `_retrieve`.
+The first uses two positional arguments `retrieval_hint_terms, hint_budget` and
+no keyword at line 2174. The second uses positional
+`list(preferred_sections or []), section_budget` plus exact
+`strategy="head_tail"` at line 2178. Preserve surrounding budget coercion,
+retrieval-hint tokenization, preferred-section materialization, enrichment-
+trace adoption, later query assembly/execution, and every caller-owned stop.
+Name-normalized definition/body AST SHA-256 values are
+`d3b01ca98254c0518f4004d8f7f8760aba4f274b9ee4013e438ba2f379951ee6` /
+`2c4d26b77a5bdc7bebf66c38a3798111871f1594bfefc3012ecbb91f102ae4a6`.
+Current/projected call-record hashes are
+`f915bdf299efc6c4e62c6e0ce1070942fa0b88b9ae78581e466cd194e1725403` /
+`1ec7119a1e88598b0328f496a69fd983812baf0d253c0214c95c70f19d4e46d4`;
+the `_retrieve` caller-body hash moves from
+`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`
+to
+`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`.
+
+Update those two repeated caller-hash expectations and the two derived caller-
+map expectations
+`19f53f39d22c7ca30b43c46ce04c41e1019ba5bcec8986adb4baa421cb6269bb`
+to
+`97383b6e44a7c5eefeef26dd1696c8eb30955309fa8856ea63b3d3ac7abcf94e`
+and
+`872a17e66e45473db8b93de11b2df40407587a7151baa98112bfa322989c58a6`
+to
+`7c6d1114561990343374e59324329144a57a734ff674a9d1c51164e9541db141`.
+No assertion or test method may be added, removed, or weakened.
+
+After the rename selected private/public records must be 0/4, the pipeline
+binding must be identical to the public owner, owner public/private counts must
+move exactly 2/13 to 3/12, and budget/pipeline physical lines must remain
+419/2,641. Projected source/tests/whole transforms are `+4/-4`, `+4/-4`, and
+`+8/-8` across exactly three files. The exact temporary diff SHA-256 is
+`4d0a2d3293f84ad0895c0dd9ba90c3c697349fb8ddea8402a2797b67a794d43a`.
+
+The restored projection passed current-private and projected-public direct
+behavior/owner-pipeline identity 12/12 each, exact structural tests 2/2 in
+20.242 seconds, retrieval-scope/retrieval-pipeline/semantic-plan/operation-
+contract/import-side-effect focused tests 370/370 in 22.242 seconds, audit 217,
+pycompile 3/3, retired selected refs zero, diff check, and unchanged acyclic
+48/203 import topology at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
+Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
+and remote CI remain **NOT RUN**. This name-only projection establishes no
+behavior, answer-quality, performance, benchmark, schedule, cache, ledger, or
+Phase 3 completion claim.
+
+## Completed Nested-Result-Evidence Public API
+
+Commit `67537a1` renamed only the exact 28-line
+`financial_runtime_trace._collect_nested_result_evidence(...)` definition in
+place to public `collect_nested_result_evidence(...)`. It updated one graph-
+calculation import, two calls, the existing runtime-trace owner-count
+expectation, and three derived CURRENT-SOURCE hash expectations without moving
+the body or changing adjacent lookup/ratio repair, evidence adoption, state,
+trace, artifact, ledger, or final sequencing.
+
+The implementation completed the previously characterized smallest state-free
+correct-owner seam. It left the state-reading numeric-extractor helper, the
+evidence-only wrong-owner helper, the explicitly non-exported task-record
+helper, and the broad direct-support predicate untouched. The next comparable
+correct-owner helper is now governed only by `Next Work` above.
+
+It preserves exact evaluation semantics: allocate a fresh `evidence` list and
 create `_append(...)` and `_collect(...)` closures before iterating exact
 `list(rows or [])`. Ignore top-level non-`Mapping` rows. In `_collect(...)`,
 return only when `depth > max_depth`, so depth zero is included at the default
@@ -829,7 +913,7 @@ result `answer_slots` before row-level fallback. Visit payloads in exact row,
 calculation-result order, and within each payload append `runtime_evidence`
 before `evidence_items`.
 
-For every append, preserve exact `list(items or [])` materialization, dict-only
+For every append it preserves exact `list(items or [])` materialization, dict-only
 filtering, ordered shallow `dict(item)` copies, nested-object identity, and all
 uncaught truth, iteration, mapping, conversion, extend, and allocation errors.
 Build nested rows from calculation-result `subtask_results`, extend them with
@@ -846,38 +930,33 @@ Both calls remain one-positional/no-keyword annotated assignments at caller
 `_recover_lookup_results_from_sibling_table_evidence(...)` and line 11483 in
 `_append_ratio_result_from_task_outputs(...)`. Preserve the surrounding task/
 state preparation, immediate evidence-pool extension, downstream lookup/ratio
-repair, and every exception stop. Current/projected ordered call-record hashes
-are
-`fbe09b412099983fa3effe95696b280c1c68fa38bf6e4368aa44e93a82a7f428` /
-`5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`.
-Current/projected caller-body hashes are
-`2a0612b09c211617299322388d2450723d02dd549a9f2e047630f0e18786ab1f` /
+repair, and every exception stop. The final ordered call-record hash is
+`5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`;
+final caller-body hashes are
 `833b2f0f26d5c50e5827e7664ca84dadb8ac7f5ccec7616f6d6496814e4f6f7c`
 for lookup recovery and
-`10ba74606aa6dbd3baf9a53e0a2b9d90bc4e6f19823fa66acf9864fd61ce6ea7` /
 `9c600c7294b1299f5db822e7207cec02b6f146f61fc802937abff0c822d1181e`
 for ratio-result append.
 
-Current production scope is one definition, one import, and two external calls:
-four selected private source records. Tests contain zero selected exact-name
-records, and the future public name has no source/test collision. After the
-rename selected private/public records must be 0/4, the calculation binding
-must be identical to the public owner, runtime-trace public/private counts must
-move exactly 4/27 to 5/26, and runtime-trace/calculation physical lines must
-remain 1,412/13,464. Update exactly one existing owner-count expectation from
-4/27 to 5/26.
+Final production scope is one definition, one import, and two external calls.
+Selected private/public records are 0/4, the calculation binding is identical
+to the public owner, runtime-trace public/private counts are 5/26, and runtime-
+trace/calculation physical lines remain 1,412/13,464. Tests retain zero exact-
+name consumer records; one owner-count and three derived caller-source hash
+expectations changed.
 
-Projected source/tests/whole transforms are `+4/-4`, `+1/-1`, and `+5/-5`
-across exactly three files. The exact temporary diff SHA-256 is
-`a871a2ed4debdd592e3c621de26d2df0d594dfed7cfcf9ec5515d82209364671`.
-The restored projection passed direct behavior/public identity 12/12, the exact
-static owner/DAG test 1/1 in 2.025 seconds, aggregate/dependency/lookup/
-operation/subtask/import focused tests 744/744 in 33.882 seconds, audit 217,
-pycompile 3/3, retired selected refs zero, diff check, and unchanged acyclic
-48/203 import topology. Full discovery 2,143/2,143 remains the implementation
-gate. Benchmark refresh and remote CI remain **NOT RUN**. This name-only
-projection establishes no behavior, answer-quality, performance, benchmark,
-schedule, cache, ledger, or Phase 3 completion claim.
+Actual source/tests/whole transforms are `+4/-4`, `+4/-4`, and `+8/-8`
+across four files. The committed diff SHA-256 is
+`37a06ece3c652015b0198948c7ee8a234481f2dd4f542046862ff573bc5df0ed`.
+Direct behavior/public identity 12/12, exact static owner/DAG 1/1 in 2.001
+seconds, affected focused tests 744/744 in 36.626 seconds, audit 217, pycompile
+3/3, retired selected refs zero, diff check, and unchanged acyclic 48/203
+topology passed. The first full run found only two stale CURRENT-SOURCE
+contracts; after their three derived hash expectations were updated, those
+tests passed 2/2 in 10.360 seconds and final full discovery passed 2,143/2,143
+in 336.370 seconds. Benchmark refresh and remote CI were **NOT RUN**. This
+name-only milestone establishes no behavior, answer-quality, performance,
+benchmark, schedule, cache, ledger, or Phase 3 completion claim.
 
 ## Completed Selected-Query Dedupe Public API
 

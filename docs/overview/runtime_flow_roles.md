@@ -305,7 +305,7 @@ State-free owner topology:
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
-| `financial_runtime_trace.py` | runtime trace projection, structured-result subtask-row/answer projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
+| `financial_runtime_trace.py` | runtime trace projection, structured-result subtask-row/answer projection, nested-result evidence collection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_reflection_projection.py` | reflection request/plan normalization, strict summaries, synthesis source, deterministic action/report, and bounded artifact-integrity feedback; heuristic and LLM planning remain outside |
@@ -1541,14 +1541,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Source/tests/whole `+4/-4`, `+4/-4`, `+8/-8`, direct/identity 12/12,
   focused 370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_runtime_trace.py`의 exact 28-line
-  `_collect_nested_result_evidence(...)`를 public
-  `collect_nested_result_evidence(...)`로 rename하고 graph-calculation import
-  한 개, call 두 개와 owner-count 기대 한 개만 갱신한다. Root/calculation/
-  nested evidence order, Mapping filter, shallow-copy identity와 inclusive
-  depth bound를 유지한다. Exact temporary projection은 source/tests/whole
-  `+4/-4`, `+1/-1`, `+5/-5`, direct/identity 12/12, focused 744/744,
-  audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `67537a1` visibility batch는 `financial_runtime_trace.py`의 exact
+  28-line nested-result-evidence helper를 public
+  `collect_nested_result_evidence(...)`로 이름 수렴시키고 graph-calculation
+  import 한 개와 call 두 개, owner-count 기대 한 개와 세 CURRENT-SOURCE
+  파생 hash만 갱신했다. Root/calculation/nested evidence order, Mapping filter,
+  shallow-copy identity와 inclusive depth bound는 유지됐다. 실제 source/tests/
+  whole `+4/-4`, `+4/-4`, `+8/-8`, direct/identity 12/12, focused 744/744,
+  audit 217, pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_graph_retrieval_budget.py`의 exact
+  30-line `_limit_query_context_terms(...)`를 public
+  `limit_query_context_terms(...)`로 rename하고 retrieval-pipeline import 한
+  개, `_retrieve(...)` call 두 개와 기존 caller/caller-map hash 기대 네 개만
+  갱신한다. Normalize/filter/first-occurrence dedupe, nonpositive unlimited,
+  head/head-tail selection과 trace field/order를 유지한다. Exact temporary
+  projection은 source/tests/whole `+4/-4`, `+4/-4`, `+8/-8`, current/private와
+  projected/public direct/identity 각 12/12, exact structural 2/2, focused
+  370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

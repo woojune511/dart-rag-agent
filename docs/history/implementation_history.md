@@ -10820,49 +10820,79 @@ are complete. It remains only as an audit record, not an active priority.
   **NOT RUN**. The milestone is name-only and establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Nested-result-evidence public API characterization checkpoint
+### Nested-result-evidence public API completed
 
-- The next bounded visibility batch renames only the exact 28-line
-  `financial_runtime_trace._collect_nested_result_evidence(rows:
-  List[Mapping[str, Any]], *, max_depth: int = 6) -> List[Dict[str, Any]]`
-  definition in place to public `collect_nested_result_evidence(...)`. Update
-  the sole graph-calculation import, two external calls, and one existing owner-
-  count expectation; add no alias, wrapper, body move, or adjacent lookup/ratio
-  repair, evidence adoption, mutable state, trace, artifact, or ledger change.
-- Preserve fresh evidence-list and closure construction, exact
-  `list(rows or [])`, Mapping filters, `depth > max_depth` inclusive bound,
-  calculation-result materialization, calculation answer-slot precedence over
-  row fallback, row-before-calculation payload order, runtime-evidence-before-
-  evidence-items order, eager payload-list materialization, dict-only shallow
-  copies with nested identity, calculation-subtask-before-answer-slot depth-
-  first recursion, duplicate preservation, input immutability, global lookup
-  timing, and every uncaught error. The normalized definition/body hashes are
+- Commit `67537a1` renamed only the exact 28-line
+  `financial_runtime_trace._collect_nested_result_evidence(...)` definition in
+  place to public `collect_nested_result_evidence(...)`, then updated one
+  graph-calculation import, two external calls, and one owner-count expectation.
+  It added no alias, wrapper, body move, or adjacent lookup/ratio repair,
+  evidence adoption, mutable state, trace, artifact, or ledger change.
+- Fresh evidence-list/closure construction, exact `list(rows or [])`, Mapping
+  filters, inclusive depth bound, calculation answer-slot precedence, payload
+  and evidence order, eager payload materialization, dict-only shallow copies,
+  nested identity, depth-first recursion, duplicate preservation, immutability,
+  lookup timing, and every uncaught error remain exact. Definition/body hashes
+  remain
   `85f171139d2f7bb938db3e4bd252951e711fbec711c93117e2b94ee20bd74f07` /
   `9e1ea64a954dced11f80eb2190ba072ab6d0c28734d7922100852cbae6af2670`.
-- Both calls remain one-positional/no-keyword annotated assignments with exact
-  `ordered_results` at caller try depth zero in
-  `_recover_lookup_results_from_sibling_table_evidence(...)` and
-  `_append_ratio_result_from_task_outputs(...)`. Current/projected ordered
-  call-record hashes are
-  `fbe09b412099983fa3effe95696b280c1c68fa38bf6e4368aa44e93a82a7f428` /
-  `5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`.
-  Current/projected caller hashes are
-  `2a0612b09c211617299322388d2450723d02dd549a9f2e047630f0e18786ab1f` /
-  `833b2f0f26d5c50e5827e7664ca84dadb8ac7f5ccec7616f6d6496814e4f6f7c`
+  Final call/caller hashes are
+  `5daac2403f7714ad1c9abf35e63e04756a7b79e7daf261f7177166caccbac14e`,
+  `833b2f0f26d5c50e5827e7664ca84dadb8ac7f5ccec7616f6d6496814e4f6f7c`,
   and
-  `10ba74606aa6dbd3baf9a53e0a2b9d90bc4e6f19823fa66acf9864fd61ce6ea7` /
   `9c600c7294b1299f5db822e7207cec02b6f146f61fc802937abff0c822d1181e`.
+- The first full run correctly exposed two unrelated CURRENT-SOURCE contract
+  tests whose caller maps included the renamed calls. Updating their three
+  derived hash expectations plus the owner-count expectation produced actual
+  source/tests/whole transforms `+4/-4`, `+4/-4`, and `+8/-8` across four
+  files. The committed diff SHA-256 is
+  `37a06ece3c652015b0198948c7ee8a234481f2dd4f542046862ff573bc5df0ed`.
+- Direct behavior/public identity 12/12, static owner/DAG 1/1 in 2.001 seconds,
+  corrected structural 2/2 in 10.360 seconds, focused 744/744 in 36.626
+  seconds, audit 217, pycompile 3/3, selected private/public 0/4, owner counts
+  5/26, unchanged 1,412/13,464 lines, unchanged acyclic 48/203 DAG, and final
+  full 2,143/2,143 in 336.370 seconds passed. Benchmark refresh and remote CI
+  were **NOT RUN**. The milestone is name-only and establishes no behavior,
+  quality, performance, benchmark, schedule, cache, ledger, or Phase 3 claim.
+
+### Query-context-term limiter public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 30-line
+  `financial_graph_retrieval_budget._limit_query_context_terms(items:
+  List[str], budget: int, *, strategy: str = "head") ->
+  tuple[List[str], Dict[str, Any]]` definition in place to public
+  `limit_query_context_terms(...)`. Update one pipeline import, two external
+  `_retrieve(...)` calls, and exactly four existing derived CURRENT-SOURCE hash
+  expectations; add no alias, wrapper, body move, test method, policy, trace,
+  cache, telemetry, retrieval execution, or mutable-state change.
+- Preserve eager item truth/string/normalization, the second truthy filter,
+  post-filter input count, ordered first-occurrence dedupe, nonpositive
+  unlimited behavior, ordinary head slicing, exact ceiling-head/remainder-tail
+  selection, ordered dropped-term projection, trace field order/values, fresh
+  identities, input immutability, global lookup timing, and every uncaught
+  error. Definition/body hashes are
+  `d3b01ca98254c0518f4004d8f7f8760aba4f274b9ee4013e438ba2f379951ee6` /
+  `2c4d26b77a5bdc7bebf66c38a3798111871f1594bfefc3012ecbb91f102ae4a6`.
+- Both calls remain tuple assignments in `_retrieve` at try depth zero. The
+  first remains two-positional/no-keyword; the second remains two-positional
+  with `strategy="head_tail"`. Current/projected call-record hashes are
+  `f915bdf299efc6c4e62c6e0ce1070942fa0b88b9ae78581e466cd194e1725403` /
+  `1ec7119a1e88598b0328f496a69fd983812baf0d253c0214c95c70f19d4e46d4`;
+  the caller body projects
+  `8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`
+  to
+  `fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`.
 - Production scope is one definition, one import, and two external calls.
-  Tests contain zero exact private-name records and the public name has no
-  collision. Selected private/public records project 0/4, owner counts 4/27 to
-  5/26, and runtime-trace/calculation lines remain 1,412/13,464. One existing
-  owner-count expectation changes. Projected source/tests/whole transforms are
-  `+4/-4`, `+1/-1`, and `+5/-5`; exact temporary diff SHA-256 is
-  `a871a2ed4debdd592e3c621de26d2df0d594dfed7cfcf9ec5515d82209364671`.
-- The restored projection passed direct behavior/public identity 12/12, exact
-  static owner/DAG 1/1 in 2.025 seconds, aggregate/dependency/lookup/operation/
-  subtask/import focused tests 744/744 in 33.882 seconds, audit 217, pycompile
-  3/3, retired refs zero, diff check, and unchanged 48/203 DAG. Full
+  Tests contain zero exact selected-name records. Selected private/public
+  records project 0/4, owner counts 2/13 to 3/12, and lines remain 419/2,641.
+  Projected source/tests/whole transforms are `+4/-4`, `+4/-4`, and `+8/-8`;
+  exact temporary diff SHA-256 is
+  `4d0a2d3293f84ad0895c0dd9ba90c3c697349fb8ddea8402a2797b67a794d43a`.
+- The restored projection passed current-private and projected-public direct
+  behavior/identity 12/12 each, exact structural 2/2 in 20.242 seconds,
+  retrieval-scope/retrieval-pipeline/semantic-plan/operation-contract/import-
+  side-effect focused tests 370/370 in 22.242 seconds, audit 217, pycompile
+  3/3, retired refs zero, diff check, and unchanged acyclic 48/203 DAG. Full
   2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
   were **NOT RUN**. Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
