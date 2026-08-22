@@ -7,7 +7,7 @@ from src.agent.financial_answer_slots import build_answer_slots, build_calculate
 from src.agent.financial_formula_eval import _safe_eval_formula
 from src.agent.financial_operand_resolution import (
     missing_required_operands,
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     ratio_operand_rows_collapse_to_same_slot,
 )
 from src.agent.financial_operation_policies import should_coerce_percent_point_unit
@@ -186,7 +186,7 @@ def guard_operation_plan(
             elif ratio_requirements:
                 for requirement in ratio_requirements:
                     role = str(requirement.get("role") or "").strip()
-                    if _operand_row_matches_requirement(row, requirement):
+                    if operand_row_matches_requirement(row, requirement):
                         if role.startswith("numerator"):
                             numerator_ids.add(operand_id)
                         elif role.startswith("denominator"):
@@ -246,7 +246,7 @@ def build_deterministic_operation_plan(
     matched_rows: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
     for operand in required_rows:
         matched_row = next(
-            (row for row in operand_rows if _operand_row_matches_requirement(row, operand)),
+            (row for row in operand_rows if operand_row_matches_requirement(row, operand)),
             None,
         )
         if matched_row is None:
@@ -421,7 +421,7 @@ def build_deterministic_ontology_plan(
         return role_score, scope_score, statement_score, aggregate_score, source_score
 
     for operand in required_operands:
-        candidate_rows = [row for row in operands if _operand_row_matches_requirement(row, operand)]
+        candidate_rows = [row for row in operands if operand_row_matches_requirement(row, operand)]
         required_role = str(operand.get("role") or "").strip()
         role_matched_rows = [
             row

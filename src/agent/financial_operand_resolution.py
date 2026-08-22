@@ -1354,7 +1354,7 @@ def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[s
     return False
 
 
-def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+def operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     if _operand_row_conflicts_with_requirement(row, operand):
         return False
 
@@ -1386,7 +1386,7 @@ def missing_required_operands(
 ) -> List[Dict[str, Any]]:
     missing: List[Dict[str, Any]] = []
     for operand in required_operands:
-        if any(_operand_row_matches_requirement(row, operand) for row in operand_rows):
+        if any(operand_row_matches_requirement(row, operand) for row in operand_rows):
             continue
         missing.append(dict(operand))
     return missing
@@ -1545,7 +1545,7 @@ def _llm_lookup_operand_has_direct_support(
         (
             operand
             for operand in required_operands
-            if _operand_row_matches_requirement(row, operand)
+            if operand_row_matches_requirement(row, operand)
         ),
         None,
     )
@@ -1667,7 +1667,7 @@ def _operand_row_satisfies_required_surface_contract(
         (
             operand
             for operand in required_operands
-            if _operand_row_matches_requirement(row, operand)
+            if operand_row_matches_requirement(row, operand)
         ),
         None,
     )
@@ -1725,7 +1725,7 @@ def filter_operand_rows_by_required_surface_contract(
     return [
         row
         for row in rows
-        if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+        if any(operand_row_matches_requirement(row, operand) for operand in required_operands)
         and _operand_row_satisfies_required_surface_contract(
             row,
             evidence_by_id,
@@ -2212,7 +2212,7 @@ def select_supplemental_operand_candidate(
     for row in candidates:
         candidate = dict(row)
         candidate_id = _supplemental_candidate_id(candidate)
-        if not _operand_row_matches_requirement(candidate, required_operand):
+        if not operand_row_matches_requirement(candidate, required_operand):
             rejected.append(
                 SupplementalOperandCandidateRejection(
                     candidate_id,
@@ -2371,7 +2371,7 @@ def merge_operand_rows(
         if _operand_merge_row_key(candidate) in seen_keys:
             continue
         for required_key, operand in ordered_required:
-            if _operand_row_matches_requirement(candidate, operand):
+            if operand_row_matches_requirement(candidate, operand):
                 candidates_by_required[required_key].append(candidate)
                 break
 
@@ -2486,7 +2486,7 @@ def direct_target_metric_row_conflicts_existing_units(
         dict(row)
         for row in existing_rows
         if not required_operands
-        or any(_operand_row_matches_requirement(dict(row), operand) for operand in required_operands)
+        or any(operand_row_matches_requirement(dict(row), operand) for operand in required_operands)
     ]
     if not matching_existing_rows:
         return False
@@ -2509,7 +2509,7 @@ def direct_target_metric_row_conflicts_existing_units(
         (
             dict(operand)
             for operand in required_operands
-            if _operand_row_matches_requirement(target_metric_row, operand)
+            if operand_row_matches_requirement(target_metric_row, operand)
         ),
         {},
     )
@@ -2757,7 +2757,7 @@ def resolve_direct_structured_operand_acceptance(
             row
             for row in accepted_operand_rows
             if any(
-                _operand_row_matches_requirement(row, operand)
+                operand_row_matches_requirement(row, operand)
                 for operand in acceptance_input.required_operands
             )
             and _operand_row_satisfies_required_surface_contract(
@@ -2915,7 +2915,7 @@ def resolve_post_coercion_llm_operand_selection(
         row
         for row in selection_input.operand_rows
         if any(
-            _operand_row_matches_requirement(row, operand)
+            operand_row_matches_requirement(row, operand)
             for operand in selection_input.required_operands
         )
         and _operand_row_satisfies_required_surface_contract(
@@ -2930,7 +2930,7 @@ def resolve_post_coercion_llm_operand_selection(
             row
             for row in selected_operand_rows
             if any(
-                _operand_row_matches_requirement(row, operand)
+                operand_row_matches_requirement(row, operand)
                 for operand in selection_input.required_operands
             )
         ]

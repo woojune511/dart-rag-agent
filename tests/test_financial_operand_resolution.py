@@ -26,7 +26,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_conflicts_with_requirement,
     _operand_row_groups_collapse_to_same_slot,
     _operand_row_has_direct_evidence_surface,
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
     operand_rows_conflict_by_required_role,
     operand_rows_have_single_table_context,
@@ -3454,7 +3454,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     expected_conflict,
                 )
                 self.assertEqual(
-                    _operand_row_matches_requirement(row, operand),
+                    operand_row_matches_requirement(row, operand),
                     expected_match,
                 )
 
@@ -3465,7 +3465,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             "normalized_unit": "KRW",
         }
         self.assertTrue(
-            _operand_row_matches_requirement(source_anchor_only, operand)
+            operand_row_matches_requirement(source_anchor_only, operand)
         )
 
     def test_missing_requirements_preserve_order_and_copy_rows(self) -> None:
@@ -4098,7 +4098,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         )
         input_before = deepcopy(acceptance_input)
         with (
-            patch.object(operand_resolution, "_operand_row_matches_requirement", side_effect=matches),
+            patch.object(operand_resolution, "operand_row_matches_requirement", side_effect=matches),
             patch.object(operand_resolution, "_operand_row_satisfies_required_surface_contract", side_effect=has_surface),
             patch.object(operand_resolution, "direct_lookup_row_is_ambiguous_context_table", side_effect=is_ambiguous),
             patch.object(operand_resolution, "_llm_lookup_operand_has_direct_support", side_effect=has_direct_support),
@@ -4172,7 +4172,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 )
                 input_before = deepcopy(acceptance_input)
                 with (
-                    patch.object(operand_resolution, "_operand_row_matches_requirement", return_value=True),
+                    patch.object(operand_resolution, "operand_row_matches_requirement", return_value=True),
                     patch.object(operand_resolution, "_operand_row_satisfies_required_surface_contract", return_value=True) as surface_check,
                     patch.object(operand_resolution, "direct_lookup_row_is_ambiguous_context_table", return_value=False),
                     patch.object(operand_resolution, "_llm_lookup_operand_has_direct_support", return_value=True),
@@ -4289,7 +4289,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with patch.object(
             operand_resolution,
-            "_operand_row_matches_requirement",
+            "operand_row_matches_requirement",
             side_effect=ordered_match,
         ):
             self.assertFalse(
@@ -4318,7 +4318,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with patch.object(
             operand_resolution,
-            "_operand_row_matches_requirement",
+            "operand_row_matches_requirement",
             return_value=False,
         ):
             self.assertFalse(
@@ -4564,7 +4564,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         with patch.object(
             operand_resolution,
-            "_operand_row_matches_requirement",
+            "operand_row_matches_requirement",
             side_effect=RuntimeError("matcher failed"),
         ):
             with self.assertRaisesRegex(RuntimeError, "matcher failed"):

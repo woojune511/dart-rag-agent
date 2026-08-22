@@ -15,7 +15,7 @@ from src.agent.financial_operand_resolution import (
     missing_required_operands,
     operand_row_conflicts_requested_scope,
     operand_row_display_unit_set,
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     operand_rows_conflict_by_required_role,
     operand_rows_have_single_table_context,
     period_comparison_operand_rows_collapse_to_same_slot,
@@ -650,7 +650,7 @@ def direct_rows_resolved_dependency_keys(
         if not any(binding_key):
             continue
         if any(
-            _operand_row_matches_requirement(row, binding)
+            operand_row_matches_requirement(row, binding)
             for row in (operand_rows or [])
         ):
             resolved_keys.add(binding_key)
@@ -1620,7 +1620,7 @@ def filter_direct_rows_by_dependency_producer_scope(
             (
                 dict(binding)
                 for binding in bindings
-                if _operand_row_matches_requirement(row_data, dict(binding))
+                if operand_row_matches_requirement(row_data, dict(binding))
             ),
             {},
         )

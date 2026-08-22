@@ -204,7 +204,7 @@ from src.agent.financial_operand_resolution import (
     operand_rows_have_single_table_context,
     operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     period_comparison_operand_rows_collapse_to_same_slot,
     ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
@@ -1760,7 +1760,7 @@ class FinancialAgentCalculationMixin:
                 (
                     index
                     for index, row in enumerate(refined_rows)
-                    if _operand_row_matches_requirement(row, operand)
+                    if operand_row_matches_requirement(row, operand)
                 ),
                 None,
             )
@@ -2064,7 +2064,7 @@ class FinancialAgentCalculationMixin:
                 if task_id:
                     projected_by_task.setdefault(task_id, []).append(dict(operand))
         def _projection_operand_matches_lookup(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-            if _operand_row_matches_requirement(candidate, operand):
+            if operand_row_matches_requirement(candidate, operand):
                 return True
             candidate_label = _normalise_spaces(
                 str(candidate.get("matched_operand_label") or candidate.get("label") or "")
@@ -5413,7 +5413,7 @@ class FinancialAgentCalculationMixin:
             matched_operand_candidate: Dict[str, Any] = {}
             for operand_row in list(sibling_row.get("calculation_operands") or []):
                 operand_candidate = dict(operand_row or {})
-                if not _operand_row_matches_requirement(operand_candidate, binding):
+                if not operand_row_matches_requirement(operand_candidate, binding):
                     continue
                 candidate_normalized = operand_candidate.get("normalized_value")
                 candidate_raw = _normalise_spaces(str(operand_candidate.get("raw_value") or ""))
@@ -8876,7 +8876,7 @@ class FinancialAgentCalculationMixin:
             matched_rows = [
                 row
                 for row in operands
-                if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
+                if any(operand_row_matches_requirement(row, operand) for operand in required_operands)
             ]
             if len(required_operands) != 1 or len(matched_rows) != 1:
                 missing_info = self._infer_missing_info(state, matched_rows)
@@ -11702,7 +11702,7 @@ class FinancialAgentCalculationMixin:
                 ]
                 for operand_row in sibling_operand_rows:
                     operand_candidate = dict(operand_row or {})
-                    if not _operand_row_matches_requirement(operand_candidate, binding):
+                    if not operand_row_matches_requirement(operand_candidate, binding):
                         continue
                     if operand_candidate.get("normalized_value") is None:
                         continue

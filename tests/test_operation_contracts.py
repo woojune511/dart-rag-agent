@@ -52,7 +52,7 @@ from src.agent.financial_operand_resolution import (
     evidence_item_for_operand_row,
     filter_operand_rows_by_required_surface_contract,
     _llm_lookup_operand_has_direct_support,
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
     candidate_direct_match_strength,
     candidate_is_direct_grounding_candidate,
@@ -967,7 +967,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(coerced["normalized_unit"], "COUNT")
         self.assertEqual(coerced["normalized_value"], 781000.0)
         self.assertFalse(
-            _operand_row_matches_requirement(
+            operand_row_matches_requirement(
                 coerced,
                 {
                     "label": "2023년 판매 대수",
@@ -1030,7 +1030,7 @@ class OperationContractTests(unittest.TestCase):
         later_magnitude.assert_not_called()
         later_precision.assert_not_called()
         self.assertTrue(
-            _operand_row_matches_requirement(
+            operand_row_matches_requirement(
                 {**coerced, "matched_operand_role": "prior_period"},
                 {
                     "label": "2022년 판매 대수",
@@ -5455,7 +5455,7 @@ class OperationContractTests(unittest.TestCase):
             "aliases": ["인건비", "종업원급여"],
             "role": "numerator_1",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_generic_ratio_denominator_accepts_aggregate_total_row_via_table_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -6579,8 +6579,8 @@ class OperationContractTests(unittest.TestCase):
             "concept": "income_before_income_taxes",
             "role": "prior_period",
         }
-        self.assertTrue(_operand_row_matches_requirement(row, current_req))
-        self.assertFalse(_operand_row_matches_requirement(row, prior_req))
+        self.assertTrue(operand_row_matches_requirement(row, current_req))
+        self.assertFalse(operand_row_matches_requirement(row, prior_req))
 
     def test_dependency_slot_match_respects_symbolic_prior_period_hint(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -8976,7 +8976,7 @@ class OperationContractTests(unittest.TestCase):
             "raw_value": "985,018",
             "raw_unit": "백만원",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_operand_requirement_rejects_conflicting_row_concept_even_when_label_matches(self) -> None:
         row = {
@@ -8990,7 +8990,7 @@ class OperationContractTests(unittest.TestCase):
             "concept": "operating_expense_total",
             "role": "primary_value",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_evidence_item_conflict_rejects_continuing_income_quote_for_pretax_operand(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

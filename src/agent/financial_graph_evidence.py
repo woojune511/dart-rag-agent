@@ -28,7 +28,7 @@ from src.agent.financial_graph_model_loaders import (
     validation_output_model,
 )
 from src.agent.financial_operand_resolution import (
-    _operand_row_matches_requirement,
+    operand_row_matches_requirement,
     coerce_operand_unit_from_evidence,
 )
 from src.agent.financial_langchain_loaders import (
@@ -1643,7 +1643,7 @@ class FinancialAgentEvidenceMixin:
                     and observed_raw_unit
                 ):
                     continue
-                if not _operand_row_matches_requirement(row_payload, operand):
+                if not operand_row_matches_requirement(row_payload, operand):
                     continue
                 key = (
                     str(row_payload.get("source_anchor") or item.get("source_anchor") or ""),

@@ -2536,7 +2536,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
             patch.object(
                 calculation_execution,
-                "_operand_row_matches_requirement",
+                "operand_row_matches_requirement",
                 side_effect=matches,
             ) as matcher,
         ):
@@ -2562,7 +2562,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(calculation_execution, "get_financial_ontology", return_value=unsupported),
             patch.object(
                 calculation_execution,
-                "_operand_row_matches_requirement",
+                "operand_row_matches_requirement",
                 side_effect=RuntimeError("matcher must stay lazy"),
             ) as lazy_matcher,
         ):
@@ -2574,7 +2574,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
             patch.object(
                 calculation_execution,
-                "_operand_row_matches_requirement",
+                "operand_row_matches_requirement",
                 side_effect=RuntimeError("matcher must stay lazy"),
             ) as lazy_matcher,
         ):
@@ -2613,7 +2613,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         before = deepcopy((state, operands))
         with (
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
-            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+            patch.object(calculation_execution, "operand_row_matches_requirement", side_effect=matches),
         ):
             plan = target(state["active_subtask"], operands, metric_key="ratio_metric")
         self.assertEqual(plan["ordered_operand_ids"], ["num", "den1", "den2"])
@@ -2638,7 +2638,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             }
             with (
                 patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
-                patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+                patch.object(calculation_execution, "operand_row_matches_requirement", side_effect=matches),
             ):
                 result = target(task, operands, metric_key="ratio_metric")
             self.assertEqual(result["result_unit"], expected_unit)
@@ -2648,7 +2648,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         missing_denominator = required[:1]
         with (
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
-            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+            patch.object(calculation_execution, "operand_row_matches_requirement", side_effect=matches),
         ):
             self.assertIsNone(
                 target(
@@ -2687,7 +2687,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
 
         with (
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
-            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+            patch.object(calculation_execution, "operand_row_matches_requirement", side_effect=matches),
         ):
             plan = target(state["active_subtask"], operands, metric_key="sum_metric")
         self.assertEqual(plan["operation"], "add")
@@ -2706,7 +2706,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         ):
             with (
                 patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
-                patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+                patch.object(calculation_execution, "operand_row_matches_requirement", side_effect=matches),
             ):
                 self.assertIsNone(
                     target(state["active_subtask"], changed_operands, metric_key="sum_metric")
@@ -2719,7 +2719,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                 "get_financial_ontology",
                 side_effect=RuntimeError("ontology failed"),
             ),
-            patch.object(calculation_execution, "_operand_row_matches_requirement", later_matcher),
+            patch.object(calculation_execution, "operand_row_matches_requirement", later_matcher),
             self.assertRaisesRegex(RuntimeError, "ontology failed"),
         ):
             target(state["active_subtask"], operands, metric_key="sum_metric")
@@ -2729,7 +2729,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
             patch.object(
                 calculation_execution,
-                "_operand_row_matches_requirement",
+                "operand_row_matches_requirement",
                 side_effect=RuntimeError("matcher failed"),
             ),
             self.assertRaisesRegex(RuntimeError, "matcher failed"),
