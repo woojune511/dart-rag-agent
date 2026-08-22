@@ -6808,51 +6808,69 @@ Direct/identity 12/12, structural 2/2, focused 370/370, audit 217, pycompile
 3/3, unchanged 48/203 DAG, and full 2,143/2,143 passed. Full details are in
 [Project Status Completed Query Context](../overview/project_status.md#completed-query-context-term-limiter-public-api).
 
-The active visibility contract now renames only the exact 29-line
-`financial_graph_retrieval_budget._store_query_result_cache(cache:
-Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
-where_filter: Any, k: int, docs: List[Any], objective_signature: str = "") ->
-Dict[str, Any]` definition in place to public
-`store_query_result_cache(...)`, then updates one pipeline import, three
-`_retrieve(...)` calls, and four derived CURRENT-SOURCE hash expectations.
-
-Preserve `_query_result_cache_key(...)` as the first operation and the falsey-
-key fresh-empty-dict return before entry evaluation. For a truthy key preserve
-exact ordered field construction: normalized source, raw-string query,
-original filter identity, filter signature, objective string, integer `k`,
-docs list, and doc count. Preserve two independent `list(docs or [])`
-evaluations, so a one-shot iterator may populate stored docs while producing
-zero `doc_count`. Assign `cache[key] = entry` only after complete construction,
-then return fresh `{"cache_key": key, **entry}`; the return and stored entry are
-distinct mappings that share the stored docs-list object. Preserve shallow
-identities, existing-key replacement timing, lookup order, and every uncaught
-error.
-
-All three calls remain standalone expressions at caller `try` depth zero with
-exact positional cache plus ordered keywords `source`, `executed_query`,
-`where_filter`, `k`, `docs`, and `objective_signature`. Their source/query
-pairs remain `primary`/`enriched_query`, `operand_focus`/`focused_query`, and
-`retry`/`retry_query`; caller-owned miss/search/telemetry/merge order and stops
-remain outside the helper. Definition/body hashes are
+Commit `ea3ee9f` completed the exact 29-line query-result-cache store visibility
+contract by renaming the definition in place to public
+`store_query_result_cache(...)`, updating one pipeline import, three calls, and
+four derived CURRENT-SOURCE hash expectations. Cache-key-first evaluation,
+falsey-key fresh-empty return, ordered entry construction, two independent
+docs materializations, post-construction replacement, and distinct returned/
+stored mappings sharing the stored docs-list identity remain exact. Final
+definition/body hashes are
 `f3f7c030d44c1186e8034d891cbd2eff11857d68aff35323cd67362263dd7196` /
-`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`.
-Call-record hashes project
-`c87accd9f1e56237643b73199a72e96f158ef824c63020c1c627de03a99c6936` /
-`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13`;
-the caller-body hash projects
-`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`
-to
+`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`;
+call/caller hashes are
+`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13` /
 `d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`.
-Selected private/public records project 0/5, owner counts 3/12 to 4/11, and
+Source/tests/whole were `+5/-5`, `+4/-4`, and `+9/-9`; committed diff SHA-256
+is `00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
+Direct/identity 12/12, structural 2/2, focused 370/370, audit 217, pycompile
+3/3, owner counts 4/11, unchanged 48/203 DAG, and full 2,143/2,143 passed.
+Benchmark refresh and remote CI were **NOT RUN**. Full details are in
+[Project Status Completed Query Result Cache Store](../overview/project_status.md#completed-query-result-cache-store-public-api).
+
+The active visibility contract now renames only the exact 34-line
+`financial_graph_retrieval_budget._drop_duplicate_executed_query(
+seen_signatures_by_source: Dict[str, set[str]], trace: Dict[str, Any], *,
+source: str, executed_query: str, base_query: str) -> bool` definition in place
+to public `drop_duplicate_executed_query(...)`, then updates one pipeline
+import, three `_retrieve(...)` calls, and four derived CURRENT-SOURCE hash
+expectations.
+
+Preserve source normalization before signature construction and the falsey-
+signature `False` return before mutation. For a truthy signature preserve the
+exact per-source `setdefault`; a new signature mutates only that set and
+returns `False`. A duplicate alone adopts `trace["by_source"]`, increments the
+per-source count, appends the original base/executed query objects, increments
+the global count, and returns `True`. Preserve existing mapping/set/list
+identities, per-source isolation, ordered default fields, coercions, global
+lookup timing, and partial mutation on exceptions: signature failure precedes
+mutation, source-count failure precedes append/global mutation, and global-
+count failure follows the source count and append.
+
+All three calls remain `if helper(...): continue` at caller `try` depth zero,
+with exact source/query pairs primary/enriched plus base, operand-focus/focused,
+and retry/retry. `True` continues immediately; `False` retains caller-owned
+cache/search/telemetry sequencing; exceptions stop later work. Future
+definition/body hashes are
+`36eb8ed0423899bf26b1b4621ca20908cbddbc34aba347c49f7331630112c432` /
+`50d4a9a5a442699277e992bd80fb1d7d110e210bf58e84b1b5d17eec421fe56d`.
+Current/projected call hashes are
+`865c968125b299d569a6683638e46c8d186d0c57fd36c642f7392338a6524979` /
+`b2881aa9a6b0fcd34590f54d02bb0803bd3c62e9a8276471a63886bbde7d8cf3`;
+the caller body projects
+`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`
+to
+`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`.
+Selected private/public records project 0/5, owner counts 4/11 to 5/10, and
 physical lines remain 419/2,641. Source/tests/whole project `+5/-5`, `+4/-4`,
 and `+9/-9`; exact temporary diff SHA-256 is
-`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
+`89fe5aaffda11ae12aedfe42089c8b1fd5daaa8c38115287d15026ce3836b56a`.
 The restored projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2, focused 370/370 in 24.968 seconds, audit 217, pycompile
+exact structural 2/2, focused 370/370 in 21.406 seconds, audit 217, pycompile
 3/3, diff check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep lookup policy, retrieval/telemetry execution,
-graph state, trace/artifact/ledger mutation, and final sequencing outside this
-batch. Exact expectations and stop lines are authoritative in
+implementation gate. Keep cache/search/telemetry execution, graph state,
+trace/artifact/ledger mutation, and final sequencing outside this batch. Exact
+expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

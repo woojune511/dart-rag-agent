@@ -2711,49 +2711,63 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Query Context](../overview/project_status.md#completed-query-context-term-limiter-public-api).
 
-The next bounded visibility seam renames only the exact 29-line
-`financial_graph_retrieval_budget._store_query_result_cache(cache:
-Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
-where_filter: Any, k: int, docs: List[Any], objective_signature: str = "") ->
-Dict[str, Any]` definition in place to public
-`store_query_result_cache(...)`, then updates one pipeline import, three
+The query-result-cache store visibility seam completed in `ea3ee9f`. It renamed
+only the exact 29-line helper in place to public
+`store_query_result_cache(...)`, then updated one pipeline import, three
 `_retrieve(...)` calls, and four derived CURRENT-SOURCE hash expectations.
-This is the smallest remaining correct-owner transform by changed record count;
-the shorter `_apply_query_budget(...)` has eight production/test records and
-exposes a composite dedupe/period-balance contract.
+Key-first evaluation, falsey-key fresh-empty return, ordered entry construction,
+two docs materializations, complete-entry-before-replacement timing, shallow
+identity, and returned/stored mapping boundaries remain exact. Source/tests/
+whole transforms were `+5/-5`, `+4/-4`, and `+9/-9`; committed diff SHA-256 is
+`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
+Direct/identity 12/12, exact structural 2/2, focused 370/370, audit 217,
+pycompile 3/3, owner counts 4/11, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
+contract is authoritative in
+[Project Status Completed Query Result Cache Store](../overview/project_status.md#completed-query-result-cache-store-public-api).
 
-Preserve key construction first and the falsey-key fresh-empty return. For a
-truthy key preserve ordered source/query/filter/objective/k/docs/doc-count
-entry construction, including two independent `list(docs or [])` evaluations.
-Perform `cache[key] = entry` only after full construction, then return a fresh
-mapping that shares the stored docs-list object. Preserve existing-entry
-replacement timing, shallow identities, input immutability outside explicit
-cache mutation, and all uncaught errors. The three expression calls remain at
-try depth zero with exact source/query pairs primary/enriched, operand-focus/
-focused, and retry/retry; retrieval/search/telemetry/merge sequencing stays in
-the caller.
+The next bounded visibility seam renames only the exact 34-line
+`financial_graph_retrieval_budget._drop_duplicate_executed_query(
+seen_signatures_by_source: Dict[str, set[str]], trace: Dict[str, Any], *,
+source: str, executed_query: str, base_query: str) -> bool` definition in place
+to public `drop_duplicate_executed_query(...)`, then updates one pipeline
+import, three `_retrieve(...)` calls, and four derived CURRENT-SOURCE hash
+expectations. It is the smallest remaining correct-owner transform by equal
+record count and shorter span than the 45-line cache lookup and 46-line
+telemetry summary; the shorter `_apply_query_budget(...)` has eight records and
+exposes a composite policy contract.
 
-Definition/body hashes are
-`f3f7c030d44c1186e8034d891cbd2eff11857d68aff35323cd67362263dd7196` /
-`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`.
+Preserve source normalization, signature construction, falsey-signature no-
+mutation return, per-source set adoption, and new-signature set-only mutation.
+For a duplicate preserve by-source trace adoption, per-source count increment,
+exact base/executed query append, global count increment, and `True` return in
+that order. Keep existing mapping/set/list identities, per-source isolation,
+default field order, integer coercions, partial mutation on exceptions, and all
+uncaught errors. The three `if helper(...): continue` calls remain at try depth
+zero with exact primary/enriched-plus-base, operand-focus/focused, and retry/
+retry arguments; cache/search/telemetry sequencing stays in the caller.
+
+Future definition/body hashes are
+`36eb8ed0423899bf26b1b4621ca20908cbddbc34aba347c49f7331630112c432` /
+`50d4a9a5a442699277e992bd80fb1d7d110e210bf58e84b1b5d17eec421fe56d`.
 Current/projected call-record hashes are
-`c87accd9f1e56237643b73199a72e96f158ef824c63020c1c627de03a99c6936` /
-`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13`;
+`865c968125b299d569a6683638e46c8d186d0c57fd36c642f7392338a6524979` /
+`b2881aa9a6b0fcd34590f54d02bb0803bd3c62e9a8276471a63886bbde7d8cf3`;
 the `_retrieve` caller body projects
-`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`
+`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`
 to
-`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`.
-Selected private/public records project zero/5, owner counts 3/12 to 4/11,
+`9639f74e8a06afd5a4cebf0fb04e4acc273f56b7fa34eb771dd48c76b1f6ef86`.
+Selected private/public records project zero/5, owner counts 4/11 to 5/10,
 and physical lines remain 419/2,641.
 
 Projected source/tests/whole transforms are `+5/-5`, `+4/-4`, and `+9/-9`;
 exact temporary diff SHA-256 is
-`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
+`89fe5aaffda11ae12aedfe42089c8b1fd5daaa8c38115287d15026ce3836b56a`.
 The temporary projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2 in 20.112 seconds, focused 370/370 in 24.968 seconds,
+exact structural 2/2 in 18.899 seconds, focused 370/370 in 21.406 seconds,
 audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203
 DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate. Keep retrieval/telemetry execution, graph state, trace/artifact/ledger
+gate. Keep cache/search/telemetry execution, graph state, trace/artifact/ledger
 work, and final sequencing outside the batch. Benchmark refresh and remote CI
 remain **NOT RUN**; exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
