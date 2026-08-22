@@ -2696,41 +2696,64 @@ seconds passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Nested Result Evidence](../overview/project_status.md#completed-nested-result-evidence-public-api).
 
-The next bounded visibility seam renames only the exact 30-line
-`financial_graph_retrieval_budget._limit_query_context_terms(items: List[str],
-budget: int, *, strategy: str = "head") -> tuple[List[str], Dict[str, Any]]`
-definition in place to public `limit_query_context_terms(...)`, then updates
-one pipeline import, two `_retrieve(...)` calls, and four derived CURRENT-
-SOURCE hash expectations. This is the smallest correct-owner state-free
-transform after excluding state-reading, evidence-only wrong-owner, explicitly
-non-exported, and broad foundation helpers.
-
-Preserve eager item iteration and truth/string/normalization, the second truthy
-filter, post-filter input count, ordered first-occurrence dedupe, nonpositive
-unlimited behavior, ordinary head and exact ceiling-head/remainder-tail
-selection, ordered dropped-term projection, exact trace field order/values,
-fresh identities, input immutability, global lookup timing, and all uncaught
-errors. Definition/body hashes are
-`d3b01ca98254c0518f4004d8f7f8760aba4f274b9ee4013e438ba2f379951ee6` /
-`2c4d26b77a5bdc7bebf66c38a3798111871f1594bfefc3012ecbb91f102ae4a6`.
-Current/projected call-record hashes are
-`f915bdf299efc6c4e62c6e0ce1070942fa0b88b9ae78581e466cd194e1725403` /
-`1ec7119a1e88598b0328f496a69fd983812baf0d253c0214c95c70f19d4e46d4`;
-the `_retrieve` caller body projects
-`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`
-to
-`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`.
-Selected private/public records project zero/4, owner counts 2/13 to 3/12,
-and budget/pipeline physical lines remain 419/2,641.
-
-Projected source/tests/whole transforms are `+4/-4`, `+4/-4`, and `+8/-8`;
-exact temporary diff SHA-256 is
+The query-context-term visibility seam completed in `f77bd87`. It renamed only
+the exact 30-line helper in place to public `limit_query_context_terms(...)`,
+then updated one pipeline import, two `_retrieve(...)` calls, and four derived
+CURRENT-SOURCE hash expectations. Normalize/filter/first-occurrence dedupe,
+nonpositive unlimited behavior, head/head-tail selection, dropped-term and
+trace projection, fresh identities, immutability, lookup timing, and all
+uncaught errors remain exact. Source/tests/whole transforms were `+4/-4`,
+`+4/-4`, and `+8/-8`; committed diff SHA-256 is
 `4d0a2d3293f84ad0895c0dd9ba90c3c697349fb8ddea8402a2797b67a794d43a`.
+Direct/identity 12/12, exact structural 2/2, focused 370/370, audit 217,
+pycompile 3/3, owner counts 3/12, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
+contract is authoritative in
+[Project Status Completed Query Context](../overview/project_status.md#completed-query-context-term-limiter-public-api).
+
+The next bounded visibility seam renames only the exact 29-line
+`financial_graph_retrieval_budget._store_query_result_cache(cache:
+Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
+where_filter: Any, k: int, docs: List[Any], objective_signature: str = "") ->
+Dict[str, Any]` definition in place to public
+`store_query_result_cache(...)`, then updates one pipeline import, three
+`_retrieve(...)` calls, and four derived CURRENT-SOURCE hash expectations.
+This is the smallest remaining correct-owner transform by changed record count;
+the shorter `_apply_query_budget(...)` has eight production/test records and
+exposes a composite dedupe/period-balance contract.
+
+Preserve key construction first and the falsey-key fresh-empty return. For a
+truthy key preserve ordered source/query/filter/objective/k/docs/doc-count
+entry construction, including two independent `list(docs or [])` evaluations.
+Perform `cache[key] = entry` only after full construction, then return a fresh
+mapping that shares the stored docs-list object. Preserve existing-entry
+replacement timing, shallow identities, input immutability outside explicit
+cache mutation, and all uncaught errors. The three expression calls remain at
+try depth zero with exact source/query pairs primary/enriched, operand-focus/
+focused, and retry/retry; retrieval/search/telemetry/merge sequencing stays in
+the caller.
+
+Definition/body hashes are
+`f3f7c030d44c1186e8034d891cbd2eff11857d68aff35323cd67362263dd7196` /
+`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`.
+Current/projected call-record hashes are
+`c87accd9f1e56237643b73199a72e96f158ef824c63020c1c627de03a99c6936` /
+`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13`;
+the `_retrieve` caller body projects
+`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`
+to
+`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`.
+Selected private/public records project zero/5, owner counts 3/12 to 4/11,
+and physical lines remain 419/2,641.
+
+Projected source/tests/whole transforms are `+5/-5`, `+4/-4`, and `+9/-9`;
+exact temporary diff SHA-256 is
+`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
 The temporary projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2 in 20.242 seconds, focused 370/370 in 22.242 seconds,
+exact structural 2/2 in 20.112 seconds, focused 370/370 in 24.968 seconds,
 audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203
 DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate. Keep retrieval/cache/telemetry execution, state/trace/artifact/ledger
+gate. Keep retrieval/telemetry execution, graph state, trace/artifact/ledger
 work, and final sequencing outside the batch. Benchmark refresh and remote CI
 remain **NOT RUN**; exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).

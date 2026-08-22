@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `67537a1` renamed only `financial_runtime_trace._collect_nested_result_evidence(...)` in place to public `collect_nested_result_evidence(...)` and updated one graph-calculation import, two calls, one owner-count, and three derived CURRENT-SOURCE hashes |
-| What passed? | Direct behavior/public identity 12/12, exact static owner/DAG 1/1, corrected structural tests 2/2, focused tests 744/744, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `67537a1` |
+| What just changed? | `f77bd87` renamed only `financial_graph_retrieval_budget._limit_query_context_terms(...)` in place to public `limit_query_context_terms(...)` and updated one pipeline import, two calls, and four derived CURRENT-SOURCE hashes |
+| What passed? | Direct behavior/public identity 12/12, exact structural tests 2/2, focused tests 370/370, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `f77bd87` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_graph_retrieval_budget._limit_query_context_terms(...)` in place to public `limit_query_context_terms(...)`; update one pipeline import, two calls, and four derived CURRENT-SOURCE hash expectations |
+| What is next? | Rename only `financial_graph_retrieval_budget._store_query_result_cache(...)` in place to public `store_query_result_cache(...)`; update one pipeline import, three calls, and four derived CURRENT-SOURCE hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, nested-result-evidence direct behavior/public identity 12 / 12, exact static owner/DAG 1 / 1, and affected focused set 744 / 744 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after nested-result-evidence public rename |
+| Latest focused owner checkpoint | PASS, query-context-term direct behavior/public identity 12 / 12, exact structural tests 2 / 2, and affected focused set 370 / 370 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after query-context-term public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,132 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 29-line
+`src.agent.financial_graph_retrieval_budget._store_query_result_cache(
+cache: Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
+where_filter: Any, k: int, docs: List[Any], objective_signature: str = "") ->
+Dict[str, Any]` definition at lines 301-329 in place to public
+`store_query_result_cache(...)`. Update the sole import in
+`financial_retrieval_pipeline.py`, its three `_retrieve(...)` calls, and exactly
+four existing CURRENT-SOURCE hash expectations in
+`tests/test_financial_graph_helpers.py`. Add no alias, wrapper, body move, test
+method, cache policy, trace field, retrieval branch, state/artifact/ledger
+mutation, exception boundary, or adjacent lookup/telemetry change.
+
+This is the smallest remaining correct-owner cross-module visibility
+transform by changed record count: one definition, one import, three external
+calls, and zero exact-name test records. The shorter 23-line
+`_apply_query_budget(...)` has one production import, three production calls,
+one test import, two direct test calls, and composes the private dedupe/period-
+balance policy; it is therefore a broader eight-record contract. The 25-line
+`_numeric_extractor_query_for_state(...)` reads graph state, the 34-line
+evidence-only `_period_scoped_count_value_from_text(...)` has no owner-local
+caller, `_find_task_record_in_list(...)` is explicitly non-exported, and the
+249-line direct-support predicate is not a bounded name cleanup.
+
+Preserve exact evaluation order. Call `_query_result_cache_key(...)` first
+with the exact keyword `source`, `executed_query`, and `where_filter` objects.
+If its result is falsey, return a fresh empty dict before evaluating any entry
+field. Otherwise build the entry in exact field order: normalized `source`,
+raw-string `executed_query`, original `where_filter` identity, filter
+signature, stringified objective signature, integer `k`, materialized docs,
+then doc count. Keep `_normalise_spaces(str(source or "unknown")) or
+"unknown"`, `str(executed_query or "")`, `_filter_signature(where_filter)`,
+`str(objective_signature or "")`, and `int(k or 0)` exact.
+
+Preserve the two separate `list(docs or [])` evaluations: the first becomes
+`entry["docs"]`, while the second alone determines `doc_count`. A one-shot
+iterator may therefore store documents and report zero count. After the whole
+entry succeeds, perform exact `cache[key] = entry`, then return fresh
+`{"cache_key": key, **entry}`. The returned mapping is not the stored entry,
+but both share the exact stored docs-list object; `where_filter` and nested
+document identities remain shallow. Preserve input identity/immutability
+outside the explicit cache assignment, replacement of an existing key only
+after entry construction, global lookup timing, and every currently uncaught
+truth, string, normalization, signature, integer, iteration, list/dict
+construction, cache assignment, and return-expansion error.
+
+All three calls remain standalone expression statements in `_retrieve` at
+caller `try` depth zero. Each passes exact positional
+`retrieval_query_result_cache` followed by keywords in exact order `source`,
+`executed_query`, `where_filter`, `k`, `docs`, `objective_signature`. The calls
+use respectively `"primary"`/`enriched_query` at line 2260,
+`"operand_focus"`/`focused_query` at line 2357, and `"retry"`/`retry_query` at
+line 2435; all retain exact `where_filter`, `search_k`, `batch_docs`, and
+`lookup_objective_signature`. Preserve caller-owned cache-miss/search/
+telemetry order, later document merge and query execution, and every failure
+stop.
+
+Name-normalized definition/body AST SHA-256 values are
+`f3f7c030d44c1186e8034d891cbd2eff11857d68aff35323cd67362263dd7196` /
+`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`.
+Current/projected call-record hashes are
+`c87accd9f1e56237643b73199a72e96f158ef824c63020c1c627de03a99c6936` /
+`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13`;
+the `_retrieve` caller-body hash moves from
+`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`
+to
+`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`.
+Update both repeated caller-body expectations and the derived caller-map
+expectations
+`97383b6e44a7c5eefeef26dd1696c8eb30955309fa8856ea63b3d3ac7abcf94e`
+to
+`dc70ca170cd99ee52560fed27adb4db99c51dbd987729b558b687afcd3fae641`
+and
+`7c6d1114561990343374e59324329144a57a734ff674a9d1c51164e9541db141`
+to
+`12ac1fe8c31fdcc07c947233e63a7beaf0a84f8a07e619c9ad25295f1fe7c4a2`.
+No assertion or test method may be added, removed, or weakened.
+
+After the rename selected private/public records must be 0/5, the pipeline
+binding must be identical to the public owner, owner public/private counts
+must move exactly 3/12 to 4/11, and budget/pipeline physical lines must remain
+419/2,641. Projected source/tests/whole transforms are `+5/-5`, `+4/-4`, and
+`+9/-9` across exactly three files. The exact temporary diff SHA-256 is
+`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
+
+The restored projection passed current-private and projected-public direct
+behavior/owner-pipeline identity 12/12 each, exact structural tests 2/2 in
+20.112 seconds, retrieval-scope/retrieval-pipeline/semantic-plan/operation-
+contract/import-side-effect focused tests 370/370 in 24.968 seconds, audit 217,
+pycompile 3/3, retired selected refs zero, diff check, and unchanged acyclic
+48/203 import topology. Full discovery 2,143/2,143 remains the implementation
+gate. Benchmark refresh and remote CI remain **NOT RUN**. This name-only
+projection establishes no behavior, answer-quality, retrieval-performance,
+cache-effectiveness, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Query-Context-Term Limiter Public API
+
+Commit `f77bd87` renamed only the exact 30-line
+`financial_graph_retrieval_budget._limit_query_context_terms(...)` definition
+in place to public `limit_query_context_terms(...)`. It updated one pipeline
+import, two calls, and four derived CURRENT-SOURCE hash expectations without
+moving the body or changing adjacent query budgeting, retrieval, cache,
+telemetry, state, trace, artifact, ledger, or final sequencing.
+
+Eager item truth/string/normalization, the second truthy filter, post-filter
+input count, ordered first-occurrence dedupe, nonpositive unlimited behavior,
+ordinary head and exact head-tail selection, ordered dropped terms, trace
+field order/values, fresh identities, immutability, lookup timing, and uncaught
+errors remain exact. Final selected private/public records are 0/4, the
+pipeline binding is identical to the owner, owner counts are 3/12, and physical
+lines remain 419/2,641.
+
+Actual source/tests/whole transforms were `+4/-4`, `+4/-4`, and `+8/-8`;
+committed diff SHA-256 is
+`4d0a2d3293f84ad0895c0dd9ba90c3c697349fb8ddea8402a2797b67a794d43a`.
+Direct behavior/public identity 12/12, exact structural 2/2 in 20.335 seconds,
+focused 370/370 in 23.165 seconds, audit 217, pycompile 3/3, retired refs zero,
+unchanged 48/203 DAG, and full discovery 2,143/2,143 in 686.355 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+no behavior, answer-quality, performance, benchmark, schedule, cache, ledger,
+or Phase 3 completion claim.
+
+## Historical Query-Context-Term Limiter Characterization Checkpoint
+
+The characterization below predates `f77bd87`; its projected rename and gates
+are complete. It is retained only as an audit record and is not active work.
 
 Rename only the exact 30-line
 `src.agent.financial_graph_retrieval_budget._limit_query_context_terms(

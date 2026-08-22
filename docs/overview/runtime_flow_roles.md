@@ -1549,16 +1549,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   shallow-copy identity와 inclusive depth bound는 유지됐다. 실제 source/tests/
   whole `+4/-4`, `+4/-4`, `+8/-8`, direct/identity 12/12, focused 744/744,
   audit 217, pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_graph_retrieval_budget.py`의 exact
-  30-line `_limit_query_context_terms(...)`를 public
-  `limit_query_context_terms(...)`로 rename하고 retrieval-pipeline import 한
-  개, `_retrieve(...)` call 두 개와 기존 caller/caller-map hash 기대 네 개만
-  갱신한다. Normalize/filter/first-occurrence dedupe, nonpositive unlimited,
-  head/head-tail selection과 trace field/order를 유지한다. Exact temporary
-  projection은 source/tests/whole `+4/-4`, `+4/-4`, `+8/-8`, current/private와
-  projected/public direct/identity 각 12/12, exact structural 2/2, focused
-  370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현 gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `f77bd87` visibility batch는
+  `financial_graph_retrieval_budget.py`의 exact 30-line query-context-term
+  limiter를 public `limit_query_context_terms(...)`로 이름 수렴시키고
+  retrieval-pipeline import 한 개, `_retrieve(...)` call 두 개와 기존 caller/
+  caller-map hash 기대 네 개만 갱신했다. Normalize/filter/first-occurrence
+  dedupe, nonpositive unlimited, head/head-tail selection과 trace field/order는
+  유지됐다. Source/tests/whole `+4/-4`, `+4/-4`, `+8/-8`, direct/identity
+  12/12, exact structural 2/2, focused 370/370, audit 217, pycompile 3/3,
+  unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 29-line
+  `_store_query_result_cache(...)`를 public `store_query_result_cache(...)`로
+  rename하고 retrieval-pipeline import 한 개, `_retrieve(...)` call 세 개와
+  기존 caller/caller-map hash 기대 네 개만 갱신한다. Empty-key early return,
+  ordered entry construction, 두 번의 docs materialization, explicit cache
+  replacement와 fresh-return/stored-entry identity 경계를 유지한다. Exact
+  temporary projection은 source/tests/whole `+5/-5`, `+4/-4`, `+9/-9`,
+  current/private와 projected/public direct/identity 각 12/12, exact structural
+  2/2, focused 370/370, audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체
+  구현 gate는 [Project Status의 Next Work](project_status.md#next-work)가 단일
+  기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

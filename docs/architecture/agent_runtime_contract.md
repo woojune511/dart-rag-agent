@@ -6792,40 +6792,67 @@ Direct/identity 12/12, focused 744/744 in 36.626 seconds, audit 217, pycompile
 passed. Benchmark refresh and remote CI were **NOT RUN**. Full details are in
 [Project Status Completed Nested Result Evidence](../overview/project_status.md#completed-nested-result-evidence-public-api).
 
-The active visibility contract now renames only the exact 30-line
-`financial_graph_retrieval_budget._limit_query_context_terms(items: List[str],
-budget: int, *, strategy: str = "head") -> tuple[List[str], Dict[str, Any]]`
-definition in place to public `limit_query_context_terms(...)`, then updates
-one pipeline import, two `_retrieve(...)` calls, and four derived CURRENT-
-SOURCE hash expectations. Preserve eager per-item truth/string/normalization,
-the second truthy filter, post-filter `input_count`, ordered `dict.fromkeys`
-dedupe, nonpositive unlimited behavior, ordinary head slicing, exact
-`head_tail` ceiling-head/remainder-tail selection, ordered dropped-term
+Commit `f77bd87` completed the exact 30-line query-context-term visibility
+contract by renaming the definition in place to public
+`limit_query_context_terms(...)`, updating one pipeline import, two calls, and
+four derived CURRENT-SOURCE hash expectations. Eager per-item truth/string/
+normalization, the second truthy filter, post-filter `input_count`, ordered
+`dict.fromkeys` dedupe, nonpositive unlimited behavior, ordinary head slicing,
+exact `head_tail` ceiling-head/remainder-tail selection, ordered dropped-term
 projection, trace field order/values, fresh identities, input immutability,
-global lookup timing, and every uncaught error.
-
-The first call remains two-positional/no-keyword; the second remains two-
-positional with exact `strategy="head_tail"`; both are tuple assignments at
-caller `try` depth zero. Definition/body hashes are
-`d3b01ca98254c0518f4004d8f7f8760aba4f274b9ee4013e438ba2f379951ee6` /
-`2c4d26b77a5bdc7bebf66c38a3798111871f1594bfefc3012ecbb91f102ae4a6`.
-Call-record hashes project
-`f915bdf299efc6c4e62c6e0ce1070942fa0b88b9ae78581e466cd194e1725403` /
-`1ec7119a1e88598b0328f496a69fd983812baf0d253c0214c95c70f19d4e46d4`;
-the `_retrieve` body projects
-`8f637c3e07ec09665e32d1d9621198bd462e236a8202940804b9b9163b9a6b6c`
-to
-`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`.
-Selected private/public records project 0/4, owner counts 2/13 to 3/12, and
-physical lines remain 419/2,641. Source/tests/whole project `+4/-4`, `+4/-4`,
-and `+8/-8`; exact temporary diff SHA-256 is
+global lookup timing, and every uncaught error remain exact. Final selected
+private/public records are 0/4, owner counts are 3/12, physical lines remain
+419/2,641, and the committed diff SHA-256 is
 `4d0a2d3293f84ad0895c0dd9ba90c3c697349fb8ddea8402a2797b67a794d43a`.
+Direct/identity 12/12, structural 2/2, focused 370/370, audit 217, pycompile
+3/3, unchanged 48/203 DAG, and full 2,143/2,143 passed. Full details are in
+[Project Status Completed Query Context](../overview/project_status.md#completed-query-context-term-limiter-public-api).
+
+The active visibility contract now renames only the exact 29-line
+`financial_graph_retrieval_budget._store_query_result_cache(cache:
+Dict[str, Dict[str, Any]], *, source: str, executed_query: Any,
+where_filter: Any, k: int, docs: List[Any], objective_signature: str = "") ->
+Dict[str, Any]` definition in place to public
+`store_query_result_cache(...)`, then updates one pipeline import, three
+`_retrieve(...)` calls, and four derived CURRENT-SOURCE hash expectations.
+
+Preserve `_query_result_cache_key(...)` as the first operation and the falsey-
+key fresh-empty-dict return before entry evaluation. For a truthy key preserve
+exact ordered field construction: normalized source, raw-string query,
+original filter identity, filter signature, objective string, integer `k`,
+docs list, and doc count. Preserve two independent `list(docs or [])`
+evaluations, so a one-shot iterator may populate stored docs while producing
+zero `doc_count`. Assign `cache[key] = entry` only after complete construction,
+then return fresh `{"cache_key": key, **entry}`; the return and stored entry are
+distinct mappings that share the stored docs-list object. Preserve shallow
+identities, existing-key replacement timing, lookup order, and every uncaught
+error.
+
+All three calls remain standalone expressions at caller `try` depth zero with
+exact positional cache plus ordered keywords `source`, `executed_query`,
+`where_filter`, `k`, `docs`, and `objective_signature`. Their source/query
+pairs remain `primary`/`enriched_query`, `operand_focus`/`focused_query`, and
+`retry`/`retry_query`; caller-owned miss/search/telemetry/merge order and stops
+remain outside the helper. Definition/body hashes are
+`f3f7c030d44c1186e8034d891cbd2eff11857d68aff35323cd67362263dd7196` /
+`ab126586afff2506d0d8be785af5ccd0f65bf201c75838f587b401dedab7dd58`.
+Call-record hashes project
+`c87accd9f1e56237643b73199a72e96f158ef824c63020c1c627de03a99c6936` /
+`49174eea4699ce99587b3dd79faaccd23459dd2963efcf87d2496c638e3a3b13`;
+the caller-body hash projects
+`fb1d06c40b868024466a23a2e903399e246858db54b4c293ad3c1eecc2f8dfff`
+to
+`d533247c6dc21c4327d9165f16692793263ae6de83e65f3b48b881ada76022cd`.
+Selected private/public records project 0/5, owner counts 3/12 to 4/11, and
+physical lines remain 419/2,641. Source/tests/whole project `+5/-5`, `+4/-4`,
+and `+9/-9`; exact temporary diff SHA-256 is
+`00b70919fdd458b96acf3438e802f8b24649d4dcc1bf8d3d587feac526415b4c`.
 The restored projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2, focused 370/370 in 22.242 seconds, audit 217, pycompile
+exact structural 2/2, focused 370/370 in 24.968 seconds, audit 217, pycompile
 3/3, diff check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep budget policy, retrieval/cache/telemetry execution,
-state/trace/artifact mutation, and final sequencing outside this batch. Exact
-expectations and stop lines are authoritative in
+implementation gate. Keep lookup policy, retrieval/telemetry execution,
+graph state, trace/artifact/ledger mutation, and final sequencing outside this
+batch. Exact expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
