@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (9, 71))
-        self.assertEqual(owner_counts, (9, 5))
+        self.assertEqual(owner_counts, (10, 4))
 
         def imported_names(module_name, imported_module):
             return {

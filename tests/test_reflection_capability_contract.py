@@ -1754,7 +1754,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             side_effect=preferred,
         ), patch.object(
             financial_reflection_projection,
-            "_section_hint_alias",
+            "section_hint_alias",
             side_effect=alias,
         ), patch.object(
             financial_reflection_projection,
@@ -1862,7 +1862,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             return_value=[],
         ), patch.object(
             financial_reflection_projection,
-            "_section_hint_alias",
+            "section_hint_alias",
             side_effect=AssertionError("section alias must stay lazy"),
         ), patch.object(
             financial_reflection_projection,
@@ -2122,19 +2122,19 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
                 and node.id == name
                 for node in ast.walk(reconciliation_tree)
             )
-            for name in {"preferred_calc_sections", "_section_hint_alias"}
+            for name in {"preferred_calc_sections", "section_hint_alias"}
         }
         selected_loads = {
             name: load_count(selected_nodes, name)
-            for name in {"preferred_calc_sections", "_section_hint_alias"}
+            for name in {"preferred_calc_sections", "section_hint_alias"}
         }
         self.assertEqual(
             all_reconciliation_loads,
-            {"preferred_calc_sections": 2, "_section_hint_alias": 0},
+            {"preferred_calc_sections": 2, "section_hint_alias": 0},
         )
         self.assertEqual(
             selected_loads,
-            {"preferred_calc_sections": 2, "_section_hint_alias": 3},
+            {"preferred_calc_sections": 2, "section_hint_alias": 3},
         )
         module_graph = {}
         for path in Path("src/agent").glob("*.py"):
@@ -2189,7 +2189,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             for alias in node.names
         }
         self.assertTrue(
-            {"preferred_calc_sections", "_section_hint_alias"}.issubset(
+            {"preferred_calc_sections", "section_hint_alias"}.issubset(
                 owner_retrieval_bindings
             )
         )

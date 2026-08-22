@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
 
 
-def _section_hint_alias(section: str) -> str:
+def section_hint_alias(section: str) -> str:
     text = _normalise_spaces(section)
     if not text:
         return ""

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence
 
 from src.agent.financial_retrieval_hints import (
     preferred_calc_sections,
-    _section_hint_alias,
+    section_hint_alias,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
@@ -103,12 +103,12 @@ def finalize_retry_queries(
         state.get("intent") or state.get("query_type", "qa"),
     )
     preferred_sections = [
-        _section_hint_alias(section)
+        section_hint_alias(section)
         for section in (
             global_preferred_sections
             + list(reflection_plan.get("preferred_sections") or [])
         )
-        if _section_hint_alias(section)
+        if section_hint_alias(section)
     ]
     preferred_sections = list(dict.fromkeys(preferred_sections))
 
@@ -127,7 +127,7 @@ def finalize_retry_queries(
     for query_text in base_queries:
         normalized_query = _normalise_spaces(query_text)
         for raw_section in (reflection_plan.get("preferred_sections") or []):
-            alias = _section_hint_alias(str(raw_section))
+            alias = section_hint_alias(str(raw_section))
             raw_section_text = _normalise_spaces(str(raw_section))
             if raw_section_text and alias:
                 normalized_query = normalized_query.replace(raw_section_text, alias)
