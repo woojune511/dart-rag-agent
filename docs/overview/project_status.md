@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `b8f78a5` renamed only `financial_runtime_normalization._display_operand_label(...)` in place to public `display_operand_label(...)` and updated three importer bindings, twelve external calls, and five exact test references |
-| What passed? | Direct behavior/public identity 10/10, focused tests 626/626, runtime audit 217, pycompile 6/6, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `b8f78a5` |
+| What just changed? | `28c3798` renamed only `financial_retrieval_hints._section_hint_alias(...)` in place to public `section_hint_alias(...)` and updated one importer binding, three external calls, seven exact name references, and two owner-count expectations |
+| What passed? | Direct behavior/public identity 12/12, focused tests 660/660, runtime audit 217, pycompile 5/5, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `28c3798` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_retrieval_hints._section_hint_alias(...)` in place to public `section_hint_alias(...)`; update one import, three calls, seven exact name references, and two owner-count expectations |
+| What is next? | Rename only `financial_retrieval_pipeline._sentence_matches_operand_context(...)` in place to public `sentence_matches_operand_context(...)`; update four owner-local calls, one import, one external call, and eight derived hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, display-label direct behavior/public identity 10 / 10 and affected focused set 626 / 626 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after display-operand-label public rename |
+| Latest focused owner checkpoint | PASS, section-hint-alias direct behavior/public identity 12 / 12 and affected focused set 660 / 660 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after section-hint-alias public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,109 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 9-line
+`src.agent.financial_retrieval_pipeline._sentence_matches_operand_context(
+sentence: str, operand: Dict[str, Any]) -> bool` definition at lines 207-215
+in place to public `sentence_matches_operand_context(...)`. Update its four
+owner-local calls, the sole importer binding in `financial_graph_evidence.py`,
+and that importer's one external call. Update eight existing derived hash
+expectations in `test_financial_graph_helpers.py`. Add no alias, wrapper, body
+move, test method, vocabulary, policy, fallback, cache, or exception boundary.
+Do not rename or move `_operand_context_surface_variants(...)`, adjacent
+normalization/context helpers, caller bodies, evidence construction, retrieval,
+state, trace, artifact, or final sequencing.
+
+Preserve exact evaluation semantics. Eagerly call `_normalise_spaces(sentence)`
+once and bind its exact result, then eagerly call
+`re.sub(r"\s+", "", normalized)` once before requesting any operand surface.
+Call `_operand_context_surface_variants(operand)` once and iterate its exact
+result in order. For each surface, call `_normalise_spaces(surface)` once and
+then `re.sub(r"\s+", "", surface_normalized)` once. Evaluate exact
+`surface_normalized in normalized or (surface_compact and surface_compact in
+compact)` left to right: a normalized containment hit skips both compact
+tests; otherwise a falsey compact surface skips compact containment. Return
+the exact `True` literal on the first match and stop iteration; return the exact
+`False` literal only after exhaustion. Preserve global lookup timing, regex
+pattern/replacement/defaults, truthiness and containment behavior, iteration,
+input identity, branch laziness, and every uncaught normalization, regex,
+variant-provider, iterator, membership, truthiness, or return error. The name-
+normalized definition AST/body SHA-256 values are
+`cf77ecff283091f04f0726d9a5e9bdb7dbea9991b92a9ecc4d59753c8a5ed90c` /
+`143dc586d49519d06da16d5c4607344ca95da4170c3abdd01e4e817b53d165c8`.
+
+All five calls remain two-positional/no-keyword calls at caller `try` depth
+zero. In `_period_comparison_count_value_from_text(...)`, preserve the line-639
+list-comprehension filter call and the later line-663 `context_hit` assignment,
+both with exact `(sentence, operand)` arguments and their surrounding gates and
+adoption. In `_required_operand_coverage_from_docs(...)`, preserve the line-846
+call under unary `not`, including eager `_doc_operand_context_text(doc)` before
+the operand argument and the immediate `continue` stop. In
+`_doc_period_count_operand_matches(...)`, preserve the line-897 list-
+comprehension filter call with exact `(text, operand)` arguments. In graph
+evidence `_build_required_operands_from_candidates(...)`, preserve the line-
+1383 call as the third operand of the existing lazy `and`, after the two regex
+guards, with exact `(context_text or raw_row, operand)` selection. Their target-
+normalized combined call-record SHA-256 over module, line, caller, arguments,
+keywords, direct parent, and `try` depth is
+`368e1e8f7348803c51e1efc27431ecd0e5735f453e48681e745d13d43628b2d2`.
+
+Current production scope is one definition, four owner-local calls, one
+external import, and one external call: seven selected private source API
+records. Tests contain no selected exact private-name record, and the future
+public name has no pre-existing exact definition, import, executable name,
+attribute, string constant, patch target, local binding, or collision. After
+the rename selected private/public records must be 0/7 across source/tests;
+the external binding must be identical to the public owner; owner public/
+private counts must move exactly 1/28 to 2/27; and owner/graph-evidence physical
+lines must remain 2,641/4,220.
+
+Update exactly eight existing expectations in
+`test_financial_graph_helpers.py`: four graph-evidence caller hashes, the
+matcher's target-normalized caller-record hash, and three caller-map aggregate
+hashes. Add no test and weaken no assertion. Projected source/tests/whole
+transforms are `+7/-7`, `+8/-8`, and `+15/-15` across exactly two source and
+one test file. The exact temporary diff SHA-256 is
+`19d465f4e34c0af94999e5dfb17c43e488125450889b9f9610c821f0237d55b1`.
+The restored projection passed direct behavior/public identity 12/12, the
+affected graph-helper/retrieval-pipeline/retrieval-scope/numeric-provenance/
+text-surface/semantic-plan/operation-contract/import-side-effect focused set
+701/701 in 264.994 seconds, audit 217, pycompile 2/2, retired selected refs
+zero, `git diff --check`, and the unchanged acyclic 48/203 DAG. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only projection establishes no behavior, answer-
+quality, evidence-quality, retrieval-performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
+
+## Completed Section-Hint-Alias Public API
+
+Commit `28c3798` renamed only the exact 8-line
+`financial_retrieval_hints._section_hint_alias(...)` definition in place to
+public `section_hint_alias(...)`. It updated one external import, three external
+calls, seven exact existing name references, and two derived owner-count
+expectations without moving the body, adding a compatibility surface, or
+changing adjacent preferred-section, ontology, statement-type, normalization,
+retry-query, reflection, retrieval, state, trace, artifact, or final
+sequencing. The falsey early return, hierarchy split-last/strip branch,
+numbered-prefix regex, exact final result, evaluation order, branch laziness,
+identity behavior, and uncaught errors remain exact.
+
+Source/tests/whole transforms were `+5/-5`, `+9/-9`, and `+14/-14`; the
+committed diff SHA-256 is
+`e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+Direct behavior/public identity passed 12/12, focused 660/660 passed in
+295.478 seconds, audit 217, pycompile 5/5, retired selected refs zero, selected
+public records 12, owner public/private 10/4, unchanged acyclic 48/203 DAG, and
+full discovery 2,143/2,143 passed in 340.329 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Historical Section-Hint-Alias Characterization Checkpoint
+
+The characterization below predates `28c3798`; its projected rename and gates
+are complete. It is retained only as an audit record and is not an active or
+competing priority.
 
 Rename only the exact 8-line
 `src.agent.financial_retrieval_hints._section_hint_alias(
@@ -858,8 +961,9 @@ The restored projection passed direct behavior/public identity 12/12, the
 affected reflection-capability/retrieval-hints/graph-helper/semantic-plan/
 operation-contract/import-side-effect focused set 660/660 in 233.855 seconds,
 audit 217, pycompile 5/5, retired selected refs zero, `git diff --check`, and
-the retained acyclic 48/203 DAG. Full discovery 2,143/2,143 remains the
-implementation gate. Benchmark refresh and remote CI remain **NOT RUN**. This
+the retained acyclic 48/203 DAG. At that checkpoint full discovery
+2,143/2,143 remained the implementation gate; `28c3798` later passed it.
+Benchmark refresh and remote CI remain **NOT RUN**. This
 name-only projection establishes no behavior, answer-quality, reflection-
 quality, retrieval-performance, benchmark, schedule, ledger, or Phase 3
 completion claim.

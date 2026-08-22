@@ -6631,41 +6631,71 @@ unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 279.103 seconds passed.
 Benchmark refresh and remote CI were **NOT RUN**. Full details are preserved in
 [Project Status Completed Display Label](../overview/project_status.md#completed-display-operand-label-public-api).
 
-The active visibility contract now renames only the exact 8-line
-`financial_retrieval_hints._section_hint_alias(section: str) -> str`
-definition in place to public `section_hint_alias(...)`, then updates one
-external import, three external calls, seven exact private-name expectations,
-and two owner-count expectations. Preserve one `_normalise_spaces(section)`
-call and exact-result binding. A falsey normalized result must return the exact
-empty-string literal before membership, split, strip, or regex work. A truthy
-result must evaluate `">" in text` once; only the true branch calls
-`text.split(">")[-1].strip()` and rebinds its exact result. Then preserve one
-`re.sub(r"^\d+\.\s*", "", text)` call with default flags and return its exact
-result. Preserve branch laziness, input/result identity behavior, evaluation
-order, and every uncaught error. The normalized definition AST/body hashes are
+Commit `28c3798` completed the exact 8-line section-hint-alias visibility
+contract. It renamed the definition in place to public
+`section_hint_alias(...)`, updated one external import, three external calls,
+seven exact private-name expectations, and two owner-count expectations, and
+added no alias, wrapper, body move, test method, or adjacent behavior change.
+One normalization call, the falsey empty-string early return, truthy hierarchy
+membership, split-last/strip branch, exact numbered-prefix regex call and
+result, branch laziness, input/result identity behavior, evaluation order, and
+all uncaught errors remain exact. The normalized definition/body/call hashes
+remain
 `e754d9767ed465032abce3d3e66893f6a17ef5ac27a279f0f8398f6955bb226d` /
-`60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1`.
-
-All three calls remain one-positional/no-keyword in
-`finalize_retry_queries(...)` at caller `try` depth zero. The list-
-comprehension filter call must run before the element call for each section;
-the element call remains conditional on the filter's truthy result and neither
-result is memoized. The later assignment preserves exact `str(raw_section)`
-evaluation and finishes before normalization/replacement work. Their target-
-normalized combined call-record hash is
+`60902248f546d5ecfc0fc257bb1b874a81f6a98a838d69aaf9895d4128c089f1` /
 `3a50e1974904fe2e93f329cf2edfdfbae72b1cf5c203eb77dfe8d1f68999b38c`.
-Selected private/public records project 0/12 across source/tests, owner counts
-9/5 to 10/4, and owner/reflection-projection lines remain 318/374. Projected
-source/tests/whole transforms are `+5/-5`, `+9/-9`, and `+14/-14`; exact
-temporary diff SHA-256 is
+
+Source/tests/whole transforms were `+5/-5`, `+9/-9`, and `+14/-14`; the
+committed diff SHA-256 is
 `e2dfc6fab8df1cbee157e5a06924be403c1271681075037beb6b733b27a9778b`.
+Selected private/public records are 0/12, public-owner identity holds, and
+owner counts are 10/4. Direct behavior/public identity 12/12, focused 660/660
+in 295.478 seconds, audit 217, pycompile 5/5, retired refs zero, unchanged
+acyclic 48/203 DAG, and full 2,143/2,143 in 340.329 seconds passed. Benchmark
+refresh and remote CI were **NOT RUN**. Full details are preserved in
+[Project Status Completed Section Hint](../overview/project_status.md#completed-section-hint-alias-public-api).
+
+The active visibility contract now renames only the exact 9-line
+`financial_retrieval_pipeline._sentence_matches_operand_context(
+sentence: str, operand: Dict[str, Any]) -> bool` definition in place to public
+`sentence_matches_operand_context(...)`, then updates four owner-local calls,
+one external import/call pair, and eight derived hash expectations. Preserve
+the eager sentence normalization and compact regex before surface generation;
+the one ordered `_operand_context_surface_variants(operand)` iteration; each
+surface normalization and compact regex; and exact left-to-right
+`surface_normalized in normalized or (surface_compact and surface_compact in
+compact)` evaluation. A normalized hit must skip compact checks, a falsey
+compact surface must skip compact containment, the first match must return the
+exact `True` literal, and only full exhaustion may return the exact `False`
+literal. Preserve global lookup timing, regex bytes/defaults, truthiness,
+containment, iteration, branch laziness, input identity, and every uncaught
+error. The normalized definition AST/body hashes are
+`cf77ecff283091f04f0726d9a5e9bdb7dbea9991b92a9ecc4d59753c8a5ed90c` /
+`143dc586d49519d06da16d5c4607344ca95da4170c3abdd01e4e817b53d165c8`.
+
+All five calls remain two-positional/no-keyword at caller `try` depth zero.
+Preserve the two `_period_comparison_count_value_from_text(...)` calls as its
+context-index comprehension filter and later `context_hit` assignment; the
+`_required_operand_coverage_from_docs(...)` call under unary `not` with eager
+`_doc_operand_context_text(doc)` and immediate `continue`; the
+`_doc_period_count_operand_matches(...)` comprehension filter; and graph-
+evidence `_build_required_operands_from_candidates(...)` as the third lazy
+`and` operand after both regex guards with exact
+`context_text or raw_row` selection. Their target-normalized combined call-
+record hash is
+`368e1e8f7348803c51e1efc27431ecd0e5735f453e48681e745d13d43628b2d2`.
+Selected private/public records project 0/7 across source/tests, owner counts
+1/28 to 2/27, and owner/graph-evidence lines remain 2,641/4,220. Projected
+source/tests/whole transforms are `+7/-7`, `+8/-8`, and `+15/-15`; exact
+temporary diff SHA-256 is
+`19d465f4e34c0af94999e5dfb17c43e488125450889b9f9610c821f0237d55b1`.
 The restored projection passed direct behavior/public identity 12/12, focused
-660/660 in 233.855 seconds, audit 217, pycompile 5/5, retired refs zero, diff
+701/701 in 264.994 seconds, audit 217, pycompile 2/2, retired refs zero, diff
 check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep adjacent section/preference/normalization helpers,
-caller-side reflection/retrieval behavior, state, trace/artifact mutation, and
-final sequencing outside this batch. Benchmark refresh and remote CI remain
-**NOT RUN**. Exact expectations and stop lines are authoritative in
+implementation gate. Keep surface variants, context construction, caller-side
+period/evidence behavior, state, trace/artifact mutation, and final sequencing
+outside this batch. Benchmark refresh and remote CI remain **NOT RUN**. Exact
+expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

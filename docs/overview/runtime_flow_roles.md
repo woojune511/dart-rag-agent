@@ -1484,15 +1484,24 @@ Aggregate/narrative row의 state-free answer policy owner다.
   adoption/stop 순서는 유지됐다. Source/tests/whole `+16/-16`, `+5/-5`,
   `+21/-21`, direct/identity 10/10, focused 626/626, audit 217, pycompile 6/6,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_retrieval_hints.py`의 exact 8-line
-  `_section_hint_alias(section)`를 public `section_hint_alias(...)`로 rename하고
-  reflection-projection import 한 개와 external call 세 개, 기존 direct-name
-  기대 일곱 개와 owner-count 기대 두 개만 갱신한다. Falsey early return,
-  hierarchy split-last/strip branch, 단일 numbered-prefix regex, list-
-  comprehension filter-before-element 재호출과 finalizer adoption/stop 순서를
-  유지한다. Exact temporary projection은 source/tests/whole `+5/-5`, `+9/-9`,
-  `+14/-14`, direct/identity 12/12, focused 660/660, audit 217, pycompile 5/5,
-  unchanged 48/203 DAG이며 전체 구현 gate는
+- 완료된 `28c3798` visibility batch는 `financial_retrieval_hints.py`의 exact
+  8-line section-hint-alias helper를 public `section_hint_alias(...)`로 이름
+  수렴시키고 reflection-projection import 한 개와 external call 세 개, 기존
+  direct-name 기대 일곱 개와 owner-count 기대 두 개만 갱신했다. Falsey early
+  return, hierarchy split-last/strip branch, 단일 numbered-prefix regex, list-
+  comprehension filter-before-element 재호출과 finalizer adoption/stop 순서는
+  유지됐다. Source/tests/whole `+5/-5`, `+9/-9`, `+14/-14`, direct/identity
+  12/12, focused 660/660, audit 217, pycompile 5/5, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_retrieval_pipeline.py`의 exact 9-line
+  `_sentence_matches_operand_context(...)`를 public
+  `sentence_matches_operand_context(...)`로 rename하고 owner-local call 네 개,
+  graph-evidence import/call 각 한 개와 기존 derived hash 기대 여덟 개만
+  갱신한다. Sentence/compact eager normalization, ordered surface scan,
+  normalized-before-compact lazy containment, first-match return과 다섯 caller의
+  guard/adoption 순서를 유지한다. Exact temporary projection은 source/tests/
+  whole `+7/-7`, `+8/-8`, `+15/-15`, direct/identity 12/12, focused 701/701,
+  audit 217, pycompile 2/2, unchanged 48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
