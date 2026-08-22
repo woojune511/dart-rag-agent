@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_retrieval_budget import (
     apply_query_budget,
-    _cross_trace_reuse_candidate_diagnostics,
+    cross_trace_reuse_candidate_diagnostics,
     summarize_executed_query_telemetry,
 )
 from src.agent.financial_scope_policies import should_apply_strict_company_scope
@@ -131,7 +131,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
 
     def test_cross_trace_reuse_candidate_diagnostics_matches_prior_same_source_filter_query(self) -> None:
-        diagnostics = _cross_trace_reuse_candidate_diagnostics(
+        diagnostics = cross_trace_reuse_candidate_diagnostics(
             [
                 {
                     "source": "primary",

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.agent.financial_graph_retrieval_budget import (
     apply_query_budget,
-    _cross_trace_reuse_candidate_diagnostics,
+    cross_trace_reuse_candidate_diagnostics,
     drop_duplicate_executed_query,
     drop_queries_already_selected,
     limit_query_context_terms,
@@ -2553,7 +2553,7 @@ class FinancialRetrievalPipelineMixin:
             for item in (state.get("retrieval_debug_trace_history") or [])
             if isinstance(item, dict)
         ]
-        cross_trace_reuse_candidates = _cross_trace_reuse_candidate_diagnostics(
+        cross_trace_reuse_candidates = cross_trace_reuse_candidate_diagnostics(
             [*executed_queries, *reused_queries],
             retrieval_debug_trace_history,
             current_trace_index=len(retrieval_debug_trace_history) + 1,

@@ -337,7 +337,7 @@ def _trace_task_context(trace: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def _cross_trace_reuse_candidate_diagnostics(
+def cross_trace_reuse_candidate_diagnostics(
     current_queries: List[Dict[str, Any]],
     previous_traces: List[Dict[str, Any]],
     *,
