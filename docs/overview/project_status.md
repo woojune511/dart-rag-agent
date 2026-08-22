@@ -16,10 +16,10 @@ Last updated: 2026-08-22
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `fe31f2e` renamed only `financial_graph_helpers._concept_spec_for_key(...)` in place to public `concept_spec_for_key(...)` and updated three owner-local calls, one importer binding, one external call, and 43 owner-count expectations |
-| What passed? | Direct behavior/public identity 12/12, focused tests 783/783, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `fe31f2e` |
+| What just changed? | `b530b38` renamed only `financial_runtime_trace._structured_result_subtask_rows_and_answer(...)` in place to public `structured_result_subtask_rows_and_answer(...)` and updated one owner-local call, three imports, four external calls, 21 exact-name expectations, and one owner-count expectation |
+| What passed? | Direct behavior/public identity 12/12, focused tests 839/839, runtime audit 217, pycompile 4/4, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `b530b38` |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only `financial_runtime_trace._structured_result_subtask_rows_and_answer(...)` in place to public `structured_result_subtask_rows_and_answer(...)`; update one owner-local call, three imports, four external calls, 21 exact-name expectations, and one owner-count expectation |
+| What is next? | Rename only `financial_graph_helpers._build_generic_metric_aliases(...)` in place to public `build_generic_metric_aliases(...)`; update three owner-local calls, one import/call pair, eight exact-name expectations, 43 owner-count expectations, and eight derived structural hashes |
 
 ## Product Boundary
 
@@ -724,7 +724,7 @@ Commit-level diffs and validation are kept in
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, shared sentence/token surfaces, query-focus marker projection, and source-visible term preservation |
 | Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition |
-| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; runtime trace includes collapsed-ratio evidence repair and the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection, but neither owns ledger mutation orchestration |
+| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; runtime trace includes structured-result subtask-row/answer projection and collapsed-ratio evidence repair, and the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection, but neither owns ledger mutation orchestration |
 | Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation, agent-answer/review/debug, structured missing-answer selection, aggregate completion, and prepared public-answer state projection, excluding evidence selection, dynamic answer/trace repair, graph execution, and final sequencing |
 | Reflection projection | `financial_reflection_projection.py`; deterministic retry-query construction/finalization, action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, concept-spec-for-key direct behavior/public identity 12 / 12 and affected focused set 783 / 783 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after concept-spec-for-key public rename |
+| Latest focused owner checkpoint | PASS, structured-result subtask-row/answer direct behavior/public identity 12 / 12 and affected focused set 839 / 839 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after structured-result subtask-row/answer public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,88 +799,114 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 16-line
-`src.agent.financial_runtime_trace._structured_result_subtask_rows_and_answer(
-structured_result: Mapping[str, Any]) -> tuple[List[Dict[str, Any]], str]`
-definition at lines 1240-1255 in place to public
-`structured_result_subtask_rows_and_answer(...)`. Update its sole owner-local
-call, the imports in `financial_agent_run_projection.py`,
-`financial_aggregate_projection.py`, and `financial_graph.py`, and those
-importers' four external calls. Update 21 existing exact-name expectations and
-one runtime-trace owner-count expectation across
-`test_aggregate_subtask_projection.py`,
-`test_financial_agent_run_projection.py`, and
-`test_financial_aggregate_rank_dedupe.py`. Add no alias, wrapper, body move,
-test method, vocabulary, policy, fallback, cache, or exception boundary. Do
-not rename or move adjacent runtime-projection helpers, caller bodies, state,
-trace, artifact, answer selection, or final sequencing.
+Rename only the exact 19-line
+`src.agent.financial_graph_helpers._build_generic_metric_aliases(
+label: str) -> List[str]` definition at lines 745-763 in place to public
+`build_generic_metric_aliases(...)`. Update its three owner-local calls and the
+sole import/call pair in `financial_graph_evidence.py`. Update eight existing
+exact-name expectations, 43 existing graph-helper owner-count expectations,
+and eight existing structural-hash expectations in
+`test_financial_graph_helpers.py`. Add no alias, wrapper, body move, test
+method, vocabulary, policy entry, fallback, cache, or exception boundary. Do
+not rename or move `_normalise_spaces(...)`, adjacent operand builders,
+candidate/evidence construction, scoring/ranking, state, trace, artifact, or
+final sequencing.
 
-Shorter core-runtime inventory entries are not authorized substitutes. The
-2-line `_normalise_spaces(...)` foundation remains too broadly shared for a
-bounded visibility batch. `_active_preferred_statement_types(...)` and the
-equal-length `_desired_statement_types(...)` both have future-public caller-
-local binding collisions. `_find_task_record_in_list(...)` is explicitly
-pinned as a non-exported low-level helper by the task-artifact `__all__`
-contract. Parser, evaluator, ops, and Researcher diagnostic helpers remain
-outside this core-runtime visibility sequence.
+This is the smallest currently legal core-runtime visibility seam. The 2-line
+`_normalise_spaces(...)` foundation has 30 importers and 2,371 external calls.
+`_active_preferred_statement_types(...)` and `_desired_statement_types(...)`
+have future-public caller-local collisions. `_find_task_record_in_list(...)`
+is explicitly pinned as a non-exported low-level helper. The 17-line
+`_clean_source_row_ids(...)` and 19-line `_parse_number_text(...)` are broader
+foundations, while `_query_years_from_state(...)` reads graph state.
 
-Preserve exact evaluation semantics. Evaluate `(structured_result or {})`,
-read `subtask_results`, apply raw `or []`, and eagerly materialize `list(...)`
-before the comprehension scans. Iterate the materialized items once in order,
-evaluate `isinstance(row, Mapping)` for every item, drop non-mappings, and call
-`dict(row)` exactly once for each retained item into a fresh ordered list.
-Then evaluate a fresh `(structured_result or {})` for `formatted_result`; only
-when that value is falsey evaluate another fresh `(structured_result or {})`
-for `rendered_value`; use exact `""` only when both are falsey. Apply `str(...)`
-and then `_normalise_spaces(...)` exactly once to the selected answer, and
-return the fresh row list and exact normalized answer as a tuple. Preserve raw
-truthiness call counts, eager materialization, Mapping checks, shallow nested
-identities, order, duplicates, short-circuit fallback, global lookup timing,
-mapping access, iteration, conversion, normalization, and every uncaught
-error. The name-normalized definition AST/body SHA-256 values are
-`03bc7296e50a20900bd2c6a9fd9bfd113051091143208da0a6658575017bfe87` /
-`f001584589b74f388ba8503c4f40cf06c22e198668ecbe6c715ad14ecc06d7cf`.
+Preserve exact evaluation semantics. Evaluate `str(label or "").strip()` and
+return a fresh exact `[]` for a blank base before regex or policy access.
+Otherwise start with exact `[base]`; normalize the parenthesis-stripped
+`re.sub(...)` result and append it only when truthy and different from `base`.
+Then eagerly obtain `re.findall(...)`, normalize each inner parenthetical text
+in order, and append each truthy result. For every
+`GENERIC_METRIC_ALIAS_SUBSTITUTIONS` item, eagerly read and stringify `source`
+and `target`, then eagerly materialize the filtered/stringified
+`blocked_if_present` tuple before testing the branch. Append
+`base.replace(source, target)` only when source and target are truthy, source
+is in base, and no blocked token is in base. Finish with exact ordered first-
+occurrence dedupe through `list(dict.fromkeys(alias for alias in aliases if
+alias))`. Preserve raw truthiness, string/regex/normalization counts, eager
+policy-field order, policy iteration, membership and `any(...)` short circuit,
+duplicate order, input/config immutability, fresh-list identity, global lookup
+timing, and every uncaught error. The name-normalized definition AST/body
+SHA-256 values are
+`45cc7f741d06cb4d7c97242ac3eb6878bc44fdfb4a866d86d4c22dc65c9e2365` /
+`d64b599201485d188be4cb7b2cbfe337de30f659a9b30eb2009ab18775e14fd9`.
 
-All five calls remain one-positional/no-keyword assignments at caller `try`
-depth zero. Preserve line 98 in
-`structured_result_answer_for_missing_public_answer(...)`, line 400 in
-`structured_subtask_projection_for_public_answer(...)`, lines 109 and 854 in
-`FinancialAgent._structured_result_projection_for_stale_public_numeric_answer`
-and `FinancialAgent.run(...)`, and line 1263 in owner-local
-`_structured_result_subtask_projection_if_public_aligned(...)`. Preserve each
-exact `structured_result` argument, all preceding normalization/dict
-construction, immediate tuple unpacking, following guard/adoption, and later-
-work stops. The combined call-record SHA-256 over ordered `(module, line,
-caller, arguments, keywords, direct parent, try depth)` tuples is
-`38711a15d97d5d0fc59a5da7915b8265fad5aad2fe5a0228d42e51206cdaa723`.
+All four calls remain one-positional/no-keyword at caller `try` depth zero:
+owner-local calls at lines 892, 928, and 986 receive exact `label`,
+`base_label`, and `label`; graph-evidence line 3862 receives exact `label`
+inside its existing `aliases.extend(...)` parent. Preserve each caller's
+preceding construction, immediate adoption, following guards, and later-work
+stops. The ordered combined call-record SHA-256 is
+`068520cd71937e74b34b9e24428e94030f1a5c8f196da2a7740dd951d4c974be`.
 
-Current production scope is one definition, one owner-local call, three
-external imports, and four external calls: nine selected private source API
-records. Tests contain 21 selected exact private-name string records, and the
-future public name has no pre-existing exact definition, import, executable
-name, attribute, string constant, patch target, local binding, or collision.
-After the rename selected private/public records must be 0/30 across source/
-tests; all three external bindings must be identical to the public owner;
-runtime-trace owner public/private counts must move exactly 3/28 to 4/27; and
-runtime-trace/agent-run/aggregate/graph physical lines must remain
-1,412/302/3,946/938.
+Current production scope is one definition, three owner-local calls, one
+external import, and one external call: six selected private source records.
+Tests contain eight selected exact private-name records, and the future public
+name has no collision. After the rename selected private/public records must
+be 0/14 across source/tests; the external binding must be identical to the
+public owner; graph-helper public/private counts must move exactly 10/70 to
+11/69; and graph-helper/graph-evidence physical lines must remain 4,285/4,220.
 
-Update exactly 22 existing test expectations: eight exact names and the sole
-owner count `(3, 28)` to `(4, 27)` in aggregate-subtask projection, eleven
-exact names in agent-run projection, and two exact names in aggregate-rank-
-dedupe. Add no test and weaken no assertion. Projected source/tests/whole
-transforms are `+9/-9`, `+22/-22`, and `+31/-31` across exactly four source
-and three test files. The exact temporary diff SHA-256 is
-`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
-The restored projection passed direct behavior/public identity 12/12, the
-affected aggregate-subtask/agent-run/aggregate-rank-dedupe/graph-helper/
-operation-contract/import-side-effect focused set 839/839 in 357.419 seconds,
-audit 217, pycompile 4/4, retired selected refs zero, `git diff --check`, and
-the unchanged acyclic 48/203 import topology. Full discovery 2,143/2,143
-remains the implementation gate. Benchmark refresh and remote CI remain
-**NOT RUN**. This name-only projection establishes no behavior, answer-
+Update exactly 59 existing test expectations: eight exact names; 40 direct
+`(10, 70)` owner counts, two derived `(10, 71)` counts, one
+`(10, 70, 0)` count; two call-record hashes, three caller-body hashes, and
+three caller-map aggregate hashes. Add no test and weaken no assertion.
+Projected source/tests/whole transforms are `+6/-6`, `+59/-59`, and
+`+65/-65` across exactly two source files and one test file. The exact
+temporary diff SHA-256 is
+`9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
+
+The restored projection passed corrected direct behavior/public identity
+12/12, the graph-helper/numeric-provenance/semantic-plan/concept-runtime/
+operation-contract/import-side-effect focused set 645/645 in 185.243 seconds,
+audit 217, pycompile 2/2, retired selected refs zero, diff check, and the
+unchanged acyclic 48/203 import topology. The first direct probe incorrectly
+assumed lazy `blocked_if_present` access; source inspection fixed the probe to
+the actual eager three-field order. The first focused run exposed only three
+stale CURRENT-SOURCE hash assertions; the eight characterized hash updates
+removed those structural mismatches without a behavior change. Full discovery
+2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+remain **NOT RUN**. This name-only projection establishes no behavior, answer-
 quality, trace-quality, performance, benchmark, schedule, ledger, or Phase 3
 completion claim.
+
+## Completed Structured-Result Subtask Rows And Answer Public API
+
+Commit `b530b38` renamed only the exact 16-line
+`financial_runtime_trace._structured_result_subtask_rows_and_answer(...)`
+definition in place to public
+`structured_result_subtask_rows_and_answer(...)`. It updated one owner-local
+call, three external imports, four external calls, 21 exact-name expectations,
+and one owner-count expectation without moving the body, adding a compatibility
+surface, or changing adjacent runtime-projection helpers, caller bodies, state,
+trace, artifacts, answer selection, or final sequencing.
+
+Eager subtask-result list materialization, ordered Mapping filtering, one
+shallow copy per retained row, fresh result-list identity, formatted-result-
+before-rendered-value short circuit, exact empty-string fallback, one string
+conversion, one normalization, evaluation order, nested identities, and every
+uncaught error remain exact. Source/tests/whole transforms were `+9/-9`,
+`+22/-22`, and `+31/-31`; the committed diff SHA-256 is
+`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
+
+Direct behavior/public identity passed 12/12, focused 839/839 passed in
+223.658 seconds, audit 217, pycompile 4/4, retired selected refs zero, selected
+private/public records 0/30, all three external bindings matched the owner,
+runtime-trace owner public/private counts became 4/27, physical lines remained
+1,412/302/3,946/938, the acyclic import topology remained 48/203, and full
+discovery 2,143/2,143 passed in 270.252 seconds under
+`uv run --with-requirements requirements.txt`. Benchmark refresh and remote CI
+were **NOT RUN**. This name-only milestone establishes no behavior, quality,
+performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Concept-Spec-For-Key Public API
 

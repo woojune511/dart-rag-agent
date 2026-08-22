@@ -305,7 +305,7 @@ State-free owner topology:
 | `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
-| `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
+| `financial_runtime_trace.py` | runtime trace projection, structured-result subtask-row/answer projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_reflection_projection.py` | reflection request/plan normalization, strict summaries, synthesis source, deterministic action/report, and bounded artifact-integrity feedback; heuristic and LLM planning remain outside |
@@ -1511,16 +1511,27 @@ Aggregate/narrative row의 state-free answer policy owner다.
   Source/tests/whole `+6/-6`, `+43/-43`, `+49/-49`, direct/identity 12/12,
   focused 783/783, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_runtime_trace.py`의 exact 16-line
-  `_structured_result_subtask_rows_and_answer(...)`를 public
-  `structured_result_subtask_rows_and_answer(...)`로 rename하고 owner-local call
-  한 개, agent-run/aggregate/graph import 세 개와 external call 네 개, 기존
-  exact-name 기대 21개와 owner-count 기대 한 개만 갱신한다. Eager subtask-row
+- 완료된 `b530b38` visibility batch는 `financial_runtime_trace.py`의 exact
+  16-line structured-result subtask-row/answer helper를 public
+  `structured_result_subtask_rows_and_answer(...)`로 이름 수렴시키고 owner-local
+  call 한 개, agent-run/aggregate/graph import 세 개와 external call 네 개,
+  기존 exact-name 기대 21개와 owner-count 기대 한 개만 갱신했다. Eager row
   materialization, Mapping filter와 shallow-copy projection, formatted-result-
   before-rendered-value fallback, normalization과 다섯 caller의 adoption
-  순서를 유지한다. Exact temporary projection은 source/tests/whole `+9/-9`,
-  `+22/-22`, `+31/-31`, direct/identity 12/12, focused 839/839, audit 217,
-  pycompile 4/4, unchanged 48/203 DAG이며 전체 구현 gate는
+  순서는 유지됐다. Source/tests/whole `+9/-9`, `+22/-22`, `+31/-31`,
+  direct/identity 12/12, focused 839/839, audit 217, pycompile 4/4, unchanged
+  48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_graph_helpers.py`의 exact 19-line
+  `_build_generic_metric_aliases(label)`를 public
+  `build_generic_metric_aliases(...)`로 rename하고 owner-local call 세 개,
+  graph-evidence import/call 각 한 개, 기존 exact-name 기대 여덟 개,
+  owner-count 기대 43개와 이름을 포함하는 structural-hash 기대 여덟 개만
+  갱신한다. Blank-label early return, parenthesis 제거/내부 alias 순서,
+  substitution의 `source`/`target`/`blocked_if_present` eager access,
+  policy-order append와 first-occurrence dedupe를 유지한다. Exact temporary
+  projection은 source/tests/whole `+6/-6`, `+59/-59`, `+65/-65`,
+  direct/identity 12/12, focused 645/645, audit 217, pycompile 2/2, unchanged
+  48/203 DAG이며 전체 구현 gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

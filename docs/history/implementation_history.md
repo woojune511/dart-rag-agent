@@ -10579,7 +10579,39 @@ completion claim.
   outside the batch. Exact expectations and stop lines are authoritative in
   [Project Status Completed Concept Spec](../overview/project_status.md#completed-concept-spec-for-key-public-api).
 
-### Structured-result-subtask-rows-and-answer public API characterization checkpoint
+### Structured-result-subtask-rows-and-answer public API milestone
+
+- Commit `b530b38` renamed only the exact 16-line
+  `financial_runtime_trace._structured_result_subtask_rows_and_answer(
+  structured_result: Mapping[str, Any]) -> tuple[List[Dict[str, Any]], str]`
+  definition in place to public
+  `structured_result_subtask_rows_and_answer(...)`. It updated one owner-local
+  call, three external imports, four external calls, 21 exact-name expectations,
+  and one owner-count expectation; it added no wrapper/alias and moved no body
+  or adjacent runtime-projection helper.
+- Eager subtask-result materialization, ordered Mapping filtering, one shallow
+  copy per retained row, fresh result-list identity, formatted-result-before-
+  rendered-value fallback, exact empty-string fallback, one string conversion,
+  one normalization, nested identities, evaluation order, and every uncaught
+  error remain exact. The normalized definition/body/call hashes remain
+  `03bc7296e50a20900bd2c6a9fd9bfd113051091143208da0a6658575017bfe87` /
+  `f001584589b74f388ba8503c4f40cf06c22e198668ecbe6c715ad14ecc06d7cf` /
+  `38711a15d97d5d0fc59a5da7915b8265fad5aad2fe5a0228d42e51206cdaa723`.
+- Source/tests/whole transforms were `+9/-9`, `+22/-22`, and `+31/-31`; the
+  committed diff SHA-256 is
+  `33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
+  Direct behavior/public identity 12/12 passed, focused 839/839 passed in
+  223.658 seconds, audit 217, pycompile 4/4, retired refs zero, selected
+  private/public records 0/30, owner public/private 4/27, unchanged acyclic
+  48/203 DAG, and full 2,143/2,143 passed in 270.252 seconds.
+- Benchmark refresh and remote CI were **NOT RUN**. This milestone establishes
+  no behavior, quality, performance, benchmark, schedule, ledger, or Phase 3
+  completion claim.
+
+### Historical structured-result-subtask-rows-and-answer public API characterization checkpoint
+
+This characterization predates `b530b38`; its projected rename and full gate
+are complete. It remains only as an audit record, not an active priority.
 
 - The next bounded visibility batch renames only the exact 16-line
   `financial_runtime_trace._structured_result_subtask_rows_and_answer(
@@ -10624,5 +10656,62 @@ completion claim.
   Benchmark refresh and remote CI were **NOT RUN**.
 - Keep adjacent runtime-projection helpers, all caller bodies, state/trace/
   answer behavior, artifact mutation, and final sequencing outside the batch.
-  Exact expectations and stop lines are authoritative in
+  Exact preserved behavior and milestone evidence are authoritative in
+  [Project Status Completed Structured Result](../overview/project_status.md#completed-structured-result-subtask-rows-and-answer-public-api).
+
+### Generic-metric-alias public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 19-line
+  `financial_graph_helpers._build_generic_metric_aliases(
+  label: str) -> List[str]` definition in place to public
+  `build_generic_metric_aliases(...)`. Update three owner-local calls, the sole
+  graph-evidence import and external call, eight exact-name expectations, 43
+  owner-count expectations, and eight structural-hash expectations; add no
+  alias, wrapper, body move, test method, or adjacent operand/evidence change.
+- Preserve exact `str(label or "").strip()` and the fresh blank-label return.
+  Preserve base-first alias order, normalized parenthesis-stripped append only
+  when truthy/distinct, ordered `re.findall(...)` inner-text normalization, and
+  truthy inner-alias append. For every substitution preserve eager string reads
+  of `source` and `target`, eager filtered/stringified
+  `blocked_if_present` tuple materialization, source/target truth checks,
+  source membership, blocked-token `any(...)`, and base replacement. Preserve
+  final ordered first-occurrence dedupe via `list(dict.fromkeys(...))`, global
+  lookup timing, input/config immutability, branch laziness, fresh-list
+  identity, and every uncaught error. The normalized definition AST/body hashes
+  are
+  `45cc7f741d06cb4d7c97242ac3eb6878bc44fdfb4a866d86d4c22dc65c9e2365` /
+  `d64b599201485d188be4cb7b2cbfe337de30f659a9b30eb2009ab18775e14fd9`.
+- All four calls remain one-positional/no-keyword at caller try depth zero:
+  owner-local `_build_generic_required_operands(...)` calls with exact `label`,
+  `base_label`, and `label`, plus graph-evidence
+  `_supplement_numeric_impairment_lookup(...)` with exact `label` inside the
+  existing `aliases.extend(...)` parent. Preserve preceding construction,
+  immediate adoption, guards, and later-work stops. Their ordered combined
+  call-record hash is
+  `068520cd71937e74b34b9e24428e94030f1a5c8f196da2a7740dd951d4c974be`.
+  Production scope is one definition, three owner-local calls, one import, and
+  one external call. Tests contain eight exact private-name records. No future
+  public-name collision exists; selected private/public records project 0/14,
+  owner counts 10/70 to 11/69, and owner/graph-evidence lines remain
+  4,285/4,220.
+- Update exactly 59 existing test expectations: eight exact names; 40 direct
+  owner counts, two derived owner counts, one owner-count/import tuple; two
+  call-record hashes, three caller-body hashes, and three caller-map aggregate
+  hashes. Projected source/tests/whole transforms are `+6/-6`, `+59/-59`, and
+  `+65/-65`; exact temporary diff SHA-256 is
+  `9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
+- The initial direct probe incorrectly assumed lazy `blocked_if_present`
+  access; the source-established eager three-field order was then pinned and
+  corrected direct behavior/public identity passed 12/12. The first focused
+  run exposed three stale CURRENT-SOURCE structural hashes rather than a
+  behavior failure; after all eight expected hash updates, the graph-helper/
+  numeric-provenance/semantic-plan/concept-runtime/operation-contract/import-
+  side-effect set passed 645/645 in 185.243 seconds. Audit 217, pycompile 2/2,
+  retired refs zero, diff check, and unchanged acyclic 48/203 DAG also passed,
+  and the temporary projection was restored cleanly. Full 2,143/2,143 remains
+  the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+- Keep adjacent normalization, operand builders, candidate/evidence
+  construction, scoring/ranking, state/trace/artifact mutation, and final
+  sequencing outside the batch. Exact expectations and stop lines are
+  authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

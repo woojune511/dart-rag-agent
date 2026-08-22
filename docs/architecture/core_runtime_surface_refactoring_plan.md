@@ -2635,40 +2635,55 @@ Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
 authoritative in
 [Project Status Completed Concept Spec](../overview/project_status.md#completed-concept-spec-for-key-public-api).
 
-The next bounded visibility seam renames only the exact 16-line
-`financial_runtime_trace._structured_result_subtask_rows_and_answer(
-structured_result: Mapping[str, Any]) -> tuple[List[Dict[str, Any]], str]`
-definition in place to public
-`structured_result_subtask_rows_and_answer(...)`, then updates one owner-local
+The structured-result subtask-row/answer visibility seam completed in
+`b530b38`. It renamed only the exact 16-line definition in place to public
+`structured_result_subtask_rows_and_answer(...)`, then updated one owner-local
 call, three external imports, four external calls, 21 exact-name expectations,
-and one owner-count expectation. Preserve eager subtask-result list
-materialization, ordered Mapping filtering, one shallow copy per retained row,
-fresh result-list identity, formatted-result-before-rendered-value short
-circuit, empty-string fallback, one string conversion, one normalization,
-evaluation order, identity behavior, and every uncaught error. Add no wrapper,
-alias, body move, test method, vocabulary, policy, caller behavior, trace field,
-or adjacent runtime-projection move.
+and one owner-count expectation. It added no wrapper, alias, body move, test
+method, vocabulary, policy, caller behavior, trace field, or adjacent runtime-
+projection move. Source/tests/whole transforms were `+9/-9`, `+22/-22`, and
+`+31/-31`; the committed diff SHA-256 is
+`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
+Direct behavior/public identity 12/12, focused 839/839 in 223.658 seconds,
+audit 217, pycompile 4/4, retired refs zero, owner public/private 4/27,
+unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 270.252 seconds passed.
+Benchmark refresh and remote CI were **NOT RUN**. The preserved contract is
+authoritative in
+[Project Status Completed Structured Result](../overview/project_status.md#completed-structured-result-subtask-rows-and-answer-public-api).
+
+The next bounded visibility seam renames only the exact 19-line
+`financial_graph_helpers._build_generic_metric_aliases(label: str) ->
+List[str]` definition in place to public `build_generic_metric_aliases(...)`,
+then updates three owner-local calls, one graph-evidence import/call pair, eight
+exact-name expectations, 43 owner-count expectations, and eight derived
+structural-hash expectations. Preserve blank-label early return, parenthesis-
+stripped and inner-parenthesis alias order, eager substitution `source`/
+`target`/`blocked_if_present` field access, policy-order replacement, ordered
+first-occurrence dedupe, fresh-list identity, evaluation order, and every
+uncaught error. Add no wrapper, alias, body move, test method, vocabulary,
+policy entry, caller behavior, trace field, or adjacent operand/evidence move.
 
 The normalized definition AST/body hashes are
-`03bc7296e50a20900bd2c6a9fd9bfd113051091143208da0a6658575017bfe87` /
-`f001584589b74f388ba8503c4f40cf06c22e198668ecbe6c715ad14ecc06d7cf`;
-five one-positional calls across five caller sites hash to
-`38711a15d97d5d0fc59a5da7915b8265fad5aad2fe5a0228d42e51206cdaa723`.
-Preserve the agent-run projection call, aggregate projection call, two graph
-calls, and owner-local public-alignment call. Selected private/public records
-project zero/30 across source/tests, owner counts 3/28 to 4/27, and runtime-
-trace/agent-run/aggregate/graph physical lines remain 1,412/302/3,946/938.
+`45cc7f741d06cb4d7c97242ac3eb6878bc44fdfb4a866d86d4c22dc65c9e2365` /
+`d64b599201485d188be4cb7b2cbfe337de30f659a9b30eb2009ab18775e14fd9`;
+four one-positional calls across two source modules hash to
+`068520cd71937e74b34b9e24428e94030f1a5c8f196da2a7740dd951d4c974be`.
+Preserve three owner-local operand-builder calls and the graph-evidence numeric-
+impairment lookup call. Selected private/public records project zero/14 across
+source/tests, owner counts 10/70 to 11/69, and graph-helper/graph-evidence
+physical lines remain 4,285/4,220.
 
-Projected source/tests/whole transforms are `+9/-9`, `+22/-22`, and
-`+31/-31`; exact temporary diff SHA-256 is
-`33fa939bece187dfccc604e42598300c30827840271ef881b4bb27cd15e90b0a`.
-The temporary projection passed direct behavior/public identity 12/12,
-focused 839/839 in 357.419 seconds, audit 217, pycompile 4/4, retired refs zero,
-diff check, and unchanged acyclic 48/203 import topology, then was restored
-cleanly. Full 2,143/2,143 remains the implementation gate. Keep adjacent
-runtime-projection helpers, caller-side state/trace/answer behavior, artifact
-mutation, and final sequencing outside the batch. Benchmark refresh and remote
-CI remain **NOT RUN**; exact scope is authoritative only in
+Projected source/tests/whole transforms are `+6/-6`, `+59/-59`, and
+`+65/-65`; exact temporary diff SHA-256 is
+`9edc5398fe53fec5b18cfa30ce95db767b4e59d7ffbf20b4fb27f020f3919de6`.
+The temporary projection passed corrected direct behavior/public identity
+12/12, focused 645/645 in 185.243 seconds, audit 217, pycompile 2/2, retired
+refs zero, diff check, and unchanged acyclic 48/203 import topology, then was
+restored cleanly. Full 2,143/2,143 remains the implementation gate. Keep
+adjacent normalization, operand construction, candidate/evidence work,
+scoring/ranking, state/trace/artifact mutation, and final sequencing outside
+the batch. Benchmark refresh and remote CI remain **NOT RUN**; exact scope is
+authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following formatter inventory is the historical checkpoint that preceded
