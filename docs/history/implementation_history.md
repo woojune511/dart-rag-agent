@@ -11133,6 +11133,79 @@ are complete. It remains only as an audit record, not an active priority.
 - The restored projection passed current-private and projected-public direct
   behavior/identity 12/12 each, exact structural 2/2 in 13.490 seconds,
   focused 369/369 in 159.553 seconds, audit 217, pycompile 4/4, retired refs
+  zero, diff check, and unchanged acyclic 48/203 DAG. Commit `4506c9f` later
+  passed full 2,143/2,143 and completed the implementation gate. Benchmark
+  refresh and remote CI were **NOT RUN**. The completed scope is authoritative
+  in
+  [Project Status Completed Query Budget Application](../overview/project_status.md#completed-query-budget-application-public-api).
+
+### Query-budget application public API completed
+
+- Commit `4506c9f` renamed only the exact 23-line
+  `financial_graph_retrieval_budget._apply_query_budget(...)` definition in
+  place to public `apply_query_budget(...)`, then updated one pipeline import
+  and three calls, one direct-test import and two calls, and exactly four
+  derived CURRENT-SOURCE hash expectations. It added no alias, wrapper, body
+  move, test method, budget/dedupe/period policy, trace field, retrieval branch,
+  or adjacent telemetry/cache/cross-trace change.
+- Eager item normalization and blank filtering, optional helper dedupe,
+  nonpositive short-circuit, sufficient-budget candidate identity,
+  insufficient-positive period balancing/head slice, ordered fresh trace,
+  original budget/dedupe objects, post-balance counts/tail, input immutability,
+  output identities, helper timing, comparisons, slices, uncaught errors, and
+  all three try-depth-zero caller adoption boundaries remain exact. Final
+  definition/body hashes are
+  `a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
+  `c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`;
+  the final caller hash is
+  `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
+- Actual source/tests/whole transforms were `+5/-5`, `+7/-7`, and `+12/-12`;
+  committed diff SHA-256 is
+  `3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
+  Direct behavior/public identity 12/12, exact structural 2/2 in 14.718
+  seconds, focused 369/369 in 165.974 seconds, audit 217, pycompile 4/4,
+  selected private/public 0/8, owner counts 8/7, unchanged 419/2,641 lines,
+  unchanged acyclic 48/203 DAG, and full 2,143/2,143 in 226.536 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. The milestone is name-only
+  and establishes no behavior, quality, performance, benchmark, schedule,
+  budget-effectiveness, ledger, review-trace, or Phase 3 completion claim.
+
+### Cross-trace reuse candidate diagnostics public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 80-line trace-only
+  `financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)`
+  definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`.
+  Update one pipeline import/call pair, one direct-test import/call pair, and
+  exactly four derived CURRENT-SOURCE hash expectations; add no alias, wrapper,
+  body/owner move, new module, test method, matching/cap policy, retrieval/cache
+  behavior, state/artifact/ledger mutation, or adjacent budget/telemetry change.
+- Keep the helper in the cost-control owner established by `481ffe4` so its
+  query/filter/task identity dependencies remain owner-local. Preserve one-
+  based previous-trace enumeration, eager executed+reused list construction,
+  invalid-record and blank-signature skips, exact source/query/filter matching,
+  insertion order, task/cache fields, direct current iteration, aggregate
+  counts before candidate capping, exact `max(max_candidates, 0)`, five-row
+  prior slices, ordered fresh result, identities, immutability, and every
+  uncaught error. The diagnostic remains trace-only and cannot skip retrieval,
+  serve cache data, mutate evidence/ledger state, or affect the answer.
+- The one production call remains the try-depth-zero assignment over exact
+  unpacked executed/reused queries, materialized trace history, and
+  `len(history) + 1`. Direct tests change only their import/call symbol. Future
+  definition/body hashes are
+  `06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
+  `dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
+  the caller body projects
+  `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`
+  to
+  `3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
+- Production/test selected records are 3/2; selected private/public records
+  project 0/5, owner counts 8/7 to 9/6, and lines remain 419/2,641. Projected
+  source/tests/whole transforms are `+3/-3`, `+6/-6`, and `+9/-9` across four
+  files; exact temporary diff SHA-256 is
+  `b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
+- The restored projection passed current-private and projected-public direct
+  behavior/identity 13/13 each, exact structural 2/2 in 14.591 seconds,
+  focused 369/369 in 164.433 seconds, audit 217, pycompile 4/4, retired refs
   zero, diff check, and unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains
   the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
   Exact expectations and stop lines are authoritative in

@@ -6893,44 +6893,74 @@ Direct/identity 12/12, structural 2/2, focused 369/369, audit 217, pycompile
 Benchmark refresh and remote CI were **NOT RUN**. Full details are in
 [Project Status Completed Executed Query Telemetry](../overview/project_status.md#completed-executed-query-telemetry-summary-public-api).
 
-The active visibility contract now renames only the exact 23-line
-`financial_graph_retrieval_budget._apply_query_budget(queries: List[str],
-budget: int, *, dedupe: bool = True) -> tuple[List[str], Dict[str, Any]]`
-definition in place to public `apply_query_budget(...)`, then updates one
-pipeline import, three production calls, one direct-test import, two direct-
-test calls, and four derived CURRENT-SOURCE hash expectations.
-
-Preserve two eager normalization/filter comprehensions before dedupe truth,
-truthy helper-based first-occurrence dedupe versus falsey normalized-list
-adoption, and `budget <= 0` short-circuit before candidate length comparison.
-Nonpositive or sufficient budgets keep selected/candidate identity. Only an
-insufficient positive budget rebalances candidates by period and slices the
-selected head. Preserve original budget/dedupe objects, fresh ordered trace,
-post-balance counts and dropped tail, input immutability, output identities,
-helper timing, comparisons, slices, and every uncaught error.
-
-The three calls remain tuple assignments at try depth zero with exact primary
-`list(query_bundle)`/budget/dedupe, operand-focus query/budget/dedupe, and retry
-query/budget/dedupe arguments. All budget derivation, later trace enrichment,
-duplicate dropping, retrieval/cache work, and failure stops remain caller-
-owned. The direct tests change only their imported/called name. Future
-definition/body hashes are
+Commit `4506c9f` completed the exact 23-line query-budget application visibility
+contract by renaming the definition in place to public
+`apply_query_budget(...)`, updating one pipeline import and three calls, one
+direct-test import and two calls, and four derived CURRENT-SOURCE hash
+expectations. Two eager normalize/filter passes, optional first-occurrence
+dedupe, nonpositive capacity short-circuit, sufficient-budget identity,
+insufficient-positive period rebalance/head slice, original budget/dedupe
+objects, ordered trace fields, post-balance counts/tail, immutability,
+identities, helper timing, comparisons, slices, uncaught errors, and three
+try-depth-zero caller adoption boundaries remain exact. Final definition/body
+hashes are
 `a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
 `c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`;
-the caller body projects
-`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`
-to
+the final caller hash is
 `3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
-Selected private/public records project 0/8, owner counts 7/8 to 8/7, and
-physical lines remain 419/2,641. Source/tests/whole project `+5/-5`, `+7/-7`,
-and `+12/-12`; exact temporary diff SHA-256 is
+Source/tests/whole were `+5/-5`, `+7/-7`, and `+12/-12`; committed diff
+SHA-256 is
 `3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
-The restored projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2, focused 369/369 in 159.553 seconds, audit 217, pycompile
+Direct/identity 12/12, structural 2/2, focused 369/369, audit 217, pycompile
+4/4, owner counts 8/7, unchanged 48/203 DAG, and full 2,143/2,143 passed.
+Benchmark refresh and remote CI were **NOT RUN**. Full details are in
+[Project Status Completed Query Budget Application](../overview/project_status.md#completed-query-budget-application-public-api).
+
+The active visibility contract now renames only the exact 80-line trace-only
+`financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(
+current_queries: List[Dict[str, Any]], previous_traces: List[Dict[str, Any]],
+*, current_trace_index: int, max_candidates: int = 20) -> Dict[str, Any]`
+definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`,
+then updates one pipeline import/call pair, one direct-test import/call pair,
+and four derived CURRENT-SOURCE hash expectations. It stays in the owner that
+already contains its query/filter/task identity mechanisms; no private import,
+duplicate identity implementation, owner move, or new module is allowed.
+
+Preserve one-based enumeration of previous traces, including offsets consumed
+by skipped non-dictionaries; task-context lookup before eager exact executed+
+reused list materialization; invalid-record and blank-signature skips; source
+normalization/default; exact source/query/filter keys; insertion-ordered prior
+records; and separate prior cache/result-cache flags. Current queries remain a
+direct iteration with no type guard. Per-source candidate and prior-match
+counts update before exact `len(candidates) >= max(max_candidates, 0)` detail
+capping. Keep repeated matches, current cache-hit OR order, separate result-
+cache flag, exact five-row prior slice, sum/int aggregation order, input
+immutability, fresh identities, and every uncaught error.
+
+Return the exact ordered trace fields `enabled`, `mode`, `scope`,
+`candidate_count`, `prior_match_count`, `previous_trace_count`,
+`current_trace_index`, `by_source`, `candidates`, and `truncated`. The helper is
+diagnostic only: it cannot skip retrieval, serve cache content, mutate the
+ledger, change evidence, or influence the public answer. Its one production
+call remains the try-depth-zero assignment over exact unpacked executed/reused
+queries, materialized history, and `len(history) + 1`; later trace adoption and
+all retrieval/final sequencing remain caller-owned.
+
+Future definition/body hashes are
+`06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
+`dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
+the caller body projects
+`3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`
+to
+`3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
+Selected private/public records project 0/5, owner counts 8/7 to 9/6, and
+physical lines remain 419/2,641. Source/tests/whole project `+3/-3`, `+6/-6`,
+and `+9/-9`; exact temporary diff SHA-256 is
+`b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
+The restored projection passed current/projected direct/identity 13/13 each,
+exact structural 2/2, focused 369/369 in 164.433 seconds, audit 217, pycompile
 4/4, diff check, and unchanged 48/203 DAG. Full 2,143/2,143 remains the
-implementation gate. Keep retrieval/search/cache/telemetry policy, cross-trace
-diagnostics, graph state, trace/artifact/ledger mutation, and final sequencing
-outside this batch. Exact expectations and stop lines are authoritative in
+implementation gate. Exact expectations and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

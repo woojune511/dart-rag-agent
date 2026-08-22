@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-22
+Last revised: 2026-08-23
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -2772,39 +2772,55 @@ passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
 contract is authoritative in
 [Project Status Completed Executed Query Telemetry](../overview/project_status.md#completed-executed-query-telemetry-summary-public-api).
 
-The next bounded visibility seam renames only the exact 23-line
-`financial_graph_retrieval_budget._apply_query_budget(queries: List[str],
-budget: int, *, dedupe: bool = True) -> tuple[List[str], Dict[str, Any]]`
-definition in place to public `apply_query_budget(...)`, then updates one
-pipeline import, three production calls, one direct-test import, two direct-
-test calls, and four derived CURRENT-SOURCE hash expectations. Its eight
-selected AST records are the smallest remaining correct-owner core-runtime
-transform; the five-record 80-line cross-trace helper remains a review-trace
-diagnostic pending a separate ownership/public-surface decision.
+The query-budget application visibility seam completed in `4506c9f`. It
+renamed only the exact 23-line helper in place to public
+`apply_query_budget(...)`, then updated one pipeline import and three calls,
+one direct-test import and two calls, and four derived CURRENT-SOURCE hash
+expectations. Eager normalization/filtering, optional dedupe, nonpositive
+capacity short-circuit, sufficient-budget identity, insufficient-positive
+period rebalance/slice, ordered trace construction, input/output identities,
+uncaught errors, and all three caller adoption boundaries remain exact.
+Source/tests/whole transforms were `+5/-5`, `+7/-7`, and `+12/-12`; committed
+diff SHA-256 is
+`3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
+Direct/identity 12/12, exact structural 2/2, focused 369/369, audit 217,
+pycompile 4/4, owner counts 8/7, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**. The preserved
+contract is authoritative in
+[Project Status Completed Query Budget Application](../overview/project_status.md#completed-query-budget-application-public-api).
 
-Preserve two eager normalize/filter comprehensions, optional helper dedupe,
-nonpositive capacity short-circuit, sufficient-budget selected/candidate
-identity, and insufficient-positive-budget period rebalance followed by head
-slice. The fresh ordered trace retains original budget/dedupe objects, post-
-balance counts, exact dropped tail, identities, immutability, helper timing,
-comparison/slice behavior, and all uncaught errors. Three tuple assignments
-retain exact primary, operand-focus, and retry arguments at try depth zero;
-later trace enrichment, duplicate dropping, retrieval/cache work, and failure
-stops stay caller-owned. Direct tests change only the selected name.
+The next bounded visibility seam renames only the exact 80-line trace-only
+`financial_graph_retrieval_budget._cross_trace_reuse_candidate_diagnostics(...)`
+definition in place to public `cross_trace_reuse_candidate_diagnostics(...)`,
+then updates one pipeline import/call pair, one direct-test import/call pair,
+and four derived CURRENT-SOURCE hash expectations. The ownership decision is
+to keep the helper with the retrieval cost-control mechanics extracted by
+`481ffe4`: moving it alone would either import owner-private query/filter/task
+identity helpers or duplicate them. The public binding is an inter-owner core
+trace contract, not answer, evaluator, cache-serving, or decision authority.
+
+Preserve previous-trace enumeration and invalid-trace offsets, eager executed+
+reused query materialization, exact source/query/filter keying, task-context
+and cache flags, insertion order, direct current-query iteration, aggregate
+counts before the candidate cap, `max(max_candidates, 0)`, five-row prior
+detail slices, ordered fresh trace construction, identities, immutability, and
+all uncaught errors. The pipeline call remains the exact try-depth-zero
+assignment over unpacked executed/reused queries and materialized history; all
+later trace adoption and retrieval sequencing remain caller-owned.
 
 Future definition/body hashes are
-`a7a0a4e0a01ea756b3b52b9f71bebf233d9e4e4ea7412f22f57cd34944655f8f` /
-`c2e4c39e57415d67027a3b95973d79bbdbd137d648e1a7c6acc6b7aee219ca2b`;
+`06abc88d90e86f9eedad40ad92bfd054d8addf2802d477883ea9f540db5a5f9f` /
+`dbe201fdd7c773ea17f69dfc5cf34a228318832ab38a7c6f0d3121584133cf72`;
 the `_retrieve` caller body projects
-`d4b15f03abf6a633311093cb0c2d81b8883db0522d7dd3b180b7c40506897156`
+`3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`
 to
-`3879d7082902a7bfb9435ab47c99e50b2fc5edacbbb7b5a130002a946a386fb9`.
-Selected private/public records project zero/8, owner counts 7/8 to 8/7, and
+`3060e8b2a11005d7a17785c2e8a1f6dd46b69847a896b80bff77c2df0022cf34`.
+Selected private/public records project zero/5, owner counts 8/7 to 9/6, and
 physical lines remain 419/2,641. Projected source/tests/whole transforms are
-`+5/-5`, `+7/-7`, and `+12/-12`; exact temporary diff SHA-256 is
-`3d60f91bc397d17ee19658aaa1ecb7c9b94a97d558f4c70e99d7e7f1d0b042fc`.
-The temporary projection passed current/projected direct/identity 12/12 each,
-exact structural 2/2 in 13.490 seconds, focused 369/369 in 159.553 seconds,
+`+3/-3`, `+6/-6`, and `+9/-9`; exact temporary diff SHA-256 is
+`b9f4912a08f1e2b4c5d2e013609081c65dc814d69faf65378f70abbb3561b746`.
+The temporary projection passed current/projected direct/identity 13/13 each,
+exact structural 2/2 in 14.591 seconds, focused 369/369 in 164.433 seconds,
 audit 217, pycompile 4/4, retired refs zero, diff check, and unchanged 48/203
 DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
 gate. Benchmark refresh and remote CI remain **NOT RUN**; exact scope is
