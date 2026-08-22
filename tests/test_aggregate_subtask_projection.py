@@ -12985,7 +12985,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (3, 28),
+            (4, 27),
         )
 
         class BindingVisitor(ast.NodeVisitor):
@@ -13708,7 +13708,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalise),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 side_effect=structured_rows,
             ),
             patch.object(
@@ -13739,7 +13739,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", return_value=""),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ) as eager_rows,
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer") as stopped_preferred,
@@ -13757,7 +13757,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "different answer"),
             ),
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer") as stopped_preferred,
@@ -13772,7 +13772,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ),
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value="public answer"),
@@ -13789,7 +13789,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ),
             patch.object(
@@ -13807,7 +13807,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
             patch.object(
                 financial_aggregate_projection,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(subtask_rows, "public answer"),
             ),
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value=""),
@@ -14116,7 +14116,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "material_gap_feedback_for_subtask_result",
                     "_attach_runtime_projection_metadata",
                     "_build_aggregate_calculation_projection",
-                    "_structured_result_subtask_rows_and_answer",
+                    "structured_result_subtask_rows_and_answer",
                 )
             },
             {
@@ -14125,7 +14125,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "material_gap_feedback_for_subtask_result": 0,
                 "_attach_runtime_projection_metadata": 0,
                 "_build_aggregate_calculation_projection": 0,
-                "_structured_result_subtask_rows_and_answer": 0,
+                "structured_result_subtask_rows_and_answer": 0,
             },
         )
         self.assertGreater(planning_loads["_clean_source_row_ids"], 1)

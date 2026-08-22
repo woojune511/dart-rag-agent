@@ -74,7 +74,7 @@ from src.agent.financial_runtime_trace import (
     _attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
     _resolve_runtime_calculation_trace,
-    _structured_result_subtask_rows_and_answer,
+    structured_result_subtask_rows_and_answer,
     repair_collapsed_ratio_trace_from_evidence,
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
@@ -106,7 +106,7 @@ class FinancialAgent(
         structured_result: Dict[str, Any],
         evidence_items: list[Dict[str, Any]],
     ) -> tuple[str, RuntimeCalculationTrace]:
-        subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+        subtask_results, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
         if not subtask_results:
             return "", {}
         preferred_complete_answer = preferred_complete_aggregate_subtask_answer(
@@ -851,7 +851,7 @@ class FinancialAgent(
             or runtime_calculation_trace.get("calculation_result")
             or {}
         )
-        structured_subtask_results, structured_base_answer = _structured_result_subtask_rows_and_answer(
+        structured_subtask_results, structured_base_answer = structured_result_subtask_rows_and_answer(
             structured_result
         )
         complete_aggregate_answer, complete_aggregate_projection = (

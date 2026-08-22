@@ -59,7 +59,7 @@ from src.agent.financial_runtime_normalization import (
 from src.agent.financial_runtime_trace import (
     _attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
-    _structured_result_subtask_rows_and_answer,
+    structured_result_subtask_rows_and_answer,
     operand_row_has_material_numeric_payload,
 )
 from src.agent.financial_scope_policies import known_consolidation_scope_value
@@ -397,7 +397,7 @@ def structured_subtask_projection_for_public_answer(
 ) -> Dict[str, Any]:
     structured_result = dict(state.get("structured_result") or {})
     public_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-    subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+    subtask_results, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
     if not public_answer or public_answer != structured_answer:
         return {}
     if not subtask_results:

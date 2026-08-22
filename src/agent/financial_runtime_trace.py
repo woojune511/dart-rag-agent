@@ -1237,7 +1237,7 @@ def _trace_operation_family(
     return ""
 
 
-def _structured_result_subtask_rows_and_answer(
+def structured_result_subtask_rows_and_answer(
     structured_result: Mapping[str, Any],
 ) -> tuple[List[Dict[str, Any]], str]:
     subtask_results = [
@@ -1260,7 +1260,7 @@ def _structured_result_subtask_projection_if_public_aligned(
     current_trace: Dict[str, Any],
 ) -> Dict[str, Any]:
     structured_result = dict(result.get("structured_result") or {})
-    subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+    subtask_results, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
     if not subtask_results:
         return {}
     public_answer = _normalise_spaces(str(result.get("answer") or result.get("compressed_answer") or ""))

@@ -4505,7 +4505,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 "structured_result_answer_for_missing_public_answer",
                 projections["structured"],
             ),
-            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(
                 financial_graph,
                 "append_final_answer_surface_operands_from_evidence",
@@ -4585,7 +4585,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 "structured_result_answer_for_missing_public_answer",
                 failing_projections["structured"],
             ),
-            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(
                 financial_graph,
                 "append_final_answer_surface_operands_from_evidence",
@@ -4655,7 +4655,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             patch.object(owner, "_normalise_spaces", side_effect=normalize),
             patch.object(
                 owner,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 side_effect=structured_projection,
             ),
             patch.object(owner, "CALCULATION_NARRATIVE_POLICY", RecordingPolicy({
@@ -4691,7 +4691,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 patch.object(owner, "_normalise_spaces", return_value=public_answer),
                 patch.object(
                     owner,
-                    "_structured_result_subtask_rows_and_answer",
+                    "structured_result_subtask_rows_and_answer",
                     return_value=([], structured_answer),
                 ),
                 patch.object(owner, "CALCULATION_NARRATIVE_POLICY", PolicyAccessBomb()),
@@ -4708,7 +4708,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             patch.object(owner, "_normalise_spaces", return_value="정보 부족"),
             patch.object(
                 owner,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=([], "123 원"),
             ),
             patch.object(owner, "CALCULATION_NARRATIVE_POLICY", {
@@ -4733,7 +4733,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 patch.object(owner, "_normalise_spaces", return_value=public_answer),
                 patch.object(
                     owner,
-                    "_structured_result_subtask_rows_and_answer",
+                    "structured_result_subtask_rows_and_answer",
                     return_value=([], structured_answer),
                 ),
                 patch.object(owner, "CALCULATION_NARRATIVE_POLICY", {
@@ -4757,7 +4757,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 structured_owner,
             ),
             self.assertRaisesRegex(RuntimeError, "normalization failed"),
@@ -4773,7 +4773,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             patch.object(owner, "_normalise_spaces", return_value="정보 부족"),
             patch.object(
                 owner,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=([], "123 원"),
             ),
             patch.object(owner, "CALCULATION_NARRATIVE_POLICY", PolicyRuntimeBomb()),
@@ -5367,7 +5367,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(graph_name_loads.count("preferred_complete_aggregate_subtask_answer"), 1)
         self.assertEqual(graph_name_loads.count("_attach_runtime_projection_metadata"), 2)
         self.assertEqual(graph_name_loads.count("_build_aggregate_calculation_projection"), 1)
-        self.assertEqual(graph_name_loads.count("_structured_result_subtask_rows_and_answer"), 2)
+        self.assertEqual(graph_name_loads.count("structured_result_subtask_rows_and_answer"), 2)
         graph_imports = [
             alias.name
             for node in module_trees["graph"].body
@@ -5495,7 +5495,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 side_effect=structured_projection,
             ),
             patch.object(
@@ -5604,7 +5604,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph,
-                "_structured_result_subtask_rows_and_answer",
+                "structured_result_subtask_rows_and_answer",
                 return_value=(structured_rows, "structured base"),
             ),
             patch.object(

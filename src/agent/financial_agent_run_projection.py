@@ -17,7 +17,7 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     _attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
-    _structured_result_subtask_rows_and_answer,
+    structured_result_subtask_rows_and_answer,
 )
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
@@ -95,7 +95,7 @@ def structured_result_answer_for_missing_public_answer(
     structured_result: Dict[str, Any],
 ) -> str:
     answer_text = _normalise_spaces(str(public_answer or ""))
-    _, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+    _, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
     if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
         return ""
     missing_markers = tuple(

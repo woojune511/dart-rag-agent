@@ -12426,7 +12426,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "structured_result_answer_for_missing_public_answer",
                 projections["structured"],
             ),
-            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
             patch.object(
                 financial_graph,
@@ -12489,7 +12489,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "structured_result_answer_for_missing_public_answer",
                 failing_projections["structured"],
             ),
-            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
             patch.object(
                 financial_graph,
