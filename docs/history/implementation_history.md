@@ -11936,4 +11936,63 @@ are complete. It remains only as an audit record, not an active priority.
   Full 2,143/2,143 remains the implementation gate. Benchmark refresh and
   remote CI were **NOT RUN**. Exact expectations and stop lines are
   authoritative in
+  [Project Status Completed Statement And Section Hint](../overview/project_status.md#completed-statement-and-section-hint-inference-public-api).
+
+### Statement-and-section hint inference public API completed
+
+- Commit `eeefa47` renamed only the exact 35-line
+  `financial_retrieval_hints._infer_statement_and_section_hints(...)`
+  definition in place to public `infer_statement_and_section_hints(...)`, then
+  updated one owner-local call, two importer bindings and four external calls,
+  12 exact test symbol refs, two owner-count expectations, and eight active
+  derived hash records. It added no alias, wrapper, body/owner move, statement
+  type, section, policy/ontology entry, normalization/dedupe rule, catch,
+  mutation, or adjacent cleanup.
+- Ordered document/segment/numeric/narrative/ontology hint composition, desired-
+  statement seed identity and mutation, final stable dedupe into two fresh
+  lists, all five caller gates, identities, immutability, evaluation counts,
+  and errors remain exact. Final definition/body hashes are `20e00e4d...` /
+  `89254c99...`; selected private/public records are 0/20, source definition/
+  import/load is 1/2/5, and owner counts are 11/3.
+- Actual source/tests/whole transforms were `+8/-8`, `+22/-22`, and `+30/-30`;
+  committed diff SHA-256 is
+  `9ed502db2cf2d317f0d752053772dfdb4e3ebb609c0764eea4cb89edde546f72`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Exact affected methods 13/13 in 26.116 seconds, focused 541/541
+  in 179.362 seconds, audit 217, pycompile 3/3, unchanged 48/203 DAG, and full
+  2,143/2,143 in 241.648 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. This name-only cleanup establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Metric-task query builder public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 40-line state-free
+  `financial_graph_helpers._build_metric_task_query(...)` definition in place
+  to public `build_metric_task_query(...)`, then updates four owner-local calls,
+  one planning import/call pair, seven exact test symbol refs, 40 direct owner-
+  count expectations, two private-projection count expectations, one caller-
+  owner tuple, and one sorted dependency-name expectation. Add no alias,
+  wrapper, body/owner move, module, test method, task text, policy/ontology
+  entry, normalization rule, catch, mutation, dependency sequencing, or
+  adjacent planner cleanup.
+- Preserve original-query normalization, year lookup and policy-template
+  formatting, exact consolidation-prefix selection, ordered admitted operand
+  labels and duplicates, the two-label hint gate, canonical-template
+  normalization, fallback precedence, identities, input and configured-policy
+  immutability, evaluation counts, all errors, and all five exact keyword-only
+  try-depth-zero caller gates.
+- Current-private/future-public definition hashes are `b2aabb7f...` /
+  `4f6ff472...`; the unchanged body is `d7f6c130...`. Selected private/public
+  records project 0/14, source definition/import/load stays 1/1/5, owner counts
+  move 15/65 to 16/64, and source/tests/whole project `+7/-7`, `+50/-50`, and
+  `+57/-57`. Exact temporary diff SHA-256 is
+  `602a3cfd4bcee532dcf6d6e29dd49c439cd34b25df16e041a975fad0c63d7fa6`.
+- Current-private and projected-public direct behavior/immutability passed
+  25/25 each with receipt hash `bcc2fd16...`. The first projected focused run
+  exposed four remaining owner/order expectations; after correction exact
+  affected methods 45/45 in 60.807 seconds, focused 628/628 in 169.758 seconds,
+  audit 217, pycompile 2/2, retired refs zero, diff check, and unchanged acyclic
+  48/203 DAG passed; the projection was restored cleanly. Full 2,143/2,143
+  remains the implementation gate. Benchmark refresh and remote CI were
+  **NOT RUN**. Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

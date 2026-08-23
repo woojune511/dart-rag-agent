@@ -3044,31 +3044,48 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Generic Operand Label](../overview/project_status.md#completed-generic-operand-label-extractor-public-api).
 
-The next bounded visibility seam renames only the exact 35-line state-free
-`financial_retrieval_hints._infer_statement_and_section_hints(...)` definition
-in place to public `infer_statement_and_section_hints(...)`. Update one owner-
-local call, two importer bindings and four external calls, 12 exact test symbol
-refs, two owner-count expectations, and eight active derived hash records. Add
-no alias, wrapper, body/owner move, module, test method, statement type, section,
-policy/ontology entry, normalization/dedupe rule, catch, mutation, or adjacent
-retrieval/planning cleanup.
-
-Preserve normalization, ontology lookup, desired-statement seed identity and
-mutation, ordered document/segment/numeric/narrative policy composition,
-preferred-section extension, append-only-if-absent statement types, final
-first-occurrence dedupe, two fresh result lists, and all five one-positional-
-argument try-depth-zero caller gates. Definition hashes project `213d9752...`
-to `20e00e4d...`; the unchanged body is `89254c99...`. Selected private/public
-records project 0/20, source definition/import/load remains 1/2/5, owner counts
-move 10/4 to 11/3, and source/tests/whole transforms are `+8/-8`, `+22/-22`,
-and `+30/-30`. Exact temporary diff SHA-256 is
+The exact 35-line statement/section-hint visibility seam completed in
+`eeefa47`. It renamed the definition in place to public
+`infer_statement_and_section_hints(...)`, then updated one owner-local call,
+two importer bindings and four external calls, 12 exact test symbol refs, two
+owner-count expectations, and eight active derived hash records. Ordered
+document/segment/numeric/narrative/ontology hint composition, the body, all
+five caller gates, identities, errors, and policy immutability remained exact.
+Actual source/tests/whole transforms were `+8/-8`, `+22/-22`, and `+30/-30`;
+committed diff SHA-256 is
 `9ed502db2cf2d317f0d752053772dfdb4e3ebb609c0764eea4cb89edde546f72`.
-Current-private and projected-public behavior/identity 23/23 each, exact
-affected methods 13/13, focused 541/541, audit 217, pycompile 3/3, retired refs
-zero, diff check, and unchanged acyclic 48/203 DAG passed before clean
-restoration. Full 2,143/2,143 remains the implementation gate; benchmark
-refresh and remote CI remain **NOT RUN**. Exact scope is authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+Exact affected methods 13/13, focused 541/541, audit 217, pycompile 3/3,
+unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
+CI were **NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Statement And Section Hint](../overview/project_status.md#completed-statement-and-section-hint-inference-public-api).
+
+The next bounded visibility seam renames only the exact 40-line state-free
+`financial_graph_helpers._build_metric_task_query(...)` definition in place to
+public `build_metric_task_query(...)`. Update four owner-local calls, one
+planning import/call pair, seven exact test symbol refs, 40 direct graph-owner
+count expectations, two private-projection count expectations, one caller-owner
+tuple, and one sorted dependency-name expectation. Add no alias, wrapper,
+body/owner move, module, test method, task text, policy/ontology entry,
+normalization rule, catch, mutation, dependency sequencing, or adjacent planner
+cleanup.
+
+Preserve original-query normalization, year lookup and policy template
+formatting, exact consolidation-scope prefix selection, ordered non-empty
+operand labels with duplicates, the two-label operand-hint gate, canonical
+template normalization, fallback precedence, input and policy immutability,
+all propagated errors, and all five exact keyword-only try-depth-zero caller
+gates. Definition hashes project `b2aabb7f...` to `4f6ff472...`; the unchanged
+body is `d7f6c130...`. Selected private/public records project 0/14, source
+definition/import/load remains 1/1/5, owner counts move 15/65 to 16/64, and
+source/tests/whole transforms are `+7/-7`, `+50/-50`, and `+57/-57`. Exact
+temporary diff SHA-256 is
+`602a3cfd4bcee532dcf6d6e29dd49c439cd34b25df16e041a975fad0c63d7fa6`.
+Current-private and projected-public behavior/immutability passed 25/25 each;
+corrected exact affected methods 45/45, focused 628/628, audit 217, pycompile
+2/2, retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed
+before clean restoration. Full 2,143/2,143 remains the implementation gate;
+benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.
