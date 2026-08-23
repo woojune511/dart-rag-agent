@@ -25,7 +25,7 @@ from src.agent.financial_graph_helpers import (
     _build_metric_task_query,
     _build_semantic_numeric_plan,
     _infer_generic_concept_spec,
-    _infer_operation_family_from_query,
+    infer_operation_family_from_query,
     align_scope_hints,
     append_hybrid_narrative_task,
     apply_segment_labels_to_llm_resolved_specs,
@@ -150,7 +150,7 @@ def _non_numeric_operation_intent_override(query: str, topic: str, intent: str) 
         return intent, ""
 
     ontology = get_financial_ontology()
-    operation_family = _infer_operation_family_from_query(query, ontology)
+    operation_family = infer_operation_family_from_query(query, ontology)
     allowed_operations = {
         _normalise_spaces(str(item))
         for item in (policy.get("operation_families") or ())

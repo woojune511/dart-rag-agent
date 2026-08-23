@@ -1204,7 +1204,7 @@ def _planner_intent_cues(ontology: Any, operation_family: str) -> List[str]:
     ]
 
 
-def _infer_operation_family_from_query(query: str, ontology: Any) -> str:
+def infer_operation_family_from_query(query: str, ontology: Any) -> str:
     text = _normalise_spaces(query).lower()
     if not text:
         return "single_value"
@@ -1935,7 +1935,7 @@ def _build_concept_numeric_task(
     )
     if group_decomposition_task:
         return group_decomposition_task
-    operation_family = _infer_operation_family_from_query(query, ontology)
+    operation_family = infer_operation_family_from_query(query, ontology)
     operand_specs = _build_concept_required_operands(query, report_scope, concept_specs, operation_family)
     if not operand_specs:
         return None
@@ -2109,7 +2109,7 @@ def _build_heuristic_numeric_task(
         preferred_sections.extend(spec.get("preferred_sections") or [])
     preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
     preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
-    operation_family = _infer_operation_family_from_query(query, get_financial_ontology())
+    operation_family = infer_operation_family_from_query(query, get_financial_ontology())
     constraints = {
         "consolidation_scope": desired_consolidation_scope(query, report_scope),
         "period_focus": query_period_focus(query, "unknown"),
@@ -2371,7 +2371,7 @@ def _build_group_decomposition_task(
         ):
             continue
 
-        operation_family = str(hints.get("preferred_operation") or "").strip() or _infer_operation_family_from_query(query, ontology)
+        operation_family = str(hints.get("preferred_operation") or "").strip() or infer_operation_family_from_query(query, ontology)
         member_role_prefix = str(hints.get("member_role_prefix") or "numerator").strip() or "numerator"
         member_roles = [
             str(item).strip()
@@ -3019,7 +3019,7 @@ def _build_semantic_numeric_plan(
     """
     ontology = get_financial_ontology()
     matches = ontology.match_metric_families(query, topic, intent)
-    operation_family = _infer_operation_family_from_query(query, ontology)
+    operation_family = infer_operation_family_from_query(query, ontology)
     concept_specs = ontology.concept_specs(query, topic, intent)
     planner_notes: List[str] = [
         f"planner_input_intent:{str(intent or 'unknown').strip() or 'unknown'}",
