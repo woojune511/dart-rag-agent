@@ -11432,10 +11432,11 @@ are complete. It remains only as an audit record, not an active priority.
 
 ### Report-cache-candidate public API characterization checkpoint
 
-- The next bounded visibility batch renames only the exact 96-line
+- This checkpoint preceded `45ccc05`. At that point the bounded visibility batch
+  was characterized to rename only the exact 96-line
   `financial_runtime_trace._report_cache_candidate_for_trace(...)` definition
-  in place to public `report_cache_candidate_for_trace(...)`. Update one owner-
-  local call, one planning import/call pair, and one owner-count expectation;
+  in place to public `report_cache_candidate_for_trace(...)`, update one owner-
+  local call, one planning import/call pair, and one owner-count expectation,
   add no alias, wrapper, body/owner move, test method, candidate/classification/
   retrieval-bypass/cache-serving policy, mutation, exception boundary, or
   adjacent cleanup.
@@ -11459,7 +11460,68 @@ are complete. It remains only as an audit record, not an active priority.
   The restored projection passed projected-public direct behavior/identity
   45/45, exact affected contracts 7/7 in 2.936 seconds, focused 561/561 in
   23.775 seconds, audit 217, pycompile 3/3, retired refs zero, diff check, and
-  unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation
-  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations
-  and stop lines are authoritative in
+  unchanged acyclic 48/203 DAG. Commit `45ccc05` later passed full
+  2,143/2,143 and completed the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. The completed scope is authoritative in
+  [Project Status Completed Report Cache](../overview/project_status.md#completed-report-cache-candidate-public-api).
+
+### Report-cache-candidate public API completed
+
+- Commit `45ccc05` renamed only the exact 96-line
+  `financial_runtime_trace._report_cache_candidate_for_trace(...)` definition
+  in place to public `report_cache_candidate_for_trace(...)`, then updated one
+  owner-local call, one planning import/call pair, and one owner-count
+  expectation. It added no alias, wrapper, body/owner move, test method,
+  candidate/classification/retrieval-bypass/cache-serving policy, mutation,
+  exception boundary, or adjacent cleanup.
+- Copied report/task/trace inputs, the all-material-empty return, answer-slot and
+  first-operand precedence, every fallback chain, producer/key/consumer
+  classification, fixed read-only flag, retrieval-bypass attachment,
+  immutability, propagated errors, and both caller gates remain exact. Final
+  definition/body hashes are `d093e826...` / `6ff7c577...`; owner-local caller
+  hashes are `14f6b744...` / `4a6ee386...`, and planning caller hashes are
+  `9f6df840...` / `5979eee1...`.
+- Actual source/tests/whole transforms were `+4/-4`, `+1/-1`, and `+5/-5`;
+  committed diff SHA-256 is
+  `5d05095ebe101abc6f3cffee5a606571ef2440d7657b58aec042800bad9df22c`.
+  Projected-public direct/identity 45/45, exact affected contracts 7/7 in 2.223
+  seconds, focused 561/561 in 17.139 seconds, audit 217, pycompile 3/3,
+  selected private/public 0/4, source definition/import/load 1/1/2, owner counts
+  9/22, unchanged 48/203 DAG, and full 2,143/2,143 in 282.198 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. This name-only cleanup
+  enables no cache serving and establishes no behavior, quality, performance,
+  benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Runtime aggregate-calculation projection public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 59-line
+  `financial_runtime_trace._build_aggregate_calculation_projection(...)`
+  definition in place to the distinct public name
+  `build_runtime_aggregate_calculation_projection(...)`. Keep the existing
+  public `financial_aggregate_projection.build_aggregate_calculation_projection(...)`
+  wrapper unchanged. Update three external imports, four external calls, two
+  owner-local calls, 21 existing test symbol bindings, and one owner-count
+  expectation; add no alias, wrapper, body/owner move, test method, projection
+  field/rule, state/artifact/ledger mutation, exception boundary, or adjacent
+  cleanup.
+- Preserve eager subtask materialization, fresh operand/seen-key/plan/result-
+  view collections, exact row-helper calls and adoption, empty/all-ok status,
+  source-ID projection, complete plan/result/answer-slot/derived-metric layout,
+  input identities and immutability, every propagated error, and all six try-
+  depth-zero caller gates and sequencing. Current-private/future-public
+  definition hashes are `37522686...` / `25cf50ed...`; the unchanged body hash
+  is `3e6dd7f0...`. Selected private/public records project 0/31, source
+  definition/import/load remains 1/3/6, and owner counts move 9/22 to 10/21.
+- Projected source/tests/whole transforms are `+10/-10`, `+22/-22`, and
+  `+32/-32` across four source and three test files; exact temporary diff
+  SHA-256 is
+  `92a9a69cbecae914ea94d9e7225009d841a1b7d97bb0efeff8acae2be92274d8`.
+  The first focused rehearsal exposed the one `patch.multiple(...)` keyword
+  binding missing from the initial 20 string/AST bindings; after including that
+  21st binding, projected-public behavior/identity 53/53, exact affected
+  contracts 8/8 in 6.869 seconds, focused 837/837 in 38.748 seconds, audit 217,
+  pycompile 7/7, retired refs zero, diff check, and unchanged acyclic 48/203 DAG
+  passed. The projection was restored cleanly. Full 2,143/2,143 remains the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**. Exact
+  expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

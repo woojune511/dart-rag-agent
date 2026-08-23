@@ -2897,32 +2897,53 @@ Projected-public direct/identity 33/33, exact affected contracts 3/3, focused
 **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Task Trace](../overview/project_status.md#completed-task-trace-from-state-public-api).
 
-The next bounded visibility seam renames only the exact 96-line
-`financial_runtime_trace._report_cache_candidate_for_trace(...)` definition in
-place to public `report_cache_candidate_for_trace(...)`. Update its owner-local
-call, one planning import/call pair, and one derived owner public/private count.
-Add no alias, wrapper, body/owner move, module, test method, candidate field,
-classification, retrieval-bypass/cache-serving policy, mutation, exception
-boundary, or adjacent cleanup.
+The exact 96-line report-cache-candidate visibility seam completed in
+`45ccc05`. It renamed the definition in place to public
+`report_cache_candidate_for_trace(...)`, then updated one owner-local call, one
+planning import/call pair, and one owner-count expectation. Shallow copies,
+empty-material return, answer-slot/first-operand precedence, every candidate
+fallback chain, producer/key/consumer classification, fixed read-only flag,
+retrieval-bypass attachment, input immutability, propagated errors, and both
+try-depth-zero caller gates remain exact; no cache serving was enabled.
 
-Keep the helper with report-scope/active-task and runtime-trace projection.
-Preserve shallow copies, empty-material return, answer-slot/first-operand
-precedence, every candidate fallback chain, producer classification, copied
-reasons/key, key ID, fixed read-only flag, consumer classification, retrieval-
-bypass attachment, input immutability, propagated errors, and both try-depth-
-zero caller gates and sequencing.
-
-Current/private and future/public definition hashes are `dd5adf3c...` /
-`d093e826...`; the unchanged body is `6ff7c577...`. Owner-local caller hashes
-project `28aa4b23...` / `8cfe40a3...` to `14f6b744...` / `4a6ee386...`, and
-planning caller hashes project `cf6b71ad...` / `f736e6ab...` to `9f6df840...`
-/ `5979eee1...`. Selected private/public records project zero/4, owner counts
-8/23 to 9/22, and source/tests/whole transforms are `+4/-4`, `+1/-1`, and
-`+5/-5`. Exact temporary diff SHA-256 is
+Final definition/body hashes are `d093e826...` / `6ff7c577...`; selected
+private/public records are zero/4, source definition/import/load is 1/1/2,
+owner counts are 9/22, and actual source/tests/whole transforms were `+4/-4`,
+`+1/-1`, and `+5/-5`. Committed diff SHA-256 is
 `5d05095ebe101abc6f3cffee5a606571ef2440d7657b58aec042800bad9df22c`.
-The temporary projection passed projected-public direct/identity 45/45, exact
-affected contracts 7/7 in 2.936 seconds, focused 561/561 in 23.775 seconds,
-audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged 48/203
+Projected-public direct/identity 45/45, exact affected contracts 7/7, focused
+561/561, audit 217, pycompile 3/3, retired refs zero, diff check, unchanged
+48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote CI were
+**NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Report Cache](../overview/project_status.md#completed-report-cache-candidate-public-api).
+
+The next bounded visibility seam renames only the exact 59-line
+`financial_runtime_trace._build_aggregate_calculation_projection(...)`
+definition in place to the distinct public name
+`build_runtime_aggregate_calculation_projection(...)`. Preserve the existing
+public `financial_aggregate_projection.build_aggregate_calculation_projection(...)`
+wrapper. Update three external imports, four external calls, two owner-local
+calls, 21 existing test symbol bindings, and one derived owner public/private
+count. Add no alias, wrapper, body/owner move, module, test method, projection
+field, row/operand/source-ID/answer-slot rule, mutation, exception boundary, or
+adjacent cleanup.
+
+Keep the helper with its private aggregate-row, source-ID, and answer-slot
+projection dependencies. Preserve eager subtask materialization, fresh mutable
+collections, exact row-helper calls/adoption, empty/all-ok status behavior,
+source-ID projection, complete plan/result/answer-slot/derived-metric layout,
+input identities and immutability, propagated errors, and all six try-depth-zero
+caller gates and sequencing.
+
+Current/private and future/public definition hashes are `37522686...` /
+`25cf50ed...`; the unchanged body is `3e6dd7f0...`. Selected private/public
+records project zero/31, source definition/import/load stays 1/3/6, owner counts
+move 9/22 to 10/21, and source/tests/whole transforms are `+10/-10`, `+22/-22`,
+and `+32/-32`. Exact temporary diff SHA-256 is
+`92a9a69cbecae914ea94d9e7225009d841a1b7d97bb0efeff8acae2be92274d8`.
+The temporary projection passed projected-public behavior/identity 53/53, exact
+affected contracts 8/8 in 6.869 seconds, focused 837/837 in 38.748 seconds,
+audit 217, pycompile 7/7, retired refs zero, diff check, and unchanged 48/203
 DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
 gate; benchmark refresh and remote CI remain **NOT RUN**. Exact scope is
 authoritative only in
