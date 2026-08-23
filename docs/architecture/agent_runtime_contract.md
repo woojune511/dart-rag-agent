@@ -7109,39 +7109,71 @@ Benchmark refresh and remote CI were **NOT RUN**. Exact completion evidence is
 authoritative in
 [Project Status Completed Korean-Won Formatter](../overview/project_status.md#completed-korean-won-compact-formatter-public-api).
 
-The active visibility contract now renames only the exact 51-line
-`financial_formula_eval._safe_eval_formula(expression: str, variables: Dict[str, float]) -> float`
-definition in place to public `safe_eval_formula(...)`. Update the sole
-calculation-execution import, its two positional calls, ten existing test patch
-bindings, and four derived caller/payload hashes. Add no alias, wrapper,
-body/owner move, module, test method, AST node or allowed function, coercion,
-catch, result/status rule, mutation, or adjacent calculation cleanup.
+Commit `72f9fa6` completed the exact 51-line restricted formula-evaluator
+visibility contract by renaming the definition in place to public
+`safe_eval_formula(...)`. The sole calculation-execution import, its two
+positional calls, ten existing test patch bindings, and four derived caller/
+payload hashes changed; no alias, wrapper, body/owner move, AST node or allowed
+function, coercion, catch, result/status rule, mutation, or adjacent calculation
+cleanup changed.
 
-Preserve `ast.parse(..., mode="eval")`, the recursive evaluator and exact
-Expression/Constant/Name/UnaryOp/BinOp/Call/unsupported dispatch order. Keep
-existing constant and name coercion, eager unary evaluation, left-before-right
-binary evaluation, explicit zero-division guard, direct-name call requirement,
-allow-list lookup before keyword rejection, left-to-right fresh positional-arg
-evaluation, result float conversion, exact errors, input/allow-list identity,
-and every currently propagated exception.
+`ast.parse(..., mode="eval")`, recursive dispatch/evaluation order, constant and
+name coercion, eager unary and left-before-right binary evaluation, explicit
+zero-division guard, direct-name call requirement, allow-list and keyword order,
+result conversion, exact errors, input identities, and propagated exceptions
+remain exact. Both production calls remain positional at caller try depth one.
+Prepared-plan execution retains `zero_division` versus `parse_error` mapping;
+time-series growth still converts only `ZeroDivisionError` to appended `None`.
 
-Both production calls remain positional and at caller try depth one. Prepared-
-plan execution keeps the outer float conversion and maps `ZeroDivisionError` to
-`zero_division` and every other `Exception` to `parse_error`. Time-series growth
-keeps previous/current float conversion before its pair try, passes a fresh
-`{"PREV": prev_value, "CURR": curr_value}` mapping, converts only
-`ZeroDivisionError` to appended `None`, and propagates all other failures.
+Final definition/body hashes are `b265eb74...` / `91d52cfb...`; selected
+private/public records are 0/14, source definition/import/load records are
+1/1/2, owner counts are 1/0, and actual source/tests/whole transforms were
+`+4/-4`, `+14/-14`, and `+18/-18`. Committed diff SHA-256 is
+`e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+Direct behavior/identity 31/31, exact affected contracts 5/5, focused 863/863,
+audit 217, pycompile 2/2, diff check, unchanged 48/203 DAG, and full
+2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**. Exact
+completion evidence is authoritative in
+[Project Status Completed Restricted Formula Evaluator](../overview/project_status.md#completed-restricted-formula-evaluator-public-api).
 
-Definition hashes project `8a6d4795...` to `b265eb74...`; the unchanged body is
-`91d52cfb...`. Selected private/public records project 0/14, source definition/
-import/load records stay 1/1/2, owner counts move 0/1 to 1/0, and source/tests/
-whole project `+4/-4`, `+14/-14`, and `+18/-18`. Exact temporary diff SHA-256
-is `e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
-Projected-public direct behavior/identity 31/31, corrected exact contracts 5/5,
-focused 863/863, audit 217, pycompile 2/2, diff check, and unchanged 48/203 DAG
-passed before clean restoration. Full 2,143/2,143 remains the implementation
-gate. Exact hashes, expectations, and stop lines are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+The active visibility contract now renames only the exact 31-line
+`financial_graph_helpers._build_concept_metric_label(query: str,
+concept_specs: List[Dict[str, Any]], operation_family: str) -> str` definition
+in place to public `build_concept_metric_label(...)`. Update four owner-local
+calls, the sole planning import/call pair, and exactly 43 existing owner-count
+expectations: 40 direct two-value tuples, two derived two-value tuples, and one
+three-value caller map. Add no alias, wrapper, body/owner move, module, test
+method, label vocabulary, policy/template, operation branch, coercion, catch,
+task/state/trace/artifact/ledger mutation, or adjacent planning cleanup.
+
+Preserve the first positional `_order_concept_specs_by_query(...)` call and
+complete its fresh ordered list before label or policy work. For every spec,
+keep name-before-label fallback, exact string/strip evaluation counts, blank
+filtering, order, and all propagated errors. Preserve shallow policy and
+`operation_templates` copies, falsey joiner default, ordered join, and exact
+ratio, sum, difference, growth-rate, other, cleaned-query, and policy-fallback
+branch order. Inputs, policy objects, and nested identities remain unchanged.
+
+All five production calls remain direct three-positional-argument calls with no
+keywords at caller try depth zero. Planning keeps `raw_metric_label or ...`;
+explicit-ratio planning calls the helper only in its conditional fallback;
+generic concept numeric planning keeps the nonempty-operand gate; group and
+analysis planning keep stripped hints on the left of `or`. Any helper failure
+still stops later task composition and adoption.
+
+Definition hashes project `039146864...` to `855648604...`; the unchanged body
+is `4b4789f3...`. The unchanged five-call shape hash is `db3de9a0...`.
+Selected private/public records project 0/7, source definition/import/load
+records stay 1/1/5, owner public/private counts move 11/69 to 12/68, and
+source/tests/whole project `+7/-7`, `+43/-43`, and `+50/-50`. Corrected exact
+temporary diff SHA-256 is
+`e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+Current-private and restored projected-public direct behavior/identity passed
+25/25 each. The corrected temporary projection passed exact affected methods
+41/41, focused 634/634, audit 217, pycompile 2/2, diff check, and unchanged
+48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+implementation gate. Exact hashes, expectations, and stop lines are
+authoritative in [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization
 checkpoint that preceded `72eb1b8`; they are not active work. The historical

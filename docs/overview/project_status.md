@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `814d7bf` renamed only the exact 31-line `financial_runtime_normalization._format_korean_won_compact(...)` definition in place to public `format_korean_won_compact(...)` and updated the two external import/call pairs in calculation rendering and runtime trace |
-| What passed? | Exact structural checks 4/4, private/public behavior and identity 13/13, focused tests 780/780, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `814d7bf`; the implementation diff is byte-identical to the projected-public rehearsal |
+| What just changed? | `72f9fa6` renamed only the exact 51-line `financial_formula_eval._safe_eval_formula(...)` definition in place to public `safe_eval_formula(...)` and updated the calculation-execution import/two calls, ten existing test patch bindings, and four derived caller/payload hashes |
+| What passed? | Exact affected contracts 5/5, direct behavior and identity 31/31, focused tests 863/863, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `72f9fa6`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 51-line `financial_formula_eval._safe_eval_formula(...)` definition in place to public `safe_eval_formula(...)`; update the calculation-execution import/two calls, ten existing test patch bindings, and four derived caller/payload hashes |
+| What is next? | Rename only the exact 31-line `financial_graph_helpers._build_concept_metric_label(...)` definition in place to public `build_concept_metric_label(...)`; update four owner-local calls, one planning import/call pair, and 43 existing owner-count expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, Korean-won formatter exact structural checks 4 / 4 and affected focused set 780 / 780 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after Korean-won formatter public rename |
+| Latest focused owner checkpoint | PASS, restricted formula evaluator exact affected contracts 5 / 5 and affected focused set 863 / 863 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after restricted formula evaluator public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,105 +799,129 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 51-line
-`src.agent.financial_formula_eval._safe_eval_formula(
-expression: str, variables: Dict[str, float]) -> float` definition at lines
-19-69 in place to public `safe_eval_formula(...)`. Update the sole import in
-`financial_calculation_execution.py`, its two positional calls, ten existing
-test patch bindings across `test_aggregate_subtask_projection.py` and
-`test_operation_contracts.py`, and four derived caller/payload SHA expectations
-in one existing `test_financial_graph_helpers.py` CURRENT-SOURCE contract. Add
-no alias, wrapper, body/owner move, module, test method, allowed function or AST
-node, coercion, catch, result/status rule, state/artifact/ledger mutation, or
-adjacent calculation cleanup.
+Rename only the exact 31-line
+`src.agent.financial_graph_helpers._build_concept_metric_label(
+query: str, concept_specs: List[Dict[str, Any]], operation_family: str) -> str`
+definition at lines 1723-1753 in place to public
+`build_concept_metric_label(...)`. Update its four owner-local calls, the sole
+planning import/call pair, and exactly 43 existing owner-count expectation
+records in `test_financial_graph_helpers.py`: 40 direct `(11, 69)` tuples become
+`(12, 68)`, two derived `(11, 70)` tuples become `(12, 69)`, and one caller-map
+`(11, 69, 0)` tuple becomes `(12, 68, 0)`. Add no alias, wrapper, body/owner
+move, module, test method, label vocabulary, policy/template, operation branch,
+coercion, catch, task/state/trace/artifact/ledger mutation, or adjacent semantic-
+planning cleanup.
 
-Keep the evaluator in `financial_formula_eval.py`; the selected span intersects
-zero of the 217 reviewed runtime-domain records. Preserve `ast.parse(expression,
-mode="eval")`, creation of the nested recursive evaluator after parsing, and
-its exact dispatch order. `ast.Expression` still recurses into its body.
-Constants still accept Python `int`/`float` instances, including existing bool-
-as-int behavior, convert through `float`, and otherwise raise the same
-`ValueError`. Names still test exact membership in the supplied variables
-mapping before lookup and float conversion.
+Keep the helper in `financial_graph_helpers.py`; it is state-free, already
+consumes declarative `CONCEPT_METRIC_LABEL_POLICY`, and its selected span
+intersects zero of the 217 reviewed runtime-domain records. Preserve the first
+exact positional `_order_concept_specs_by_query(concept_specs, query)` call and
+complete its result before any label or policy work. For each ordered spec,
+preserve name-before-label fallback, exact `str(...).strip()`, the current
+double evaluation for retained labels, blank filtering, ordered fresh-list
+materialization, and all mapping/string/iteration errors.
 
-Preserve eager operand evaluation before unary-operator classification and
-left-before-right binary evaluation. Unary plus/minus, binary add/subtract/
-multiply/divide/power, the explicit `right == 0.0` division guard, and every
-unsupported-operator message remain exact. Calls still require a direct
-`ast.Name`, look up the module-owned `_ALLOWED_FORMULA_FUNCTIONS` mapping before
-keyword validation, reject any keyword, evaluate positional args left-to-right
-into a fresh list, call the selected function, and convert its result through
-`float`. Unsupported nodes still raise with the exact AST type name. Preserve
-variables and allow-list identities/immutability, Python arithmetic behavior,
-and every currently propagated parse, mapping, membership, lookup, conversion,
-recursion, function, overflow, domain, arity, allocation, and custom exception.
+Preserve the shallow policy copy, then shallow `operation_templates` copy,
+falsey default label joiner, ordered join, and exact branch order. Ratio and sum
+still require nonempty labels and format their configured/default template.
+Difference still uses its two-label template only at length at least two and its
+one-label template otherwise. Growth rate still formats only the first label.
+Every other nonempty case still returns the first label. With no labels, call
+`_clean_metric_label(query)` first and only then stringify the policy fallback.
+Preserve input/policy/nested-object identities and immutability, Python format
+behavior, and every propagated order, mapping, truth, string, strip, list,
+copy, join, length, index, format, allocation, and custom exception.
 
-Both production calls remain positional and at caller `try` depth one. In
-`execute_prepared_calculation_plan(...)`, exact `formula` and prepared `env`
-remain inside the existing broad execution `try`; the evaluator result still
-passes through an outer `float`. `ZeroDivisionError` still becomes a
-`zero_division` outcome, every other `Exception` still becomes `parse_error`,
-and successful normalized-unit/result projection remains downstream. In
-`time_series_yoy_growth_rates(...)`, previous/current normalized-value float
-conversion remains before the per-pair `try`; the evaluator receives exact
-`pairwise_formula` and a fresh `{"PREV": prev_value, "CURR": curr_value}`.
-Only `ZeroDivisionError` is converted to appended `None`; all other failures
-propagate, successful values append directly, and the leading `[None]` plus
-input iteration/order remain exact.
+All five production calls remain direct, three-positional-argument calls with no
+keywords and caller `try` depth zero; they finish owner-external/local 1/4. The
+planning call remains the right side of `raw_metric_label or ...`, after operand
+construction and before preferred-statement projection. Explicit-ratio planning
+keeps the configured numerator/denominator template when both labels exist and
+calls this helper only in the conditional fallback. Generic concept numeric
+planning keeps the nonempty-operand gate before direct assignment. Group-
+decomposition and concept-analysis planning keep stripped hint metric labels as
+the left side of `or`, so truthy hints still skip this helper. Every helper
+failure still stops later task composition/adoption.
 
 Current-private/future-public definition SHA-256 values are
-`8a6d47951b92d8f29ad351b8c43fa8a306097bae6c4594c7f8b3be4e4a26b4d0` /
-`b265eb74c013e8faa675a3b48f20b0af58e92afc9b246ec6263aa1b4161a1a95`;
+`039146864e6dea746effafad097fa8d494fc7075a03fb4fc379f95a814c3daf5` /
+`855648604a6c92016d9237ef14d8aba88082c3273ed73868380050dfe6d0bdc6`;
 the unchanged body hash is
-`91d52cfb064001af050137eccc8d93cee09e7d75eddd44c5d37c8d1bfbab9ca3`.
-The execution caller definition/body hashes project
-`20a208d283760efe9870f461178a7491d0c2337269cc615b1ab256e1d9b57055` /
-`c065ec0fca3b6ba92bc23909c5fd5a3f1cc059dc3c67b48046ef7eeaf665698f`
-to
-`009d1624fc2cfbb611879ad524023c8926f691ebd86e987aa25d98b2f05f1010` /
-`02adee2a3d86149cb7d770afdc21bebd87dbe6dd6c1b5a9293b2cd39a3b7e5af`.
-The time-series caller hashes project
-`3ae813993221646989a6ff9483ef5468bf2727447527df6df290ce670a65c09d` /
-`be436861b4084c80988a0e4b7cc9545f6d41f732bf262366ab03369be7229dee`
-to
-`a2204957dff1d1b4eac25e5dc0797db1a1f222b4eaaf6faf122ef5875882e9da` /
-`7f39482b79ad4f13ce406acf92579e4f62da046a2da495ee66b181ee03318250`.
-The four future conditional expectations in the existing period-sort contract
-are public-period/public-evaluator caller
-`02adee2a3d86149cb7d770afdc21bebd87dbe6dd6c1b5a9293b2cd39a3b7e5af`,
-private-period/public-evaluator caller
-`cb4e01d23ab23e4f26fceff18c58fc9089faa94eea901112dc9f405afdafd278`,
-public-period/public-evaluator payload
-`03dff69e624136e3e1ee06253e328d9461ce5c47cceeaf4505887b2796993a3f`,
-and private-period/public-evaluator payload
-`5ef18b1bcf6914a14bfb04a3ab9a311bf400d52530708a5e1dcc98dba7bffa7c`.
+`4b4789f322e938fb19ae992ee0861a447696a766eeec06105fa5326b2e801ffb`.
+Caller definition/body hashes project as follows:
 
-After the rename selected private/public records must be 0/14, source
-definition/import/load records 1/1/2, test symbol bindings 10, and owner public/
-private counts 1/0. Four existing conditional caller/payload hashes also change;
-no owner-count expectation changes. Projected source/tests/whole transforms are
-`+4/-4`, `+14/-14`, and `+18/-18` across exactly two source and three test
-files. The exact temporary diff SHA-256 is
-`e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+| Caller | Current definition / body | Future definition / body |
+| --- | --- | --- |
+| `_build_explicit_ratio_definition_task` | `6175a1b82911847fd1461bd707d03f0bd6831038bbff7ae2f3a8f18326678b6b` / `1d5c080464e1726973489320256f4b5418dd67dee6802ff9bf980a927c32f088` | `c5fbfd59f1c76e169f5544d8bfcc0c25ac97b414053111ebf20250c104362e66` / `7492ca6db2804f11332127d2f3b71423e801a4c4252ae4c8ecac9bcf16611d78` |
+| `_build_concept_numeric_task` | `91900a322245226970531b53680d0b05ef17999457143e1e5fa6df20f5d0173e` / `b501a8393088c6f509778ecf396c35460104857b750c4f02ce54c4328cec0610` | `b65eb10f80ab3f7b46b0cb1584fba471bcb17ea36675b12fbbae65f0c1caff18` / `c97aeb97e2c5a99c285a48c82aca6ac652fa9d1ca167f8a886624c0c066aed13` |
+| `_build_group_decomposition_task` | `0fac756a052a5130d989ed047e62788a6b85c9e8eebaf62e524c34fb3f3ac746` / `d1b28bf0a8fc12031a71adc653cc09256e293d774ae3cd9748c7d64de9d64d8e` | `c4e467b99ed90b7992d591d8f777c7a6a322c6a4c654a44323f6c01f49bc3a12` / `895a9814f0bdd2af3803e1455ce93e506060f425b61b902522a6124d6f30729a` |
+| `_build_concept_analysis_task` | `6964273bcc1bf2d13bcb3b23a87173000c75758cef7b24a5ce51581d8e67c766` / `ca53bf2d0bc8bf092ca619af1853e51a6e1009da4d909d7fd346bd8227a6ab15` | `bbf2386dc061cb28ae212fb79699fc8e72a1388feaa160d31466d7353d0d3d49` / `5391029197ebefaf61a3a70c87e5475e6d456af2acf4db39090aa0427e2361b4` |
+| `FinancialAgentPlanningMixin._build_llm_concept_numeric_plan` | `3adda42025eff111619794d0639b3a78ababe65e12cd344c66e0e73c6544b20e` / `0ea7dc4a9cef7f9c0d7df77cb77ad775649240eecda25b79754134273caf88d8` | `063734b074e74b31ebfb55e6835717ec47c251d778742778a97af6ba5e7f64ac` / `9c7ed2efbcc8c2154825631be5187b53beb624231428ccab1cabf4fb86cd5af5` |
 
-Projected-public direct behavior/identity passed 31/31. After the first focused
-run exposed the full four-hash derived contract, the corrected temporary
-projection passed exact affected contracts 5/5 in 6.711 seconds, focused tests
-863/863 in 188.954 seconds, audit 217, pycompile 2/2, retired refs zero, diff
-check, and the unchanged acyclic 48/203 import topology at
+The unchanged five-call shape hash is
+`db3de9a06dd76c26558510889703937edb3ff8052719e83a8685aad344d57411`.
+After the rename selected private/public records must be 0/7, source
+function-definition/import/load records 1/1/5, and owner public/private counts
+12/68. Projected source/tests/whole transforms are `+7/-7`, `+43/-43`, and
+`+50/-50` across exactly two source and one test file. The corrected exact
+temporary diff SHA-256 is
+`e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+
+Current-private and restored projected-public direct behavior/identity passed
+25/25 each. The first exact run exposed the two derived two-value tuples; the
+first focused run then exposed the one three-value caller-map tuple. After those
+three additional records were included, the temporary projection passed exact
+affected methods 41/41 in 65.626 seconds, current-checkout focused tests 634/634
+in 187.252 seconds, audit 217, pycompile 2/2, retired refs zero, diff check, and
+the unchanged acyclic 48/203 import topology at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
-then was restored cleanly. Full discovery 2,143/2,143 remains the implementation
-gate. Benchmark refresh and remote CI remain **NOT RUN**.
+then was restored cleanly. A stale historical focused-module name was absent
+from this checkout and was not included in the final 634-test gate. Full
+discovery 2,143/2,143 remains the implementation gate. Benchmark refresh and
+remote CI remain **NOT RUN**.
 
-This is the smallest remaining state-free correct-owner visibility seam by
-actual changed-record ripple after `814d7bf`. Shorter retrieval-pipeline count
-helpers are evidence-only or graph-state-reading, task/artifact helpers are
-explicitly non-exported, aggregate carrier classes intentionally remain private,
-and `_active_preferred_statement_types(...)` has a future-name caller collision.
-The 31-line concept-metric-label helper would require 40 derived graph-helper
-owner-count changes, so it is not the smaller batch. This name-only projection
-establishes no calculation behavior, safety expansion, quality, performance,
-benchmark, schedule, ledger, or Phase 3 completion claim.
+This is the smallest remaining correct-owner state-free visibility seam after
+`72f9fa6`. Shorter numeric-extractor and period-count helpers read graph state
+or are evidence-only wrong-owner functions; task-record/trace helpers are
+explicitly non-exported; the 249-line direct-support predicate is not a smaller
+behavior surface; and `_active_preferred_statement_types(...)` has a future-name
+caller-local collision. This name-only projection establishes no semantic-plan,
+label, task, answer, quality, performance, benchmark, schedule, ledger, or Phase
+3 completion claim.
+
+## Completed Restricted Formula Evaluator Public API
+
+Commit `72f9fa6` renamed only the exact 51-line
+`financial_formula_eval._safe_eval_formula(...)` definition in place to public
+`safe_eval_formula(...)`. It updated one calculation-execution import, two
+positional production calls, ten existing test patch bindings, and four derived
+caller/payload hashes. It added no alias, wrapper, body/owner move, AST node or
+allowed function, coercion, catch, result/status rule, mutation, or adjacent
+calculation cleanup.
+
+Restricted parse/recursive dispatch order, constant/name coercion, eager unary
+and left-before-right binary evaluation, supported operations, explicit division
+guard, direct-name allow-list calls, keyword rejection, result conversion, exact
+errors, input identities, and propagated exceptions remain exact. Prepared-plan
+execution still maps `ZeroDivisionError` to `zero_division` and other exceptions
+to `parse_error`; time-series growth still converts only `ZeroDivisionError` to
+`None`.
+
+Final definition/body SHA-256 values are
+`b265eb74c013e8faa675a3b48f20b0af58e92afc9b246ec6263aa1b4161a1a95` /
+`91d52cfb064001af050137eccc8d93cee09e7d75eddd44c5d37c8d1bfbab9ca3`.
+Actual source/tests/whole transforms were `+4/-4`, `+14/-14`, and `+18/-18`;
+committed diff SHA-256 is
+`e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+The implementation is byte-identical to the corrected projected-public
+rehearsal. Fresh direct behavior/identity 31/31, exact affected contracts 5/5 in
+6.733 seconds, focused tests 863/863 in 189.616 seconds, audit 217, pycompile
+2/2, selected private/public 0/14, source definition/import/load 1/1/2, owner
+counts 1/0, retired refs zero, diff check, unchanged acyclic 48/203 topology, and
+full discovery 2,143/2,143 in 231.903 seconds passed. Benchmark refresh and
+remote CI were **NOT RUN**. This name-only cleanup expands no formula safety
+surface and establishes no behavior, answer quality, performance, benchmark,
+schedule, ledger, or Phase 3 completion claim.
 
 ## Completed Korean-Won Compact Formatter Public API
 

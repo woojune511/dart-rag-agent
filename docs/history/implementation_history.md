@@ -11614,11 +11614,12 @@ are complete. It remains only as an audit record, not an active priority.
   **NOT RUN**. This name-only cleanup establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Restricted formula evaluator public API characterization checkpoint
+### Restricted formula evaluator public API characterization checkpoint (historical)
 
-- The next bounded visibility batch renames only the exact 51-line
+- This checkpoint preceded `72f9fa6`. At that point the next bounded visibility
+  batch was characterized to rename only the exact 51-line
   `financial_formula_eval._safe_eval_formula(...)` definition in place to
-  public `safe_eval_formula(...)`, then updates one calculation-execution import,
+  public `safe_eval_formula(...)`, then update one calculation-execution import,
   two positional calls, ten existing test patch bindings, and four derived
   caller/payload hashes. Add no alias, wrapper, body/owner move, module, test
   method, AST node or allowed function, coercion, catch, result/status rule,
@@ -11638,6 +11639,63 @@ are complete. It remains only as an audit record, not an active priority.
 - Projected-public direct behavior/identity passed 31/31. After correcting the
   full four-hash derived contract, exact affected contracts 5/5 in 6.711
   seconds, focused 863/863 in 188.954 seconds, audit 217, pycompile 2/2,
+  retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed; the
+  projection was restored cleanly. Commit `72f9fa6` later passed full
+  2,143/2,143 and completed the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. The completed scope is authoritative in
+  [Project Status Completed Restricted Formula Evaluator](../overview/project_status.md#completed-restricted-formula-evaluator-public-api).
+
+### Restricted formula evaluator public API completed
+
+- Commit `72f9fa6` renamed only the exact 51-line
+  `financial_formula_eval._safe_eval_formula(...)` definition in place to
+  public `safe_eval_formula(...)`, then updated one calculation-execution import,
+  two positional calls, ten existing test patch bindings, and four derived
+  caller/payload hashes. It added no alias, wrapper, body/owner move, AST node or
+  allowed function, coercion, catch, result/status rule, mutation, or adjacent
+  calculation cleanup.
+- Restricted parse and recursive dispatch order, coercion/evaluation order,
+  supported operations, explicit zero-division guard, direct-name allow-list
+  calls, keyword rejection, result conversion, exact errors, input identities,
+  propagated exceptions, and both caller catch boundaries remain exact. Final
+  definition/body hashes are `b265eb74...` / `91d52cfb...`; selected private/
+  public records are 0/14, source definition/import/load is 1/1/2, and owner
+  counts are 1/0.
+- Actual source/tests/whole transforms were `+4/-4`, `+14/-14`, and `+18/-18`;
+  committed diff SHA-256 is
+  `e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Fresh direct behavior/identity 31/31, exact affected 5/5 in 6.733
+  seconds, focused 863/863 in 189.616 seconds, audit 217, pycompile 2/2,
+  unchanged 48/203 DAG, and full 2,143/2,143 in 231.903 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. This name-only cleanup
+  establishes no behavior, quality, performance, benchmark, schedule, ledger,
+  or Phase 3 completion claim.
+
+### Concept metric-label public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 31-line state-free
+  `financial_graph_helpers._build_concept_metric_label(...)` definition in
+  place to public `build_concept_metric_label(...)`, then updates four owner-
+  local calls, one planning import/call pair, and exactly 43 existing owner-
+  count expectations. Add no alias, wrapper, body/owner move, module, test
+  method, label vocabulary, policy/template, operation branch, coercion, catch,
+  task/state/trace/artifact/ledger mutation, or adjacent planning cleanup.
+- Preserve ordered concept-spec materialization, name-before-label fallback,
+  exact string/strip evaluation counts, blank filtering, shallow policy and
+  template copies, joiner/default behavior, exact ratio/sum/difference/growth/
+  other/fallback branch order, identities, all errors, and all five direct
+  three-positional-argument try-depth-zero caller gates.
+- Current-private/future-public definition hashes are `039146864...` /
+  `855648604...`; the unchanged body is `4b4789f3...`. Selected private/public
+  records project 0/7, source definition/import/load remains 1/1/5, owner
+  public/private counts move 11/69 to 12/68, and source/tests/whole project
+  `+7/-7`, `+43/-43`, and `+50/-50`. Corrected exact temporary diff SHA-256 is
+  `e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+- Current-private and restored projected-public direct behavior/identity passed
+  25/25 each. After the two derived tuples and one caller-map tuple exposed by
+  the initial gates were included, exact affected methods 41/41 in 65.626
+  seconds, focused 634/634 in 187.252 seconds, audit 217, pycompile 2/2,
   retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed; the
   projection was restored cleanly. Full 2,143/2,143 remains the implementation
   gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and

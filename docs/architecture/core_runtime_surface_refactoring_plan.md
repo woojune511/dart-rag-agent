@@ -2953,27 +2953,52 @@ and full 2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**;
 completion evidence is authoritative in
 [Project Status Completed Korean-Won Formatter](../overview/project_status.md#completed-korean-won-compact-formatter-public-api).
 
-The next bounded visibility seam renames only the exact 51-line state-free
-`financial_formula_eval._safe_eval_formula(...)` definition in place to public
-`safe_eval_formula(...)`. Update one calculation-execution import, two
+The exact 51-line restricted formula-evaluator visibility seam completed in
+`72f9fa6`. It renamed the definition in place to public
+`safe_eval_formula(...)`, then updated one calculation-execution import, two
 positional calls, ten existing test patch bindings, and four derived caller/
-payload hashes. Add no alias, wrapper, body/owner move, module, test method, AST
-node or allowed function, coercion, catch, result/status rule, mutation, or
-adjacent cleanup. Preserve restricted AST dispatch/evaluation order, explicit
-division guard, allow-list and exact error behavior, plus the prepared-plan and
-time-series caller catch boundaries.
+payload hashes. No alias, wrapper, body/owner move, AST node or allowed
+function, coercion, catch, result/status rule, mutation, or adjacent cleanup
+was added. Restricted AST dispatch/evaluation order, the explicit division
+guard, allow-list and exact errors, and both caller catch boundaries remain
+exact.
 
-Definition hashes project `8a6d4795...` to `b265eb74...`; the unchanged body is
-`91d52cfb...`. Selected private/public records project zero/14, source
-definition/import/load stays 1/1/2, owner counts move 0/1 to 1/0, and source/
-tests/whole transforms are `+4/-4`, `+14/-14`, and `+18/-18`. Exact temporary
-diff SHA-256 is
+Final definition/body hashes are `b265eb74...` / `91d52cfb...`; selected
+private/public records are zero/14, source definition/import/load is 1/1/2,
+owner counts are 1/0, and actual source/tests/whole transforms were `+4/-4`,
+`+14/-14`, and `+18/-18`. Committed diff SHA-256 is
 `e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
-Projected-public behavior/identity 31/31, corrected exact contracts 5/5,
-focused 863/863, audit 217, pycompile 2/2, retired refs zero, diff check, and
-unchanged 48/203 DAG passed before clean restoration. Full 2,143/2,143 remains
-the implementation gate; benchmark refresh and remote CI remain **NOT RUN**.
-Exact scope is authoritative only in
+Byte-identical projected-public behavior/identity 31/31, exact affected 5/5,
+focused 863/863, audit 217, pycompile 2/2, retired refs zero, diff check,
+unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
+CI were **NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Restricted Formula Evaluator](../overview/project_status.md#completed-restricted-formula-evaluator-public-api).
+
+The next bounded visibility seam renames only the exact 31-line state-free
+`financial_graph_helpers._build_concept_metric_label(...)` definition in place
+to public `build_concept_metric_label(...)`. Update four owner-local calls, one
+planning import/call pair, and exactly 43 existing owner-count expectations.
+Add no alias, wrapper, body/owner move, module, test method, label vocabulary,
+policy/template, operation branch, coercion, catch, task/state/trace/artifact/
+ledger mutation, or adjacent semantic-planning cleanup.
+
+Preserve ordered concept-spec materialization, name-before-label fallback,
+current string/strip evaluation counts, blank filtering, shallow policy and
+template copies, joiner/default behavior, exact ratio/sum/difference/growth/
+other/fallback branch order, all five try-depth-zero caller gates, input and
+policy identities, and every propagated error. Definition hashes project
+`039146864...` to `855648604...`; the unchanged body is `4b4789f3...`.
+Selected private/public records project zero/7, source definition/import/load
+stays 1/1/5, owner public/private counts move 11/69 to 12/68, and source/tests/
+whole transforms are `+7/-7`, `+43/-43`, and `+50/-50`. Exact temporary diff
+SHA-256 is
+`e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+
+Current-private and restored projected-public behavior/identity 25/25 each,
+corrected exact affected methods 41/41, focused 634/634, audit 217, pycompile
+2/2, retired refs zero, diff check, and unchanged 48/203 DAG passed before
+clean restoration. Full 2,143/2,143 remains the implementation gate; benchmark
+refresh and remote CI remain **NOT RUN**. Exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical

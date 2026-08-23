@@ -1671,12 +1671,20 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+5/-5`, `+0/-0`, `+5/-5`, byte-identical
   behavior/identity 13/13, exact structural 4/4, focused 780/780, audit 217,
   pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 state-free restricted formula evaluator
-  `financial_formula_eval._safe_eval_formula(...)`를 같은 owner에서 public
-  `safe_eval_formula(...)`로 rename하고 calculation-execution import 한 개와
-  call 두 개, 기존 test patch binding 열 개와 파생 caller/payload hash 네
-  개만 갱신한다. Restricted AST/function allow-list semantics와 execution/
-  time-series caller catch boundary를 보존하는 전체 gate와 stop line은
+- 완료된 `72f9fa6` visibility batch는 같은 owner의 exact 51-line restricted
+  formula evaluator를 public `safe_eval_formula(...)`로 이름 수렴시키고
+  calculation-execution import 한 개/call 두 개, 기존 test patch binding 열
+  개와 파생 caller/payload hash 네 개만 갱신했다. Restricted AST dispatch,
+  function allow-list, exact error와 execution/time-series caller catch 경계는
+  유지됐다. Source/tests/whole `+4/-4`, `+14/-14`, `+18/-18`, direct/
+  identity 31/31, exact affected 5/5, focused 863/863, audit 217, pycompile
+  2/2, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 state-free concept metric-label helper
+  `financial_graph_helpers._build_concept_metric_label(...)`를 같은 owner에서
+  public `build_concept_metric_label(...)`로 rename하고 owner-local call 네
+  개, planning import/call 한 쌍, 기존 owner-count 기대 43개만 갱신한다.
+  Declarative policy/template, ordering, branch/fallback semantics와 다섯 caller
+  gate를 보존하는 전체 gate와 stop line은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
