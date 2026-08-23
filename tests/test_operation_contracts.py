@@ -37,7 +37,7 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _extract_generic_operand_labels,
+    extract_generic_operand_labels,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
@@ -1335,7 +1335,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("영업실적", preferred_sections)
 
     def test_extract_generic_operand_labels_uses_ontology_match_seeds(self) -> None:
-        labels = _extract_generic_operand_labels(
+        labels = extract_generic_operand_labels(
             "2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 총 영업비용을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘."
         )
         self.assertIn("매출원가", labels)

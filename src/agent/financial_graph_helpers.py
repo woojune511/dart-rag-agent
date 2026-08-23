@@ -666,7 +666,7 @@ def _drop_redundant_parenthetical_alias_labels(labels: Sequence[str]) -> List[st
     ]
 
 
-def _extract_generic_operand_labels(query: str) -> List[str]:
+def extract_generic_operand_labels(query: str) -> List[str]:
     text = str(query or "")
     labels: List[str] = []
 
@@ -916,7 +916,7 @@ def _build_generic_required_operands(
         if rows:
             return rows
 
-    operand_labels = _extract_generic_operand_labels(query)
+    operand_labels = extract_generic_operand_labels(query)
     if is_single_metric_period_comparison(query, operand_labels):
         period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
         current_hint = str(period_policy.get("current_period_hint") or "current")
@@ -1004,7 +1004,7 @@ def _infer_generic_metric_label(query: str, topic: str) -> str:
     quoted = _extract_quoted_metric_labels(query)
     if len(quoted) == 1:
         return quoted[0]
-    operand_labels = _extract_generic_operand_labels(query)
+    operand_labels = extract_generic_operand_labels(query)
     if operand_labels:
         return operand_labels[0]
     period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
@@ -1209,7 +1209,7 @@ def infer_operation_family_from_query(query: str, ontology: Any) -> str:
     if not text:
         return "single_value"
 
-    generic_operand_labels = _extract_generic_operand_labels(query)
+    generic_operand_labels = extract_generic_operand_labels(query)
     for policy in OPERATION_FAMILY_QUERY_POLICIES:
         markers = tuple(str(marker).lower() for marker in (policy.get("markers") or ()) if str(marker))
         if any(marker in text for marker in markers):

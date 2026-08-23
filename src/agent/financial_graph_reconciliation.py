@@ -18,7 +18,7 @@ from src.agent.financial_graph_helpers import (
     _build_reconciliation_candidate,
     _build_table_row_reconciliation_candidates,
     _deterministic_reconcile_task,
-    _extract_generic_operand_labels,
+    extract_generic_operand_labels,
     _query_years_from_state,
 )
 from src.agent.financial_structured_cells import (
@@ -1016,7 +1016,7 @@ class FinancialAgentReconciliationMixin:
         ]
         active_operand_needles.extend(
             _normalise_spaces(label)
-            for label in _extract_generic_operand_labels(query)
+            for label in extract_generic_operand_labels(query)
             if _normalise_spaces(label)
         )
         active_operand_needles = list(dict.fromkeys(active_operand_needles))
