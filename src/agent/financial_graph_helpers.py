@@ -2532,7 +2532,7 @@ def _compose_concept_numeric_task(
         report_scope=report_scope,
         constraints=constraints,
     )
-    task_query = _build_metric_task_query(
+    task_query = build_metric_task_query(
         original_query=query,
         metric_label=metric_label,
         constraints=constraints,
@@ -2622,7 +2622,7 @@ def _split_multi_lookup_concept_task(
             report_scope=report_scope,
             constraints=constraints,
         )
-        task_query = _build_metric_task_query(
+        task_query = build_metric_task_query(
             original_query=query,
             metric_label=metric_label,
             constraints=constraints,
@@ -2741,7 +2741,7 @@ def _build_lookup_producer_task_from_binding(
         report_scope=report_scope,
         constraints=constraints,
     )
-    task_query = _build_metric_task_query(
+    task_query = build_metric_task_query(
         original_query=str(consumer_task.get("query") or consumer_task.get("metric_label") or ""),
         metric_label=str(operand.get("label") or ""),
         constraints=constraints,
@@ -2962,7 +2962,7 @@ def _build_retrieval_query_bundle(
     return list(dict.fromkeys(item for item in bundles if item))
 
 
-def _build_metric_task_query(
+def build_metric_task_query(
     *,
     original_query: str,
     metric_label: str,
@@ -3238,7 +3238,7 @@ def _build_semantic_numeric_plan(
         else:
             operand_specs = ontology.build_operand_spec(metric_key)
         retrieval_queries = _build_retrieval_query_bundle(query, topic, metric_key, ontology)
-        task_query = _build_metric_task_query(
+        task_query = build_metric_task_query(
             original_query=query,
             metric_label=display_name,
             constraints=constraints,

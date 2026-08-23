@@ -22,7 +22,7 @@ from src.agent.financial_graph_helpers import (
     _build_concept_required_operands,
     build_concept_task_constraints,
     _build_generic_retrieval_queries,
-    _build_metric_task_query,
+    build_metric_task_query,
     _build_semantic_numeric_plan,
     _infer_generic_concept_spec,
     infer_operation_family_from_query,
@@ -461,7 +461,7 @@ class FinancialAgentPlanningMixin:
                 report_scope=report_scope,
                 constraints=constraints,
             )
-            task_query = _build_metric_task_query(
+            task_query = build_metric_task_query(
                 original_query=query,
                 metric_label=metric_label,
                 constraints=constraints,
