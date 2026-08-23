@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from src.agent.financial_answer_slots import build_answer_slots, build_calculated_value_slot
-from src.agent.financial_formula_eval import _safe_eval_formula
+from src.agent.financial_formula_eval import safe_eval_formula
 from src.agent.financial_operand_resolution import (
     missing_required_operands,
     operand_row_matches_requirement,
@@ -766,7 +766,7 @@ def execute_prepared_calculation_plan(
                 source_normalized_unit=source_normalized_unit,
             )
 
-        result_value = float(_safe_eval_formula(formula, env))
+        result_value = float(safe_eval_formula(formula, env))
     except ZeroDivisionError as exc:
         return _outcome(
             status="zero_division",
@@ -1067,7 +1067,7 @@ def time_series_yoy_growth_rates(
         curr_value = float(current_row.get("normalized_value"))
         try:
             yoy_growth_rates.append(
-                _safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value})
+                safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value})
             )
         except ZeroDivisionError:
             yoy_growth_rates.append(None)

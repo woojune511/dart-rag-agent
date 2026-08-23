@@ -4220,8 +4220,8 @@ class OperationContractTests(unittest.TestCase):
         with (
             patch.object(
                 financial_calculation_execution,
-                "_safe_eval_formula",
-                wraps=financial_calculation_execution._safe_eval_formula,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
             ) as formula_evaluation,
             patch.object(
                 financial_graph_calculation,
@@ -8058,8 +8058,8 @@ class OperationContractTests(unittest.TestCase):
         with (
             patch.object(
                 financial_calculation_execution,
-                "_safe_eval_formula",
-                wraps=financial_calculation_execution._safe_eval_formula,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
             ) as formula_evaluation,
             patch.object(
                 financial_graph_calculation,
@@ -8126,8 +8126,8 @@ class OperationContractTests(unittest.TestCase):
         with (
             patch.object(
                 financial_calculation_execution,
-                "_safe_eval_formula",
-                wraps=financial_calculation_execution._safe_eval_formula,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
             ) as formula_evaluation,
             patch.object(
                 financial_graph_calculation,
