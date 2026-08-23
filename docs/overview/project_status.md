@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `45ccc05` renamed only the exact 96-line `financial_runtime_trace._report_cache_candidate_for_trace(...)` definition in place to public `report_cache_candidate_for_trace(...)` and updated its owner-local call, one planning import/call pair, and one owner-count expectation |
-| What passed? | Projected-public direct behavior/identity 45/45, exact affected contracts 7/7, focused tests 561/561, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `45ccc05` |
+| What just changed? | `3062222` renamed only the exact 59-line `financial_runtime_trace._build_aggregate_calculation_projection(...)` definition in place to the distinct public name `build_runtime_aggregate_calculation_projection(...)` and updated three external imports, four external calls, two owner-local calls, 21 existing test symbol bindings, and one owner-count expectation |
+| What passed? | Exact affected contracts 8/8, focused tests 837/837, runtime audit 217, pycompile 7/7, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `3062222`; the implementation diff is byte-identical to the projected-public behavior/identity 53/53 rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 59-line `financial_runtime_trace._build_aggregate_calculation_projection(...)` definition in place to the distinct public name `build_runtime_aggregate_calculation_projection(...)`; update three external imports, four external calls, two owner-local calls, 21 existing test symbol bindings, and one owner-count expectation |
+| What is next? | Rename only the exact 31-line `financial_runtime_normalization._format_korean_won_compact(...)` definition in place to public `format_korean_won_compact(...)`; update the two external import/call pairs in calculation rendering and runtime trace |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, report-cache candidate projected-public direct behavior/identity 45 / 45, exact affected contracts 7 / 7, and affected focused set 561 / 561 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after report-cache-candidate public rename |
+| Latest focused owner checkpoint | PASS, runtime aggregate projection exact affected contracts 8 / 8 and affected focused set 837 / 837 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime aggregate projection public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,92 +799,119 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 59-line
-`src.agent.financial_runtime_trace._build_aggregate_calculation_projection(
-subtask_results: List[Dict[str, Any]], final_answer: str) -> Dict[str, Any]`
-definition at lines 1017-1075 in place to the distinct public name
-`build_runtime_aggregate_calculation_projection(...)`. The name must remain
-different from the existing public
-`financial_aggregate_projection.build_aggregate_calculation_projection(...)`
-wrapper, which owns conflicting-growth sanitization and evidence collection and
-is not part of this rename.
+Rename only the exact 31-line
+`src.agent.financial_runtime_normalization._format_korean_won_compact(
+value: float) -> str` definition at lines 124-154 in place to public
+`format_korean_won_compact(...)`. Update only the two external import/call pairs
+in `financial_graph_calculation_rendering.py` and
+`financial_runtime_trace.py`. Add no alias, wrapper, body/owner move, module,
+test method, format policy, suffix/scale rule, coercion, catch, trace/answer/
+evidence decision, state/artifact/ledger mutation, or adjacent normalization or
+rendering cleanup. No existing exact-name test binding or owner-count
+expectation changes.
 
-Update three external imports and four external calls across
-`financial_agent_run_projection.py`, `financial_aggregate_projection.py`, and
-`financial_graph.py`; both owner-local calls in `financial_runtime_trace.py`;
-21 existing test symbol bindings across
-`tests/test_aggregate_subtask_projection.py`,
-`tests/test_financial_agent_run_projection.py`, and
-`tests/test_financial_answer_projection.py`; and the existing runtime-trace
-owner-count expectation from `(9, 22)` to `(10, 21)`. The 21 bindings include
-20 exact string/AST expectations and the one `patch.multiple(...)` keyword
-binding. Add no alias, wrapper, body/owner move, module, test method, projection
-field, row/operand/source-ID/answer-slot rule, result status rule, state/trace/
-artifact/ledger mutation, exception boundary, or adjacent cleanup.
+Keep the helper in `financial_runtime_normalization.py`; it already consumes the
+declarative `KOREAN_WON_COMPACT_FORMAT_POLICY`, and the selected span intersects
+zero of the 217 reviewed runtime-domain records. Preserve the initial shallow
+policy copy, ordered integer conversion and falsey defaults for hundred-million
+threshold/scale, and the exact `abs`/`round`/`int` sequence. Values at or above
+the threshold still round after division and multiply back by the scale; lower
+values still round directly. Preserve the later raw `value < 0` comparison,
+trillion and ten-thousand scale conversion, floor-division/modulo decomposition,
+and mutation of only the local `amount`.
 
-Keep the helper in `financial_runtime_trace.py` with its private aggregate-row,
-source-ID, and answer-slot projection helpers. Preserve fresh operand, seen-key,
-plan, and result-view collections; eager `list(subtask_results or [])`
-materialization; exact per-row identity and keyword arguments to
-`_project_aggregate_subtask_row(...)`; truthy-only plan adoption; unconditional
-result-view adoption; and insertion order. Preserve false-on-empty `all_ok`,
-ordered status string comparison, post-row source-ID projection, and every
-currently propagated iteration, mapping, string, validation, equality, hash,
-and helper error.
+Preserve the fresh parts list and exact jo/eok/man branching. A nonzero jo is
+appended first; a nonzero eok follows, otherwise jo adds the configured zero-
+hundred-million label. With neither, man is preferred over the separately
+recomputed base amount. Preserve configured suffix lookup/defaults, comma
+formatting, exact `" ".join(parts)`, negative-prefix attachment, Python rounding
+behavior, policy/input immutability, and every currently propagated policy-copy,
+mapping access, truth, integer, absolute-value, round, comparison, arithmetic,
+format, join, and allocation error.
 
-Preserve the fresh three-key return, exact aggregate operand and subtask-list
-identities, plan status `ok` versus `empty`, fixed mode `aggregate_subtasks`,
-result status `ok` versus `partial`, and unmodified `final_answer` in both
-rendered fields. Preserve source-row/evidence lists, ordered subtask result
-views, exact answer-slot validation payload and timing, and derived metric
-count/ID/source lists. Task IDs still stringify in source order, repeat raw-
-truth/string conversion, strip only the inclusion probe, retain duplicates,
-and do not normalize the stored string. Publicizing the binding grants no surrounding repair,
-evidence, answer-selection, trace-metadata, retrieval, or orchestration
-authority.
-
-All six calls remain at caller `try` depth zero. The caller-facing run helper
-still selects a complete answer before building and attaches metadata/repair
-flags only after a nonempty result. The existing public aggregate wrapper still
-sanitizes conflicting growth rows before building and collects/deduplicates
-evidence afterward. The structured-public-answer helper and graph stale-answer
-repair keep every existing gate before the call and metadata/flag adoption
-afterward. The two owner-local callers retain public-answer alignment/staleness
-checks and canonical/task/fallback precedence. Any build failure stops every
-later caller operation.
+Both external calls remain positional and at caller `try` depth zero. In
+`format_calculation_value(...)`, exact `normalized_unit == "KRW"` remains the
+first branch and returns the formatter result directly; all later percent/count/
+USD formatting remains skipped and formatter failures propagate. In
+`_answer_mentions_numeric_slot(...)`, the call remains after the existing
+normalized-value float conversion and normalized-unit projection, but before
+numeric-surface import/extraction. Only exact normalized KRW invokes it; a
+matching compact surface returns `True`, a miss continues, and a formatter
+failure stops all later candidate work.
 
 Current-private/future-public definition SHA-256 values are
-`3752268628e6f8c7073060c10ad76c4b88383e124c7fc9433781fde126a2ab10` /
-`25cf50ed91f79f42a241221a68bac01d79bb2a8dd36277d81a75a90c6ccb932c`;
+`48ebd83453b8145ada101c92e6deb710d6455405dd0255f4b2856ef0dc42f1cb` /
+`16eebe7a9912a19adbdd6bb9d92043c77f0a38e478f1a5c4a03c4de15e0e64c8`;
 the unchanged body hash is
+`a27eb8707dd8d71803c4feefa903c060713feb5ae02c9d5a97605b5957c4a03d`.
+The rendering caller definition/body hashes project
+`feb2e382c6c121218703003d722a2c0965ea699c165aa2e65a221d6f7697ff66` /
+`0bd9daf858647a914607c99e38c268f156d9b5eeb86dbb7fc9cd984228ba4852`
+to
+`30ad9edf1e7a11723b8ca5a88306baae4d21cb64477e3c516747db10aa1343b0` /
+`fcd3079ccb05edd5ac179dc0082e582a01e183aab36cb67c568de50872382c6f`.
+The runtime-trace caller hashes project
+`7504f2069004e4034bca49b54eec6ea42caa66b14d22e9a78a0a8a7cecffa54b` /
+`333ff50bddd3f20ab8605ae94f079dca2675e0f2ef90e2abcf5be9db4ae9c3d3`
+to
+`e91b679025787896bcfaae214ff98a2a05ec77b834bec6ca844b0334a6043962` /
+`36c97d570ef95c98f29cc7bd797b51c96ef763358c7b38a62e0030b736f1f5a3`.
+
+After the rename selected private/public records must be 0/5, source
+definition/import/load records 1/2/2, and owner public/private counts 2/5.
+Projected source/tests/whole transforms are `+5/-5`, `+0/-0`, and `+5/-5`
+across exactly three source files. The exact temporary diff SHA-256 is
+`4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+
+Current-private and restored projected-public direct behavior/identity passed
+13/13 each. The temporary projection passed exact affected contracts 4/4 in
+1.772 seconds, affected focused modules 780/780 in 23.851 seconds, audit 217,
+pycompile 3/3, retired refs zero, diff check, and the unchanged acyclic 48/203
+import topology at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
+then was restored cleanly. Full discovery 2,143/2,143 remains the implementation
+gate. Benchmark refresh and remote CI remain **NOT RUN**.
+
+This is the smallest remaining correct-owner cross-module visibility seam by
+changed record count after `3062222`. The 25-line numeric-extractor query helper
+reads graph state; the 34-line period-scoped count helper is evidence-only with
+no owner-local caller; task-record/artifact helpers are explicitly non-exported;
+and the 94-line runtime-trace resolver spans 174 source/test AST records. None is
+an authorized substitute. This name-only projection establishes no answer/
+trace quality, performance, benchmark, schedule, ledger, or Phase 3 completion
+claim.
+
+## Completed Runtime Aggregate-Calculation Projection Public API
+
+Commit `3062222` renamed only the exact 59-line
+`financial_runtime_trace._build_aggregate_calculation_projection(...)`
+definition in place to the distinct public name
+`build_runtime_aggregate_calculation_projection(...)`. It updated three
+external imports, four external calls, two owner-local calls, 21 existing test
+symbol bindings, and one owner-count expectation without adding an alias or
+wrapper, moving the body, changing the existing public aggregate wrapper, or
+changing row/operand/source-ID/answer-slot/result behavior, mutation, exception
+boundaries, or caller sequencing.
+
+Eager subtask materialization, fresh operand/seen-key/plan/result-view
+collections, exact row-helper calls and adoption, empty/all-ok status behavior,
+source-ID projection, complete plan/result/answer-slot/derived-metric layout,
+input identities and immutability, propagated errors, and all six try-depth-zero
+caller gates remain exact. Final definition/body hashes are
+`25cf50ed91f79f42a241221a68bac01d79bb2a8dd36277d81a75a90c6ccb932c` /
 `3e6dd7f0c5a6820f38ad0384b4e0ce24d0a53eb8508f2a687ad0ea5cff794b3c`.
-The six caller definition/body hash projections are:
 
-| Caller | Current definition/body | Projected definition/body |
-| --- | --- | --- |
-| `complete_aggregate_public_answer_projection` | `7091217bcd5d4c1e79d6c5061e659ac095638e8e98acba4f5ac701bd42f4fd09` / `bac64655fa09c0a4e9a15a5edc2bf69f7c27f972deec16ed83300bc36643f9ae` | `1ea227df8c243732d618a51ff15cc78b0b793d2dc1621a70e558e9042b5d83bd` / `2b5eeccec06e2f40f3a447636f92f3774bceb9be2b98ccfe1ad2ff169de79147` |
-| public aggregate wrapper | `a362f8b3e75e4951fe22fe253acdafea19b707a460fd46eef97d08cbe32e203f` / `ec115600e7f5a1bfa9dddadf8de1e59b7748fabb3fe8d0f25fea8fd1597efda1` | `cd28acbc7021b66c9ea7903132ae9addaa10e34f1019cdab7e78aadc0c8e4dc4` / `4fddf63f8d9dd486d7ba1e97cb010c4b586934e9dddec367c73e0baf41a74366` |
-| `structured_subtask_projection_for_public_answer` | `09a31db7a4de3f12cbde5206930a874057f5bffc4e48eadfa7d6a2c383a3e96c` / `6396c498eaccf17090c97ae8d8fff1ec51953073d2f2b8565fa7f2c2250c8009` | `1d93cb04d9d82d358bd28a06dd38687c4d48eb3bedcf7ccef67615b7b5b9b0e2` / `eff81d568838f8acc5f22d8117f870f780981b8288979dad1d567fec2d72a947` |
-| graph stale-answer repair | `77d16898fa857df38ef8d98bc3e77606098f3489ea980f3df2b327cd18d45c58` / `019c8afd9c30cf308569f7705a1b58690a147d471e0f3842c3fcb964ad1ee0b5` | `068ab60b6b670c962db516625ab40f99de688c5c187144cdc8dfadb97f92d29f` / `52788eb7a5c44f9b8752c1334a4cead4a0fe233406a8a6a6a1aa3d770f305d34` |
-| owner public-alignment projection | `e9346a2d546f318a5fac490e0e62dc571e86891a41ba83c6678c253c31add28b` / `a0f4026bc408946f4bddb801699713bc8e39500b10906a434f7aa550c471d2cb` | `2de24d1557af1b2da128476603458510df653208bfb07c37665a63793c33b2b7` / `2933221ad8cb15d53d31d766c5150ab6180ced899dfb28f6c7097403422d5988` |
-| owner runtime-trace resolver | `3770d998ea217aac089e6d81073fea5572aed932464100c2edadde240fb41a16` / `87be07d59f97b0e73aca73d68bd27c42281143a9a17cb7276479af9850b7e62f` | `d52734fcf35007acae921ae63334f4e8c999f1578381ee83c5970aeef50d602a` / `d0c2c48a3e44748cd76f4a3a981067072fe86c263c62afd2677aa80747a0a65d` |
-
-After the rename selected private/public records must be 0/31, source
-definition/import/load records 1/3/6, and owner public/private counts 10/21.
-Projected source/tests/whole transforms are `+10/-10`, `+22/-22`, and
-`+32/-32` across exactly four source and three test files. The exact temporary
-diff SHA-256 is
+Actual source/tests/whole transforms were `+10/-10`, `+22/-22`, and
+`+32/-32`; committed diff SHA-256 is
 `92a9a69cbecae914ea94d9e7225009d841a1b7d97bb0efeff8acae2be92274d8`.
-
-The restored projection passed projected-public behavior/identity 53/53, exact
-affected contracts 8/8 in 6.869 seconds, affected focused modules 837/837 in
-38.748 seconds, audit 217, pycompile 7/7, retired refs zero, diff check, and the
-unchanged acyclic 48/203 import topology at
-`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`.
-Full discovery 2,143/2,143 remains the implementation gate. Benchmark refresh
-and remote CI remain **NOT RUN**. This name-only projection establishes no
-answer/trace quality, performance, benchmark, schedule, ledger, or Phase 3
-completion claim.
+The implementation is byte-identical to the projected-public behavior/identity
+53/53 rehearsal. Fresh exact affected contracts 8/8 passed in 3.582 seconds,
+focused tests 837/837 in 31.394 seconds, audit 217, pycompile 7/7, selected
+private/public 0/31, source definition/import/load 1/3/6, owner counts 10/21,
+unchanged acyclic 48/203 DAG, and full discovery 2,143/2,143 in 272.978 seconds
+passed. Benchmark refresh and remote CI were **NOT RUN**. This name-only cleanup
+establishes no answer/trace quality, performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
 
 ## Completed Report-Cache-Candidate Public API
 

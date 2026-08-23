@@ -2917,36 +2917,54 @@ Projected-public direct/identity 45/45, exact affected contracts 7/7, focused
 **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Report Cache](../overview/project_status.md#completed-report-cache-candidate-public-api).
 
-The next bounded visibility seam renames only the exact 59-line
-`financial_runtime_trace._build_aggregate_calculation_projection(...)`
-definition in place to the distinct public name
-`build_runtime_aggregate_calculation_projection(...)`. Preserve the existing
-public `financial_aggregate_projection.build_aggregate_calculation_projection(...)`
-wrapper. Update three external imports, four external calls, two owner-local
-calls, 21 existing test symbol bindings, and one derived owner public/private
-count. Add no alias, wrapper, body/owner move, module, test method, projection
-field, row/operand/source-ID/answer-slot rule, mutation, exception boundary, or
-adjacent cleanup.
+The exact 59-line runtime aggregate-calculation projection visibility seam
+completed in `3062222`. It renamed the definition in place to the distinct
+public name `build_runtime_aggregate_calculation_projection(...)`, while the
+existing public `financial_aggregate_projection.build_aggregate_calculation_projection(...)`
+wrapper remained unchanged. Three external imports, four external calls, two
+owner-local calls, 21 existing test symbol bindings, and one derived owner
+public/private count changed; no alias, wrapper, body/owner move, module, test,
+projection rule, mutation, exception boundary, or adjacent cleanup was added.
 
-Keep the helper with its private aggregate-row, source-ID, and answer-slot
-projection dependencies. Preserve eager subtask materialization, fresh mutable
-collections, exact row-helper calls/adoption, empty/all-ok status behavior,
-source-ID projection, complete plan/result/answer-slot/derived-metric layout,
-input identities and immutability, propagated errors, and all six try-depth-zero
-caller gates and sequencing.
-
-Current/private and future/public definition hashes are `37522686...` /
-`25cf50ed...`; the unchanged body is `3e6dd7f0...`. Selected private/public
-records project zero/31, source definition/import/load stays 1/3/6, owner counts
-move 9/22 to 10/21, and source/tests/whole transforms are `+10/-10`, `+22/-22`,
-and `+32/-32`. Exact temporary diff SHA-256 is
+Final definition/body hashes are `25cf50ed...` / `3e6dd7f0...`; selected
+private/public records are zero/31, source definition/import/load is 1/3/6,
+owner counts are 10/21, and actual source/tests/whole transforms were
+`+10/-10`, `+22/-22`, and `+32/-32`. Committed diff SHA-256 is
 `92a9a69cbecae914ea94d9e7225009d841a1b7d97bb0efeff8acae2be92274d8`.
-The temporary projection passed projected-public behavior/identity 53/53, exact
-affected contracts 8/8 in 6.869 seconds, focused 837/837 in 38.748 seconds,
-audit 217, pycompile 7/7, retired refs zero, diff check, and unchanged 48/203
-DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
-gate; benchmark refresh and remote CI remain **NOT RUN**. Exact scope is
-authoritative only in
+Byte-identical projected-public behavior/identity 53/53, exact affected
+contracts 8/8, focused 837/837, audit 217, pycompile 7/7, retired refs zero,
+diff check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh
+and remote CI were **NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Runtime Aggregate Projection](../overview/project_status.md#completed-runtime-aggregate-calculation-projection-public-api).
+
+The next bounded visibility seam renames only the exact 31-line
+`financial_runtime_normalization._format_korean_won_compact(...)` definition in
+place to public `format_korean_won_compact(...)`. Update only the two external
+import/call pairs in calculation rendering and runtime trace. Add no alias,
+wrapper, body/owner move, module, test method, format policy, suffix/scale rule,
+coercion, catch, trace/answer/evidence decision, mutation, or adjacent cleanup;
+no existing exact-name test binding or owner-count expectation changes.
+
+Keep the helper with `KOREAN_WON_COMPACT_FORMAT_POLICY`. Preserve its shallow
+policy copy, ordered integer conversion/defaults, exact rounding sequence,
+threshold/scaling and jo/eok/man/base decomposition, configured suffixes, comma
+formatting, join and negative prefix, input immutability, and propagated errors.
+Preserve both positional try-depth-zero caller gates: exact normalized `KRW`
+direct rendering and the compact-surface check before numeric-surface
+extraction.
+
+Current/private and future/public definition hashes are `48ebd834...` /
+`16eebe7a...`; the unchanged body is `a27eb870...`. Selected private/public
+records project zero/5, source definition/import/load stays 1/2/2, owner counts
+move 1/6 to 2/5, and source/tests/whole transforms are `+5/-5`, `+0/-0`, and
+`+5/-5`. Exact temporary diff SHA-256 is
+`4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+The temporary projection passed projected-public behavior/identity 13/13,
+exact affected contracts 4/4 in 1.772 seconds, focused 780/780 in 23.851
+seconds, audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged
+48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
+implementation gate; benchmark refresh and remote CI remain **NOT RUN**. Exact
+scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical

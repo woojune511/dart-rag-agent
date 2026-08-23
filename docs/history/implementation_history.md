@@ -11494,7 +11494,8 @@ are complete. It remains only as an audit record, not an active priority.
 
 ### Runtime aggregate-calculation projection public API characterization checkpoint
 
-- The next bounded visibility batch renames only the exact 59-line
+- This checkpoint preceded `3062222`. At that point the next bounded visibility
+  batch was characterized to rename only the exact 59-line
   `financial_runtime_trace._build_aggregate_calculation_projection(...)`
   definition in place to the distinct public name
   `build_runtime_aggregate_calculation_projection(...)`. Keep the existing
@@ -11521,7 +11522,69 @@ are complete. It remains only as an audit record, not an active priority.
   21st binding, projected-public behavior/identity 53/53, exact affected
   contracts 8/8 in 6.869 seconds, focused 837/837 in 38.748 seconds, audit 217,
   pycompile 7/7, retired refs zero, diff check, and unchanged acyclic 48/203 DAG
-  passed. The projection was restored cleanly. Full 2,143/2,143 remains the
-  implementation gate. Benchmark refresh and remote CI were **NOT RUN**. Exact
-  expectations and stop lines are authoritative in
+  passed. The projection was restored cleanly. Commit `3062222` later passed
+  full 2,143/2,143 and completed the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. The completed scope is authoritative in
+  [Project Status Completed Runtime Aggregate Projection](../overview/project_status.md#completed-runtime-aggregate-calculation-projection-public-api).
+
+### Runtime aggregate-calculation projection public API completed
+
+- Commit `3062222` renamed only the exact 59-line
+  `financial_runtime_trace._build_aggregate_calculation_projection(...)`
+  definition in place to the distinct public name
+  `build_runtime_aggregate_calculation_projection(...)`, then updated three
+  external imports, four external calls, two owner-local calls, 21 existing
+  test symbol bindings, and one owner-count expectation. It added no alias,
+  wrapper, body/owner move, test method, projection field/rule, mutation,
+  exception boundary, or adjacent cleanup; the existing public aggregate
+  wrapper remains unchanged.
+- Eager subtask materialization, fresh mutable collections, exact row-helper
+  calls/adoption, empty/all-ok status, source-ID projection, complete plan/
+  result/answer-slot/derived-metric layout, input identities and immutability,
+  every propagated error, and all six caller gates remain exact. Final
+  definition/body hashes are `25cf50ed...` / `3e6dd7f0...`; selected private/
+  public records are 0/31, source definition/import/load is 1/3/6, and owner
+  counts are 10/21.
+- Actual source/tests/whole transforms were `+10/-10`, `+22/-22`, and
+  `+32/-32`; committed diff SHA-256 is
+  `92a9a69cbecae914ea94d9e7225009d841a1b7d97bb0efeff8acae2be92274d8`.
+  The implementation is byte-identical to the projected-public behavior/
+  identity 53/53 rehearsal. Fresh exact affected contracts 8/8 in 3.582
+  seconds, focused 837/837 in 31.394 seconds, audit 217, pycompile 7/7,
+  unchanged 48/203 DAG, and full 2,143/2,143 in 272.978 seconds passed.
+  Benchmark refresh and remote CI were **NOT RUN**. This name-only cleanup
+  establishes no behavior, quality, performance, benchmark, schedule, ledger,
+  or Phase 3 completion claim.
+
+### Korean-won compact formatter public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 31-line
+  `financial_runtime_normalization._format_korean_won_compact(...)` definition
+  in place to public `format_korean_won_compact(...)`, then updates only the
+  two external import/call pairs in calculation rendering and runtime trace.
+  Add no alias, wrapper, body/owner move, module, test method, format policy,
+  suffix/scale rule, coercion, catch, trace/answer/evidence decision, mutation,
+  or adjacent cleanup. No existing exact-name test binding or owner-count
+  expectation changes.
+- Preserve the shallow declarative format-policy copy, ordered integer
+  conversion/defaults, exact `abs`/`round`/`int` sequence, threshold/scaling,
+  jo/eok/man/base decomposition, configured suffixes, comma formatting, join,
+  negative prefix, input immutability, and every propagated error. Both
+  external calls remain positional and at try depth zero: exact normalized
+  `KRW` direct rendering and compact-surface matching before numeric-surface
+  extraction.
+- Current-private/future-public definition hashes are `48ebd834...` /
+  `16eebe7a...`; the unchanged body is `a27eb870...`. Selected private/public
+  records project 0/5, source definition/import/load remains 1/2/2, and owner
+  counts move 1/6 to 2/5. Projected source/tests/whole transforms are `+5/-5`,
+  `+0/-0`, and `+5/-5` across exactly three source files; exact temporary diff
+  SHA-256 is
+  `4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+- Current-private and restored projected-public direct behavior/identity passed
+  13/13 each. The temporary projection passed exact affected contracts 4/4 in
+  1.772 seconds, focused 780/780 in 23.851 seconds, audit 217, pycompile 3/3,
+  retired refs zero, diff check, and unchanged acyclic 48/203 DAG, then was
+  restored cleanly. Full 2,143/2,143 remains the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and stop
+  lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

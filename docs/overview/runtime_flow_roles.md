@@ -1653,17 +1653,26 @@ Aggregate/narrative row의 state-free answer policy owner다.
   whole `+4/-4`, `+1/-1`, `+5/-5`, projected-public direct/identity 45/45,
   exact affected contracts 7/7, focused 561/561, audit 217, pycompile 3/3,
   unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 59-line
-  `_build_aggregate_calculation_projection(...)`를 기존 public aggregate
-  wrapper와 구분되는 `build_runtime_aggregate_calculation_projection(...)`
-  로 rename하고 external import 세 개/call 네 개, owner-local call 두 개,
-  기존 test symbol binding 21개와 owner-count 기대 한 개만 갱신한다.
-  Aggregate row/operand/source-ID/answer-slot composition과 여섯 caller
-  sequencing을 유지한다. Exact temporary projection은 source/tests/whole
-  `+10/-10`, `+22/-22`, `+32/-32`, projected-public behavior/identity 53/53,
-  exact affected contracts 8/8, focused 837/837, audit 217, pycompile 7/7,
-  unchanged 48/203 DAG이며 전체 구현 gate는
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `3062222` visibility batch는 같은 owner의 exact 59-line aggregate-
+  calculation projection helper를 기존 public aggregate wrapper와 구분되는
+  `build_runtime_aggregate_calculation_projection(...)`로 이름 수렴시키고
+  external import 세 개/call 네 개, owner-local call 두 개, 기존 test symbol
+  binding 21개와 owner-count 기대 한 개만 갱신했다. Aggregate row/operand/
+  source-ID/answer-slot composition과 여섯 caller sequencing은 유지됐다.
+  Source/tests/whole `+10/-10`, `+22/-22`, `+32/-32`, byte-identical
+  projected-public behavior/identity 53/53, exact affected contracts 8/8,
+  focused 837/837, audit 217, pycompile 7/7, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_runtime_normalization.py`의 exact 31-line
+  `_format_korean_won_compact(...)`를 같은 owner에서 public
+  `format_korean_won_compact(...)`로 rename하고 calculation-rendering/runtime-
+  trace external import/call 두 쌍만 갱신한다. Declarative KRW format policy,
+  round/scale/suffix/negative-prefix semantics와 두 caller gate는 유지한다.
+  Exact temporary projection은 source/tests/whole `+5/-5`, `+0/-0`, `+5/-5`,
+  projected-public behavior/identity 13/13, exact affected contracts 4/4,
+  focused 780/780, audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현
+  gate와 stop line은 [Project Status의 Next Work](project_status.md#next-work)가
+  단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 
