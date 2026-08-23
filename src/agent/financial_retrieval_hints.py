@@ -62,7 +62,7 @@ def _desired_statement_types(query: str, topic: str) -> List[str]:
     return list(dict.fromkeys(desired))
 
 
-def _infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]]:
+def infer_statement_and_section_hints(query: str) -> tuple[List[str], List[str]]:
     text = _normalise_spaces(query)
     ontology = get_financial_ontology()
     statement_types = _desired_statement_types(query, query)
@@ -115,7 +115,7 @@ def supplement_section_terms_for_query(query: str, topic: str, intent: str) -> L
 
 def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
     """Resolve section hints for the active task or top-level query."""
-    _statement_types, query_sections = _infer_statement_and_section_hints(query)
+    _statement_types, query_sections = infer_statement_and_section_hints(query)
     active_sections = [
         str(item).strip()
         for item in (dict(state.get("active_subtask") or {}).get("preferred_sections") or [])

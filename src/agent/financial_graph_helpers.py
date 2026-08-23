@@ -56,7 +56,7 @@ from src.config.retrieval_policy import (
 from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_result_unit
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_retrieval_hints import (
-    _infer_statement_and_section_hints,
+    infer_statement_and_section_hints,
     matched_ontology_concept_specs,
     query_component_match_count,
     query_mentions_metric,
@@ -885,7 +885,7 @@ def _build_generic_required_operands(
     ontology = get_financial_ontology()
     ratio_operand_specs = _extract_generic_ratio_operand_specs(query)
     if ratio_operand_specs:
-        preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+        preferred_statement_types, preferred_sections = infer_statement_and_section_hints(query)
         rows: List[Dict[str, Any]] = []
         for spec in ratio_operand_specs:
             label = str(spec.get("label") or "").strip()
@@ -2103,7 +2103,7 @@ def _build_heuristic_numeric_task(
 ) -> Optional[Dict[str, Any]]:
     metric_label = _infer_generic_metric_label(query, topic)
     operand_specs = _build_generic_required_operands(query, report_scope)
-    preferred_statement_types, preferred_sections = _infer_statement_and_section_hints(query)
+    preferred_statement_types, preferred_sections = infer_statement_and_section_hints(query)
     for spec in operand_specs:
         preferred_statement_types.extend(spec.get("preferred_statement_types") or [])
         preferred_sections.extend(spec.get("preferred_sections") or [])
@@ -2509,7 +2509,7 @@ def _compose_concept_numeric_task(
         return None
     preferred_statement_types: List[str] = []
     preferred_sections: List[str] = []
-    query_statement_types, query_sections = _infer_statement_and_section_hints(query)
+    query_statement_types, query_sections = infer_statement_and_section_hints(query)
     preferred_statement_types.extend(query_statement_types)
     preferred_sections.extend(query_sections)
     for spec in operand_specs:

@@ -8194,7 +8194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(node.name.startswith("_") for node in owner_defs),
         )
         self.assertEqual(graph_counts, (15, 65))
-        self.assertEqual(owner_counts, (10, 4))
+        self.assertEqual(owner_counts, (11, 3))
 
         def imported_names(module_name, imported_module):
             return {
@@ -8212,7 +8212,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertTrue(
             {
-                "_infer_statement_and_section_hints",
+                "infer_statement_and_section_hints",
                 "matched_ontology_concept_specs",
             }.issubset(graph_owner_imports)
         )
@@ -9738,7 +9738,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
             patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=heuristic_specs),
-            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "infer_operation_family_from_query", return_value="growth_rate"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
             patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="consolidated"),
@@ -9770,7 +9770,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
             patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=[]),
-            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "infer_operation_family_from_query", return_value="lookup"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
             patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
@@ -9797,7 +9797,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "_infer_generic_metric_label", return_value="metric"),
             patch.object(financial_graph_helpers, "_build_generic_required_operands", return_value=[]),
-            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "infer_operation_family_from_query", return_value="lookup"),
             patch.object(financial_graph_helpers, "get_financial_ontology", return_value=ontology),
             patch.object(financial_graph_helpers, "desired_consolidation_scope", return_value="unknown"),
@@ -11699,7 +11699,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_infer_statement_and_section_hints",
+                "infer_statement_and_section_hints",
                 return_value=(["query_statement"], ["query_section"]),
             ),
             patch.object(
@@ -63713,7 +63713,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_hashes,
             (
                 {
-                    ("financial_graph_helpers", "_build_generic_required_operands"): "9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28",
+                    ("financial_graph_helpers", "_build_generic_required_operands"): "8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119",
                     ("financial_graph_helpers", "infer_operation_family_from_query"): "e51143b31f869ab4f1f852efb80e7708bbce92091c66a0f67e1c45aa5054579e",
                     ("financial_operation_policies", "requires_direct_numeric_grounding"): "85e93a47025c2c94951961b69e232f1cd8bca4f72a20db298773639f51659746",
                 }
@@ -63739,7 +63739,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "b39bca3ea56ec8dee3eaab415f156dbdd418c36ea17afc8a31578c953f7461ad"
+                "e1c57c3cbf5e8ff802e8e9be13d515a3bf419d60c43d09f5f3bb301ad4fd60f6"
                 if target_name == future_public_name
                 else "d4001b30ee151bf9e255897688a3e6cdd5412932e69ae8febca0d7991d4ff1dd"
             ),
@@ -63925,7 +63925,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_infer_statement_and_section_hints",
+                "infer_statement_and_section_hints",
                 return_value=([], []),
             ),
             patch.object(
@@ -65184,7 +65184,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             (
                 "financial_graph_helpers",
                 "_build_generic_required_operands",
-            ): "9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28",
+            ): "8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119",
             (
                 "financial_graph_helpers",
                 "infer_operation_family_from_query",
@@ -65217,7 +65217,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             (
                 "254edbaf70f6c1f138c7a356a018bf67e6c619dd74b63e61179db1d0c446d68d"
                 if branch_present
-                else "b39bca3ea56ec8dee3eaab415f156dbdd418c36ea17afc8a31578c953f7461ad"
+                else "e1c57c3cbf5e8ff802e8e9be13d515a3bf419d60c43d09f5f3bb301ad4fd60f6"
             ),
         )
 
@@ -71146,7 +71146,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_caller_map_hash,
             (
-                "135e8c0f71fefcd95aa718022b8995a4b9925603b4c32d2294af1a536f37bca0"
+                "47ad16b7a2e77c17dc28be916a5f4d507b01290191ecbce197b96d90bdf6bf0d"
                 if target_name == future_public_name
                 else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
             ),
@@ -71407,7 +71407,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "135e8c0f71fefcd95aa718022b8995a4b9925603b4c32d2294af1a536f37bca0",
+            "47ad16b7a2e77c17dc28be916a5f4d507b01290191ecbce197b96d90bdf6bf0d",
         )
 
         import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering
@@ -71733,7 +71733,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_infer_statement_and_section_hints",
+                "infer_statement_and_section_hints",
                 return_value=([], []),
             ),
             patch.object(
@@ -76828,7 +76828,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         expected_caller_hashes = {
             ("financial_graph_helpers", "_build_generic_required_operands"): (
-                "9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28"
+                "8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119"
                 if target_name == future_public_name
                 else "0192cd49c8f530fb46580e3e78fbb01489cf6da16a2ed7dd75ee44dfc10cc6be"
             ),
@@ -76858,7 +76858,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "53388de0fc9817b1184f355962f33a9311f904a684116c5618d5885faa35085f"
+                "ca044f5003ea19f4484437d76c3154127639b0743f48565fcbed489ac976f6ea"
                 if target_name == future_public_name
                 else "89f3813f0674e25f5132125a95353999caad24594767e58cc532036693df77d6"
             ),
@@ -77148,7 +77148,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "_extract_generic_ratio_operand_specs",
                 return_value=[{"label": "Part", "role": "numerator"}],
             ),
-            patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
+            patch.object(financial_graph_helpers, "infer_statement_and_section_hints", return_value=([], [])),
             patch.object(financial_graph_helpers, "build_generic_metric_aliases", return_value=["Part"]),
             patch.object(financial_graph_helpers, "_infer_generic_concept_spec", return_value={}),
             patch.object(financial_graph_helpers, "_infer_generic_unit_family", return_value="COUNT"),

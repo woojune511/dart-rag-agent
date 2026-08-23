@@ -51,7 +51,7 @@ from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_spaces,
 )
-from src.agent.financial_retrieval_hints import _infer_statement_and_section_hints
+from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
 from src.agent.financial_runtime_trace import (
     project_task_trace_from_state,
     report_cache_candidate_for_trace,
@@ -438,7 +438,7 @@ class FinancialAgentPlanningMixin:
             )
             preferred_statement_types: List[str] = []
             preferred_sections: List[str] = []
-            query_statement_types, query_sections = _infer_statement_and_section_hints(query)
+            query_statement_types, query_sections = infer_statement_and_section_hints(query)
             preferred_statement_types.extend(query_statement_types)
             preferred_sections.extend(query_sections)
             for operand in normalized_operands:

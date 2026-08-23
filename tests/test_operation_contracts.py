@@ -84,7 +84,7 @@ from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_retrieval_hints import (
     _desired_statement_types,
-    _infer_statement_and_section_hints,
+    infer_statement_and_section_hints,
 )
 from src.agent.financial_structured_cells import (
     structured_cell_period_text,
@@ -1325,7 +1325,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("summary_financials", statement_types)
 
     def test_ebitda_kpi_query_prefers_management_metric_sections(self) -> None:
-        statement_types, preferred_sections = _infer_statement_and_section_hints(
+        statement_types, preferred_sections = infer_statement_and_section_hints(
             "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘."
         )
 
