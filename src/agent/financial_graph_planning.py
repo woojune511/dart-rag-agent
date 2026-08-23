@@ -53,7 +53,7 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_retrieval_hints import _infer_statement_and_section_hints
 from src.agent.financial_runtime_trace import (
-    _project_task_trace_from_state,
+    project_task_trace_from_state,
     _report_cache_candidate_for_trace,
     _resolve_runtime_calculation_trace,
 )
@@ -1002,7 +1002,7 @@ class FinancialAgentPlanningMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         if not active_subtask:
             return {}
-        projected = _project_task_trace_from_state(state, str(active_subtask.get("task_id") or ""))
+        projected = project_task_trace_from_state(state, str(active_subtask.get("task_id") or ""))
         calculation_operands = list(projected.get("calculation_operands") or [])
         calculation_plan = dict(projected.get("calculation_plan") or {})
         calculation_result = dict(projected.get("calculation_result") or {})

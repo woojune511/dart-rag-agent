@@ -787,7 +787,7 @@ def runtime_trace_state_update(
     return update
 
 
-def _project_task_trace_from_state(
+def project_task_trace_from_state(
     state: Dict[str, Any],
     task_id: str,
 ) -> Dict[str, Any]:

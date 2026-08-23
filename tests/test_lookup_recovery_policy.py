@@ -3155,7 +3155,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             )
 
         with (
-            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(financial_graph_planning, "project_task_trace_from_state", return_value=projected),
             patch.object(
                 financial_graph_planning,
                 "promote_nested_subtask_result_if_more_specific",
@@ -3183,7 +3183,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         downstream = []
         with (
-            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(financial_graph_planning, "project_task_trace_from_state", return_value=projected),
             patch.object(
                 financial_graph_planning,
                 "promote_nested_subtask_result_if_more_specific",

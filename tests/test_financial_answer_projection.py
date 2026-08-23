@@ -1962,7 +1962,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             return False
 
         with (
-            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected) as trace_owner,
+            patch.object(financial_graph_planning, "project_task_trace_from_state", return_value=projected) as trace_owner,
             patch.object(
                 financial_graph_planning,
                 "promote_nested_subtask_result_if_more_specific",
@@ -1982,7 +1982,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
 
         later_material = Mock()
         with (
-            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(financial_graph_planning, "project_task_trace_from_state", return_value=projected),
             patch.object(
                 financial_graph_planning,
                 "promote_nested_subtask_result_if_more_specific",
