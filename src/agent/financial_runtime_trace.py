@@ -665,7 +665,7 @@ def _append_aggregate_operand(
     aggregate_operands.append(row)
 
 
-def _report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, Any]) -> Dict[str, Any]:
+def report_cache_candidate_for_trace(state: Dict[str, Any], trace: Dict[str, Any]) -> Dict[str, Any]:
     report_scope = dict(state.get("report_scope") or {})
     active_subtask = dict(state.get("active_subtask") or {})
     calculation_operands = [
@@ -781,7 +781,7 @@ def runtime_trace_state_update(
         "resolved_calculation_trace": resolved_trace,
         "structured_result": dict(calculation_result),
     }
-    report_cache_candidate = _report_cache_candidate_for_trace(state, resolved_trace)
+    report_cache_candidate = report_cache_candidate_for_trace(state, resolved_trace)
     if report_cache_candidate:
         resolved_trace["report_cache_candidate"] = report_cache_candidate
     return update
