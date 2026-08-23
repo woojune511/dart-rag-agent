@@ -2974,32 +2974,54 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Restricted Formula Evaluator](../overview/project_status.md#completed-restricted-formula-evaluator-public-api).
 
-The next bounded visibility seam renames only the exact 31-line state-free
-`financial_graph_helpers._build_concept_metric_label(...)` definition in place
-to public `build_concept_metric_label(...)`. Update four owner-local calls, one
-planning import/call pair, and exactly 43 existing owner-count expectations.
-Add no alias, wrapper, body/owner move, module, test method, label vocabulary,
-policy/template, operation branch, coercion, catch, task/state/trace/artifact/
-ledger mutation, or adjacent semantic-planning cleanup.
+The exact 31-line concept metric-label visibility seam completed in `57013dd`.
+It renamed the definition in place to public `build_concept_metric_label(...)`,
+then updated four owner-local calls, one planning import/call pair, and 43
+existing owner-count expectations. No alias, wrapper, body/owner move, label
+vocabulary, policy/template, operation branch, coercion, catch, mutation, or
+adjacent planning cleanup was added. Ordering, name/label fallback, repeated
+conversion, branch/template/fallback behavior, identities, errors, and all five
+caller gates remain exact.
 
-Preserve ordered concept-spec materialization, name-before-label fallback,
-current string/strip evaluation counts, blank filtering, shallow policy and
-template copies, joiner/default behavior, exact ratio/sum/difference/growth/
-other/fallback branch order, all five try-depth-zero caller gates, input and
-policy identities, and every propagated error. Definition hashes project
-`039146864...` to `855648604...`; the unchanged body is `4b4789f3...`.
-Selected private/public records project zero/7, source definition/import/load
-stays 1/1/5, owner public/private counts move 11/69 to 12/68, and source/tests/
-whole transforms are `+7/-7`, `+43/-43`, and `+50/-50`. Exact temporary diff
-SHA-256 is
+Final definition/body hashes are `855648604...` / `4b4789f3...`; selected
+private/public records are zero/7, source definition/import/load is 1/1/5,
+owner counts are 12/68, and actual source/tests/whole transforms were `+7/-7`,
+`+43/-43`, and `+50/-50`. Committed diff SHA-256 is
 `e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+Exact affected methods 41/41, focused 634/634, audit 217, pycompile 2/2,
+retired refs zero, diff check, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
+is authoritative in
+[Project Status Completed Concept Metric Label](../overview/project_status.md#completed-concept-metric-label-builder-public-api).
 
-Current-private and restored projected-public behavior/identity 25/25 each,
-corrected exact affected methods 41/41, focused 634/634, audit 217, pycompile
-2/2, retired refs zero, diff check, and unchanged 48/203 DAG passed before
-clean restoration. Full 2,143/2,143 remains the implementation gate; benchmark
-refresh and remote CI remain **NOT RUN**. Exact scope is authoritative only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+The next bounded visibility seam renames only the exact 24-line state-free
+`financial_graph_helpers._build_concept_task_constraints(...)` definition in
+place to public `build_concept_task_constraints(...)`. Update two owner-local
+calls, one planning import/call pair, 14 exact existing test symbol references,
+43 owner-count expectations, and four active duplicated derived hash
+expectations. Add no alias, wrapper, body/owner move, module, test method,
+vocabulary, policy/default, constraint field, coercion, catch, task/state/trace/
+artifact/ledger mutation, or adjacent planning cleanup.
+
+Preserve guidance/default shallow copies, consolidation and period-policy call
+order, exact-unknown fallback, truth-gated operand period refinement, eager
+segment-marker materialization with repeated retained-marker string conversion,
+one query normalization, ordered membership, the fresh four-field result and
+fallback strings, all three try-depth-zero caller assignments, identities,
+immutability, and every propagated error. Definition hashes project
+`b38f7177...` to `81e84060...`; the unchanged body is `899be40f...`.
+Selected private/public records across source/tests project zero/19, source
+definition/import/load stays 1/1/3, owner public/private counts move 12/68 to
+13/67, and source/tests/whole transforms are `+5/-5`, `+61/-61`, and
+`+66/-66`. Corrected exact temporary diff SHA-256 is
+`d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+
+Current-private and restored projected-public direct behavior/identity 26/26
+each, corrected exact affected methods 48/48, focused 638/638, audit 217,
+pycompile 2/2, retired refs zero, diff check, and unchanged 48/203 DAG passed
+before clean restoration. Full 2,143/2,143 remains the implementation gate;
+benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical
 checkpoint that preceded `877de9e`; it is not active work. At that checkpoint

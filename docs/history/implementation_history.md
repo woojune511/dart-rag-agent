@@ -11672,11 +11672,12 @@ are complete. It remains only as an audit record, not an active priority.
   establishes no behavior, quality, performance, benchmark, schedule, ledger,
   or Phase 3 completion claim.
 
-### Concept metric-label public API characterization checkpoint
+### Concept metric-label public API characterization checkpoint (historical)
 
-- The next bounded visibility batch renames only the exact 31-line state-free
+- This checkpoint preceded `57013dd`. At that point the next bounded visibility
+  batch was characterized to rename only the exact 31-line state-free
   `financial_graph_helpers._build_concept_metric_label(...)` definition in
-  place to public `build_concept_metric_label(...)`, then updates four owner-
+  place to public `build_concept_metric_label(...)`, then update four owner-
   local calls, one planning import/call pair, and exactly 43 existing owner-
   count expectations. Add no alias, wrapper, body/owner move, module, test
   method, label vocabulary, policy/template, operation branch, coercion, catch,
@@ -11697,7 +11698,65 @@ are complete. It remains only as an audit record, not an active priority.
   the initial gates were included, exact affected methods 41/41 in 65.626
   seconds, focused 634/634 in 187.252 seconds, audit 217, pycompile 2/2,
   retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed; the
-  projection was restored cleanly. Full 2,143/2,143 remains the implementation
-  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and
-  stop lines are authoritative in
+  projection was restored cleanly. Commit `57013dd` later passed full
+  2,143/2,143 and completed the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. The completed scope is authoritative in
+  [Project Status Completed Concept Metric Label](../overview/project_status.md#completed-concept-metric-label-builder-public-api).
+
+### Concept metric-label public API completed
+
+- Commit `57013dd` renamed only the exact 31-line
+  `financial_graph_helpers._build_concept_metric_label(...)` definition in
+  place to public `build_concept_metric_label(...)`, then updated four owner-
+  local calls, one planning import/call pair, and exactly 43 existing owner-
+  count expectations. It added no alias, wrapper, body/owner move, vocabulary,
+  policy/template, operation branch, coercion, catch, mutation, or adjacent
+  semantic-planning cleanup.
+- Ordering, name-before-label fallback, exact repeated string/strip evaluation,
+  blank filtering, shallow policy/template copies, joiner/default behavior,
+  exact operation/fallback branches, all five caller gates, identities,
+  immutability, and errors remain exact. Final definition/body hashes are
+  `855648604...` / `4b4789f3...`; selected private/public records are 0/7,
+  source definition/import/load is 1/1/5, and owner counts are 12/68.
+- Actual source/tests/whole transforms were `+7/-7`, `+43/-43`, and `+50/-50`;
+  committed diff SHA-256 is
+  `e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Exact affected methods 41/41 in 58.320 seconds, focused 634/634
+  in 179.691 seconds, audit 217, pycompile 2/2, unchanged 48/203 DAG, and full
+  2,143/2,143 in 222.674 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. This name-only cleanup establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Concept-task constraint public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 24-line state-free
+  `financial_graph_helpers._build_concept_task_constraints(...)` definition in
+  place to public `build_concept_task_constraints(...)`, then updates two owner-
+  local calls, one planning import/call pair, 14 exact test symbol refs, 43
+  owner-count expectations, and four active duplicated derived hash
+  expectations. Add no alias, wrapper, body/owner move, module, test method,
+  vocabulary, policy/default, constraint field, coercion, catch, mutation, or
+  adjacent planning cleanup.
+- Preserve shallow guidance/default copies, consolidation and period-policy call
+  order, exact-unknown fallback, truth-gated operand refinement, eager segment-
+  marker materialization and repeated retained-marker strings, one query
+  normalization, ordered membership, the fresh four-field result, identities,
+  immutability, all errors, and all three direct-assignment try-depth-zero caller
+  gates.
+- Current-private/future-public definition hashes are `b38f7177...` /
+  `81e84060...`; the unchanged body is `899be40f...`. Selected private/public
+  records across source/tests project 0/19, source definition/import/load
+  remains 1/1/3, owner public/private counts move 12/68 to 13/67, and source/
+  tests/whole project `+5/-5`, `+61/-61`, and `+66/-66`. Corrected exact
+  temporary diff SHA-256 is
+  `d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+- Current-private and restored projected-public direct behavior/identity passed
+  26/26 each. After four active derived hashes exposed by the initial exact
+  run were included, exact affected methods 48/48 in 69.751 seconds, focused
+  638/638 in 183.958 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+  check, and unchanged acyclic 48/203 DAG passed; the projection was restored
+  cleanly. Full 2,143/2,143 remains the implementation gate. Benchmark refresh
+  and remote CI were **NOT RUN**. Exact expectations and stop lines are
+  authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

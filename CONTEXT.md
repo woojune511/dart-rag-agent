@@ -21,7 +21,7 @@ Last updated: 2026-08-23
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `72f9fa6` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `57013dd` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -803,11 +803,19 @@ whole `+5/-5`, `+0/-0`, `+5/-5`, behavior/identity 13/13, exact structural
 개만 갱신했다. Restricted AST evaluation과 두 caller catch boundary는
 유지됐고 source/tests/whole `+4/-4`, `+14/-14`, `+18/-18`, direct behavior/
 identity 31/31, exact affected 5/5, focused 863/863, audit 217, pycompile 2/2,
-unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는
-`financial_graph_helpers.py`의 exact 31-line concept-metric label helper를
-public `build_concept_metric_label(...)`로 rename하고 owner-local call 네 개,
-planning import/call 한 쌍과 기존 owner-count 기대 43개만 갱신한다. Policy-
-driven label construction과 다섯 caller gate를 보존하는 exact scope는
+unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 이어
+`57013dd`가 `financial_graph_helpers.py`의 exact 31-line concept-metric label
+helper를 같은 위치와 본문으로 public `build_concept_metric_label(...)`로
+이름 수렴시키고 owner-local call 네 개, planning import/call 한 쌍과 기존
+owner-count 기대 43개만 갱신했다. Policy-driven label construction과 다섯
+caller gate는 유지됐고 source/tests/whole `+7/-7`, `+43/-43`, `+50/-50`,
+exact affected 41/41, focused 634/634, audit 217, pycompile 2/2, unchanged
+48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는 같은 파일의 exact
+24-line concept-task constraint builder를 public
+`build_concept_task_constraints(...)`로 rename하고 owner-local call 두 개,
+planning import/call 한 쌍, 기존 exact test symbol ref 14개, owner-count 기대
+43개와 active derived hash 기대 네 개만 갱신한다. Policy/default composition,
+four-field result와 세 caller gate를 보존하는 exact scope는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

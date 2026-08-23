@@ -7136,41 +7136,75 @@ audit 217, pycompile 2/2, diff check, unchanged 48/203 DAG, and full
 completion evidence is authoritative in
 [Project Status Completed Restricted Formula Evaluator](../overview/project_status.md#completed-restricted-formula-evaluator-public-api).
 
-The active visibility contract now renames only the exact 31-line
-`financial_graph_helpers._build_concept_metric_label(query: str,
-concept_specs: List[Dict[str, Any]], operation_family: str) -> str` definition
-in place to public `build_concept_metric_label(...)`. Update four owner-local
-calls, the sole planning import/call pair, and exactly 43 existing owner-count
-expectations: 40 direct two-value tuples, two derived two-value tuples, and one
-three-value caller map. Add no alias, wrapper, body/owner move, module, test
-method, label vocabulary, policy/template, operation branch, coercion, catch,
-task/state/trace/artifact/ledger mutation, or adjacent planning cleanup.
+Commit `57013dd` completed the exact 31-line concept metric-label
+visibility contract by renaming the definition in place to public
+`build_concept_metric_label(...)`. Four owner-local calls, the sole planning
+import/call pair, and 43 existing owner-count expectations changed; no alias,
+wrapper, body/owner move, vocabulary, policy/template, operation branch,
+coercion, catch, task/state/trace/artifact/ledger mutation, or adjacent planning
+cleanup changed.
 
-Preserve the first positional `_order_concept_specs_by_query(...)` call and
-complete its fresh ordered list before label or policy work. For every spec,
-keep name-before-label fallback, exact string/strip evaluation counts, blank
-filtering, order, and all propagated errors. Preserve shallow policy and
-`operation_templates` copies, falsey joiner default, ordered join, and exact
-ratio, sum, difference, growth-rate, other, cleaned-query, and policy-fallback
-branch order. Inputs, policy objects, and nested identities remain unchanged.
-
-All five production calls remain direct three-positional-argument calls with no
-keywords at caller try depth zero. Planning keeps `raw_metric_label or ...`;
-explicit-ratio planning calls the helper only in its conditional fallback;
-generic concept numeric planning keeps the nonempty-operand gate; group and
-analysis planning keep stripped hints on the left of `or`. Any helper failure
-still stops later task composition and adoption.
-
-Definition hashes project `039146864...` to `855648604...`; the unchanged body
-is `4b4789f3...`. The unchanged five-call shape hash is `db3de9a0...`.
-Selected private/public records project 0/7, source definition/import/load
-records stay 1/1/5, owner public/private counts move 11/69 to 12/68, and
-source/tests/whole project `+7/-7`, `+43/-43`, and `+50/-50`. Corrected exact
-temporary diff SHA-256 is
+Ordered concept-spec materialization, name-before-label fallback, exact repeated
+string/strip evaluation, blank filtering, shallow policy/template copies,
+joiner/default behavior, ratio/sum/difference/growth/other/fallback branch order,
+all five caller gates, identities, immutability, and propagated errors remain
+exact. Final definition/body hashes are `855648604...` / `4b4789f3...`;
+selected private/public records are 0/7, source definition/import/load records
+are 1/1/5, owner counts are 12/68, and actual source/tests/whole transforms were
+`+7/-7`, `+43/-43`, and `+50/-50`. Committed diff SHA-256 is
 `e83470781597f9210e66867418eb8c6f3a10ee4f3bcb683d3fac096e68944b9c`.
+Exact affected methods 41/41, focused 634/634, audit 217, pycompile 2/2, diff
+check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
+remote CI were **NOT RUN**. Exact completion evidence is authoritative in
+[Project Status Completed Concept Metric Label](../overview/project_status.md#completed-concept-metric-label-builder-public-api).
+
+The active visibility contract now renames only the exact 24-line
+`financial_graph_helpers._build_concept_task_constraints(query: str,
+report_scope: Dict[str, Any], ontology: Any,
+operand_specs: Optional[List[Dict[str, Any]]] = None,
+operation_family: str = "") -> Dict[str, str]` definition in place to public
+`build_concept_task_constraints(...)`. Update two owner-local calls, the sole
+planning import/call pair, 14 exact test symbol refs, 43 owner-count
+expectations, and four active duplicated call-record/caller-map hash
+expectations. Add no alias, wrapper, body/owner move, module, test method,
+vocabulary, policy/default, constraint field, coercion, catch, task/state/trace/
+artifact/ledger mutation, or adjacent planning cleanup.
+
+Preserve the shallow `planner_guidance` and `dimension_defaults` copies
+before public `desired_consolidation_scope(query, report_scope)`. Only exact
+`"unknown"` adopts the stringified configured consolidation fallback.
+Preserve query-period projection with the stringified configured-or-`"unknown"`
+default, then truth-gated operand-period refinement with the original
+`operation_family`, operand container, and current period result.
+
+Preserve the shallow constraint-policy copy and eager segment-marker tuple.
+Retained markers stringify twice and blank markers once because filter and
+retained expressions remain separate. Complete marker materialization before
+one exact query normalization. Return a fresh four-field mapping in
+consolidation/period/entity/segment order with exact `"unknown"`, `"company"`,
+`"segment"`, and `"none"` fallbacks, plus ordered membership short-circuit.
+Inputs, policies, nested identities, immutability, evaluation order, and every
+currently propagated error remain exact.
+
+All three calls remain direct assignments at caller try depth zero with three
+positional arguments plus the existing `operand_specs` and
+`operation_family` keywords. Concept composition keeps preference work before
+the call and retrieval/task/unit/result construction after it. Multi-lookup
+splitting supplies fresh `[operand]` and `"lookup"` before later split-task
+work. LLM concept planning keeps normalized operands/preferences before the
+call and task construction/adoption after it. Any helper failure still stops
+all later caller work.
+
+Definition hashes project `b38f7177...` to `81e84060...`; the unchanged body
+is `899be40f...`. The unchanged three-call shape hash is `d3131661...`.
+Selected private/public records across source/tests project 0/19, source
+definition/import/load records stay 1/1/3, owner public/private counts move
+12/68 to 13/67, and source/tests/whole project `+5/-5`, `+61/-61`, and
+`+66/-66`. Corrected exact temporary diff SHA-256 is
+`d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
 Current-private and restored projected-public direct behavior/identity passed
-25/25 each. The corrected temporary projection passed exact affected methods
-41/41, focused 634/634, audit 217, pycompile 2/2, diff check, and unchanged
+26/26 each. The corrected temporary projection passed exact affected methods
+48/48, focused 638/638, audit 217, pycompile 2/2, diff check, and unchanged
 48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
 implementation gate. Exact hashes, expectations, and stop lines are
 authoritative in [Project Status Next Work](../overview/project_status.md#next-work).
