@@ -832,7 +832,7 @@ call 세 개, evidence/reconciliation import/call 두 쌍, exact test symbol ref
 Generic policy/ontology label composition과 다섯 caller gate는 유지됐고
 source/tests/whole `+8/-8`, `+80/-80`, `+88/-88`, exact affected 51/51,
 focused 634/634, audit 217, pycompile 3/3, unchanged 48/203 DAG, full
-2,143/2,143가 통과했다. 이어 `eeefa47`이
+  2,143/2,143가 통과했다. 이어 `eeefa47`이
 `financial_retrieval_hints.py`의 exact 35-line statement/section hint inference
 helper를 public `infer_statement_and_section_hints(...)`로 이름 수렴시키고
 owner-local call 한 개, helpers/planning import 두 개와 external call 네 개,
@@ -840,13 +840,21 @@ exact test symbol ref 12개, owner-count 기대 두 개와 active derived hash r
 여덟 개만 갱신했다. Ordered document/segment/numeric/narrative/ontology hint
 composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
 `+22/-22`, `+30/-30`, exact affected 13/13, focused 541/541, audit 217,
-pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음
-batch는 `financial_graph_helpers.py`의 exact 40-line policy-driven metric-task
-query builder를 public `build_metric_task_query(...)`로 rename하고 owner-local
-call 네 개, planning import/call 한 쌍, exact test symbol ref 일곱 개, graph
-owner-count 기대 40개와 파생 owner/order 기대 네 개만 갱신한다. Year/scope/
-operand/template composition과 다섯 keyword-only caller gate를 보존하는 exact
-scope는
+  pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 이어
+  `a2da2d6`이 `financial_graph_helpers.py`의 exact 40-line policy-driven
+  metric-task query builder를 public `build_metric_task_query(...)`로 이름
+  수렴시키고 owner-local call 네 개, planning import/call 한 쌍, exact test
+  symbol ref 일곱 개, graph owner-count 기대 43개와 파생 owner/order 기대 한
+  개만 갱신했다. Year/scope/operand/template composition과 다섯 keyword-only
+  caller gate는 유지됐고 source/tests/whole `+7/-7`, `+50/-50`, `+57/-57`,
+  exact affected 45/45, focused 628/628, audit 217, pycompile 2/2, unchanged
+  48/203 DAG, full 2,143/2,143가 통과했다. 다음 batch는 같은 파일의 exact
+  57-line state-free generic-concept spec inference를 public
+  `infer_generic_concept_spec(...)`로 rename하고 owner-local call 네 개,
+  planning import/call 한 쌍, exact test symbol ref 일곱 개, graph owner-count
+  기대 43개와 active derived hash record 여덟 개만 갱신한다. Exact/fuzzy/
+  ontology-fallback precedence와 다섯 two-positional caller gate를 보존하는
+  exact scope는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

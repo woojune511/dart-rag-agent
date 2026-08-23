@@ -7220,54 +7220,70 @@ transforms were `+8/-8`, `+22/-22`, and `+30/-30`; exact 13/13, focused
 completion evidence is authoritative in
 [Project Status Completed Statement And Section Hint](../overview/project_status.md#completed-statement-and-section-hint-inference-public-api).
 
-The active visibility contract now renames only the exact 40-line
-`financial_graph_helpers._build_metric_task_query(*, original_query: str,
-metric_label: str, constraints: Dict[str, str], operand_specs:
-List[Dict[str, Any]], report_scope: Dict[str, Any]) -> str` definition in place
-to public `build_metric_task_query(...)`. Update four owner-local calls, the
-planning import/call pair, seven exact test symbol refs, 40 direct graph-owner
-count expectations, two private-projection count expectations, one caller-owner
-tuple, and one sorted dependency-name expectation. Add no alias, wrapper,
-body/owner move, module, test method, task text, policy/ontology entry,
-normalization rule, catch, task/state/trace/artifact/ledger mutation,
-dependency sequencing, or adjacent cleanup.
+Commit `a2da2d6` completed the exact 40-line metric-task query visibility
+contract by renaming the definition in place to public
+`build_metric_task_query(...)`. Four owner-local calls, one planning import/call
+pair, seven exact test symbol refs, 43 owner-count expectations, and one sorted
+dependency-name expectation changed. Original-query normalization, year/scope/
+operand/template policy composition, duplicate retention, the two-label hint
+gate, fallback precedence, the body, all five caller gates, identities,
+immutability, evaluation counts, and errors remain exact. Actual source/tests/
+whole transforms were `+7/-7`, `+50/-50`, and `+57/-57`; exact 45/45, focused
+628/628, audit 217, pycompile 2/2, unchanged 48/203 DAG, and full
+2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**. Exact
+completion evidence is authoritative in
+[Project Status Completed Metric Task Query](../overview/project_status.md#completed-metric-task-query-builder-public-api).
 
-Preserve exact `_normalise_spaces(original_query)` first, then the single
-`report_scope.get("year")` and copied period policy. Preserve the year-template
-fallback, formatting and trailing-space construction; then resolve the exact
-string-stripped consolidation scope and a fresh copy of configured prefix
-labels. Only exact `"consolidated"` and `"separate"` values select prefixes.
-Next copy the metric-task policy, retain ordered non-empty operand labels and
-duplicates, call `spec.get("label")` twice for an admitted label and once for a
-rejected one, and build an operand hint only for at least two labels. Preserve
-joiner/template fallbacks, canonical-template formatting, the second
-normalization, and final `canonical_query`, then normalized original query,
-then raw metric-label fallback precedence. Preserve inputs and nested
-identities, configured policy immutability, truth/string/mapping/format
-evaluation counts and order, short-circuit boundaries, and every propagated
-error.
+The active visibility contract now renames only the exact 57-line
+`financial_graph_helpers._infer_generic_concept_spec(label: str, ontology: Any)
+-> Dict[str, Any]` definition in place to public
+`infer_generic_concept_spec(...)`. Update four owner-local calls, the planning
+import/call pair, seven exact test symbol refs, 40 direct graph-owner count
+expectations, two private-projection count expectations, one caller-owner tuple,
+and eight active derived hash records. Add no alias, wrapper, body/owner move,
+module, test method, concept/alias/keyword, policy/ontology entry, cleaning/
+matching/ranking/fallback rule, catch, task/state/trace/artifact/ledger mutation,
+or adjacent cleanup.
 
-All five calls remain zero-positional, five-keyword calls in exact
-`original_query`, `metric_label`, `constraints`, `operand_specs`,
-`report_scope` order at caller try depth zero, with one owner-external and four
-owner-local calls. Concept-task composition, split lookup construction,
-dependency-producer construction, semantic numeric planning, and LLM concept
-planning retain their exact pre-call admission, argument identities, adoption,
-and post-call work. Any helper failure still stops all later caller work.
+Preserve `_clean_metric_label(label)` before `_normalise_spaces(cleaned)` and
+the falsey-normalized early `{}` return before ontology access. Then materialize
+`list(getattr(ontology, "all_concept_specs", lambda: [])() or [])` in catalog
+order, skip truthy `is_group` specs, and build aliases from the stripped name,
+aliases, and keywords. Preserve the current twice-per-admitted-alias
+normalization caused by the comprehension filter/expression, the empty-alias
+skip, and every propagated attribute, call, truth, iteration, mapping, string,
+normalization, containment, copy, sort, and fallback error.
 
-Definition hashes project `b2aabb7f...` to `4f6ff472...`; the unchanged body
-is `d7f6c130...`. Selected private/public records project 0/14, source
-definition/import/load records stay 1/1/5, owner public/private counts move
-15/65 to 16/64, and source/tests/whole project `+7/-7`, `+50/-50`, and
-`+57/-57`. Exact temporary diff SHA-256 is
-`602a3cfd4bcee532dcf6d6e29dd49c439cd34b25df16e041a975fad0c63d7fa6`.
+Exact matches must outrank fuzzy matches. Each admitted result remains a shallow
+`dict(spec)` copy. Exact matches remain a stable reverse sort by the longest
+normalized name-or-alias surface, excluding keywords from that rank, and return
+the first winner. If none exist, return the first catalog-order fuzzy match. If
+neither exists, call `ontology.concept_specs(cleaned, cleaned, "comparison")`,
+filter groups, shallow-copy in returned order, and return the first row or a new
+empty dict. Preserve nested identities, inputs, ontology material, evaluation
+counts/order, and all current uncaught errors.
+
+All five production calls remain two-positional, zero-keyword calls at caller
+try depth zero, with one owner-external and four owner-local calls. The three
+generic-operand calls retain their ratio, period-comparison, and ordinary-label
+gates and exact pre/post-call work. Entity-scoped concept construction retains
+label/operation admission and metric-label preparation before the call, then
+concept truth gating and scoped spec construction afterward. LLM concept
+planning retains validator and resolved-operand admission before its lookup/
+single-value mismatch check; a helper failure still stops all later caller work.
+
+Definition hashes project `5f8a3a10...` to `e4dd76b9...`; the unchanged body is
+`36a05816...`. Selected private/public records project 0/14, source definition/
+import/load records stay 1/1/5, owner public/private counts move 16/64 to 17/63,
+and source/tests/whole project `+7/-7`, `+58/-58`, and `+65/-65`. Exact
+temporary diff SHA-256 is
+`c32a4c54e0a94897f390a7c72383fde2967288f9748d232ed56bae26aa7d3910`.
 Current-private and projected-public direct behavior/immutability passed 25/25
 each with the same receipt. The corrected temporary projection passed exact
-affected methods 45/45, focused 628/628, audit 217, pycompile 2/2, diff check,
-and unchanged 48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains
-the implementation gate. Exact hashes, expectation mappings, and stop lines
-are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+affected methods 46/46, focused 628/628, audit 217, pycompile 2/2, diff check,
+and unchanged 48/203 DAG, then was removed cleanly. Full 2,143/2,143 remains the
+implementation gate. Exact hashes, expectation mappings, and stop lines are
+authoritative in [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

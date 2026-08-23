@@ -3059,29 +3059,43 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Statement And Section Hint](../overview/project_status.md#completed-statement-and-section-hint-inference-public-api).
 
-The next bounded visibility seam renames only the exact 40-line state-free
-`financial_graph_helpers._build_metric_task_query(...)` definition in place to
-public `build_metric_task_query(...)`. Update four owner-local calls, one
-planning import/call pair, seven exact test symbol refs, 40 direct graph-owner
-count expectations, two private-projection count expectations, one caller-owner
-tuple, and one sorted dependency-name expectation. Add no alias, wrapper,
-body/owner move, module, test method, task text, policy/ontology entry,
-normalization rule, catch, mutation, dependency sequencing, or adjacent planner
-cleanup.
-
-Preserve original-query normalization, year lookup and policy template
-formatting, exact consolidation-scope prefix selection, ordered non-empty
-operand labels with duplicates, the two-label operand-hint gate, canonical
-template normalization, fallback precedence, input and policy immutability,
-all propagated errors, and all five exact keyword-only try-depth-zero caller
-gates. Definition hashes project `b2aabb7f...` to `4f6ff472...`; the unchanged
-body is `d7f6c130...`. Selected private/public records project 0/14, source
-definition/import/load remains 1/1/5, owner counts move 15/65 to 16/64, and
-source/tests/whole transforms are `+7/-7`, `+50/-50`, and `+57/-57`. Exact
-temporary diff SHA-256 is
+The exact 40-line metric-task query visibility seam completed in `a2da2d6`. It
+renamed the definition in place to public `build_metric_task_query(...)`, then
+updated four owner-local calls, one planning import/call pair, seven exact test
+symbol refs, 43 owner-count expectations, and one sorted dependency-name
+expectation. Policy-driven year/scope/operand/template composition, the body,
+all five keyword-only caller gates, identities, errors, and policy immutability
+remained exact. Actual source/tests/whole transforms were `+7/-7`, `+50/-50`,
+and `+57/-57`; committed diff SHA-256 is
 `602a3cfd4bcee532dcf6d6e29dd49c439cd34b25df16e041a975fad0c63d7fa6`.
+Exact affected methods 45/45, focused 628/628, audit 217, pycompile 2/2,
+unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
+CI were **NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Metric Task Query](../overview/project_status.md#completed-metric-task-query-builder-public-api).
+
+The next bounded visibility seam renames only the exact 57-line state-free
+`financial_graph_helpers._infer_generic_concept_spec(...)` definition in place
+to public `infer_generic_concept_spec(...)`. Update four owner-local calls, one
+planning import/call pair, seven exact test symbol refs, 43 graph-owner count
+expectations, and eight active derived hash records. Add no alias, wrapper,
+body/owner move, module, test method, concept/alias/keyword, policy/ontology
+entry, cleaning/matching/ranking/fallback rule, catch, mutation, or adjacent
+planner cleanup.
+
+Preserve metric-label cleaning and normalization, the empty-label early return,
+ordered non-group ontology catalog scan, exact-over-fuzzy precedence, stable
+longest normalized name/alias ranking for exact matches, first fuzzy match,
+the exact `ontology.concept_specs(cleaned, cleaned, "comparison")` fallback,
+shallow result copies, nested identities, input immutability, all propagated
+errors, and all five exact two-positional try-depth-zero caller gates.
+Definition hashes project `5f8a3a10...` to `e4dd76b9...`; the unchanged body is
+`36a05816...`. Selected private/public records project 0/14, source definition/
+import/load remains 1/1/5, owner counts move 16/64 to 17/63, and source/tests/
+whole transforms are `+7/-7`, `+58/-58`, and `+65/-65`. Exact temporary diff
+SHA-256 is
+`c32a4c54e0a94897f390a7c72383fde2967288f9748d232ed56bae26aa7d3910`.
 Current-private and projected-public behavior/immutability passed 25/25 each;
-corrected exact affected methods 45/45, focused 628/628, audit 217, pycompile
+corrected exact affected methods 46/46, focused 628/628, audit 217, pycompile
 2/2, retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed
 before clean restoration. Full 2,143/2,143 remains the implementation gate;
 benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative

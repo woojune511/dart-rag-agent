@@ -1722,13 +1722,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   composition과 다섯 caller gate는 유지됐다. Source/tests/whole `+8/-8`,
   `+22/-22`, `+30/-30`, exact affected 13/13, focused 541/541, audit 217,
   pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_graph_helpers.py`의 exact 40-line
-  state-free metric-task query builder를 public
-  `build_metric_task_query(...)`로 rename하고 owner-local call 네 개,
+- 완료된 `a2da2d6` visibility batch는 `financial_graph_helpers.py`의 exact
+  40-line state-free metric-task query builder를 public
+  `build_metric_task_query(...)`로 이름 수렴시키고 owner-local call 네 개,
   planning import/call 한 쌍, exact test symbol ref 일곱 개, owner-count 기대
-  40개와 파생 owner/order 기대 네 개만 갱신한다. Policy-driven year/scope/
-  operand/template composition과 다섯 keyword-only caller gate를 보존하는
-  전체 gate와 stop line은
+  43개와 sorted dependency-name 기대 한 개만 갱신했다. Policy-driven year/
+  scope/operand/template composition과 다섯 keyword-only caller gate는
+  유지됐다. Source/tests/whole `+7/-7`, `+50/-50`, `+57/-57`, exact affected
+  45/45, focused 628/628, audit 217, pycompile 2/2, unchanged 48/203 DAG,
+  full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 57-line state-free generic-
+  concept spec inference를 public `infer_generic_concept_spec(...)`로 rename하고
+  owner-local call 네 개, planning import/call 한 쌍, exact test symbol ref
+  일곱 개, owner-count 기대 43개와 active derived hash record 여덟 개만
+  갱신한다. Exact/fuzzy/ontology fallback precedence와 다섯 two-positional
+  caller gate를 보존하는 전체 gate와 stop line은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -1744,8 +1752,8 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - generic metric-alias projection consumed by operand and evidence paths
 - caller-side reconciliation candidate construction/ranking orchestration
 - semantic planner scope normalization, plan-shape validation, segment-label
-  projection, policy-driven canonical metric-task query composition, and
-  planner-task contract helpers
+  projection, policy-driven canonical metric-task query composition, state-free
+  generic-concept spec matching, and planner-task contract helpers
 - narrative-task predicate, construction, append, dependency-order, and
   exclusive-policy projection; model invocation and state/task adoption remain
   outside

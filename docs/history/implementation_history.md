@@ -11993,6 +11993,70 @@ are complete. It remains only as an audit record, not an active priority.
   affected methods 45/45 in 60.807 seconds, focused 628/628 in 169.758 seconds,
   audit 217, pycompile 2/2, retired refs zero, diff check, and unchanged acyclic
   48/203 DAG passed; the projection was restored cleanly. Full 2,143/2,143
-  remains the implementation gate. Benchmark refresh and remote CI were
-  **NOT RUN**. Exact expectations and stop lines are authoritative in
+  later passed in commit `a2da2d6` and completed the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**. The completed scope is
+  authoritative in
+  [Project Status Completed Metric Task Query](../overview/project_status.md#completed-metric-task-query-builder-public-api).
+
+### Metric-task query builder public API completed
+
+- Commit `a2da2d6` renamed only the exact 40-line
+  `financial_graph_helpers._build_metric_task_query(...)` definition in place
+  to public `build_metric_task_query(...)`, then updated four owner-local calls,
+  one planning import/call pair, seven exact test symbol refs, 40 direct owner-
+  count expectations, two private-projection count expectations, one caller-
+  owner tuple, and one sorted dependency-name expectation. It added no alias,
+  wrapper, body/owner move, task text, policy/ontology entry, normalization rule,
+  catch, mutation, dependency sequencing, or adjacent cleanup.
+- Original-query normalization, year/scope/operand/template policy composition,
+  admitted-label evaluation order and duplicate retention, the two-label hint
+  gate, canonical normalization and fallback precedence, all five caller gates,
+  identities, input/config immutability, evaluation counts, and errors remain
+  exact. Final definition/body hashes are `4f6ff472...` / `d7f6c130...`;
+  selected private/public records are 0/14, source definition/import/load is
+  1/1/5, and owner counts are 16/64.
+- Actual source/tests/whole transforms were `+7/-7`, `+50/-50`, and `+57/-57`;
+  committed diff SHA-256 is
+  `602a3cfd4bcee532dcf6d6e29dd49c439cd34b25df16e041a975fad0c63d7fa6`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Direct behavior/immutability passed 25/25 with receipt
+  `bcc2fd16...`; exact affected methods 45/45 in 58.560 seconds, focused
+  628/628 in 178.019 seconds, audit 217, pycompile 2/2, unchanged 48/203 DAG,
+  and full 2,143/2,143 in 226.122 seconds passed. Benchmark refresh and remote
+  CI were **NOT RUN**. This name-only cleanup establishes no task-query,
+  planning, retrieval, evidence, answer, quality, performance, benchmark,
+  schedule, ledger, or Phase 3 completion claim.
+
+### Generic-concept spec inference public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 57-line state-free
+  `financial_graph_helpers._infer_generic_concept_spec(...)` definition in
+  place to public `infer_generic_concept_spec(...)`, then updates four owner-
+  local calls, one planning import/call pair, seven exact test symbol refs, 43
+  graph-owner count expectations, and eight active derived hash records. Add no
+  alias, wrapper, body/owner move, module, test method, concept/alias/keyword,
+  policy/ontology entry, cleaning/matching/ranking/fallback rule, catch,
+  mutation, or adjacent planner cleanup.
+- Preserve cleaning then normalization, the pre-ontology empty return, ordered
+  non-group catalog materialization, name/alias/keyword surface preparation,
+  exact-over-fuzzy precedence, stable longest normalized name/alias ranking for
+  exact matches, the first fuzzy match, exact
+  `ontology.concept_specs(cleaned, cleaned, "comparison")` fallback, group
+  filtering, shallow result copies, nested identities, inputs, evaluation
+  counts/order, errors, and all five two-positional try-depth-zero caller gates.
+- Current-private/future-public definition hashes are `5f8a3a10...` /
+  `e4dd76b9...`; the unchanged body is `36a05816...`. Selected private/public
+  records project 0/14, source definition/import/load stays 1/1/5, owner counts
+  move 16/64 to 17/63, and source/tests/whole project `+7/-7`, `+58/-58`, and
+  `+65/-65`. Exact temporary diff SHA-256 is
+  `c32a4c54e0a94897f390a7c72383fde2967288f9748d232ed56bae26aa7d3910`.
+- Current-private and projected-public direct behavior/immutability passed
+  25/25 each with receipt `8eab7353...`. The first projected graph-helper run
+  exposed three aggregate expectations and the targeted rerun exposed the final
+  two cascading records. After correcting all eight derived records, exact
+  affected methods 46/46 in 70.497 seconds, focused 628/628 in 169.378 seconds,
+  audit 217, pycompile 2/2, retired refs zero, diff check, and unchanged acyclic
+  48/203 DAG passed; the temporary worktree was removed cleanly. Full
+  2,143/2,143 remains the implementation gate. Benchmark refresh and remote CI
+  were **NOT RUN**. Exact expectations and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
