@@ -7193,7 +7193,60 @@ and errors remain exact. Actual source/tests/whole transforms were `+7/-7`,
 remote CI were **NOT RUN**. Exact completion evidence is authoritative in
 [Project Status Completed Operation Family](../overview/project_status.md#completed-operation-family-inference-public-api).
 
-The active visibility contract now renames only the exact 32-line
+Commit `5a40a1b` completed the exact 32-line generic operand-label extractor
+visibility contract by renaming the definition in place to public
+`extract_generic_operand_labels(...)`. Three owner-local calls, two importer
+call pairs, 24 exact test symbol refs, 43 owner-count expectations, and 13
+active derived hash records changed. Policy/ontology label composition, the
+body, all five caller gates, identities, immutability, evaluation counts, and
+errors remain exact. Actual source/tests/whole transforms were `+8/-8`,
+`+80/-80`, and `+88/-88`; exact 51/51, focused 634/634, audit 217, pycompile
+3/3, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
+remote CI were **NOT RUN**. Exact completion evidence is authoritative in
+[Project Status Completed Generic Operand Label](../overview/project_status.md#completed-generic-operand-label-extractor-public-api).
+
+The active visibility contract now renames only the exact 35-line
+`financial_retrieval_hints._infer_statement_and_section_hints(query: str) ->
+tuple[List[str], List[str]]` definition in place to public
+`infer_statement_and_section_hints(...)`. Update one owner-local call, the
+helpers and planning importer bindings plus four external calls, 12 exact test
+symbol refs, two owner-count expectations, and only eight active derived hash
+records. Add no alias, wrapper, body/owner move, module, test method, statement
+type, section, policy/ontology entry, normalization/dedupe rule, catch,
+task/state/trace/artifact/ledger mutation, or adjacent cleanup.
+
+Preserve exact query normalization, ontology lookup, desired-statement seed
+identity and mutation, ordered document-policy markers/sections/types, segment
+policy composition, ontology preferred sections, numeric policy composition,
+narrative policy composition, and final first-occurrence dedupe into two fresh
+lists. Preserve inputs and nested identities, configured policy immutability,
+evaluation counts, eager/lazy and short-circuit boundaries, and every
+propagated error.
+
+All five calls remain one-positional-argument calls at caller try depth zero,
+with four owner-external and one owner-local call. Active-section resolution,
+ratio operand construction, heuristic task construction, concept-task
+composition, and LLM concept planning retain their exact pre-call gates,
+argument identity, adoption order, and post-call work. Any helper failure still
+stops all later caller work.
+
+Definition hashes project `213d9752...` to `20e00e4d...`; the unchanged body
+is `89254c99...`. The projected five-call inventory hash is `57cc1b45...`.
+Selected private/public records project 0/20, source definition/import/load
+records stay 1/2/5, owner public/private counts move 10/4 to 11/3, and source/
+tests/whole project `+8/-8`, `+22/-22`, and `+30/-30`. Exact temporary diff
+SHA-256 is
+`9ed502db2cf2d317f0d752053772dfdb4e3ebb609c0764eea4cb89edde546f72`.
+Current-private and projected-public direct behavior/identity passed 23/23
+each. The corrected temporary projection passed exact affected methods 13/13,
+focused 541/541, audit 217, pycompile 3/3, diff check, and unchanged 48/203
+DAG, then was restored cleanly. Full 2,143/2,143 remains the implementation
+gate. Exact hashes, expectation mappings, and stop lines are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+The following generic operand-label paragraphs preserve the historical
+characterization checkpoint that preceded `5a40a1b`; they are not active work.
+The historical visibility contract renamed only the exact 32-line
 `financial_graph_helpers._extract_generic_operand_labels(query: str) ->
 List[str]` definition in place to public
 `extract_generic_operand_labels(...)`. Update three owner-local calls, the

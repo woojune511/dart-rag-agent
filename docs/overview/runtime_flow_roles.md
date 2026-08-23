@@ -1704,13 +1704,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   tests/whole `+7/-7`, `+85/-85`, `+92/-92`, exact affected 52/52, focused
   634/634, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 32-line state-free generic
-  operand-label extractor `_extract_generic_operand_labels(...)`를 public
-  `extract_generic_operand_labels(...)`로 rename하고 owner-local call 세 개,
-  evidence/reconciliation import/call 두 쌍, exact test symbol ref 24개,
-  owner-count 기대 43개와 active derived hash record 13개만 갱신한다.
-  Generic policy/ontology label composition과 다섯 caller gate를 보존하는
-  전체 gate와 stop line은
+- 완료된 `5a40a1b` visibility batch는 같은 owner의 exact 32-line state-free
+  generic operand-label extractor를 public
+  `extract_generic_operand_labels(...)`로 이름 수렴시키고 owner-local call
+  세 개, evidence/reconciliation import/call 두 쌍, exact test symbol ref
+  24개, owner-count 기대 43개와 active derived hash record 13개만 갱신했다.
+  Generic policy/ontology label composition과 다섯 caller gate는 유지됐다.
+  Source/tests/whole `+8/-8`, `+80/-80`, `+88/-88`, exact affected 51/51,
+  focused 634/634, audit 217, pycompile 3/3, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 `financial_retrieval_hints.py`의 exact 35-line
+  state-free statement/section hint inference helper를 public
+  `infer_statement_and_section_hints(...)`로 rename하고 owner-local call 한
+  개, helpers/planning import 두 개와 external call 네 개, exact test symbol
+  ref 12개, owner-count 기대 두 개와 active derived hash record 여덟 개만
+  갱신한다. Ordered document/segment/numeric/narrative/ontology hint
+  composition과 다섯 caller gate를 보존하는 전체 gate와 stop line은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

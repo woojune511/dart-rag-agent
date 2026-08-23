@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `965b893` renamed only the exact 25-line `financial_graph_helpers._infer_operation_family_from_query(...)` definition in place to public `infer_operation_family_from_query(...)` and updated four owner-local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-count expectations, and ten derived hash expectations |
-| What passed? | Exact affected methods 52/52, projected-public behavior and identity 33/33, focused tests 634/634, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `965b893`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
+| What just changed? | `5a40a1b` renamed only the exact 32-line `financial_graph_helpers._extract_generic_operand_labels(...)` definition in place to public `extract_generic_operand_labels(...)` and updated three owner-local calls, two importer call pairs, 24 exact test symbol refs, 43 owner-count expectations, and 13 derived hash records |
+| What passed? | Exact affected methods 51/51, projected-public behavior and identity 19/19, focused tests 634/634, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `5a40a1b`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 32-line `financial_graph_helpers._extract_generic_operand_labels(...)` definition in place to public `extract_generic_operand_labels(...)`; update three owner-local calls, two importer call pairs, 24 exact test symbol refs, 43 owner-count expectations, and 13 active derived hash expectations |
+| What is next? | Rename only the exact 35-line `financial_retrieval_hints._infer_statement_and_section_hints(...)` definition in place to public `infer_statement_and_section_hints(...)`; update one owner-local call, two importer bindings and four external calls, 12 exact test symbol refs, two owner-count expectations, and eight active derived hash records |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, operation-family inference exact affected methods 52 / 52 and affected focused set 634 / 634 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after operation-family inference public rename |
+| Latest focused owner checkpoint | PASS, generic operand-label exact affected methods 51 / 51 and affected focused set 634 / 634 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after generic operand-label public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,144 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 35-line
+`src.agent.financial_retrieval_hints._infer_statement_and_section_hints(
+query: str) -> tuple[List[str], List[str]]` definition at lines 65-99 in place
+to public `infer_statement_and_section_hints(...)`. Update its one owner-local
+call, the helpers and planning imports plus four external calls, and 12 exact
+existing test symbol references across `test_financial_graph_helpers.py`,
+`test_financial_ratio_presentation.py`, and `test_operation_contracts.py`.
+Update the two existing retrieval-hint owner-count expectations from `(10, 4)`
+to `(11, 3)`, and only the eight active derived hash records listed below.
+Add no alias, wrapper, body/owner move, module, test method, statement type,
+section, policy/ontology entry, normalization/dedupe rule, catch, task/state/
+trace/artifact/ledger mutation, or adjacent retrieval/planning cleanup.
+
+Keep the helper in `financial_retrieval_hints.py`; it is state-free, has an
+owner-local consumer, and composes the document, segment, numeric, narrative,
+and ontology-backed hint policies already owned by that module. Its exact span
+intersects zero of the 217 reviewed runtime-domain records. Preserve first
+`_normalise_spaces(query)`, then the fresh ontology lookup, then
+`_desired_statement_types(query, query)` with the original query object twice.
+The exact statement-type list returned by that helper remains the mutable
+working list until the final fresh deduped return.
+
+Iterate `FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES` in order. Preserve eager
+marker-tuple materialization, ordered membership, unmatched-policy short-
+circuit, preferred-section extension, and append-only-if-absent statement
+types. Then preserve segment-marker materialization and its conditional
+section/type extension. Keep the exact
+`ontology.preferred_sections(query, query, "comparison")` call before numeric
+and narrative policy resolution. Numeric policies still resolve from the
+normalized text, extend preferred sections, and append new statement types in
+order; narrative policies do the same afterward with exact key
+`"statement_types"`. Return two separate fresh first-occurrence-deduped lists.
+Inputs, policy/spec/list identities, seed-list mutation, configured list
+immutability, eager/lazy boundaries, evaluation counts, branch short-circuits,
+and every currently propagated normalization, truth, string, mapping,
+iteration, membership, ontology, policy, and custom exception remain exact.
+
+All five production calls remain one-positional-argument calls with no
+keywords at caller `try` depth zero; owner-external/local counts remain 4/1.
+`_active_preferred_sections(...)` calls first and adopts both results before
+active-task and narrative work. `_build_generic_required_operands(...)` keeps
+ontology and ratio-spec preparation plus the truthy ratio gate before the call,
+then row construction after it. `_build_heuristic_numeric_task(...)` keeps
+metric and operand preparation before the call, then operand-hint merge,
+operation/scope/period/retrieval work after it. `_compose_concept_numeric_task`
+keeps the falsey-operand return and fresh result lists before the call, then
+operand merge, constraints, retrieval, task query, and result-unit work after
+it. `_build_llm_concept_numeric_plan(...)` keeps planner validation, normalized
+operand admission, metric-label selection, and the falsey-operand `continue`
+before the call; constraint and task construction remain after it. Any helper
+failure still stops all later caller work and adoption.
+
+Current-private/future-public definition SHA-256 values are
+`213d9752cdeec071fd23b2529e385ac20aa88bebac9a8ad83bc457fc66a76c94` /
+`20e00e4d8716f6131e44000267207596e193ceeacacd5d1eac7cd1035b0c0e21`;
+the unchanged body hash is
+`89254c9950d7f2f3e3bdcff95516dc77bdcddd742211b7192e88308ea7584a70`.
+Caller definition/body hashes project as follows:
+
+| Caller | Current definition / body | Future definition / body |
+| --- | --- | --- |
+| `_active_preferred_sections` | `cefcf5dac97829b8d74e615ad4f4294b384d3bf35bf955378510620a658f65cd` / `6fbbc96c5bfa25fc851e5cb8aa210476fe7a462a29a3640e397426128f220959` | `9fc7fac8f23f41bc946ffed12c7faa97e0e1b944441c4734b1fe3bd8bf73e698` / `5e3d8c4945d835f195a4bc7954a73aa64ba08836c8ab369ef3374dba8f8d8bc6` |
+| `_build_generic_required_operands` | `ccbf0c80994280c409635857409d5c17eba49dbc2d5c21b266a718402d9f1e47` / `9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28` | `7b0a8f665b9cf8a4c815aff2ae5a665948d9ee28799e287192fdd13dcf197870` / `8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119` |
+| `_build_heuristic_numeric_task` | `c0ad5e77dd4e442e69a6c7e742d1e7921024a8074f9f9c0bf08aa2fb4d0940a8` / `46c252768d4279b0650380c173c30756fc0f6966493f01465512ee13afbce20b` | `8e162bbc0f50ed94e2360f457c948353acad12540b74e9fa3f931fcc5f9ae68d` / `f566dfbf23d2306d0ecfa670cd5e9788b3535d2b8961e19edffd63fdc81c1707` |
+| `_compose_concept_numeric_task` | `0ec9fb35c8c2ac7f8791f1e3c9beb37755d216b97153994c4540dd67d57bf9bb` / `4c3657421bd0d9f4f1d043558b10aa69c4f209931c04749db2a61c03ab096885` | `5cae78d14363623bebceebc44fbd777829ea302fd02f15c2180d25f25e6be760` / `35dfcc39b16604cd1d902ecb1fc9a128ade1d52155d002d7e766a55a06007f2c` |
+| `FinancialAgentPlanningMixin._build_llm_concept_numeric_plan` | `5c66177d1f9d3c01e28665cd0c2865077e2a35ab2996f4c49110066402100b0f` / `eb00b70d86cdea630f5c03926d205371e3a243d945b9b2c5d54792c4f3a93be7` | `acd42472f33a657f47d5cec2d06ae541ec92d05a363e69bc8f3451326ba41cea` / `d65ccf4937fa77a55af1e9f8a48a72b325f585caf832928fb292b657dc92a9c0` |
+
+The projected five-call inventory SHA-256 is
+`57cc1b455f76bb6628c1e3d719cbe27cee196f34885ac21c6f19e0b7995b1518`.
+After the rename selected private/public records across source/tests must be
+0/20, source function-definition/import/load records 1/2/5, and retrieval-hint
+owner public/private counts 11/3. The eight active derived expectations change
+as follows:
+
+| Count | Current | Future |
+| --- | --- | --- |
+| 3 | `9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28` | `8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119` |
+| 2 | `b39bca3ea56ec8dee3eaab415f156dbdd418c36ea17afc8a31578c953f7461ad` | `e1c57c3cbf5e8ff802e8e9be13d515a3bf419d60c43d09f5f3bb301ad4fd60f6` |
+| 1 | `53388de0fc9817b1184f355962f33a9311f904a684116c5618d5885faa35085f` | `ca044f5003ea19f4484437d76c3154127639b0743f48565fcbed489ac976f6ea` |
+| 2 | `135e8c0f71fefcd95aa718022b8995a4b9925603b4c32d2294af1a536f37bca0` | `47ad16b7a2e77c17dc28be916a5f4d507b01290191ecbce197b96d90bdf6bf0d` |
+
+Projected source/tests/whole transforms are `+8/-8`, `+22/-22`, and
+`+30/-30` across exactly three source and four test files. Exact temporary
+diff SHA-256 is
+`9ed502db2cf2d317f0d752053772dfdb4e3ebb609c0764eea4cb89edde546f72`.
+Current-private and projected-public direct behavior/identity passed 23/23
+each. After the initial focused run exposed the final two duplicated caller-map
+records, corrected exact affected methods 13/13 passed in 20.047 seconds,
+focused tests 541/541 in 227.309 seconds, audit 217, pycompile 3/3, retired
+private refs zero, diff check, and the unchanged acyclic 48/203 topology at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
+passed, then the projection was restored cleanly. Full discovery 2,143/2,143
+remains the implementation gate. Benchmark refresh and remote CI remain
+**NOT RUN**.
+
+This is the smallest remaining correct-owner state-free visibility seam after
+`5a40a1b`. The shorter `_desired_statement_types(...)` and
+`_active_preferred_statement_types(...)` future public names collide with
+caller-local bindings; active-section, query-year, and numeric-extractor
+helpers read graph state; `_period_scoped_count_value_from_text(...)` has no
+owner-local retrieval-pipeline caller and needs a separate ownership contract;
+task-record/artifact helpers are explicitly non-exported; normalization,
+row-ID cleaning, and numeric parsing have much wider fan-out. This name-only
+projection establishes no statement/section hint, planning, retrieval,
+evidence, answer, quality, performance, benchmark, schedule, ledger, or Phase
+3 completion claim.
+
+## Completed Generic Operand-Label Extractor Public API
+
+Commit `5a40a1b` renamed only the exact 32-line
+`financial_graph_helpers._extract_generic_operand_labels(...)` definition in
+place to public `extract_generic_operand_labels(...)`. It updated three owner-
+local calls, the evidence and reconciliation import/call pairs, 24 exact test
+symbol refs, 43 owner-count expectations, and 13 active derived hash records.
+It added no alias, wrapper, body/owner move, vocabulary, policy/ontology entry,
+parser regex, cleaning/dedupe rule, catch, mutation, or adjacent cleanup.
+
+Raw query handling, compound-expansion order, quoted/ontology/period label
+collection, group and Korean-visible-name gates, alias cleanup, derived-label
+filtering, fresh return allocation, all five caller gates, identities,
+immutability, evaluation counts, and propagated errors remain exact. Final
+definition/body SHA-256 values are `cc735ac2...` / `abc6c324...`; selected
+private/public records are 0/32, source definition/import/load is 1/2/5, and
+owner public/private counts are 15/65.
+
+Actual source/tests/whole transforms were `+8/-8`, `+80/-80`, and `+88/-88`;
+committed diff SHA-256 is
+`9178abee5984c8be5c76e2f7be8a34c1335d2cf4008d00a6ac9d90587a0c136c`.
+The implementation is byte-identical to the corrected projected-public
+rehearsal. Exact affected methods 51/51 passed in 76.902 seconds, focused tests
+634/634 in 176.992 seconds, audit 217, pycompile 3/3, unchanged 48/203 DAG,
+and full discovery 2,143/2,143 in 218.887 seconds passed. Benchmark refresh and
+remote CI were **NOT RUN**. This name-only cleanup establishes no operand-label,
+planning, retrieval, evidence, reconciliation, answer, quality, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Generic operand-label extractor characterization checkpoint (historical)
 
 Rename only the exact 32-line
 `src.agent.financial_graph_helpers._extract_generic_operand_labels(
