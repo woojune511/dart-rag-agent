@@ -1287,7 +1287,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 return_value=built_projection,
             ) as builder,
         ):
@@ -1332,7 +1332,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 builder,
             ),
         ):

@@ -12985,7 +12985,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (9, 22),
+            (10, 21),
         )
 
         class BindingVisitor(ast.NodeVisitor):
@@ -13540,7 +13540,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ) as gap_owner,
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 side_effect=runtime_builder,
             ) as builder_owner,
             patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalise) as normalise_owner,
@@ -13604,7 +13604,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 side_effect=RuntimeError("operation failed"),
             ),
             patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods") as stopped_conflict,
-            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+            patch.object(financial_aggregate_projection, "build_runtime_aggregate_calculation_projection") as stopped_builder,
         ):
             with self.assertRaisesRegex(RuntimeError, "operation failed"):
                 financial_aggregate_projection.build_aggregate_calculation_projection([safe_row], "answer")
@@ -13619,7 +13619,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "material_gap_feedback_for_subtask_result",
                 side_effect=RuntimeError("gap failed"),
             ),
-            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+            patch.object(financial_aggregate_projection, "build_runtime_aggregate_calculation_projection") as stopped_builder,
         ):
             with self.assertRaisesRegex(RuntimeError, "gap failed"):
                 financial_aggregate_projection.build_aggregate_calculation_projection(
@@ -13632,7 +13632,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup"),
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 return_value={
                     "calculation_operands": [],
                     "calculation_plan": {},
@@ -13718,7 +13718,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 side_effect=runtime_builder,
             ),
             patch.object(financial_aggregate_projection, "attach_runtime_projection_metadata", side_effect=attach),
@@ -13776,7 +13776,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value=(subtask_rows, "public answer"),
             ),
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value="public answer"),
-            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+            patch.object(financial_aggregate_projection, "build_runtime_aggregate_calculation_projection") as stopped_builder,
         ):
             same_trace = {"calculation_result": {"formatted_result": "public answer"}}
             self.assertEqual(
@@ -13797,7 +13797,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "preferred_complete_aggregate_subtask_answer",
                 side_effect=RuntimeError("preferred failed"),
             ),
-            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+            patch.object(financial_aggregate_projection, "build_runtime_aggregate_calculation_projection") as stopped_builder,
         ):
             with self.assertRaisesRegex(RuntimeError, "preferred failed"):
                 financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace)
@@ -13813,7 +13813,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "preferred_complete_aggregate_subtask_answer", return_value=""),
             patch.object(
                 financial_aggregate_projection,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 return_value={"calculation_result": {}},
             ),
             patch.object(financial_aggregate_projection, "attach_runtime_projection_metadata") as stopped_attach,
@@ -14089,7 +14089,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         runtime_private_defs = [
             node
             for node in runtime_trace_tree.body
-            if isinstance(node, ast.FunctionDef) and node.name == "_build_aggregate_calculation_projection"
+            if isinstance(node, ast.FunctionDef) and node.name == "build_runtime_aggregate_calculation_projection"
         ]
         self.assertEqual(len(runtime_private_defs), 1)
         all_private_build_calls = []
@@ -14098,7 +14098,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call):
                     continue
-                if isinstance(node.func, ast.Name) and node.func.id == "_build_aggregate_calculation_projection":
+                if isinstance(node.func, ast.Name) and node.func.id == "build_runtime_aggregate_calculation_projection":
                     all_private_build_calls.append((path.name, node.lineno))
         self.assertEqual(len(all_private_build_calls), 6)
 
@@ -14115,7 +14115,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "growth_row_has_conflicting_periods",
                     "material_gap_feedback_for_subtask_result",
                     "attach_runtime_projection_metadata",
-                    "_build_aggregate_calculation_projection",
+                    "build_runtime_aggregate_calculation_projection",
                     "structured_result_subtask_rows_and_answer",
                 )
             },
@@ -14124,7 +14124,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "growth_row_has_conflicting_periods": 0,
                 "material_gap_feedback_for_subtask_result": 0,
                 "attach_runtime_projection_metadata": 0,
-                "_build_aggregate_calculation_projection": 0,
+                "build_runtime_aggregate_calculation_projection": 0,
                 "structured_result_subtask_rows_and_answer": 0,
             },
         )

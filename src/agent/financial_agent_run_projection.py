@@ -16,7 +16,7 @@ from src.agent.financial_graph_state import (
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     attach_runtime_projection_metadata,
-    _build_aggregate_calculation_projection,
+    build_runtime_aggregate_calculation_projection,
     structured_result_subtask_rows_and_answer,
 )
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
@@ -124,7 +124,7 @@ def complete_aggregate_public_answer_projection(
     )
     if not complete_answer:
         return "", {}
-    projection = _build_aggregate_calculation_projection(
+    projection = build_runtime_aggregate_calculation_projection(
         subtask_results,
         complete_answer,
     )

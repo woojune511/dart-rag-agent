@@ -58,7 +58,7 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_runtime_trace import (
     attach_runtime_projection_metadata,
-    _build_aggregate_calculation_projection,
+    build_runtime_aggregate_calculation_projection,
     structured_result_subtask_rows_and_answer,
     operand_row_has_material_numeric_payload,
 )
@@ -358,7 +358,7 @@ def build_aggregate_calculation_projection(
         )
         projection_rows.append(row_copy)
 
-    aggregate_projection = _build_aggregate_calculation_projection(projection_rows, final_answer)
+    aggregate_projection = build_runtime_aggregate_calculation_projection(projection_rows, final_answer)
     aggregate_evidence: List[Dict[str, Any]] = []
     seen_evidence_ids: set[str] = set()
 
@@ -418,7 +418,7 @@ def structured_subtask_projection_for_public_answer(
     ) or public_answer
     if current_rendered and current_rendered == public_answer and projection_answer == public_answer:
         return {}
-    projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
+    projection = build_runtime_aggregate_calculation_projection(subtask_results, projection_answer)
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return {}

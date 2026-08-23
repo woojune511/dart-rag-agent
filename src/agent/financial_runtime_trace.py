@@ -1014,7 +1014,7 @@ def _aggregate_answer_slot_subtask_results(subtask_result_views: List[Dict[str, 
     ]
 
 
-def _build_aggregate_calculation_projection(
+def build_runtime_aggregate_calculation_projection(
     subtask_results: List[Dict[str, Any]],
     final_answer: str,
 ) -> Dict[str, Any]:
@@ -1280,7 +1280,7 @@ def _structured_result_subtask_projection_if_public_aligned(
             or ""
         )
     )
-    projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
+    projection = build_runtime_aggregate_calculation_projection(subtask_results, projection_answer)
     projection_operands = [
         dict(item)
         for item in list(projection.get("calculation_operands") or [])
@@ -1396,7 +1396,7 @@ def _resolve_runtime_calculation_trace(
     if subtask_results:
         final_answer = str(result.get("answer") or result.get("compressed_answer") or "").strip()
         return attach_runtime_projection_metadata(
-            _build_aggregate_calculation_projection(subtask_results, final_answer),
+            build_runtime_aggregate_calculation_projection(subtask_results, final_answer),
             source="aggregate_subtasks",
         )
 

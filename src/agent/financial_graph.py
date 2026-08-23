@@ -72,7 +72,7 @@ from src.agent.financial_graph_reconciliation import FinancialAgentReconciliatio
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     attach_runtime_projection_metadata,
-    _build_aggregate_calculation_projection,
+    build_runtime_aggregate_calculation_projection,
     _resolve_runtime_calculation_trace,
     structured_result_subtask_rows_and_answer,
     repair_collapsed_ratio_trace_from_evidence,
@@ -128,7 +128,7 @@ class FinancialAgent(
             public_answer,
         ):
             return "", {}
-        projection = _build_aggregate_calculation_projection(subtask_results, replacement_answer)
+        projection = build_runtime_aggregate_calculation_projection(subtask_results, replacement_answer)
         projection_result = dict(projection.get("calculation_result") or {})
         if not projection_result.get("subtask_results"):
             return "", {}

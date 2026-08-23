@@ -1023,7 +1023,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         ), patch.multiple(
             financial_graph,
             answer_covers_numeric_answer=coverage,
-            _build_aggregate_calculation_projection=projection_builder,
+            build_runtime_aggregate_calculation_projection=projection_builder,
         ):
             self.assertEqual(project_result({}), ("", {}))
             replacement_builder.assert_not_called()
@@ -4823,7 +4823,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 side_effect=build,
             ),
             patch.object(
@@ -4870,7 +4870,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 "preferred_complete_aggregate_subtask_answer",
                 return_value="",
             ) as preferred_mock,
-            patch.object(owner, "_build_aggregate_calculation_projection", builder),
+            patch.object(owner, "build_runtime_aggregate_calculation_projection", builder),
         ):
             self.assertEqual(
                 owner.complete_aggregate_public_answer_projection(
@@ -4896,7 +4896,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 return_value=projection_without_rows,
             ),
             patch.object(owner, "attach_runtime_projection_metadata", attach_owner),
@@ -4919,7 +4919,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 "preferred_complete_aggregate_subtask_answer",
                 side_effect=RuntimeError("preferred failed"),
             ),
-            patch.object(owner, "_build_aggregate_calculation_projection", downstream),
+            patch.object(owner, "build_runtime_aggregate_calculation_projection", downstream),
             self.assertRaisesRegex(RuntimeError, "preferred failed"),
         ):
             owner.complete_aggregate_public_answer_projection(
@@ -4937,7 +4937,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ),
             patch.object(
                 owner,
-                "_build_aggregate_calculation_projection",
+                "build_runtime_aggregate_calculation_projection",
                 return_value=built_projection,
             ),
             patch.object(
@@ -5366,7 +5366,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(owner_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 1)
         self.assertEqual(graph_name_loads.count("preferred_complete_aggregate_subtask_answer"), 1)
         self.assertEqual(graph_name_loads.count("attach_runtime_projection_metadata"), 2)
-        self.assertEqual(graph_name_loads.count("_build_aggregate_calculation_projection"), 1)
+        self.assertEqual(graph_name_loads.count("build_runtime_aggregate_calculation_projection"), 1)
         self.assertEqual(graph_name_loads.count("structured_result_subtask_rows_and_answer"), 2)
         graph_imports = [
             alias.name
