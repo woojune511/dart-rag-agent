@@ -864,7 +864,7 @@ class FinancialRatioPresentationTests(unittest.TestCase):
         infer_owner = Mock(return_value=sentinel)
         with (
             patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
-            patch.object(financial_graph_helpers, "_build_concept_task_constraints", return_value={"ready": True}),
+            patch.object(financial_graph_helpers, "build_concept_task_constraints", return_value={"ready": True}),
             patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", return_value=["retrieval"]),
             patch.object(financial_graph_helpers, "_build_metric_task_query", return_value="task query"),
             patch.object(financial_graph_helpers, "infer_concept_ratio_result_unit", infer_owner),
@@ -882,7 +882,7 @@ class FinancialRatioPresentationTests(unittest.TestCase):
 
         with (
             patch.object(financial_graph_helpers, "_infer_statement_and_section_hints", return_value=([], [])),
-            patch.object(financial_graph_helpers, "_build_concept_task_constraints", return_value={}),
+            patch.object(financial_graph_helpers, "build_concept_task_constraints", return_value={}),
             patch.object(financial_graph_helpers, "_build_generic_retrieval_queries", return_value=[]),
             patch.object(financial_graph_helpers, "_build_metric_task_query", return_value="task query"),
             patch.object(

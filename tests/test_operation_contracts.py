@@ -31,7 +31,7 @@ from src.agent import financial_graph_evidence, financial_operand_resolution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
-    _build_concept_task_constraints,
+    build_concept_task_constraints,
     _build_semantic_numeric_plan,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
@@ -2871,7 +2871,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_lookup_task_prefers_current_period_when_operand_role_is_current(self) -> None:
-        constraints = _build_concept_task_constraints(
+        constraints = build_concept_task_constraints(
             "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
             {"company": "네이버", "year": 2023},
             self.ontology,
@@ -2886,7 +2886,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(constraints["period_focus"], "current")
 
     def test_difference_task_uses_multi_period_when_current_and_prior_are_both_required(self) -> None:
-        constraints = _build_concept_task_constraints(
+        constraints = build_concept_task_constraints(
             "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고 전년 대비 증감액을 계산해 줘.",
             {"company": "네이버", "year": 2023},
             self.ontology,

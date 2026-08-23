@@ -20,7 +20,7 @@ from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
     build_concept_metric_label,
     _build_concept_required_operands,
-    _build_concept_task_constraints,
+    build_concept_task_constraints,
     _build_generic_retrieval_queries,
     _build_metric_task_query,
     _build_semantic_numeric_plan,
@@ -446,7 +446,7 @@ class FinancialAgentPlanningMixin:
                 preferred_sections.extend(operand.get("preferred_sections") or [])
             preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
             preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
-            constraints = _build_concept_task_constraints(
+            constraints = build_concept_task_constraints(
                 query,
                 report_scope,
                 ontology,

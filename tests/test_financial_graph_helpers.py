@@ -484,7 +484,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             (
@@ -1898,7 +1898,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             (
@@ -2876,7 +2876,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(row_counts, (20, 6))
 
         graph_row_imports = {
@@ -3936,7 +3936,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             (
@@ -4983,7 +4983,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             (
@@ -6722,7 +6722,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (12, 68))
+        self.assertEqual(current_graph_counts, (13, 67))
         self.assertEqual(current_operand_counts, (68, 23))
 
         def imported_names(module_name, imported_module):
@@ -8193,7 +8193,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(owner_counts, (10, 4))
 
         def imported_names(module_name, imported_module):
@@ -9288,7 +9288,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (
                     query_name,
                     "financial_graph_helpers",
-                    "_build_concept_task_constraints",
+                    "build_concept_task_constraints",
                     "Name",
                     (
                         "query",
@@ -9301,7 +9301,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 (
                     task_name,
                     "financial_graph_helpers",
-                    "_build_concept_task_constraints",
+                    "build_concept_task_constraints",
                     "Name",
                     ("operation_family", "operand_specs", "period_focus"),
                     (),
@@ -9373,7 +9373,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(owner_counts, (17, 3))
 
         def imported_names(module_name, imported_module):
@@ -9636,7 +9636,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, task_name, side_effect=concept_task_period),
             patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
         ):
-            concept = financial_graph_helpers._build_concept_task_constraints(
+            concept = financial_graph_helpers.build_concept_task_constraints(
                 query,
                 report_scope,
                 ontology,
@@ -9663,7 +9663,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, task_name, skipped_task_period),
             patch.object(financial_graph_helpers, "TASK_CONSTRAINT_POLICY", {"segment_markers": ()}),
         ):
-            empty_concept = financial_graph_helpers._build_concept_task_constraints(
+            empty_concept = financial_graph_helpers.build_concept_task_constraints(
                 query,
                 report_scope,
                 ontology,
@@ -9686,7 +9686,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_normalise_spaces", stopped_normalize),
         ):
             with self.assertRaisesRegex(RuntimeError, "concept query period failed"):
-                financial_graph_helpers._build_concept_task_constraints(
+                financial_graph_helpers.build_concept_task_constraints(
                     query,
                     report_scope,
                     ontology,
@@ -9708,7 +9708,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_normalise_spaces", stopped_normalize),
         ):
             with self.assertRaisesRegex(RuntimeError, "concept task period failed"):
-                financial_graph_helpers._build_concept_task_constraints(
+                financial_graph_helpers.build_concept_task_constraints(
                     query,
                     report_scope,
                     ontology,
@@ -10413,7 +10413,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(row_counts, (20, 6))
 
         def imported_names(module_name, imported_module):
@@ -11704,7 +11704,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_build_concept_task_constraints",
+                "build_concept_task_constraints",
                 return_value={"segment_scope": "segment"},
             ),
             patch.object(
@@ -12972,7 +12972,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -15843,7 +15843,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_structured_cells"}
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_structured_cells": (5, 3),
             },
         )
@@ -18843,7 +18843,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (12, 68),
+            (13, 67),
         )
         self.assertEqual(
             (
@@ -19848,7 +19848,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 if module_name in {"financial_graph_helpers", "financial_surface_contracts"}
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_surface_contracts": (21, 1),
             },
         )
@@ -20646,7 +20646,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_scope_policies": (17, 3),
             },
@@ -21562,7 +21562,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
             },
         )
@@ -22189,7 +22189,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_row_surfaces": (20, 6),
             },
@@ -23044,7 +23044,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (12, 68), "financial_operand_resolution": (68, 23)},
+            {"financial_graph_helpers": (13, 67), "financial_operand_resolution": (68, 23)},
         )
 
         def imported_modules(tree):
@@ -23716,7 +23716,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (12, 68), "financial_row_surfaces": (20, 6)},
+            {"financial_graph_helpers": (13, 67), "financial_row_surfaces": (20, 6)},
         )
 
         def imported_modules(tree):
@@ -24315,7 +24315,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (12, 68), "financial_scope_policies": (17, 3)},
+            {"financial_graph_helpers": (13, 67), "financial_scope_policies": (17, 3)},
         )
 
         def imported_modules(tree):
@@ -25147,7 +25147,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -26102,7 +26102,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -27113,7 +27113,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -28277,7 +28277,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -29553,7 +29553,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -30469,7 +30469,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (12, 68), "financial_operand_resolution": (68, 23)},
+            {"financial_graph_helpers": (13, 67), "financial_operand_resolution": (68, 23)},
         )
 
         def imported_modules(tree):
@@ -31194,7 +31194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
                 for module_name, tree in module_trees.items()
             },
-            {"financial_graph_helpers": (12, 68), "financial_operand_resolution": (68, 23)},
+            {"financial_graph_helpers": (13, 67), "financial_operand_resolution": (68, 23)},
         )
 
         def imported_modules(tree):
@@ -32270,7 +32270,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
                 if module_name in {"financial_graph_helpers", "financial_operand_resolution"}
             },
-            {"financial_graph_helpers": (12, 68), "financial_operand_resolution": (68, 23)},
+            {"financial_graph_helpers": (13, 67), "financial_operand_resolution": (68, 23)},
         )
 
         def imported_modules(tree):
@@ -33194,7 +33194,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
             },
         )
@@ -34792,7 +34792,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, tree in module_trees.items()
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
             },
         )
@@ -36028,7 +36028,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(name.startswith("_") for name in names),
             )
 
-        self.assertEqual(function_counts("financial_graph_helpers"), (12, 68))
+        self.assertEqual(function_counts("financial_graph_helpers"), (13, 67))
         self.assertEqual(function_counts("financial_operand_resolution"), (68, 23))
 
         def imported_names(module_name, imported_module):
@@ -37222,9 +37222,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         graph_counts = function_counts("financial_graph_helpers")
         operand_counts = function_counts("financial_operand_resolution")
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(operand_counts, (68, 23))
-        self.assertEqual((graph_counts[0], graph_counts[1] + 1), (12, 69))
+        self.assertEqual((graph_counts[0], graph_counts[1] + 1), (13, 68))
         self.assertEqual((operand_counts[0] - 1, operand_counts[1]), (67, 23))
 
         def imported_names(module_name, imported_module):
@@ -38521,9 +38521,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
 
         graph_counts = function_counts("financial_graph_helpers")
         operand_counts = function_counts("financial_operand_resolution")
-        self.assertEqual(graph_counts, (12, 68))
+        self.assertEqual(graph_counts, (13, 67))
         self.assertEqual(operand_counts, (68, 23))
-        self.assertEqual((graph_counts[0], graph_counts[1] + 1), (12, 69))
+        self.assertEqual((graph_counts[0], graph_counts[1] + 1), (13, 68))
         self.assertEqual((operand_counts[0] - 1, operand_counts[1]), (67, 23))
 
         def imported_names(module_name, imported_module):
@@ -39791,7 +39791,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(name.startswith("_") for name in names),
             )
 
-        self.assertEqual(function_counts("financial_graph_helpers"), (12, 68))
+        self.assertEqual(function_counts("financial_graph_helpers"), (13, 67))
         self.assertEqual(function_counts("financial_operand_resolution"), (68, 23))
 
         def imported_names(module_name, imported_module):
@@ -40551,7 +40551,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -41462,7 +41462,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -42378,7 +42378,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -43364,7 +43364,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -44533,7 +44533,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -45639,7 +45639,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 }
             },
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
                 "financial_surface_contracts": (21, 1),
             },
@@ -47441,7 +47441,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             caller_owner_counts,
             {
                 "financial_graph_evidence": (0, 2, 1),
-                "financial_graph_helpers": (12, 68, 0),
+                "financial_graph_helpers": (13, 67, 0),
                 "financial_graph_reconciliation": (0, 0, 1),
             },
         )
@@ -48647,7 +48647,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_owner_counts,
             {
-                "financial_graph_helpers": (12, 68),
+                "financial_graph_helpers": (13, 67),
                 "financial_operand_resolution": (68, 23),
             },
         )
@@ -71087,7 +71087,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ),
                 (
                     "financial_graph_helpers",
-                    "_build_concept_task_constraints",
+                    "build_concept_task_constraints",
                     ["query", "report_scope"],
                     [],
                     0,
@@ -71126,7 +71126,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_call_hash,
             (
-                "e3d28ed0a3cbc5c6d139ebb69f51c78a64e4c6cea7e10bcc3352e6394e68d071"
+                "98df8fc24ee991fb3e6def998890da2ffc863cf56583bf2114770a7b390b74a7"
                 if target_name == future_public_name
                 else "cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b"
             ),
@@ -71146,7 +71146,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_caller_map_hash,
             (
-                "63e9839cacc5b5cf50cb0f9c4d80cf23828dd48d769d43d421b5cd20eb48a7d5"
+                "0cc752fce34aba2d49562e0ecc6957ce760ac43a4fe8df439fcb7d9d4e017ff4"
                 if target_name == future_public_name
                 else "9d4d51b55b4e49a4d6dd759a97246a83fa8af6046b44fa095d1eb6358b8fddb0"
             ),
@@ -71393,7 +71393,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "e3d28ed0a3cbc5c6d139ebb69f51c78a64e4c6cea7e10bcc3352e6394e68d071",
+            "98df8fc24ee991fb3e6def998890da2ffc863cf56583bf2114770a7b390b74a7",
         )
         projected_caller_payload = {
             f"{module_name}:{caller_name}": digest
@@ -71407,7 +71407,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "63e9839cacc5b5cf50cb0f9c4d80cf23828dd48d769d43d421b5cd20eb48a7d5",
+            "0cc752fce34aba2d49562e0ecc6957ce760ac43a4fe8df439fcb7d9d4e017ff4",
         )
 
         import src.agent.financial_graph_calculation_rendering as financial_graph_calculation_rendering
@@ -71689,7 +71689,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 {"segment_markers": ()},
             ),
         ):
-            concept_result = financial_graph_helpers._build_concept_task_constraints(
+            concept_result = financial_graph_helpers.build_concept_task_constraints(
                 concept_query,
                 concept_scope,
                 concept_ontology,

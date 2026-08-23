@@ -1753,7 +1753,7 @@ def build_concept_metric_label(
     return _clean_metric_label(query) or str(label_policy.get("fallback_label") or "")
 
 
-def _build_concept_task_constraints(
+def build_concept_task_constraints(
     query: str,
     report_scope: Dict[str, Any],
     ontology: Any,
@@ -2517,7 +2517,7 @@ def _compose_concept_numeric_task(
         preferred_sections.extend(spec.get("preferred_sections") or [])
     preferred_statement_types = list(dict.fromkeys(item for item in preferred_statement_types if str(item).strip()))
     preferred_sections = list(dict.fromkeys(item for item in preferred_sections if str(item).strip()))
-    constraints = _build_concept_task_constraints(
+    constraints = build_concept_task_constraints(
         query,
         report_scope,
         ontology,
@@ -2591,7 +2591,7 @@ def _split_multi_lookup_concept_task(
     for zero_based_index, operand in enumerate(operand_specs):
         index = zero_based_index + 1
         metric_label = str(operand.get("label") or task.get("metric_label") or "").strip()
-        constraints = _build_concept_task_constraints(
+        constraints = build_concept_task_constraints(
             query,
             report_scope,
             ontology,
