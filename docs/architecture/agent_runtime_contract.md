@@ -7093,35 +7093,54 @@ Byte-identical projected-public behavior/identity 53/53, exact 8/8, focused
 completion evidence is authoritative in
 [Project Status Completed Runtime Aggregate Projection](../overview/project_status.md#completed-runtime-aggregate-calculation-projection-public-api).
 
-The active visibility contract now renames only the exact 31-line
-`financial_runtime_normalization._format_korean_won_compact(value: float) -> str`
-definition in place to public `format_korean_won_compact(...)`, then updates
-the two external import/call pairs in calculation rendering and runtime trace.
-Add no alias, wrapper, body/owner move, module, test method, format policy,
-suffix/scale rule, coercion, catch, trace/answer/evidence decision, mutation, or
-adjacent cleanup. No existing exact-name test binding or owner-count expectation
-changes.
+Commit `814d7bf` completed the exact 31-line Korean-won compact formatter
+visibility contract by renaming the definition in place to public
+`format_korean_won_compact(...)`. The two external import/call pairs changed;
+no alias, wrapper, body/owner move, format policy, suffix/scale rule, coercion,
+catch, answer/trace/evidence decision, mutation, or caller sequencing changed.
+The declarative policy copy, rounding/decomposition/formatting behavior,
+propagated errors, and both try-depth-zero caller gates remain exact. Final
+definition/body hashes are `16eebe7a...` / `a27eb870...`; actual source/tests/
+whole transforms were `+5/-5`, `+0/-0`, and `+5/-5`, with committed diff
+SHA-256 `4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+Byte-identical behavior/identity 13/13, exact structural 4/4, focused 780/780,
+audit 217, pycompile 3/3, unchanged 48/203 DAG, and full 2,143/2,143 passed.
+Benchmark refresh and remote CI were **NOT RUN**. Exact completion evidence is
+authoritative in
+[Project Status Completed Korean-Won Formatter](../overview/project_status.md#completed-korean-won-compact-formatter-public-api).
 
-Preserve the shallow `KOREAN_WON_COMPACT_FORMAT_POLICY` copy, ordered integer
-conversion/defaults, exact `abs`/`round`/`int` sequence, threshold branch,
-trillion/hundred-million/ten-thousand decomposition, fresh parts list, jo/eok/
-man/base branching, configured suffix defaults, comma formatting, exact join,
-raw-value negative prefix, input immutability, and all propagated errors. Both
-external calls remain positional and at try depth zero. Calculation rendering
-still invokes the formatter only for exact normalized `KRW` and returns it
-directly; numeric-slot matching still tries the compact surface only after
-value/unit normalization and before numeric-surface extraction.
+The active visibility contract now renames only the exact 51-line
+`financial_formula_eval._safe_eval_formula(expression: str, variables: Dict[str, float]) -> float`
+definition in place to public `safe_eval_formula(...)`. Update the sole
+calculation-execution import, its two positional calls, ten existing test patch
+bindings, and four derived caller/payload hashes. Add no alias, wrapper,
+body/owner move, module, test method, AST node or allowed function, coercion,
+catch, result/status rule, mutation, or adjacent calculation cleanup.
 
-Definition hashes project `48ebd834...` to `16eebe7a...`; the unchanged body is
-`a27eb870...`. Selected private/public records project 0/5, source definition/
-import/load records remain 1/2/2, owner counts move 1/6 to 2/5, and source/
-tests/whole project `+5/-5`, `+0/-0`, and `+5/-5`. Exact temporary diff SHA-256
-is `4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
-Restored current-private and projected-public behavior/identity passed 13/13;
-the temporary projection passed exact 4/4, focused 780/780, audit 217,
-pycompile 3/3, diff check, and unchanged 48/203 DAG, then was restored cleanly.
-Full 2,143/2,143 remains the implementation gate. Exact hashes, expectations,
-and stop lines are authoritative in
+Preserve `ast.parse(..., mode="eval")`, the recursive evaluator and exact
+Expression/Constant/Name/UnaryOp/BinOp/Call/unsupported dispatch order. Keep
+existing constant and name coercion, eager unary evaluation, left-before-right
+binary evaluation, explicit zero-division guard, direct-name call requirement,
+allow-list lookup before keyword rejection, left-to-right fresh positional-arg
+evaluation, result float conversion, exact errors, input/allow-list identity,
+and every currently propagated exception.
+
+Both production calls remain positional and at caller try depth one. Prepared-
+plan execution keeps the outer float conversion and maps `ZeroDivisionError` to
+`zero_division` and every other `Exception` to `parse_error`. Time-series growth
+keeps previous/current float conversion before its pair try, passes a fresh
+`{"PREV": prev_value, "CURR": curr_value}` mapping, converts only
+`ZeroDivisionError` to appended `None`, and propagates all other failures.
+
+Definition hashes project `8a6d4795...` to `b265eb74...`; the unchanged body is
+`91d52cfb...`. Selected private/public records project 0/14, source definition/
+import/load records stay 1/1/2, owner counts move 0/1 to 1/0, and source/tests/
+whole project `+4/-4`, `+14/-14`, and `+18/-18`. Exact temporary diff SHA-256
+is `e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+Projected-public direct behavior/identity 31/31, corrected exact contracts 5/5,
+focused 863/863, audit 217, pycompile 2/2, diff check, and unchanged 48/203 DAG
+passed before clean restoration. Full 2,143/2,143 remains the implementation
+gate. Exact hashes, expectations, and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

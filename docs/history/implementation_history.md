@@ -11558,9 +11558,10 @@ are complete. It remains only as an audit record, not an active priority.
 
 ### Korean-won compact formatter public API characterization checkpoint
 
-- The next bounded visibility batch renames only the exact 31-line
+- This checkpoint preceded `814d7bf`. At that point the next bounded visibility
+  batch was characterized to rename only the exact 31-line
   `financial_runtime_normalization._format_korean_won_compact(...)` definition
-  in place to public `format_korean_won_compact(...)`, then updates only the
+  in place to public `format_korean_won_compact(...)`, then update only the
   two external import/call pairs in calculation rendering and runtime trace.
   Add no alias, wrapper, body/owner move, module, test method, format policy,
   suffix/scale rule, coercion, catch, trace/answer/evidence decision, mutation,
@@ -11584,7 +11585,61 @@ are complete. It remains only as an audit record, not an active priority.
   13/13 each. The temporary projection passed exact affected contracts 4/4 in
   1.772 seconds, focused 780/780 in 23.851 seconds, audit 217, pycompile 3/3,
   retired refs zero, diff check, and unchanged acyclic 48/203 DAG, then was
-  restored cleanly. Full 2,143/2,143 remains the implementation gate.
-  Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and stop
-  lines are authoritative in
+  restored cleanly. Commit `814d7bf` later passed full 2,143/2,143 and completed
+  the implementation gate. Benchmark refresh and remote CI were **NOT RUN**.
+  The completed scope is authoritative in
+  [Project Status Completed Korean-Won Formatter](../overview/project_status.md#completed-korean-won-compact-formatter-public-api).
+
+### Korean-won compact formatter public API completed
+
+- Commit `814d7bf` renamed only the exact 31-line
+  `financial_runtime_normalization._format_korean_won_compact(...)` definition
+  in place to public `format_korean_won_compact(...)`, then updated the two
+  external import/call pairs in calculation rendering and runtime trace. It
+  added no alias, wrapper, body/owner move, module, test method, policy/rule,
+  coercion, catch, answer/trace/evidence decision, mutation, or adjacent cleanup.
+- The declarative format-policy copy, ordered conversion/defaults, exact
+  rounding and jo/eok/man/base decomposition, configured suffixes, formatting,
+  negative prefix, input immutability, propagated errors, and both try-depth-
+  zero caller gates remain exact. Final definition/body hashes are
+  `16eebe7a...` / `a27eb870...`; selected private/public records are 0/5,
+  source definition/import/load is 1/2/2, and owner counts are 2/5.
+- Actual source/tests/whole transforms were `+5/-5`, `+0/-0`, and `+5/-5`;
+  committed diff SHA-256 is
+  `4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+  The implementation is byte-identical to the projected-public behavior/
+  identity 13/13 rehearsal. Fresh exact structural checks 4/4, focused 780/780
+  in 27.570 seconds, audit 217, pycompile 3/3, unchanged 48/203 DAG, and full
+  2,143/2,143 in 232.644 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. This name-only cleanup establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Restricted formula evaluator public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 51-line
+  `financial_formula_eval._safe_eval_formula(...)` definition in place to
+  public `safe_eval_formula(...)`, then updates one calculation-execution import,
+  two positional calls, ten existing test patch bindings, and four derived
+  caller/payload hashes. Add no alias, wrapper, body/owner move, module, test
+  method, AST node or allowed function, coercion, catch, result/status rule,
+  mutation, or adjacent calculation cleanup.
+- Preserve parse mode, recursive dispatch order, constant/name coercion, eager
+  unary and left-before-right binary evaluation, supported operations, explicit
+  zero-division guard, direct-name call and allow-list order, keyword rejection,
+  positional argument/result conversion, exact errors, input identities, and
+  propagated exceptions. Preserve the prepared-plan `zero_division` versus
+  `parse_error` mapping and time-series `ZeroDivisionError`-only `None` behavior.
+- Current-private/future-public definition hashes are `8a6d4795...` /
+  `b265eb74...`; the unchanged body is `91d52cfb...`. Selected private/public
+  records project 0/14, source definition/import/load remains 1/1/2, owner
+  counts move 0/1 to 1/0, and source/tests/whole project `+4/-4`, `+14/-14`, and
+  `+18/-18`. Exact temporary diff SHA-256 is
+  `e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+- Projected-public direct behavior/identity passed 31/31. After correcting the
+  full four-hash derived contract, exact affected contracts 5/5 in 6.711
+  seconds, focused 863/863 in 188.954 seconds, audit 217, pycompile 2/2,
+  retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed; the
+  projection was restored cleanly. Full 2,143/2,143 remains the implementation
+  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and
+  stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

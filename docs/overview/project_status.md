@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `3062222` renamed only the exact 59-line `financial_runtime_trace._build_aggregate_calculation_projection(...)` definition in place to the distinct public name `build_runtime_aggregate_calculation_projection(...)` and updated three external imports, four external calls, two owner-local calls, 21 existing test symbol bindings, and one owner-count expectation |
-| What passed? | Exact affected contracts 8/8, focused tests 837/837, runtime audit 217, pycompile 7/7, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `3062222`; the implementation diff is byte-identical to the projected-public behavior/identity 53/53 rehearsal |
+| What just changed? | `814d7bf` renamed only the exact 31-line `financial_runtime_normalization._format_korean_won_compact(...)` definition in place to public `format_korean_won_compact(...)` and updated the two external import/call pairs in calculation rendering and runtime trace |
+| What passed? | Exact structural checks 4/4, private/public behavior and identity 13/13, focused tests 780/780, runtime audit 217, pycompile 3/3, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `814d7bf`; the implementation diff is byte-identical to the projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 31-line `financial_runtime_normalization._format_korean_won_compact(...)` definition in place to public `format_korean_won_compact(...)`; update the two external import/call pairs in calculation rendering and runtime trace |
+| What is next? | Rename only the exact 51-line `financial_formula_eval._safe_eval_formula(...)` definition in place to public `safe_eval_formula(...)`; update the calculation-execution import/two calls, ten existing test patch bindings, and four derived caller/payload hashes |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, runtime aggregate projection exact affected contracts 8 / 8 and affected focused set 837 / 837 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime aggregate projection public rename |
+| Latest focused owner checkpoint | PASS, Korean-won formatter exact structural checks 4 / 4 and affected focused set 780 / 780 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after Korean-won formatter public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -799,87 +799,134 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 31-line
-`src.agent.financial_runtime_normalization._format_korean_won_compact(
-value: float) -> str` definition at lines 124-154 in place to public
-`format_korean_won_compact(...)`. Update only the two external import/call pairs
-in `financial_graph_calculation_rendering.py` and
-`financial_runtime_trace.py`. Add no alias, wrapper, body/owner move, module,
-test method, format policy, suffix/scale rule, coercion, catch, trace/answer/
-evidence decision, state/artifact/ledger mutation, or adjacent normalization or
-rendering cleanup. No existing exact-name test binding or owner-count
-expectation changes.
+Rename only the exact 51-line
+`src.agent.financial_formula_eval._safe_eval_formula(
+expression: str, variables: Dict[str, float]) -> float` definition at lines
+19-69 in place to public `safe_eval_formula(...)`. Update the sole import in
+`financial_calculation_execution.py`, its two positional calls, ten existing
+test patch bindings across `test_aggregate_subtask_projection.py` and
+`test_operation_contracts.py`, and four derived caller/payload SHA expectations
+in one existing `test_financial_graph_helpers.py` CURRENT-SOURCE contract. Add
+no alias, wrapper, body/owner move, module, test method, allowed function or AST
+node, coercion, catch, result/status rule, state/artifact/ledger mutation, or
+adjacent calculation cleanup.
 
-Keep the helper in `financial_runtime_normalization.py`; it already consumes the
-declarative `KOREAN_WON_COMPACT_FORMAT_POLICY`, and the selected span intersects
-zero of the 217 reviewed runtime-domain records. Preserve the initial shallow
-policy copy, ordered integer conversion and falsey defaults for hundred-million
-threshold/scale, and the exact `abs`/`round`/`int` sequence. Values at or above
-the threshold still round after division and multiply back by the scale; lower
-values still round directly. Preserve the later raw `value < 0` comparison,
-trillion and ten-thousand scale conversion, floor-division/modulo decomposition,
-and mutation of only the local `amount`.
+Keep the evaluator in `financial_formula_eval.py`; the selected span intersects
+zero of the 217 reviewed runtime-domain records. Preserve `ast.parse(expression,
+mode="eval")`, creation of the nested recursive evaluator after parsing, and
+its exact dispatch order. `ast.Expression` still recurses into its body.
+Constants still accept Python `int`/`float` instances, including existing bool-
+as-int behavior, convert through `float`, and otherwise raise the same
+`ValueError`. Names still test exact membership in the supplied variables
+mapping before lookup and float conversion.
 
-Preserve the fresh parts list and exact jo/eok/man branching. A nonzero jo is
-appended first; a nonzero eok follows, otherwise jo adds the configured zero-
-hundred-million label. With neither, man is preferred over the separately
-recomputed base amount. Preserve configured suffix lookup/defaults, comma
-formatting, exact `" ".join(parts)`, negative-prefix attachment, Python rounding
-behavior, policy/input immutability, and every currently propagated policy-copy,
-mapping access, truth, integer, absolute-value, round, comparison, arithmetic,
-format, join, and allocation error.
+Preserve eager operand evaluation before unary-operator classification and
+left-before-right binary evaluation. Unary plus/minus, binary add/subtract/
+multiply/divide/power, the explicit `right == 0.0` division guard, and every
+unsupported-operator message remain exact. Calls still require a direct
+`ast.Name`, look up the module-owned `_ALLOWED_FORMULA_FUNCTIONS` mapping before
+keyword validation, reject any keyword, evaluate positional args left-to-right
+into a fresh list, call the selected function, and convert its result through
+`float`. Unsupported nodes still raise with the exact AST type name. Preserve
+variables and allow-list identities/immutability, Python arithmetic behavior,
+and every currently propagated parse, mapping, membership, lookup, conversion,
+recursion, function, overflow, domain, arity, allocation, and custom exception.
 
-Both external calls remain positional and at caller `try` depth zero. In
-`format_calculation_value(...)`, exact `normalized_unit == "KRW"` remains the
-first branch and returns the formatter result directly; all later percent/count/
-USD formatting remains skipped and formatter failures propagate. In
-`_answer_mentions_numeric_slot(...)`, the call remains after the existing
-normalized-value float conversion and normalized-unit projection, but before
-numeric-surface import/extraction. Only exact normalized KRW invokes it; a
-matching compact surface returns `True`, a miss continues, and a formatter
-failure stops all later candidate work.
+Both production calls remain positional and at caller `try` depth one. In
+`execute_prepared_calculation_plan(...)`, exact `formula` and prepared `env`
+remain inside the existing broad execution `try`; the evaluator result still
+passes through an outer `float`. `ZeroDivisionError` still becomes a
+`zero_division` outcome, every other `Exception` still becomes `parse_error`,
+and successful normalized-unit/result projection remains downstream. In
+`time_series_yoy_growth_rates(...)`, previous/current normalized-value float
+conversion remains before the per-pair `try`; the evaluator receives exact
+`pairwise_formula` and a fresh `{"PREV": prev_value, "CURR": curr_value}`.
+Only `ZeroDivisionError` is converted to appended `None`; all other failures
+propagate, successful values append directly, and the leading `[None]` plus
+input iteration/order remain exact.
 
 Current-private/future-public definition SHA-256 values are
-`48ebd83453b8145ada101c92e6deb710d6455405dd0255f4b2856ef0dc42f1cb` /
-`16eebe7a9912a19adbdd6bb9d92043c77f0a38e478f1a5c4a03c4de15e0e64c8`;
+`8a6d47951b92d8f29ad351b8c43fa8a306097bae6c4594c7f8b3be4e4a26b4d0` /
+`b265eb74c013e8faa675a3b48f20b0af58e92afc9b246ec6263aa1b4161a1a95`;
 the unchanged body hash is
-`a27eb8707dd8d71803c4feefa903c060713feb5ae02c9d5a97605b5957c4a03d`.
-The rendering caller definition/body hashes project
-`feb2e382c6c121218703003d722a2c0965ea699c165aa2e65a221d6f7697ff66` /
-`0bd9daf858647a914607c99e38c268f156d9b5eeb86dbb7fc9cd984228ba4852`
+`91d52cfb064001af050137eccc8d93cee09e7d75eddd44c5d37c8d1bfbab9ca3`.
+The execution caller definition/body hashes project
+`20a208d283760efe9870f461178a7491d0c2337269cc615b1ab256e1d9b57055` /
+`c065ec0fca3b6ba92bc23909c5fd5a3f1cc059dc3c67b48046ef7eeaf665698f`
 to
-`30ad9edf1e7a11723b8ca5a88306baae4d21cb64477e3c516747db10aa1343b0` /
-`fcd3079ccb05edd5ac179dc0082e582a01e183aab36cb67c568de50872382c6f`.
-The runtime-trace caller hashes project
-`7504f2069004e4034bca49b54eec6ea42caa66b14d22e9a78a0a8a7cecffa54b` /
-`333ff50bddd3f20ab8605ae94f079dca2675e0f2ef90e2abcf5be9db4ae9c3d3`
+`009d1624fc2cfbb611879ad524023c8926f691ebd86e987aa25d98b2f05f1010` /
+`02adee2a3d86149cb7d770afdc21bebd87dbe6dd6c1b5a9293b2cd39a3b7e5af`.
+The time-series caller hashes project
+`3ae813993221646989a6ff9483ef5468bf2727447527df6df290ce670a65c09d` /
+`be436861b4084c80988a0e4b7cc9545f6d41f732bf262366ab03369be7229dee`
 to
-`e91b679025787896bcfaae214ff98a2a05ec77b834bec6ca844b0334a6043962` /
-`36c97d570ef95c98f29cc7bd797b51c96ef763358c7b38a62e0030b736f1f5a3`.
+`a2204957dff1d1b4eac25e5dc0797db1a1f222b4eaaf6faf122ef5875882e9da` /
+`7f39482b79ad4f13ce406acf92579e4f62da046a2da495ee66b181ee03318250`.
+The four future conditional expectations in the existing period-sort contract
+are public-period/public-evaluator caller
+`02adee2a3d86149cb7d770afdc21bebd87dbe6dd6c1b5a9293b2cd39a3b7e5af`,
+private-period/public-evaluator caller
+`cb4e01d23ab23e4f26fceff18c58fc9089faa94eea901112dc9f405afdafd278`,
+public-period/public-evaluator payload
+`03dff69e624136e3e1ee06253e328d9461ce5c47cceeaf4505887b2796993a3f`,
+and private-period/public-evaluator payload
+`5ef18b1bcf6914a14bfb04a3ab9a311bf400d52530708a5e1dcc98dba7bffa7c`.
 
-After the rename selected private/public records must be 0/5, source
-definition/import/load records 1/2/2, and owner public/private counts 2/5.
-Projected source/tests/whole transforms are `+5/-5`, `+0/-0`, and `+5/-5`
-across exactly three source files. The exact temporary diff SHA-256 is
-`4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+After the rename selected private/public records must be 0/14, source
+definition/import/load records 1/1/2, test symbol bindings 10, and owner public/
+private counts 1/0. Four existing conditional caller/payload hashes also change;
+no owner-count expectation changes. Projected source/tests/whole transforms are
+`+4/-4`, `+14/-14`, and `+18/-18` across exactly two source and three test
+files. The exact temporary diff SHA-256 is
+`e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
 
-Current-private and restored projected-public direct behavior/identity passed
-13/13 each. The temporary projection passed exact affected contracts 4/4 in
-1.772 seconds, affected focused modules 780/780 in 23.851 seconds, audit 217,
-pycompile 3/3, retired refs zero, diff check, and the unchanged acyclic 48/203
-import topology at
+Projected-public direct behavior/identity passed 31/31. After the first focused
+run exposed the full four-hash derived contract, the corrected temporary
+projection passed exact affected contracts 5/5 in 6.711 seconds, focused tests
+863/863 in 188.954 seconds, audit 217, pycompile 2/2, retired refs zero, diff
+check, and the unchanged acyclic 48/203 import topology at
 `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`,
 then was restored cleanly. Full discovery 2,143/2,143 remains the implementation
 gate. Benchmark refresh and remote CI remain **NOT RUN**.
 
-This is the smallest remaining correct-owner cross-module visibility seam by
-changed record count after `3062222`. The 25-line numeric-extractor query helper
-reads graph state; the 34-line period-scoped count helper is evidence-only with
-no owner-local caller; task-record/artifact helpers are explicitly non-exported;
-and the 94-line runtime-trace resolver spans 174 source/test AST records. None is
-an authorized substitute. This name-only projection establishes no answer/
-trace quality, performance, benchmark, schedule, ledger, or Phase 3 completion
-claim.
+This is the smallest remaining state-free correct-owner visibility seam by
+actual changed-record ripple after `814d7bf`. Shorter retrieval-pipeline count
+helpers are evidence-only or graph-state-reading, task/artifact helpers are
+explicitly non-exported, aggregate carrier classes intentionally remain private,
+and `_active_preferred_statement_types(...)` has a future-name caller collision.
+The 31-line concept-metric-label helper would require 40 derived graph-helper
+owner-count changes, so it is not the smaller batch. This name-only projection
+establishes no calculation behavior, safety expansion, quality, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim.
+
+## Completed Korean-Won Compact Formatter Public API
+
+Commit `814d7bf` renamed only the exact 31-line
+`financial_runtime_normalization._format_korean_won_compact(...)` definition in
+place to public `format_korean_won_compact(...)` and updated the two external
+import/call pairs in calculation rendering and runtime trace. It added no alias,
+wrapper, body/owner move, module, test method, format policy, suffix/scale rule,
+coercion, catch, answer/trace/evidence decision, mutation, or adjacent cleanup.
+
+The declarative format-policy copy, integer conversion/defaults, exact rounding
+sequence, threshold/scaling and jo/eok/man/base decomposition, configured
+suffixes, comma formatting, join, negative prefix, input immutability,
+propagated errors, and both try-depth-zero caller gates remain exact. Final
+definition/body SHA-256 values are
+`16eebe7a9912a19adbdd6bb9d92043c77f0a38e478f1a5c4a03c4de15e0e64c8` /
+`a27eb8707dd8d71803c4feefa903c060713feb5ae02c9d5a97605b5957c4a03d`.
+
+Actual source/tests/whole transforms were `+5/-5`, `+0/-0`, and `+5/-5`
+across exactly three source files; committed diff SHA-256 is
+`4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
+The implementation is byte-identical to the projected-public behavior/identity
+13/13 rehearsal. Fresh exact structural checks 4/4, focused tests 780/780 in
+27.570 seconds, audit 217, pycompile 3/3, selected private/public 0/5, source
+definition/import/load 1/2/2, owner counts 2/5, retired refs zero, diff check,
+unchanged acyclic 48/203 topology, and full discovery 2,143/2,143 in 232.644
+seconds passed. Benchmark refresh and remote CI were **NOT RUN**. This name-only
+cleanup establishes no answer/trace quality, performance, benchmark, schedule,
+ledger, or Phase 3 completion claim.
 
 ## Completed Runtime Aggregate-Calculation Projection Public API
 

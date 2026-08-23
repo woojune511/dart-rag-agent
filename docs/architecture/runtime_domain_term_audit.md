@@ -249,7 +249,7 @@ For each P0 record, classify it as one of:
   render concept labels from ordered ontology specs, score table headers,
   validate selected-cell period compatibility, and preserve evidence-visible
   nearby values.
-- `_format_korean_won_compact()`, `_clean_metric_label()`,
+- `format_korean_won_compact()`, `_clean_metric_label()`,
   `_is_single_metric_period_comparison()`,
   `_build_generic_required_operands()`, `_build_concept_period_operands()`,
   `_structured_cell_period_text()`, `_build_generic_retrieval_queries()`, and

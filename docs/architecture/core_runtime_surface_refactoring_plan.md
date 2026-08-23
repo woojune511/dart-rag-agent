@@ -2937,34 +2937,43 @@ diff check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh
 and remote CI were **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Runtime Aggregate Projection](../overview/project_status.md#completed-runtime-aggregate-calculation-projection-public-api).
 
-The next bounded visibility seam renames only the exact 31-line
-`financial_runtime_normalization._format_korean_won_compact(...)` definition in
-place to public `format_korean_won_compact(...)`. Update only the two external
-import/call pairs in calculation rendering and runtime trace. Add no alias,
-wrapper, body/owner move, module, test method, format policy, suffix/scale rule,
-coercion, catch, trace/answer/evidence decision, mutation, or adjacent cleanup;
-no existing exact-name test binding or owner-count expectation changes.
-
-Keep the helper with `KOREAN_WON_COMPACT_FORMAT_POLICY`. Preserve its shallow
-policy copy, ordered integer conversion/defaults, exact rounding sequence,
-threshold/scaling and jo/eok/man/base decomposition, configured suffixes, comma
-formatting, join and negative prefix, input immutability, and propagated errors.
-Preserve both positional try-depth-zero caller gates: exact normalized `KRW`
-direct rendering and the compact-surface check before numeric-surface
-extraction.
-
-Current/private and future/public definition hashes are `48ebd834...` /
-`16eebe7a...`; the unchanged body is `a27eb870...`. Selected private/public
-records project zero/5, source definition/import/load stays 1/2/2, owner counts
-move 1/6 to 2/5, and source/tests/whole transforms are `+5/-5`, `+0/-0`, and
-`+5/-5`. Exact temporary diff SHA-256 is
+The exact 31-line Korean-won compact formatter visibility seam completed in
+`814d7bf`. It renamed the definition in place to public
+`format_korean_won_compact(...)` and updated only the two external import/call
+pairs. No alias, wrapper, body/owner move, policy/rule, coercion, catch,
+answer/trace/evidence decision, mutation, exception boundary, or adjacent
+cleanup was added. Final definition/body hashes are `16eebe7a...` /
+`a27eb870...`; selected private/public records are zero/5, source definition/
+import/load is 1/2/2, owner counts are 2/5, and actual source/tests/whole
+transforms were `+5/-5`, `+0/-0`, and `+5/-5`. Committed diff SHA-256 is
 `4098296c4e2ed950704c49aa4ce6bf9d08f68a25a9f445ecba40270eceabea5e`.
-The temporary projection passed projected-public behavior/identity 13/13,
-exact affected contracts 4/4 in 1.772 seconds, focused 780/780 in 23.851
-seconds, audit 217, pycompile 3/3, retired refs zero, diff check, and unchanged
-48/203 DAG, then was restored cleanly. Full 2,143/2,143 remains the
-implementation gate; benchmark refresh and remote CI remain **NOT RUN**. Exact
-scope is authoritative only in
+Byte-identical behavior/identity 13/13, exact structural 4/4, focused 780/780,
+audit 217, pycompile 3/3, retired refs zero, diff check, unchanged 48/203 DAG,
+and full 2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**;
+completion evidence is authoritative in
+[Project Status Completed Korean-Won Formatter](../overview/project_status.md#completed-korean-won-compact-formatter-public-api).
+
+The next bounded visibility seam renames only the exact 51-line state-free
+`financial_formula_eval._safe_eval_formula(...)` definition in place to public
+`safe_eval_formula(...)`. Update one calculation-execution import, two
+positional calls, ten existing test patch bindings, and four derived caller/
+payload hashes. Add no alias, wrapper, body/owner move, module, test method, AST
+node or allowed function, coercion, catch, result/status rule, mutation, or
+adjacent cleanup. Preserve restricted AST dispatch/evaluation order, explicit
+division guard, allow-list and exact error behavior, plus the prepared-plan and
+time-series caller catch boundaries.
+
+Definition hashes project `8a6d4795...` to `b265eb74...`; the unchanged body is
+`91d52cfb...`. Selected private/public records project zero/14, source
+definition/import/load stays 1/1/2, owner counts move 0/1 to 1/0, and source/
+tests/whole transforms are `+4/-4`, `+14/-14`, and `+18/-18`. Exact temporary
+diff SHA-256 is
+`e2a4459b116d36583cd3f1270faef23d351c90967afa1085d4906c9df6746633`.
+Projected-public behavior/identity 31/31, corrected exact contracts 5/5,
+focused 863/863, audit 217, pycompile 2/2, retired refs zero, diff check, and
+unchanged 48/203 DAG passed before clean restoration. Full 2,143/2,143 remains
+the implementation gate; benchmark refresh and remote CI remain **NOT RUN**.
+Exact scope is authoritative only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 The following executed-query telemetry summary inventory is the historical

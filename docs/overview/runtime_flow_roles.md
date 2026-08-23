@@ -1663,16 +1663,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   projected-public behavior/identity 53/53, exact affected contracts 8/8,
   focused 837/837, audit 217, pycompile 7/7, unchanged 48/203 DAG, full
   2,143/2,143가 통과했다.
-- 다음 visibility batch는 `financial_runtime_normalization.py`의 exact 31-line
-  `_format_korean_won_compact(...)`를 같은 owner에서 public
-  `format_korean_won_compact(...)`로 rename하고 calculation-rendering/runtime-
-  trace external import/call 두 쌍만 갱신한다. Declarative KRW format policy,
-  round/scale/suffix/negative-prefix semantics와 두 caller gate는 유지한다.
-  Exact temporary projection은 source/tests/whole `+5/-5`, `+0/-0`, `+5/-5`,
-  projected-public behavior/identity 13/13, exact affected contracts 4/4,
-  focused 780/780, audit 217, pycompile 3/3, unchanged 48/203 DAG이며 전체 구현
-  gate와 stop line은 [Project Status의 Next Work](project_status.md#next-work)가
-  단일 기준이다.
+- 완료된 `814d7bf` visibility batch는 `financial_runtime_normalization.py`의
+  exact 31-line KRW compact formatter를 같은 위치와 본문으로 public
+  `format_korean_won_compact(...)`로 이름 수렴시키고 calculation-rendering/
+  runtime-trace external import/call 두 쌍만 갱신했다. Declarative format
+  policy, rounding/scale/suffix/negative-prefix semantics와 두 caller gate는
+  유지됐다. Source/tests/whole `+5/-5`, `+0/-0`, `+5/-5`, byte-identical
+  behavior/identity 13/13, exact structural 4/4, focused 780/780, audit 217,
+  pycompile 3/3, unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 visibility batch는 state-free restricted formula evaluator
+  `financial_formula_eval._safe_eval_formula(...)`를 같은 owner에서 public
+  `safe_eval_formula(...)`로 rename하고 calculation-execution import 한 개와
+  call 두 개, 기존 test patch binding 열 개와 파생 caller/payload hash 네
+  개만 갱신한다. Restricted AST/function allow-list semantics와 execution/
+  time-series caller catch boundary를 보존하는 전체 gate와 stop line은
+  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 
