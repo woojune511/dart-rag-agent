@@ -7158,7 +7158,81 @@ check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
 remote CI were **NOT RUN**. Exact completion evidence is authoritative in
 [Project Status Completed Concept Metric Label](../overview/project_status.md#completed-concept-metric-label-builder-public-api).
 
-The active visibility contract now renames only the exact 24-line
+Commit `17acfe6` completed the exact 24-line concept-task constraint visibility
+contract by renaming the definition in place to public
+`build_concept_task_constraints(...)`. Two owner-local calls, the sole planning
+import/call pair, 14 exact test symbol refs, 43 owner-count expectations, and
+four active derived hash expectations changed; no alias, wrapper, body/owner
+move, vocabulary, policy/default, constraint field, coercion, catch, mutation,
+or adjacent planning cleanup changed.
+
+Guidance/default shallow copies, consolidation and period-policy call order,
+exact-unknown fallback, truth-gated operand refinement, eager segment-marker
+materialization, one query normalization, ordered membership, the fresh four-
+field result, all three caller gates, identities, immutability, and propagated
+errors remain exact. Final definition/body hashes are `81e84060...` /
+`899be40f...`; selected private/public records are 0/19, source definition/
+import/load records are 1/1/3, owner counts are 13/67, and actual source/tests/
+whole transforms were `+5/-5`, `+61/-61`, and `+66/-66`. Committed diff
+SHA-256 is
+`d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+Exact affected methods 48/48, focused 638/638, audit 217, pycompile 2/2, diff
+check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
+remote CI were **NOT RUN**. Exact completion evidence is authoritative in
+[Project Status Completed Concept Task Constraint](../overview/project_status.md#completed-concept-task-constraint-builder-public-api).
+
+The active visibility contract now renames only the exact 25-line
+`financial_graph_helpers._infer_operation_family_from_query(query: str,
+ontology: Any) -> str` definition in place to public
+`infer_operation_family_from_query(...)`. Update four owner-local calls, the
+sole planning import/call pair, 32 exact test symbol refs, 43 owner-count
+expectations, and only the ten active derived call-record/caller-map hash
+expectations. Add no alias, wrapper, body/owner move, module, test method,
+operation family, vocabulary, policy marker, predicate/cue order,
+normalization, coercion, catch, task/state/trace/artifact/ledger mutation, or
+adjacent planning cleanup.
+
+Preserve first exact `_normalise_spaces(query).lower()` and its immediate
+falsey-text `"single_value"` return. For nonempty text, preserve generic operand
+extraction before policy iteration. Each policy eagerly materializes all marker
+strings before ordered membership, with retained markers stringified twice and
+blank markers once. The first marker match returns the stringified configured-
+or-`"single_value"` family and skips all later work.
+
+Without a marker match, preserve exact percent-point-difference, single-metric
+period-comparison, and ratio-percent predicate order and arguments. Then
+preserve separate growth-rate, ratio, difference, and sum ontology-cue calls,
+per-cue lowercase membership, first-match return, and final `"single_value"`.
+Inputs, policies, nested identities, immutability, evaluation counts, eager/
+lazy and short-circuit boundaries, and every propagated error remain exact.
+
+All five calls remain two-positional-argument calls at caller try depth zero,
+with one planning-external and four owner-local calls. Four calls are direct
+assignments; group decomposition retains the stripped configured operation on
+the left of `or`, so a truthy hint skips the helper. All existing pre-call
+analysis/group, metric/operand/statement, ontology-match, intent/policy, and
+marker gates stay before the call, and all operand/task, constraint/retrieval,
+planner-note, allowed-operation, concept, and adoption work stays after it.
+Any helper failure still stops all later caller work.
+
+Definition hashes project `0c1e9fc7...` to `d5112eba...`; the unchanged body
+is `b91a932d...`. The unchanged five-call argument/gate shape hash is
+`31b9f7c6...`. Selected private/public records across source/tests project
+0/39, source definition/import/load records stay 1/1/5, owner public/private
+counts move 13/67 to 14/66, and source/tests/whole project `+7/-7`,
+`+85/-85`, and `+92/-92`. Corrected exact temporary diff SHA-256 is
+`57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+Current-private and restored projected-public direct behavior/identity passed
+33/33 each with receipt hash `15747781...`. The corrected temporary projection
+passed exact affected methods 52/52, focused 634/634, audit 217, pycompile 2/2,
+diff check, and unchanged 48/203 DAG, then was restored cleanly. Full
+2,143/2,143 remains the implementation gate. Exact hashes, expectation
+mappings, and stop lines are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+The following concept-task constraint paragraphs preserve the historical
+characterization checkpoint that preceded `17acfe6`; they are not active work.
+The historical visibility contract renamed only the exact 24-line
 `financial_graph_helpers._build_concept_task_constraints(query: str,
 report_scope: Dict[str, Any], ontology: Any,
 operand_specs: Optional[List[Dict[str, Any]]] = None,

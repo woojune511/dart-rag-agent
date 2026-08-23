@@ -2994,7 +2994,62 @@ passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
 is authoritative in
 [Project Status Completed Concept Metric Label](../overview/project_status.md#completed-concept-metric-label-builder-public-api).
 
-The next bounded visibility seam renames only the exact 24-line state-free
+The exact 24-line concept-task constraint visibility seam completed in
+`17acfe6`. It renamed the definition in place to public
+`build_concept_task_constraints(...)`, then updated two owner-local calls, one
+planning import/call pair, 14 exact test symbol refs, 43 owner-count
+expectations, and four active derived hash expectations. No alias, wrapper,
+body/owner move, vocabulary, policy/default, constraint field, coercion, catch,
+mutation, or adjacent planning cleanup was added. Guidance/default copies,
+scope/period order, exact-unknown fallback, operand refinement, eager marker
+materialization, query normalization, the fresh four-field result, identities,
+errors, and all three caller gates remain exact.
+
+Final definition/body hashes are `81e84060...` / `899be40f...`; selected
+private/public records are zero/19, source definition/import/load is 1/1/3,
+owner counts are 13/67, and actual source/tests/whole transforms were `+5/-5`,
+`+61/-61`, and `+66/-66`. Committed diff SHA-256 is
+`d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+Exact affected methods 48/48, focused 638/638, audit 217, pycompile 2/2,
+retired refs zero, diff check, unchanged 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
+is authoritative in
+[Project Status Completed Concept Task Constraint](../overview/project_status.md#completed-concept-task-constraint-builder-public-api).
+
+The next bounded visibility seam renames only the exact 25-line state-free
+`financial_graph_helpers._infer_operation_family_from_query(...)` definition
+in place to public `infer_operation_family_from_query(...)`. Update four owner-
+local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-
+count expectations, and ten active derived hash expectations. Add no alias,
+wrapper, body/owner move, module, test method, operation family, vocabulary,
+policy marker, predicate/cue order, normalization, coercion, catch, mutation,
+or adjacent planning cleanup.
+
+Preserve query normalization/lower and the empty fallback, generic operand
+extraction before policy work, eager ordered marker materialization and
+first-match return, then percent-point, single-period-comparison, ratio, and
+four ontology-cue checks in exact order. Preserve the final fallback, inputs,
+policy identities, evaluation counts, errors, and all five two-positional-
+argument try-depth-zero caller gates, including the group-decomposition
+preferred-operation short-circuit.
+
+Definition hashes project `0c1e9fc7...` to `d5112eba...`; the unchanged body
+is `b91a932d...`. Selected private/public records across source/tests project
+zero/39, source definition/import/load stays 1/1/5, owner public/private counts
+move 13/67 to 14/66, and source/tests/whole transforms are `+7/-7`,
+`+85/-85`, and `+92/-92`. Corrected exact temporary diff SHA-256 is
+`57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+
+Current-private and restored projected-public direct behavior/identity 33/33
+each, corrected exact affected methods 52/52, focused 634/634, audit 217,
+pycompile 2/2, retired refs zero, diff check, and unchanged 48/203 DAG passed
+before clean restoration. Full 2,143/2,143 remains the implementation gate;
+benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+
+The following concept-task constraint paragraphs preserve the historical
+characterization checkpoint that preceded `17acfe6`; they are not active work.
+The historical seam renamed only the exact 24-line state-free
 `financial_graph_helpers._build_concept_task_constraints(...)` definition in
 place to public `build_concept_task_constraints(...)`. Update two owner-local
 calls, one planning import/call pair, 14 exact existing test symbol references,

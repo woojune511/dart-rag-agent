@@ -11728,11 +11728,12 @@ are complete. It remains only as an audit record, not an active priority.
   **NOT RUN**. This name-only cleanup establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Concept-task constraint public API characterization checkpoint
+### Concept-task constraint public API characterization checkpoint (historical)
 
-- The next bounded visibility batch renames only the exact 24-line state-free
+- This checkpoint preceded `17acfe6`. At that point the next bounded visibility
+  batch was characterized to rename only the exact 24-line state-free
   `financial_graph_helpers._build_concept_task_constraints(...)` definition in
-  place to public `build_concept_task_constraints(...)`, then updates two owner-
+  place to public `build_concept_task_constraints(...)`, then update two owner-
   local calls, one planning import/call pair, 14 exact test symbol refs, 43
   owner-count expectations, and four active duplicated derived hash
   expectations. Add no alias, wrapper, body/owner move, module, test method,
@@ -11756,7 +11757,65 @@ are complete. It remains only as an audit record, not an active priority.
   run were included, exact affected methods 48/48 in 69.751 seconds, focused
   638/638 in 183.958 seconds, audit 217, pycompile 2/2, retired refs zero, diff
   check, and unchanged acyclic 48/203 DAG passed; the projection was restored
-  cleanly. Full 2,143/2,143 remains the implementation gate. Benchmark refresh
-  and remote CI were **NOT RUN**. Exact expectations and stop lines are
-  authoritative in
-  [Project Status Next Work](../overview/project_status.md#next-work).
+  cleanly. Commit `17acfe6` later passed full 2,143/2,143 and completed the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**. The
+  completed scope is authoritative in
+  [Project Status Completed Concept Task Constraint](../overview/project_status.md#completed-concept-task-constraint-builder-public-api).
+
+### Concept-task constraint public API completed
+
+- Commit `17acfe6` renamed only the exact 24-line
+  `financial_graph_helpers._build_concept_task_constraints(...)` definition in
+  place to public `build_concept_task_constraints(...)`, then updated two owner-
+  local calls, one planning import/call pair, 14 exact test symbol refs, 43
+  owner-count expectations, and four active derived hash expectations. It
+  added no alias, wrapper, body/owner move, vocabulary, policy/default,
+  constraint field, coercion, catch, mutation, or adjacent planning cleanup.
+- Guidance/default copies, scope/period policy order, exact-unknown fallback,
+  operand refinement, eager marker materialization, query normalization, the
+  fresh four-field result, all three caller gates, identities, immutability,
+  and errors remain exact. Final definition/body hashes are `81e84060...` /
+  `899be40f...`; selected private/public records are 0/19, source definition/
+  import/load is 1/1/3, and owner counts are 13/67.
+- Actual source/tests/whole transforms were `+5/-5`, `+61/-61`, and `+66/-66`;
+  committed diff SHA-256 is
+  `d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Exact affected methods 48/48 in 81.555 seconds, focused 638/638
+  in 250.080 seconds, audit 217, pycompile 2/2, unchanged 48/203 DAG, and full
+  2,143/2,143 in 304.387 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. This name-only cleanup establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Operation-family inference public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 25-line state-free
+  `financial_graph_helpers._infer_operation_family_from_query(...)` definition
+  in place to public `infer_operation_family_from_query(...)`, then updates four
+  owner-local calls, one planning import/call pair, 32 exact test symbol refs,
+  43 owner-count expectations, and ten active derived hash expectations. Add no
+  alias, wrapper, body/owner move, module, test method, operation family,
+  vocabulary, policy marker, predicate/cue order, coercion, catch, mutation, or
+  adjacent planning cleanup.
+- Preserve normalization/lower and empty fallback, generic operand extraction,
+  eager ordered policy-marker tuples, first policy match, percent-point/single-
+  period/ratio predicate order, growth-rate/ratio/difference/sum cue order,
+  final fallback, identities, immutability, evaluation counts, all errors, and
+  all five two-positional-argument try-depth-zero caller gates. Group
+  decomposition keeps its configured-operation short-circuit.
+- Current-private/future-public definition hashes are `0c1e9fc7...` /
+  `d5112eba...`; the unchanged body is `b91a932d...`. Selected private/public
+  records across source/tests project 0/39, source definition/import/load
+  remains 1/1/5, owner public/private counts move 13/67 to 14/66, and source/
+  tests/whole project `+7/-7`, `+85/-85`, and `+92/-92`. Corrected exact
+  temporary diff SHA-256 is
+  `57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+- Current-private and restored projected-public direct behavior/identity passed
+  33/33 each with receipt hash `15747781...`. Eight derived expectations were
+  exposed by the first exact run and two more by the first focused run. After
+  correction, exact affected methods 52/52 in 104.938 seconds, focused 634/634
+  in 259.509 seconds, audit 217, pycompile 2/2, retired refs zero, diff check,
+  and unchanged acyclic 48/203 DAG passed; the projection was restored cleanly.
+  Full 2,143/2,143 remains the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. Exact expectations and stop lines are
+  authoritative in [Project Status Next Work](../overview/project_status.md#next-work).

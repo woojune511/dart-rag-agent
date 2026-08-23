@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `57013dd` renamed only the exact 31-line `financial_graph_helpers._build_concept_metric_label(...)` definition in place to public `build_concept_metric_label(...)` and updated four owner-local calls, one planning import/call pair, and 43 existing owner-count expectations |
-| What passed? | Exact affected methods 41/41, projected-public behavior and identity 25/25, focused tests 634/634, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `57013dd`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
+| What just changed? | `17acfe6` renamed only the exact 24-line `financial_graph_helpers._build_concept_task_constraints(...)` definition in place to public `build_concept_task_constraints(...)` and updated two owner-local calls, one planning import/call pair, 14 exact test symbol refs, 43 owner-count expectations, and four derived hash expectations |
+| What passed? | Exact affected methods 48/48, projected-public behavior and identity 26/26, focused tests 638/638, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `17acfe6`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 24-line `financial_graph_helpers._build_concept_task_constraints(...)` definition in place to public `build_concept_task_constraints(...)`; update two owner-local calls, one planning import/call pair, 14 exact test symbol refs, 43 owner-count expectations, and four active derived hash expectations |
+| What is next? | Rename only the exact 25-line `financial_graph_helpers._infer_operation_family_from_query(...)` definition in place to public `infer_operation_family_from_query(...)`; update four owner-local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-count expectations, and ten active derived hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, concept metric-label exact affected methods 41 / 41 and affected focused set 634 / 634 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after concept metric-label public rename |
+| Latest focused owner checkpoint | PASS, concept-task constraint exact affected methods 48 / 48 and affected focused set 638 / 638 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after concept-task constraint public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,157 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 25-line
+`src.agent.financial_graph_helpers._infer_operation_family_from_query(
+query: str, ontology: Any) -> str` definition at lines 1207-1231 in place to
+public `infer_operation_family_from_query(...)`. Update its four owner-local
+calls, the sole planning import/call pair, and 32 existing exact test symbol
+references in `test_financial_graph_helpers.py`. Update exactly 43 existing
+graph-helper owner-count expectations: 40 direct `(13, 67)` tuples become
+`(14, 66)`, two derived `(13, 68)` tuples become `(14, 67)`, and one
+caller-map `(13, 67, 0)` tuple becomes `(14, 66, 0)`. Update only the ten
+active derived expectations exposed by existing CURRENT-SOURCE contracts:
+four call-record and six caller-map records. Add no alias, wrapper, body/owner
+move, module, test method, operation family, policy marker, predicate/cue order,
+normalization, coercion, catch, task/state/trace/artifact/ledger mutation, or
+adjacent semantic-planning cleanup.
+
+Keep the helper in `financial_graph_helpers.py`; it is state-free, consumes
+declarative `OPERATION_FAMILY_QUERY_POLICIES`, public generic operation
+predicates, and ontology-backed planner intent cues, and its exact span
+intersects zero of the 217 reviewed runtime-domain records. Preserve first
+`_normalise_spaces(query).lower()` and the immediate falsey-text
+`"single_value"` return. For nonempty text, preserve exact
+`_extract_generic_operand_labels(query)` before any policy marker work.
+
+For each policy in order, eagerly materialize its marker tuple with exact
+`str(marker).lower()` retained conversion and separate `if str(marker)`
+filter. Retained markers stringify twice and blank markers once; complete the
+tuple before ordered membership short-circuit. The first matching marker still
+returns `str(policy.get("operation_family") or "single_value")` and skips all
+later policies, predicates, and cues.
+
+When no policy matches, preserve exact predicate order and arguments:
+`is_percent_point_difference_query(query)`, then
+`is_single_metric_period_comparison(query, generic_operand_labels)`, then
+`is_ratio_percent_query(query)`. Their returns remain `"difference"`,
+`"difference"`, and `"ratio"`. Next preserve four separate ordered
+`_planner_intent_cues(ontology, family)` calls for `growth_rate`, `ratio`,
+`difference`, and `sum`, with per-cue `.lower()` membership and first-match
+return. The final fallback remains `"single_value"`. Inputs, policy/nested
+identities, immutability, eager/lazy boundaries, evaluation counts, and every
+currently propagated normalization, lower, extraction, iteration, mapping,
+truth, string, membership, predicate, ontology, cue, and custom exception
+remain exact.
+
+All five production calls remain two-positional-argument calls with no
+keywords at caller `try` depth zero; owner-external/local counts remain 1/4.
+Concept numeric planning keeps analysis/group short-circuit gates before direct
+assignment and operand/task composition after it. Heuristic numeric planning
+keeps metric/operand/statement preparation before the call with the exact fresh
+`get_financial_ontology()` argument and constraint/retrieval work after it.
+Group decomposition keeps the stripped configured `preferred_operation` on the
+left of `or`, so a truthy hint skips the helper. Semantic numeric planning keeps
+ontology matching before direct assignment and concept/planner-note work after
+it. Non-numeric intent override keeps enabled/source-intent/query-marker gates
+and fresh ontology retrieval before direct assignment, then allowed-operation
+and concept gates after it. Any helper failure still stops all later caller
+work and adoption.
+
+Current-private/future-public definition SHA-256 values are
+`0c1e9fc7ad21f7d1f81a99bb0f4c3cc9fea5116aebc68a68a5136105ce9a1263` /
+`d5112ebaf3aa673437f8c034f0a2681fec467a3c68f9814b2781c178dcc61068`;
+the unchanged body hash is
+`b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5`.
+Caller definition/body hashes project as follows:
+
+| Caller | Current definition / body | Future definition / body |
+| --- | --- | --- |
+| `_build_concept_numeric_task` | `b65eb10f80ab3f7b46b0cb1584fba471bcb17ea36675b12fbbae65f0c1caff18` / `c97aeb97e2c5a99c285a48c82aca6ac652fa9d1ca167f8a886624c0c066aed13` | `e0a61b5a0d9f5d9e337224597c544c2aba682458b3889a1b204f38be51505990` / `db650f95fdb9433b7646948ea89b08536173b491d051bce31709c334aaeec0e1` |
+| `_build_heuristic_numeric_task` | `a0f29a6b381544a731a068f3d13b803edaa77ef4ea026f03fab39774acc26d1d` / `8740364267cc148281315713f5b218c988bd9b22f9cb087148bf18e7a84f6556` | `c0ad5e77dd4e442e69a6c7e742d1e7921024a8074f9f9c0bf08aa2fb4d0940a8` / `46c252768d4279b0650380c173c30756fc0f6966493f01465512ee13afbce20b` |
+| `_build_group_decomposition_task` | `c4e467b99ed90b7992d591d8f777c7a6a322c6a4c654a44323f6c01f49bc3a12` / `895a9814f0bdd2af3803e1455ce93e506060f425b61b902522a6124d6f30729a` | `a8b3599f2fe9a07c801b99091a8de4678dd38f4cb95d921e5651d71b60a6c3d5` / `ead35696e7edf447252eb3cc62166ba85bed45d80732969f63b5800695dede41` |
+| `_build_semantic_numeric_plan` | `189b86ea36af028b6564b5aa06eb1a328943604567f78beaa80afba13ffb2416` / `c0497049b667f6abed1673e06b8e6be93e11ca56a74b60fea637ad7bd9d78dfb` | `ef749cb1549981d3bccae901085dcacb95fcee08b87eb6a3846325e188174967` / `60280816560cfc46805030ffd75902476ba8e0a9443615b58386c9051832b82d` |
+| `_non_numeric_operation_intent_override` | `6357b936fee535eb2832af8eacdbcea9c5a2e014ca3dda6dd9bb8b738d8c7cd9` / `53a80d565129c58b733bb5c127f4a425d37e5efcbef6c566c81021a4d7b3a9e2` | `c723bdbab76aea628c9545fec6e084fc782370aa8f3e07cdd3ddc2522260ca21` / `05dec390c710e6c16f48dbec2f4ad46dd6db719ded999bc444d1d6f18b6db54a` |
+
+The unchanged five-call argument/gate shape hash is
+`31b9f7c6e0d0883bb24885a089c3db1486f9f19306ac66aca54f6d4b0735fecb`.
+After the rename selected private/public records across source/tests must be
+0/39, source function-definition/import/load records 1/1/5, and owner
+public/private counts 14/66. The ten active derived expectations change as
+follows; the Count column records duplicated active records:
+
+| Count | Current | Future |
+| --- | --- | --- |
+| 1 | `168c7ff78113f46b7e4aecaa4d7887b9d323c417c719b18d15555b4845b93d18` | `9a0d9cfaa253f90e4664a56fb5ba0bd53c7ea286392737bb954735f0a6d7d91a` |
+| 2 | `0533ae2dd2002e747c987dde902c4d3079d1535e5a77189e96b9ba0f54291e2b` | `e0210f0d40b69d3634bb19f0096c44b6d528ec7242a1c0940c004739ab0ae23a` |
+| 1 | `1f192dddd867b711ec4d350052177db1403ece96441ef5bad585dc502e7762fc` | `bab37b8ba3fcf4e29133ce2fb397f2e49bbd5459eb137eb7d7dea6dc80f23054` |
+| 1 | `0d56d5ad9c5ce88cb789f78d643282519f6d2a3428fd770226a2a2dfc4599b21` | `8892cd568cad9ada131ce1922c42a81dbefc63d96c7c3287edf997e78abd05b7` |
+| 1 | `6038eeca9b069bf651ab2bb6519d562920055208b83b22e632a6f597bc7f309b` | `2bf9327c0b5221ce7cc4d8522ba7cdb86f1f4c8db162e29148e513ef6b630f9d` |
+| 2 | `bcd5a030eb8e235f709d38d066b41bad108f5e0f1224bc8612097bf32bfa57ce` | `b38e9c755679fc9caecdabf8cc184bed56bbd896d5439d2ab68eba1c917371a4` |
+| 2 | `0cc752fce34aba2d49562e0ecc6957ce760ac43a4fe8df439fcb7d9d4e017ff4` | `135e8c0f71fefcd95aa718022b8995a4b9925603b4c32d2294af1a536f37bca0` |
+
+Projected source/tests/whole transforms are `+7/-7`, `+85/-85`, and
+`+92/-92` across exactly two source and one test file. The corrected exact
+temporary diff SHA-256 is
+`57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+Current-private and restored projected-public direct behavior/identity passed
+33/33 each with receipt SHA-256
+`1574778154fd813a16604b20e63e324923c6389bfbeb21f2ff7fe297ab05c079`.
+The initial exact 51-method projection exposed eight derived records; the first
+focused run exposed two additional caller-map records. After correction, exact
+affected methods 52/52 passed in 104.938 seconds, focused tests 634/634 in
+259.509 seconds, audit 217, pycompile 2/2, retired refs zero, diff check, and
+the unchanged acyclic 48/203 import topology at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
+passed, then the projection was restored cleanly. Full discovery 2,143/2,143
+remains the implementation gate. Benchmark refresh and remote CI remain
+**NOT RUN**.
+
+This is the smallest remaining correct-owner state-free visibility seam after
+`17acfe6` by caller and behavior surface. The shorter task-record helper is
+explicitly non-exported; active/desired statement-type helpers collide with
+caller-local future names; `_query_years_from_state(...)` and the numeric-
+extractor helper read graph state; reconciliation candidate construction
+belongs to a cycle-blocked different owner; and shared normalization, numeric
+parsing, and row-ID foundations have substantially wider caller/test fan-out.
+This name-only projection establishes no operation-family, intent, planning,
+retrieval, task, answer, quality, performance, benchmark, schedule, ledger, or
+Phase 3 completion claim.
+
+## Completed Concept Task Constraint Builder Public API
+
+Commit `17acfe6` renamed only the exact 24-line
+`financial_graph_helpers._build_concept_task_constraints(...)` definition in
+place to public `build_concept_task_constraints(...)`. It updated two owner-
+local calls, one planning import/call pair, 14 exact existing test symbol refs,
+43 owner-count expectations, and four active derived hash expectations. It
+added no alias, wrapper, body/owner move, vocabulary, policy/default, constraint
+field, coercion, catch, task/state/trace/artifact/ledger mutation, or adjacent
+semantic-planning cleanup.
+
+Guidance/default shallow copies, scope/period call order, exact-unknown
+fallback, truth-gated operand refinement, eager segment-marker materialization,
+one query normalization, ordered membership, the fresh four-field result, all
+three caller gates, identities, immutability, and propagated errors remain
+exact. Final definition/body SHA-256 values are
+`81e84060ac85245ce716205453994307853d95d128940248a4db91edc596c291` /
+`899be40fc962296a74e4c0e8ca0505969adcdc0b4dfcbcb2da71f62bc4a7e54a`.
+Actual source/tests/whole transforms were `+5/-5`, `+61/-61`, and
+`+66/-66`; committed diff SHA-256 is
+`d96409599539ed1199853d23264a71c32f6d9d868e76739d364b79043eed23ca`.
+
+The implementation is byte-identical to the corrected projected-public
+rehearsal. Exact affected methods 48/48 passed in 81.555 seconds, focused tests
+638/638 in 250.080 seconds, audit 217, pycompile 2/2, selected private/public
+0/19, source definition/import/load 1/1/3, owner counts 13/67, retired refs
+zero, diff check, unchanged acyclic 48/203 topology, and full discovery
+2,143/2,143 in 304.387 seconds passed. Benchmark refresh and remote CI were
+**NOT RUN**. This name-only cleanup establishes no constraint, planning, task,
+answer, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+### Concept-task constraint characterization checkpoint (historical)
 
 Rename only the exact 24-line
 `src.agent.financial_graph_helpers._build_concept_task_constraints(
