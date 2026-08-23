@@ -11787,7 +11787,7 @@ are complete. It remains only as an audit record, not an active priority.
   **NOT RUN**. This name-only cleanup establishes no behavior, quality,
   performance, benchmark, schedule, ledger, or Phase 3 completion claim.
 
-### Operation-family inference public API characterization checkpoint
+### Operation-family inference public API characterization checkpoint (historical)
 
 - The next bounded visibility batch renames only the exact 25-line state-free
   `financial_graph_helpers._infer_operation_family_from_query(...)` definition
@@ -11816,6 +11816,68 @@ are complete. It remains only as an audit record, not an active priority.
   correction, exact affected methods 52/52 in 104.938 seconds, focused 634/634
   in 259.509 seconds, audit 217, pycompile 2/2, retired refs zero, diff check,
   and unchanged acyclic 48/203 DAG passed; the projection was restored cleanly.
-  Full 2,143/2,143 remains the implementation gate. Benchmark refresh and
-  remote CI were **NOT RUN**. Exact expectations and stop lines are
-  authoritative in [Project Status Next Work](../overview/project_status.md#next-work).
+  Commit `965b893` later passed full 2,143/2,143 and completed the
+  implementation gate. Benchmark refresh and remote CI were **NOT RUN**. The
+  completed scope is authoritative in
+  [Project Status Completed Operation Family](../overview/project_status.md#completed-operation-family-inference-public-api).
+
+### Operation-family inference public API completed
+
+- Commit `965b893` renamed only the exact 25-line
+  `financial_graph_helpers._infer_operation_family_from_query(...)` definition
+  in place to public `infer_operation_family_from_query(...)`, then updated
+  four owner-local calls, one planning import/call pair, 32 exact test symbol
+  refs, 43 owner-count expectations, and ten active derived hash expectations.
+  It added no alias, wrapper, body/owner move, vocabulary, operation family,
+  policy marker, predicate/cue reorder, coercion, catch, mutation, or adjacent
+  planning cleanup.
+- Normalization/empty fallback, generic operand extraction, eager policy
+  markers, predicate/cue precedence, final fallback, all five caller gates,
+  identities, immutability, evaluation counts, and errors remain exact. Final
+  definition/body hashes are `d5112eba...` / `b91a932d...`; selected private/
+  public records are 0/39, source definition/import/load is 1/1/5, and owner
+  counts are 14/66.
+- Actual source/tests/whole transforms were `+7/-7`, `+85/-85`, and `+92/-92`;
+  committed diff SHA-256 is
+  `57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+  The implementation is byte-identical to the corrected projected-public
+  rehearsal. Exact affected methods 52/52 in 84.832 seconds, focused 634/634
+  in 177.591 seconds, audit 217, pycompile 2/2, unchanged 48/203 DAG, and full
+  2,143/2,143 in 223.332 seconds passed. Benchmark refresh and remote CI were
+  **NOT RUN**. This name-only cleanup establishes no behavior, quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Generic operand-label extractor public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 32-line state-free
+  `financial_graph_helpers._extract_generic_operand_labels(...)` definition in
+  place to public `extract_generic_operand_labels(...)`, then updates three
+  owner-local calls, two importer call pairs, 24 exact test symbol refs, 43
+  owner-count expectations, and 13 active derived hash records. Add no alias,
+  wrapper, body/owner move, module, test method, operand label, policy/ontology
+  entry, parser regex, cleaning/dedupe rule, catch, mutation, or adjacent
+  retrieval/planning cleanup.
+- Preserve raw query truth/string conversion, fresh labels, ordered compound-
+  expansion marker and label materialization, quoted labels, original-query
+  ontology matching, group exclusion, ordered visible surfaces, Korean-visible
+  concept-name suppression, period regex labels, parenthetical-alias cleanup,
+  exact derived-label removal, final fresh list, identities, immutability,
+  evaluation counts, all errors, and all five one-positional-argument try-depth-
+  zero caller gates.
+- Current-private/future-public definition hashes are `5a2b700a...` /
+  `cc735ac2...`; the unchanged body is `abc6c324...`. Selected private/public
+  records across source/tests project 0/32, source definition/import/load stays
+  1/2/5, owner public/private counts move 14/66 to 15/65, and source/tests/whole
+  project `+8/-8`, `+80/-80`, and `+88/-88`. Corrected exact temporary diff
+  SHA-256 is
+  `9178abee5984c8be5c76e2f7be8a34c1335d2cf4008d00a6ac9d90587a0c136c`.
+- Current-private and restored projected-public direct behavior/identity passed
+  19/19 each with receipt hash `4678d0c3...`. The first focused run exposed
+  eight direct caller-hash records; the next exact run exposed five aggregate
+  records. After correction, exact affected methods 51/51 in 76.833 seconds,
+  focused 634/634 in 182.484 seconds, audit 217, pycompile 3/3, retired refs
+  zero, diff check, and unchanged acyclic 48/203 DAG passed; the projection was
+  restored cleanly. Full 2,143/2,143 remains the implementation gate.
+  Benchmark refresh and remote CI were **NOT RUN**. Exact expectations and stop
+  lines are authoritative in
+  [Project Status Next Work](../overview/project_status.md#next-work).

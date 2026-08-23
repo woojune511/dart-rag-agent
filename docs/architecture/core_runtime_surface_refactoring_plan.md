@@ -3016,7 +3016,51 @@ passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
 is authoritative in
 [Project Status Completed Concept Task Constraint](../overview/project_status.md#completed-concept-task-constraint-builder-public-api).
 
-The next bounded visibility seam renames only the exact 25-line state-free
+The exact 25-line operation-family inference visibility seam completed in
+`965b893`. It renamed the definition in place to public
+`infer_operation_family_from_query(...)`, then updated four owner-local calls,
+one planning import/call pair, 32 exact test symbol refs, 43 owner-count
+expectations, and ten active derived hash expectations. Policy/predicate/cue
+precedence, all five caller gates, identities, errors, and the body remained
+exact. Actual source/tests/whole transforms were `+7/-7`, `+85/-85`, and
+`+92/-92`; committed diff SHA-256 is
+`57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+Exact affected methods 52/52, focused 634/634, audit 217, pycompile 2/2,
+unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
+CI were **NOT RUN**; completion evidence is authoritative in
+[Project Status Completed Operation Family](../overview/project_status.md#completed-operation-family-inference-public-api).
+
+The next bounded visibility seam renames only the exact 32-line state-free
+`financial_graph_helpers._extract_generic_operand_labels(...)` definition in
+place to public `extract_generic_operand_labels(...)`. Update three owner-local
+calls, two importer call pairs, 24 exact test symbol refs, 43 owner-count
+expectations, and 13 active derived hash records. Add no alias, wrapper,
+body/owner move, module, test method, operand label, policy/ontology entry,
+parser regex, cleaning/dedupe rule, catch, mutation, or adjacent cleanup.
+
+Preserve raw query truth/string conversion, fresh label allocation, ordered
+compound-expansion marker/label materialization, quoted labels, original-query
+ontology matching, group exclusion, ordered visible surfaces, Korean-visible
+concept-name suppression, period regex labels, parenthetical-alias cleanup,
+exact derived-label removal, final fresh list, identities, evaluation counts,
+errors, and all five one-positional-argument try-depth-zero caller gates.
+
+Definition hashes project `5a2b700a...` to `cc735ac2...`; the unchanged body
+is `abc6c324...`. Selected private/public records across source/tests project
+zero/32, source definition/import/load stays 1/2/5, owner public/private counts
+move 14/66 to 15/65, and source/tests/whole transforms are `+8/-8`,
+`+80/-80`, and `+88/-88`. Corrected exact temporary diff SHA-256 is
+`9178abee5984c8be5c76e2f7be8a34c1335d2cf4008d00a6ac9d90587a0c136c`.
+Current-private and restored projected-public behavior/identity 19/19 each,
+corrected exact affected methods 51/51, focused 634/634, audit 217, pycompile
+3/3, retired refs zero, diff check, and unchanged 48/203 DAG passed before
+clean restoration. Full 2,143/2,143 remains the implementation gate;
+benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
+
+The following operation-family inference paragraphs preserve the historical
+characterization checkpoint that preceded `965b893`; they are not active work.
+The historical seam renamed only the exact 25-line state-free
 `financial_graph_helpers._infer_operation_family_from_query(...)` definition
 in place to public `infer_operation_family_from_query(...)`. Update four owner-
 local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-
@@ -3043,9 +3087,9 @@ move 13/67 to 14/66, and source/tests/whole transforms are `+7/-7`,
 Current-private and restored projected-public direct behavior/identity 33/33
 each, corrected exact affected methods 52/52, focused 634/634, audit 217,
 pycompile 2/2, retired refs zero, diff check, and unchanged 48/203 DAG passed
-before clean restoration. Full 2,143/2,143 remains the implementation gate;
-benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+before clean restoration. Commit `965b893` later passed full 2,143/2,143 and
+completed the implementation gate; benchmark refresh and remote CI were
+**NOT RUN**.
 
 The following concept-task constraint paragraphs preserve the historical
 characterization checkpoint that preceded `17acfe6`; they are not active work.

@@ -7181,7 +7181,63 @@ check, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
 remote CI were **NOT RUN**. Exact completion evidence is authoritative in
 [Project Status Completed Concept Task Constraint](../overview/project_status.md#completed-concept-task-constraint-builder-public-api).
 
-The active visibility contract now renames only the exact 25-line
+Commit `965b893` completed the exact 25-line operation-family inference
+visibility contract by renaming the definition in place to public
+`infer_operation_family_from_query(...)`. Four owner-local calls, one planning
+import/call pair, 32 exact test symbol refs, 43 owner-count expectations, and
+ten active derived hash expectations changed. Policy/predicate/cue precedence,
+the body, all five caller gates, identities, immutability, evaluation counts,
+and errors remain exact. Actual source/tests/whole transforms were `+7/-7`,
+`+85/-85`, and `+92/-92`; exact 52/52, focused 634/634, audit 217, pycompile
+2/2, unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and
+remote CI were **NOT RUN**. Exact completion evidence is authoritative in
+[Project Status Completed Operation Family](../overview/project_status.md#completed-operation-family-inference-public-api).
+
+The active visibility contract now renames only the exact 32-line
+`financial_graph_helpers._extract_generic_operand_labels(query: str) ->
+List[str]` definition in place to public
+`extract_generic_operand_labels(...)`. Update three owner-local calls, the
+evidence and reconciliation import/call pairs, 24 exact test symbol refs, 43
+owner-count expectations, and only the 13 active derived caller/aggregate hash
+records. Add no alias, wrapper, body/owner move, module, test method, operand
+label, policy/ontology entry, parser regex, cleaning/dedupe rule, catch,
+task/state/trace/artifact/ledger mutation, or adjacent cleanup.
+
+Preserve exact `str(query or "")`, fresh labels, ordered compound-expansion
+iteration, eager marker tuples, conditional label materialization, quoted
+labels, original-query ontology matching, group exclusion, surface visibility
+and cleaning, Korean-visible concept-name suppression, period-regex labels,
+parenthetical-alias normalization, eager derived-label set, exact final filter,
+and fresh return list. Preserve inputs and nested identities, immutability,
+evaluation counts, eager/lazy and short-circuit boundaries, and every
+propagated error.
+
+All five calls remain one-positional-argument calls at caller try depth zero,
+with two importer-external and three owner-local calls. Ratio-row, unique-
+quoted-label, normalized-empty, impairment trigger/confirmation, and section-
+seed preparation gates remain before their calls; all period/generic operand,
+metric fallback, operation policy/predicate/cue, alias/table, statement/store,
+and adoption work remains after them. Any helper failure still stops later
+caller work.
+
+Definition hashes project `5a2b700a...` to `cc735ac2...`; the unchanged body
+is `abc6c324...`. The unchanged five-call argument/gate inventory hash is
+`83db0788...`. Selected private/public records across source/tests project
+0/32, source definition/import/load records stay 1/2/5, owner public/private
+counts move 14/66 to 15/65, and source/tests/whole project `+8/-8`,
+`+80/-80`, and `+88/-88`. Corrected exact temporary diff SHA-256 is
+`9178abee5984c8be5c76e2f7be8a34c1335d2cf4008d00a6ac9d90587a0c136c`.
+Current-private and restored projected-public direct behavior/identity passed
+19/19 each with receipt hash `4678d0c3...`. The corrected temporary projection
+passed exact affected methods 51/51, focused 634/634, audit 217, pycompile 3/3,
+diff check, and unchanged 48/203 DAG, then was restored cleanly. Full
+2,143/2,143 remains the implementation gate. Exact hashes, expectation
+mappings, and stop lines are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+The following operation-family paragraphs preserve the historical
+characterization checkpoint that preceded `965b893`; they are not active work.
+The historical visibility contract renamed only the exact 25-line
 `financial_graph_helpers._infer_operation_family_from_query(query: str,
 ontology: Any) -> str` definition in place to public
 `infer_operation_family_from_query(...)`. Update four owner-local calls, the
@@ -7225,10 +7281,9 @@ counts move 13/67 to 14/66, and source/tests/whole project `+7/-7`,
 Current-private and restored projected-public direct behavior/identity passed
 33/33 each with receipt hash `15747781...`. The corrected temporary projection
 passed exact affected methods 52/52, focused 634/634, audit 217, pycompile 2/2,
-diff check, and unchanged 48/203 DAG, then was restored cleanly. Full
-2,143/2,143 remains the implementation gate. Exact hashes, expectation
-mappings, and stop lines are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+diff check, and unchanged 48/203 DAG, then was restored cleanly. Commit
+`965b893` later passed full 2,143/2,143 and completed the implementation gate;
+benchmark refresh and remote CI were **NOT RUN**.
 
 The following concept-task constraint paragraphs preserve the historical
 characterization checkpoint that preceded `17acfe6`; they are not active work.

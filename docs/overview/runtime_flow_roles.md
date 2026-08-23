@@ -1695,12 +1695,21 @@ Aggregate/narrative row의 state-free answer policy owner다.
   caller gate는 유지됐다. Source/tests/whole `+5/-5`, `+61/-61`, `+66/-66`,
   exact affected 48/48, focused 638/638, audit 217, pycompile 2/2, unchanged
   48/203 DAG, full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 25-line state-free operation-
-  family inference helper `_infer_operation_family_from_query(...)`를 public
-  `infer_operation_family_from_query(...)`로 rename하고 owner-local call 네
-  개, planning import/call 한 쌍, exact test symbol ref 32개, owner-count
-  기대 43개와 active derived hash 기대 열 개만 갱신한다. Policy/predicate/
-  cue precedence와 다섯 caller gate를 보존하는
+- 완료된 `965b893` visibility batch는 같은 owner의 exact 25-line state-free
+  operation-family inference helper를 public
+  `infer_operation_family_from_query(...)`로 이름 수렴시키고 owner-local
+  call 네 개, planning import/call 한 쌍, exact test symbol ref 32개,
+  owner-count 기대 43개와 active derived hash 기대 열 개만 갱신했다.
+  Policy/predicate/cue precedence와 다섯 caller gate는 유지됐다. Source/
+  tests/whole `+7/-7`, `+85/-85`, `+92/-92`, exact affected 52/52, focused
+  634/634, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
+  2,143/2,143가 통과했다.
+- 다음 visibility batch는 같은 owner의 exact 32-line state-free generic
+  operand-label extractor `_extract_generic_operand_labels(...)`를 public
+  `extract_generic_operand_labels(...)`로 rename하고 owner-local call 세 개,
+  evidence/reconciliation import/call 두 쌍, exact test symbol ref 24개,
+  owner-count 기대 43개와 active derived hash record 13개만 갱신한다.
+  Generic policy/ontology label composition과 다섯 caller gate를 보존하는
   전체 gate와 stop line은
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 

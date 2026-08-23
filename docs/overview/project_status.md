@@ -16,10 +16,10 @@ Last updated: 2026-08-23
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `17acfe6` renamed only the exact 24-line `financial_graph_helpers._build_concept_task_constraints(...)` definition in place to public `build_concept_task_constraints(...)` and updated two owner-local calls, one planning import/call pair, 14 exact test symbol refs, 43 owner-count expectations, and four derived hash expectations |
-| What passed? | Exact affected methods 48/48, projected-public behavior and identity 26/26, focused tests 638/638, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `17acfe6`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
+| What just changed? | `965b893` renamed only the exact 25-line `financial_graph_helpers._infer_operation_family_from_query(...)` definition in place to public `infer_operation_family_from_query(...)` and updated four owner-local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-count expectations, and ten derived hash expectations |
+| What passed? | Exact affected methods 52/52, projected-public behavior and identity 33/33, focused tests 634/634, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `965b893`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 25-line `financial_graph_helpers._infer_operation_family_from_query(...)` definition in place to public `infer_operation_family_from_query(...)`; update four owner-local calls, one planning import/call pair, 32 exact test symbol refs, 43 owner-count expectations, and ten active derived hash expectations |
+| What is next? | Rename only the exact 32-line `financial_graph_helpers._extract_generic_operand_labels(...)` definition in place to public `extract_generic_operand_labels(...)`; update three owner-local calls, two importer call pairs, 24 exact test symbol refs, 43 owner-count expectations, and 13 active derived hash expectations |
 
 ## Product Boundary
 
@@ -748,8 +748,8 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, concept-task constraint exact affected methods 48 / 48 and affected focused set 638 / 638 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after concept-task constraint public rename |
+| Latest focused owner checkpoint | PASS, operation-family inference exact affected methods 52 / 52 and affected focused set 634 / 634 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after operation-family inference public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
@@ -798,6 +798,159 @@ These are debt groups, not a promised count of four implementation slices. Each
 may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
+
+Rename only the exact 32-line
+`src.agent.financial_graph_helpers._extract_generic_operand_labels(
+query: str) -> List[str]` definition at lines 669-700 in place to public
+`extract_generic_operand_labels(...)`. Update its three owner-local calls,
+the evidence and reconciliation import/call pairs, and 24 exact existing test
+symbol references across `test_financial_graph_helpers.py` and
+`test_operation_contracts.py`. Update exactly 43 existing graph-helper owner-
+count expectations: 40 direct `(14, 66)` tuples become `(15, 65)`, two
+derived `(14, 67)` tuples become `(15, 66)`, and one caller-map
+`(14, 66, 0)` tuple becomes `(15, 65, 0)`. Update only the 13 active derived
+caller and aggregate hash records listed below. Add no alias, wrapper,
+body/owner move, module, test method, operand label, policy/ontology entry,
+parser regex, cleaning/dedupe rule, normalization, catch, task/state/trace/
+artifact/ledger mutation, or adjacent retrieval/planning cleanup.
+
+Keep the helper in `financial_graph_helpers.py`; it is state-free and already
+owns the generic policy/ontology composition shared by planning, evidence, and
+reconciliation. Its exact span intersects zero of the 217 reviewed runtime-
+domain records. Preserve first `str(query or "")`, including raw query truth,
+string conversion, and the exact text identity used by later helpers. Allocate
+the fresh label list next.
+
+Iterate exact `GENERIC_OPERAND_LABEL_POLICY.get("compound_label_expansions")
+or ()` in order. For every expansion, preserve eager marker-tuple
+materialization from a fresh `dict(expansion)`: retained marker items stringify
+twice and blank items once because the retained expression and filter are
+separate. Preserve ordered `any(marker in text ...)`. Only a matching expansion
+reads its labels and extends the result; retained labels stringify twice and
+blank labels once. A match does not stop later expansions.
+
+After all expansions, preserve quoted-label extraction with the prepared text,
+then call `matched_ontology_concept_specs(query)` with the original query
+object. Group specs still stop before surface lookup. For each non-group spec,
+preserve ordered surface generation, visibility against the prepared text,
+cleaning, and truth-gated append. Clean the stripped stringified concept name
+after surface collection. Append that name only when it is truthy and no
+visible surface contains Korean text, then append visible surfaces in order.
+
+Preserve period-comparison regex iteration over the prepared text, named
+`"label"` group access, cleaning, and truth-gated append. Pass the complete
+list to `_drop_redundant_parenthetical_alias_labels(...)`. Then eagerly build
+the exact-string derived-label set from policy, filter normalized labels by
+exact membership while preserving order and duplicates, and return the fresh
+filtered list. Inputs, policy/spec/surface identities, policy immutability,
+eager/lazy boundaries, evaluation counts, branch short-circuits, allocations,
+and every currently propagated truth, string, mapping, iteration, regex,
+cleaning, normalization, membership, and custom exception remain exact.
+
+All five production calls remain one-positional-argument calls with no
+keywords at caller `try` depth zero; owner-external/local counts remain 2/3.
+Generic required-operand building keeps the ratio-row early return before the
+call and period/generic operand assembly after it. Generic metric-label
+inference keeps the unique quoted-label return before the call and first-label
+or policy fallback after it. Operation-family inference keeps normalized-empty
+return before the call and policy/predicate/cue work after it. Numeric-
+impairment evidence supplementation keeps query and trigger/confirmation gates
+before the call, then alias/table work after it. Reconciliation section-seed
+supplementation keeps section and active-operand preparation before the call,
+then statement-type/store scanning after it. Any helper failure still stops
+all later caller work and adoption.
+
+Current-private/future-public definition SHA-256 values are
+`5a2b700a3dc4e570b76cefd32aaf180066e3ceab8e8b9d0dd7c663c33c06d444` /
+`cc735ac2cb0e2dacba1bd6957ad5e6a4f05a3d909d9126f9fcb00acc9d97bf31`;
+the unchanged body hash is
+`abc6c3242fd4bf339cf4aff462ea7c802cb5989d844f6113d38a9b645d7dbe00`.
+Caller definition/body hashes project as follows:
+
+| Caller | Current definition / body | Future definition / body |
+| --- | --- | --- |
+| `_build_generic_required_operands` | `264db73fdbaa241a7e37e734680dc96723e97408c87092c5b8f8c05a05a6a83f` / `e90594a7424c63bc4bc38196eb942834ed7330bba2d8e3b250d777dcf7eded61` | `ccbf0c80994280c409635857409d5c17eba49dbc2d5c21b266a718402d9f1e47` / `9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28` |
+| `_infer_generic_metric_label` | `e9a521be21b0127b5dc182549b6b032033a73d7f46bae4116f003632d1bb200f` / `82ea22303a27d212439b611725832ec06e1a492df36f653a702137a75ed1e9f8` | `6a42de199ba99dc7acd38dc2b4c75f635432447d71151ed0df47e68a093da910` / `55ed471cb8062a35872b4ed469aead1b2d49c4845f0fa23591e1b3459301d4e5` |
+| `infer_operation_family_from_query` | `d5112ebaf3aa673437f8c034f0a2681fec467a3c68f9814b2781c178dcc61068` / `b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5` | `c165c9bda0d0ed50177118fc87acbea978547001bfc2e1668c8312b1a4c3f7c6` / `e51143b31f869ab4f1f852efb80e7708bbce92091c66a0f67e1c45aa5054579e` |
+| `_supplement_numeric_impairment_lookup` | `12512f5e94939a17cb58df49395ca6e3dd2fa035bce55114cfce117a077ca085` / `090de99f304008a9fe9c596e979fa3ec27cf5cf94c76c2d6b35a94167838c6ef` | `d14c8ae40c9a64099626dcc95bb872d356e63429d2b4cb690bde121ddd53db3f` / `42adf9dd132e95494ad6f0845134507d3f07c1b55c3cc1e2e95420bca4f66be1` |
+| `_supplement_section_seed_docs` | `99bb4776508e2b41ec85cd2575ae36ea6a751195e8633b1d78ef84c713da6a8a` / `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01` | `8cd7c38c8a57e3c4c73c7db21749b04acfa1888f44f69d8660964d647818ea89` / `cd4051551f9a4bf652d074a280267731be5a98d88f682d29c7b10a6925ba15ce` |
+
+The unchanged five-call argument/gate inventory hash is
+`83db0788cc028740a1c4fe4b49b774e62399703a0aee41940fdc7fe7975a589a`.
+After the rename selected private/public records across source/tests must be
+0/32, source function-definition/import/load records 1/2/5, and owner public/
+private counts 15/65. The 13 active derived expectations change as follows;
+the Count column records duplicated active records:
+
+| Count | Current | Future |
+| --- | --- | --- |
+| 3 | `e90594a7424c63bc4bc38196eb942834ed7330bba2d8e3b250d777dcf7eded61` | `9774359b101f5c2f795b16553d6105a375308d42baa25934f6a4f74c78261c28` |
+| 4 | `b91a932d197ac592fc304e83eca06da2cf4b2ca9ab5950aaa63fae0250bb4bf5` | `e51143b31f869ab4f1f852efb80e7708bbce92091c66a0f67e1c45aa5054579e` |
+| 1 | `b0b24e7c4c91c76b3ab7765cbaf8fa27f87ed150b9ecaafc000bf204688eea01` | `cd4051551f9a4bf652d074a280267731be5a98d88f682d29c7b10a6925ba15ce` |
+| 1 | `a99171667fda04cd8ac3e043a2076a6682d0436902de9ab2a53cb43c4bffddef` | `53388de0fc9817b1184f355962f33a9311f904a684116c5618d5885faa35085f` |
+| 1 | `8892cd568cad9ada131ce1922c42a81dbefc63d96c7c3287edf997e78abd05b7` | `786aeb78a2196d7489bed7a8b467a67e3c174ee70a1a89007a699d3481c5b526` |
+| 1 | `2bf9327c0b5221ce7cc4d8522ba7cdb86f1f4c8db162e29148e513ef6b630f9d` | `7939a9175272d63089c05f6207b8d247f6f033ef8c116ee7fd0da713795437ba` |
+| 2 | `b38e9c755679fc9caecdabf8cc184bed56bbd896d5439d2ab68eba1c917371a4` | `b39bca3ea56ec8dee3eaab415f156dbdd418c36ea17afc8a31578c953f7461ad` |
+
+Projected source/tests/whole transforms are `+8/-8`, `+80/-80`, and
+`+88/-88` across exactly three source and two test files. The corrected exact
+temporary diff SHA-256 is
+`9178abee5984c8be5c76e2f7be8a34c1335d2cf4008d00a6ac9d90587a0c136c`.
+Current-private and restored projected-public direct behavior/identity passed
+19/19 each with receipt SHA-256
+`4678d0c3d89b9d1fca96eb62f290ba5562c5711cb7baa94d538e9d9ed038416c`.
+The initial 46-method projection passed, then the first focused run exposed
+eight direct caller-hash records in five methods. Their inclusion expanded the
+affected set to 51 methods; its first run exposed five aggregate records. After
+correction, exact affected methods 51/51 passed in 76.833 seconds, focused
+tests 634/634 in 182.484 seconds, audit 217, pycompile 3/3, retired executable
+refs zero, diff check, and the unchanged acyclic 48/203 import topology at
+`e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
+passed, then the projection was restored cleanly. Full discovery 2,143/2,143
+remains the implementation gate. Benchmark refresh and remote CI remain
+**NOT RUN**.
+
+This is the smallest remaining correct-owner state-free visibility seam after
+`965b893` by caller and behavior surface. The equal-length task-artifact helper
+and shorter task-record helper are explicitly non-exported; statement-type
+helpers collide with caller-local future names; query-year and numeric-
+extractor helpers read graph state; reconciliation candidate construction
+belongs to a cycle-blocked different owner; and shared normalization, row-ID,
+and numeric-parsing foundations have substantially wider fan-out. This name-
+only projection establishes no operand-label, planning, retrieval, evidence,
+reconciliation, answer, quality, performance, benchmark, schedule, ledger, or
+Phase 3 completion claim.
+
+## Completed Operation-Family Inference Public API
+
+Commit `965b893` renamed only the exact 25-line
+`financial_graph_helpers._infer_operation_family_from_query(...)` definition
+in place to public `infer_operation_family_from_query(...)`. It updated four
+owner-local calls, one planning import/call pair, 32 exact existing test symbol
+refs, 43 owner-count expectations, and ten active derived hash expectations.
+It added no alias, wrapper, body/owner move, vocabulary, operation family,
+policy marker, predicate/cue reorder, coercion, catch, mutation, or adjacent
+semantic-planning cleanup.
+
+Normalization and empty fallback, generic operand extraction, eager ordered
+policy markers, predicate/cue precedence, final fallback, all five caller
+gates, identities, immutability, evaluation counts, and propagated errors
+remain exact. Final definition/body SHA-256 values are `d5112eba...` /
+`b91a932d...`. Actual source/tests/whole transforms were `+7/-7`, `+85/-85`,
+and `+92/-92`; committed diff SHA-256 is
+`57c928d3f992864d49d6b9c90d5196269c7f5a0094ac7e6c0246d6e6b7dfd65b`.
+
+The implementation is byte-identical to the corrected projected-public
+rehearsal. Exact affected methods 52/52 passed in 84.832 seconds, focused
+tests 634/634 in 177.591 seconds, audit 217, pycompile 2/2, selected private/
+public 0/39, source definition/import/load 1/1/5, owner counts 14/66, retired
+refs zero, diff check, unchanged acyclic 48/203 topology, and full discovery
+2,143/2,143 in 223.332 seconds passed. Benchmark refresh and remote CI were
+**NOT RUN**. This name-only cleanup establishes no operation-family, planning,
+task, answer, quality, performance, benchmark, schedule, ledger, or Phase 3
+completion claim.
+
+### Operation-family inference characterization checkpoint (historical)
 
 Rename only the exact 25-line
 `src.agent.financial_graph_helpers._infer_operation_family_from_query(
