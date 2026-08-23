@@ -7025,46 +7025,54 @@ Direct behavior/public identity 18/18, exact affected contracts 8/8, focused
 completion evidence is authoritative in
 [Project Status Completed Runtime-Trace State Update](../overview/project_status.md#completed-runtime-trace-state-update-public-api).
 
-The active visibility contract now renames only the exact 92-line
-`financial_runtime_trace._project_task_trace_from_state(
-state: Dict[str, Any], task_id: str) -> Dict[str, Any]` definition in place to
-public `project_task_trace_from_state(...)`. Update one planning import, its
-sole try-depth-zero two-positional-argument call, four existing test patch
-strings, and one derived runtime-trace owner-count expectation. Add no alias or
-wrapper, move no body, add no test, and change no artifact lookup, active-trace
-selection, answer/evidence/calculation behavior, state/artifact/ledger
-mutation, reconciliation policy, or exception boundary.
+Commit `f58550f` completed the exact 92-line task-trace-from-state visibility
+contract by renaming the definition in place to public
+`project_task_trace_from_state(...)`, then updating one planning import/call
+pair, four existing test patch strings, and one owner-count expectation. Task/
+active ID normalization, eager row copies, four ordered artifact lookups,
+canonical active-trace normalization and strict fallback, aggregate-sibling
+suppression, truthy field override, falsey reconciliation fallback, task-
+record/artifact-ID projection, fresh ordered copies, propagated errors, and
+the sole try-depth-zero caller remain exact.
 
-Keep the helper in the runtime-trace owner with its private task-artifact and
-trace-normalization dependencies. Preserve task and active-task ID
-normalization; eager shallow copies of every task/artifact row; the four exact
-operand/plan/result/reconciliation artifact lookups in order; active canonical-
-trace normalization then strict resolution fallback; aggregate-sibling trace
-suppression for a non-aggregate active task; truthy active-field override;
-state reconciliation fallback only when artifact reconciliation is falsey;
-task-record lookup; artifact-ID filtering; ordered fresh output copies; and all
-propagated coercion, mapping, iteration, and helper errors.
-
-Current-private/future-public definition hashes are
-`6bebb3a58aa8e815ab79cde7b7f9487dd9e9d42f2358b905b3294bbe447522f1` /
-`a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221`;
-the unchanged body hash is
-`6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`.
-The sole 240-line caller definition/body hashes project
-`64b55bf4f1d294f1a68109efede95551874348ce2f1e6385ff3887943009ed32` /
-`ace17894d22bc9fcc7ddeacdbd1ff02f2a4f8c503bcd54e98fe9acfc2d3907e2`
-to
+Final definition/body hashes are
+`a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221` /
+`6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`;
+final caller definition/body hashes are
 `4459952c8d693efe3ebbfb64636408459e28458808f23e4bcd07ee6354fd42a7` /
 `e507a12a1355e7cd0e610c36072f3e0524cefe8d22641cab32272cf72768ffba`.
-Selected executable/test-symbol private/public records project 0/7, source
-definition/import/load records remain 1/1/1, and owner counts move 7/24 to
-8/23. Projected source/tests/whole are `+3/-3`, `+5/-5`, and `+8/-8`; exact
-temporary diff SHA-256 is
+Selected private/public records are 0/7, owner counts are 8/23, and source/
+tests/whole transforms were `+3/-3`, `+5/-5`, and `+8/-8`; committed diff
+SHA-256 is
 `fdc9ca5a15e92ecce512e94f362908c4bd7a81db6c759ccca1534854b404e07d`.
-The restored projection passed projected-public direct/identity 33/33, exact
-affected contracts 3/3, focused 766/766, audit 217, pycompile 5/5, diff check,
-and unchanged 48/203 DAG. Full 2,143/2,143 remains the implementation gate.
-Exact expectations and stop lines are authoritative in
+Projected-public direct/identity 33/33, exact affected contracts 3/3, focused
+766/766, audit 217, pycompile 5/5, unchanged 48/203 DAG, and full
+2,143/2,143 passed. Benchmark refresh and remote CI were **NOT RUN**. Exact
+completion evidence is authoritative in
+[Project Status Completed Task Trace](../overview/project_status.md#completed-task-trace-from-state-public-api).
+
+The active visibility contract now renames only the exact 96-line
+`financial_runtime_trace._report_cache_candidate_for_trace(
+state: Dict[str, Any], trace: Dict[str, Any]) -> Dict[str, Any]` definition in
+place to public `report_cache_candidate_for_trace(...)`. Update its owner-local
+call, one planning import/call pair, and one owner-count expectation. Add no
+alias, wrapper, body move, test, candidate field, classification, retrieval-
+bypass/cache-serving policy, mutation, or exception-boundary change.
+
+Preserve copied report/task/trace inputs, empty-material return, answer-slot and
+first-operand precedence, every candidate fallback chain, producer
+classification, copied reasons/key, key ID, fixed read-only flag, consumer
+classification, retrieval-bypass attachment, immutability, and propagated
+errors. Preserve both try-depth-zero callers and their truthy-only attachment
+gates. Definition hashes project `dd5adf3c...` to `d093e826...`; owner-local
+caller hashes project `28aa4b23...` / `8cfe40a3...` to `14f6b744...` /
+`4a6ee386...`; planning caller hashes project `cf6b71ad...` / `f736e6ab...`
+to `9f6df840...` / `5979eee1...`. Selected private/public records project 0/4,
+owner counts 8/23 to 9/22, and source/tests/whole project `+4/-4`, `+1/-1`,
+and `+5/-5`. The restored projection passed direct/identity 45/45, exact 7/7,
+focused 561/561, audit 217, pycompile 3/3, diff check, and unchanged 48/203
+DAG. Full 2,143/2,143 remains the implementation gate. Exact hashes,
+expectations, and stop lines are authoritative in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following formatter paragraphs preserve the historical characterization

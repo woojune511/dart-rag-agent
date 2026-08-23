@@ -11399,7 +11399,67 @@ are complete. It remains only as an audit record, not an active priority.
   The restored projection passed projected-public direct behavior/identity
   33/33, exact affected contracts 3/3 in 1.790 seconds, focused 766/766 in
   34.628 seconds, audit 217, pycompile 5/5, retired refs zero, diff check, and
+  unchanged acyclic 48/203 DAG. Commit `f58550f` later passed full
+  2,143/2,143 and completed the implementation gate. Benchmark refresh and
+  remote CI were **NOT RUN**. The completed scope is authoritative in
+  [Project Status Completed Task Trace](../overview/project_status.md#completed-task-trace-from-state-public-api).
+
+### Task-trace-from-state public API completed
+
+- Commit `f58550f` renamed only the exact 92-line
+  `financial_runtime_trace._project_task_trace_from_state(...)` definition in
+  place to public `project_task_trace_from_state(...)`, then updated one
+  planning import/call pair, four existing test patch strings, and one owner-
+  count expectation. It added no alias, wrapper, body/owner move, test method,
+  artifact/trace/answer/evidence decision, mutation, reconciliation policy,
+  exception boundary, or adjacent cleanup.
+- Task/active IDs, eager row copies, four artifact lookups, active canonical-
+  trace normalization and strict fallback, aggregate-sibling suppression,
+  truthy field override, falsey reconciliation fallback, task-record/artifact-
+  ID projection, fresh ordered copies, propagated errors, and caller
+  sequencing remain exact. Final definition/body hashes are
+  `a5a844e09da7a265476cec1d2c7e69ba234337ab0d18c1a06e3c6ed2ab0c1221` /
+  `6d87e8be2206fdadfb85408b99af732f5a93bf3edcff50ef861ec065a7cb2329`.
+- Actual source/tests/whole transforms were `+3/-3`, `+5/-5`, and `+8/-8`;
+  committed diff SHA-256 is
+  `fdc9ca5a15e92ecce512e94f362908c4bd7a81db6c759ccca1534854b404e07d`.
+  Projected-public direct/identity 33/33, exact affected contracts 3/3 in
+  1.746 seconds, focused 766/766 in 38.960 seconds, audit 217, pycompile 5/5,
+  selected private/public 0/7, owner counts 8/23, unchanged 48/203 DAG, and
+  full 2,143/2,143 in 261.599 seconds passed. Benchmark refresh and remote CI
+  were **NOT RUN**. This name-only cleanup establishes no answer/trace quality,
+  performance, benchmark, schedule, ledger, or Phase 3 completion claim.
+
+### Report-cache-candidate public API characterization checkpoint
+
+- The next bounded visibility batch renames only the exact 96-line
+  `financial_runtime_trace._report_cache_candidate_for_trace(...)` definition
+  in place to public `report_cache_candidate_for_trace(...)`. Update one owner-
+  local call, one planning import/call pair, and one owner-count expectation;
+  add no alias, wrapper, body/owner move, test method, candidate/classification/
+  retrieval-bypass/cache-serving policy, mutation, exception boundary, or
+  adjacent cleanup.
+- Preserve copied report/task/trace inputs, the all-material-empty return,
+  answer-slot and first-operand precedence, every candidate fallback chain,
+  producer classification, copied reasons/key, key ID, fixed read-only flag,
+  consumer classification, retrieval-bypass attachment, immutability,
+  propagated errors, and both try-depth-zero caller gates and sequencing.
+- Current-private/future-public definition hashes are
+  `dd5adf3c093f2462fd2160422bcb901d29e0ad4705d06145c5b8fd29c6bf4c23` /
+  `d093e82647e5c9a8d3486acd171410043c8559a8d98ab5bc3bb10298d2ab1921`;
+  the unchanged body hash is
+  `6ff7c577bcd0aa19818028a8ba77f98f19e71754aa7df27d903ee843257323ff`.
+  Owner-local caller hashes project `28aa4b23...` / `8cfe40a3...` to
+  `14f6b744...` / `4a6ee386...`; planning caller hashes project `cf6b71ad...`
+  / `f736e6ab...` to `9f6df840...` / `5979eee1...`. Selected private/public
+  records project 0/4 and owner counts move 8/23 to 9/22.
+- Projected source/tests/whole transforms are `+4/-4`, `+1/-1`, and `+5/-5`
+  across two source and one test file; exact temporary diff SHA-256 is
+  `5d05095ebe101abc6f3cffee5a606571ef2440d7657b58aec042800bad9df22c`.
+  The restored projection passed projected-public direct behavior/identity
+  45/45, exact affected contracts 7/7 in 2.936 seconds, focused 561/561 in
+  23.775 seconds, audit 217, pycompile 3/3, retired refs zero, diff check, and
   unchanged acyclic 48/203 DAG. Full 2,143/2,143 remains the implementation
-  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations,
-  secondary-doc synchronization, and stop lines are authoritative in
+  gate. Benchmark refresh and remote CI were **NOT RUN**. Exact expectations
+  and stop lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).

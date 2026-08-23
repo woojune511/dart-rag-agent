@@ -122,7 +122,7 @@ is internal representation cleanup, not a new answer-quality fix.
   remains available through explicit resolver/adapters for historical bundles,
   not through the live graph state contract.
 - 2026-06-22: removed the live graph flat `calculation_*` reader path from
-  `_project_task_trace_from_state()`. Direct aggregate-node tests now provide
+  `project_task_trace_from_state()`. Direct aggregate-node tests now provide
   current active-task material through canonical `resolved_calculation_trace`
   or task artifacts; stale top-level flat fields remain regression fixtures
   proving that live capture ignores them.
