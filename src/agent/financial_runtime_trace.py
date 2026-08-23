@@ -15,7 +15,7 @@ from src.agent.financial_numeric_surface import (
 )
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _format_korean_won_compact,
+    format_korean_won_compact,
     _normalise_spaces,
 )
 from src.agent.financial_text_surface import narrative_context_terms
@@ -596,7 +596,7 @@ def _answer_mentions_numeric_slot(final_answer: str, slot: Mapping[str, Any]) ->
         return False
     normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
     if normalized_unit == "KRW":
-        compact_surface = _format_korean_won_compact(target_value)
+        compact_surface = format_korean_won_compact(target_value)
         if _answer_mentions_any_surface(final_answer, [compact_surface]):
             return True
     try:

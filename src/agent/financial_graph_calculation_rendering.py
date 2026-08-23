@@ -11,7 +11,7 @@ from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     display_operand_label,
-    _format_korean_won_compact,
+    format_korean_won_compact,
     _normalise_spaces,
 )
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, CONCEPT_RATIO_RESULT_UNIT_POLICY
@@ -49,7 +49,7 @@ def coerce_rendered_value_for_direction(
 
 def format_calculation_value(value: float, result_unit: str, normalized_unit: str) -> str:
     if normalized_unit == "KRW":
-        return _format_korean_won_compact(value)
+        return format_korean_won_compact(value)
     normalized_upper = str(normalized_unit or "").upper()
     percent_normalized_units = {
         str(item).upper()
