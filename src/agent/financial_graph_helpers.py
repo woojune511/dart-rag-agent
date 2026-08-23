@@ -1720,7 +1720,7 @@ def _build_concept_required_operands(
     return operands
 
 
-def _build_concept_metric_label(
+def build_concept_metric_label(
     query: str,
     concept_specs: List[Dict[str, Any]],
     operation_family: str,
@@ -1883,7 +1883,7 @@ def _build_explicit_ratio_definition_task(
                 numerator_label=numerator_label,
             )
             if denominator_label and numerator_label
-            else _build_concept_metric_label(query, [numerator, denominator], "ratio")
+            else build_concept_metric_label(query, [numerator, denominator], "ratio")
         )
         task = _compose_concept_numeric_task(
             query=query,
@@ -1939,7 +1939,7 @@ def _build_concept_numeric_task(
     operand_specs = _build_concept_required_operands(query, report_scope, concept_specs, operation_family)
     if not operand_specs:
         return None
-    metric_label = _build_concept_metric_label(query, operand_specs, operation_family)
+    metric_label = build_concept_metric_label(query, operand_specs, operation_family)
     return _compose_concept_numeric_task(
         query=query,
         report_scope=report_scope,
@@ -2413,7 +2413,7 @@ def _build_group_decomposition_task(
         if not operand_specs:
             continue
 
-        metric_label = str(hints.get("metric_label") or "").strip() or _build_concept_metric_label(
+        metric_label = str(hints.get("metric_label") or "").strip() or build_concept_metric_label(
             query,
             ordered_specs,
             operation_family,
@@ -2477,7 +2477,7 @@ def _build_concept_analysis_task(
             )
             if not operand_specs:
                 continue
-            metric_label = str(hints.get("metric_label") or "").strip() or _build_concept_metric_label(
+            metric_label = str(hints.get("metric_label") or "").strip() or build_concept_metric_label(
                 query,
                 [numerator, denominator],
                 operation_family,

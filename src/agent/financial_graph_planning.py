@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_result_unit
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
-    _build_concept_metric_label,
+    build_concept_metric_label,
     _build_concept_required_operands,
     _build_concept_task_constraints,
     _build_generic_retrieval_queries,
@@ -431,7 +431,7 @@ class FinancialAgentPlanningMixin:
             if not normalized_operands:
                 continue
 
-            metric_label = raw_metric_label or _build_concept_metric_label(
+            metric_label = raw_metric_label or build_concept_metric_label(
                 query,
                 resolved_specs,
                 operation_family,
