@@ -1743,13 +1743,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   mesh를 88 records / 30 unique bindings / 30 importers로 다시 계수했다.
   `financial_runtime_normalization`의 54/4/30은 의도된 shared normalization
   owner이고, 나머지는 34/26/9다. 네 부채군은 모두 여전히 partial 또는 open이다.
-- 다음 exact owner seam은 `financial_runtime_trace.py`의 현재 94-line private
-  resolver를 같은 위치와 본문으로 public
-  `resolve_runtime_calculation_trace(...)`로 이름 수렴시키는 visibility-only
-  batch다. 이 owner는 canonical/structured/task-artifact/subtask trace를 읽어
-  선택·복사할 뿐 input state나 ledger를 쓰지 않는다. Core private mesh는
-  82/29/30, non-normalization slice는 28/25/7로 투영되고 48/203 DAG는
-  불변이다. Caller, adapter, deletion, test, hash, stop line은
+- `2892d1b`가 `financial_runtime_trace.py`의 exact 94-line private resolver를
+  같은 위치와 본문으로 public `resolve_runtime_calculation_trace(...)`로
+  이름 수렴시켰다. 이 owner는 canonical/structured/task-artifact/subtask
+  trace를 읽어 선택·복사할 뿐 input state나 ledger를 쓰지 않는다. 여섯
+  optional/eval adapter의 local private wrapper는 유지되고 nested owner import
+  target만 public으로 바뀌었다. Core private mesh 82/29/30, non-normalization
+  28/25/7, unchanged 48/203 DAG, exact 101/101, corrected focused 1,176/1,176,
+  audit 217, pycompile 18/18, identity 11/11, full 2,143/2,143가 통과했다.
+- 다음은 production 변경 없는 post-implementation Phase 3 재감사다. 남은
+  owner/mutation/I/O/ledger 경계를 다시 분류하고 exact seam 하나만 선택하며,
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

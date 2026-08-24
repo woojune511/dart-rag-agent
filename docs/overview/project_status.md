@@ -16,10 +16,10 @@ Last updated: 2026-08-25
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | A docs-and-static-analysis-only Phase 3 closure audit at `1ca4089` recomputed the core private mesh and four debt groups, then selected exactly one next owner seam without changing production source or tests |
-| What passed? | The closure audit reproduced 88 private import records / 30 unique bindings / 30 importers, separated the 54-record shared-normalization layer, and proved the selected name-only projection keeps the 48-module/203-edge DAG unchanged; the latest executed runtime gate remains full unittest 2,143/2,143 for `f152cbd` |
-| Was the benchmark refreshed? | **NOT RUN**; this was a docs/static closure audit, not a policy, ingest, retrieval, answer-behavior, or fresh runtime change |
-| What is next? | Implement the exact visibility-only `financial_runtime_trace.resolve_runtime_calculation_trace(...)` public API contract characterized below, with no body, precedence, state, ledger, or adapter behavior change |
+| What just changed? | `2892d1b` renamed only the exact 94-line runtime-trace resolver in place to public `financial_runtime_trace.resolve_runtime_calculation_trace(...)`, updated its direct consumers and test contracts, and retained the six local lazy-adapter wrapper names |
+| What passed? | Exact affected methods 101/101, corrected focused coverage 1,176/1,176, runtime audit 217, pycompile 18/18, fresh-import identity 11/11, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with no policy, ingest, retrieval, trace precedence, state, ledger, or answer-behavior change |
+| What is next? | Run one docs-and-static-analysis-only post-implementation Phase 3 audit, recompute the remaining private mesh and four debt groups from `2892d1b`, then select exactly one next owner seam before another production change |
 
 ## Product Boundary
 
@@ -748,13 +748,14 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, metric-task-query exact affected methods 45 / 45 and affected focused set 628 / 628 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after metric-task-query public rename |
+| Latest focused owner checkpoint | PASS, runtime-trace exact affected methods 101 / 101 and corrected focused coverage 1,176 / 1,176 |
+| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace resolver public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
+| Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
 | Full unittest discovery | PASS, 2,143 / 2,143 |
 | Benchmark refresh after latest visibility-only cleanup | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
@@ -799,13 +800,31 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Implement one exact visibility-only runtime-trace API seam. Rename only the
-current 94-line
+Run one docs-and-static-analysis-only post-implementation Phase 3 audit. Use
+`2892d1b` as the production-source checkpoint, recompute the remaining
+top-level `src/agent/*.py` cross-module private import records, unique bindings,
+and importers, and re-evaluate the four durable debt groups and five Phase 3
+completion conditions. The implementation receipt is 82 / 29 / 30 total and
+28 / 25 / 7 outside shared normalization, but the audit must measure the
+checkout rather than copying those figures.
+
+Change no production source or tests during this audit. Separate intentional
+shared normalization from wrong-owner dependencies, then characterize exactly
+one next seam with its owner, callers, state/mutation and I/O boundary, import-
+DAG effect, deletion criteria, focused tests, hashes, and stop lines. Do not
+name-only export mutation, report-I/O, graph-state, wrong-direction pipeline,
+state-carrier, or task/artifact-ledger helpers. A later production change must
+be authorized by the resulting single documented seam.
+
+## Completed Runtime Calculation Trace Resolver Public API
+
+Commit `2892d1b` completed the exact visibility-only runtime-trace API seam. It
+renamed only the current 94-line
 `financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition,
 whose signature is `(result, *, allow_legacy_top_level=False)`, in place to
-public `resolve_runtime_calculation_trace(...)`, then update every direct owner
+public `resolve_runtime_calculation_trace(...)`, then updated every direct owner
 import, direct bound call, affected patch target, one owner public/private
-count, and the six active derived caller-hash records. Add no alias,
+count, and the six active derived caller-hash records. It added no alias,
 compatibility shim, body or owner move, module, test method, branch, catch,
 trace field, policy, ontology entry, state write, task/artifact mutation, or
 adjacent cleanup.
@@ -816,21 +835,21 @@ structured-result, task/artifact, and subtask surfaces and returns a selected
 projection. It performs no direct write to the input result, task list,
 artifact list, or ledger; invokes no model, network, report-file, cache-store,
 or external side effect; and contains ten returns with no `try` or explicit
-`raise`. Preserve the exact precedence among canonical non-aggregate trace,
+`raise`. The batch preserved the exact precedence among canonical non-aggregate trace,
 public-aligned structured subtask projection, active-task artifact projection,
 strict/non-strict fallback, aggregate-subtask projection, and final canonical
-or fallback return. Preserve active-task inference, projection-source metadata,
+or fallback return. It preserved active-task inference, projection-source metadata,
 the strict-default legacy policy, shallow-copy identities, evaluation order,
 and every propagated error.
 
 The exact source boundary is 17 imports from the owner: six top-level core
 consumers, one optional analyst-node adapter, and ten `src/ops` readers. Eleven
 bind the resolver name directly; six existing lazy adapters import it as
-`impl`. Rename 28 direct source calls at `try` depth zero: 25 pass explicit
+`impl`. It renamed 28 direct source calls at `try` depth zero: 25 pass explicit
 `False`, one uses the strict default, and two forward a caller-owned boolean.
-The six lazy adapters keep their own private wrapper names and call sites; only
-their nested owner import target becomes public. Five tests import the owner
-directly. The minimum static test ripple is five import names, 102 direct name
+The six lazy adapters kept their own private wrapper names and call sites; only
+their nested owner import target became public. Five tests imported the owner
+directly. The minimum static test ripple was five import names, 102 direct name
 loads, 28 patch-target strings, one owner-count expectation, and six active
 derived caller-hash expectations across ten test files and 101 affected test
 methods.
@@ -846,7 +865,7 @@ and whole `+188/-188`; its normalized unified-diff SHA-256 is
 `e0b2a7b0015424bca03d93979a5fe25fe256b0a98d4e3644be14e120b4ee4928`.
 This is a characterization receipt, not an executed implementation result.
 
-Deletion and implementation gates are:
+The characterized deletion and implementation gates were:
 
 - exactly one public owner definition and no private owner definition;
 - zero direct imports of the private owner symbol and exactly 22 direct imports
@@ -876,6 +895,28 @@ state/ledger mutation. Do not substitute `_resolve_candidate_local_unit_hint`,
 `_annotate_task_dependencies`, graph-state readers, retrieval-pipeline numeric
 helpers, aggregate-state classes, or task/artifact helpers. Those are separate
 I/O, mutation, wrong-direction, state-carrier, or ledger-contract problems.
+
+The completed transform changed exactly 18 source and ten test files: source
+`+46/-46`, tests `+142/-142`, and whole `+188/-188`. The public name-sensitive
+definition hash is `88a78b2a1a7fb6b91149d142d423946e50be0f70f5205c8396f70e0e5b414a8f`;
+the body hash remained
+`ffae88a4939c1bf7f12eb7290bbba631023205358a1c03830fd4462c99d3d4e5`.
+One caller-map aggregate expectation required a second deterministic
+recalculation after its nested caller hash changed; therefore the corrected
+committed normalized diff SHA-256 is
+`d13a540895884b60183a9e4546eba1dfd1829565e5f2aaea16f5f0ccff5dbd6d`,
+while `e0b2a7b...` above remains only the first-pass characterization receipt.
+
+Static deletion gates passed at 22 public and zero private direct owner imports,
+28 direct public source calls, owner counts 11/20, core private mesh 82/29/30,
+non-normalization mesh 28/25/7, and unchanged acyclic 48/203 DAG. Exact affected
+methods passed 101/101 in 23.559 seconds. The broader focused run passed 1,175
+of 1,176 initially, with the sole failure being the cascading test-only hash;
+that corrected method then passed 1/1. Runtime-domain audit 217, pycompile
+18/18, fresh-import public identity 11/11, and full discovery 2,143/2,143 in
+367.467 seconds passed. Benchmark refresh and remote CI were **NOT RUN**. This
+name-only cleanup establishes no runtime behavior, quality, accuracy,
+performance, benchmark, ledger, or Phase 3 completion claim.
 
 ## Completed Phase 3 Closure Audit
 

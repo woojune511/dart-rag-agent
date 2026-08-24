@@ -3099,23 +3099,26 @@ The completion-condition verdict remains one met, two partial, and two open,
 so none of the four durable debt groups closes in this audit. Production source
 and tests were not changed.
 
-The audit selects exactly one next production seam: rename the current 94-line
-`financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition in
-place to public `resolve_runtime_calculation_trace(...)`. This is a correct-owner,
-read-only projection contract, not a body or owner move. Six top-level core
-private imports then disappear, projecting the core inventory to 82 / 29 / 30
-and its non-normalization slice to 28 / 25 / 7 while leaving the acyclic
-48-module/203-edge DAG unchanged. Exact caller, adapter, mutation, deletion,
-focused-test, hash, and stop-line contracts are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+Commit `2892d1b` implemented the audit's sole production seam by renaming the
+exact 94-line runtime-trace resolver in place to public
+`resolve_runtime_calculation_trace(...)`. This was a correct-owner, read-only
+visibility change, not a body or owner move. Six top-level core private imports
+disappeared; the measured core inventory is now 82 / 29 / 30 and its non-
+normalization slice is 28 / 25 / 7, while the acyclic 48-module/203-edge DAG is
+unchanged. Exact 101/101, corrected focused coverage 1,176/1,176, audit 217,
+pycompile 18/18, fresh identity 11/11, and full 2,143/2,143 passed. Benchmark
+refresh and remote CI were **NOT RUN**. Completion evidence is authoritative in
+[Project Status Completed Runtime Trace](../overview/project_status.md#completed-runtime-calculation-trace-resolver-public-api).
 
-Do not replace that seam with a name-only export of
+The implementation did not substitute a name-only export of
 `_annotate_task_dependencies(...)`, `_resolve_candidate_local_unit_hint(...)`,
 graph-state readers, reconciliation builders/rankers, aggregate-state carriers,
 retrieval-pipeline numeric helpers, or task/artifact helpers. Those candidates
 respectively cross task mutation/topological ordering, report I/O, state,
 wrong-direction orchestration, carrier ownership, pipeline ownership, or ledger
-contracts and require separate characterization.
+contracts and still require separate characterization. The next step is a
+production-change-free post-implementation audit governed by
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

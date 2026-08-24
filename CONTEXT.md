@@ -21,7 +21,7 @@ Last updated: 2026-08-25
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | latest production-source milestone `f152cbd` and documentation checkpoint `1ca4089` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | latest production-source milestone `2892d1b` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -29,14 +29,13 @@ Last updated: 2026-08-25
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
-2026-08-25 docs/static Phase 3 종료 감사는 top-level `src/agent/*.py`의
-cross-module private mesh를 88 records / 30 unique bindings / 30 importers로
-확정했다. 이 중 shared normalization owner가 54/4/30이고, 나머지는
-34/26/9다. 정확히 한 다음 seam은 현재 94-line
-`financial_runtime_trace._resolve_runtime_calculation_trace(...)`를 같은 owner와
-본문에서 public `resolve_runtime_calculation_trace(...)`로 이름 수렴시키는
-visibility-only batch다. 구현 후 투영은 total 82/29/30,
-non-normalization 28/25/7이며, 상세 범위와 stop line은
+`2892d1b`는 94-line runtime-trace resolver를 같은 owner와 본문에서 public
+`financial_runtime_trace.resolve_runtime_calculation_trace(...)`로 이름
+수렴시켰다. Core private mesh는 82 records / 29 unique bindings / 30
+importers, shared normalization 밖은 28/25/7이며 48/203 DAG는 불변이다.
+Exact affected 101/101, corrected focused coverage 1,176/1,176, audit 217,
+pycompile 18/18, fresh identity 11/11, full 2,143/2,143가 통과했다. 다음은
+production 변경 없는 post-implementation Phase 3 재감사이며, 상세 범위는
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 남은 Phase 3 범위
@@ -869,7 +868,13 @@ composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
   2,143/2,143가 통과했다. 이어진 docs/static Phase 3 종료 감사는 production
   source/test 변경 없이 private mesh와 네 부채군을 다시 계수했고, 다음
   exact batch로 runtime-trace resolver public API visibility seam 하나만
-  선택했다. 범위는
+  선택했다. `2892d1b`가 그 94-line resolver를 in-place public API로 이름
+  수렴시키고 17 source imports, 28 direct source calls, five direct test
+  imports, 102 test name loads, 28 patch targets와 파생 기대만 갱신했다.
+  Resolver precedence/body/state/ledger 및 여섯 lazy adapter wrapper는
+  유지됐다. Source/tests/whole `+46/-46`, `+142/-142`, `+188/-188`, exact
+  101/101, corrected focused 1,176/1,176, audit 217, pycompile 18/18, identity
+  11/11, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 다음 범위는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

@@ -2764,7 +2764,7 @@ must be combined with `structured_result`, the projection remains
 Evaluator and benchmark review exports should surface projection source,
 legacy-fallback status, and calculation-result source as first-class audit
 fields alongside the full `resolved_calculation_trace`.
-`_resolve_runtime_calculation_trace()` is strict by default. Historical replay
+`resolve_runtime_calculation_trace()` is strict by default. Historical replay
 or retrospective readers that need old-bundle compatibility must opt in with
 `allow_legacy_top_level = true`. Strict mode rejects top-level `calculation_*`
 fallback while still allowing non-legacy `structured_result` projection.
@@ -7250,14 +7250,13 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**. Exact completion evidence is authoritative in
 [Project Status Completed Generic Concept](../overview/project_status.md#completed-generic-concept-spec-inference-public-api).
 
-The 2026-08-25 Phase 3 closure audit selected the runtime trace resolver as the
-next exact visibility-only contract. Until that batch is implemented, the live
-symbol remains
-`financial_runtime_trace._resolve_runtime_calculation_trace(...)`, with
-signature `(result, *, allow_legacy_top_level=False)`. The implementation
-renames that definition in place to public
-`resolve_runtime_calculation_trace(...)` and updates direct owner imports/calls
-only; the 94-line body, owner, signature, and behavior do not change.
+Commit `2892d1b` completed the runtime-trace resolver visibility contract. The
+live symbol is now
+`financial_runtime_trace.resolve_runtime_calculation_trace(...)`, with
+signature `(result, *, allow_legacy_top_level=False)`. The commit renamed the
+definition in place and updated direct owner imports/calls only; the 94-line
+body, owner, signature, and behavior did not change. No private owner alias or
+compatibility shim remains.
 
 The resolver remains a read-only projection selector. It first materializes a
 canonical normalized trace and the strict-or-legacy fallback. It infers an
@@ -7279,9 +7278,14 @@ All 28 direct source calls retain one positional argument, their current
 strict/default/dynamic keyword choice, try-depth-zero placement, adoption, and
 stop behavior. Six optional/evaluation lazy adapters retain their own private
 wrapper names and signatures; only their nested owner import target becomes
-public. Exact inventory, hashes, deletion criteria, focused gates, and stop
-lines are authoritative in
-[Project Status Next Work](../overview/project_status.md#next-work).
+public. The completed boundary has 22 public and zero private direct owner
+imports, owner function counts 11/20, core private mesh 82/29/30, non-
+normalization mesh 28/25/7, and unchanged acyclic 48/203 DAG. Exact affected
+101/101, corrected focused coverage 1,176/1,176, runtime audit 217, pycompile
+18/18, fresh identity 11/11, and full discovery 2,143/2,143 passed. Benchmark
+refresh and remote CI were **NOT RUN**. Exact implementation evidence is
+authoritative in
+[Project Status Completed Runtime Trace](../overview/project_status.md#completed-runtime-calculation-trace-resolver-public-api).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

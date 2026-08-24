@@ -12139,3 +12139,42 @@ are complete. It remains only as an audit record, not an active priority.
   imports rather than a global raw-string zero. Exact future gates and stop
   lines are authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Runtime calculation trace resolver public API
+
+- Commit `2892d1b` completed the closure audit's sole authorized production
+  seam. It renamed the exact 94-line
+  `financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition
+  in place to public `resolve_runtime_calculation_trace(...)`, updated 17 source
+  owner imports and 28 direct source calls, five direct test imports, 102 direct
+  test name loads, 28 patch-target strings, one owner-count expectation, and six
+  active derived hash records. Six lazy adapters retained their local private
+  wrapper names; only their nested owner import target changed.
+- The body, owner, `(result, *, allow_legacy_top_level=False)` signature,
+  canonical/structured/task-artifact/subtask precedence, shallow-copy and
+  projection metadata behavior, strict/default/dynamic call modes, try-depth-
+  zero placement, propagated errors, and all state/artifact/ledger boundaries
+  remained exact. No alias, compatibility shim, branch, catch, policy,
+  ontology entry, test method, model/network/report/cache I/O, or adjacent
+  cleanup was added.
+- The actual transform covered 18 source and ten test files: source
+  `+46/-46`, tests `+142/-142`, whole `+188/-188`. The name-sensitive public
+  definition hash is `88a78b2...`; normalized body hash stayed `ffae88a4...`.
+  A caller-map aggregate expectation needed a second deterministic
+  recalculation after its nested caller hash changed, so the corrected committed
+  normalized diff SHA-256 is
+  `d13a540895884b60183a9e4546eba1dfd1829565e5f2aaea16f5f0ccff5dbd6d`;
+  the earlier `e0b2a7b...` remains a first-pass characterization receipt.
+- Static gates passed at 22 public / zero private direct owner imports, owner
+  counts 11/20, 28 public direct source calls with modes 25 explicit-false / one
+  strict-default / two dynamic and try depth zero, core private mesh 82/29/30,
+  non-normalization 28/25/7, and unchanged acyclic 48/203 DAG. Exact affected
+  methods passed 101/101 in 23.559 seconds. The broad focused run passed 1,175
+  of 1,176 before the sole cascading test-only expectation was corrected; that
+  method then passed 1/1. Audit 217, pycompile 18/18, fresh identity 11/11, and
+  full discovery 2,143/2,143 in 367.467 seconds passed.
+- Benchmark refresh and remote CI were **NOT RUN**. This visibility-only cleanup
+  establishes no behavior, quality, accuracy, performance, benchmark, ledger,
+  or Phase 3 completion claim. The next step is the production-change-free
+  post-implementation audit in
+  [Project Status Next Work](../overview/project_status.md#next-work).
