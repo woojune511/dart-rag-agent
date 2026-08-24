@@ -711,7 +711,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
                 selected_evidence_ids=(),
             )
             with (
-                patch.object(financial_graph_calculation, "_resolve_runtime_calculation_trace", return_value=render_trace),
+                patch.object(financial_graph_calculation, "resolve_runtime_calculation_trace", return_value=render_trace),
                 patch.object(agent, "_repair_stale_calculation_result_from_operands", return_value=stale_repair),
                 patch.object(agent, "_calc_query", side_effect=lambda state: str(state.get("query") or ""), create=True),
                 patch.object(financial_graph_calculation.calculation_rendering, "direction_hint_for_result", return_value=""),
@@ -792,7 +792,7 @@ class FinancialRatioScaleTests(unittest.TestCase):
 
         def run_verify(component_effect, compact_owner):
             with (
-                patch.object(financial_graph_calculation, "_resolve_runtime_calculation_trace", return_value=verify_trace),
+                patch.object(financial_graph_calculation, "resolve_runtime_calculation_trace", return_value=verify_trace),
                 patch.object(agent, "_calc_query", side_effect=lambda state: str(state.get("query") or ""), create=True),
                 patch.object(financial_graph_calculation.calculation_rendering, "direction_hint_for_result", return_value=""),
                 patch.object(agent, "_llm_for_phase", return_value=StructuredLLM(), create=True),

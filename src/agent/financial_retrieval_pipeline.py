@@ -30,7 +30,7 @@ from src.agent.financial_retrieval_hints import (
     retrieval_hint_from_topic,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
@@ -92,7 +92,7 @@ def _metric_terms_from_topic(topic: str) -> set[str]:
 
 
 def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
-    trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
     if not candidate:
         candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
@@ -138,7 +138,7 @@ def _report_cache_index_diagnostics_for_retrieval(
     # it only when a caller explicitly configures an index path.
     from src.storage.report_cache_index import ReportCacheIndex
 
-    trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
     if not candidate:
         candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))

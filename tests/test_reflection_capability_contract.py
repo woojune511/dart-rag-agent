@@ -419,7 +419,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             side_effect=resolve,
         ):
             summary = financial_reflection_projection._reflection_runtime_trace_summary(
@@ -445,7 +445,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value={
                 "calculation_operands": [],
                 "calculation_plan": {"operation": "", "mode": "fallback_mode"},
@@ -469,7 +469,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         mode_bomb = ModeBomb()
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value={
                 "calculation_operands": [],
                 "calculation_plan": {
@@ -499,7 +499,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         resolver = Mock()
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             resolver,
         ):
             with self.assertRaisesRegex(RuntimeError, "state copy|state item"):
@@ -510,7 +510,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             side_effect=RuntimeError("strict resolver"),
         ):
             with self.assertRaisesRegex(RuntimeError, "strict resolver"):
@@ -531,7 +531,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value=LaterBomb(calculation_operands=IterBomb()),
         ):
             with self.assertRaisesRegex(RuntimeError, "operand iteration"):
@@ -549,7 +549,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_reflection_projection,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value={
                 "calculation_operands": [],
                 "calculation_plan": PlanCopyBomb(),
@@ -1249,7 +1249,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
 
         with patch.object(
             financial_graph_reconciliation,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             side_effect=resolve,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1330,7 +1330,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
         with patch.object(
             financial_graph_reconciliation,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value=runtime_trace,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1373,7 +1373,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         normalize_failure = Mock(side_effect=RuntimeError("normalize failed"))
         with patch.object(
             financial_graph_reconciliation,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value=runtime_trace,
         ), patch.object(
             financial_graph_reconciliation,
@@ -2445,7 +2445,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
         with patch.object(
             financial_graph_calculation,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             side_effect=resolve,
         ), patch.object(
             financial_graph_calculation,
@@ -2517,7 +2517,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         )
         with patch.object(
             financial_graph_calculation,
-            "_resolve_runtime_calculation_trace",
+            "resolve_runtime_calculation_trace",
             return_value=runtime_trace,
         ), patch.object(
             financial_graph_calculation,

@@ -66,7 +66,7 @@ from src.agent.financial_aggregate_projection import (
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
 from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
 from src.agent.financial_lookup_recovery import refine_lookup_slot_unit_from_evidence
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_task_artifacts import (
     AggregateArtifactProjectionPayloadSyncInput,
     aggregate_answer_artifact_update,
@@ -2691,7 +2691,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(
@@ -2752,7 +2752,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(
@@ -2799,7 +2799,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(
@@ -2833,7 +2833,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(
@@ -8056,7 +8056,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         }
         primary = agent._execute_calculation(execution_state)
-        primary_trace = _resolve_runtime_calculation_trace(primary, allow_legacy_top_level=False)
+        primary_trace = resolve_runtime_calculation_trace(primary, allow_legacy_top_level=False)
         stale_result = {
             "status": "ok",
             "result_value": 990.0,
@@ -8190,7 +8190,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         rendered = agent._render_calculation_answer(render_state)
         merged_render_state = {**render_state, **rendered}
-        rendered_trace = _resolve_runtime_calculation_trace(
+        rendered_trace = resolve_runtime_calculation_trace(
             merged_render_state,
             allow_legacy_top_level=False,
         )
@@ -10151,7 +10151,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
 
         result = agent._execute_calculation(state)
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calculation_result = trace["calculation_result"]
         operand = trace["calculation_operands"][0]
 
@@ -11795,7 +11795,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         ):
             result = agent._extract_calculation_operands(state)
 
-        rows = _resolve_runtime_calculation_trace(result)["calculation_operands"]
+        rows = resolve_runtime_calculation_trace(result)["calculation_operands"]
         by_role = {row["matched_operand_role"]: row for row in rows}
         self.assertEqual(state, state_before)
         self.assertEqual(direct_prior_row, direct_prior_before)
@@ -12985,7 +12985,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in owner_functions),
                 sum(node.name.startswith("_") for node in owner_functions),
             ),
-            (10, 21),
+            (11, 20),
         )
 
         class BindingVisitor(ast.NodeVisitor):

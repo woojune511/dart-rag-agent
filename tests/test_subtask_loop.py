@@ -29,7 +29,7 @@ from src.agent import financial_lookup_recovery
 from src.agent import financial_operand_resolution
 from src.agent import financial_runtime_trace
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationOperand,
@@ -693,7 +693,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], supported_answer)
         self.assertEqual(trace["calculation_result"]["formatted_result"], supported_answer)
         self.assertEqual(trace["calculation_result"]["rendered_value"], supported_answer)
@@ -1646,7 +1646,7 @@ class SubtaskLoopTests(unittest.TestCase):
         build_context.assert_called_once()
         context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
@@ -1654,7 +1654,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "growth_rate")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -2324,14 +2324,14 @@ class SubtaskLoopTests(unittest.TestCase):
         build_context.assert_called_once()
         context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["numerator_1", "denominator_1"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "ratio")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -2521,7 +2521,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -2595,7 +2595,7 @@ class SubtaskLoopTests(unittest.TestCase):
             ) as operand_selection,
         ):
             extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(state, state_before)
         self.assertEqual(len(direct_acceptances), 1)
@@ -2622,7 +2622,7 @@ class SubtaskLoopTests(unittest.TestCase):
             wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
         ) as resolve_direct_acceptance:
             nonlookup_extracted = self.agent._extract_calculation_operands(nonlookup_state)
-        nonlookup_rows = _resolve_runtime_calculation_trace(nonlookup_extracted)["calculation_operands"]
+        nonlookup_rows = resolve_runtime_calculation_trace(nonlookup_extracted)["calculation_operands"]
 
         resolve_direct_acceptance.assert_not_called()
         self.assertEqual(nonlookup_state, nonlookup_before)
@@ -2735,7 +2735,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ):
             extracted = self.agent._extract_calculation_operands(state)
 
-        rows = _resolve_runtime_calculation_trace(extracted)["calculation_operands"]
+        rows = resolve_runtime_calculation_trace(extracted)["calculation_operands"]
         self.assertEqual(state, state_before)
         self.assertEqual([row["evidence_id"] for row in rows], ["llm_kept"])
         self.assertEqual(rows[0]["operand_id"], "op_003")
@@ -2767,7 +2767,7 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
         ):
             failed = self.agent._extract_calculation_operands(state)
-        failed_trace = _resolve_runtime_calculation_trace(failed)
+        failed_trace = resolve_runtime_calculation_trace(failed)
         self.assertEqual(
             (state, failed["evidence_status"], failed_trace.get("calculation_operands", [])),
             (state_before, "missing", []),
@@ -2839,7 +2839,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         with acceptance_patch:
             extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(state, state_before)
         self.assertEqual(scoped_row, row_before)
@@ -2952,7 +2952,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         with acceptance_patch:
             extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands = list(trace.get("calculation_operands") or [])
         debug_operands = list((extracted.get("calculation_debug_trace") or {}).get("operands") or [])
         all_rows = operands + debug_operands
@@ -3055,7 +3055,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -3142,7 +3142,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -3229,7 +3229,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -3620,7 +3620,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ) as artifact_payload_sync:
             updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         candidate_apply.assert_not_called()
         artifact_payload_sync.assert_not_called()
         final_answer_sync.assert_called_once()
@@ -4851,7 +4851,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = None
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("9.00%p", updated["answer"])
         self.assertNotIn("7.50%p", updated["answer"])
@@ -4989,7 +4989,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = None
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("9.00%p", updated["answer"])
         self.assertNotIn("0.01%p", updated["answer"])
@@ -5213,7 +5213,7 @@ class SubtaskLoopTests(unittest.TestCase):
             wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
         ) as candidate_apply:
             updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertEqual(packaging_events, ["refreshed"])
         candidate_apply.assert_called_once()
@@ -9851,7 +9851,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["calculation_debug_trace"]["retry_strategy"], "synthesize_from_task_outputs")
@@ -9959,7 +9959,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertIn(
@@ -10059,7 +10059,7 @@ class SubtaskLoopTests(unittest.TestCase):
             extracted = self.agent._extract_calculation_operands(state)
         finally:
             financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "partial")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -10195,7 +10195,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -10430,7 +10430,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -10601,7 +10601,7 @@ class SubtaskLoopTests(unittest.TestCase):
             side_effect=record_selection,
         ):
             extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(
@@ -10730,7 +10730,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -10886,7 +10886,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -11045,7 +11045,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(item) for item in reconciliation_evidence]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "structured_row_direct")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -11169,7 +11169,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -11324,7 +11324,7 @@ class SubtaskLoopTests(unittest.TestCase):
         candidate_merges, merge_patch = _record_required_candidate_merges()
         with merge_patch:
             extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(state, state_before)
         self.assertEqual(len(candidate_merges), 1)
@@ -11489,7 +11489,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands_by_role = {
             row["matched_operand_role"]: row
             for row in trace["calculation_operands"]
@@ -11637,7 +11637,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands_by_role = {
             row["matched_operand_role"]: row
             for row in trace["calculation_operands"]
@@ -11966,7 +11966,7 @@ class SubtaskLoopTests(unittest.TestCase):
         candidate_merges, merge_patch = _record_required_candidate_merges()
         with merge_patch:
             extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         self.assertEqual(state, state_before)
         self.assertEqual(fallback_rows, fallback_rows_before)
         self.assertEqual(len(candidate_merges), 1)
@@ -12121,7 +12121,7 @@ class SubtaskLoopTests(unittest.TestCase):
         candidate_merges, merge_patch = _record_required_candidate_merges()
         with merge_patch:
             extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         self.assertEqual(state, state_before)
         self.assertEqual(fallback_rows, fallback_rows_before)
         self.assertEqual(len(candidate_merges), 1)
@@ -12296,7 +12296,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
 
         extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -12460,7 +12460,7 @@ class SubtaskLoopTests(unittest.TestCase):
             direct_ids,
         )
 
-        trace_rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        trace_rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "structured_row_direct")
         self.assertEqual(
             extracted["calculation_debug_trace"].get("dependency_operands") or [],
@@ -12621,7 +12621,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
 
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "435,542")
@@ -12834,13 +12834,13 @@ class SubtaskLoopTests(unittest.TestCase):
         partial_percent_extracted = self.agent._extract_calculation_operands(
             percent_point_state
         )
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
         percent_point_rows = list(
-            _resolve_runtime_calculation_trace(percent_point_extracted).get("calculation_operands", [])
+            resolve_runtime_calculation_trace(percent_point_extracted).get("calculation_operands", [])
         )
         partial_percent_rows = list(
-            _resolve_runtime_calculation_trace(partial_percent_extracted).get(
+            resolve_runtime_calculation_trace(partial_percent_extracted).get(
                 "calculation_operands",
                 [],
             )
@@ -13112,14 +13112,14 @@ class SubtaskLoopTests(unittest.TestCase):
 
         extracted = self.agent._extract_calculation_operands(state)
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["addend_1", "addend_2"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "add")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -13672,7 +13672,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "2023년 연결기준 부채비율은 25.4%입니다. 2023년 연결기준 유동비율은 258.8%입니다.",
         )
         self.assertEqual(updated["selected_claim_ids"], ["ev_001", "ev_002"])
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(len(trace["calculation_operands"]), 4)
         self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
         self.assertEqual(trace["calculation_plan"]["subtask_count"], 2)
@@ -14175,7 +14175,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], "90.7%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "90.7%")
         self.assertNotIn("277.94%", updated["answer"])
@@ -14290,7 +14290,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("13.77%", updated["answer"])
         self.assertNotIn("100%", updated["answer"])
@@ -15157,7 +15157,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "reflection_request",
         ])
         self.assertEqual(
-            _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
+            resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},
         )
 
@@ -17806,7 +17806,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["planner_feedback"], "")
         self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
         self.assertIn("메모리", updated["answer"])
@@ -23341,7 +23341,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("스마트스토어와", updated["answer"])
         self.assertIn("성장과 연결 편입 효과", updated["answer"])

@@ -76,7 +76,7 @@ from src.agent.financial_reflection_projection import (
     build_reflection_request,
     normalise_reflection_plan_record,
 )
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     is_percent_point_difference_query,
     is_ratio_percent_query,
@@ -1292,7 +1292,7 @@ class FinancialAgentReconciliationMixin:
         }
 
     def _plan_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )

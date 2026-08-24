@@ -81,7 +81,7 @@ from src.agent.financial_graph_models import (
 from src.agent.financial_graph_helpers import build_hybrid_narrative_subtask
 from src.agent.financial_lookup_recovery import refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_normalization import _normalise_operand_value
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_retrieval_hints import (
     _desired_statement_types,
     infer_statement_and_section_hints,
@@ -3422,7 +3422,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,360백만원")
@@ -3489,7 +3489,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,334백만원")
@@ -3544,7 +3544,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        trace = resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(trace.get("calculation_plan", {}), {})
         self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
@@ -4516,7 +4516,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertIn("1,486,360백만원", rendered["answer"])
         self.assertNotIn("1,486,334백만원", rendered["answer"])
         self.assertEqual(trace["calculation_result"]["formatted_result"], rendered["answer"])
@@ -4550,7 +4550,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertEqual(rendered["answer"], "The result is 25.4%.")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "The result is 25.4%.")
         self.assertNotIn("calculation_operands", rendered)
@@ -4629,7 +4629,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertEqual(rendered["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(rendered["structured_result"]["formatted_result"], "25.4%")
@@ -4686,7 +4686,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(verified)
+        trace = resolve_runtime_calculation_trace(verified)
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "error_keep")
@@ -4717,7 +4717,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "skip")
         self.assertEqual(
-            _resolve_runtime_calculation_trace(verified, allow_legacy_top_level=False),
+            resolve_runtime_calculation_trace(verified, allow_legacy_top_level=False),
             {},
         )
         self.assertNotIn("calculation_operands", verified)
@@ -4760,7 +4760,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(verified)
+        trace = resolve_runtime_calculation_trace(verified)
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "keep")
@@ -6644,7 +6644,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
         self.assertEqual(trace.get("calculation_result", {}), {})
@@ -6680,7 +6680,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        trace = resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
         self.assertEqual(result["planner_debug_trace"]["reason"], "no operands")
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
@@ -6728,7 +6728,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertIn("distinct_operands", trace["calculation_plan"]["missing_info"])
@@ -6771,7 +6771,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
         self.assertIn("error", result["planner_debug_trace"])
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
@@ -6831,7 +6831,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
         self.assertTrue(result["planner_debug_trace"]["guard_applied"])
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
@@ -6874,7 +6874,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(result["evidence_status"], "missing")
         self.assertIn("error", result["calculation_debug_trace"])
         self.assertEqual(trace.get("calculation_operands", []), [])
@@ -6925,7 +6925,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
@@ -6973,7 +6973,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
@@ -7039,7 +7039,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        plan_trace = _resolve_runtime_calculation_trace(plan_result)
+        plan_trace = resolve_runtime_calculation_trace(plan_result)
         plan = plan_trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "ratio")
@@ -7047,7 +7047,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan["formula"], "((A) / (((B + C) / 2))) * 100")
 
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 4.3113887664, places=6)
@@ -7100,13 +7100,13 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        plan = _resolve_runtime_calculation_trace(plan_result)["calculation_plan"]
+        plan = resolve_runtime_calculation_trace(plan_result)["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["formula"], "((A) / (B)) * 100")
         self.assertEqual(plan["result_unit"], "%p")
 
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        calc = resolve_runtime_calculation_trace(execution_result)["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.3646014776, places=6)
         self.assertEqual(calc["rendered_value"], "8.36%p")
@@ -7207,7 +7207,7 @@ class OperationContractTests(unittest.TestCase):
         state_projection.assert_called_once()
         ratio_alignment.assert_not_called()
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "21.0%")
@@ -7234,7 +7234,7 @@ class OperationContractTests(unittest.TestCase):
         ):
             failed = agent._execute_calculation(failure_state)
 
-        failed_trace = _resolve_runtime_calculation_trace(failed)
+        failed_trace = resolve_runtime_calculation_trace(failed)
         self.assertEqual(failed_trace["calculation_result"]["status"], "parse_error")
         self.assertEqual(
             failed_trace["calculation_result"]["explanation"],
@@ -7341,7 +7341,7 @@ class OperationContractTests(unittest.TestCase):
         ratio_alignment.assert_called_once()
         self.assertEqual(ratio_alignment.call_args.args[1], [])
         self.assertEqual([row["operand_id"] for row in owner_calls], ["op_amortization", "op_revenue"])
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
@@ -7404,7 +7404,7 @@ class OperationContractTests(unittest.TestCase):
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
@@ -7460,7 +7460,7 @@ class OperationContractTests(unittest.TestCase):
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        calc = resolve_runtime_calculation_trace(execution_result)["calculation_result"]
         self.assertEqual(calc["status"], "scale_mismatch")
         self.assertEqual(calc["rendered_value"], "")
 
@@ -7631,7 +7631,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         slots = trace["calculation_result"]["answer_slots"]
         self.assertEqual(slots["primary_value"]["role"], "primary_value")
         self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
@@ -7819,7 +7819,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["current_period"], "2023")
@@ -7903,7 +7903,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "0.10%p")
@@ -7969,7 +7969,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_unit"], "KRW")
@@ -8033,7 +8033,7 @@ class OperationContractTests(unittest.TestCase):
             }
         result = _execute_calculation_with_runtime_trace(agent, state)
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["rendered_value"], "11.5%")
         self.assertEqual(calc["result_value"], 11.5)
@@ -8301,7 +8301,7 @@ class OperationContractTests(unittest.TestCase):
             replan_blocked_reason="",
             aggregate_synthesis_debug={},
         )
-        completion_trace = _resolve_runtime_calculation_trace(aggregate_completion)
+        completion_trace = resolve_runtime_calculation_trace(aggregate_completion)
         aggregate_artifact = next(
             artifact
             for artifact in aggregate_completion["artifacts"]
@@ -8392,7 +8392,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["answer_slots"]["prior_value"]["period"], "2022년")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
@@ -8455,7 +8455,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "insufficient_operands")
         self.assertEqual(calc["rendered_value"], "")
@@ -8736,7 +8736,7 @@ class OperationContractTests(unittest.TestCase):
                 },
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "insufficient_operands")
         self.assertEqual(calc["answer_slots"]["operation_family"], "lookup")
@@ -8789,7 +8789,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(plan_result)
+        trace = resolve_runtime_calculation_trace(plan_result)
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["mode"], "none")
         self.assertNotIn("calculation_plan", plan_result)
@@ -8834,7 +8834,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(plan_result)
+        trace = resolve_runtime_calculation_trace(plan_result)
         self.assertEqual(trace["calculation_plan"]["status"], "ok")
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
         self.assertEqual(trace["calculation_plan"]["formula"], "A")
@@ -8888,7 +8888,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calculation_result = trace["calculation_result"]
         self.assertEqual(calculation_result["rendered_value"], "2,526,280천원")
         self.assertEqual(calculation_result["series"][0]["rendered_value"], "2,526,280천원")
@@ -8954,7 +8954,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["mode"], "none")
@@ -10474,7 +10474,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("잉여현금흐름의 50%", result["answer"])
         self.assertNotIn("완전히 확정", result["answer"])
         self.assertEqual(result["planner_feedback"], "")
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_result"]["status"], "ok")
         self.assertEqual(result["structured_result"]["status"], "ok")
         self.assertNotIn("calculation_result", result)

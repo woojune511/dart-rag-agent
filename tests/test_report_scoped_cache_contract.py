@@ -45,7 +45,7 @@ from src.config.report_scoped_cache import (
     report_cache_key_id,
     validate_report_cache_calculation_contract_projection,
 )
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
@@ -1276,7 +1276,7 @@ class ReportScopedCacheContractTests(unittest.TestCase):
         self.assertEqual(candidate["key"]["source_table_id"], "section path::table:1")
 
     def test_runtime_trace_resolver_preserves_cache_candidate(self) -> None:
-        resolved = _resolve_runtime_calculation_trace(
+        resolved = resolve_runtime_calculation_trace(
             {
                 "resolved_calculation_trace": {
                     "calculation_operands": [{"label": "metric", "value": "123"}],

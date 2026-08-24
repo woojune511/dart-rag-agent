@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 
 if TYPE_CHECKING:
     from src.agent.financial_graph import FinancialAgent
@@ -171,7 +171,7 @@ def _graph_smoke(agent: FinancialAgent, query: str) -> Dict[str, Any]:
     answer_payload = agent.run(query)
     # Graph smoke is a current-run debug surface. Read the canonical projection
     # only; top-level compatibility mirrors are for older external readers.
-    resolved_trace = _resolve_runtime_calculation_trace(
+    resolved_trace = resolve_runtime_calculation_trace(
         answer_payload,
         allow_legacy_top_level=False,
     )

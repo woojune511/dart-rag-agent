@@ -37,7 +37,7 @@ EXCLUDED_QUESTION_IDS: Dict[str, str] = {
 
 
 def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 

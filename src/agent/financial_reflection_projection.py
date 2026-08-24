@@ -9,7 +9,7 @@ from src.agent.financial_retrieval_hints import (
     section_hint_alias,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.schema.runtime_enums import ArtifactKind
 
 if TYPE_CHECKING:
@@ -179,7 +179,7 @@ def normalise_reflection_plan_record(
 
 
 def _reflection_runtime_trace_summary(state: FinancialAgentState) -> Dict[str, Any]:
-    runtime_trace = _resolve_runtime_calculation_trace(
+    runtime_trace = resolve_runtime_calculation_trace(
         dict(state),
         allow_legacy_top_level=False,
     )

@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_runtime_calculation_trace(*args, **kwargs):
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 

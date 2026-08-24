@@ -73,7 +73,7 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     attach_runtime_projection_metadata,
     build_runtime_aggregate_calculation_projection,
-    _resolve_runtime_calculation_trace,
+    resolve_runtime_calculation_trace,
     structured_result_subtask_rows_and_answer,
     repair_collapsed_ratio_trace_from_evidence,
 )
@@ -578,7 +578,7 @@ class FinancialAgent(
         if int(state.get("reflection_count") or 0) >= 1:
             return "calculator"
         plan = dict(
-            _resolve_runtime_calculation_trace(
+            resolve_runtime_calculation_trace(
                 dict(state),
                 allow_legacy_top_level=False,
             ).get("calculation_plan") or {}
@@ -594,7 +594,7 @@ class FinancialAgent(
         if int(state.get("reflection_count") or 0) >= 1:
             return "calc_render"
         result = dict(
-            _resolve_runtime_calculation_trace(
+            resolve_runtime_calculation_trace(
                 dict(state),
                 allow_legacy_top_level=False,
             ).get("calculation_result") or {}

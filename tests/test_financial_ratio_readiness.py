@@ -1098,7 +1098,7 @@ class FinancialRatioReadinessTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(agent, "_aggregate_result_operation_family", return_value="ratio"),
@@ -1133,7 +1133,7 @@ class FinancialRatioReadinessTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
             patch.object(agent, "_aggregate_result_operation_family", return_value="ratio"),

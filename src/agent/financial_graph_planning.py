@@ -55,7 +55,7 @@ from src.agent.financial_retrieval_hints import infer_statement_and_section_hint
 from src.agent.financial_runtime_trace import (
     project_task_trace_from_state,
     report_cache_candidate_for_trace,
-    _resolve_runtime_calculation_trace,
+    resolve_runtime_calculation_trace,
 )
 from src.agent.financial_task_artifacts import semantic_plan_artifact_update as _semantic_plan_artifact_update
 from src.agent.financial_lookup_recovery import (
@@ -990,7 +990,7 @@ class FinancialAgentPlanningMixin:
 
     def _project_runtime_calculation_trace(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Project caller-facing calculation material into the canonical runtime trace."""
-        trace = _resolve_runtime_calculation_trace(dict(state))
+        trace = resolve_runtime_calculation_trace(dict(state))
         if trace and not trace.get("report_cache_candidate"):
             report_cache_candidate = report_cache_candidate_for_trace(dict(state), trace)
             if report_cache_candidate:

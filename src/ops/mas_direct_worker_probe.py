@@ -19,7 +19,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.experimental.mas.diagnostics import (
     build_researcher_probe_query,
     build_researcher_probe_where_filter,
@@ -109,7 +109,7 @@ def _task_projection(task: Dict[str, Any]) -> Dict[str, Any]:
 
 def _analyst_material_status(result: Dict[str, Any]) -> Dict[str, Any]:
     answer = str(result.get("answer") or "").strip()
-    resolved_trace = _resolve_runtime_calculation_trace(
+    resolved_trace = resolve_runtime_calculation_trace(
         result,
         allow_legacy_top_level=False,
     )

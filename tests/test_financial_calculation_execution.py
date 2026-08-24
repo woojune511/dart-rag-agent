@@ -2396,7 +2396,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             patch.object(graph_calculation, "missing_required_operands", return_value=[]),
             patch.object(
                 graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value={"calculation_operands": planning_operands},
             ),
             patch.object(
@@ -2445,7 +2445,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         with (
             patch.object(
                 graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value={"calculation_operands": formula_operands},
             ),
             patch.object(agent, "_calc_query", return_value="formula query"),
@@ -2903,7 +2903,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         with (
             patch.object(
                 graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value={"calculation_operands": operands},
             ),
             patch.object(agent, "_calc_query", return_value="ratio query"),
@@ -2932,7 +2932,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         with (
             patch.object(
                 graph_calculation,
-                "_resolve_runtime_calculation_trace",
+                "resolve_runtime_calculation_trace",
                 return_value={"calculation_operands": operands},
             ),
             patch.object(agent, "_calc_query", return_value="ratio query"),

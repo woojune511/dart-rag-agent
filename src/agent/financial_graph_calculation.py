@@ -266,7 +266,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_text_surface import strip_rerank_metadata, tokenize_terms
 from src.agent.financial_runtime_trace import (
     collect_nested_result_evidence,
-    _resolve_runtime_calculation_trace,
+    resolve_runtime_calculation_trace,
     runtime_trace_state_update,
     overlay_calculation_operands_from_slots,
 )
@@ -4473,7 +4473,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         final_answer: str,
     ) -> tuple[Dict[str, Any], str]:
-        runtime_trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+        runtime_trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
         runtime_result = dict(runtime_trace.get("calculation_result") or {})
         runtime_plan = dict(runtime_trace.get("calculation_plan") or {})
         runtime_slots = dict(runtime_result.get("answer_slots") or {})
@@ -8022,7 +8022,7 @@ class FinancialAgentCalculationMixin:
                 "tasks": [],
                 "artifacts": [],
             }
-            planning_trace = _resolve_runtime_calculation_trace(
+            planning_trace = resolve_runtime_calculation_trace(
                 dict(plan_state),
                 allow_legacy_top_level=False,
             )
@@ -8049,7 +8049,7 @@ class FinancialAgentCalculationMixin:
                     plan_state,
                     operation_plan_decision,
                 )
-                planned_trace = _resolve_runtime_calculation_trace(
+                planned_trace = resolve_runtime_calculation_trace(
                     planned,
                     allow_legacy_top_level=False,
                 )
@@ -8288,7 +8288,7 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         final_answer: str,
     ) -> str:
-        trace = _resolve_runtime_calculation_trace(
+        trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
@@ -8714,7 +8714,7 @@ class FinancialAgentCalculationMixin:
         if len(periods) == 1 and period_pattern and re.fullmatch(period_pattern, periods[0]):
             period_prefix = str(render_policy.get("ratio_period_prefix_template") or "").format(period=periods[0])
         if calculation_operands is None:
-            trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+            trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
             resolved_calculation_operands = list(trace.get("calculation_operands") or [])
         else:
             resolved_calculation_operands = [dict(item) for item in calculation_operands]
@@ -9778,7 +9778,7 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         operation_plan_decision: Any = _OPERATION_PLAN_DECISION_UNSET,
     ) -> Dict[str, Any]:
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
@@ -10864,7 +10864,7 @@ class FinancialAgentCalculationMixin:
         return _CalculationCandidateRun(prepared=prepared, projection=projection)
 
     def _run_calculation_candidate(self, state: FinancialAgentState) -> _CalculationCandidateRun:
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
@@ -10979,7 +10979,7 @@ class FinancialAgentCalculationMixin:
         )
 
     def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
@@ -11116,7 +11116,7 @@ class FinancialAgentCalculationMixin:
     def _verify_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Sanity-check that the rendered answer still matches the result."""
         answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
@@ -12369,7 +12369,7 @@ class FinancialAgentCalculationMixin:
                 or self._preferred_complete_numeric_answer(ordered_results)
                 or self._supported_aggregate_subtask_answer(ordered_results)
             )
-            state_runtime_trace = _resolve_runtime_calculation_trace(
+            state_runtime_trace = resolve_runtime_calculation_trace(
                 dict(state),
                 allow_legacy_top_level=False,
             )
@@ -13304,7 +13304,7 @@ class FinancialAgentCalculationMixin:
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
         current_count = int(state.get("reflection_count") or 0)
-        runtime_trace = _resolve_runtime_calculation_trace(
+        runtime_trace = resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )

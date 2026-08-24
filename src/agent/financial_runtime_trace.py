@@ -828,7 +828,7 @@ def project_task_trace_from_state(
     if task_id and task_id == active_task_id:
         active_trace = _normalise_resolved_calculation_trace(state)
         if not active_trace:
-            active_trace = _resolve_runtime_calculation_trace(
+            active_trace = resolve_runtime_calculation_trace(
                 state,
                 allow_legacy_top_level=False,
             )
@@ -1316,7 +1316,7 @@ def _structured_result_subtask_projection_if_public_aligned(
     )
 
 
-def _resolve_runtime_calculation_trace(
+def resolve_runtime_calculation_trace(
     result: Dict[str, Any],
     *,
     allow_legacy_top_level: bool = False,
