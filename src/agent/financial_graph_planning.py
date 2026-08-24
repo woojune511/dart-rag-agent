@@ -24,7 +24,7 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     build_metric_task_query,
     _build_semantic_numeric_plan,
-    _infer_generic_concept_spec,
+    infer_generic_concept_spec,
     infer_operation_family_from_query,
     align_scope_hints,
     append_hybrid_narrative_task,
@@ -405,7 +405,7 @@ class FinancialAgentPlanningMixin:
 
             raw_metric_label = str(raw_task.metric_label or "").strip()
             if operation_family in {"lookup", "single_value"} and raw_metric_label and len(resolved_specs) == 1:
-                metric_spec = _infer_generic_concept_spec(raw_metric_label, ontology)
+                metric_spec = infer_generic_concept_spec(raw_metric_label, ontology)
                 metric_concept = _normalise_spaces(str(metric_spec.get("concept") or ""))
                 operand_concept = _normalise_spaces(str(resolved_specs[0].get("concept") or ""))
                 if metric_concept and operand_concept and metric_concept != operand_concept:

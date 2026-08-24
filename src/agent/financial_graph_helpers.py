@@ -763,7 +763,7 @@ def build_generic_metric_aliases(label: str) -> List[str]:
     return list(dict.fromkeys(alias for alias in aliases if alias))
 
 
-def _infer_generic_concept_spec(
+def infer_generic_concept_spec(
     label: str,
     ontology: Any,
 ) -> Dict[str, Any]:
@@ -890,7 +890,7 @@ def _build_generic_required_operands(
         for spec in ratio_operand_specs:
             label = str(spec.get("label") or "").strip()
             aliases = build_generic_metric_aliases(label)
-            concept_spec = _infer_generic_concept_spec(label, ontology)
+            concept_spec = infer_generic_concept_spec(label, ontology)
             role = str(spec.get("role") or "").strip()
             binding_policy: Dict[str, Any] = {}
             if role.startswith("denominator"):
@@ -927,7 +927,7 @@ def _build_generic_required_operands(
         base_label = operand_labels[0] if operand_labels else _infer_generic_metric_label(query, "")
         aliases = build_generic_metric_aliases(base_label)
         unit_family = _infer_generic_unit_family(base_label)
-        concept_spec = _infer_generic_concept_spec(base_label, ontology)
+        concept_spec = infer_generic_concept_spec(base_label, ontology)
         year_tokens = extract_year_tokens(query, report_scope)
         if year_tokens:
             current_year = year_tokens[0]
@@ -984,7 +984,7 @@ def _build_generic_required_operands(
     rows: List[Dict[str, Any]] = []
     for label in operand_labels:
         aliases = build_generic_metric_aliases(label)
-        concept_spec = _infer_generic_concept_spec(label, ontology)
+        concept_spec = infer_generic_concept_spec(label, ontology)
         rows.append(
             _augment_generic_operand_with_concept(
                 {
@@ -2049,7 +2049,7 @@ def _build_entity_scoped_concept_specs(
         if default_metric_label and any(term in normalized_query for term in default_metric_terms)
         else _infer_generic_metric_label(query, "")
     )
-    concept_spec = _infer_generic_concept_spec(base_label, ontology)
+    concept_spec = infer_generic_concept_spec(base_label, ontology)
     if not concept_spec:
         return []
     metric_surfaces = _metric_scope_surfaces(concept_spec, base_label)
