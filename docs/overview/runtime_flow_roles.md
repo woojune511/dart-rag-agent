@@ -1731,13 +1731,18 @@ Aggregate/narrative row의 state-free answer policy owner다.
   유지됐다. Source/tests/whole `+7/-7`, `+50/-50`, `+57/-57`, exact affected
   45/45, focused 628/628, audit 217, pycompile 2/2, unchanged 48/203 DAG,
   full 2,143/2,143가 통과했다.
-- 다음 visibility batch는 같은 owner의 exact 57-line state-free generic-
-  concept spec inference를 public `infer_generic_concept_spec(...)`로 rename하고
-  owner-local call 네 개, planning import/call 한 쌍, exact test symbol ref
-  일곱 개, owner-count 기대 43개와 active derived hash record 여덟 개만
-  갱신한다. Exact/fuzzy/ontology fallback precedence와 다섯 two-positional
-  caller gate를 보존하는 전체 gate와 stop line은
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 `f152cbd` visibility batch는 같은 owner의 exact 57-line state-free
+  generic-concept spec inference를 public `infer_generic_concept_spec(...)`로
+  이름 수렴시키고 owner-local call 네 개, planning import/call 한 쌍, exact
+  test symbol ref 일곱 개, owner-count 기대 43개와 active derived hash record
+  여덟 개만 갱신했다. Exact/fuzzy/ontology fallback precedence와 다섯 two-
+  positional caller gate는 유지됐다. Source/tests/whole `+7/-7`, `+58/-58`,
+  `+65/-65`, exact affected 46/46, focused 628/628, audit 217, pycompile 2/2,
+  unchanged 48/203 DAG, full 2,143/2,143가 통과했다.
+- 다음 작업은 production 변경 없는 Phase 3 종료 감사다. 남은 private mesh와
+  네 부채군을 다시 계수하고 exactly one owner seam을 선택하는 범위와 stop
+  line은 [Project Status의 Next Work](project_status.md#next-work)가 단일
+  기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
 

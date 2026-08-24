@@ -3073,33 +3073,28 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**; completion evidence is authoritative in
 [Project Status Completed Metric Task Query](../overview/project_status.md#completed-metric-task-query-builder-public-api).
 
-The next bounded visibility seam renames only the exact 57-line state-free
-`financial_graph_helpers._infer_generic_concept_spec(...)` definition in place
-to public `infer_generic_concept_spec(...)`. Update four owner-local calls, one
-planning import/call pair, seven exact test symbol refs, 43 graph-owner count
-expectations, and eight active derived hash records. Add no alias, wrapper,
-body/owner move, module, test method, concept/alias/keyword, policy/ontology
-entry, cleaning/matching/ranking/fallback rule, catch, mutation, or adjacent
-planner cleanup.
-
-Preserve metric-label cleaning and normalization, the empty-label early return,
-ordered non-group ontology catalog scan, exact-over-fuzzy precedence, stable
-longest normalized name/alias ranking for exact matches, first fuzzy match,
-the exact `ontology.concept_specs(cleaned, cleaned, "comparison")` fallback,
-shallow result copies, nested identities, input immutability, all propagated
-errors, and all five exact two-positional try-depth-zero caller gates.
-Definition hashes project `5f8a3a10...` to `e4dd76b9...`; the unchanged body is
-`36a05816...`. Selected private/public records project 0/14, source definition/
-import/load remains 1/1/5, owner counts move 16/64 to 17/63, and source/tests/
-whole transforms are `+7/-7`, `+58/-58`, and `+65/-65`. Exact temporary diff
-SHA-256 is
+The exact 57-line generic-concept spec visibility seam completed in `f152cbd`.
+It renamed the definition in place to public `infer_generic_concept_spec(...)`,
+then updated four owner-local calls, one planning import/call pair, seven exact
+test symbol refs, 43 graph-owner count expectations, and eight active derived
+hash records. Cleaning/normalization, the empty-label early return, ordered
+non-group ontology scan, exact-over-fuzzy precedence, stable longest
+name/alias ranking, first fuzzy match, ontology fallback, shallow copies,
+nested identities, all five caller gates, and propagated errors remained exact.
+Actual source/tests/whole transforms were `+7/-7`, `+58/-58`, and `+65/-65`;
+committed diff SHA-256 is
 `c32a4c54e0a94897f390a7c72383fde2967288f9748d232ed56bae26aa7d3910`.
-Current-private and projected-public behavior/immutability passed 25/25 each;
-corrected exact affected methods 46/46, focused 628/628, audit 217, pycompile
-2/2, retired refs zero, diff check, and unchanged acyclic 48/203 DAG passed
-before clean restoration. Full 2,143/2,143 remains the implementation gate;
-benchmark refresh and remote CI remain **NOT RUN**. Exact scope is authoritative
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+Exact affected methods 46/46, focused 628/628, audit 217, pycompile 2/2,
+fresh-import identity, unchanged acyclic 48/203 DAG, and full 2,143/2,143
+passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
+is authoritative in
+[Project Status Completed Generic Concept](../overview/project_status.md#completed-generic-concept-spec-inference-public-api).
+
+Before another production move, perform the docs-and-static-analysis-only
+Phase 3 closure audit in [Project Status Next Work](../overview/project_status.md#next-work).
+It must recompute the remaining private mesh and four debt groups and document
+exactly one owner seam with state/mutation, DAG, deletion, test, and stop-line
+contracts.
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

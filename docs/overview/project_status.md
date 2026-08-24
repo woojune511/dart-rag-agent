@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 ## At A Glance
 
@@ -16,10 +16,10 @@ Last updated: 2026-08-24
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `a2da2d6` renamed only the exact 40-line `financial_graph_helpers._build_metric_task_query(...)` definition in place to public `build_metric_task_query(...)` and updated four owner-local calls, one planning import/call pair, seven exact test symbol refs, 43 owner-count expectations, and one sorted dependency-name expectation |
-| What passed? | Exact affected methods 45/45, rehearsed private/public behavior and immutability 25/25, focused tests 628/628, runtime audit 217, pycompile 2/2, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `a2da2d6`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
+| What just changed? | `f152cbd` renamed only the exact 57-line `financial_graph_helpers._infer_generic_concept_spec(...)` definition in place to public `infer_generic_concept_spec(...)` and updated four owner-local calls, one planning import/call pair, seven exact test symbol refs, 43 owner-count expectations, and eight active derived hash records |
+| What passed? | Exact affected methods 46/46, rehearsed private/public behavior and immutability 25/25, focused tests 628/628, runtime audit 217, pycompile 2/2, fresh-import public identity, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `f152cbd`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
 | Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Rename only the exact 57-line `financial_graph_helpers._infer_generic_concept_spec(...)` definition in place to public `infer_generic_concept_spec(...)`; update four owner-local calls, one planning import/call pair, seven exact test symbol refs, 43 owner-count expectations, and eight active derived hash records |
+| What is next? | Run one docs-and-static-analysis-only Phase 3 closure audit, recompute the remaining private mesh and four debt groups, then document exactly one next owner seam before another production change |
 
 ## Product Boundary
 
@@ -799,117 +799,57 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Rename only the exact 57-line
-`src.agent.financial_graph_helpers._infer_generic_concept_spec(label: str,
-ontology: Any) -> Dict[str, Any]` definition at lines 766-822 in place to public
-`infer_generic_concept_spec(...)`. Update its four owner-local calls, the
-planning import and one external call, and seven exact existing test symbol
-references in `test_financial_graph_helpers.py`. Update exactly 40 direct graph-
-helper owner-count expectations from `(16, 64)` to `(17, 63)`, two private-
-projection expectations from `(16, 65)` to `(17, 64)`, one caller-owner tuple
-from `(16, 64, 0)` to `(17, 63, 0)`, and the eight active derived hash records
-listed below. Add no alias, wrapper, body/owner move, module, test method,
-concept/alias/keyword, policy/ontology entry, cleaning/matching/ranking/fallback
-rule, catch, task/state/trace/artifact/ledger mutation, or adjacent planner
-cleanup.
+Run one docs-and-static-analysis-only Phase 3 closure audit before selecting
+another production refactor. Recompute the Phase 3 completion conditions, the
+remaining cross-module private import records, unique bindings, and importers,
+and the four named debt groups above. Separate intentional shared normalization
+from wrong-owner dependencies, then select exactly one next seam and record its
+owner, callers, state and mutation boundary, import-DAG effect, deletion
+criteria, focused tests, and stop lines.
 
-Keep the helper in `financial_graph_helpers.py`; it is state-free, has four
-owner-local consumers, and composes owner-local metric cleaning/normalization
-with the ontology catalog already consumed by the generic planner helpers. Its
-exact span intersects zero of the 217 reviewed runtime-domain records. Preserve
-`_clean_metric_label(label)` first, then `_normalise_spaces(cleaned)`, and the
-falsey normalized early `{}` return before any ontology access.
+Do not change production source or tests during this audit. In particular, do
+not name-only export `_resolve_candidate_local_unit_hint(...)`,
+`_annotate_task_dependencies(...)`, graph-state readers, or task/artifact
+helpers. The first reaches owner-private report-file I/O; the second mutates and
+topologically reorders task records; the others require explicit state or ledger
+contracts. A later implementation must be authorized by the resulting single
+documented seam.
 
-Materialize `list(getattr(ontology, "all_concept_specs", lambda: [])() or [])`
-in catalog order. Preserve the truthy `is_group` skip and exact alias collection
-from stripped `name`, `aliases`, then `keywords`. The comprehension continues
-to normalize an admitted alias once in its filter and once in its expression;
-empty normalized aliases are removed. Exact equality appends a shallow
-`dict(spec)` copy and skips fuzzy evaluation for that spec. Fuzzy matching keeps
-`normalized in alias or alias in normalized`, its left-to-right short circuit,
-and catalog order.
+## Completed Generic-Concept Spec Inference Public API
 
-Exact matches must outrank fuzzy matches. Preserve the stable reverse sort by
-the longest normalized `name`/`aliases` surface, excluding keywords from the
-rank, and return the first exact winner. Without one, return the first fuzzy
-copy. Without either, call `ontology.concept_specs(cleaned, cleaned,
-"comparison")`, filter truthy groups, shallow-copy in returned order, and
-return the first row or a new empty dict. Inputs and ontology rows remain
-unchanged; returned top-level mappings are fresh while nested identities remain.
-Every current attribute, call, truth, iteration, mapping access, string,
-normalization, containment, copy, sort, and fallback exception remains uncaught.
+Commit `f152cbd` renamed only the exact 57-line
+`financial_graph_helpers._infer_generic_concept_spec(...)` definition in place
+to public `infer_generic_concept_spec(...)`. It updated four owner-local calls,
+one planning import/call pair, seven exact test symbol refs, 40 direct owner-
+count expectations, two private-projection count expectations, one caller-owner
+tuple, and eight active derived hash records. It added no alias, wrapper,
+body/owner move, module, test method, concept/alias/keyword, policy/ontology
+entry, cleaning/matching/ranking/fallback rule, catch, mutation, or adjacent
+planner cleanup.
 
-All five production calls remain two-positional, zero-keyword calls at caller
-`try` depth zero; owner-external/local counts remain 1/4. The three calls in
-`_build_generic_required_operands(...)` retain their ratio, single-metric period,
-and ordinary-label gates plus exact alias/unit preparation and augmentation
-after the call. `_build_entity_scoped_concept_specs(...)` retains label and
-operation admission plus base-label preparation before the call, then its falsey
-concept return and scoped spec construction. The planning caller retains raw-
-task validation and resolved-operand admission before the lookup/single-value
-metric/operand mismatch check, then segment-label and operand normalization.
-Any helper failure still stops all later caller work and adoption.
+Metric-label cleaning and normalization, the pre-ontology empty return, ordered
+non-group catalog scan, name/alias/keyword preparation, exact-over-fuzzy
+precedence, stable longest normalized name/alias exact ranking, first fuzzy
+match, exact `ontology.concept_specs(cleaned, cleaned, "comparison")` fallback,
+shallow result copies, nested identities, inputs, evaluation counts/order,
+propagated errors, and all five two-positional try-depth-zero caller gates
+remain exact. Final definition/body SHA-256 values are `e4dd76b9...` /
+`36a05816...`; selected private/public records are 0/14, source definition/
+import/load is 1/1/5, and owner public/private counts are 17/63.
 
-Current-private/future-public definition SHA-256 values are
-`5f8a3a10c4f48774ec3893eea546847a5141aaa334d5a792a1770504da9bc1b8` /
-`e4dd76b9114a50f0c3733db832903eb6301ec0c71b7ac902bdae03bb5d342e07`;
-the unchanged body hash is
-`36a05816ff4ffe3e9842c2586026584d0f31e69075b61f9f06499ddf2742fe58`.
-Caller definition/body hashes project as follows:
-
-| Caller | Current definition / body | Future definition / body |
-| --- | --- | --- |
-| `_build_generic_required_operands` | `7b0a8f665b9cf8a4c815aff2ae5a665948d9ee28799e287192fdd13dcf197870` / `8cb39bd77410d566a4cac4cf707ce38e6b61035db9c31f70429cc06954952119` | `0c412b1de131f919ff561bbdd556fcf67b17eeac5fe31e536565f7a088d114a1` / `7a41ac7250e36183a70031a97a9d32ac1dd474e1950e51ac486949c94a71949e` |
-| `_build_entity_scoped_concept_specs` | `8ace938efe2dc6cf79865c49e0a1840794ca466808cc23ef4f329b1dd6f8926a` / `f2d1899276d101552677272c05358d2ba4a52c011f5efa2a06e7b39dc86c5fb0` | `fcd3f348c88e49b45f5bdccb7bde89aee3f413ee4809d22f4ec015a3b209df8d` / `cbec2a0ccc13784744861afe27d4a6e2de3c201ad0962805558467ea345d854d` |
-| `FinancialAgentPlanningMixin._build_llm_concept_numeric_plan` | `73263cc2502afa365e2aede3264379554a6686dce45b1ff087ea70ffacb636ee` / `bc1e4cf9e8b06ea8592d8eabd36f2c86bc246ed57fd3be76b05cabaa122993bc` | `d84a22f2a49d2f17c0ce58781c9db0d368d6b56f8617fa4975152b514d53279e` / `2201f2b5bc9e76e88db491e21ee09d82bd7f7694d05759c598878679d99130d4` |
-
-Canonical compact JSON over each call's path, line, caller, positional count,
-keyword order, and try depth has unchanged SHA-256
-`112f5638c13d3bd7b1066bf8932136b326e7bd389e1aea8c8be7abdf06f836d9`.
-After the rename selected private/public records across source/tests must be
-0/14, source function-definition/import/load records 1/1/5, test public-symbol
-refs seven, and graph-helper owner public/private counts 17/63. The exact
-expectation mapping is:
-
-| Expectation | Count | Current | Future |
-| --- | ---: | --- | --- |
-| Direct owner count | 40 | `(16, 64)` | `(17, 63)` |
-| Private-projection owner count | 2 | `(16, 65)` | `(17, 64)` |
-| Caller-owner tuple | 1 | `(16, 64, 0)` | `(17, 63, 0)` |
-| Generic-required-operands body hash | 3 | `8cb39bd...` | `7a41ac72...` |
-| Conditional call-record digest | 2 | `e0210f0d...` | `9e761217...` |
-| Extract-year caller payload | 1 | `ca044f50...` | `654b321d...` |
-| Cascading caller-hash payload | 2 | `e1c57c3c...` | `2884e918...` |
-
-Projected source/tests/whole transforms are `+7/-7`, `+58/-58`, and
-`+65/-65` across exactly two source and one test file. Exact temporary diff
-SHA-256 is
+Actual source/tests/whole transforms were `+7/-7`, `+58/-58`, and `+65/-65`;
+committed diff SHA-256 is
 `c32a4c54e0a94897f390a7c72383fde2967288f9748d232ed56bae26aa7d3910`.
-Current-private and projected-public direct behavior/immutability passed 25/25
-each with receipt SHA-256
-`8eab735351e18e91ef74fe66eb95487922ff6b4dfbe3728aba824c6291032e10`.
-The first projected graph-helper run exposed three aggregate expectations and a
-targeted rerun exposed the final two cascading records. After correction, exact
-affected methods 46/46 passed in 70.497 seconds, focused tests 628/628 in
-169.378 seconds, audit 217, pycompile 2/2,
-retired private refs zero, diff check, and the unchanged acyclic 48/203 topology
-at `e33db2a47885d60850b3defaa6776946fdf263fea190a9dda4611f09f3ad3710`
-passed, then the temporary worktree was removed cleanly. Full discovery 2,143/2,143
-remains the implementation gate. Benchmark refresh and remote CI remain
-**NOT RUN**.
-
-This is the smallest remaining correct-owner state-free visibility seam after
-`a2da2d6`. The shorter 43-line `_resolve_candidate_local_unit_hint(...)` has
-only external consumers and performs report-root filesystem lookup through
-owner-private cached path/text helpers, so a name-only export would preserve the
-wrong ownership boundary. The 38-line `_annotate_task_dependencies(...)`
-synthesizes, mutates, and topologically reorders task records and needs a
-separate ownership/mutation contract. Active-section and query-year helpers read
-graph state; task-record/artifact helpers are explicitly non-exported; broad
-normalization and numeric parsing have much wider fan-out. This name-only
-projection establishes no concept behavior, planning, retrieval, evidence,
-answer, quality, performance, benchmark, schedule, ledger, or Phase 3
-completion claim.
+The implementation is byte-identical to the corrected projected-public
+rehearsal. Direct behavior/immutability was rehearsed at 25/25 with receipt
+`8eab735351e18e91ef74fe66eb95487922ff6b4dfbe3728aba824c6291032e10`;
+the committed implementation passed exact affected methods 46/46 in 68.677
+seconds, focused tests 628/628 in 201.099 seconds, runtime audit 217, pycompile
+2/2, fresh-import public identity 1/1, unchanged acyclic 48/203 DAG, and full
+discovery 2,143/2,143 in 248.402 seconds. Benchmark refresh and remote CI were
+**NOT RUN**. This name-only cleanup establishes no concept behavior, planning,
+retrieval, evidence, answer, quality, performance, benchmark, schedule, ledger,
+or Phase 3 completion claim.
 
 ## Completed Metric-Task Query Builder Public API
 
