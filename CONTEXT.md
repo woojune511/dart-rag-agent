@@ -6,7 +6,7 @@
 > [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), 완료된 변경은
 > [implementation_history.md](docs/history/implementation_history.md)를 따른다.
 
-Last updated: 2026-08-24
+Last updated: 2026-08-25
 
 ## 현재 범위
 
@@ -21,13 +21,23 @@ Last updated: 2026-08-24
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `eeefa47` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | latest production-source milestone `f152cbd` and documentation checkpoint `1ca4089` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
 | Phase 3 | OPEN; desired consolidation-scope, query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 reconciliation candidate construction/ranking, broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
+
+2026-08-25 docs/static Phase 3 종료 감사는 top-level `src/agent/*.py`의
+cross-module private mesh를 88 records / 30 unique bindings / 30 importers로
+확정했다. 이 중 shared normalization owner가 54/4/30이고, 나머지는
+34/26/9다. 정확히 한 다음 seam은 현재 94-line
+`financial_runtime_trace._resolve_runtime_calculation_trace(...)`를 같은 owner와
+본문에서 public `resolve_runtime_calculation_trace(...)`로 이름 수렴시키는
+visibility-only batch다. 구현 후 투영은 total 82/29/30,
+non-normalization 28/25/7이며, 상세 범위와 stop line은
+[Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 남은 Phase 3 범위
 
@@ -856,9 +866,10 @@ composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
   ontology-fallback precedence와 다섯 two-positional caller gate는 유지됐고
   source/tests/whole `+7/-7`, `+58/-58`, `+65/-65`, exact affected 46/46,
   focused 628/628, audit 217, pycompile 2/2, unchanged 48/203 DAG, full
-  2,143/2,143가 통과했다. 다음 batch는 production 변경 없이 Phase 3 종료
-  감사를 수행해 남은 private mesh와 네 부채군을 다시 계수하고 정확히 한
-  owner seam을 선택한다. 범위는
+  2,143/2,143가 통과했다. 이어진 docs/static Phase 3 종료 감사는 production
+  source/test 변경 없이 private mesh와 네 부채군을 다시 계수했고, 다음
+  exact batch로 runtime-trace resolver public API visibility seam 하나만
+  선택했다. 범위는
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

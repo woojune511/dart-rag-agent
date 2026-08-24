@@ -12094,3 +12094,48 @@ are complete. It remains only as an audit record, not an active priority.
   were **NOT RUN**. This name-only cleanup establishes no concept behavior,
   planning, retrieval, evidence, answer, quality, performance, benchmark,
   schedule, ledger, or Phase 3 completion claim.
+
+### Phase 3 closure audit and runtime-trace resolver selection
+
+- On 2026-08-25, a docs-and-static-analysis-only audit at documentation
+  checkout `1ca4089` and production-source milestone `f152cbd` recomputed the
+  top-level `src/agent/*.py` cross-module private mesh as 88 import records, 30
+  unique bindings, and 30 importers. `financial_runtime_normalization` accounts
+  for 54 records / four bindings / all 30 importers; the non-normalization slice
+  is 34 / 26 / 9. No production source or test changed, and no benchmark,
+  remote CI, or new runtime result was run or claimed.
+- The four durable debt groups remain open or partial. Completion conditions
+  remain one met, two partial, and two open: legacy mirrors are contained;
+  single-source trace and bounded owner moves are partial; broader ledger
+  synchronization and public-contract test organization remain open. A narrow
+  co-location diagnostic recorded 77,395 physical lines and 290 class test
+  methods in `test_financial_graph_helpers.py`, with 94 direct private module-
+  alias attribute records across 21 names; this does not authorize a line-count
+  split.
+- The audit selected exactly one next seam: rename the exact 94-line
+  `financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition
+  in place to public `resolve_runtime_calculation_trace(...)`. The resolver is
+  already in the correct owner and is a read-only canonical/structured/task-
+  artifact/subtask projection selector. `_annotate_task_dependencies(...)`,
+  `_resolve_candidate_local_unit_hint(...)`, graph-state readers,
+  reconciliation construction/ranking, aggregate-state carriers,
+  retrieval-pipeline numeric helpers, and task/artifact helpers were rejected
+  as name-only candidates because they cross mutation, topological ordering,
+  report I/O, state, pipeline, carrier, or ledger contracts.
+- Current/projected name-sensitive AST definition hashes are `4bafcf78...` /
+  `88a78b2a...`; the unchanged normalized AST body hash is `ffae88a4...`. The
+  static boundary has 17 source and
+  five test imports from the owner, 28 direct source calls, six lazy adapters,
+  five direct test imports, 102 direct test name loads, 28 patch-target strings,
+  one owner-count expectation, and six active derived hash records. The
+  no-write normalized projection covers 28 files and projects source
+  `+46/-46`, tests `+142/-142`, whole `+188/-188`, with normalized diff SHA-256
+  `e0b2a7b0015424bca03d93979a5fe25fe256b0a98d4e3644be14e120b4ee4928`.
+  These are characterization figures, not an executed implementation result.
+- The implementation projects core private mesh 88/30/30 to 82/29/30 and the
+  non-normalization slice 34/26/9 to 28/25/7, with unchanged acyclic 48/203 DAG.
+  Six local lazy adapter wrappers and evaluator-facing tests deliberately keep
+  their private adapter spelling, so deletion checks target direct owner
+  imports rather than a global raw-string zero. Exact future gates and stop
+  lines are authoritative in
+  [Project Status Next Work](../overview/project_status.md#next-work).

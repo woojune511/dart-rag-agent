@@ -16,10 +16,10 @@ Last updated: 2026-08-25
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `f152cbd` renamed only the exact 57-line `financial_graph_helpers._infer_generic_concept_spec(...)` definition in place to public `infer_generic_concept_spec(...)` and updated four owner-local calls, one planning import/call pair, seven exact test symbol refs, 43 owner-count expectations, and eight active derived hash records |
-| What passed? | Exact affected methods 46/46, rehearsed private/public behavior and immutability 25/25, focused tests 628/628, runtime audit 217, pycompile 2/2, fresh-import public identity, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 for `f152cbd`; the implementation diff is byte-identical to the corrected projected-public rehearsal |
-| Was the benchmark refreshed? | **NOT RUN**; this was a name-only visibility cleanup with full-regression parity, not a policy, ingest, retrieval, or answer-behavior change |
-| What is next? | Run one docs-and-static-analysis-only Phase 3 closure audit, recompute the remaining private mesh and four debt groups, then document exactly one next owner seam before another production change |
+| What just changed? | A docs-and-static-analysis-only Phase 3 closure audit at `1ca4089` recomputed the core private mesh and four debt groups, then selected exactly one next owner seam without changing production source or tests |
+| What passed? | The closure audit reproduced 88 private import records / 30 unique bindings / 30 importers, separated the 54-record shared-normalization layer, and proved the selected name-only projection keeps the 48-module/203-edge DAG unchanged; the latest executed runtime gate remains full unittest 2,143/2,143 for `f152cbd` |
+| Was the benchmark refreshed? | **NOT RUN**; this was a docs/static closure audit, not a policy, ingest, retrieval, answer-behavior, or fresh runtime change |
+| What is next? | Implement the exact visibility-only `financial_runtime_trace.resolve_runtime_calculation_trace(...)` public API contract characterized below, with no body, precedence, state, ledger, or adapter behavior change |
 
 ## Product Boundary
 
@@ -799,21 +799,134 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Run one docs-and-static-analysis-only Phase 3 closure audit before selecting
-another production refactor. Recompute the Phase 3 completion conditions, the
-remaining cross-module private import records, unique bindings, and importers,
-and the four named debt groups above. Separate intentional shared normalization
-from wrong-owner dependencies, then select exactly one next seam and record its
-owner, callers, state and mutation boundary, import-DAG effect, deletion
-criteria, focused tests, and stop lines.
+Implement one exact visibility-only runtime-trace API seam. Rename only the
+current 94-line
+`financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition,
+whose signature is `(result, *, allow_legacy_top_level=False)`, in place to
+public `resolve_runtime_calculation_trace(...)`, then update every direct owner
+import, direct bound call, affected patch target, one owner public/private
+count, and the six active derived caller-hash records. Add no alias,
+compatibility shim, body or owner move, module, test method, branch, catch,
+trace field, policy, ontology entry, state write, task/artifact mutation, or
+adjacent cleanup.
 
-Do not change production source or tests during this audit. In particular, do
-not name-only export `_resolve_candidate_local_unit_hint(...)`,
-`_annotate_task_dependencies(...)`, graph-state readers, or task/artifact
-helpers. The first reaches owner-private report-file I/O; the second mutates and
-topologically reorders task records; the others require explicit state or ledger
-contracts. A later implementation must be authorized by the resulting single
-documented seam.
+The owner is `src/agent/financial_runtime_trace.py`. The selected function is a
+read-only selection/projection boundary: it shallow-copies canonical trace,
+structured-result, task/artifact, and subtask surfaces and returns a selected
+projection. It performs no direct write to the input result, task list,
+artifact list, or ledger; invokes no model, network, report-file, cache-store,
+or external side effect; and contains ten returns with no `try` or explicit
+`raise`. Preserve the exact precedence among canonical non-aggregate trace,
+public-aligned structured subtask projection, active-task artifact projection,
+strict/non-strict fallback, aggregate-subtask projection, and final canonical
+or fallback return. Preserve active-task inference, projection-source metadata,
+the strict-default legacy policy, shallow-copy identities, evaluation order,
+and every propagated error.
+
+The exact source boundary is 17 imports from the owner: six top-level core
+consumers, one optional analyst-node adapter, and ten `src/ops` readers. Eleven
+bind the resolver name directly; six existing lazy adapters import it as
+`impl`. Rename 28 direct source calls at `try` depth zero: 25 pass explicit
+`False`, one uses the strict default, and two forward a caller-owned boolean.
+The six lazy adapters keep their own private wrapper names and call sites; only
+their nested owner import target becomes public. Five tests import the owner
+directly. The minimum static test ripple is five import names, 102 direct name
+loads, 28 patch-target strings, one owner-count expectation, and six active
+derived caller-hash expectations across ten test files and 101 affected test
+methods.
+
+Current/private and projected/public name-sensitive AST definition hashes are
+`4bafcf78e3f6127bb9dc8c685cc008c164632255be92eadd8990811641175b37` and
+`88a78b2a1a7fb6b91149d142d423946e50be0f70f5205c8396f70e0e5b414a8f`;
+the unchanged normalized AST body hash is
+`ffae88a4939c1bf7f12eb7290bbba631023205358a1c03830fd4462c99d3d4e5`.
+Owner public/private counts project 10/21 to 11/20. The no-write normalized
+projection spans 28 files and projects source `+46/-46`, tests `+142/-142`,
+and whole `+188/-188`; its normalized unified-diff SHA-256 is
+`e0b2a7b0015424bca03d93979a5fe25fe256b0a98d4e3644be14e120b4ee4928`.
+This is a characterization receipt, not an executed implementation result.
+
+Deletion and implementation gates are:
+
+- exactly one public owner definition and no private owner definition;
+- zero direct imports of the private owner symbol and exactly 22 direct imports
+  of the public owner symbol across source and tests;
+- all 28 direct source call sites use the public binding, while the six lazy
+  adapter wrappers deliberately retain their local private names;
+- the top-level core private mesh moves 88 records / 30 bindings / 30 importers
+  to 82 / 29 / 30, and its non-normalization subset moves 34 / 26 / 9 to
+  28 / 25 / 7;
+- no global-zero assertion for the old spelling: 19 source records in the six
+  local adapters and ten evaluator-facing test records remain intentionally;
+- runtime-domain audit 217, pycompile of all 18 changed source files,
+  fresh-import public identity, the 101 exact affected methods, the ten touched
+  test modules, `tests.test_evaluator_runtime_projection`,
+  `tests.test_benchmark_runner_runtime_projection`,
+  `tests.test_ops_runtime_projection_modes`, `tests.test_analyst_node`,
+  `tests.test_mas_direct_worker_probe`, `tests.test_import_side_effects`, the
+  unchanged acyclic 48/203 DAG, and full discovery 2,143/2,143 all pass;
+- benchmark refresh and remote CI remain **NOT RUN** for this visibility-only
+  batch.
+
+Stop if implementation requires changing resolver precedence, the
+`allow_legacy_top_level=False` default, runtime-projection metadata, task or
+artifact lookup, aggregate composition, report-cache handling, evaluator or
+benchmark serialization, lazy-adapter signatures, graph sequencing, or any
+state/ledger mutation. Do not substitute `_resolve_candidate_local_unit_hint`,
+`_annotate_task_dependencies`, graph-state readers, retrieval-pipeline numeric
+helpers, aggregate-state classes, or task/artifact helpers. Those are separate
+I/O, mutation, wrong-direction, state-carrier, or ledger-contract problems.
+
+## Completed Phase 3 Closure Audit
+
+The 2026-08-25 audit used `1ca4089` as the documentation checkout and
+`f152cbd` as the latest production-source milestone. It changed no production
+source or test. Its cross-module inventory deliberately covers top-level
+single-agent core modules under `src/agent/*.py`; optional nested MAS adapters
+and `src/ops` consumers are listed separately in the selected seam above.
+
+| Owner | Records | Unique bindings | Importers | Audit classification |
+| --- | ---: | ---: | ---: | --- |
+| `financial_runtime_normalization` | 54 | 4 | 30 | Intentional shared normalization owner; leading-underscore visibility debt, not evidence of 54 wrong-owner moves |
+| `financial_graph_helpers` | 10 | 9 | 4 | Mixed planning/reconciliation orchestration; mutation, report I/O, state reads, and candidate construction prevent name-only export |
+| `financial_runtime_trace` | 6 | 1 | 6 | Correct owner and already a stable cross-surface contract; selected visibility seam |
+| `financial_aggregate_state` | 5 | 5 | 1 | State carriers; requires an explicit state ownership/public-carrier decision |
+| `financial_retrieval_hints` | 5 | 3 | 3 | Correct hint owner but a grouped active-state contract, not this single seam |
+| `financial_retrieval_pipeline` | 5 | 5 | 1 | Evidence-to-pipeline private dependency direction needs a separate extraction contract |
+| `financial_task_artifacts` | 3 | 3 | 1 | Read-only ledger projection internals; broader ledger contract remains open |
+| **Total** | **88** | **30** | **30** | **54/4 shared-normalization plus 34/26 non-normalization records/bindings** |
+
+Removing only the selected runtime-trace binding projects the total to 82
+records / 29 unique bindings / 30 importers. The total importer count stays 30
+because every importer also consumes shared normalization; the non-normalizer
+slice falls from 34 / 26 / 9 to 28 / 25 / 7. The preceding generic-concept
+publicization accounts for the exact change from the prior 89/31 inventory to
+the current 88/30 inventory.
+
+| Phase 3 completion condition | Audit verdict |
+| --- | --- |
+| Legacy flat mirrors cannot override `agent_answer` or resolved trace | **Met** |
+| One source of truth for operands, formula result, and rendered answer | **Partial**; graph repair and ledger boundaries remain |
+| Wrappers disappear through bounded owner moves | **Partial**; many have moved, but private cross-owner bindings remain |
+| Broader ledger synchronization has a reviewed behavior contract | **Open** |
+| Tests are organized by public operand/execution/rendering/verification/projection contracts | **Open** |
+
+No durable debt group closes in this docs-only audit. Aggregate repair and
+precedence remain partial; dependency and ratio/absolute seams remain partial;
+broader task/artifact ledger synchronization remains minimal/open; and the
+private API/test mesh remains partial. As a narrow co-location diagnostic,
+`tests/test_financial_graph_helpers.py` has 77,395 physical lines and 290 class
+test methods, with 94 direct private attribute records across 21 names on the
+`financial_graph_helpers` module alias. That evidence keeps the public-contract
+test condition open, but it does not authorize a line-count-driven test split.
+
+The selected resolver wins over `_annotate_task_dependencies(...)` because the
+latter synthesizes missing tasks, writes `produces`, `inputs`, `depends_on`, and
+binding preference fields, then topologically reorders records. It wins over
+`_resolve_candidate_local_unit_hint(...)` because that helper reaches private
+report-path/text I/O. Graph-state readers, reconciliation construction/ranking,
+aggregate-state carriers, retrieval-pipeline numeric helpers, and task/artifact
+helpers likewise require owner or mutation contracts rather than public names.
 
 ## Completed Generic-Concept Spec Inference Public API
 

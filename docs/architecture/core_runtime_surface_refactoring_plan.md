@@ -3090,11 +3090,32 @@ passed. Benchmark refresh and remote CI were **NOT RUN**; completion evidence
 is authoritative in
 [Project Status Completed Generic Concept](../overview/project_status.md#completed-generic-concept-spec-inference-public-api).
 
-Before another production move, perform the docs-and-static-analysis-only
-Phase 3 closure audit in [Project Status Next Work](../overview/project_status.md#next-work).
-It must recompute the remaining private mesh and four debt groups and document
-exactly one owner seam with state/mutation, DAG, deletion, test, and stop-line
-contracts.
+The 2026-08-25 docs-and-static-analysis-only Phase 3 closure audit is complete.
+At documentation checkout `1ca4089`, the top-level single-agent core has 88
+cross-module private import records, 30 unique bindings, and 30 importers. The
+intentional `financial_runtime_normalization` layer accounts for 54 records,
+four bindings, and all 30 importers; the non-normalization slice is 34 / 26 / 9.
+The completion-condition verdict remains one met, two partial, and two open,
+so none of the four durable debt groups closes in this audit. Production source
+and tests were not changed.
+
+The audit selects exactly one next production seam: rename the current 94-line
+`financial_runtime_trace._resolve_runtime_calculation_trace(...)` definition in
+place to public `resolve_runtime_calculation_trace(...)`. This is a correct-owner,
+read-only projection contract, not a body or owner move. Six top-level core
+private imports then disappear, projecting the core inventory to 82 / 29 / 30
+and its non-normalization slice to 28 / 25 / 7 while leaving the acyclic
+48-module/203-edge DAG unchanged. Exact caller, adapter, mutation, deletion,
+focused-test, hash, and stop-line contracts are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+Do not replace that seam with a name-only export of
+`_annotate_task_dependencies(...)`, `_resolve_candidate_local_unit_hint(...)`,
+graph-state readers, reconciliation builders/rankers, aggregate-state carriers,
+retrieval-pipeline numeric helpers, or task/artifact helpers. Those candidates
+respectively cross task mutation/topological ordering, report I/O, state,
+wrong-direction orchestration, carrier ownership, pipeline ownership, or ledger
+contracts and require separate characterization.
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

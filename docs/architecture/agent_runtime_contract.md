@@ -7250,10 +7250,38 @@ unchanged 48/203 DAG, and full 2,143/2,143 passed. Benchmark refresh and remote
 CI were **NOT RUN**. Exact completion evidence is authoritative in
 [Project Status Completed Generic Concept](../overview/project_status.md#completed-generic-concept-spec-inference-public-api).
 
-No subsequent production seam is selected by this contract. The authoritative
-[Project Status Next Work](../overview/project_status.md#next-work) requires a
-docs-and-static-analysis-only Phase 3 closure audit that recomputes the private
-mesh and four debt groups before documenting exactly one next owner seam.
+The 2026-08-25 Phase 3 closure audit selected the runtime trace resolver as the
+next exact visibility-only contract. Until that batch is implemented, the live
+symbol remains
+`financial_runtime_trace._resolve_runtime_calculation_trace(...)`, with
+signature `(result, *, allow_legacy_top_level=False)`. The implementation
+renames that definition in place to public
+`resolve_runtime_calculation_trace(...)` and updates direct owner imports/calls
+only; the 94-line body, owner, signature, and behavior do not change.
+
+The resolver remains a read-only projection selector. It first materializes a
+canonical normalized trace and the strict-or-legacy fallback. It infers an
+active calculation task only when no explicit active task or subtask result
+exists and exactly one calculation task is present. A public-aligned structured
+subtask projection may supersede a stale canonical aggregate; otherwise a
+canonical non-aggregate returns directly. An aggregate canonical trace may be
+replaced only by a material non-aggregate active-task ledger projection or the
+eligible non-aggregate fallback. Without that return, a material active-task
+projection precedes aggregate-subtask projection; canonical and fallback
+returns retain their existing final precedence. Projection-source metadata and
+the `legacy_fallback` contract remain unchanged.
+
+The resolver does not directly mutate the input result, task records,
+artifacts, subtask results, or ledger. It shallow-copies the selected surfaces,
+performs no model, network, report-file, cache-store, or external I/O, and does
+not catch conversion, mapping, iteration, normalization, or helper failures.
+All 28 direct source calls retain one positional argument, their current
+strict/default/dynamic keyword choice, try-depth-zero placement, adoption, and
+stop behavior. Six optional/evaluation lazy adapters retain their own private
+wrapper names and signatures; only their nested owner import target becomes
+public. Exact inventory, hashes, deletion criteria, focused gates, and stop
+lines are authoritative in
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.
