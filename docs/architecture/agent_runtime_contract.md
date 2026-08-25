@@ -7310,6 +7310,28 @@ Actions run `32808418493` passed reviewer 32/32, audit 217, and full unittest
 2,145/2,145 on Ubuntu/Python 3.13. This cross-platform integrity result does not
 establish live replay, runtime provenance, or benchmark quality.
 
+The 2026-08-25 integration benchmark then reused the exact recorded
+`curated_policy_driven_runtime_gate` configuration and four strict-health-
+checked stores against source/docs head `672fc7f`. The current agent/evaluator
+completed all four companies and five questions with error rate 0.0%, without
+DART parse/fetch/ingest or historical-answer replay, but the quality result was
+not clean. One NAVER execution replaced correct lookup task-output operands with
+a different MDA period pair and emitted 17.6% even though retrieved evidence
+stated 41.4%; a focused rerun retained the correct pair and passed. LGE rendered
+a correct absolute subtraction result as an amount that rose. Samsung first
+exposed a final-answer/structured-lookup numeric disagreement and both Samsung
+runs exposed metadata-style answer text; its `refusal_accuracy=0` was separately
+identified as the evaluator marker `없` matching inside `끊임없는`.
+
+These observations reinforce, rather than relax, this contract: exact task/
+metric/period/source coherence must govern operand adoption; final answers and
+resolved traces must agree; operation rendering must preserve absolute-versus-
+delta intent; and evaluator missing-answer markers must use semantic/token
+boundaries. No company, benchmark-id, or metric-specific runtime branch is
+permitted. The release gate remains open under
+[Project Status Next Work](../overview/project_status.md#next-work); this did not
+resume Phase 3 refactoring.
+
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.
 The historical visibility contract renamed only the exact 32-line

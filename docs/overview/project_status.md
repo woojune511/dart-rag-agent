@@ -14,12 +14,12 @@ Last updated: 2026-08-25
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | No known unit/contract correctness blocker |
+| Is the core path blocked? | Unit/contract CI is green, but release integration is blocked by a non-clean store-fixed benchmark refresh |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | Draft PR [#86](https://github.com/woojune511/dart-rag-agent/pull/86) published the accumulated integration branch; its first Ubuntu run exposed a checkout-line-ending-dependent fixture hash, and `ab7e9ba` replaced that raw-byte binding with an explicit schema-v2 normalized-LF contract |
-| What passed? | Exact-head GitHub Actions run `32808418493`: reviewer contracts 32/32, runtime audit 217, `review_surface_ready`, demo `fixture_contract_ready` with 13/13 checks, and Ubuntu/Python 3.13 full unittest 2,145/2,145 |
-| Was the benchmark refreshed? | **NOT RUN**; no current-compatible store-fixed bundle is present in this checkout, and no live/provider or paid run was authorized |
-| What is next? | Keep PR #86 draft and refactoring paused; decide whether to accept the documented benchmark gap and authorize a history-preserving merge, or provide/authorize a compatible evaluation input first |
+| What just changed? | A provider-backed, store-fixed five-question policy gate ran against source head `672fc7f`; it completed without execution errors but exposed unstable operand/final projection, answer rendering, and evaluator-marker behavior |
+| What passed? | Exact-head GitHub Actions run `32809007035` passed reviewer contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,145/2,145; the benchmark reused four strict-health-checked stores and completed all 5 questions with error rate 0.0% |
+| Was the benchmark refreshed? | **RUN, NOT CLEAN**; the first 5-question pass produced an incorrect NAVER 17.6% answer, an LGE absolute-result rendering defect, and a Samsung trace inconsistency; focused reruns showed nondeterminism and an evaluator false positive |
+| What is next? | Keep PR #86 draft and refactoring paused; close the generic release-gate defects, rerun the focused rows, then repeat the same five-question store-fixed gate before considering a history-preserving merge |
 
 ## Product Boundary
 
@@ -739,7 +739,7 @@ For topology rather than normative behavior, use
 | Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
 | Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
 | Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
-| Policy-driven runtime gate | Recorded PASS; upstream raw bundle local-only |
+| Policy-driven runtime gate | Historical run recorded PASS; 2026-08-25 exact-source refresh completed but is **NOT CLEAN** |
 | Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
 | Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after later repairs |
 | Reflection promotion gate | READY |
@@ -757,8 +757,8 @@ For topology rather than normative behavior, use
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
 | Full unittest discovery | PASS, 2,145 / 2,145 on Ubuntu/Python 3.13 at exact PR head `ab7e9ba`; the unchanged FinancialAgent production checkpoint previously passed 2,143 / 2,143 locally |
-| Benchmark refresh for exact PR head | **NOT RUN**; no current-compatible store-fixed bundle is present |
-| GitHub Actions validation | PASS, run `32808418493`: reviewer job 14 seconds and full-suite job 5 minutes 13 seconds |
+| Benchmark refresh for source head `672fc7f` | **HOLD**; 4 companies / 5 questions completed, error rate 0.0%, but answer/trace quality was not stable enough for release |
+| GitHub Actions validation | PASS, run `32809007035`: reviewer job 14 seconds and full-suite job 5 minutes 32 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
 `tests.test_semantic_numeric_plan`, `tests.test_operation_contracts`,
@@ -771,21 +771,22 @@ The semantic set is `tests.test_financial_graph_helpers`,
 `tests.test_concept_runtime_contracts`. `tests.test_import_side_effects` passed
 separately at 19 / 19.
 
-Recorded structural and plain-retrieval numbers are historical evidence, not a
-claim that the latest owner changes reran a paid benchmark. Their upstream raw
-bundles are not checked in and are not independently reproducible from this
-checkout. A fresh benchmark is required before publishing a new score after a
-material parser, ingest, store-signature, retrieval, or answer-contract change.
+Recorded structural and plain-retrieval numbers remain historical evidence.
+The 2026-08-25 policy-gate refresh is current-code execution evidence over the
+older store-fixed input, not fresh ingest evidence and not a publishable quality
+score. Its raw outputs and heartbeat logs are ignored local artifacts. A fresh
+or store-fixed benchmark is still required after a material parser, ingest,
+store-signature, retrieval, or answer-contract change.
 
 ## Active Blockers And Remaining Debt
 
 | Area | State |
 | --- | --- |
-| Core correctness | No known unit/contract blocker |
-| Latest benchmark evidence | Limited: refresh not run after the latest calculation changes |
+| Core correctness | Unit/contract CI is green; benchmark execution exposed runtime answer/trace instability not covered by those tests |
+| Latest benchmark evidence | Five-question store-fixed refresh completed but is not a release pass |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | Draft PR #86 is published and exact-head remote CI is green; `main` remains unchanged, and merge is pending an explicit decision on the unrefreshed benchmark gap and history-preserving merge mode |
+| Release integration | Draft PR #86 is published and remote CI is green; `main` remains unchanged, and merge is blocked until the benchmark defects are closed and the gate is rerun cleanly |
 
 The durable Phase 3 debt is:
 
@@ -802,25 +803,62 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 **REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
-owner seam. Draft PR #86 now points to integration checkpoint `ab7e9ba` over
-production milestone `2892d1b`; exact-head GitHub Actions run `32808418493`
-passed both reviewer and full-suite jobs. `main` remains at `f0a5145`.
+owner seam. Draft PR #86 contains production milestone `2892d1b`, integration
+fix `ab7e9ba`, and the benchmarked source/docs head `672fc7f`; GitHub Actions run
+`32809007035` passed both reviewer and full-suite jobs. `main` remains at
+`f0a5145`.
 
-The single active decision is whether to:
+The active work is bounded release-gate stabilization, not Phase 3 refactoring:
 
-1. accept the explicitly documented absence of a latest-code benchmark refresh
-   and authorize a history-preserving merge commit; or
-2. first provide/restore a current-compatible store-fixed bundle, or authorize
-   the provider-backed work needed to create compatible evaluation evidence.
+1. characterize and cover the generic precedence that allowed `NAV_T2_006` to
+   replace correct task-output operands (`2,546,649 / 1,801,079` 백만원,
+   `41.4%`) with a different MDA pair (`9,670.6 / 8,220.1` 억원, `17.6%`);
+2. preserve absolute subtraction-result intent so `LGE_T1_051` does not render
+   the correct value as an amount that "상승했습니다";
+3. keep final-answer numeric surfaces and structured lookup traces coherent;
+   the first `SAM_T2_078` run exposed `28,352,769` versus `28,339,724` 백만원,
+   although the focused rerun converged;
+4. fix the evaluator-only missing-answer marker so the substring `없` inside
+   `끊임없는` cannot produce a false refusal failure, and cover the leaked
+   metadata-style narrative prefix separately;
+5. rerun the affected focused rows, then repeat the same four-company,
+   five-question store-fixed gate with heartbeat logging.
 
-The ignored local result directories currently available are older May/June
-artifacts and do not establish a fresh result for this checkout. Keep PR #86 in
-draft and do not merge, tag, rewrite history, change branch protection, or run
-live/paid work until that choice is explicit. If merge is authorized, do not use
-squash or rebase because the repository documents cite intermediate commit
-receipts. If refactoring is explicitly resumed later, the parked docs-and-static-
-analysis-only Phase 3 audit remains its first step and may not itself change
-production source or tests.
+Keep PR #86 in draft and do not merge, tag, rewrite history, change branch
+protection, or resume refactoring while this release gate is open. If a later
+clean gate authorizes integration, use a history-preserving merge commit rather
+than squash or rebase because the repository documents cite intermediate commit
+receipts. The parked docs-and-static-analysis-only Phase 3 audit remains the
+first step only if refactoring is explicitly resumed later.
+
+## Integration Store-Fixed Benchmark Refresh (2026-08-25)
+
+The current `curated_policy_driven_runtime_gate.json` profile exactly matched
+the recorded defaults, screening config, full-evaluation config, experiments,
+and company ids in
+`policy_gate_regression_2026-06-03_1138_actual`. All four persisted Chroma
+indexes passed strict vector-search health probes. The monitored eval-only run
+then reused those stores and reran the current agent and evaluator; it did not
+reuse historical answers and performed no DART parse, fetch, or ingest.
+
+| Surface | Result |
+| --- | --- |
+| Main run | 4 companies / 5 questions, completed in 670.4 seconds, error rate 0.0% |
+| Hyundai | 2 questions; faithfulness/completeness 1.000 / 1.000 |
+| LGE | numeric final judgement PASS and faithfulness 1.000; completeness 0.500 because the absolute result was rendered as a rise |
+| NAVER first run | incorrect `17.6%`, faithfulness 0.300, completeness 0.500 despite retrieved evidence containing source-stated `41.4%` |
+| NAVER focused rerun | correct `41.4%`, faithfulness/completeness/calculation correctness 1.000, proving run-to-run instability rather than a stable pass |
+| Samsung first run | final answer `28,352,769백만원` but structured lookup `28,339,724백만원`; calculation correctness 0.000 |
+| Samsung focused rerun | numeric trace converged and calculation correctness became 1.000; `refusal_accuracy=0.000` remained an evaluator false positive caused by `없` matching inside `끊임없는` |
+| Recorded provider cost | 7 question executions recorded `$0.4344568` runtime LLM cost; embedding cost was not reported |
+
+The ignored local bundles are
+`benchmarks/results/integration_policy_gate_2026-08-25_672fc7f/` and
+`benchmarks/results/integration_policy_gate_recheck_2026-08-25_672fc7f/`.
+Their top-level `results.json` SHA-256 values are respectively
+`3ea8064a1e82fbeae0e50594757bccff6bbe4290adafcd026fea72a4b9f8544d`
+and `3930ff87972af74ed921b3bb2d18b58d115b8d37508f584e9f0cb140fc030a45`.
+These artifacts remain local-only and must not be staged.
 
 ## Completed Reviewer Closeout And Refactoring Pause
 

@@ -12226,3 +12226,28 @@ are complete. It remains only as an audit record, not an active priority.
   is not present in this checkout, PR #86 remains draft, and `main` remains
   unchanged pending the explicit integration decision in
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Integration store-fixed release gate
+
+- On 2026-08-25, source/docs head `672fc7f` reused the exact recorded
+  `curated_policy_driven_runtime_gate` configuration and four persisted stores.
+  The current profile matched the stored defaults, screening/full-eval config,
+  experiments, and company ids; all four vector indexes passed strict health
+  probes. Focused runner/eval-only/store contracts passed 46/46 before the
+  monitored provider-backed run.
+- The current agent and evaluator executed four companies / five questions in
+  670.4 seconds with error rate 0.0%; no DART parse, fetch, ingest, or historical
+  answer replay occurred. The run was not clean: NAVER emitted 17.6% instead of
+  the retrieved/source-stated 41.4%, LGE rendered an absolute subtraction result
+  as an amount that rose, and Samsung exposed final-answer/structured-lookup
+  disagreement plus leaked metadata-style narrative text.
+- Focused NAVER and Samsung reruns made their numeric traces converge, which
+  demonstrated run-to-run instability rather than proving the first failures
+  absent. Samsung's remaining `refusal_accuracy=0` was traced to the evaluator's
+  broad `없` substring matching `끊임없는`, not to a runtime refusal.
+- No production source or test changed during this benchmark session. Seven
+  question executions recorded `$0.4344568` runtime LLM cost; embedding cost was
+  not reported. Raw results and heartbeat logs remain ignored local artifacts.
+  PR #86 stays draft, `main` stays unchanged, and the generic release-gate work
+  is authoritative in
+  [Project Status Next Work](../overview/project_status.md#next-work).

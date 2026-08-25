@@ -26,8 +26,8 @@ Last updated: 2026-08-25
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
 | Phase 3 | OPEN but **REFACTORING PAUSED**; desired consolidation-scope, query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 reconciliation candidate construction/ranking, broader alignment/rebuild와 ledger ownership 전체는 미완료 |
-| Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
-| Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
+| Runtime correctness | unit/contract CI는 green이지만 store-fixed benchmark가 answer/trace 비결정성과 rendering 결함을 발견함; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
+| Benchmark | source/docs head `672fc7f`의 4-company/5-question provider-backed store-fixed refresh는 실행 완료됐지만 **NOT CLEAN**; [Project Status](docs/overview/project_status.md#integration-store-fixed-benchmark-refresh-2026-08-25)만 기준으로 사용 |
 
 `2892d1b`는 94-line runtime-trace resolver를 같은 owner와 본문에서 public
 `financial_runtime_trace.resolve_runtime_calculation_trace(...)`로 이름
@@ -40,9 +40,12 @@ reviewer closeout이 `review_surface_ready`, fixture manifest verified, demo
 계약이지 live replay가 아니다. 이어 draft PR #86의 첫 Ubuntu run이 raw-byte
 fixture hash의 CRLF/LF 의존성을 발견했고 `ab7e9ba`가 schema-v2 normalized-LF
 binding과 양쪽 줄바꿈 회귀 테스트로 수정했다. Exact-head remote run
-`32808418493`에서 reviewer 32/32, audit 217과 full 2,145/2,145가 통과했다.
-리팩터링은 명시적으로 중단됐으며 benchmark 공백을 수용하고 history-preserving
-merge를 허가할지가 다음 활성 결정이다. 상세 범위는
+`32809007035`에서 reviewer 32/32, audit 217과 full 2,145/2,145가 통과했다.
+이어 exact-profile store-fixed policy gate가 4개 회사/5문항을 error 0.0%로
+완주했지만 NAVER operand/final projection 비결정성, LGE absolute-result
+rendering, Samsung numeric trace 불일치와 evaluator false positive를 발견했다.
+리팩터링은 명시적으로 중단됐으며 이 release gate를 일반 계약으로 닫고 같은
+focused/full gate를 다시 통과시키는 것이 다음 활성 작업이다. 상세 범위는
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 남은 Phase 3 범위
@@ -889,8 +892,18 @@ composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
 - `ab7e9ba`는 PR #86 Ubuntu checkout이 발견한 fixture raw-byte CRLF/LF
   불일치를 schema-v2 `line_endings_lf` binding으로 고쳤다. LF/CRLF direct
   regressions, local reviewer 32/32, audit 217, exact-head GitHub Actions
-  `32808418493`의 full 2,145/2,145가 통과했다. Benchmark/live/provider는
-  실행하지 않았고 `main`은 그대로다. Release/integration 결정과 재개 조건은
+  `32809007035`의 full 2,145/2,145가 통과했다.
+- source/docs head `672fc7f`에서 current profile과 기존 4개 store의 설정 일치,
+  strict vector health를 확인한 뒤 provider-backed eval-only 5문항을 실행했다.
+  첫 full run은 error 0.0%였지만 NAVER가 correct task outputs 대신 다른 MDA
+  pair를 최종 operand로 택해 `17.6%`를 냈고, LGE는 올바른 절대값을
+  "상승했습니다"로 렌더링했으며, Samsung은 final answer와 lookup trace가
+  불일치했다. NAVER/Samsung focused rerun은 numeric trace가 수렴했지만 이로써
+  안정 pass가 아니라 run-to-run 비결정성이 확인됐다. Samsung의 남은
+  `refusal_accuracy=0`은 `끊임없는` 안의 `없`을 잡은 evaluator false positive다.
+  7 question executions의 recorded runtime LLM cost는 `$0.4344568`이고 embedding
+  cost는 보고되지 않았다. 두 result/heartbeat bundle은 ignored local-only이며
+  stage하지 않는다. PR #86은 draft, `main`은 그대로다. Release gate와 재개 조건은
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

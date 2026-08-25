@@ -71,6 +71,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
+| [Integration Store-Fixed Policy Gate (2026-08-25)](#integration-store-fixed-policy-gate-2026-08-25) | PR #86 source head의 4-company/5-question current-agent refresh와 failed-row 재확인 | 실행은 완주했지만 NAV operand 선택 비결정성, LGE rendering, Samsung trace/evaluator 결함 때문에 release pass가 아님 |
 
 ## 보는 법
 
@@ -81,6 +82,71 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Integration Store-Fixed Policy Gate (2026-08-25)
+
+참조:
+
+- benchmarked source/docs head: `672fc7f`
+- profile: `benchmarks/profiles/curated_policy_driven_runtime_gate.json`
+- source store bundle:
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`
+- ignored local output bundles:
+  - `benchmarks/results/integration_policy_gate_2026-08-25_672fc7f/`
+  - `benchmarks/results/integration_policy_gate_recheck_2026-08-25_672fc7f/`
+- top-level `results.json` SHA-256:
+  - main run:
+    `3ea8064a1e82fbeae0e50594757bccff6bbe4290adafcd026fea72a4b9f8544d`
+  - focused rechecks:
+    `3930ff87972af74ed921b3bb2d18b58d115b8d37508f584e9f0cb140fc030a45`
+- artifact hygiene: raw results and heartbeat logs are local-only and were not
+  staged.
+
+### Admission And Execution
+
+- The current profile exactly matched the source bundle's recorded defaults,
+  screening config, full-evaluation config, experiment list, and company ids.
+- All four persisted Chroma indexes passed strict vector-search health probes.
+- Focused benchmark-runner/eval-only/resumable-store contracts passed 46/46
+  before provider work.
+- The monitored run reused the existing stores but reran the current
+  `FinancialAgent` and evaluator. Historical answers were not replayed, and no
+  DART parse, fetch, or ingest ran.
+- The main run completed four companies and five questions in 670.4 seconds
+  with error rate `0.0%`. Two failed-row confirmations added two question
+  executions. Across all seven question executions, recorded runtime LLM cost
+  was `$0.4344568`; embedding cost was not reported.
+
+### Results
+
+| Question/surface | First run | Focused confirmation | Interpretation |
+| --- | --- | --- | --- |
+| `HYU_T2_010`, `HYU_T3_072` | faithfulness/completeness `1.000 / 1.000`, error `0.0%` | not rerun | clean comparison/control rows |
+| `LGE_T1_051` | numeric `PASS`, faithfulness `1.000`, completeness `0.500` | not rerun | numeric value was accepted, but the absolute result was rendered as `1,486,334백만원 상승했습니다` |
+| `NAV_T2_006` | answer `17.6%`, faithfulness `0.300`, completeness `0.500` | answer `41.4%`, faithfulness/completeness/calculation `1.000 / 1.000 / 1.000` | correct lookup task outputs existed in both runs, but the first final trace replaced them with a different MDA pair |
+| `SAM_T2_078` | final answer `28,352,769백만원`, structured lookup `28,339,724백만원`, calculation `0.000` | trace converged to `28,352,769백만원`, calculation `1.000` | final-answer/structured-trace stability gap; metadata-style prefix still leaked into the narrative |
+| Samsung refusal metric | `0.000` | `0.000` | evaluator false positive: substring marker `없` matched inside `끊임없는` |
+
+The first NAVER run's retrieved evidence explicitly contained source-stated
+`41.4%`, and its lookup subtasks returned `2,546,649백만원` and
+`1,801,079백만원`. The final resolved trace nevertheless selected
+`9,670.6억원` and `8,220.1억원` from a different MDA surface and calculated
+`17.6%`. The focused rerun retained the task-output pair and produced `41.4%`.
+This is an operand/final-projection stability problem, not a retrieval miss or
+an evaluator-only fluctuation.
+
+### Release Interpretation
+
+- This refresh closes the previous "benchmark not run" evidence gap, but it is
+  **not** a release pass and does not support a new quality claim.
+- The failure layers are generic contracts: candidate/task-output precedence,
+  aggregate subtraction rendering, final-answer/structured-trace coherence,
+  answer-text cleanup, and evaluator marker boundaries.
+- No company name, benchmark id, metric-specific runtime branch, or answer-key
+  patch is justified.
+- PR #86 remains draft. Close the generic contracts with focused tests, rerun
+  the affected rows, and then repeat the same five-question store-fixed gate
+  before considering integration.
 
 ## Final Financial Operand Projection Repair (2026-06-24)
 

@@ -3128,8 +3128,14 @@ a checkout-line-ending dependency in the reviewer fixture's raw-byte hash, and
 `ab7e9ba` replaced that binding with schema-v2 normalized-LF hashing plus direct
 LF/CRLF tests. Exact-head remote reviewer 32/32, audit 217, and full
 2,145/2,145 passed. This changes no core-runtime owner or debt verdict;
-refactoring remains paused while the documented benchmark-gap/merge decision is
-pending in Project Status.
+refactoring remains paused. A later provider-backed store-fixed five-question
+refresh at source/docs head `672fc7f` completed with error rate 0.0% but did not
+produce a clean release gate: NAVER operand/final projection varied between
+17.6% and the correct 41.4% across two executions, LGE absolute-result rendering
+was misleading, and Samsung exposed transient final-answer/lookup-trace
+disagreement plus an evaluator marker false positive. This release-gate
+stabilization does not authorize another owner move or reopen Phase 3; its exact
+work and merge stop line are governed by Project Status.
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

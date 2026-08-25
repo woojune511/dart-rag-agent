@@ -1760,10 +1760,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   발견했다. `ab7e9ba`는 runtime owner를 바꾸지 않고 ops fixture contract를
   schema-v2 normalized-LF binding으로 고쳤으며 LF/CRLF direct regression,
   remote reviewer 32/32, audit 217, full 2,145/2,145가 통과했다.
+- source/docs head `672fc7f`의 provider-backed store-fixed policy gate는
+  strict-health-checked store 네 개에서 5문항을 error 0.0%로 완주했지만 clean
+  release pass는 아니었다. NAVER final trace는 correct lookup task outputs와
+  다른 MDA period pair 사이에서 run-to-run으로 갈렸고, LGE는 absolute
+  subtraction result를 상승분처럼 렌더링했으며, Samsung은 첫 실행의 final
+  answer/structured lookup 불일치와 metadata-style answer prefix를 드러냈다.
+  Samsung `refusal_accuracy=0`은 `끊임없는` 안의 `없`에 걸린 evaluator-only
+  false positive다. 이들은 retrieval miss가 아니라 operand/final projection,
+  rendering, answer cleanup, evaluator definition 경계다.
 - **리팩터링은 중단 상태다.** Production 변경 없는 post-implementation Phase
   3 재감사는 parked work이며 명시적으로 재개할 때만 첫 단계로 실행한다.
-  현재 active decision은 benchmark 공백을 수용한 history-preserving
-  release/integration 여부이고,
+  현재 active work는 위 generic release-gate contract를 닫고 focused/full
+  store-fixed gate를 재실행하는 것이며,
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
