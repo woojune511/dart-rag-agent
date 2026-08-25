@@ -7297,6 +7297,19 @@ or the runtime-domain audit. Refactoring is paused without changing this runtime
 contract. Any later Phase 3 audit or source change requires explicit resumption
 through [Project Status Next Work](../overview/project_status.md#next-work).
 
+The portfolio fixture manifest now uses schema version 2. Its
+`fixture_binding.normalization` must be `line_endings_lf`; validation converts
+CRLF and CR bytes to LF before computing SHA-256 so the same checked-in JSON is
+stable across Windows and Linux checkouts. No other byte or content
+canonicalization is allowed. Path equality, expected hash, evidence kind,
+upstream-artifact availability, live-replay and raw-bundle false flags,
+limitations, and supported/unsupported claim boundaries remain mandatory. A
+missing normalization declaration invalidates the manifest even when the hash
+matches. Commit `ab7e9ba` added LF/CRLF parity tests, and exact-head GitHub
+Actions run `32808418493` passed reviewer 32/32, audit 217, and full unittest
+2,145/2,145 on Ubuntu/Python 3.13. This cross-platform integrity result does not
+establish live replay, runtime provenance, or benchmark quality.
+
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.
 The historical visibility contract renamed only the exact 32-line

@@ -21,7 +21,7 @@ Last updated: 2026-08-25
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | latest production-source milestone `2892d1b` and reviewer documentation checkpoint `5750e77` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | latest FinancialAgent production milestone `2892d1b`, reviewer documentation checkpoint `5750e77`, and cross-platform integration checkpoint `ab7e9ba` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -37,8 +37,12 @@ Exact affected 101/101, corrected focused coverage 1,176/1,176, audit 217,
 pycompile 18/18, fresh identity 11/11, full 2,143/2,143가 통과했다. 이어 최신
 reviewer closeout이 `review_surface_ready`, fixture manifest verified, demo
 13/13, integrity `ok`, critic `accepted`를 재확인했다. 이는 curated fixture
-계약이지 live replay가 아니다. 리팩터링은 명시적으로 중단됐으며 다음 활성
-결정은 release/integration 경로다. 상세 범위는
+계약이지 live replay가 아니다. 이어 draft PR #86의 첫 Ubuntu run이 raw-byte
+fixture hash의 CRLF/LF 의존성을 발견했고 `ab7e9ba`가 schema-v2 normalized-LF
+binding과 양쪽 줄바꿈 회귀 테스트로 수정했다. Exact-head remote run
+`32808418493`에서 reviewer 32/32, audit 217과 full 2,145/2,145가 통과했다.
+리팩터링은 명시적으로 중단됐으며 benchmark 공백을 수용하고 history-preserving
+merge를 허가할지가 다음 활성 결정이다. 상세 범위는
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 남은 Phase 3 범위
@@ -881,7 +885,12 @@ composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
   11/11, unchanged 48/203 DAG, full 2,143/2,143가 통과했다. 이어 reviewer
   gate와 fixture demo를 재실행해 `review_surface_ready`, manifest verified,
   13/13, integrity `ok`, critic `accepted`를 확인했다. Production source/test는
-  바뀌지 않았고 리팩터링은 중단됐다. Release/integration 결정과 재개 조건은
+  바뀌지 않았고 리팩터링은 중단됐다.
+- `ab7e9ba`는 PR #86 Ubuntu checkout이 발견한 fixture raw-byte CRLF/LF
+  불일치를 schema-v2 `line_endings_lf` binding으로 고쳤다. LF/CRLF direct
+  regressions, local reviewer 32/32, audit 217, exact-head GitHub Actions
+  `32808418493`의 full 2,145/2,145가 통과했다. Benchmark/live/provider는
+  실행하지 않았고 `main`은 그대로다. Release/integration 결정과 재개 조건은
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 
 ## 구현 원칙

@@ -12199,3 +12199,30 @@ are complete. It remains only as an audit record, not an active priority.
   the release/integration path; the parked Phase 3 audit requires explicit
   reauthorization through
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Cross-platform fixture binding and first remote integration validation
+
+- Draft PR #86 published the accumulated linear branch over `main`. Its first
+  Ubuntu/Python 3.13 reviewer job at `489e1f9` failed six assertions because the
+  schema-v1 manifest bound the fixture's raw working-tree bytes. The recorded
+  Windows hash included mixed/CRLF line endings while the GitHub checkout used
+  LF, so fixture evidence was correctly reported `invalid`; this was a cross-
+  platform contract defect, not a FinancialAgent answer regression.
+- Commit `ab7e9ba` introduced manifest schema v2 with required
+  `normalization = line_endings_lf`. The hash input converts CRLF and CR to LF
+  before SHA-256 and changes no JSON content; path binding, claim-boundary,
+  evidence-kind, source-availability, live-replay, raw-bundle, limitation, and
+  content-tamper gates remain required. Direct LF/CRLF equivalence and missing-
+  normalization rejection tests were added.
+- Local reviewer coverage passed 32/32, `portfolio_review_gates` returned
+  `review_surface_ready`, `portfolio_demo` returned `fixture_contract_ready`
+  with 13/13, runtime audit remained 217, and pycompile passed. Exact-head
+  GitHub Actions run `32808418493` passed the reviewer job in 14 seconds and
+  full discovery 2,145/2,145 in 254.906 test seconds (5 minutes 13 seconds job
+  duration) on Ubuntu/Python 3.13.
+- This establishes cross-platform fixture integrity and remote contract/unit
+  validation only. It is not a fresh benchmark, live DART/provider replay, or
+  runtime provenance proof. The current-compatible store-fixed benchmark bundle
+  is not present in this checkout, PR #86 remains draft, and `main` remains
+  unchanged pending the explicit integration decision in
+  [Project Status Next Work](../overview/project_status.md#next-work).

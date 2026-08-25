@@ -1756,9 +1756,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `13/13`, task/artifact integrity `ok`, critic `accepted`를 확인했다. Fixture
   검증은 checked-in curated example의 무결성 확인이며 live DART/model replay나
   provenance 증명은 아니다.
+- PR #86의 첫 Ubuntu run은 raw-byte fixture hash의 checkout CRLF/LF 의존성을
+  발견했다. `ab7e9ba`는 runtime owner를 바꾸지 않고 ops fixture contract를
+  schema-v2 normalized-LF binding으로 고쳤으며 LF/CRLF direct regression,
+  remote reviewer 32/32, audit 217, full 2,145/2,145가 통과했다.
 - **리팩터링은 중단 상태다.** Production 변경 없는 post-implementation Phase
   3 재감사는 parked work이며 명시적으로 재개할 때만 첫 단계로 실행한다.
-  현재 active decision은 release/integration 경로이고,
+  현재 active decision은 benchmark 공백을 수용한 history-preserving
+  release/integration 여부이고,
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

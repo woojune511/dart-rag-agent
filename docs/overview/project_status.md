@@ -16,10 +16,10 @@ Last updated: 2026-08-25
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | A fresh local reviewer closeout on documentation checkpoint `5750e77` and production checkpoint `2892d1b` reconfirmed the fixture/demo surface, then explicitly paused further refactoring without changing production source or tests |
-| What passed? | `review_surface_ready`; demo `fixture_contract_ready`, manifest verified, 13/13 checks, task/artifact integrity `ok`, critic `accepted`; the same production checkpoint already passed full unittest 2,143/2,143 and runtime audit 217 |
-| Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with no policy, ingest, retrieval, trace precedence, state, ledger, or answer-behavior change |
-| What is next? | Keep refactoring paused and decide the release/integration path for the long-lived local branch; no audit, source change, benchmark, live replay, push, or PR is authorized by a generic continuation request |
+| What just changed? | Draft PR [#86](https://github.com/woojune511/dart-rag-agent/pull/86) published the accumulated integration branch; its first Ubuntu run exposed a checkout-line-ending-dependent fixture hash, and `ab7e9ba` replaced that raw-byte binding with an explicit schema-v2 normalized-LF contract |
+| What passed? | Exact-head GitHub Actions run `32808418493`: reviewer contracts 32/32, runtime audit 217, `review_surface_ready`, demo `fixture_contract_ready` with 13/13 checks, and Ubuntu/Python 3.13 full unittest 2,145/2,145 |
+| Was the benchmark refreshed? | **NOT RUN**; no current-compatible store-fixed bundle is present in this checkout, and no live/provider or paid run was authorized |
+| What is next? | Keep PR #86 draft and refactoring paused; decide whether to accept the documented benchmark gap and authorize a history-preserving merge, or provide/authorize a compatible evaluation input first |
 
 ## Product Boundary
 
@@ -746,8 +746,8 @@ For topology rather than normative behavior, use
 | Report-cache promotion evidence | READY, serving disabled |
 | Promotion trace materiality gate | READY |
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
-| Demo fixture contract | PASS on `5750e77`: `fixture_contract_ready`, manifest verified, 13 / 13, integrity `ok`, critic `accepted`; live replay false |
-| Portfolio review surface | PASS on `5750e77`: `review_surface_ready`; publication validation remains `not_run` by that command |
+| Demo fixture contract | PASS on `ab7e9ba`: schema v2 normalized-LF manifest verified on Ubuntu, `fixture_contract_ready`, 13 / 13, integrity `ok`, critic `accepted`; live replay false |
+| Portfolio review surface | PASS on `ab7e9ba`: remote reviewer contracts 32 / 32 and `review_surface_ready`; the gate command's own publication-validation field remains `not_run`, with audit/full tests executed separately by the workflow |
 | Latest focused owner checkpoint | PASS, runtime-trace exact affected methods 101 / 101 and corrected focused coverage 1,176 / 1,176 |
 | Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace resolver public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
@@ -756,9 +756,9 @@ For topology rather than normative behavior, use
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
-| Full unittest discovery | PASS, 2,143 / 2,143 |
-| Benchmark refresh after latest visibility-only cleanup | **NOT RUN** |
-| GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
+| Full unittest discovery | PASS, 2,145 / 2,145 on Ubuntu/Python 3.13 at exact PR head `ab7e9ba`; the unchanged FinancialAgent production checkpoint previously passed 2,143 / 2,143 locally |
+| Benchmark refresh for exact PR head | **NOT RUN**; no current-compatible store-fixed bundle is present |
+| GitHub Actions validation | PASS, run `32808418493`: reviewer job 14 seconds and full-suite job 5 minutes 13 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
 `tests.test_semantic_numeric_plan`, `tests.test_operation_contracts`,
@@ -785,7 +785,7 @@ material parser, ingest, store-signature, retrieval, or answer-contract change.
 | Latest benchmark evidence | Limited: refresh not run after the latest calculation changes |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | Pending user decision; the long-lived local branch is materially ahead of its tracking ref, and no push, PR, merge, tag, or remote CI run is claimed |
+| Release integration | Draft PR #86 is published and exact-head remote CI is green; `main` remains unchanged, and merge is pending an explicit decision on the unrefreshed benchmark gap and history-preserving merge mode |
 
 The durable Phase 3 debt is:
 
@@ -801,19 +801,26 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-**REFACTORING PAUSED.** Do not run the parked Phase 3 audit, select another
-owner seam, or change production source/tests from a generic request to
-continue. The current production checkpoint is `2892d1b`; the latest reviewer
-closeout ran on documentation checkpoint `5750e77` and changed no runtime code.
+**REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
+owner seam. Draft PR #86 now points to integration checkpoint `ab7e9ba` over
+production milestone `2892d1b`; exact-head GitHub Actions run `32808418493`
+passed both reviewer and full-suite jobs. `main` remains at `f0a5145`.
 
-The active next decision is release/integration strategy for the long-lived
-local branch: preserve it as a local checkpoint, publish it as an explicit
-snapshot, or prepare a separately reviewed integration path. Push, PR, merge,
-history rewrite, tag, remote CI, live DART/provider replay, and benchmark work
-all require fresh user authorization. If refactoring is explicitly resumed
-later, first run the previously parked docs-and-static-analysis-only Phase 3
-audit against the then-current checkout; that audit may characterize one seam
-but must not itself change production source or tests.
+The single active decision is whether to:
+
+1. accept the explicitly documented absence of a latest-code benchmark refresh
+   and authorize a history-preserving merge commit; or
+2. first provide/restore a current-compatible store-fixed bundle, or authorize
+   the provider-backed work needed to create compatible evaluation evidence.
+
+The ignored local result directories currently available are older May/June
+artifacts and do not establish a fresh result for this checkout. Keep PR #86 in
+draft and do not merge, tag, rewrite history, change branch protection, or run
+live/paid work until that choice is explicit. If merge is authorized, do not use
+squash or rebase because the repository documents cite intermediate commit
+receipts. If refactoring is explicitly resumed later, the parked docs-and-static-
+analysis-only Phase 3 audit remains its first step and may not itself change
+production source or tests.
 
 ## Completed Reviewer Closeout And Refactoring Pause
 
@@ -834,8 +841,27 @@ or provider replay; upstream artifacts remain `not_provided`, so the result
 establishes fixture integrity and reviewer-surface consistency only. The review
 gate itself reports publication validation, unit tests, and runtime audit as
 `not_run`; full 2,143/2,143 and audit 217 are separate results already executed
-for the unchanged production checkpoint. Benchmark refresh and remote CI remain
-**NOT RUN**.
+for the unchanged production checkpoint. At this closeout checkpoint, benchmark
+refresh and remote CI were **NOT RUN**; later PR validation is recorded below.
+
+## Completed Cross-Platform Fixture Binding And Remote PR Validation
+
+Draft PR #86 first ran the new workflow on Ubuntu at `489e1f9`. Reviewer tests
+correctly rejected the fixture because schema v1 hashed checkout-dependent raw
+bytes: the Windows mixed/CRLF working-tree hash did not match GitHub's LF
+checkout. Commit `ab7e9ba` changed only the reviewer fixture contract, manifest,
+and tests. Schema v2 requires `normalization = line_endings_lf`; hashing converts
+CRLF and CR to LF while still rejecting any other payload change. Direct LF and
+CRLF regression cases were added.
+
+Local reviewer coverage passed 32/32, `portfolio_review_gates` returned
+`review_surface_ready`, `portfolio_demo` returned `fixture_contract_ready` with
+13/13, runtime audit remained 217, and pycompile passed. Exact-head GitHub
+Actions run `32808418493` then passed reviewer contracts in 14 seconds and full
+unittest discovery 2,145/2,145 in 254.906 test seconds (5 minutes 13 seconds for
+the job) on Ubuntu/Python 3.13. This remote validation is not a benchmark, live
+DART/provider replay, or provenance proof. No benchmark result, store, cache, or
+heartbeat artifact was staged, and `main` was not changed.
 
 ## Completed Runtime Calculation Trace Resolver Public API
 

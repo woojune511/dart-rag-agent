@@ -3123,6 +3123,14 @@ Phase 3, that audit is the first bounded step; until then the active decision is
 the release/integration path governed by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+PR #86 integration validation did not resume Phase 3. Its first Ubuntu run found
+a checkout-line-ending dependency in the reviewer fixture's raw-byte hash, and
+`ab7e9ba` replaced that binding with schema-v2 normalized-LF hashing plus direct
+LF/CRLF tests. Exact-head remote reviewer 32/32, audit 217, and full
+2,145/2,145 passed. This changes no core-runtime owner or debt verdict;
+refactoring remains paused while the documented benchmark-gap/merge decision is
+pending in Project Status.
+
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.
 The historical bounded visibility seam renamed only the exact 32-line state-free
