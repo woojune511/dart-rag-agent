@@ -20,6 +20,11 @@ DEMO_PAYLOAD_PATH = FIXTURE_ROOT / "demo_payload.json"
 EVIDENCE_MANIFEST_PATH = FIXTURE_ROOT / "evidence_manifest.json"
 
 
+def _normalized_lf_sha256(path: Path) -> str:
+    payload = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(payload).hexdigest()
+
+
 class PortfolioDemoTests(unittest.TestCase):
     def _load_payload(self) -> dict:
         return json.loads(DEMO_PAYLOAD_PATH.read_text(encoding="utf-8"))
@@ -37,9 +42,7 @@ class PortfolioDemoTests(unittest.TestCase):
         )
         manifest = json.loads(EVIDENCE_MANIFEST_PATH.read_text(encoding="utf-8"))
         manifest["fixture_binding"]["path"] = payload_path.name
-        manifest["fixture_binding"]["sha256"] = hashlib.sha256(
-            payload_path.read_bytes()
-        ).hexdigest()
+        manifest["fixture_binding"]["sha256"] = _normalized_lf_sha256(payload_path)
         manifest_path = Path(temp_dir) / "evidence_manifest.json"
         manifest_path.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2),
@@ -70,6 +73,10 @@ class PortfolioDemoTests(unittest.TestCase):
             demo["fixture_evidence"]["raw_runtime_bundle_checked_in"]
         )
         self.assertTrue(demo["fixture_evidence"]["fixture_sha256_matches"])
+        self.assertEqual(
+            demo["fixture_evidence"]["fixture_hash_normalization"],
+            "line_endings_lf",
+        )
         self.assertEqual(
             demo["semantic_plan"]["tasks"][0]["operation_family"],
             "ratio",
@@ -120,6 +127,69 @@ class PortfolioDemoTests(unittest.TestCase):
         self.assertFalse(
             demo["critic_acceptance"]["deterministic_score_used_for_acceptance"]
         )
+        self.assertEqual(demo["readiness"]["status"], "needs_review")
+
+    def test_fixture_binding_is_stable_across_checkout_line_endings(self) -> None:
+        original = DEMO_PAYLOAD_PATH.read_bytes()
+        normalized = original.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        expected_hash = hashlib.sha256(normalized).hexdigest()
+
+        for label, payload_bytes in (
+            ("lf", normalized),
+            ("crlf", normalized.replace(b"\n", b"\r\n")),
+        ):
+            with (
+                self.subTest(line_endings=label),
+                tempfile.TemporaryDirectory() as temp_dir,
+            ):
+                payload_path = Path(temp_dir) / "demo_payload.json"
+                payload_path.write_bytes(payload_bytes)
+                manifest = json.loads(
+                    EVIDENCE_MANIFEST_PATH.read_text(encoding="utf-8")
+                )
+                manifest["fixture_binding"]["path"] = payload_path.name
+                manifest["fixture_binding"]["sha256"] = expected_hash
+                manifest_path = Path(temp_dir) / "evidence_manifest.json"
+                manifest_path.write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+
+                demo = build_demo(
+                    demo_payload_path=payload_path,
+                    evidence_manifest_path=manifest_path,
+                )
+
+                self.assertEqual(demo["fixture_evidence"]["status"], "verified")
+                self.assertTrue(
+                    demo["fixture_evidence"]["fixture_sha256_matches"]
+                )
+                self.assertEqual(
+                    demo["fixture_evidence"]["fixture_sha256_actual"],
+                    expected_hash,
+                )
+
+    def test_demo_rejects_manifest_without_hash_normalization(self) -> None:
+        payload = self._load_payload()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            payload_path, manifest_path = self._write_bound_fixture(
+                temp_dir=temp_dir,
+                payload=payload,
+            )
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["fixture_binding"].pop("normalization")
+            manifest_path.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            demo = build_demo(
+                demo_payload_path=payload_path,
+                evidence_manifest_path=manifest_path,
+            )
+
+        self.assertTrue(demo["fixture_evidence"]["fixture_sha256_matches"])
+        self.assertEqual(demo["fixture_evidence"]["status"], "invalid")
         self.assertEqual(demo["readiness"]["status"], "needs_review")
 
     def test_demo_rejects_ratio_result_inconsistent_with_operands(self) -> None:

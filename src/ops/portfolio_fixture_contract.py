@@ -18,6 +18,7 @@ from src.agent.financial_artifact_contracts import (
 _NUMERIC_TOKEN_PATTERN = re.compile(
     r"[-+]?(?:\d[\d,]*)(?:\.\d+)?(?:[eE][-+]?\d+)?"
 )
+_FIXTURE_HASH_NORMALIZATION = "line_endings_lf"
 
 
 def _read_json_object(path: Path) -> Dict[str, Any]:
@@ -41,8 +42,9 @@ def _mapping_list(items: Any) -> List[Dict[str, Any]]:
     return [dict(item) for item in items if isinstance(item, dict)]
 
 
-def _sha256_hex(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _normalized_lf_sha256_hex(path: Path) -> str:
+    payload = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _summarize_evidence_manifest(
@@ -57,6 +59,7 @@ def _summarize_evidence_manifest(
         "fixture_sha256_expected": None,
         "fixture_sha256_actual": None,
         "fixture_sha256_matches": False,
+        "fixture_hash_normalization": None,
         "fixture_path_matches": False,
         "evidence_kind": None,
         "upstream_artifact_availability": None,
@@ -72,8 +75,9 @@ def _summarize_evidence_manifest(
         source = dict(manifest.get("source_provenance") or {})
         claim_boundary = dict(manifest.get("claim_boundary") or {})
         expected_hash = str(binding.get("sha256") or "").strip().lower()
+        hash_normalization = str(binding.get("normalization") or "").strip().lower()
         bound_path = manifest_path.parent / str(binding.get("path") or "")
-        actual_hash = _sha256_hex(payload_path)
+        actual_hash = _normalized_lf_sha256_hex(payload_path)
         limitations = [
             str(item).strip()
             for item in list(source.get("limitations") or [])
@@ -94,8 +98,9 @@ def _summarize_evidence_manifest(
         )
         hash_matches = bool(expected_hash) and expected_hash == actual_hash
         manifest_contract_complete = (
-            manifest.get("schema_version") == 1
+            manifest.get("schema_version") == 2
             and str(binding.get("algorithm") or "").strip().lower() == "sha256"
+            and hash_normalization == _FIXTURE_HASH_NORMALIZATION
             and source.get("evidence_kind") == "curated_contract_fixture"
             and source.get("upstream_artifact_availability") == "not_provided"
             and source.get("live_runtime_replayed") is False
@@ -114,6 +119,7 @@ def _summarize_evidence_manifest(
                 "fixture_sha256_expected": expected_hash or None,
                 "fixture_sha256_actual": actual_hash,
                 "fixture_sha256_matches": hash_matches,
+                "fixture_hash_normalization": hash_normalization or None,
                 "fixture_path_matches": path_matches,
                 "evidence_kind": source.get("evidence_kind"),
                 "upstream_artifact_availability": source.get(

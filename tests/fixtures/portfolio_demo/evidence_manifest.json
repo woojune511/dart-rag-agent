@@ -1,9 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "fixture_binding": {
     "path": "demo_payload.json",
     "algorithm": "sha256",
-    "sha256": "7a2f9a338357642f9221ae062e405dd6f059bd4f887803dc77dcbe0f0e8388b2"
+    "normalization": "line_endings_lf",
+    "sha256": "37515d48ff193a9d8785ff65fedbad6234ac14020c617740978a68ad4030ce34"
   },
   "source_provenance": {
     "evidence_kind": "curated_contract_fixture",
@@ -13,7 +14,7 @@
     "limitations": [
       "This fixture is a checked-in curated contract example, not a live DART or model-provider replay.",
       "No upstream run identifier, source artifact path, or raw runtime bundle is provided; the fixture must not be presented as a captured production run.",
-      "The SHA-256 binding detects fixture changes relative to this manifest; it establishes fixture integrity, not runtime provenance or authenticity."
+      "The SHA-256 binding normalizes checkout line endings to LF before hashing and detects other fixture changes relative to this manifest; it establishes fixture integrity, not runtime provenance or authenticity."
     ]
   },
   "claim_boundary": {
