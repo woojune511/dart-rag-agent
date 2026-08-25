@@ -3116,8 +3116,11 @@ graph-state readers, reconciliation builders/rankers, aggregate-state carriers,
 retrieval-pipeline numeric helpers, or task/artifact helpers. Those candidates
 respectively cross task mutation/topological ordering, report I/O, state,
 wrong-direction orchestration, carrier ownership, pipeline ownership, or ledger
-contracts and still require separate characterization. The next step is a
-production-change-free post-implementation audit governed by
+contracts and still require separate characterization. **Refactoring is now
+paused.** The production-change-free post-implementation audit is parked and
+must not run from a generic continuation request. If the user explicitly resumes
+Phase 3, that audit is the first bounded step; until then the active decision is
+the release/integration path governed by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The following generic operand-label paragraphs preserve the historical

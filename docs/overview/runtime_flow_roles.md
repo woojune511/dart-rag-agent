@@ -1751,8 +1751,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   target만 public으로 바뀌었다. Core private mesh 82/29/30, non-normalization
   28/25/7, unchanged 48/203 DAG, exact 101/101, corrected focused 1,176/1,176,
   audit 217, pycompile 18/18, identity 11/11, full 2,143/2,143가 통과했다.
-- 다음은 production 변경 없는 post-implementation Phase 3 재감사다. 남은
-  owner/mutation/I/O/ledger 경계를 다시 분류하고 exact seam 하나만 선택하며,
+- 문서 checkpoint `5750e77`에서 reviewer gate와 curated fixture demo를 다시
+  실행해 각각 `review_surface_ready`, `fixture_contract_ready`, contract
+  `13/13`, task/artifact integrity `ok`, critic `accepted`를 확인했다. Fixture
+  검증은 checked-in curated example의 무결성 확인이며 live DART/model replay나
+  provenance 증명은 아니다.
+- **리팩터링은 중단 상태다.** Production 변경 없는 post-implementation Phase
+  3 재감사는 parked work이며 명시적으로 재개할 때만 첫 단계로 실행한다.
+  현재 active decision은 release/integration 경로이고,
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

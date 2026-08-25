@@ -15,11 +15,11 @@ Last updated: 2026-08-25
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `2892d1b` renamed only the exact 94-line runtime-trace resolver in place to public `financial_runtime_trace.resolve_runtime_calculation_trace(...)`, updated its direct consumers and test contracts, and retained the six local lazy-adapter wrapper names |
-| What passed? | Exact affected methods 101/101, corrected focused coverage 1,176/1,176, runtime audit 217, pycompile 18/18, fresh-import identity 11/11, unchanged 48-module/203-edge DAG, and full unittest 2,143/2,143 |
+| What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
+| What just changed? | A fresh local reviewer closeout on documentation checkpoint `5750e77` and production checkpoint `2892d1b` reconfirmed the fixture/demo surface, then explicitly paused further refactoring without changing production source or tests |
+| What passed? | `review_surface_ready`; demo `fixture_contract_ready`, manifest verified, 13/13 checks, task/artifact integrity `ok`, critic `accepted`; the same production checkpoint already passed full unittest 2,143/2,143 and runtime audit 217 |
 | Was the benchmark refreshed? | **NOT RUN**; this was a visibility-only rename with no policy, ingest, retrieval, trace precedence, state, ledger, or answer-behavior change |
-| What is next? | Run one docs-and-static-analysis-only post-implementation Phase 3 audit, recompute the remaining private mesh and four debt groups from `2892d1b`, then select exactly one next owner seam before another production change |
+| What is next? | Keep refactoring paused and decide the release/integration path for the long-lived local branch; no audit, source change, benchmark, live replay, push, or PR is authorized by a generic continuation request |
 
 ## Product Boundary
 
@@ -746,8 +746,8 @@ For topology rather than normative behavior, use
 | Report-cache promotion evidence | READY, serving disabled |
 | Promotion trace materiality gate | READY |
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
-| Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
-| Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
+| Demo fixture contract | PASS on `5750e77`: `fixture_contract_ready`, manifest verified, 13 / 13, integrity `ok`, critic `accepted`; live replay false |
+| Portfolio review surface | PASS on `5750e77`: `review_surface_ready`; publication validation remains `not_run` by that command |
 | Latest focused owner checkpoint | PASS, runtime-trace exact affected methods 101 / 101 and corrected focused coverage 1,176 / 1,176 |
 | Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace resolver public rename |
 | Reflection-promotion caller module | PASS, 15 / 15 |
@@ -785,6 +785,7 @@ material parser, ingest, store-signature, retrieval, or answer-contract change.
 | Latest benchmark evidence | Limited: refresh not run after the latest calculation changes |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
+| Release integration | Pending user decision; the long-lived local branch is materially ahead of its tracking ref, and no push, PR, merge, tag, or remote CI run is claimed |
 
 The durable Phase 3 debt is:
 
@@ -800,21 +801,41 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-Run one docs-and-static-analysis-only post-implementation Phase 3 audit. Use
-`2892d1b` as the production-source checkpoint, recompute the remaining
-top-level `src/agent/*.py` cross-module private import records, unique bindings,
-and importers, and re-evaluate the four durable debt groups and five Phase 3
-completion conditions. The implementation receipt is 82 / 29 / 30 total and
-28 / 25 / 7 outside shared normalization, but the audit must measure the
-checkout rather than copying those figures.
+**REFACTORING PAUSED.** Do not run the parked Phase 3 audit, select another
+owner seam, or change production source/tests from a generic request to
+continue. The current production checkpoint is `2892d1b`; the latest reviewer
+closeout ran on documentation checkpoint `5750e77` and changed no runtime code.
 
-Change no production source or tests during this audit. Separate intentional
-shared normalization from wrong-owner dependencies, then characterize exactly
-one next seam with its owner, callers, state/mutation and I/O boundary, import-
-DAG effect, deletion criteria, focused tests, hashes, and stop lines. Do not
-name-only export mutation, report-I/O, graph-state, wrong-direction pipeline,
-state-carrier, or task/artifact-ledger helpers. A later production change must
-be authorized by the resulting single documented seam.
+The active next decision is release/integration strategy for the long-lived
+local branch: preserve it as a local checkpoint, publish it as an explicit
+snapshot, or prepare a separately reviewed integration path. Push, PR, merge,
+history rewrite, tag, remote CI, live DART/provider replay, and benchmark work
+all require fresh user authorization. If refactoring is explicitly resumed
+later, first run the previously parked docs-and-static-analysis-only Phase 3
+audit against the then-current checkout; that audit may characterize one seam
+but must not itself change production source or tests.
+
+## Completed Reviewer Closeout And Refactoring Pause
+
+On 2026-08-25, the repository-local reviewer commands were rerun against
+documentation checkpoint `5750e77` and production checkpoint `2892d1b`.
+`src.ops.portfolio_review_gates` returned `review_surface_ready` with demo
+readiness `fixture_contract_ready`, verified fixture evidence, 13/13 contract
+checks, task/artifact integrity `ok`, and critic acceptance `accepted`. Cache
+reviewer handoff remained `ready` in `candidate_only` mode; cache promotion,
+reflection promotion, `REFERENCE_NOTE`, and promotion-trace materiality
+surfaces all returned `ready` without enabling their disabled runtime paths.
+
+`src.ops.portfolio_demo` independently returned `fixture_contract_ready`, a
+verified manifest binding, the expected 37.47% ratio projection, two tasks,
+four artifacts, zero integrity issues, critic acceptance, and 13/13 cross-
+surface checks. This is a checked-in curated contract fixture, not a live DART
+or provider replay; upstream artifacts remain `not_provided`, so the result
+establishes fixture integrity and reviewer-surface consistency only. The review
+gate itself reports publication validation, unit tests, and runtime audit as
+`not_run`; full 2,143/2,143 and audit 217 are separate results already executed
+for the unchanged production checkpoint. Benchmark refresh and remote CI remain
+**NOT RUN**.
 
 ## Completed Runtime Calculation Trace Resolver Public API
 
