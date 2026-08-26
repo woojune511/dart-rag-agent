@@ -5,9 +5,9 @@ from typing import Any
 from dotenv import load_dotenv
 
 from src.agent.financial_langchain_loaders import (
-    _chat_prompt_template_from_template,
-    _runnable_passthrough,
-    _str_output_parser,
+    chat_prompt_template_from_template,
+    runnable_passthrough,
+    str_output_parser,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class RAGAgent:
         else:
             self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
             
-        self.prompt = _chat_prompt_template_from_template(
+        self.prompt = chat_prompt_template_from_template(
             """You are an advanced AI research assistant. Synthesize a comprehensive and highly detailed answer based ONLY on the provided context chunks.
 When making claims, explicitly cite the source paper using the [Source: arxiv_id] provided in the context. 
 If the context contains conflicting information across papers, point it out.
@@ -72,10 +72,10 @@ Answer:"""
             return f"[MOCK LLM RESPONSE]\nRetrieved Context:\n{context_str}\n\n(To get a real AI generated answer, set GOOGLE_API_KEY environment variable)"
             
         chain = (
-            {"context": lambda x: context_str, "question": _runnable_passthrough()}
+            {"context": lambda x: context_str, "question": runnable_passthrough()}
             | self.prompt
             | self.llm
-            | _str_output_parser()
+            | str_output_parser()
         )
         
         return chain.invoke(question)

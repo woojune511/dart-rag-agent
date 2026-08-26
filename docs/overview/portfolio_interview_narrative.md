@@ -12,9 +12,11 @@ row, period, subtotal, unit, or provenance path.
 
 My approach separates LLM semantics from deterministic execution: the LLM helps
 with intent and planning, while code owns operand binding, arithmetic, unit
-handling, validation, and final rendering. The latest expanded structural
-store-fixed replay is `9 / 9` numeric PASS across six company runs, and the
-reviewer commands now report `ready`.
+handling, validation, and final rendering. The latest recorded structural
+store-fixed replay is `9 / 9` numeric PASS across six company runs; its raw
+artifacts are not published with the repository. Separately, local reviewer
+commands report `fixture_contract_ready` and `review_surface_ready` for their
+scoped fixture and review surfaces.
 
 ## 2-Minute Version
 
@@ -30,18 +32,23 @@ LLMs help with intent, concept interpretation, and planning, while code handles
 operand binding, arithmetic, unit handling, validation, and final acceptance
 gates.
 
-The system represents agent handoff as a typed artifact ledger:
+The system represents task and artifact handoff as a typed ledger:
 `tasks`, `artifacts`, `evidence_pool`, `critic_reports`, and
 `task_artifact_trace`. Numeric answers publish `answer_slots`,
 `structured_result`, and `resolved_calculation_trace`, so a reviewer can inspect
 which operands were used, where they came from, which formula ran, and whether
-the final answer followed the trace.
+the final answer followed the trace. These role-oriented nodes and state belong
+to the single-agent `FinancialAgent` graph; optional MAS orchestration is not the
+product claim.
 
-The strongest current evidence is narrow and trace-based. Reviewer gates are
-ready, and the latest expanded structural store-fixed refresh reached `9 / 9`
-numeric PASS. The most recent plain-retrieval comparison remains `5 / 9`; I use
-it as diagnostic evidence for display/unit, denominator, and row-binding
-failure modes rather than as a freshly synchronized leaderboard.
+The strongest recorded benchmark evidence is narrow and trace-based. The latest
+expanded structural store-fixed refresh reached `9 / 9` numeric PASS, but its
+raw artifacts are not published with the repository. The most recent
+plain-retrieval comparison remains `5 / 9`; I use it as diagnostic evidence for
+display/unit, denominator, and row-binding failure modes rather than as a
+freshly synchronized leaderboard. The local reviewer commands validate a
+separate curated fixture and optional review surfaces, not a live benchmark
+replay.
 
 Two final fixes are good examples of the method. `KBF_T2_018` had correct final
 text and evidence, but the public calculation projection could remain stale, so
@@ -58,12 +65,13 @@ wrong row, period, subtotal, unit, or source path. That is why the project
 treats answer quality as a runtime-contract problem, not just retrieval recall
 or final-text fluency.
 
-Then explain the architecture. The runtime keeps a typed ledger with `tasks`,
-`artifacts`, `evidence_pool`, `critic_reports`, and `task_artifact_trace`.
-Analyst-style numeric work produces operand sets, calculation plans, and
-calculation results. Researcher-style work handles narrative context. Critic
-reports provide target refs, acceptance reasons, and blocking issues. The final
-answer is a presentation layer over that state.
+Then explain the architecture. Inside the single-agent `FinancialAgent` graph,
+the runtime keeps a typed ledger with `tasks`, `artifacts`, `evidence_pool`,
+`critic_reports`, and `task_artifact_trace`. Analyst-style numeric work produces
+operand sets, calculation plans, and calculation results. Researcher-style work
+handles narrative context. Critic reports provide target refs, acceptance
+reasons, and blocking issues. The final answer is a presentation layer over
+that state.
 
 The key design boundary is LLM semantics versus deterministic execution. LLMs
 are useful for intent, concept interpretation, and plan support. Code owns
@@ -97,9 +105,13 @@ uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_d
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 ```
 
-All three were verified on the current `main`: domain-term audit passed,
-`portfolio_demo` reports `Readiness: ready`, and `portfolio_review_gates`
-reports aggregate `Status: ready`.
+The latest named local validation snapshot is recorded in
+[project_status.md](project_status.md). At that snapshot the domain-term audit
+passed, `portfolio_demo` reported `fixture_contract_ready`, and
+`portfolio_review_gates` reported `review_surface_ready`. The latter is not a
+publication gate: its output explicitly marks unit tests and the domain audit as
+`not_run`. The CI workflow is configured to execute those checks separately,
+but its definition is not evidence of a remote PASS.
 
 ## Problem Framing
 
@@ -131,11 +143,11 @@ help infer the intended concept or formula, but arithmetic, unit handling,
 dependency binding, dedupe, and validation are code paths with testable
 contracts.
 
-Third, agent behavior is ledger-based. Orchestrator, Analyst, Researcher, and
-Critic roles communicate through typed artifacts rather than free-form chat
-state. Reflection is bounded as `ReflectionRequest -> ReflectionPlan ->
-ReflectionAction -> ReflectionReport`; it is recorded as reviewer evidence, not
-treated as final-answer authority.
+Third, agent behavior inside the single-agent graph is ledger-based.
+Orchestrator-, Analyst-, Researcher-, and Critic-style roles communicate through
+typed artifacts rather than free-form chat state. Reflection is bounded as
+`ReflectionRequest -> ReflectionPlan -> ReflectionAction -> ReflectionReport`;
+it is recorded as reviewer evidence, not treated as final-answer authority.
 
 ## Experiment Claim
 
@@ -145,13 +157,13 @@ The main experiment claim is deliberately scoped:
 > operand/unit drift when relevant numeric evidence is available but can be
 > rebound or rendered at the wrong scale.
 
-Current expanded refresh:
+Latest recorded expanded refresh:
 
 | Run | Result | Interpretation |
 | --- | ---: | --- |
-| Structural full-system refresh | `9 / 9` numeric PASS | Current expanded structural quality claim. |
+| Structural full-system refresh | `9 / 9` numeric PASS | Latest recorded structural result; raw artifacts are not published with the repository. |
 | Plain retrieval comparison | `5 / 9` numeric PASS | Diagnostic baseline; not rerun after PR #78. |
-| Reproduced separators | `POS_T1_057`, `CEL_T1_013`, `SKH_T3_080` | Structural binding keeps key numeric surfaces that plain retrieval loses. |
+| Separators observed in the recorded comparison | `POS_T1_057`, `CEL_T1_013`, `SKH_T3_080` | Structural binding keeps key numeric surfaces that plain retrieval loses. |
 | Final residual closure | `KBF_T2_018`, `SKH_T1_060` | Stale projection and disjoint-source operand overwrite closed by generic contracts. |
 
 Historical hard structural replay:
@@ -164,8 +176,8 @@ Historical hard structural replay:
 The point is not that every question needs more structure or that a baseline was
 artificially weakened. The point is that financial RAG needs trace-preserving
 runtime contracts because answer-level text can hide operand and unit mistakes.
-The current expanded refresh also shows why I do not promote a result until the
-full-system variant itself clears the documented threshold.
+The latest recorded expanded refresh also shows why I do not promote a result
+until the full-system variant itself clears the documented threshold.
 
 If asked why structure matters after adding ontology and deterministic
 calculation, use historical `SKH_T1_060`: both variants had a deterministic formula and

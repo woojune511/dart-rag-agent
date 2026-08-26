@@ -14,7 +14,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _is_percent_point_difference_query(text: str) -> bool:
+def is_percent_point_difference_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
     policy = dict(PERCENT_POINT_DIFFERENCE_POLICY)
     direct_markers = tuple(str(item) for item in (policy.get("direct_markers") or ()) if str(item))
@@ -28,12 +28,12 @@ def _is_percent_point_difference_query(text: str) -> bool:
     return any(marker in normalized for marker in comparison_markers)
 
 
-def _is_ratio_percent_query(text: str) -> bool:
+def is_ratio_percent_query(text: str) -> bool:
     normalized = _normalise_spaces(text)
     return any(keyword in normalized for keyword in (RATIO_PERCENT_QUERY_POLICY.get("markers") or ()))
 
 
-def _query_requests_narrative_context(query: str) -> bool:
+def query_requests_narrative_context(query: str) -> bool:
     normalized = _normalise_spaces(str(query or "")).lower()
     if not normalized:
         return False
@@ -41,7 +41,7 @@ def _query_requests_narrative_context(query: str) -> bool:
     return any(token in normalized for token in narrative_hints)
 
 
-def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
+def is_single_metric_period_comparison(query: str, operand_labels: List[str]) -> bool:
     text = _normalise_spaces(query)
     period_policy = dict(GENERIC_PERIOD_OPERAND_POLICY)
     comparison_markers = tuple(str(item) for item in (period_policy.get("comparison_markers") or ()) if str(item))
@@ -54,7 +54,7 @@ def _is_single_metric_period_comparison(query: str, operand_labels: List[str]) -
     return False
 
 
-def _label_implies_percent_metric(label: str) -> bool:
+def label_implies_percent_metric(label: str) -> bool:
     normalized = _normalise_spaces(str(label or ""))
     if not normalized:
         return False
@@ -64,7 +64,7 @@ def _label_implies_percent_metric(label: str) -> bool:
     )
 
 
-def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
+def requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
     task = dict(active_subtask or {})
     operation_family = str(task.get("operation_family") or "").strip().lower()
     if operation_family in {"lookup", "single_value"}:
@@ -103,15 +103,15 @@ def _requires_direct_numeric_grounding(active_subtask: Dict[str, Any]) -> bool:
         return True
 
     operand_labels = [str(item.get("label") or "").strip() for item in required_operands if str(item.get("label") or "").strip()]
-    return _is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
+    return is_single_metric_period_comparison(str(task.get("query") or ""), operand_labels)
 
 
-def _should_coerce_percent_point_unit(
+def should_coerce_percent_point_unit(
     query: str,
     operands: List[Dict[str, Any]],
     plan_data: Dict[str, Any],
 ) -> bool:
-    if not _is_percent_point_difference_query(query):
+    if not is_percent_point_difference_query(query):
         return False
     if str(plan_data.get("mode") or "") != "single_value":
         return False

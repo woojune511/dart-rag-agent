@@ -18,10 +18,6 @@ class AnalystCoreRunner(Protocol):
         ...
 
 
-def _trace(message: str) -> List[str]:
-    return [message]
-
-
 def _iter_analyst_tasks(state: MultiAgentState) -> Iterable[tuple[str, AgentTask]]:
     tasks = state.get("tasks", {}) or {}
     for task_id, task in tasks.items():
@@ -49,7 +45,7 @@ def _is_document_like(value: Any) -> bool:
 
 
 def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 

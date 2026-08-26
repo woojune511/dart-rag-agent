@@ -1,19 +1,1159 @@
-"""Dependency-projection helpers for aggregate calculation repair."""
+"""Deterministic dependency operand resolution and projection helpers."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import re
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
-from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
+from src.agent import financial_answer_slots
+from src.agent.financial_lookup_recovery import synthesize_lookup_answer_slot_from_prose
+from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_operand_resolution import (
+    merge_operand_rows,
+    missing_required_operands,
+    operand_row_conflicts_requested_scope,
+    operand_row_display_unit_set,
+    operand_row_matches_requirement,
+    operand_rows_conflict_by_required_role,
+    operand_rows_have_single_table_context,
+    period_comparison_operand_rows_collapse_to_same_slot,
+    ratio_operand_rows_collapse_to_same_slot,
+    operand_row_source_ids,
+    operand_row_values_differ,
+    operand_row_values_materially_conflict,
+    select_sibling_direct_operand_candidate,
+)
+from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
     _normalise_spaces,
 )
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.agent.financial_scope_policies import (
+    known_consolidation_scope_value,
+    operand_period_focus,
+)
+from src.config.retrieval_policy import (
+    CALCULATION_RENDER_POLICY,
+    OPERAND_CANDIDATE_SCORING_POLICY,
+    RECONCILIATION_POLICY,
+)
+
+
+OperandSourcePrecedence = Literal[
+    "no_dependency",
+    "direct_first",
+    "dependency_first",
+]
+
+LateDependencyRemergeReason = Literal[
+    "dependency_remerged",
+    "no_dependency_rows",
+    "direct_precedence",
+    "complete_direct_context",
+]
+
+LateOperandFinalizationReason = Literal[
+    "normalized_unit_filtered",
+    "operand_rows_retained",
+    "structured_rows_preserved",
+    "dependency_rows_preserved",
+    "no_operand_rows",
+]
+
+OperandPreservationSource = Literal[
+    "",
+    "structured_rows",
+    "dependency_outputs",
+]
+
+DependencyRecalculationPlanDisposition = Literal[
+    "rebuild",
+    "reuse",
+    "unsupported_mode",
+]
+
+DependencyRecalculationCandidateProjectionReason = Literal[
+    "candidate_ready",
+    "calculation_result_not_ok",
+]
+
+DependencyStructuredProvenanceAdoptionReason = Literal[
+    "structured_unit_realigned",
+    "source_visible_converted_unit_preserved",
+    "structured_unit_unchanged",
+]
+
+RatioArtifactConflictSelectionReason = Literal[
+    "conflicting_artifact_selected",
+    "no_conflicting_artifact",
+]
+
+
+@dataclass(frozen=True)
+class RatioArtifactConflictSelectionInput:
+    """Prepared rows and numeric authority for ratio artifact precedence."""
+
+    artifact_rows: List[Dict[str, Any]]
+    recalculated_value: float
+
+
+@dataclass(frozen=True)
+class RatioArtifactConflictSelectionResult:
+    """Inspectable first-conflict selection without graph or ledger state."""
+
+    selected_artifact_row: Dict[str, Any]
+    conflict_selected: bool
+    reason: RatioArtifactConflictSelectionReason
+
+
+@dataclass(frozen=True)
+class DependencyRatioResultProjectionInput:
+    """Prepared dependency-source ratio fields for result projection."""
+
+    calculation_result: Mapping[str, Any]
+    answer_slots: Mapping[str, Any]
+    metric_label: str
+    numerator_slot: Mapping[str, Any]
+    denominator_slot: Mapping[str, Any]
+    result_value: float
+    result_unit: str
+    normalized_unit: str
+    rendered_value: str
+    source_row_ids: List[str]
+
+
+@dataclass(frozen=True)
+class DependencyRatioResultProjectionResult:
+    """Fresh calculation result projected from prepared dependency ratio fields."""
+
+    calculation_result: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class DependencyStructuredProvenanceAdoptionInput:
+    """Graph-built mutable dependency row and resolved structured provenance."""
+
+    dependency_row: Dict[str, Any]
+    structured_provenance: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class DependencyStructuredProvenanceAdoptionResult:
+    """In-place provenance adoption with an inspectable unit disposition."""
+
+    dependency_row: Dict[str, Any]
+    unit_realignment_applied: bool
+    reason: DependencyStructuredProvenanceAdoptionReason
+
+
+@dataclass(frozen=True)
+class DependencyRecalculationCandidateProjectionInput:
+    """Graph-prepared candidate fields without the graph-private wrapper type."""
+
+    calculation_operands: Sequence[Mapping[str, Any]]
+    calculation_plan: Mapping[str, Any]
+    calculation_result: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class DependencyRecalculationCandidateProjectionResult:
+    """Copied candidate trace and mutable result plus status disposition."""
+
+    recalculated_trace: Dict[str, Any]
+    recalculated_result: Dict[str, Any]
+    candidate_ready: bool
+    reason: DependencyRecalculationCandidateProjectionReason
+
+
+@dataclass(frozen=True)
+class DependencyRecalculatedRowFinalizationInput:
+    """Prepared values for final dependency recalculation row projection."""
+
+    current_row: Mapping[str, Any]
+    recalculated_trace: Mapping[str, Any]
+    updated_operands: Sequence[Mapping[str, Any]]
+    fallback_calculation_plan: Mapping[str, Any]
+    recalculated_result: Dict[str, Any]
+    formatted_answer: str
+
+
+@dataclass(frozen=True)
+class DependencyRecalculatedRowFinalizationResult:
+    """Final shallow-copied row with recalculation provenance."""
+
+    selected_row: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class DirectDependencySelectionInput:
+    """State-free inputs for direct versus dependency source precedence."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    direct_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    desired_consolidation_scope: str
+    reconciliation_evidence_present: bool
+    direct_rows_cover_required_operands: bool
+    dependency_rows_cover_required_operands: bool
+    direct_rows_have_coherent_context: bool
+    retrieved_ratio_context_recovered: bool
+    ratio_direct_context_should_override_dependency: bool
+    required_prefers_aggregate_stage: bool
+
+
+@dataclass(frozen=True)
+class DirectDependencySelection:
+    """Inspectable source-set precedence and merged operand rows."""
+
+    operand_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    precedence: OperandSourcePrecedence
+    dependency_merge_applied: bool
+    prefer_direct_rows_over_dependency: bool
+    direct_period_context_conflict: bool
+    period_dependency_blocks_direct_context: bool
+
+
+@dataclass(frozen=True)
+class MainOperandPrecedenceInput:
+    """State-free inputs for the graph's main dependency precedence pass."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    direct_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    dependency_bindings: List[Dict[str, Any]]
+    dependency_binding_keys: set[Tuple[str, str]]
+    dependency_resolved_keys: set[Tuple[str, str]]
+    missing_dependency_bindings: List[Dict[str, Any]]
+    producer_tasks: List[Dict[str, Any]]
+    desired_consolidation_scope: str
+    reconciliation_evidence_present: bool
+    retrieved_ratio_context_recovered: bool
+
+
+@dataclass(frozen=True)
+class MainOperandPrecedenceResult:
+    """Typed result of the graph's main dependency precedence pass."""
+
+    selected_operand_rows: List[Dict[str, Any]]
+    source_selection: DirectDependencySelection
+    active_dependency_rows: List[Dict[str, Any]]
+    active_dependency_bindings: List[Dict[str, Any]]
+    dependency_binding_keys: set[Tuple[str, str]]
+    dependency_resolved_keys: set[Tuple[str, str]]
+    missing_dependency_bindings: List[Dict[str, Any]]
+    rejected_dependency_scope_rows: List[Dict[str, Any]]
+    required_prefers_aggregate_stage: bool
+    ratio_direct_context_should_override_dependency: bool
+    ratio_direct_context_override_applied: bool
+    direct_dependency_fill_allowed: bool
+
+
+@dataclass(frozen=True)
+class LateDependencyRemergeInput:
+    """State-free inputs for the graph's late dependency re-merge pass."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    operand_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    sibling_context_rows: List[Dict[str, Any]]
+    coherent_context_rows: List[Dict[str, Any]]
+    prefer_direct_rows_over_dependency: bool
+    required_prefers_aggregate_stage: bool
+
+
+@dataclass(frozen=True)
+class LateDependencyRemergeResult:
+    """Inspectable result of the graph's late dependency re-merge pass."""
+
+    operand_rows: List[Dict[str, Any]]
+    active_direct_context_rows: List[Dict[str, Any]]
+    complete_direct_context_blocks_dependency_remerge: bool
+    dependency_remerge_applied: bool
+    dependency_remerge_reason: LateDependencyRemergeReason
+
+
+@dataclass(frozen=True)
+class LateOperandFinalizationInput:
+    """State-free inputs for filtered late operand preservation."""
+
+    operand_rows: List[Dict[str, Any]]
+    direct_structured_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    required_normalized_unit: Optional[str]
+
+
+@dataclass(frozen=True)
+class LateOperandFinalizationResult:
+    """Inspectable result of filtered late operand preservation."""
+
+    operand_rows: List[Dict[str, Any]]
+    operand_filter_applied: bool
+    preserved_operand_source: OperandPreservationSource
+    finalization_reason: LateOperandFinalizationReason
+
+
+OperandResolutionAction = Literal["keep_current", "use_candidate"]
+OperandResolutionContext = Literal["default", "complete_period", "coherent_ratio"]
+OperandResolutionReason = Literal[
+    "current_not_dependency_resolved",
+    "current_missing_source_task",
+    "equivalent_value",
+    "within_material_tolerance",
+    "unit_repair_candidate",
+    "no_provenance_conflict",
+    "candidate_stage_not_preferred",
+    "shared_source",
+    "complete_period_context_override",
+    "coherent_ratio_same_table_override",
+    "coherent_ratio_scale_override",
+    "provenance_conflict",
+]
+
+
+@dataclass(frozen=True)
+class OperandResolutionDecision:
+    """Inspectable decision for task-output versus direct-row value precedence."""
+
+    action: OperandResolutionAction
+    reason: OperandResolutionReason
+    current_source_ids: Tuple[str, ...]
+    candidate_source_ids: Tuple[str, ...]
+    values_differ: bool
+    materially_conflicting: bool
+    anchor_conflict: bool
+    scope_conflict: bool
+
+    @property
+    def keep_current_value(self) -> bool:
+        return self.action == "keep_current"
+
+
+@dataclass(frozen=True)
+class DependencyProducerScope:
+    """Producer task and provenance scope resolved for one dependency binding."""
+
+    producer_task: Dict[str, Any]
+    preferred_statement_types: Tuple[str, ...]
+    preferred_sections: Tuple[str, ...]
+
+
+def dependency_slot_matches_input(
+    binding: Dict[str, Any],
+    slot: Dict[str, Any],
+    *,
+    sibling_row: Dict[str, Any],
+    state: Optional[FinancialAgentState] = None,
+) -> bool:
+    binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+    slot_concept = _normalise_spaces(str(slot.get("concept") or ""))
+    if binding_concept and slot_concept and binding_concept != slot_concept:
+        return False
+
+    binding_period = _normalise_spaces(str(binding.get("period") or ""))
+    slot_period = _normalise_spaces(str(slot.get("period") or ""))
+    if binding_period and slot_period and binding_period != slot_period:
+        binding_focus = operand_period_focus(
+            {
+                "period_hint": binding_period,
+                "role": binding.get("role") or "",
+            },
+            "unknown",
+        )
+        if binding_focus not in {"current", "prior"}:
+            return False
+        report_scope = dict((state or {}).get("report_scope") or {})
+        report_year: Optional[int] = None
+        try:
+            if report_scope.get("year") not in (None, ""):
+                report_year = int(report_scope.get("year"))
+        except (TypeError, ValueError):
+            report_year = None
+        slot_years = [int(match) for match in re.findall(r"20\d{2}", slot_period)]
+        if report_year is not None and slot_years:
+            if binding_focus == "current" and report_year not in slot_years:
+                return False
+            if binding_focus == "prior" and (report_year - 1) not in slot_years:
+                return False
+        elif operand_period_focus({"period_hint": slot_period}, "unknown") != binding_focus:
+            return False
+
+    binding_label = _normalise_spaces(str(binding.get("label") or ""))
+    slot_label = _normalise_spaces(str(slot.get("label") or ""))
+    sibling_label = _normalise_spaces(str(sibling_row.get("metric_label") or ""))
+    if binding_label and slot_label and binding_label != slot_label:
+        if binding_label not in slot_label and binding_label not in sibling_label:
+            return False
+
+    binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
+    if binding_segment:
+        label_text = " ".join(
+            part
+            for part in [
+                slot_label.lower(),
+                sibling_label.lower(),
+            ]
+            if part
+        )
+        if binding_segment.lower() not in label_text:
+            return False
+
+    return True
+
+
+def active_subtask_with_sibling_lookup_surfaces(
+    active_subtask: Dict[str, Any],
+    state: FinancialAgentState,
+) -> Dict[str, Any]:
+    enriched = dict(active_subtask or {})
+    active_task_id = str(enriched.get("task_id") or "").strip()
+    surfaces = [
+        str(item).strip()
+        for item in (enriched.get("sibling_lookup_surfaces") or [])
+        if str(item).strip()
+    ]
+    for task in list(state.get("calc_subtasks") or []):
+        current = dict(task or {})
+        task_id = str(current.get("task_id") or "").strip()
+        if active_task_id and task_id == active_task_id:
+            continue
+        operation_family = str(current.get("operation_family") or "").strip().lower()
+        metric_family = str(current.get("metric_family") or "").strip().lower()
+        if operation_family not in {"lookup", "single_value"} and metric_family not in {
+            "concept_lookup",
+            "concept_single_value",
+        }:
+            continue
+        period_prefix_pattern = str(RECONCILIATION_POLICY.get("lookup_surface_period_prefix_pattern") or "")
+        metric_label = (
+            re.sub(period_prefix_pattern, "", str(current.get("metric_label") or "").strip())
+            if period_prefix_pattern
+            else str(current.get("metric_label") or "").strip()
+        )
+        if metric_label:
+            surfaces.append(metric_label)
+        for operand in list(current.get("required_operands") or []):
+            operand_data = dict(operand or {})
+            label = (
+                re.sub(period_prefix_pattern, "", str(operand_data.get("label") or "").strip())
+                if period_prefix_pattern
+                else str(operand_data.get("label") or "").strip()
+            )
+            if label:
+                surfaces.append(label)
+            surfaces.extend(
+                str(alias).strip()
+                for alias in list(operand_data.get("aliases") or [])
+                if str(alias).strip()
+            )
+    enriched["sibling_lookup_surfaces"] = list(dict.fromkeys(surface for surface in surfaces if surface))
+    return enriched
+
+
+def dependency_resolved_reconciliation_result(
+    *,
+    active_subtask: Dict[str, Any],
+    dependency_state: Dict[str, Any],
+) -> Dict[str, Any]:
+    matched_operands: List[Dict[str, Any]] = []
+    for binding in list(dependency_state.get("bindings") or []):
+        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+        matched_operands.append(
+            {
+                "label": _normalise_spaces(str(binding.get("label") or "")),
+                "role": _normalise_spaces(str(binding.get("role") or "")),
+                "concept": _normalise_spaces(str(binding.get("concept") or "")),
+                "matched": True,
+                "candidate_ids": [f"task_output:{preferred_task_id}"] if preferred_task_id else [],
+                "reason": "resolved_from_task_outputs",
+            }
+        )
+    return {
+        "status": "ready",
+        "task_id": str(active_subtask.get("task_id") or ""),
+        "matched_operands": matched_operands,
+        "missing_operands": [],
+        "retry_queries": [],
+        "notes": ["dependency_task_outputs_ready"],
+        "retry_strategy": "",
+    }
+
+
+def task_prefers_sibling_output_synthesis(state: FinancialAgentState) -> bool:
+    active_subtask = dict(state.get("active_subtask") or {})
+    operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+    if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+        return False
+    for binding in (active_subtask.get("inputs") or []):
+        binding_data = dict(binding)
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding_data.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        if "task_output" in source_preference and _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+            return True
+    return False
+
+
+def task_output_input_bindings(state: FinancialAgentState) -> List[Dict[str, Any]]:
+    active_subtask = dict(state.get("active_subtask") or {})
+    bindings: List[Dict[str, Any]] = []
+    for binding in (active_subtask.get("inputs") or []):
+        binding_data = dict(binding)
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding_data.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        if "task_output" not in source_preference:
+            continue
+        if not _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+            continue
+        bindings.append(binding_data)
+    return bindings
+
+
+def build_dependency_ratio_result_projection(
+    projection_input: DependencyRatioResultProjectionInput,
+) -> DependencyRatioResultProjectionResult:
+    """Project one dependency-source ratio result without graph state."""
+
+    source_row_ids = projection_input.source_row_ids
+    numerator_slot = projection_input.numerator_slot
+    denominator_slot = projection_input.denominator_slot
+    return DependencyRatioResultProjectionResult(
+        calculation_result={
+            **projection_input.calculation_result,
+            "status": "ok",
+            "operation_family": "ratio",
+            "result_value": projection_input.result_value,
+            "result_unit": projection_input.result_unit,
+            "rendered_value": projection_input.rendered_value,
+            "formatted_result": "",
+            "source_row_ids": source_row_ids,
+            "source_evidence_ids": source_row_ids,
+            "answer_slots": {
+                **projection_input.answer_slots,
+                "metric_label": projection_input.metric_label,
+                "operation_family": "ratio",
+                "source_row_ids": source_row_ids,
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": projection_input.metric_label,
+                    "concept": "",
+                    "period": "",
+                    "raw_value": projection_input.rendered_value,
+                    "raw_unit": projection_input.result_unit,
+                    "normalized_value": projection_input.result_value,
+                    "normalized_unit": projection_input.normalized_unit,
+                    "rendered_value": projection_input.rendered_value,
+                    "source_row_id": source_row_ids[0] if source_row_ids else "",
+                    "source_row_ids": source_row_ids,
+                    "source_anchor": "",
+                },
+                "components_by_group": {
+                    "numerator": [numerator_slot],
+                    "denominator": [denominator_slot],
+                },
+                "components_by_role": {
+                    "numerator_1": [numerator_slot],
+                    "denominator_1": [denominator_slot],
+                },
+            },
+        }
+    )
+
+
+def infer_dependency_row_unit(
+    slot: Mapping[str, Any],
+    sibling_result: Mapping[str, Any],
+) -> tuple[str, str]:
+    raw_unit = _normalise_spaces(
+        str(
+            slot.get("raw_unit")
+            or sibling_result.get("result_unit")
+            or ""
+        )
+    )
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "UNKNOWN")).upper() or "UNKNOWN"
+    if normalized_unit == "UNKNOWN":
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        if raw_unit in set(render_policy.get("percent_display_units") or ()):
+            normalized_unit = "PERCENT"
+        elif raw_unit in set(render_policy.get("krw_display_units") or ()):
+            normalized_unit = str(render_policy.get("krw_normalized_unit") or "KRW").upper()
+        elif raw_unit in set(render_policy.get("count_display_units") or ()):
+            normalized_unit = "COUNT"
+    return raw_unit, normalized_unit
+
+
+def dependency_binding_identity(binding: Dict[str, Any]) -> Tuple[str, str]:
+    return (
+        _normalise_spaces(str(binding.get("label") or "")),
+        _normalise_spaces(str(binding.get("role") or "")),
+    )
+
+
+def summarize_dependency_bindings(
+    bindings: List[Dict[str, Any]],
+    rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Summarize dependency coverage without mutating the source lists."""
+
+    binding_keys = {
+        dependency_binding_identity(binding)
+        for binding in bindings
+        if any(dependency_binding_identity(binding))
+    }
+    resolved_keys = {
+        (
+            _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+            _normalise_spaces(str(row.get("matched_operand_role") or "")),
+        )
+        for row in rows
+    }
+    missing_bindings = [
+        dict(binding)
+        for binding in bindings
+        if dependency_binding_identity(binding) not in resolved_keys
+    ]
+    resolved_binding_count = max(len(bindings) - len(missing_bindings), 0)
+    return {
+        "bindings": bindings,
+        "rows": rows,
+        "binding_keys": binding_keys,
+        "resolved_keys": resolved_keys,
+        "missing_bindings": missing_bindings,
+        "binding_count": len(bindings),
+        "resolved_binding_count": resolved_binding_count,
+        "has_bindings": bool(bindings),
+        "has_rows": bool(rows),
+        "all_resolved": bool(bindings) and not missing_bindings and bool(rows),
+    }
+
+
+def direct_rows_resolved_dependency_keys(
+    bindings: List[Dict[str, Any]],
+    operand_rows: List[Dict[str, Any]],
+) -> set[Tuple[str, str]]:
+    resolved_keys: set[Tuple[str, str]] = set()
+    for binding in bindings:
+        binding_key = dependency_binding_identity(binding)
+        if not any(binding_key):
+            continue
+        if any(
+            operand_row_matches_requirement(row, binding)
+            for row in (operand_rows or [])
+        ):
+            resolved_keys.add(binding_key)
+    return resolved_keys
+
+
+def _complete_period_context_can_use_candidate(
+    current: Dict[str, Any],
+    candidate: Dict[str, Any],
+) -> bool:
+    current_source_ids = operand_row_source_ids(current)
+    if not any(source_id.startswith("task_output:") for source_id in current_source_ids):
+        return False
+    candidate_source_ids = operand_row_source_ids(candidate)
+    if not any(
+        source_id and not source_id.startswith("task_output:")
+        for source_id in candidate_source_ids
+    ):
+        candidate_source_id = _normalise_spaces(str(candidate.get("source_row_id") or ""))
+        if not candidate_source_id or candidate_source_id.startswith("task_output:"):
+            return False
+    current_unit = _normalise_spaces(str(current.get("normalized_unit") or "")).upper()
+    candidate_unit = _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper()
+    if not current_unit or current_unit == "UNKNOWN" or current_unit != candidate_unit:
+        return False
+    repair_source = _normalise_spaces(str(current.get("unit_normalization_repair_source") or ""))
+    if repair_source == "alternate_table_krw_surface":
+        return True
+    try:
+        current_value = abs(float(current.get("normalized_value")))
+        candidate_value = abs(float(candidate.get("normalized_value")))
+    except (TypeError, ValueError):
+        return False
+    if min(current_value, candidate_value) <= 0:
+        return False
+    return max(current_value, candidate_value) / min(current_value, candidate_value) >= 100.0
+
+
+def _coherent_ratio_context_override_reason(
+    current: Dict[str, Any],
+    candidate: Dict[str, Any],
+) -> Optional[OperandResolutionReason]:
+    current_source_ids = operand_row_source_ids(current)
+    if not (
+        current.get("dependency_resolved")
+        or _normalise_spaces(str(current.get("source_task_id") or ""))
+        or any(source_id.startswith("task_output:") for source_id in current_source_ids)
+    ):
+        return None
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
+    if _normalise_spaces(str(current.get("normalized_unit") or "")).upper() != krw_unit:
+        return None
+    if _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper() != krw_unit:
+        return None
+    current_table_id = _normalise_spaces(str(current.get("table_source_id") or ""))
+    candidate_table_id = _normalise_spaces(str(candidate.get("table_source_id") or ""))
+    if current_table_id and current_table_id == candidate_table_id:
+        candidate_source_ids = operand_row_source_ids(candidate)
+        candidate_has_direct_source = any(
+            source_id and not source_id.startswith("task_output:")
+            for source_id in candidate_source_ids
+        )
+        if candidate_has_direct_source and any(
+            source_id.startswith("task_output:") for source_id in current_source_ids
+        ):
+            return "coherent_ratio_same_table_override"
+    current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
+    candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
+    if not current_unit or not candidate_unit or current_unit == candidate_unit:
+        return None
+    krw_unit_scales = {
+        _normalise_spaces(str(unit or "")): float(scale)
+        for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+        if _normalise_spaces(str(unit or ""))
+    }
+    current_scale = krw_unit_scales.get(current_unit)
+    candidate_scale = krw_unit_scales.get(candidate_unit)
+    if not current_scale or not candidate_scale:
+        return None
+    scale_distortion = max(current_scale, candidate_scale) / min(current_scale, candidate_scale)
+    if scale_distortion < 100.0:
+        return None
+    current_raw = re.sub(r"[,\s()]", "", str(current.get("raw_value") or ""))
+    candidate_raw = re.sub(r"[,\s()]", "", str(candidate.get("raw_value") or ""))
+    if current_raw and candidate_raw and current_raw == candidate_raw:
+        return "coherent_ratio_scale_override"
+    try:
+        current_value = abs(float(current.get("normalized_value")))
+        candidate_value = abs(float(candidate.get("normalized_value")))
+    except (TypeError, ValueError):
+        return None
+    if min(current_value, candidate_value) <= 0:
+        return None
+    value_distortion = max(current_value, candidate_value) / min(current_value, candidate_value)
+    if value_distortion >= scale_distortion * 0.95:
+        return "coherent_ratio_scale_override"
+    return None
+
+
+def decide_task_output_operand_resolution(
+    current: Dict[str, Any],
+    candidate: Dict[str, Any],
+    *,
+    context: OperandResolutionContext = "default",
+) -> OperandResolutionDecision:
+    """Choose value precedence without mutating either operand row."""
+
+    current_source_ids = operand_row_source_ids(current)
+    candidate_source_ids = operand_row_source_ids(candidate)
+    values_differ = operand_row_values_differ(current, candidate)
+    materially_conflicting = values_differ and operand_row_values_materially_conflict(current, candidate)
+    current_anchor = _normalise_spaces(str(current.get("source_anchor") or ""))
+    candidate_anchor = _normalise_spaces(str(candidate.get("source_anchor") or ""))
+    anchor_conflict = bool(
+        current_anchor
+        and candidate_anchor
+        and current_anchor != candidate_anchor
+    )
+    current_scope = known_consolidation_scope_value(current.get("consolidation_scope"))
+    candidate_scope = known_consolidation_scope_value(candidate.get("consolidation_scope"))
+    scope_conflict = bool(current_scope and candidate_scope and current_scope != candidate_scope)
+
+    def _decision(
+        action: OperandResolutionAction,
+        reason: OperandResolutionReason,
+    ) -> OperandResolutionDecision:
+        return OperandResolutionDecision(
+            action=action,
+            reason=reason,
+            current_source_ids=tuple(sorted(current_source_ids)),
+            candidate_source_ids=tuple(sorted(candidate_source_ids)),
+            values_differ=values_differ,
+            materially_conflicting=materially_conflicting,
+            anchor_conflict=anchor_conflict,
+            scope_conflict=scope_conflict,
+        )
+
+    if context == "complete_period" and _complete_period_context_can_use_candidate(current, candidate):
+        return _decision("use_candidate", "complete_period_context_override")
+    if context == "coherent_ratio":
+        override_reason = _coherent_ratio_context_override_reason(current, candidate)
+        if override_reason:
+            return _decision("use_candidate", override_reason)
+
+    if not current.get("dependency_resolved"):
+        return _decision("use_candidate", "current_not_dependency_resolved")
+    if not _normalise_spaces(str(current.get("source_task_id") or "")):
+        return _decision("use_candidate", "current_missing_source_task")
+    if not values_differ:
+        return _decision("use_candidate", "equivalent_value")
+    if not materially_conflicting:
+        return _decision("use_candidate", "within_material_tolerance")
+
+    repair_source = _normalise_spaces(str(current.get("unit_normalization_repair_source") or ""))
+    source_raw_unit = _normalise_spaces(str(current.get("source_raw_unit") or ""))
+    candidate_raw_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
+    if repair_source == "alternate_table_krw_surface" and not source_raw_unit and candidate_raw_unit:
+        return _decision("use_candidate", "unit_repair_candidate")
+
+    task_output_backed = any(source_id.startswith("task_output:") for source_id in current_source_ids)
+    if not (task_output_backed or anchor_conflict or scope_conflict):
+        return _decision("use_candidate", "no_provenance_conflict")
+
+    binding_policy = dict(current.get("binding_policy") or {})
+    preferred_stages = {
+        _normalise_spaces(str(item))
+        for item in (binding_policy.get("prefer_aggregation_stages") or [])
+        if _normalise_spaces(str(item))
+    }
+    if preferred_stages:
+        candidate_stage = _normalise_spaces(str(candidate.get("aggregation_stage") or ""))
+        if candidate_stage not in preferred_stages:
+            return _decision("keep_current", "candidate_stage_not_preferred")
+    if current_source_ids.intersection(candidate_source_ids) and not (anchor_conflict or scope_conflict):
+        return _decision("use_candidate", "shared_source")
+    return _decision("keep_current", "provenance_conflict")
+
+
+def period_comparison_direct_rows_conflict_with_dependency_outputs(
+    dependency_rows: List[Dict[str, Any]],
+    direct_rows: List[Dict[str, Any]],
+) -> bool:
+    """Return whether protected dependency values block direct period rows."""
+
+    if not dependency_rows or not direct_rows:
+        return False
+    period_roles = {"current_period", "prior_period", "minuend", "subtrahend"}
+
+    def _role(row: Dict[str, Any]) -> str:
+        return _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+
+    direct_by_role: Dict[str, List[Dict[str, Any]]] = {}
+    context_period_roles: Dict[str, set[str]] = {}
+    for row in direct_rows:
+        role = _role(row)
+        if role in period_roles:
+            direct_by_role.setdefault(role, []).append(dict(row))
+            table_id = _normalise_spaces(str(row.get("table_source_id") or ""))
+            if table_id:
+                context_period_roles.setdefault(table_id, set()).add(role)
+    if not direct_by_role:
+        return False
+
+    for dependency_row in dependency_rows:
+        role = _role(dependency_row)
+        if role not in period_roles:
+            continue
+        for direct_row in direct_by_role.get(role, []):
+            table_id = _normalise_spaces(str(direct_row.get("table_source_id") or ""))
+            if decide_task_output_operand_resolution(
+                dependency_row,
+                direct_row,
+                context=(
+                    "complete_period"
+                    if table_id and len(context_period_roles.get(table_id, set())) >= 2
+                    else "default"
+                ),
+            ).keep_current_value:
+                return True
+    return False
+
+
+def align_dependency_rows_with_sibling_direct_context(
+    dependency_rows: List[Dict[str, Any]],
+    direct_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Align dependency rows only to a coherent sibling direct-row context."""
+
+    if not dependency_rows or len(direct_rows) < 2:
+        return dependency_rows
+
+    aligned: List[Dict[str, Any]] = []
+    changed = False
+    for dependency_row in dependency_rows:
+        candidate_selection = select_sibling_direct_operand_candidate(
+            dependency_row,
+            direct_rows,
+        )
+        candidate = candidate_selection.selected_row
+        if candidate is None:
+            if candidate_selection.reason == "ambiguous_conflicting_top_rank":
+                aligned.append(
+                    {
+                        **dependency_row,
+                        "sibling_table_context_realignment_blocked": True,
+                        "sibling_table_context_realignment_blocked_reason": (
+                            "ambiguous_direct_context_candidates"
+                        ),
+                    }
+                )
+                changed = True
+                continue
+            aligned.append(dependency_row)
+            continue
+        if not operand_row_values_differ(dependency_row, candidate):
+            aligned.append(dependency_row)
+            continue
+        if decide_task_output_operand_resolution(
+            dependency_row,
+            candidate,
+            context="coherent_ratio",
+        ).keep_current_value:
+            aligned.append(
+                {
+                    **dependency_row,
+                    "sibling_table_context_realignment_blocked": True,
+                    "sibling_table_context_realignment_blocked_reason": "task_output_value_provenance_mismatch",
+                    "sibling_direct_candidate_selection_reason": candidate_selection.reason,
+                }
+            )
+            changed = True
+            continue
+        aligned.append(
+            {
+                **dependency_row,
+                "evidence_id": candidate.get("evidence_id") or dependency_row.get("evidence_id"),
+                "source_row_id": (
+                    candidate.get("source_row_id")
+                    or candidate.get("evidence_id")
+                    or dependency_row.get("source_row_id")
+                ),
+                "source_row_ids": _clean_source_row_ids(
+                    [
+                        candidate.get("source_row_id"),
+                        candidate.get("source_row_ids"),
+                    ]
+                ),
+                "source_anchor": candidate.get("source_anchor") or dependency_row.get("source_anchor"),
+                "label": candidate.get("label") or dependency_row.get("label"),
+                "raw_value": candidate.get("raw_value"),
+                "raw_unit": candidate.get("raw_unit"),
+                "normalized_value": candidate.get("normalized_value"),
+                "normalized_unit": candidate.get("normalized_unit"),
+                "period": candidate.get("period") or dependency_row.get("period"),
+                "statement_type": candidate.get("statement_type") or dependency_row.get("statement_type"),
+                "consolidation_scope": (
+                    candidate.get("consolidation_scope")
+                    or dependency_row.get("consolidation_scope")
+                ),
+                "table_source_id": candidate.get("table_source_id") or dependency_row.get("table_source_id"),
+                "sibling_table_context_realigned": True,
+                "sibling_direct_candidate_selection_reason": candidate_selection.reason,
+            }
+        )
+        changed = True
+    return aligned if changed else dependency_rows
+
+
+def prefer_complete_ratio_direct_context_rows(
+    *,
+    operand_rows: List[Dict[str, Any]],
+    direct_rows: List[Dict[str, Any]],
+    required_operands: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Prefer complete ratio context without bypassing provenance decisions."""
+
+    if not operand_rows or not direct_rows or not required_operands:
+        return operand_rows
+    if missing_required_operands(required_operands, direct_rows):
+        return operand_rows
+
+    def _row_key(row: Dict[str, Any]) -> tuple[str, str]:
+        return (
+            _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+            _normalise_spaces(str(row.get("matched_operand_role") or "")),
+        )
+
+    direct_by_key = {
+        _row_key(row): dict(row)
+        for row in direct_rows
+        if all(_row_key(row))
+    }
+    if not direct_by_key:
+        return operand_rows
+
+    def _context_key(row: Dict[str, Any]) -> tuple[str, str]:
+        table_id = _normalise_spaces(str(row.get("table_source_id") or row.get("source_table_id") or ""))
+        if table_id:
+            return ("table", table_id)
+        anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
+        if anchor:
+            return ("anchor", anchor)
+        return ("", "")
+
+    direct_contexts = {
+        _context_key(row)
+        for row in direct_rows
+        if any(_context_key(row))
+    }
+    direct_has_coherent_context = len(direct_contexts) == 1
+
+    changed = False
+    preferred: List[Dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for row in operand_rows:
+        row_key = _row_key(row)
+        replacement = direct_by_key.get(row_key)
+        if (
+            replacement
+            and decide_task_output_operand_resolution(
+                row,
+                replacement,
+                context=("coherent_ratio" if direct_has_coherent_context else "default"),
+            ).keep_current_value
+        ):
+            preferred.append(
+                {
+                    **row,
+                    "complete_ratio_direct_context_preference_blocked": True,
+                    "complete_ratio_direct_context_preference_blocked_reason": (
+                        "task_output_value_provenance_mismatch"
+                    ),
+                }
+            )
+            changed = True
+            if all(row_key):
+                seen_keys.add(row_key)
+            continue
+        if replacement and (direct_has_coherent_context or bool(row.get("dependency_resolved"))):
+            preferred.append(replacement)
+            changed = True
+        else:
+            preferred.append(row)
+        if all(row_key):
+            seen_keys.add(row_key)
+
+    for row_key, replacement in direct_by_key.items():
+        if row_key in seen_keys:
+            continue
+        preferred.append(replacement)
+        changed = True
+
+    if not changed:
+        return operand_rows
+    return merge_operand_rows(
+        preferred,
+        [],
+        required_operands=required_operands,
+    )
+
+
+def select_direct_dependency_operand_rows(
+    selection_input: DirectDependencySelectionInput,
+) -> DirectDependencySelection:
+    """Resolve source-set precedence without reading or mutating graph state."""
+
+    direct_rows = selection_input.direct_rows
+    dependency_rows = selection_input.dependency_rows
+    operation_family = selection_input.operation_family
+    direct_period_context_conflict = bool(
+        operation_family in {"difference", "growth_rate"}
+        and selection_input.dependency_rows_cover_required_operands
+        and selection_input.direct_rows_cover_required_operands
+        and selection_input.direct_rows_have_coherent_context
+        and not selection_input.reconciliation_evidence_present
+        and period_comparison_direct_rows_conflict_with_dependency_outputs(
+            dependency_rows,
+            direct_rows,
+        )
+    )
+    period_dependency_blocks_direct_context = bool(
+        operation_family in {"difference", "growth_rate"}
+        and selection_input.dependency_rows_cover_required_operands
+        and direct_period_context_conflict
+    )
+    prefer_direct_rows_over_dependency = bool(
+        operation_family in {"ratio", "difference", "growth_rate"}
+        and selection_input.direct_rows_cover_required_operands
+        and not period_dependency_blocks_direct_context
+        and (
+            selection_input.reconciliation_evidence_present
+            or (
+                operation_family in {"difference", "growth_rate"}
+                and selection_input.direct_rows_have_coherent_context
+            )
+            or (
+                operation_family == "ratio"
+                and selection_input.direct_rows_have_coherent_context
+                and selection_input.retrieved_ratio_context_recovered
+                and selection_input.ratio_direct_context_should_override_dependency
+            )
+        )
+        and not (
+            operation_family == "ratio"
+            and selection_input.dependency_rows_cover_required_operands
+            and selection_input.required_prefers_aggregate_stage
+        )
+    )
+
+    if not dependency_rows:
+        return DirectDependencySelection(
+            operand_rows=direct_rows,
+            dependency_rows=dependency_rows,
+            precedence="no_dependency",
+            dependency_merge_applied=False,
+            prefer_direct_rows_over_dependency=prefer_direct_rows_over_dependency,
+            direct_period_context_conflict=direct_period_context_conflict,
+            period_dependency_blocks_direct_context=period_dependency_blocks_direct_context,
+        )
+
+    aligned_dependency_rows = dependency_rows
+    aggregate_stage_dependency_precedence = bool(
+        operation_family == "ratio"
+        and selection_input.dependency_rows_cover_required_operands
+        and selection_input.required_prefers_aggregate_stage
+    )
+    if operation_family == "ratio" and not aggregate_stage_dependency_precedence:
+        aligned_dependency_rows = align_dependency_rows_with_sibling_direct_context(
+            dependency_rows,
+            direct_rows,
+        )
+    if prefer_direct_rows_over_dependency:
+        operand_rows = merge_operand_rows(
+            direct_rows,
+            aligned_dependency_rows,
+            required_operands=selection_input.required_operands,
+        )
+        precedence: OperandSourcePrecedence = "direct_first"
+    else:
+        operand_rows = merge_operand_rows(
+            aligned_dependency_rows,
+            direct_rows,
+            required_operands=selection_input.required_operands,
+        )
+        precedence = "dependency_first"
+    operand_rows = [
+        row
+        for row in operand_rows
+        if not operand_row_conflicts_requested_scope(
+            row,
+            selection_input.desired_consolidation_scope,
+        )
+    ]
+    return DirectDependencySelection(
+        operand_rows=operand_rows,
+        dependency_rows=aligned_dependency_rows,
+        precedence=precedence,
+        dependency_merge_applied=True,
+        prefer_direct_rows_over_dependency=prefer_direct_rows_over_dependency,
+        direct_period_context_conflict=direct_period_context_conflict,
+        period_dependency_blocks_direct_context=period_dependency_blocks_direct_context,
+    )
 
 
 def dependency_projection_values_differ(left: Any, right: Any) -> bool:
@@ -43,6 +1183,54 @@ def dependency_projection_slot_differs_from_operand(
             ),
         )
     )
+
+
+def structured_unit_realigned_operand_matches_source_slot(
+    source_slot: Mapping[str, Any],
+    operand: Mapping[str, Any],
+    *,
+    structured_realigned_operands: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> bool:
+    candidates = [dict(operand)] if operand.get("unit_realigned_from_structured_provenance") else []
+    if not candidates:
+        operand_role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
+        operand_raw = _normalise_spaces(str(operand.get("raw_value") or ""))
+        operand_ids = set(_clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")]))
+        for marked in structured_realigned_operands or []:
+            marked_role = _normalise_spaces(str(marked.get("role") or marked.get("matched_operand_role") or ""))
+            marked_raw = _normalise_spaces(str(marked.get("raw_value") or ""))
+            if operand_role and marked_role and operand_role != marked_role:
+                continue
+            if operand_raw and marked_raw and operand_raw != marked_raw:
+                continue
+            marked_ids = set(_clean_source_row_ids([marked.get("source_row_id"), marked.get("source_row_ids")]))
+            if operand_ids and marked_ids and not (operand_ids & marked_ids):
+                continue
+            candidates.append(dict(marked))
+    if not candidates:
+        return False
+    source_ids = {
+        source_id
+        for source_id in _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+        if source_id and not source_id.startswith("task_output:")
+    }
+    source_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
+    source_unit = _normalise_spaces(str(source_slot.get("normalized_unit") or "")).upper()
+    for candidate in candidates:
+        candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+        if not source_raw or source_raw != candidate_raw:
+            continue
+        candidate_unit = _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper()
+        if not source_unit or source_unit != candidate_unit:
+            continue
+        candidate_ids = {
+            source_id
+            for source_id in _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+            if source_id and not source_id.startswith("task_output:")
+        }
+        if source_ids and candidate_ids and source_ids & candidate_ids:
+            return True
+    return False
 
 
 def source_task_id_for_dependency_operand(operand: Dict[str, Any]) -> str:
@@ -94,7 +1282,7 @@ def dependency_lookup_slot_match_score(
     if lookup_label and arithmetic_label:
         if lookup_label == arithmetic_label:
             score += 6
-        elif _operand_text_match(lookup_label, {"label": arithmetic_label}):
+        elif operand_text_match(lookup_label, {"label": arithmetic_label}):
             score += 4
         elif arithmetic_label in lookup_label or lookup_label in arithmetic_label:
             score += 3
@@ -213,6 +1401,564 @@ def _dependency_lookup_operation(
     return operation
 
 
+def resolve_dependency_producer_scope(
+    binding: Mapping[str, Any],
+    *,
+    producer_tasks: Sequence[Mapping[str, Any]],
+) -> DependencyProducerScope:
+    """Resolve the first matching producer task and its binding-specific scope."""
+
+    preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+    if not preferred_task_id:
+        return DependencyProducerScope({}, (), ())
+
+    producer_task: Dict[str, Any] = {}
+    for task in producer_tasks:
+        task_row = dict(task or {})
+        if _normalise_spaces(str(task_row.get("task_id") or "")) == preferred_task_id:
+            producer_task = task_row
+            break
+    if not producer_task:
+        return DependencyProducerScope({}, (), ())
+
+    preferred_statement_types: List[str] = []
+    preferred_sections: List[str] = []
+    binding_role = _normalise_spaces(str(binding.get("role") or ""))
+    binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+    for operand in list(producer_task.get("required_operands") or []):
+        operand_row = dict(operand or {})
+        operand_role = _normalise_spaces(str(operand_row.get("role") or ""))
+        operand_concept = _normalise_spaces(str(operand_row.get("concept") or ""))
+        if binding_role and operand_role and binding_role != operand_role:
+            continue
+        if binding_concept and operand_concept and binding_concept != operand_concept:
+            continue
+        preferred_statement_types.extend(
+            _normalise_spaces(str(item))
+            for item in list(operand_row.get("preferred_statement_types") or [])
+            if _normalise_spaces(str(item))
+        )
+        preferred_sections.extend(
+            _normalise_spaces(str(item))
+            for item in list(operand_row.get("preferred_sections") or [])
+            if _normalise_spaces(str(item))
+        )
+    preferred_statement_types.extend(
+        _normalise_spaces(str(item))
+        for item in list(producer_task.get("preferred_statement_types") or [])
+        if _normalise_spaces(str(item))
+    )
+    preferred_sections.extend(
+        _normalise_spaces(str(item))
+        for item in list(producer_task.get("preferred_sections") or [])
+        if _normalise_spaces(str(item))
+    )
+    return DependencyProducerScope(
+        producer_task=dict(producer_task),
+        preferred_statement_types=tuple(dict.fromkeys(preferred_statement_types)),
+        preferred_sections=tuple(dict.fromkeys(preferred_sections)),
+    )
+
+
+def adopt_dependency_structured_provenance(
+    adoption_input: DependencyStructuredProvenanceAdoptionInput,
+) -> DependencyStructuredProvenanceAdoptionResult:
+    """Adopt graph-resolved provenance into the graph-built dependency row."""
+
+    dependency_row = adoption_input.dependency_row
+    structured_provenance = adoption_input.structured_provenance
+    structured_anchor = _normalise_spaces(str(structured_provenance.get("source_anchor") or ""))
+    structured_chunk_uid = _normalise_spaces(str(structured_provenance.get("chunk_uid") or ""))
+    if structured_anchor:
+        dependency_row["source_anchor"] = structured_anchor
+    if structured_chunk_uid:
+        dependency_row["source_row_ids"] = _clean_source_row_ids([
+            dependency_row.get("source_row_ids"),
+            structured_chunk_uid,
+        ])
+    structured_unit_hint = _normalise_spaces(str(structured_provenance.get("unit_hint") or ""))
+    current_raw_unit = _normalise_spaces(str(dependency_row.get("raw_unit") or ""))
+    current_raw_value = _normalise_spaces(str(dependency_row.get("raw_value") or ""))
+    current_rendered_value = _normalise_spaces(str(dependency_row.get("rendered_value") or ""))
+    converted_units = {
+        _normalise_spaces(str(unit or ""))
+        for unit in (CALCULATION_RENDER_POLICY.get("converted_display_units") or ())
+        if _normalise_spaces(str(unit or ""))
+    }
+    current_value_consistent = False
+    if current_raw_value and current_raw_unit:
+        expected_value, expected_unit = _normalise_operand_value(current_raw_value, current_raw_unit)
+        try:
+            current_normalized_value = float(dependency_row.get("normalized_value"))
+        except (TypeError, ValueError):
+            current_normalized_value = None
+        current_value_consistent = bool(
+            expected_value is not None
+            and current_normalized_value is not None
+            and _normalise_spaces(str(expected_unit or "")).upper()
+            == _normalise_spaces(str(dependency_row.get("normalized_unit") or "")).upper()
+            and abs(float(expected_value) - current_normalized_value) <= max(
+                1e-6,
+                abs(float(expected_value)) * 1e-9,
+            )
+        )
+    high_magnitude_converted_value = bool(
+        current_raw_unit in converted_units
+        and current_value_consistent
+        and len(re.sub(r"\D", "", current_raw_value)) >= 8
+    )
+    source_visible_converted_unit = bool(
+        current_raw_value
+        and current_raw_unit
+        and current_raw_unit in converted_units
+        and (
+            high_magnitude_converted_value
+            or (
+                current_raw_value in current_rendered_value
+                and current_raw_unit in current_rendered_value
+            )
+        )
+    )
+    source_visible_unit_preserved = bool(
+        structured_unit_hint
+        and structured_unit_hint != current_raw_unit
+        and source_visible_converted_unit
+    )
+    unit_realignment_applied = False
+    if (
+        structured_unit_hint
+        and structured_unit_hint != current_raw_unit
+        and not source_visible_converted_unit
+    ):
+        structured_value, structured_unit = _normalise_operand_value(
+            str(dependency_row.get("raw_value") or ""),
+            structured_unit_hint,
+        )
+        if structured_value is not None and structured_unit:
+            dependency_row["raw_unit"] = structured_unit_hint
+            dependency_row["normalized_value"] = structured_value
+            dependency_row["normalized_unit"] = structured_unit
+            dependency_row["rendered_value"] = _normalise_spaces(
+                f"{dependency_row.get('raw_value')}{structured_unit_hint}"
+            )
+            dependency_row["unit_realigned_from_structured_provenance"] = True
+            unit_realignment_applied = True
+    for key in ("consolidation_scope", "statement_type", "table_source_id"):
+        value = _normalise_spaces(str(structured_provenance.get(key) or ""))
+        if value:
+            dependency_row[key] = value
+    if unit_realignment_applied:
+        reason: DependencyStructuredProvenanceAdoptionReason = "structured_unit_realigned"
+    elif source_visible_unit_preserved:
+        reason = "source_visible_converted_unit_preserved"
+    else:
+        reason = "structured_unit_unchanged"
+    return DependencyStructuredProvenanceAdoptionResult(
+        dependency_row=dependency_row,
+        unit_realignment_applied=unit_realignment_applied,
+        reason=reason,
+    )
+
+
+def _dependency_row_violates_producer_scope(
+    row: Mapping[str, Any],
+    *,
+    preferred_statement_types: Sequence[str],
+    preferred_sections: Sequence[str],
+) -> tuple[bool, str]:
+    row_statement_type = _normalise_spaces(str(row.get("statement_type") or ""))
+    if (
+        preferred_statement_types
+        and row_statement_type
+        and row_statement_type not in preferred_statement_types
+    ):
+        return True, "statement_type"
+
+    row_scope_text = _normalise_spaces(
+        " ".join(
+            str(row.get(key) or "")
+            for key in ("source_anchor", "table_source_id", "source_context")
+        )
+    ).lower()
+    if not row_scope_text:
+        return False, ""
+    scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
+    note_markers = tuple(
+        str(item).lower()
+        for item in (scoring_policy.get("note_context_markers") or ())
+        if str(item)
+    )
+    row_is_note_scoped = any(marker in row_scope_text for marker in note_markers) or "note" in row_scope_text
+    producer_allows_notes = (
+        "notes" in preferred_statement_types
+        or any(
+            any(marker in _normalise_spaces(str(section)).lower() for marker in note_markers)
+            or "note" in _normalise_spaces(str(section)).lower()
+            for section in preferred_sections
+        )
+    )
+    if row_is_note_scoped and not producer_allows_notes:
+        return True, "section_scope"
+    return False, ""
+
+
+def filter_direct_rows_by_dependency_producer_scope(
+    *,
+    bindings: Sequence[Mapping[str, Any]],
+    operand_rows: Sequence[Mapping[str, Any]],
+    producer_tasks: Sequence[Mapping[str, Any]],
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Filter direct rows that violate the matched dependency producer scope."""
+
+    if not bindings or not operand_rows:
+        return list(operand_rows or []), []
+    filtered_rows: List[Dict[str, Any]] = []
+    rejected_rows: List[Dict[str, Any]] = []
+    for row in list(operand_rows or []):
+        row_data = dict(row or {})
+        matching_binding = next(
+            (
+                dict(binding)
+                for binding in bindings
+                if operand_row_matches_requirement(row_data, dict(binding))
+            ),
+            {},
+        )
+        if not matching_binding:
+            filtered_rows.append(row_data)
+            continue
+        producer_scope = resolve_dependency_producer_scope(
+            matching_binding,
+            producer_tasks=producer_tasks,
+        )
+        preferred_statement_types = list(producer_scope.preferred_statement_types)
+        preferred_sections = list(producer_scope.preferred_sections)
+        violates_scope, reject_reason = _dependency_row_violates_producer_scope(
+            row_data,
+            preferred_statement_types=preferred_statement_types,
+            preferred_sections=preferred_sections,
+        )
+        if violates_scope:
+            rejected_rows.append(
+                {
+                    "binding": matching_binding,
+                    "row": row_data,
+                    "reject_reason": reject_reason,
+                    "preferred_statement_types": preferred_statement_types,
+                    "preferred_sections": preferred_sections,
+                    "row_statement_type": _normalise_spaces(str(row_data.get("statement_type") or "")),
+                }
+            )
+            continue
+        filtered_rows.append(row_data)
+    return filtered_rows, rejected_rows
+
+
+def resolve_main_operand_precedence(
+    precedence_input: MainOperandPrecedenceInput,
+) -> MainOperandPrecedenceResult:
+    """Resolve the main graph path's dependency precedence without graph state."""
+
+    operation_family = precedence_input.operation_family
+    required_operands = precedence_input.required_operands
+    direct_rows = precedence_input.direct_rows
+    dependency_rows = precedence_input.dependency_rows
+    active_dependency_bindings = precedence_input.dependency_bindings
+    dependency_binding_keys = precedence_input.dependency_binding_keys
+    dependency_resolved_keys = precedence_input.dependency_resolved_keys
+    missing_dependency_bindings = precedence_input.missing_dependency_bindings
+
+    direct_rows_cover_required_operands = bool(
+        required_operands
+        and direct_rows
+        and not missing_required_operands(required_operands, direct_rows)
+    )
+    dependency_rows_cover_required_operands = bool(
+        required_operands
+        and dependency_rows
+        and not missing_required_operands(required_operands, dependency_rows)
+    )
+    required_prefers_aggregate_stage = any(
+        bool(dict(row.get("binding_policy") or {}).get("prefer_aggregation_stages"))
+        for row in required_operands
+    )
+    direct_rows_have_coherent_context = bool(
+        direct_rows_cover_required_operands
+        and operand_rows_have_single_table_context(direct_rows)
+        and not ratio_operand_rows_collapse_to_same_slot(direct_rows)
+        and not period_comparison_operand_rows_collapse_to_same_slot(direct_rows)
+    )
+
+    ratio_direct_context_should_override_dependency = False
+    if operation_family == "ratio" and precedence_input.retrieved_ratio_context_recovered:
+        direct_dependency_conflicts = operand_rows_conflict_by_required_role(
+            dependency_rows,
+            direct_rows,
+            operand_row_value_differs=operand_row_values_differ,
+        )
+        dependency_display_units = operand_row_display_unit_set(dependency_rows)
+        direct_display_units = operand_row_display_unit_set(direct_rows)
+        ratio_direct_context_should_override_dependency = bool(
+            direct_rows_have_coherent_context
+            and (
+                not dependency_rows_cover_required_operands
+                or not direct_dependency_conflicts
+                or (
+                    len(dependency_display_units) > 1
+                    and len(direct_display_units) <= 1
+                )
+            )
+        )
+
+    ratio_direct_context_override_applied = bool(
+        direct_rows_have_coherent_context
+        and ratio_direct_context_should_override_dependency
+        and not required_prefers_aggregate_stage
+    )
+    if ratio_direct_context_override_applied:
+        dependency_rows = []
+        active_dependency_bindings = []
+        missing_dependency_bindings = []
+        dependency_resolved_keys = set()
+        dependency_rows_cover_required_operands = False
+
+    source_selection = select_direct_dependency_operand_rows(
+        DirectDependencySelectionInput(
+            operation_family=operation_family,
+            required_operands=required_operands,
+            direct_rows=direct_rows,
+            dependency_rows=dependency_rows,
+            desired_consolidation_scope=precedence_input.desired_consolidation_scope,
+            reconciliation_evidence_present=precedence_input.reconciliation_evidence_present,
+            direct_rows_cover_required_operands=direct_rows_cover_required_operands,
+            dependency_rows_cover_required_operands=dependency_rows_cover_required_operands,
+            direct_rows_have_coherent_context=direct_rows_have_coherent_context,
+            retrieved_ratio_context_recovered=precedence_input.retrieved_ratio_context_recovered,
+            ratio_direct_context_should_override_dependency=(
+                ratio_direct_context_should_override_dependency
+            ),
+            required_prefers_aggregate_stage=required_prefers_aggregate_stage,
+        )
+    )
+    selected_operand_rows = source_selection.operand_rows
+    active_dependency_rows = source_selection.dependency_rows
+    scoped_dependency_rows = [
+        row
+        for row in active_dependency_rows
+        if not operand_row_conflicts_requested_scope(
+            row,
+            precedence_input.desired_consolidation_scope,
+        )
+    ]
+    if len(scoped_dependency_rows) != len(active_dependency_rows):
+        active_dependency_rows = scoped_dependency_rows
+    rejected_dependency_scope_rows: List[Dict[str, Any]] = []
+    if active_dependency_bindings and not source_selection.prefer_direct_rows_over_dependency:
+        if selected_operand_rows:
+            selected_operand_rows, rejected_resolved_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=active_dependency_bindings,
+                    operand_rows=selected_operand_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
+        if active_dependency_rows:
+            filtered_dependency_rows, rejected_active_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=active_dependency_bindings,
+                    operand_rows=active_dependency_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            if rejected_active_dependency_scope_rows:
+                active_dependency_rows = filtered_dependency_rows
+    if missing_dependency_bindings and not source_selection.prefer_direct_rows_over_dependency:
+        if selected_operand_rows:
+            selected_operand_rows, rejected_missing_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=missing_dependency_bindings,
+                    operand_rows=selected_operand_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
+        if active_dependency_rows:
+            filtered_dependency_rows, rejected_active_missing_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=missing_dependency_bindings,
+                    operand_rows=active_dependency_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            if rejected_active_missing_dependency_scope_rows:
+                active_dependency_rows = filtered_dependency_rows
+
+    direct_dependency_fill_allowed = bool(
+        operation_family in {"difference", "growth_rate"}
+        or source_selection.prefer_direct_rows_over_dependency
+    )
+    if dependency_binding_keys and selected_operand_rows:
+        duplicate_guard_keys = dependency_resolved_keys
+        if source_selection.prefer_direct_rows_over_dependency:
+            duplicate_guard_keys = set()
+        if not direct_dependency_fill_allowed:
+            duplicate_guard_keys = dependency_binding_keys
+        filtered_rows: List[Dict[str, Any]] = []
+        for row in selected_operand_rows:
+            if bool(row.get("dependency_resolved")):
+                filtered_rows.append(row)
+                continue
+            row_key = (
+                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                _normalise_spaces(str(row.get("matched_operand_role") or "")),
+            )
+            if row_key in duplicate_guard_keys:
+                continue
+            filtered_rows.append(row)
+        selected_operand_rows = filtered_rows
+
+    if direct_dependency_fill_allowed and missing_dependency_bindings and selected_operand_rows:
+        direct_resolved_keys = direct_rows_resolved_dependency_keys(
+            missing_dependency_bindings,
+            selected_operand_rows,
+        )
+        if direct_resolved_keys:
+            missing_dependency_bindings = [
+                dict(binding)
+                for binding in missing_dependency_bindings
+                if dependency_binding_identity(binding) not in direct_resolved_keys
+            ]
+
+    return MainOperandPrecedenceResult(
+        selected_operand_rows=selected_operand_rows,
+        source_selection=source_selection,
+        active_dependency_rows=active_dependency_rows,
+        active_dependency_bindings=active_dependency_bindings,
+        dependency_binding_keys=dependency_binding_keys,
+        dependency_resolved_keys=dependency_resolved_keys,
+        missing_dependency_bindings=missing_dependency_bindings,
+        rejected_dependency_scope_rows=rejected_dependency_scope_rows,
+        required_prefers_aggregate_stage=required_prefers_aggregate_stage,
+        ratio_direct_context_should_override_dependency=(
+            ratio_direct_context_should_override_dependency
+        ),
+        ratio_direct_context_override_applied=ratio_direct_context_override_applied,
+        direct_dependency_fill_allowed=direct_dependency_fill_allowed,
+    )
+
+
+def resolve_late_dependency_remerge(
+    remerge_input: LateDependencyRemergeInput,
+) -> LateDependencyRemergeResult:
+    """Resolve late direct-context precedence and dependency re-merge."""
+
+    operand_rows = remerge_input.operand_rows
+    active_direct_context_rows: List[Dict[str, Any]] = []
+    complete_direct_context_blocks_dependency_remerge = False
+    direct_context_allowed = bool(
+        remerge_input.operation_family == "ratio"
+        and remerge_input.required_operands
+        and operand_rows
+        and not remerge_input.required_prefers_aggregate_stage
+    )
+    if direct_context_allowed:
+        active_direct_context_rows = remerge_input.sibling_context_rows
+        if remerge_input.coherent_context_rows:
+            active_direct_context_rows = merge_operand_rows(
+                remerge_input.coherent_context_rows,
+                active_direct_context_rows,
+                required_operands=remerge_input.required_operands,
+            )
+        if active_direct_context_rows:
+            operand_rows = align_dependency_rows_with_sibling_direct_context(
+                operand_rows,
+                active_direct_context_rows,
+            )
+            operand_rows = prefer_complete_ratio_direct_context_rows(
+                operand_rows=operand_rows,
+                direct_rows=active_direct_context_rows,
+                required_operands=remerge_input.required_operands,
+            )
+            complete_direct_context_blocks_dependency_remerge = bool(
+                operand_rows_have_single_table_context(active_direct_context_rows)
+                and not missing_required_operands(
+                    remerge_input.required_operands,
+                    active_direct_context_rows,
+                )
+                and not ratio_operand_rows_collapse_to_same_slot(active_direct_context_rows)
+                and not period_comparison_operand_rows_collapse_to_same_slot(
+                    active_direct_context_rows
+                )
+            )
+
+    if not remerge_input.dependency_rows:
+        dependency_remerge_reason: LateDependencyRemergeReason = "no_dependency_rows"
+    elif remerge_input.prefer_direct_rows_over_dependency:
+        dependency_remerge_reason = "direct_precedence"
+    elif complete_direct_context_blocks_dependency_remerge:
+        dependency_remerge_reason = "complete_direct_context"
+    else:
+        dependency_remerge_reason = "dependency_remerged"
+
+    dependency_remerge_applied = dependency_remerge_reason == "dependency_remerged"
+    if dependency_remerge_applied:
+        operand_rows = merge_operand_rows(
+            remerge_input.dependency_rows,
+            operand_rows,
+            required_operands=remerge_input.required_operands,
+        )
+
+    return LateDependencyRemergeResult(
+        operand_rows=operand_rows,
+        active_direct_context_rows=active_direct_context_rows,
+        complete_direct_context_blocks_dependency_remerge=(
+            complete_direct_context_blocks_dependency_remerge
+        ),
+        dependency_remerge_applied=dependency_remerge_applied,
+        dependency_remerge_reason=dependency_remerge_reason,
+    )
+
+
+def resolve_late_operand_finalization(
+    finalization_input: LateOperandFinalizationInput,
+) -> LateOperandFinalizationResult:
+    """Apply an optional normalized-unit filter before empty-row preservation."""
+
+    operand_rows = finalization_input.operand_rows
+    required_normalized_unit = finalization_input.required_normalized_unit
+    operand_filter_applied = required_normalized_unit is not None
+    preserved_operand_source: OperandPreservationSource = ""
+
+    if operand_filter_applied:
+        operand_rows = [
+            row
+            for row in operand_rows
+            if str(row.get("normalized_unit") or "") == required_normalized_unit
+            and row.get("normalized_value") is not None
+        ]
+        finalization_reason: LateOperandFinalizationReason = "normalized_unit_filtered"
+    elif operand_rows:
+        finalization_reason = "operand_rows_retained"
+    elif finalization_input.direct_structured_rows:
+        operand_rows = [dict(row) for row in finalization_input.direct_structured_rows]
+        preserved_operand_source = "structured_rows"
+        finalization_reason = "structured_rows_preserved"
+    elif finalization_input.dependency_rows:
+        operand_rows = [dict(row) for row in finalization_input.dependency_rows]
+        preserved_operand_source = "dependency_outputs"
+        finalization_reason = "dependency_rows_preserved"
+    else:
+        finalization_reason = "no_operand_rows"
+
+    return LateOperandFinalizationResult(
+        operand_rows=operand_rows,
+        operand_filter_applied=operand_filter_applied,
+        preserved_operand_source=preserved_operand_source,
+        finalization_reason=finalization_reason,
+    )
+
+
 def _dependency_producer_task(
     result_row: Dict[str, Any],
     *,
@@ -290,7 +2036,7 @@ def _dependency_lookup_slot_for_result_row(
         result_task_id=result_task_id,
     )
     _populate_answer_numeric_slot_context(answer_numeric_slot, producer_task)
-    synthetic_result = _synthesize_lookup_answer_slot_from_prose(
+    synthetic_result = synthesize_lookup_answer_slot_from_prose(
         active_subtask=producer_task,
         answer=answer_text,
         calculation_result=result,
@@ -747,31 +2493,29 @@ def dependency_plan_is_executable(plan: Dict[str, Any]) -> bool:
     )
 
 
+def classify_dependency_recalculation_plan(
+    plan: Dict[str, Any],
+) -> DependencyRecalculationPlanDisposition:
+    if not dependency_plan_is_executable(plan):
+        return "rebuild"
+    plan_mode = _normalise_spaces(str(plan.get("mode") or "")).lower()
+    if plan_mode != "single_value":
+        return "unsupported_mode"
+    return "reuse"
+
+
 def rebuild_dependency_calculation_plan(
     calculation_plan: Dict[str, Any],
     *,
-    state: Dict[str, Any],
+    raw_deterministic_plan: Dict[str, Any],
     active_subtask: Dict[str, Any],
     updated_operands: List[Dict[str, Any]],
     operation_family: str,
     calculation_result: Dict[str, Any],
-    build_deterministic_operation_plan: Callable[[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]],
 ) -> Dict[str, Any]:
-    if not dependency_plan_is_executable(calculation_plan):
-        calculation_plan = {}
-    if calculation_plan:
+    if dependency_plan_is_executable(calculation_plan):
         return calculation_plan
-    plan_state = {
-        **dict(state),
-        "active_subtask": active_subtask,
-        "calculation_operands": updated_operands,
-        "resolved_calculation_trace": {
-            "calculation_operands": updated_operands,
-            "calculation_plan": {},
-            "calculation_result": {},
-        },
-    }
-    calculation_plan = build_deterministic_operation_plan(plan_state, updated_operands) or {}
+    calculation_plan = raw_deterministic_plan
     if not dependency_plan_is_executable(calculation_plan):
         calculation_plan = build_fallback_dependency_operation_plan(
             updated_operands,
@@ -782,28 +2526,26 @@ def rebuild_dependency_calculation_plan(
     return calculation_plan
 
 
-def build_dependency_recalculation_state(
-    state: Dict[str, Any],
-    *,
-    active_subtask: Dict[str, Any],
-    updated_operands: List[Dict[str, Any]],
-    calculation_plan: Dict[str, Any],
-    calculation_result: Dict[str, Any],
-) -> Dict[str, Any]:
-    return {
-        **dict(state),
-        "active_subtask": active_subtask,
-        "calculation_operands": updated_operands,
-        "calculation_plan": calculation_plan,
-        "calculation_result": dict(calculation_result),
-        "resolved_calculation_trace": {
-            "calculation_operands": updated_operands,
-            "calculation_plan": calculation_plan,
-            "calculation_result": dict(calculation_result),
-        },
-        "tasks": [],
-        "artifacts": [],
+def resolve_dependency_recalculation_candidate_projection(
+    projection_input: DependencyRecalculationCandidateProjectionInput,
+) -> DependencyRecalculationCandidateProjectionResult:
+    """Copy a graph candidate projection and decide whether it can continue."""
+
+    recalculated_trace = {
+        "calculation_operands": [dict(item) for item in projection_input.calculation_operands],
+        "calculation_plan": dict(projection_input.calculation_plan),
+        "calculation_result": dict(projection_input.calculation_result),
     }
+    recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
+    candidate_ready = bool(
+        _normalise_spaces(str(recalculated_result.get("status") or "")).lower() == "ok"
+    )
+    return DependencyRecalculationCandidateProjectionResult(
+        recalculated_trace=recalculated_trace,
+        recalculated_result=recalculated_result,
+        candidate_ready=candidate_ready,
+        reason="candidate_ready" if candidate_ready else "calculation_result_not_ok",
+    )
 
 
 def apply_absolute_ratio_magnitude_if_requested(
@@ -836,25 +2578,90 @@ def apply_absolute_ratio_magnitude_if_requested(
     return updated
 
 
-def build_dependency_recalculated_row(
-    row: Dict[str, Any],
-    *,
-    recalculated_trace: Dict[str, Any],
-    updated_operands: List[Dict[str, Any]],
-    calculation_plan: Dict[str, Any],
-    recalculated_result: Dict[str, Any],
-    formatted_answer: str,
-) -> Dict[str, Any]:
-    return {
-        **dict(row),
-        "answer": formatted_answer or str(row.get("answer") or ""),
+def _ratio_artifact_numeric_value(row: Dict[str, Any]) -> Optional[float]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_value = dict(answer_slots.get("primary_value") or {})
+    for value in (
+        calculation_result.get("result_value"),
+        primary_value.get("normalized_value"),
+        primary_value.get("raw_value"),
+        row.get("result_value"),
+    ):
+        numeric_value = financial_answer_slots.coerce_slot_numeric(value)
+        if numeric_value is not None:
+            return numeric_value
+    return None
+
+
+def resolve_ratio_artifact_conflict_selection(
+    selection_input: RatioArtifactConflictSelectionInput,
+) -> RatioArtifactConflictSelectionResult:
+    """Select the first artifact result that materially conflicts with recalculation."""
+
+    recalculated_value = selection_input.recalculated_value
+    for artifact_row in selection_input.artifact_rows:
+        calculation_result = dict(artifact_row.get("calculation_result") or {})
+        status = _normalise_spaces(
+            str(artifact_row.get("status") or calculation_result.get("status") or "")
+        ).lower()
+        if status != "ok":
+            continue
+        artifact_value = _ratio_artifact_numeric_value(artifact_row)
+        if artifact_value is None:
+            continue
+        tolerance = max(
+            max(abs(float(artifact_value)), abs(float(recalculated_value)), 1.0) * 5e-4,
+            1e-6,
+        )
+        if abs(float(artifact_value) - float(recalculated_value)) <= tolerance:
+            continue
+        return RatioArtifactConflictSelectionResult(
+            selected_artifact_row={
+                **artifact_row,
+                "artifact_ratio_result_preserved_over_alignment": True,
+            },
+            conflict_selected=True,
+            reason="conflicting_artifact_selected",
+        )
+    return RatioArtifactConflictSelectionResult(
+        selected_artifact_row={},
+        conflict_selected=False,
+        reason="no_conflicting_artifact",
+    )
+
+
+def finalize_dependency_recalculated_row(
+    finalization_input: DependencyRecalculatedRowFinalizationInput,
+) -> DependencyRecalculatedRowFinalizationResult:
+    """Apply formatted output and project the final recalculated dependency row."""
+
+    current_row = finalization_input.current_row
+    recalculated_result = finalization_input.recalculated_result
+    formatted_answer = finalization_input.formatted_answer
+    if formatted_answer:
+        recalculated_result["formatted_result"] = formatted_answer
+    selected_row = {
+        **dict(current_row),
+        "answer": formatted_answer or str(current_row.get("answer") or ""),
         "status": "ok",
-        "calculation_operands": list(recalculated_trace.get("calculation_operands") or updated_operands),
-        "calculation_plan": dict(recalculated_trace.get("calculation_plan") or calculation_plan),
+        "calculation_operands": list(
+            finalization_input.recalculated_trace.get("calculation_operands")
+            or finalization_input.updated_operands
+        ),
+        "calculation_plan": dict(
+            finalization_input.recalculated_trace.get("calculation_plan")
+            or finalization_input.fallback_calculation_plan
+        ),
         "calculation_result": recalculated_result,
-        "source_row_ids": list(recalculated_result.get("source_row_ids") or row.get("source_row_ids") or []),
+        "source_row_ids": list(
+            recalculated_result.get("source_row_ids")
+            or current_row.get("source_row_ids")
+            or []
+        ),
         "aligned_from_source_task_slots": True,
     }
+    return DependencyRecalculatedRowFinalizationResult(selected_row=selected_row)
 
 
 def refresh_dependency_operands_from_lookup_slots(

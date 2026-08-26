@@ -1,12 +1,13 @@
-# 실행 계획
+# Historical Execution Plan
 
-> 이 문서는 **현재 active plan만 유지하는 실행 문서**다.  
-> 과거 실험과 장기 방향은 [DECISIONS.md](DECISIONS.md)와
-> [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)로 보낸다.
+> 이 문서는 2026-06-11 이전 실행 계획을 보존하는 historical log다.
+> 현재 상태와 다음 작업은
+> [docs/overview/project_status.md](docs/overview/project_status.md)를 기준으로 하고,
+> 장기 backlog는
+> [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)를
+> 따른다. 아래 항목을 현재 active plan으로 해석하지 않는다.
 
-## Active Snapshot
-
-## 2026-06-11 제출 전 상태와 broader benchmark 계획
+## Archived Snapshot: 2026-06-11 제출 전 상태와 broader benchmark 계획
 
 - Current checkpoint:
   - reviewer-facing docs updated and pushed through commit

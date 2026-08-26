@@ -17,13 +17,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_answer_projection.py",
       "text": "(?:다|니다|요|음|임)[.!?。]?$",
       "category": "regex_or_pattern",
-      "fingerprint": "6606787fbeb83141",
+      "fingerprint": "0d546c7563cbcf6d",
       "count": 1,
       "first_lines": [
-        6838
+        59
       ]
     },
     {
@@ -37,23 +37,23 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_text_surface.py",
       "text": "[가-힣A-Za-z0-9()]+",
       "category": "regex_or_pattern",
-      "fingerprint": "856229ecec7673f5",
+      "fingerprint": "8de82bc58774a578",
       "count": 1,
       "first_lines": [
-        6229
+        37
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_operand_resolution.py",
       "text": "[가-힣]",
       "category": "regex_or_pattern",
-      "fingerprint": "7eedf3c80dbfb201",
+      "fingerprint": "bbba77568ba251b3",
       "count": 1,
       "first_lines": [
-        10444
+        143
       ]
     },
     {
@@ -117,33 +117,33 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_calculation_execution.py",
       "text": "에 필요한 concept operand를 합산합니다.",
       "category": "runtime_literal",
-      "fingerprint": "00537036c11979e5",
+      "fingerprint": "24aa4d7d221b992b",
       "count": 1,
       "first_lines": [
-        9662
+        567
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_numeric_surface.py",
       "text": "원",
       "category": "runtime_literal",
-      "fingerprint": "7ca792d9bb061cde",
+      "fingerprint": "c8d4d90ef881e530",
       "count": 1,
       "first_lines": [
-        8111
+        19
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_calculation_execution.py",
       "text": "의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
       "category": "runtime_literal",
-      "fingerprint": "de4d14c45b9e10fd",
+      "fingerprint": "d89d412d54f2873f",
       "count": 1,
       "first_lines": [
-        9644
+        549
       ]
     },
     {
@@ -197,13 +197,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_calculation_execution.py",
       "text": "퍼센트",
       "category": "runtime_literal",
-      "fingerprint": "bd1699610adad626",
+      "fingerprint": "63b409843ae7e7f0",
       "count": 1,
       "first_lines": [
-        14030
+        528
       ]
     },
     {
@@ -246,10 +246,19 @@
       "text": "[가-힣]",
       "category": "regex_or_pattern",
       "fingerprint": "ba63bcec3fbd94ce",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        198,
-        1172
+        203
+      ]
+    },
+    {
+      "path": "src/agent/financial_text_surface.py",
+      "text": "[가-힣]",
+      "category": "regex_or_pattern",
+      "fingerprint": "e5d9204368a21b4c",
+      "count": 1,
+      "first_lines": [
+        111
       ]
     },
     {
@@ -449,13 +458,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "20\\d{2}(?:년)?",
       "category": "regex_or_pattern",
-      "fingerprint": "83911fa4e645ea8f",
+      "fingerprint": "280021759b03082c",
       "count": 1,
       "first_lines": [
-        6718
+        341
       ]
     },
     {
@@ -612,16 +621,14 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_operand_resolution.py",
       "text": "부채",
       "category": "runtime_literal",
-      "fingerprint": "3df3bf753756b486",
-      "count": 4,
+      "fingerprint": "a34a993699f396a8",
+      "count": 2,
       "first_lines": [
-        6107,
-        6118,
-        6170,
-        6197
+        235,
+        262
       ]
     },
     {

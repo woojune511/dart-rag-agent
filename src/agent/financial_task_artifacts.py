@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_artifact_contracts import (
     REQUIRED_ARTIFACT_KINDS_BY_TASK_KIND,
@@ -12,19 +14,383 @@ from src.agent.financial_artifact_contracts import (
     payload_missing_contract,
     reconciliation_result_status,
 )
+from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
+from src.agent.financial_row_surfaces import operand_text_match
+from src.agent.financial_surface_contracts import operand_needles
 from src.schema.runtime_enums import ArtifactKind, TaskKind, TaskStatus
 
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState
+
 __all__ = [
+    "AggregateArtifactProjectionPayloadSyncInput",
+    "AggregateArtifactProjectionPayloadSyncResult",
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
+    "evidence_items_with_runtime",
+    "enrich_reconciliation_artifact_refs",
+    "synchronize_calculation_result_artifact", "synchronize_operand_set_artifact",
+    "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
+    "ratio_result_rows_from_task_artifacts",
     "reflection_report_artifact_update",
     "semantic_plan_artifact_update",
+    "synchronize_aggregate_artifact_projection_payload",
     "supersede_task_with_aggregate_result",
     "project_task_artifact_trace",
+    "reconciliation_artifact_candidate_ids",
+    "reconciliation_artifact_candidate_ids_for_operand",
+    "reconciliation_evidence_refs",
 ]
+
+
+@dataclass(frozen=True)
+class AggregateArtifactProjectionPayloadSyncInput:
+    """Prepared aggregate artifact payload replacement inputs."""
+
+    artifacts: Sequence[Mapping[str, Any]]
+    artifact_id: str
+    final_answer: str
+    aggregate_projection: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregateArtifactProjectionPayloadSyncResult:
+    """Fresh artifact records after the first matching payload replacement."""
+
+    artifacts: List[Dict[str, Any]]
+
+
+def evidence_items_with_runtime(
+    evidence_items: List[Dict[str, Any]],
+    state: FinancialAgentState,
+) -> List[Dict[str, Any]]:
+    combined = list(evidence_items)
+    existing_ids = {
+        str(item.get("evidence_id") or "").strip()
+        for item in combined
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    }
+    for item in state.get("runtime_evidence") or []:
+        if not isinstance(item, dict):
+            continue
+        evidence_id = str(item.get("evidence_id") or "").strip()
+        if evidence_id and evidence_id in existing_ids:
+            continue
+        if evidence_id:
+            existing_ids.add(evidence_id)
+        combined.append(dict(item))
+    return combined
+
+
+def ratio_result_rows_from_task_artifacts(
+    state: FinancialAgentState,
+    task: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    task_id = _normalise_spaces(str(task.get("task_id") or ""))
+    if not task_id:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for artifact in list(state.get("artifacts") or []):
+        artifact_data = dict(artifact or {})
+        if _normalise_spaces(str(artifact_data.get("task_id") or "")) != task_id:
+            continue
+        if _normalise_spaces(str(artifact_data.get("kind") or "")) != ArtifactKind.CALCULATION_RESULT.value:
+            continue
+        payload = dict(artifact_data.get("payload") or {})
+        calculation_result = dict(payload.get("calculation_result") or {})
+        if not calculation_result:
+            continue
+        answer = _normalise_spaces(
+            str(
+                calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or artifact_data.get("summary")
+                or ""
+            )
+        )
+        rows.append(
+            {
+                "task_id": task_id,
+                "metric_family": task.get("metric_family") or "concept_ratio",
+                "metric_label": task.get("metric_label") or task.get("target_metric") or "",
+                "operation_family": "ratio",
+                "status": calculation_result.get("status") or artifact_data.get("status") or "",
+                "answer": answer,
+                "calculation_result": calculation_result,
+                "calculation_operands": payload.get("calculation_operands") or [],
+                "source_row_ids": calculation_result.get("source_row_ids") or artifact_data.get("evidence_refs") or [],
+                "source_evidence_ids": calculation_result.get("source_evidence_ids") or artifact_data.get("evidence_refs") or [],
+                "artifact_backed_complete_result": True,
+            }
+        )
+    return rows
+
+
+def synchronize_aggregate_artifact_projection_payload(
+    sync_input: AggregateArtifactProjectionPayloadSyncInput,
+) -> AggregateArtifactProjectionPayloadSyncResult:
+    """Replace one prepared aggregate artifact payload without ledger access."""
+
+    artifacts = sync_input.artifacts
+    artifact_id = sync_input.artifact_id
+    final_answer = sync_input.final_answer
+    aggregate_projection = sync_input.aggregate_projection
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    for index, artifact in enumerate(updated_artifacts):
+        if str((artifact or {}).get("artifact_id") or "") != artifact_id:
+            continue
+        payload = dict((artifact or {}).get("payload") or {})
+        payload.update(
+            {
+                "final_answer": final_answer,
+                "calculation_operands": list(aggregate_projection.get("calculation_operands") or []),
+                "calculation_plan": dict(aggregate_projection.get("calculation_plan") or {}),
+                "calculation_result": dict(aggregate_projection.get("calculation_result") or {}),
+            }
+        )
+        updated_artifacts[index] = {
+            **dict(artifact),
+            "summary": final_answer[:200],
+            "payload": payload,
+        }
+        break
+    return AggregateArtifactProjectionPayloadSyncResult(artifacts=updated_artifacts)
+
+
+def _calculation_operand_source_refs(operand_rows: List[Dict[str, Any]]) -> List[str]:
+    refs: List[str] = []
+    for row in operand_rows or []:
+        if not isinstance(row, dict):
+            continue
+        refs.extend(
+            _clean_source_row_ids(
+                [
+                    row.get("evidence_id"),
+                    row.get("evidence_ids"),
+                    row.get("source_evidence_id"),
+                    row.get("source_evidence_ids"),
+                    row.get("source_row_id"),
+                    row.get("source_row_ids"),
+                    row.get("row_id"),
+                    row.get("row_ids"),
+                    row.get("candidate_id"),
+                    row.get("candidate_ids"),
+                ]
+            )
+        )
+    return list(dict.fromkeys(refs))
+
+
+def enrich_reconciliation_artifact_refs(
+    artifacts: List[Dict[str, Any]],
+    *,
+    task_id: str,
+    operand_rows: List[Dict[str, Any]],
+    extra_refs: Optional[List[Any]] = None,
+    task_ids: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    refs = list(
+        dict.fromkeys(
+            [
+                *_calculation_operand_source_refs(operand_rows),
+                *_clean_source_row_ids(extra_refs or []),
+            ]
+        )
+    )
+    if not refs:
+        return artifacts
+    target_task_id = str(task_id or "").strip()
+    target_task_ids = {
+        str(value).strip()
+        for value in [target_task_id, *(task_ids or [])]
+        if str(value).strip()
+    }
+    updated: List[Dict[str, Any]] = []
+    for artifact in artifacts or []:
+        item = dict(artifact)
+        if str(item.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
+            updated.append(item)
+            continue
+        if target_task_ids and str(item.get("task_id") or "").strip() not in target_task_ids:
+            updated.append(item)
+            continue
+        payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+        result = payload.get("reconciliation_result") if isinstance(payload, dict) else {}
+        status = str(result.get("status") if isinstance(result, dict) else "").strip().lower()
+        if status not in {"ok", "ready"}:
+            updated.append(item)
+            continue
+        merged_refs = list(dict.fromkeys([*(item.get("evidence_refs") or []), *refs]))
+        item["evidence_refs"] = merged_refs
+        updated.append(item)
+    return updated
+
+
+def _artifact_text_matches_operand_surface(text: str, operand: Dict[str, Any]) -> bool:
+    normalized_text = _normalise_spaces(str(text or ""))
+    if not normalized_text:
+        return False
+    if operand_text_match(normalized_text, operand):
+        return True
+    compact_text = re.sub(r"\s+", "", normalized_text)
+    for needle in operand_needles(operand):
+        normalized_needle = _normalise_spaces(str(needle or ""))
+        if not normalized_needle:
+            continue
+        compact_needle = re.sub(r"\s+", "", normalized_needle)
+        if compact_needle and (compact_needle in compact_text or compact_text in compact_needle):
+            return True
+    return False
+
+
+def reconciliation_artifact_candidate_ids_for_operand(
+    state: FinancialAgentState,
+    *,
+    operand: Dict[str, Any],
+) -> List[str]:
+    candidate_ids: List[str] = []
+    seen: set[str] = set()
+
+    def append_candidate_id(raw_value: Any) -> None:
+        candidate_id = str(raw_value or "").strip()
+        if candidate_id and candidate_id not in seen:
+            seen.add(candidate_id)
+            candidate_ids.append(candidate_id)
+
+    for artifact in list(state.get("artifacts") or []):
+        artifact_data = dict(artifact or {})
+        kind = str(artifact_data.get("kind") or "").strip()
+        if "reconciliation_result" not in kind:
+            continue
+
+        payload = dict(artifact_data.get("payload") or {})
+        reconciliation_result = dict(payload.get("reconciliation_result") or {})
+        matched_operands = [
+            dict(item)
+            for item in (reconciliation_result.get("matched_operands") or [])
+            if isinstance(item, dict)
+        ]
+        matched_operand_seen = False
+        for match_entry in matched_operands:
+            match_surfaces = [
+                str(match_entry.get("label") or ""),
+                str(match_entry.get("concept") or ""),
+                str(match_entry.get("role") or ""),
+            ]
+            if not any(
+                _artifact_text_matches_operand_surface(surface, operand)
+                for surface in match_surfaces
+                if str(surface).strip()
+            ):
+                continue
+            matched_operand_seen = True
+            for candidate_id in list(match_entry.get("candidate_ids") or []):
+                append_candidate_id(candidate_id)
+
+        if matched_operand_seen:
+            continue
+        for evidence_ref in list(artifact_data.get("evidence_refs") or []):
+            append_candidate_id(evidence_ref)
+
+    return candidate_ids
+
+
+def reconciliation_artifact_candidate_ids(state: FinancialAgentState) -> List[str]:
+    candidate_ids: List[str] = []
+    seen: set[str] = set()
+
+    def append_candidate_id(raw_value: Any) -> None:
+        candidate_id = str(raw_value or "").strip()
+        if candidate_id and candidate_id not in seen:
+            seen.add(candidate_id)
+            candidate_ids.append(candidate_id)
+
+    reconciliation_result = dict(state.get("reconciliation_result") or {})
+    for key in ("evidence_refs", "source_evidence_ids"):
+        for evidence_ref in list(reconciliation_result.get(key) or []):
+            append_candidate_id(evidence_ref)
+
+    for artifact in list(state.get("artifacts") or []):
+        artifact_data = dict(artifact or {})
+        kind = str(artifact_data.get("kind") or "").strip()
+        if "reconciliation_result" not in kind:
+            continue
+        for evidence_ref in list(artifact_data.get("evidence_refs") or []):
+            append_candidate_id(evidence_ref)
+        payload = dict(artifact_data.get("payload") or {})
+        artifact_result = dict(payload.get("reconciliation_result") or {})
+        for key in ("evidence_refs", "source_evidence_ids"):
+            for evidence_ref in list(artifact_result.get(key) or []):
+                append_candidate_id(evidence_ref)
+
+    return candidate_ids
+
+
+def reconciliation_evidence_refs(result: Dict[str, Any]) -> List[str]:
+    values: List[Any] = []
+    for item in result.get("matched_operands") or []:
+        if not isinstance(item, dict):
+            continue
+        values.extend(
+            [
+                item.get("candidate_ids"),
+                item.get("candidate_id"),
+                item.get("source_row_ids"),
+                item.get("source_row_id"),
+                item.get("source_evidence_ids"),
+                item.get("source_evidence_id"),
+                item.get("evidence_ids"),
+                item.get("evidence_id"),
+                item.get("row_ids"),
+                item.get("row_id"),
+            ]
+        )
+    refs: List[str] = []
+
+    def _append(value: Any) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for nested in value:
+                _append(nested)
+            return
+        cleaned = str(value).strip()
+        if cleaned and cleaned.lower() not in {"none", "null", "nan"} and cleaned not in refs:
+            refs.append(cleaned)
+
+    _append(values)
+    return refs
+
+
+def next_reflection_task_id(
+    *,
+    tasks: Sequence[Mapping[str, Any]],
+    artifacts: Sequence[Mapping[str, Any]],
+    target_task_id: str,
+    current_count: int,
+) -> str:
+    target = _normalise_spaces(str(target_task_id or "")) or "global"
+    prefix = f"reflection:{target}:"
+    used_indexes: set[int] = set()
+    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)(?::report)?$")
+    for task in tasks or []:
+        if not isinstance(task, Mapping):
+            continue
+        match = pattern.match(str(task.get("task_id") or "").strip())
+        if match:
+            used_indexes.add(int(match.group(1)))
+    for artifact in artifacts or []:
+        if not isinstance(artifact, Mapping):
+            continue
+        for value in (artifact.get("task_id"), artifact.get("artifact_id")):
+            match = pattern.match(str(value or "").strip())
+            if match:
+                used_indexes.add(int(match.group(1)))
+    next_index = max(int(current_count or 0) + 1, 1)
+    while next_index in used_indexes:
+        next_index += 1
+    return f"{prefix}{next_index:03d}"
 
 
 @lru_cache(maxsize=1)
@@ -266,6 +632,176 @@ def calculation_result_artifact_update(
         payload={"calculation_result": result},
         evidence_refs=evidence_refs,
     )
+
+
+def synchronize_calculation_result_artifact(
+    *,
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    task_id: str,
+    calculation_result: Mapping[str, Any],
+    evidence_refs: Sequence[str],
+) -> Dict[str, Any]:
+    """Replace the latest attached result artifact without changing ledger cardinality."""
+
+    task_id = str(task_id or "").strip()
+    task_record = next(
+        (
+            dict(task)
+            for task in reversed(list(tasks or []))
+            if str((task or {}).get("task_id") or "").strip() == task_id
+        ),
+        {},
+    )
+    attached_artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+    result_kind = str(ArtifactKind.CALCULATION_RESULT.value)
+    target_index = -1
+    target_artifact_id = ""
+    for artifact_id in reversed(attached_artifact_ids):
+        for index in range(len(artifacts or []) - 1, -1, -1):
+            artifact = (artifacts or [])[index]
+            if str((artifact or {}).get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str((artifact or {}).get("kind") or "").strip() != result_kind:
+                continue
+            target_index = index
+            target_artifact_id = artifact_id
+            break
+        if target_index >= 0:
+            break
+    if target_index < 0:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+
+    result = dict(calculation_result or {})
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    target_artifact = dict(updated_artifacts[target_index])
+    target_payload = dict(target_artifact.get("payload") or {})
+    target_artifact.update(
+        {
+            "status": str(result.get("status") or target_artifact.get("status") or "ok"),
+            "summary": str(
+                result.get("rendered_value")
+                or result.get("formatted_result")
+                or target_artifact.get("summary")
+                or ""
+            ),
+            "payload": {
+                **target_payload,
+                "calculation_result": result,
+            },
+            "evidence_refs": list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in (evidence_refs or [])
+                    if str(value).strip()
+                )
+            ),
+        }
+    )
+    updated_artifacts[target_index] = target_artifact
+    return {
+        "artifacts": updated_artifacts,
+        "artifact_id": target_artifact_id,
+        "synchronized": True,
+    }
+
+
+def synchronize_operand_set_artifact(
+    *,
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    task_id: str,
+    calculation_operands: Sequence[Mapping[str, Any]],
+    evidence_refs: Sequence[str],
+    status: str = "sufficient",
+    summary: str = "",
+) -> Dict[str, Any]:
+    """Finalize the latest attached operand artifact without changing ledger order."""
+
+    task_id = str(task_id or "").strip()
+    operands = [dict(item) for item in (calculation_operands or []) if isinstance(item, Mapping)]
+    if not task_id or not operands:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+    task_record = next(
+        (
+            dict(task)
+            for task in reversed(list(tasks or []))
+            if str((task or {}).get("task_id") or "").strip() == task_id
+        ),
+        {},
+    )
+    attached_artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+    operand_kind = str(ArtifactKind.OPERAND_SET.value)
+    target_index = -1
+    target_artifact_id = ""
+    for artifact_id in reversed(attached_artifact_ids):
+        for index in range(len(artifacts or []) - 1, -1, -1):
+            artifact = (artifacts or [])[index]
+            if str((artifact or {}).get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str((artifact or {}).get("kind") or "").strip() != operand_kind:
+                continue
+            target_index = index
+            target_artifact_id = artifact_id
+            break
+        if target_index >= 0:
+            break
+    if target_index < 0:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    target_artifact = dict(updated_artifacts[target_index])
+    target_payload = dict(target_artifact.get("payload") or {})
+    target_artifact.update(
+        {
+            "status": str(status or target_artifact.get("status") or "sufficient"),
+            "summary": str(summary or f"{len(operands)} finalized operand(s)"),
+            "payload": {
+                **target_payload,
+                "calculation_operands": operands,
+                "coverage": str(status or target_payload.get("coverage") or "sufficient"),
+            },
+            "evidence_refs": list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in (evidence_refs or [])
+                    if str(value).strip()
+                )
+            ),
+        }
+    )
+    if target_artifact == updated_artifacts[target_index]:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": target_artifact_id,
+            "synchronized": False,
+        }
+    updated_artifacts[target_index] = target_artifact
+    return {
+        "artifacts": updated_artifacts,
+        "artifact_id": target_artifact_id,
+        "synchronized": True,
+    }
 
 
 def semantic_plan_artifact_update(

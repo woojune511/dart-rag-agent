@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 
 if TYPE_CHECKING:
     from src.agent.financial_graph import FinancialAgent
@@ -214,7 +214,7 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
     # This ablation reruns the current graph against a persisted store. It is
     # retrospective in experiment design, but the runtime projection reader is
     # strict because the rows are freshly produced, not historical saved rows.
-    resolved_trace = _resolve_runtime_calculation_trace(
+    resolved_trace = resolve_runtime_calculation_trace(
         state,
         allow_legacy_top_level=False,
     )

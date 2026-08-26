@@ -15,23 +15,30 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from dotenv import load_dotenv
 from src.agent.financial_graph_contextual import FinancialAgentContextualMixin
+from src.agent.financial_agent_run_projection import (
+    augment_citations_from_runtime_evidence,
+    complete_aggregate_public_answer_projection,
+    enrich_runtime_evidence_metadata,
+    public_projection_state,
+    project_agent_answer,
+    project_debug_bundle,
+    project_debug_traces,
+    project_review_trace,
+    structured_result_answer_for_missing_public_answer,
+    with_public_answer,
+)
 from src.agent.financial_graph_state import FinancialAgentState
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import (
-        AgentAnswer,
-        DebugBundle,
-        DebugTraceBundle,
-        ReviewTrace,
         RuntimeCalculationTrace,
     )
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
-from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
-from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
+from src.agent.financial_numeric_surface import answer_covers_numeric_answer, extract_numeric_surface_candidates
+from src.agent.financial_operation_policies import requires_direct_numeric_grounding
+from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 
 logger = logging.getLogger(__name__)
 _ENV_LOADED = False
@@ -51,16 +58,24 @@ def _financial_agent_state_model() -> Any:
 
 
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
+from src.agent.financial_aggregate_projection import (
+    append_final_answer_surface_operands_from_evidence,
+    append_operand_evidence_for_final_answer,
+    filter_aggregate_evidence_for_final_answer,
+    structured_subtask_projection_for_public_answer,
+)
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
-from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+from src.agent.financial_answer_projection import preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
-    _attach_runtime_projection_metadata,
-    _build_aggregate_calculation_projection,
-    _structured_result_subtask_rows_and_answer,
+    attach_runtime_projection_metadata,
+    build_runtime_aggregate_calculation_projection,
+    resolve_runtime_calculation_trace,
+    structured_result_subtask_rows_and_answer,
+    repair_collapsed_ratio_trace_from_evidence,
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
 
@@ -83,131 +98,6 @@ class FinancialAgent(
 
     _SECTION_BIAS_BY_QUERY_TYPE = SECTION_BIAS_BY_QUERY_TYPE
 
-    def _runtime_evidence_defaults(self, final: Dict[str, Any]) -> Dict[str, Any]:
-        report_scope = dict(final.get("report_scope") or {})
-        company = str(report_scope.get("company") or "").strip()
-        if not company:
-            companies = [str(value).strip() for value in (final.get("companies") or []) if str(value).strip()]
-            company = companies[0] if companies else ""
-        year = report_scope.get("year")
-        if year in (None, ""):
-            years = list(final.get("years") or [])
-            year = years[0] if years else None
-        return {"company": company, "year": year}
-
-    def _compact_runtime_evidence_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Keep caller-facing evidence metadata small while preserving routing signals."""
-        compacted = dict(metadata or {})
-        dropped_fields: list[str] = []
-        always_drop = {"table_object_json", "table_value_records_json"}
-        max_field_chars = 4_000
-        max_structured_row_chars = 20_000
-        for key in list(compacted):
-            value = compacted.get(key)
-            value_text = str(value or "")
-            if key in always_drop:
-                compacted.pop(key, None)
-                dropped_fields.append(key)
-                continue
-            if key == "table_row_records_json":
-                if len(value_text) > max_structured_row_chars:
-                    compacted.pop(key, None)
-                    dropped_fields.append(key)
-                continue
-            if len(value_text) > max_field_chars:
-                compacted.pop(key, None)
-                dropped_fields.append(key)
-        if dropped_fields:
-            compacted["metadata_compacted_fields"] = sorted(set(dropped_fields))
-        return compacted
-
-    def _enrich_runtime_evidence_metadata(
-        self,
-        final: Dict[str, Any],
-        evidence_items: list[Dict[str, Any]],
-    ) -> list[Dict[str, Any]]:
-        defaults = self._runtime_evidence_defaults(final)
-        enriched: list[Dict[str, Any]] = []
-        for item in list(evidence_items or []):
-            row = dict(item or {})
-            metadata = dict(row.get("metadata") or {})
-            if defaults.get("company") and not metadata.get("company"):
-                metadata["company"] = defaults["company"]
-            if defaults.get("year") not in (None, "") and not metadata.get("year"):
-                metadata["year"] = defaults["year"]
-            if not str(row.get("source_anchor") or "").strip():
-                anchor = (
-                    metadata.get("source_anchor")
-                    or metadata.get("section_path")
-                    or metadata.get("section_title")
-                    or metadata.get("section")
-                )
-                if anchor:
-                    row["source_anchor"] = _normalise_spaces(str(anchor))
-            row["metadata"] = self._compact_runtime_evidence_metadata(metadata)
-            enriched.append(row)
-        return enriched
-
-    def _project_debug_traces(self, final: Dict[str, Any]) -> DebugTraceBundle:
-        return {"calculation": dict(final.get(CALCULATION_DEBUG_TRACE_FIELD) or {})}
-
-    def _project_agent_answer(
-        self,
-        final: Dict[str, Any],
-        *,
-        public_answer: str,
-        citations: list[str],
-        structured_result: Dict[str, Any],
-        runtime_calculation_trace: RuntimeCalculationTrace,
-    ) -> AgentAnswer:
-        return {
-            "query": final["query"],
-            "report_scope": final.get("report_scope", {}),
-            "query_type": final["query_type"],
-            "intent": final.get("intent", final["query_type"]),
-            "planner_mode": final.get("planner_mode", "initial"),
-            "planner_feedback": final.get("planner_feedback", ""),
-            "plan_loop_count": final.get("plan_loop_count", 0),
-            "target_metric_family": final.get("target_metric_family", ""),
-            "target_metric_family_hint": final.get(
-                "target_metric_family_hint",
-                final.get("target_metric_family", ""),
-            ),
-            "planned_metric_families": final.get("planned_metric_families", []),
-            "format_preference": final.get("format_preference", ""),
-            "routing_source": final.get("routing_source", ""),
-            "routing_confidence": final.get("routing_confidence", 0.0),
-            "routing_scores": final.get("routing_scores", {}),
-            "companies": final["companies"],
-            "years": final["years"],
-            "answer": public_answer,
-            "citations": citations,
-            "resolved_calculation_trace": runtime_calculation_trace,
-            "structured_result": structured_result,
-        }
-
-    def _structured_result_answer_for_missing_public_answer(
-        self,
-        public_answer: str,
-        structured_result: Dict[str, Any],
-    ) -> str:
-        answer_text = _normalise_spaces(str(public_answer or ""))
-        _, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
-        if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
-            return ""
-        missing_markers = tuple(
-            str(item)
-            for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
-            if str(item)
-        )
-        if not missing_markers:
-            return ""
-        if any(marker in answer_text for marker in missing_markers) and not any(
-            marker in structured_answer for marker in missing_markers
-        ):
-            return structured_answer
-        return ""
-
     def _structured_result_projection_for_stale_public_numeric_answer(
         self,
         final: Dict[str, Any],
@@ -216,10 +106,10 @@ class FinancialAgent(
         structured_result: Dict[str, Any],
         evidence_items: list[Dict[str, Any]],
     ) -> tuple[str, RuntimeCalculationTrace]:
-        subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+        subtask_results, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
         if not subtask_results:
             return "", {}
-        preferred_complete_answer = _preferred_complete_aggregate_subtask_answer(
+        preferred_complete_answer = preferred_complete_aggregate_subtask_answer(
             subtask_results,
             structured_answer or public_answer,
         )
@@ -233,16 +123,16 @@ class FinancialAgent(
         )
         if not replacement_answer:
             return "", {}
-        if self._answer_covers_numeric_answer(public_answer, replacement_answer) and self._answer_covers_numeric_answer(
+        if answer_covers_numeric_answer(public_answer, replacement_answer) and answer_covers_numeric_answer(
             replacement_answer,
             public_answer,
         ):
             return "", {}
-        projection = _build_aggregate_calculation_projection(subtask_results, replacement_answer)
+        projection = build_runtime_aggregate_calculation_projection(subtask_results, replacement_answer)
         projection_result = dict(projection.get("calculation_result") or {})
         if not projection_result.get("subtask_results"):
             return "", {}
-        projection = _attach_runtime_projection_metadata(
+        projection = attach_runtime_projection_metadata(
             projection,
             source="structured_result_subtasks",
         )
@@ -251,37 +141,6 @@ class FinancialAgent(
             "public_answer_repaired": True,
         }
         return replacement_answer, projection
-
-    def _complete_aggregate_public_answer_projection(
-        self,
-        *,
-        subtask_results: list[Dict[str, Any]],
-        base_answer: str,
-        public_answer: str,
-    ) -> tuple[str, RuntimeCalculationTrace]:
-        complete_answer = _preferred_complete_aggregate_subtask_answer(
-            subtask_results,
-            base_answer or public_answer,
-        )
-        if not complete_answer:
-            return "", {}
-        projection = _build_aggregate_calculation_projection(
-            subtask_results,
-            complete_answer,
-        )
-        projection_result = dict(projection.get("calculation_result") or {})
-        if not projection_result.get("subtask_results"):
-            return complete_answer, {}
-        projection = _attach_runtime_projection_metadata(
-            projection,
-            source="structured_result_subtasks",
-        )
-        projection["runtime_projection"] = {
-            **dict(projection.get("runtime_projection") or {}),
-            "public_answer_repaired": True,
-            "complete_aggregate_answer_selected": True,
-        }
-        return complete_answer, projection
 
     def _apply_stale_structured_numeric_public_answer_repair(
         self,
@@ -304,7 +163,7 @@ class FinancialAgent(
             return public_answer, final, runtime_calculation_trace
         return (
             structured_numeric_answer,
-            self._with_public_answer(final, structured_numeric_answer),
+            with_public_answer(final, structured_numeric_answer),
             structured_numeric_projection,
         )
 
@@ -318,18 +177,18 @@ class FinancialAgent(
         runtime_evidence: list[Dict[str, Any]],
     ) -> RuntimeCalculationTrace:
         projection_state = {
-            **self._with_public_answer(final, public_answer),
+            **with_public_answer(final, public_answer),
             "structured_result": structured_result,
             "resolved_calculation_trace": runtime_calculation_trace,
         }
-        structured_public_projection = self._structured_subtask_projection_for_public_answer(
+        structured_public_projection = structured_subtask_projection_for_public_answer(
             projection_state,
             runtime_calculation_trace,
         )
         if not structured_public_projection:
             return {}
-        return self._repair_collapsed_ratio_trace_from_evidence(
-            self._public_projection_state(
+        return repair_collapsed_ratio_trace_from_evidence(
+            public_projection_state(
                 final,
                 public_answer=public_answer,
                 runtime_calculation_trace=structured_public_projection,
@@ -368,109 +227,15 @@ class FinancialAgent(
                         or ""
                     )
                 )
-                if not row_answer or not self._answer_covers_numeric_answer(answer_text, row_answer):
+                if not row_answer or not answer_covers_numeric_answer(answer_text, row_answer):
                     continue
             projection = self._rebuild_aggregate_projection([row], answer_text)
-            projection = _attach_runtime_projection_metadata(
+            projection = attach_runtime_projection_metadata(
                 projection,
                 source="retrieved_ratio_context",
             )
             return projection
         return {}
-
-    def _project_review_trace(
-        self,
-        final: Dict[str, Any],
-        *,
-        runtime_evidence: list[Dict[str, Any]],
-        task_artifact_trace: Dict[str, Any],
-    ) -> ReviewTrace:
-        return {
-            "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
-            "retrieved_docs": final["retrieved_docs"],
-            "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),
-            "retrieval_debug_trace_history": final.get("retrieval_debug_trace_history", []),
-            "evidence_items": runtime_evidence,
-            "selected_claim_ids": final.get("selected_claim_ids", []),
-            "draft_points": final.get("draft_points", []),
-            "kept_claim_ids": final.get("kept_claim_ids", []),
-            "dropped_claim_ids": final.get("dropped_claim_ids", []),
-            "unsupported_sentences": final.get("unsupported_sentences", []),
-            "sentence_checks": final.get("sentence_checks", []),
-            "numeric_debug_trace": final.get("numeric_debug_trace", {}),
-            "numeric_debug_trace_history": final.get("numeric_debug_trace_history", []),
-            "planner_debug_trace": final.get("planner_debug_trace", {}),
-            "missing_info": final.get("missing_info", []),
-            "reflection_count": final.get("reflection_count", 0),
-            "retry_reason": final.get("retry_reason", ""),
-            "retry_strategy": final.get("retry_strategy", ""),
-            "retry_queries": final.get("retry_queries", []),
-            "reconciliation_retry_count": final.get("reconciliation_retry_count", 0),
-            "reflection_plan": final.get("reflection_plan", {}),
-            "reflection_request": final.get("reflection_request", {}),
-            "reflection_action": final.get("reflection_action", {}),
-            "reflection_report": final.get("reflection_report", {}),
-            "semantic_plan": final.get("semantic_plan", {}),
-            "calc_subtasks": final.get("calc_subtasks", []),
-            "retrieval_queries": final.get("retrieval_queries", []),
-            "active_subtask_index": final.get("active_subtask_index", 0),
-            "active_subtask": final.get("active_subtask", {}),
-            "subtask_results": final.get("subtask_results", []),
-            "subtask_debug_trace": final.get("subtask_debug_trace", {}),
-            "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
-            "reconciliation_result": final.get("reconciliation_result", {}),
-            "tasks": final.get("tasks", []),
-            "artifacts": final.get("artifacts", []),
-            "task_artifact_trace": task_artifact_trace,
-        }
-
-    def _project_debug_bundle(
-        self,
-        *,
-        debug_traces: DebugTraceBundle,
-        llm_usage: Dict[str, Any],
-        llm_usage_by_phase: Dict[str, Any],
-        embedding_usage: Dict[str, Any],
-    ) -> DebugBundle:
-        return {
-            "debug_traces": debug_traces,
-            "llm_usage": llm_usage,
-            "llm_usage_by_phase": llm_usage_by_phase,
-            "embedding_usage": embedding_usage,
-        }
-
-    def _augment_citations_from_runtime_evidence(
-        self,
-        citations: list[str],
-        runtime_evidence: list[Dict[str, Any]],
-    ) -> list[str]:
-        updated = [str(item).strip() for item in (citations or []) if str(item).strip()]
-        seen = {_normalise_spaces(item).lower() for item in updated}
-        for item in list(runtime_evidence or []):
-            row = dict(item or {})
-            metadata = dict(row.get("metadata") or {})
-            anchor = _normalise_spaces(
-                str(
-                    row.get("source_anchor")
-                    or metadata.get("source_anchor")
-                    or metadata.get("section_path")
-                    or metadata.get("section")
-                    or ""
-                )
-            )
-            if not anchor:
-                continue
-            company = str(metadata.get("company") or "").strip()
-            year = str(metadata.get("year") or "").strip()
-            citation = anchor
-            if (company or year) and not anchor.startswith("["):
-                citation = "[{}]".format(" | ".join(part for part in (company, year, anchor) if part))
-            key = _normalise_spaces(citation).lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            updated.append(citation)
-        return updated
 
     def _runtime_evidence_from_retrieved_docs(self, final: Dict[str, Any]) -> list[Dict[str, Any]]:
         """Preserve numeric provenance when a non-calculation path produced the final answer."""
@@ -480,18 +245,18 @@ class FinancialAgent(
         if answer_candidates:
             projection = self._project_runtime_calculation_trace(final)
             operands = list((projection or {}).get("calculation_operands") or [])
-            evidence_items = self._append_operand_evidence_for_final_answer(
+            evidence_items = append_operand_evidence_for_final_answer(
                 existing,
                 operands=operands,
                 final_answer=final_answer,
             )
-            filtered = self._filter_aggregate_evidence_for_final_answer(
+            filtered = filter_aggregate_evidence_for_final_answer(
                 evidence_items,
                 final_answer=final_answer,
                 selected_claim_ids=list(final.get("selected_claim_ids") or []),
             )[:8]
             if filtered:
-                return self._enrich_runtime_evidence_metadata(final, filtered)
+                return enrich_runtime_evidence_metadata(final, filtered)
         if existing:
             selected_ids = [
                 str(value).strip()
@@ -506,8 +271,8 @@ class FinancialAgent(
                     if str(item.get("evidence_id") or "").strip() in wanted
                 ]
                 if selected_existing:
-                    return self._enrich_runtime_evidence_metadata(final, selected_existing)
-            return self._enrich_runtime_evidence_metadata(final, existing)
+                    return enrich_runtime_evidence_metadata(final, selected_existing)
+            return enrich_runtime_evidence_metadata(final, existing)
         if not final_answer or not answer_candidates:
             return []
 
@@ -555,12 +320,12 @@ class FinancialAgent(
 
         if not evidence_items:
             return []
-        filtered = self._filter_aggregate_evidence_for_final_answer(
+        filtered = filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=final_answer,
             selected_claim_ids=[],
         )[:8]
-        return self._enrich_runtime_evidence_metadata(final, filtered)
+        return enrich_runtime_evidence_metadata(final, filtered)
 
     def __init__(
         self,
@@ -698,6 +463,147 @@ class FinancialAgent(
             raise ValueError(f"LLM route '{phase}' is not initialized.")
         return llm
 
+    def _active_retry_strategy(self, state: FinancialAgentState) -> str:
+        for candidate in (
+            state.get("retry_strategy"),
+            dict(state.get("reconciliation_result") or {}).get("retry_strategy"),
+            dict(state.get("reflection_plan") or {}).get("retry_strategy"),
+        ):
+            cleaned = _normalise_spaces(str(candidate or "")).lower()
+            if cleaned:
+                return cleaned
+        return ""
+
+    def _is_reflection_eligible(self, state: FinancialAgentState) -> bool:
+        intent = state.get("intent") or state.get("query_type", "qa")
+        return intent in {"comparison", "trend"}
+
+    def _route_after_prepare_retry(self, state: FinancialAgentState) -> str:
+        if self._active_retry_strategy(state) == "synthesize_from_task_outputs":
+            return "operand_extractor"
+        return "retrieve"
+
+    def _route_after_expand(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
+            return "evidence"
+        if list(state.get("calc_subtasks") or []):
+            if active_operation in {"lookup", "single_value"}:
+                return "numeric_extractor"
+            return "evidence"
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent == "numeric_fact":
+            return "numeric_extractor"
+        return "evidence"
+
+    def _route_after_numeric_extractor(self, state: FinancialAgentState) -> str:
+        if list(state.get("calc_subtasks") or []):
+            active_subtask = dict(state.get("active_subtask") or {})
+            active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+            evidence_status = str(state.get("evidence_status") or "").strip().lower()
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if active_operation in {"lookup", "single_value"} and evidence_status == "missing" and has_retrieved_docs:
+                return "reconcile_plan"
+            return "advance_subtask"
+        return "cite"
+
+    def _route_after_evidence(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
+            return "compress"
+        if list(state.get("calc_subtasks") or []):
+            return "reconcile_plan"
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent in {"comparison", "trend"}:
+            return "reconcile_plan"
+        return "compress"
+
+    def _route_after_reconcile_plan(self, state: FinancialAgentState) -> str:
+        result = dict(state.get("reconciliation_result") or {})
+        status = str(result.get("status") or "ready")
+        retry_strategy = _normalise_spaces(str(result.get("retry_strategy") or "")).lower()
+        if status == "ready":
+            return "operand_extractor"
+        if retry_strategy == "synthesize_from_task_outputs":
+            return "operand_extractor"
+        if status == "retry_retrieval":
+            return "retrieve"
+        if status == "insufficient_operands":
+            active_subtask = dict(state.get("active_subtask") or {})
+            required_operands = [
+                item
+                for item in (active_subtask.get("required_operands") or [])
+                if isinstance(item, dict) and bool(item.get("required", True))
+            ]
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if required_operands and has_retrieved_docs and not requires_direct_numeric_grounding(active_subtask):
+                return "operand_extractor"
+        return "advance_subtask"
+
+    def _route_after_advance_subtask(self, state: FinancialAgentState) -> str:
+        if bool(state.get("subtask_loop_complete")):
+            return "aggregate_subtasks"
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation in {"lookup", "single_value", "narrative_summary"}:
+            return "retrieve"
+        return "reconcile_plan"
+
+    def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
+        semantic_status = _normalise_spaces(
+            str((state.get("semantic_plan") or {}).get("status") or "")
+        ).lower()
+        if semantic_status == "narrative_policy_exclusive":
+            return "cite"
+        planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
+        if (
+            planner_feedback
+            and int(state.get("plan_loop_count") or 0) < 2
+            and not _normalise_spaces(str(state.get("replan_blocked_reason") or ""))
+        ):
+            return "pre_calc_planner"
+        return "cite"
+
+    def _route_after_validate(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and list(state.get("calc_subtasks") or []):
+            return "advance_subtask"
+        return "cite"
+
+    def _route_after_formula_planner(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calculator"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calculator"
+        plan = dict(
+            resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_plan") or {}
+        )
+        status = str(plan.get("status") or "ok").lower()
+        if status == "incomplete":
+            return "reflection_replan"
+        return "calculator"
+
+    def _route_after_calculator(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calc_render"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calc_render"
+        result = dict(
+            resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_result") or {}
+        )
+        status = str(result.get("status") or "")
+        if status in {"insufficient_operands", "parse_error"}:
+            return "reflection_replan"
+        return "calc_render"
+
     def _build_graph(self):
         """Wire the LangGraph state machine.
 
@@ -805,24 +711,6 @@ class FinancialAgent(
 
         return graph.compile()
 
-    def _public_projection_state(
-        self,
-        final: Dict[str, Any],
-        *,
-        public_answer: str,
-        runtime_calculation_trace: RuntimeCalculationTrace,
-        runtime_evidence: Optional[list[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
-        projection_state = self._with_public_answer(final, public_answer)
-        projection_state["resolved_calculation_trace"] = runtime_calculation_trace
-        if runtime_evidence is not None:
-            projection_state["runtime_evidence"] = runtime_evidence
-            projection_state["evidence_items"] = [
-                *list(final.get("evidence_items") or []),
-                *list(runtime_evidence or []),
-            ]
-        return projection_state
-
     def _repair_public_runtime_calculation_trace(
         self,
         final: Dict[str, Any],
@@ -831,13 +719,13 @@ class FinancialAgent(
         public_answer: str,
         runtime_evidence: Optional[list[Dict[str, Any]]] = None,
     ) -> RuntimeCalculationTrace:
-        projection_state = self._public_projection_state(
+        projection_state = public_projection_state(
             final,
             public_answer=public_answer,
             runtime_calculation_trace=runtime_calculation_trace,
             runtime_evidence=runtime_evidence,
         )
-        repaired = self._repair_collapsed_ratio_trace_from_evidence(
+        repaired = repair_collapsed_ratio_trace_from_evidence(
             projection_state,
             runtime_calculation_trace,
         )
@@ -845,13 +733,6 @@ class FinancialAgent(
             projection_state,
             repaired,
         )
-
-    def _with_public_answer(self, state: Dict[str, Any], public_answer: str) -> Dict[str, Any]:
-        return {
-            **dict(state),
-            "answer": public_answer,
-            "compressed_answer": public_answer,
-        }
 
     def run(self, query: str, *, report_scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Execute the graph and return a stable caller-facing payload."""
@@ -936,7 +817,7 @@ class FinancialAgent(
             public_answer=public_answer,
         )
         runtime_numeric_answer = self._late_runtime_numeric_answer(
-            self._public_projection_state(
+            public_projection_state(
                 final,
                 public_answer=public_answer,
                 runtime_calculation_trace=runtime_calculation_trace,
@@ -945,7 +826,7 @@ class FinancialAgent(
         )
         if runtime_numeric_answer:
             public_answer = runtime_numeric_answer
-        final_for_evidence = self._with_public_answer(final, public_answer)
+        final_for_evidence = with_public_answer(final, public_answer)
         runtime_evidence = self._runtime_evidence_from_retrieved_docs(final_for_evidence)
         runtime_calculation_trace = self._repair_public_runtime_calculation_trace(
             final_for_evidence,
@@ -954,7 +835,7 @@ class FinancialAgent(
             runtime_evidence=runtime_evidence,
         )
         runtime_numeric_answer = self._late_runtime_numeric_answer(
-            self._public_projection_state(
+            public_projection_state(
                 final_for_evidence,
                 public_answer=public_answer,
                 runtime_calculation_trace=runtime_calculation_trace,
@@ -964,17 +845,17 @@ class FinancialAgent(
         )
         if runtime_numeric_answer:
             public_answer = runtime_numeric_answer
-            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
+            final_for_evidence = with_public_answer(final_for_evidence, public_answer)
         structured_result = dict(
             final.get("structured_result")
             or runtime_calculation_trace.get("calculation_result")
             or {}
         )
-        structured_subtask_results, structured_base_answer = _structured_result_subtask_rows_and_answer(
+        structured_subtask_results, structured_base_answer = structured_result_subtask_rows_and_answer(
             structured_result
         )
         complete_aggregate_answer, complete_aggregate_projection = (
-            self._complete_aggregate_public_answer_projection(
+            complete_aggregate_public_answer_projection(
                 subtask_results=structured_subtask_results,
                 base_answer=structured_base_answer,
                 public_answer=public_answer,
@@ -982,13 +863,13 @@ class FinancialAgent(
         )
         if complete_aggregate_answer:
             public_answer = complete_aggregate_answer
-            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
+            final_for_evidence = with_public_answer(final_for_evidence, public_answer)
             if complete_aggregate_projection:
                 runtime_calculation_trace = complete_aggregate_projection
-        structured_answer = self._structured_result_answer_for_missing_public_answer(public_answer, structured_result)
+        structured_answer = structured_result_answer_for_missing_public_answer(public_answer, structured_result)
         if structured_answer:
             public_answer = structured_answer
-            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
+            final_for_evidence = with_public_answer(final_for_evidence, public_answer)
         public_answer, final_for_evidence, runtime_calculation_trace = (
             self._apply_stale_structured_numeric_public_answer_repair(
                 final_for_evidence,
@@ -1013,7 +894,7 @@ class FinancialAgent(
         )
         if retrieved_ratio_projection:
             runtime_calculation_trace = retrieved_ratio_projection
-        runtime_calculation_trace = self._append_final_answer_surface_operands_from_evidence(
+        runtime_calculation_trace = append_final_answer_surface_operands_from_evidence(
             runtime_calculation_trace,
             [
                 *list(final_for_evidence.get("evidence_items") or []),
@@ -1021,25 +902,25 @@ class FinancialAgent(
             ],
             final_answer=public_answer,
         )
-        debug_traces = self._project_debug_traces(final)
-        citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
+        debug_traces = project_debug_traces(final)
+        citations = augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         task_artifact_trace = _project_task_artifact_trace(
             final.get("tasks", []),
             final.get("artifacts", []),
         )
-        agent_answer = self._project_agent_answer(
+        agent_answer = project_agent_answer(
             final,
             public_answer=public_answer,
             citations=citations,
             structured_result=structured_result,
             runtime_calculation_trace=runtime_calculation_trace,
         )
-        review_trace = self._project_review_trace(
+        review_trace = project_review_trace(
             final,
             runtime_evidence=runtime_evidence,
             task_artifact_trace=task_artifact_trace,
         )
-        debug_bundle = self._project_debug_bundle(
+        debug_bundle = project_debug_bundle(
             debug_traces=debug_traces,
             llm_usage=llm_usage,
             llm_usage_by_phase=llm_usage_by_phase,

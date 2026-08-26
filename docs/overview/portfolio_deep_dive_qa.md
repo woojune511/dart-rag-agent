@@ -45,8 +45,9 @@ systems engineering입니다.
 - reviewer가 lightweight command로 readiness와 trace surface를 확인할 수
   있게 했다.
 
-최신 expanded structural store-fixed replay는 `9 / 9` numeric PASS지만, 이건
-프로젝트의 현재 gate evidence이지 일반 TableQA 성능 주장으로 말하지 않습니다.
+최신 기록 expanded structural store-fixed replay는 `9 / 9` numeric PASS지만,
+raw artifact는 repository에 공개되어 있지 않습니다. 따라서 현재 checkout에서
+독립 재현된 결과나 일반 TableQA 성능 주장으로 말하지 않습니다.
 
 ## 2. Problem And Failure Modes
 
@@ -198,13 +199,13 @@ prefix, row/header context를 evidence state에 남깁니다.
 
 ### Q15. plain retrieval `5 / 9`와 structural `9 / 9`를 어떻게 설명해야 하나?
 
-최신 structural replay는 `9 / 9` numeric PASS입니다. 가장 최근 plain retrieval
-comparison은 `5 / 9`이고, PR #78 이후 같은 코드 상태로 다시 rerun한 것은
-아닙니다.
+최신 기록 structural replay는 `9 / 9` numeric PASS입니다. raw artifact는
+repository에 공개되어 있지 않습니다. 가장 최근 plain retrieval comparison은
+`5 / 9`이고, PR #78 이후 같은 코드 상태로 다시 rerun한 것은 아닙니다.
 
 따라서 이렇게 말해야 합니다:
 
-- structural `9 / 9`는 현재 structural quality gate다.
+- structural `9 / 9`는 최신 기록 structural 결과다.
 - plain `5 / 9`는 diagnostic baseline evidence다.
 - 이 비교로 broad leaderboard를 주장하지 않는다.
 - plain failure는 display/unit, denominator, row-binding failure taxonomy를
@@ -360,11 +361,14 @@ current code path로 agent answer generation과 evaluator를 다시 실행합니
 
 면접에서는 이렇게 말하면 됩니다.
 
-- latest expanded structural store-fixed eval-only: `9 / 9` numeric PASS
-- full unittest discovery: `1345` tests OK at the PR #78 validation point
-- runtime domain-term audit: passed with `215` reviewed literals
-- `portfolio_demo`: `Readiness: ready`
-- `portfolio_review_gates`: aggregate `Status: ready`
+- latest recorded expanded structural store-fixed eval-only: `9 / 9` numeric
+  PASS; the named raw bundle and heartbeat are not present in this checkout
+- current full unittest and domain-audit counts: use
+  [project_status.md](project_status.md) as the single source of truth
+- `portfolio_demo`: `fixture_contract_ready` for the SHA-256-bound curated
+  fixture; upstream lineage is `not_provided`
+- `portfolio_review_gates`: `review_surface_ready`; publication checks are
+  intentionally separate
 
 숫자는 "그 시점의 gate evidence"로 말하고, SOTA claim처럼 말하지 않습니다.
 
@@ -479,7 +483,9 @@ LLM/RAG 시스템에서는 "보이는 답"과 "downstream이 읽는 contract"가
 단순히 RAG 앱을 만든 것이 아니라, 금융 RAG에서 실제로 문제가 되는 wrong row,
 wrong unit, stale trace, provenance overwrite 같은 failure를 runtime contract로
 정의하고 검증했습니다. 코드, 테스트, benchmark gate, reviewer command, 방법론
-문서까지 남아 있어 결과를 재현하고 검토할 수 있습니다.
+문서까지 남아 있어 현재 contract surface를 검토할 수 있습니다. 다만 기록된
+benchmark 결과의 raw artifact는 repository에 모두 공개되어 있지 않으므로,
+그 실행 자체를 reviewer command가 재현한다고 주장하지 않습니다.
 
 ### "가장 기술적으로 깊은 부분은?"
 
@@ -491,15 +497,15 @@ wrong unit, stale trace, provenance overwrite 같은 failure를 runtime contract
 
 ### "리팩터링보다 면접 준비를 선택한 이유는?"
 
-현재 gate는 닫혔고 reviewer commands도 통과했습니다. 추가 리팩터링은 regression
-risk가 있고 포트폴리오 가치가 제한적입니다. 반면 면접에서는 왜 이 구조가
-필요했는지, 어떤 failure를 어떻게 일반화해서 고쳤는지 설명하는 능력이 더
-중요합니다.
+최신 기록 benchmark residual은 닫혔고 scoped reviewer commands도
+통과했습니다. 추가 리팩터링은 regression risk가 있고 포트폴리오 가치가
+제한적입니다. 반면 면접에서는 왜 이 구조가 필요했는지, 어떤 failure를 어떻게
+일반화해서 고쳤는지 설명하는 능력이 더 중요합니다.
 
 ### "한계까지 포함해서 솔직하게 말하면?"
 
 이 프로젝트는 broad TableQA benchmark가 아니라 DART financial numeric RAG의
-contract-driven runtime 실험입니다. 최신 structural gate는 `9 / 9` PASS지만,
-dataset size는 제한적이고 plain comparison은 PR #78 이후 동기화 rerun이
-아닙니다. 그래서 결과를 leaderboard가 아니라 failure taxonomy와 engineering
-methodology evidence로 제시합니다.
+contract-driven runtime 실험입니다. 최신 기록 structural 결과는 `9 / 9`
+PASS지만, raw artifact는 공개되어 있지 않고 dataset size도 제한적이며 plain
+comparison은 PR #78 이후 동기화 rerun이 아닙니다. 그래서 결과를 leaderboard가
+아니라 failure taxonomy와 engineering methodology evidence로 제시합니다.

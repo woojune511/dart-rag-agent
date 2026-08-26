@@ -21,13 +21,19 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 
 
 def _compute_calculation_correctness(*args: Any, **kwargs: Any) -> Any:
     from src.ops.evaluator import _compute_calculation_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_grounded_rendering_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_grounded_rendering_correctness as impl
 
     return impl(*args, **kwargs)
 
@@ -58,6 +64,12 @@ def _compute_operand_selection_correctness(*args: Any, **kwargs: Any) -> Any:
 
 def _compute_unit_consistency_pass(*args: Any, **kwargs: Any) -> Any:
     from src.ops.evaluator import _compute_unit_consistency_pass as impl
+
+    return impl(*args, **kwargs)
+
+
+def _resolve_evaluator_operands(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_evaluator_operands as impl
 
     return impl(*args, **kwargs)
 
@@ -113,6 +125,7 @@ def _aggregate_replayed(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "operand_selection_correctness": avg("operand_selection_correctness"),
         "unit_consistency_pass": avg("unit_consistency_pass"),
         "numeric_result_correctness": avg("numeric_result_correctness"),
+        "grounded_rendering_correctness": avg("grounded_rendering_correctness"),
         "calculation_correctness": avg("calculation_correctness"),
     }
 
@@ -153,6 +166,10 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
     calculation_operands = list(resolved_trace.get("calculation_operands") or [])
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_result = dict(resolved_trace.get("calculation_result") or {})
+    calculation_operands = _resolve_evaluator_operands(
+        calculation_operands=calculation_operands,
+        calculation_result=calculation_result,
+    )
     runtime_evidence = list(row.get("runtime_evidence") or [])
     contexts = []
     for evidence in runtime_evidence:
@@ -194,10 +211,15 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         calculation_operands=calculation_operands,
         calculation_plan=calculation_plan,
     )
+    grounded_rendering_correctness, grounded_rendering_reason = _compute_grounded_rendering_correctness(
+        answer=str(row.get("answer") or ""),
+        calculation_operands=calculation_operands,
+        calculation_result=calculation_result,
+        runtime_evidence=runtime_evidence,
+    )
     calculation_correctness = _compute_calculation_correctness(
         numeric_result_correctness=numeric_result_correctness,
-        trend_interpretation_correctness=row.get("trend_interpretation_correctness"),
-        grounded_rendering_correctness=row.get("grounded_rendering_correctness"),
+        grounded_rendering_correctness=grounded_rendering_correctness,
     )
     return {
         "id": question_id,
@@ -212,11 +234,14 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         "operand_selection_correctness": operand_selection_correctness,
         "unit_consistency_pass": unit_consistency_pass,
         "numeric_result_correctness": numeric_result_correctness,
+        "source_grounded_rendering_correctness": row.get("grounded_rendering_correctness"),
+        "grounded_rendering_correctness": grounded_rendering_correctness,
         "calculation_correctness": calculation_correctness,
         "source_warnings": _source_row_warnings(row),
         "debug": {
             "numeric_equivalence": equivalence_debug,
             "operand_grounding": operand_grounding_debug,
+            "grounded_rendering_reason": grounded_rendering_reason,
             "source_numeric_debug": row.get("numeric_debug") or {},
         },
     }
@@ -246,6 +271,8 @@ def _write_outputs(output_dir: Path, rows: List[Dict[str, Any]], source_results:
                 "operand_selection_correctness",
                 "unit_consistency_pass",
                 "numeric_result_correctness",
+                "source_grounded_rendering_correctness",
+                "grounded_rendering_correctness",
                 "calculation_correctness",
                 "source_warnings",
             ],

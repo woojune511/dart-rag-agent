@@ -1,7 +1,9 @@
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -13,8 +15,9 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import OperandExtraction
 
 
@@ -125,12 +128,29 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
+        state_before = deepcopy(state)
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_required_operand_candidate_merge",
+            wraps=financial_graph_calculation.resolve_required_operand_candidate_merge,
+        ) as resolve_candidate_merge:
+            result = self.agent._extract_calculation_operands(state)
+        rows = list(resolve_runtime_calculation_trace(result)["calculation_operands"])
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(resolve_candidate_merge.call_count, 1)
+        self.assertEqual(
+            [row["evidence_id"] for row in resolve_candidate_merge.call_args.args[0].candidate_operand_rows],
+            ["ev_operand_doc_001"] * 2,
+        )
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
         self.assertEqual([row["raw_unit"] for row in rows], ["\ub9cc \ub300", "\ub9cc \ub300"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["ev_operand_doc_001"] * 2)
+        self.assertEqual(
+            [row["matched_operand_role"] for row in rows],
+            ["current_period", "prior_period"],
+        )
         self.assertTrue(
             any(
                 item.get("metadata", {}).get("chunk_uid") == "chunk_required_operands"
@@ -234,7 +254,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(result)["calculation_operands"])
 
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
@@ -339,7 +359,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(result)["calculation_operands"])
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(rows), 2)
@@ -1099,11 +1119,58 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(result)
+        state_before = deepcopy(state)
+        adoption_events = []
+        original_adoption = financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption
 
+        def record_adoption(adoption_input):
+            adoption_result = original_adoption(adoption_input)
+            adoption_events.append((adoption_input, adoption_result))
+            return adoption_result
+
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            side_effect=record_adoption,
+        ) as resolve_preferred_slot:
+            result = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(result)
+        acceptance_input = resolve_direct_acceptance.call_args.args[0]
+
+        self.assertEqual(state, state_before)
+        self.assertEqual(resolve_direct_acceptance.call_count, 1)
+        resolve_preferred_slot.assert_called_once()
+        adoption_input, adoption_result = adoption_events[0]
+        self.assertEqual(
+            (
+                adoption_input.operation_family,
+                adoption_input.current_operand_row["source_row_id"],
+                adoption_input.preferred_slot["source_row_id"],
+                adoption_result.reason,
+                adoption_result.preferred_slot_adopted,
+            ),
+            (
+                "lookup",
+                "chunk_lookup_direct::value:0",
+                "recon::chunk_lookup_direct::value:0",
+                "preferred_slot_selected",
+                True,
+            ),
+        )
+        self.assertEqual(acceptance_input.ambiguity_active_subtask, state["active_subtask"])
+        self.assertNotIn("direct_target_metric_lookup_preferred", acceptance_input.ambiguity_active_subtask)
+        self.assertEqual(acceptance_input.ambiguity_query, state["query"])
+        self.assertEqual(
+            [row["evidence_id"] for row in acceptance_input.direct_operand_rows],
+            ["chunk_lookup_direct::value:0"],
+        )
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["evidence_id"], "chunk_lookup_direct::value:0")
         self.assertEqual(trace["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
 
     def test_lookup_direct_acceptance_rejects_evidence_row_and_uses_structured_value(self) -> None:
@@ -1197,7 +1264,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -1266,9 +1333,20 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(result)
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            wraps=financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption,
+        ) as resolve_preferred_slot:
+            result = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(result)
 
+        resolve_direct_acceptance.assert_not_called()
+        resolve_preferred_slot.assert_not_called()
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(result["calculation_debug_trace"]["coverage"], "missing")
 
@@ -1740,7 +1818,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         finally:
             ontology_module._ONTOLOGY_SINGLETON = original_singleton
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = dict(trace["calculation_plan"])
         self.assertEqual(plan.get("status"), "ok")
         self.assertEqual(plan.get("mode"), "single_value")
@@ -1780,7 +1858,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
         result = self.agent._plan_formula_calculation(state)
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = dict(trace["calculation_plan"])
         self.assertEqual(plan.get("status"), "ok")
         self.assertEqual(plan.get("operation"), "ratio")
@@ -2524,7 +2602,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         result = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
 
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(trace["calculation_operands"]), 2)

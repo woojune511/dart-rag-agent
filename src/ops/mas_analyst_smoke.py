@@ -20,7 +20,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 
 DEFAULT_STORE_DIR = (
     Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
@@ -58,7 +58,7 @@ def _artifact_answer(final_state: Dict[str, Any]) -> str:
 def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    resolved_trace = _resolve_runtime_calculation_trace(
+    resolved_trace = resolve_runtime_calculation_trace(
         content,
         allow_legacy_top_level=False,
     )
@@ -73,7 +73,7 @@ def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
 def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    resolved = _resolve_runtime_calculation_trace(
+    resolved = resolve_runtime_calculation_trace(
         content,
         allow_legacy_top_level=False,
     )
@@ -85,7 +85,7 @@ def _calc_payload(
     *,
     allow_legacy_top_level: bool = False,
 ) -> Dict[str, Any]:
-    resolved = _resolve_runtime_calculation_trace(
+    resolved = resolve_runtime_calculation_trace(
         result,
         allow_legacy_top_level=allow_legacy_top_level,
     )
@@ -97,7 +97,7 @@ def _operand_count(
     *,
     allow_legacy_top_level: bool = False,
 ) -> int:
-    resolved = _resolve_runtime_calculation_trace(
+    resolved = resolve_runtime_calculation_trace(
         result,
         allow_legacy_top_level=allow_legacy_top_level,
     )
@@ -107,7 +107,7 @@ def _operand_count(
 def _artifact_calc_payload(final_state: Dict[str, Any]) -> Dict[str, Any]:
     artifact = ((final_state.get("artifacts") or {}).get("task_1") or {})
     content = artifact.get("content") or {}
-    resolved_trace = _resolve_runtime_calculation_trace(
+    resolved_trace = resolve_runtime_calculation_trace(
         content,
         allow_legacy_top_level=False,
     )

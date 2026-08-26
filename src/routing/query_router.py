@@ -52,7 +52,7 @@ def default_canonical_queries_path() -> Path:
     override = os.environ.get("QUERY_ROUTING_CANONICAL_PATH")
     if override:
         return Path(override).resolve()
-    return Path(__file__).resolve().parents[2] / "benchmarks" / "golden" / "query_routing_canonical_v1.json"
+    return Path(__file__).resolve().parents[1] / "config" / "query_routing_canonical_v1.json"
 
 
 def cosine_similarity(left: List[float], right: List[float]) -> float:

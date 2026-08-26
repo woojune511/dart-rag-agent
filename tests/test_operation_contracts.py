@@ -1,6 +1,8 @@
 import json
 import sys
 import unittest
+from contextlib import ExitStack
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -15,40 +17,62 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import (
+    financial_aggregate_projection,
+    financial_answer_slots,
+    financial_calculation_execution,
+    financial_dependency_projection,
+    financial_graph_calculation,
+    financial_lookup_recovery,
+    financial_reconciliation_candidates,
+    financial_task_artifacts,
+)
+from src.agent import financial_graph_evidence, financial_operand_resolution
+from src.agent import financial_text_surface
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
-    _candidate_explicit_years,
-    _build_concept_task_constraints,
+    build_concept_task_constraints,
     _build_semantic_numeric_plan,
-    _infer_concept_ratio_result_unit,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
-    _candidate_conflicts_with_operand_concept,
-    _candidate_direct_match_strength,
-    _candidate_is_direct_grounding_candidate,
-    _candidate_matches_operand,
-    _candidate_matches_operand_target_year,
-    _candidate_selected_cell_for_operand,
-    _candidate_row_block_signature,
-    _candidate_satisfies_direct_acceptance_contract,
-    _score_operand_candidate,
-    _extract_generic_operand_labels,
-    _operand_target_years,
-    _operand_row_matches_requirement,
+    _deterministic_reconcile_task,
+    extract_generic_operand_labels,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
-from src.agent.financial_graph_evidence import _prioritize_candidate_items
-from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
-from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
-    _parse_unstructured_table_row_cells,
+from src.agent.financial_surface_contracts import candidate_conflicts_with_operand_concept
+from src.agent.financial_scope_policies import (
+    candidate_explicit_years,
+    candidate_matches_operand_target_year,
+    operand_target_years,
 )
-from src.agent.financial_operation_policies import _label_implies_percent_metric, _requires_direct_numeric_grounding
-from src.agent.financial_scope_policies import _desired_consolidation_scope
+from src.agent.financial_graph_evidence import _prioritize_candidate_items
+from src.agent.financial_operand_resolution import (
+    evidence_item_for_operand_row,
+    filter_operand_rows_by_required_surface_contract,
+    _llm_lookup_operand_has_direct_support,
+    operand_row_matches_requirement,
+    _operand_row_satisfies_required_surface_contract,
+    candidate_direct_match_strength,
+    candidate_is_direct_grounding_candidate,
+    candidate_matches_operand,
+    candidate_satisfies_direct_acceptance_contract,
+    score_operand_candidate,
+    table_label_metadata_lookup_score,
+)
+from src.agent.financial_operand_resolution import (
+    candidate_row_block_signature,
+    coerce_lookup_magnitude_value,
+)
+from src.agent.financial_row_surfaces import (
+    extract_numeric_value_after_operand_text,
+    parse_unstructured_table_row_cells,
+)
+from src.agent.financial_operation_policies import label_implies_percent_metric, requires_direct_numeric_grounding
+from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_graph_models import (
     CalculationPlan,
     CalculationRenderOutput,
@@ -56,14 +80,18 @@ from src.agent.financial_graph_models import (
     EvidenceExtraction,
     NumericExtraction,
 )
-from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask, _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_graph_helpers import build_hybrid_narrative_subtask
+from src.agent.financial_lookup_recovery import refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_normalization import _normalise_operand_value
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_retrieval_hints import (
     _desired_statement_types,
-    _infer_statement_and_section_hints,
+    infer_statement_and_section_hints,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import (
+    structured_cell_period_text,
+    candidate_selected_cell_for_operand,
+)
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
 
@@ -100,6 +128,28 @@ class _StubLLM:
 
     def with_structured_output(self, _schema):
         return _StubStructuredLLM(self._response)
+
+
+class _SequenceStructuredLLM:
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.invoke_count = 0
+
+    def __call__(self, prompt_value):
+        return self.invoke(prompt_value)
+
+    def invoke(self, _prompt_value):
+        response = self._responses[min(self.invoke_count, len(self._responses) - 1)]
+        self.invoke_count += 1
+        return response
+
+
+class _SequenceLLM:
+    def __init__(self, responses):
+        self.structured = _SequenceStructuredLLM(responses)
+
+    def with_structured_output(self, _schema):
+        return self.structured
 
 
 class _CapturingStructuredLLM:
@@ -267,7 +317,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual([item["evidence_id"] for item in projected], ["ev_001", "ev_002"])
 
     def test_lookup_operand_rejects_unlabeled_aggregate_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 DX 매출액",
             "raw_value": "638,217",
@@ -289,11 +338,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_rejects_inferred_sum_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 SDC 매출액",
             "raw_value": "434,327",
@@ -315,11 +363,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_accepts_direct_labeled_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 SDC 매출액",
             "raw_value": "291,578",
@@ -341,11 +388,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertTrue(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_rejects_label_from_broad_context_only(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 target metric",
             "raw_value": "451,284",
@@ -368,7 +414,7 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_required_operand_builder_does_not_steal_other_operand_row_from_context(self) -> None:
@@ -406,7 +452,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(by_role["addend_b"]["raw_value"], "222")
 
     def test_ratio_operand_rejects_bound_label_without_source_surface_support(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "target denominator",
@@ -454,7 +499,7 @@ class OperationContractTests(unittest.TestCase):
         supported_row["source_row_id"] = "ev_supported"
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 mislabeled_row,
                 evidence_by_id,
                 required_operands,
@@ -462,7 +507,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 supported_row,
                 evidence_by_id,
                 required_operands,
@@ -471,7 +516,6 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_ratio_surface_filter_checks_structured_table_value_surface(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "target numerator",
@@ -546,7 +590,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = agent._filter_operand_rows_by_required_surface_contract(
+        filtered = filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,
@@ -557,7 +601,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
 
     def test_segment_surface_contract_rejects_metric_prefix_false_positive(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "매출액",
@@ -609,7 +652,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 broad_row,
                 evidence_by_id,
                 required_operands,
@@ -617,7 +660,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 segment_row,
                 evidence_by_id,
                 required_operands,
@@ -662,7 +705,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(ranked[0]["evidence_id"], "ev_direct_customer_revenue")
 
     def test_operating_margin_drag_numerator_requires_exact_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
         required_operands = [
             row
@@ -719,7 +761,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = agent._filter_operand_rows_by_required_surface_contract(
+        filtered = filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,
@@ -784,6 +826,59 @@ class OperationContractTests(unittest.TestCase):
 
         values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in rows}
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
+
+        direct_operands = [
+            {"label": "metric a", "role": "numerator_1", "required": True},
+            {"label": "metric b", "role": "denominator_1", "required": True},
+        ]
+        direct_evidence = [
+            {
+                "evidence_id": f"ev_direct_{index}",
+                "source_anchor": "[ExampleCo | 2023 | Management discussion]",
+                "claim": f"{operand['label']} {index * 100}",
+                "quote_span": f"{operand['label']} {index * 100}",
+                "metadata": {
+                    "table_source_id": "table:direct",
+                    "period_labels": ["2023"],
+                    "row_label": operand["label"],
+                    "structured_cells": [
+                        {"column_headers": ["2023"], "value_text": str(index * 100), "unit_hint": "million"}
+                    ],
+                },
+            }
+            for index, operand in enumerate(direct_operands, start=1)
+        ]
+        events = []
+        row_builder = financial_lookup_recovery.lookup_row_from_direct_structured_evidence
+        scorer = financial_graph_calculation.score_direct_structured_lookup_evidence
+
+        def _record_row(operand, evidence, *, index):
+            events.append("row")
+            return row_builder(operand, evidence, index=index)
+
+        def _record_score(score_input):
+            events.append("score")
+            return scorer(score_input)
+
+        with patch.object(
+            financial_graph_calculation,
+            "lookup_row_from_direct_structured_evidence",
+            side_effect=_record_row,
+        ), patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_record_score,
+        ):
+            direct_rows = agent._build_complete_ratio_operands_from_coherent_context(
+                direct_evidence,
+                required_operands=direct_operands,
+                query="Calculate the ratio.",
+                topic="ratio",
+                report_scope={"years": [2023]},
+            )
+
+        self.assertEqual(events, ["row", "score"] * 4)
+        self.assertEqual([row["raw_value"] for row in direct_rows], ["100", "200"])
 
     def test_late_runtime_ratio_answer_refreshes_component_display(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -859,14 +954,44 @@ class OperationContractTests(unittest.TestCase):
             "quote_span": "2022년 판매 대수는 78.1만 대였다.",
         }
 
-        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+        owner_events = []
+        current_unit_owner = financial_operand_resolution.coerce_operand_unit_from_evidence
+        current_period_owner = (
+            financial_operand_resolution.coerce_operand_period_from_evidence_surface
+        )
+
+        def record_unit_owner(*, raw_value, raw_unit, evidence_item):
+            owner_events.append(("unit", raw_value, raw_unit, evidence_item))
+            return current_unit_owner(
+                raw_value=raw_value,
+                raw_unit=raw_unit,
+                evidence_item=evidence_item,
+            )
+
+        def record_period_owner(operand_row, evidence_item):
+            owner_events.append(("period", deepcopy(operand_row), evidence_item))
+            return current_period_owner(operand_row, evidence_item)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                side_effect=record_unit_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+                side_effect=record_period_owner,
+            ),
+        ):
+            coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
 
         self.assertEqual(coerced["period"], "2022")
         self.assertEqual(coerced["period_source"], "evidence_surface")
         self.assertEqual(coerced["normalized_unit"], "COUNT")
         self.assertEqual(coerced["normalized_value"], 781000.0)
         self.assertFalse(
-            _operand_row_matches_requirement(
+            operand_row_matches_requirement(
                 coerced,
                 {
                     "label": "2023년 판매 대수",
@@ -877,8 +1002,59 @@ class OperationContractTests(unittest.TestCase):
                 },
             )
         )
+        self.assertEqual([event[0] for event in owner_events], ["unit", "period"])
+        self.assertEqual(owner_events[0][1:3], ("78.1", "원"))
+        self.assertIs(owner_events[0][3], evidence_item)
+        self.assertEqual(owner_events[1][1]["raw_unit"], "만 대")
+        self.assertEqual(owner_events[1][1]["normalized_value"], 781000.0)
+        self.assertIs(owner_events[1][2], evidence_item)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+            ) as later_period_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                agent._coerce_operand_row_from_evidence(row, evidence_item)
+        later_period_owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                return_value="만 대",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+                side_effect=RuntimeError("period owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_value_from_direct_structured_evidence",
+            ) as later_direct_value,
+            patch.object(
+                financial_graph_calculation,
+                "coerce_lookup_magnitude_record",
+            ) as later_magnitude,
+            patch.object(
+                agent,
+                "_refine_operand_precision_from_evidence_table",
+            ) as later_precision,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period owner failed"):
+                agent._coerce_operand_row_from_evidence(row, evidence_item)
+        later_direct_value.assert_not_called()
+        later_magnitude.assert_not_called()
+        later_precision.assert_not_called()
         self.assertTrue(
-            _operand_row_matches_requirement(
+            operand_row_matches_requirement(
                 {**coerced, "matched_operand_role": "prior_period"},
                 {
                     "label": "2022년 판매 대수",
@@ -987,7 +1163,7 @@ class OperationContractTests(unittest.TestCase):
             "기업 전체 총계 / 영업부문 / DS 부문 111,065,950 백만원"
         )
 
-        cells = _parse_unstructured_table_row_cells(row_text, {})
+        cells = parse_unstructured_table_row_cells(row_text, {})
 
         self.assertEqual(cells[0]["value_text"], "174,887,683")
         self.assertEqual(cells[0]["unit_hint"], "백만원")
@@ -998,14 +1174,14 @@ class OperationContractTests(unittest.TestCase):
 
     def test_financial_statement_queries_default_to_consolidated_scope(self) -> None:
         self.assertEqual(
-            _desired_consolidation_scope(
+            desired_consolidation_scope(
                 "2023년 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
                 {"company": "삼성전자", "year": 2023},
             ),
             "consolidated",
         )
         self.assertEqual(
-            _desired_consolidation_scope(
+            desired_consolidation_scope(
                 "2023년 별도 재무제표 주석에서 재고자산평가손실 규모를 찾아줘.",
                 {"company": "삼성전자", "year": 2023},
             ),
@@ -1013,8 +1189,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_quantitative_impact_answer_uses_retrieved_labeled_values(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._compose_supported_quantitative_impact_answer(
+        result = financial_aggregate_projection.compose_supported_quantitative_impact_answer(
             query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
             evidence_items=[
                 {
@@ -1049,8 +1224,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["supporting_claim_ids"], ["ev_001", "ev_002"])
 
     def test_quantitative_impact_answer_uses_supported_cost_loss_relation(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        result = agent._compose_supported_quantitative_impact_answer(
+        result = financial_aggregate_projection.compose_supported_quantitative_impact_answer(
             query="2023년 주석에서 손상차손 규모를 찾고 이것이 영업비용에 미친 영향을 분석해 줘.",
             evidence_items=[
                 {
@@ -1092,12 +1266,12 @@ class OperationContractTests(unittest.TestCase):
         self.ontology = FinancialOntologyManager(Path("src/config/financial_ontology_concepts_v3.draft.json"))
 
     def test_percent_label_inference_uses_generic_surface_markers_only(self) -> None:
-        self.assertTrue(_label_implies_percent_metric("순이자마진"))
-        self.assertTrue(_label_implies_percent_metric("부채비율"))
-        self.assertFalse(_label_implies_percent_metric("NIM"))
+        self.assertTrue(label_implies_percent_metric("순이자마진"))
+        self.assertTrue(label_implies_percent_metric("부채비율"))
+        self.assertFalse(label_implies_percent_metric("NIM"))
 
     def test_structured_cell_period_text_uses_report_year_for_current_fiscal_cell(self) -> None:
-        period = _structured_cell_period_text(
+        period = structured_cell_period_text(
             {
                 "column_headers": ["제54기"],
                 "_report_year": 2022,
@@ -1112,7 +1286,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(period, "2022")
 
     def test_structured_cell_period_text_uses_report_year_for_prior_fiscal_cell(self) -> None:
-        period = _structured_cell_period_text(
+        period = structured_cell_period_text(
             {
                 "column_headers": ["제53기"],
                 "_report_year": 2022,
@@ -1126,7 +1300,7 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(period, "2021")
 
-    def test_candidate_explicit_years_infers_current_and_prior_from_relative_headers(self) -> None:
+    def test_scope_owner_explicit_years_infers_current_and_prior_from_relative_headers(self) -> None:
         candidate = {
             "metadata": {
                 "year": 2023,
@@ -1136,7 +1310,7 @@ class OperationContractTests(unittest.TestCase):
                 ],
             }
         }
-        self.assertEqual(_candidate_explicit_years(candidate), [2022, 2023])
+        self.assertEqual(candidate_explicit_years(candidate), [2022, 2023])
 
     def test_operating_expense_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(8,181,823,307)", "천원")
@@ -1175,7 +1349,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("summary_financials", statement_types)
 
     def test_ebitda_kpi_query_prefers_management_metric_sections(self) -> None:
-        statement_types, preferred_sections = _infer_statement_and_section_hints(
+        statement_types, preferred_sections = infer_statement_and_section_hints(
             "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘."
         )
 
@@ -1185,7 +1359,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("영업실적", preferred_sections)
 
     def test_extract_generic_operand_labels_uses_ontology_match_seeds(self) -> None:
-        labels = _extract_generic_operand_labels(
+        labels = extract_generic_operand_labels(
             "2023년 손익계산서에서 매출원가와 판매비와관리비를 합산해 총 영업비용을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘."
         )
         self.assertIn("매출원가", labels)
@@ -1327,6 +1501,87 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "missing")
         self.assertEqual(result["selected_claim_ids"], [])
         self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
+
+    def test_numeric_extractor_rejects_final_prose_without_raw_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        unsupported_final = "ExampleCo's 2023 target metric is 2,000 million."
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="million",
+                raw_value="",
+                final_value=unsupported_final,
+            )
+        )
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find ExampleCo's 2023 consolidated target metric.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="target metric | 2,000 million",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "chunk-1"},
+                        ),
+                        1.0,
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["selected_claim_ids"], [])
+        self.assertNotEqual(result["answer"], unsupported_final)
+        self.assertEqual(result["numeric_debug_trace"]["raw_value"], "")
+        self.assertEqual(
+            result["numeric_debug_trace"]["rejected_reason"],
+            "incomplete_structured_numeric_extraction",
+        )
+        self.assertTrue(result["numeric_debug_trace"]["incomplete_retry_attempted"])
+
+    def test_numeric_extractor_retries_incomplete_structured_output_without_parsing_final_prose(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        sequence_llm = _SequenceLLM(
+            [
+                NumericExtraction(
+                    period_check="2023",
+                    consolidation_check="consolidated",
+                    unit="million",
+                    raw_value="",
+                    final_value="ExampleCo's 2023 target metric is 2,000 million.",
+                ),
+                NumericExtraction(
+                    period_check="2023",
+                    consolidation_check="consolidated",
+                    unit="million",
+                    raw_value="2,000",
+                    final_value="ExampleCo's 2023 target metric is 2,000 million.",
+                ),
+            ]
+        )
+        agent.llm = sequence_llm
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find ExampleCo's 2023 consolidated target metric.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="target metric | 2,000 million",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "chunk-1"},
+                        ),
+                        1.0,
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(sequence_llm.structured.invoke_count, 2)
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["numeric_debug_trace"]["raw_value"], "2,000")
+        self.assertTrue(result["numeric_debug_trace"]["incomplete_retry_attempted"])
+        self.assertNotIn("rejected_reason", result["numeric_debug_trace"])
 
     def test_numeric_extractor_reuses_duplicate_direct_support_rejection(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -1594,6 +1849,249 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001"])
+
+    def test_lookup_numeric_extractor_repairs_llm_unit_from_exact_source_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "unit_hint": "백만원",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                "retrieved_docs": [(Document(page_content="연구개발비용 표", metadata=metadata), 1.0)],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연구개발비용 총액",
+                    "required_operands": [
+                        {
+                            "label": "연구개발비용",
+                            "concept": "research_and_development_expense",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertIn("130백만원", result["answer"])
+        self.assertNotIn("130억원", result["answer"])
+        self.assertEqual(result["numeric_debug_trace"]["llm_unit"], "억원")
+        self.assertEqual(result["numeric_debug_trace"]["unit"], "백만원")
+        self.assertEqual(result["numeric_debug_trace"]["unit_source"], "source_evidence")
+        self.assertEqual(result["evidence_items"][0]["metadata"]["row_label"], "연구개발비용 총계")
+        self.assertIn("130", result["evidence_items"][0]["raw_row_text"])
+
+    def test_lookup_numeric_extractor_rejects_duplicate_value_across_source_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        distractor_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "기타비용",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "억원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        target_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                "retrieved_docs": [
+                    (Document(page_content="기타비용 | 2023 | 130", metadata=distractor_metadata), 1.0)
+                ],
+                "seed_retrieved_docs": [
+                    (Document(page_content="연구개발비용 총계 | 2023 | 130", metadata=target_metadata), 0.9)
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연구개발비용 총액",
+                    "required_operands": [
+                        {
+                            "label": "연구개발비용",
+                            "concept": "research_and_development_expense",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["selected_claim_ids"], [])
+        self.assertEqual(
+            result["numeric_debug_trace"]["rejected_reason"],
+            "ambiguous_direct_lookup_source_evidence",
+        )
+
+    def test_lookup_numeric_extractor_uses_semantic_candidate_id_for_duplicate_source_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        distractor_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "chunk_uid": "distractor",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "기타비용",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "억원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        target_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "chunk_uid": "target",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        def select_target(**kwargs):
+            candidates = [dict(item.get("candidate") or {}) for item in kwargs["scored_candidates"]]
+            selected_id = next(
+                str(candidate.get("candidate_id") or "")
+                for candidate in candidates
+                if dict(candidate.get("metadata") or {}).get("row_label") == "연구개발비용 총계"
+            )
+            return {
+                "ordered_candidate_ids": [selected_id],
+                "selected_candidate_id": selected_id,
+                "selection_status": "selected",
+                "llm_completed": True,
+            }
+
+        with patch.object(agent, "_llm_rerank_operand_candidates", side_effect=select_target):
+            result = agent._extract_numeric_fact(
+                {
+                    "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                    "retrieved_docs": [
+                        (Document(page_content="기타비용 | 2023 | 130", metadata=distractor_metadata), 1.0)
+                    ],
+                    "seed_retrieved_docs": [
+                        (Document(page_content="연구개발비용 총계 | 2023 | 130", metadata=target_metadata), 0.9)
+                    ],
+                    "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                    "active_subtask": {
+                        "task_id": "task_1",
+                        "operation_family": "lookup",
+                        "metric_label": "2023년 연구개발비용 총액",
+                        "required_operands": [
+                            {
+                                "label": "연구개발비용",
+                                "concept": "research_and_development_expense",
+                                "role": "primary_value",
+                                "required": True,
+                            }
+                        ],
+                    },
+                }
+            )
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertIn("130백만원", result["answer"])
+        self.assertEqual(result["numeric_debug_trace"]["source_selection_status"], "selected")
+        self.assertTrue(result["numeric_debug_trace"]["semantic_selected_candidate_id"])
+        self.assertEqual(result["evidence_items"][0]["metadata"]["row_label"], "연구개발비용 총계")
 
     def test_lookup_numeric_extractor_accepts_direct_table_object_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2080,7 +2578,10 @@ class OperationContractTests(unittest.TestCase):
 
     def test_concept_ratio_result_unit_infers_times_for_coverage_ratio(self) -> None:
         query = "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728(\uc601\uc5c5\uc774\uc775 / \uc774\uc790\ube44\uc6a9)\uc744 \uacc4\uc0b0\ud574\uc918"
-        self.assertEqual(_infer_concept_ratio_result_unit(query, "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728", "ratio"), "\ubc30")
+        self.assertEqual(
+            calculation_rendering.infer_concept_ratio_result_unit(query, "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728", "ratio"),
+            "\ubc30",
+        )
 
     def test_foreign_currency_gain_lookup_coerces_parenthesized_amount_to_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(573,884)", "\ubc31\ub9cc\uc6d0")
@@ -2098,7 +2599,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_reconciliation_operand_row_infers_note_statement_type_for_magnitude_coercion(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._build_operand_row_from_candidate_cell(
+        row = financial_reconciliation_candidates.build_operand_row_from_candidate_cell(
             candidate={
                 "candidate_id": "recon::gain",
                 "source_anchor": "[Example | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
@@ -2254,11 +2755,34 @@ class OperationContractTests(unittest.TestCase):
             "runtime_evidence": [evidence],
         }
 
-        rows = agent._build_dependency_operand_rows(state)
+        owner_calls = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
 
+        def record_repair(row):
+            owner_calls.append(deepcopy(row))
+            return {
+                **current_repair(row),
+                "rendered_unit_repair_owner_marker": "dependency",
+            }
+
+        with patch.object(
+            financial_graph_calculation,
+            "repair_operand_normalization_from_rendered_unit",
+            side_effect=record_repair,
+        ) as repair_owner:
+            rows = agent._build_dependency_operand_rows(state)
+            self.assertEqual(
+                agent._build_dependency_operand_rows({"active_subtask": {"inputs": []}}),
+                [],
+            )
+
+        repair_owner.assert_called_once()
+        self.assertEqual(owner_calls[0]["raw_value"], "(573,884)")
+        self.assertEqual(owner_calls[0]["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
         self.assertEqual(rows[0]["raw_value"], "(573,884)")
         self.assertEqual(rows[0]["normalized_value"], 573_884_000_000.0)
         self.assertEqual(rows[0]["rendered_value"], "573,884백만원")
+        self.assertEqual(rows[0]["rendered_unit_repair_owner_marker"], "dependency")
 
     def test_difference_source_display_unit_preserves_common_source_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2347,7 +2871,7 @@ class OperationContractTests(unittest.TestCase):
                 "unit_hint": "\ubc31\ub9cc\uc6d0",
             },
         }
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(candidate_matches_operand(candidate, operand))
 
     def test_count_candidate_prefers_location_sentence_with_entity_subject(self) -> None:
         operand = {
@@ -2367,7 +2891,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"year": 2023, "section_path": "business section"},
         }
 
-        market_score = _score_operand_candidate(
+        market_score = score_operand_candidate(
             market_total,
             operand=operand,
             preferred_statement_types=[],
@@ -2375,7 +2899,7 @@ class OperationContractTests(unittest.TestCase):
             query_years=[2023, 2022],
             report_scope={},
         )
-        entity_score = _score_operand_candidate(
+        entity_score = score_operand_candidate(
             entity_sales,
             operand=operand,
             preferred_statement_types=[],
@@ -2432,7 +2956,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("\uc870\uc815\ud56d\ubaa9\uc5d0 \uc758\ud55c \ud569\uacc4", candidate["metadata"]["row_text"])
         self.assertIn("\uacf5\uc2dc\uae08\uc561 2,526,280 \ucc9c\uc6d0", candidate["metadata"]["row_text"])
         self.assertTrue(
-            _candidate_matches_operand(
+            candidate_matches_operand(
                 candidate,
                 {
                     "label": "\uc7ac\uace0\uc790\uc0b0\ud3c9\uac00\uc190\uc2e4",
@@ -2587,7 +3111,7 @@ class OperationContractTests(unittest.TestCase):
             ],
         }
 
-        refs = agent._reconciliation_evidence_refs(result)
+        refs = financial_task_artifacts.reconciliation_evidence_refs(result)
 
         self.assertEqual(refs, ["row:alpha", "row:beta", "ev:beta"])
 
@@ -2632,7 +3156,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_resolved_period_text_prefers_report_year_when_it_matches_target_year(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        period = agent._resolved_period_text_for_operand(
+        period = financial_reconciliation_candidates._resolved_period_text_for_operand(
             operand={"label": "2023 시설투자(CAPEX)", "role": "current_period", "period_hint": "2023"},
             cell={"column_headers": [], "_report_year": 2022},
             query_years=[2023, 2022],
@@ -2642,7 +3166,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_resolved_period_text_does_not_shift_report_year_for_prior_without_explicit_headers(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        period = agent._resolved_period_text_for_operand(
+        period = financial_reconciliation_candidates._resolved_period_text_for_operand(
             operand={"label": "2022 시설투자(CAPEX)", "role": "prior_period", "period_hint": "2022"},
             cell={"column_headers": [], "_report_year": 2023},
             query_years=[2023, 2022],
@@ -2650,15 +3174,15 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(period, "2023")
 
-    def test_operand_target_years_prefers_latest_year_for_current_period_role(self) -> None:
-        years = _operand_target_years(
+    def test_scope_target_years_prefers_latest_year_for_current_period_role(self) -> None:
+        years = operand_target_years(
             {"label": "시설투자(CAPEX)", "role": "current_period"},
             [2023, 2022],
         )
         self.assertEqual(years, [2023])
 
-    def test_operand_target_years_prefers_second_latest_year_for_prior_period_role(self) -> None:
-        years = _operand_target_years(
+    def test_scope_target_years_prefers_second_latest_year_for_prior_period_role(self) -> None:
+        years = operand_target_years(
             {"label": "시설투자(CAPEX)", "role": "prior_period"},
             [2023, 2022],
         )
@@ -2684,7 +3208,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "unknown"},
@@ -2695,7 +3219,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_lookup_task_prefers_current_period_when_operand_role_is_current(self) -> None:
-        constraints = _build_concept_task_constraints(
+        constraints = build_concept_task_constraints(
             "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출해 줘.",
             {"company": "네이버", "year": 2023},
             self.ontology,
@@ -2710,7 +3234,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(constraints["period_focus"], "current")
 
     def test_difference_task_uses_multi_period_when_current_and_prior_are_both_required(self) -> None:
-        constraints = _build_concept_task_constraints(
+        constraints = build_concept_task_constraints(
             "2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고 전년 대비 증감액을 계산해 줘.",
             {"company": "네이버", "year": 2023},
             self.ontology,
@@ -2897,9 +3421,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
+        self.assertFalse(candidate_matches_operand(candidate, operand))
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},
@@ -2909,7 +3433,7 @@ class OperationContractTests(unittest.TestCase):
                 report_scope={"year": 2023},
             )
         )
-        self.assertTrue(_candidate_matches_operand(paragraph_candidate, operand))
+        self.assertTrue(candidate_matches_operand(paragraph_candidate, operand))
 
     def test_ampc_prose_surface_contract_extracts_preceding_numeric_value(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3091,7 +3615,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션", answer)
@@ -3099,6 +3623,151 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("첨단제조 생산세액공제 금액은 6,769억원", answer)
         self.assertIn("실질 영업이익은 1조 4,863억원", answer)
         self.assertNotIn("676,900백만원", answer)
+
+    def test_difference_answer_composer_prefers_detailed_result_rows_over_flattened_slots(self) -> None:
+        detailed_difference = {
+            "task_id": "task_difference",
+            "metric_label": "조정 결과",
+            "operation_family": "difference",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "60백만원",
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "result_semantics": "derived_value",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "기준 금액",
+                                "period": "2023",
+                                "rendered_value": "100백만원",
+                                "normalized_value": 100_000_000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "제외 항목",
+                                "period": "2023",
+                                "rendered_value": "40백만원",
+                                "normalized_value": 40_000_000.0,
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "조정 결과",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                },
+            },
+        }
+        aggregate_result = {
+            "subtask_results": [detailed_difference],
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_difference",
+                        "metric_label": "조정 결과",
+                        "operation_family": "difference",
+                        "answer": "60백만원",
+                        "rendered_value": "60백만원",
+                    }
+                ],
+            },
+        }
+
+        answer = calculation_rendering.compose_slot_based_difference_answer(
+            query="2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            report_scope={"company": "ExampleCo", "year": 2023},
+            calculation_result=aggregate_result,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
+        )
+
+        self.assertIn("기준 금액은 100백만원", answer)
+        self.assertIn("제외 항목 금액은 40백만원", answer)
+        self.assertIn("조정 결과은 60백만원", answer)
+
+    def test_preferred_complete_numeric_answer_keeps_structured_difference_sentence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = [
+            {
+                "task_id": "task_difference",
+                "metric_label": "조정 결과",
+                "operation_family": "difference",
+                "answer": "60백만원",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "60백만원",
+                    "rendered_value": "60백만원",
+                    "answer_slots": {
+                        "operation_family": "difference",
+                        "result_semantics": "derived_value",
+                        "components_by_role": {
+                            "minuend": [
+                                {
+                                    "status": "ok",
+                                    "role": "minuend",
+                                    "label": "기준 금액",
+                                    "period": "2023",
+                                    "rendered_value": "100백만원",
+                                    "normalized_value": 100_000_000.0,
+                                    "source_anchor": "[ExampleCo | 2023 | statement]",
+                                }
+                            ],
+                            "subtrahend": [
+                                {
+                                    "status": "ok",
+                                    "role": "subtrahend",
+                                    "label": "제외 항목",
+                                    "period": "2023",
+                                    "rendered_value": "40백만원",
+                                    "normalized_value": 40_000_000.0,
+                                    "source_anchor": "[ExampleCo | 2023 | note]",
+                                }
+                            ],
+                        },
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "조정 결과",
+                            "period": "2023",
+                            "rendered_value": "60백만원",
+                            "normalized_value": 60_000_000.0,
+                        },
+                    },
+                },
+            }
+        ]
+
+        answer = agent._preferred_complete_numeric_answer(
+            rows,
+            query="ABC 기준으로 2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            evidence_items=[{"claim": "ABC 기준으로 제외 항목을 계산한다."}],
+        )
+
+        self.assertIn("ExampleCo 2023년 기준 금액은 100백만원", answer)
+        self.assertIn("제외 항목 금액은 40백만원", answer)
+        self.assertIn("조정 결과은 60백만원입니다", answer)
+        self.assertIn("ABC", answer)
+        self.assertNotEqual(answer, "60백만원")
+
+        refreshed = agent._refresh_numeric_answer_preserving_narrative_context(
+            query="ABC 기준으로 2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            current_answer="ExampleCo 2023년 조정 결과은 60백만원입니다.",
+            numeric_answer="ExampleCo 2023년 조정 결과은 60백만원입니다.",
+            ordered_results=rows,
+            evidence_items=[{"claim": "ABC 기준으로 제외 항목을 계산한다."}],
+        )
+        self.assertIn("ABC", refreshed["answer"])
 
     def test_difference_answer_composer_renders_period_comparison_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3108,6 +3777,7 @@ class OperationContractTests(unittest.TestCase):
             calculation_result={
                 "answer_slots": {
                     "operation_family": "difference",
+                    "result_semantics": "period_delta",
                     "metric_label": "지표 증감폭",
                     "components_by_role": {},
                     "current_value": {
@@ -3134,13 +3804,79 @@ class OperationContractTests(unittest.TestCase):
                     "direction": "increase",
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("ExampleCo 2023년 지표은 1.83%입니다.", answer)
         self.assertIn("2022년 지표 1.73% 대비 지표 증감폭은 0.10%p 상승했습니다.", answer)
         self.assertNotIn("금액", answer)
         self.assertNotIn("이를 제외한", answer)
+
+    def test_difference_answer_composer_does_not_render_derived_value_as_direction(self) -> None:
+        answer = calculation_rendering.compose_slot_based_difference_answer(
+            query="기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            report_scope={"year": 2023},
+            calculation_result={
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "result_semantics": "derived_value",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "기준 금액",
+                                "period": "2023",
+                                "rendered_value": "100백만원",
+                                "normalized_value": 100_000_000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "제외 항목",
+                                "period": "2023",
+                                "rendered_value": "40백만원",
+                                "normalized_value": 40_000_000.0,
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "조정 결과",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "100백만원",
+                        "normalized_value": 100_000_000.0,
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "40백만원",
+                        "normalized_value": 40_000_000.0,
+                    },
+                    "delta_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                    "direction": "increase",
+                }
+            },
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
+        )
+
+        self.assertIn("이를 제외한 조정 결과은 60백만원입니다", answer)
+        self.assertNotIn("상승", answer)
+        self.assertNotIn("하락", answer)
 
     def test_difference_answer_composer_recovers_company_from_slot_anchor(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3180,7 +3916,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원", answer)
@@ -3246,12 +3982,13 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,360백만원")
+        self.assertEqual(calc["answer_slots"]["result_semantics"], "derived_value")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,360백만원")
-        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,360백만원")
+        self.assertIsNone(calc["answer_slots"]["delta_value"])
         self.assertEqual(
             calc["answer_slots"]["components_by_role"]["subtrahend"][0]["rendered_value"],
             "676,874백만원",
@@ -3313,12 +4050,13 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,334백만원")
+        self.assertEqual(calc["answer_slots"]["result_semantics"], "derived_value")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,334백만원")
-        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,334백만원")
+        self.assertIsNone(calc["answer_slots"]["delta_value"])
 
     def test_execute_calculation_ignores_legacy_top_level_operands_and_plan(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3368,7 +4106,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        trace = resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(trace.get("calculation_plan", {}), {})
         self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
@@ -3748,7 +4486,7 @@ class OperationContractTests(unittest.TestCase):
             "aliases": ["IRA Tax Credit"],
         }
 
-        value = _extract_numeric_value_after_operand_text(
+        value = extract_numeric_value_after_operand_text(
             "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
             operand,
         )
@@ -3756,14 +4494,13 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(value, "6,769억원")
 
     def test_operand_unit_coercion_prefers_value_local_unit_over_table_unit_hint(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         evidence_item = {
             "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
             "quote_span": "IRA Tax Credit: 6,769 (억원)",
             "metadata": {"unit_hint": "백만원"},
         }
 
-        unit = agent._coerce_operand_unit_from_evidence(
+        unit = financial_operand_resolution.coerce_operand_unit_from_evidence(
             raw_value="6,769",
             raw_unit="",
             evidence_item=evidence_item,
@@ -3772,20 +4509,100 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(unit, "억원")
 
     def test_operand_unit_coercion_overrides_current_krw_unit_with_value_local_unit(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         evidence_item = {
             "claim": "segment revenue 2,176,431,531,380 (원)",
             "quote_span": "2,176,431,531,380",
             "metadata": {"unit_hint": "천원"},
         }
 
-        unit = agent._coerce_operand_unit_from_evidence(
+        unit = financial_operand_resolution.coerce_operand_unit_from_evidence(
             raw_value="2,176,431,531,380",
             raw_unit="천원",
             evidence_item=evidence_item,
         )
 
         self.assertEqual(unit, "원")
+
+    def test_required_operand_builder_uses_evidence_local_unit_owner(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        candidate = {
+            "evidence_id": "ev_metric",
+            "source_anchor": "anchor",
+            "claim": "metric 100",
+            "raw_row_text": "metric 100",
+            "matched_value": "100",
+            "matched_unit": "원",
+            "metadata": {},
+        }
+        operand = {
+            "label": "metric",
+            "role": "primary_value",
+            "concept": "metric",
+            "required": True,
+            "unit_family": "KRW",
+        }
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "coerce_operand_unit_from_evidence",
+                return_value="억원",
+            ) as owner,
+            patch.object(
+                agent,
+                "_coerce_operand_row_from_evidence",
+                side_effect=lambda row, _evidence: row,
+            ) as row_coercion,
+        ):
+            rows = agent._build_required_operands_from_candidates(
+                [candidate],
+                required_operands=[operand],
+                query="metric",
+                report_scope={},
+            )
+
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=candidate,
+        )
+        row_coercion.assert_called_once()
+        self.assertIs(row_coercion.call_args.args[1], candidate)
+        self.assertEqual(row_coercion.call_args.args[0]["raw_unit"], "억원")
+        self.assertEqual(rows[0]["raw_unit"], "억원")
+        self.assertEqual(rows[0]["normalized_value"], 10_000_000_000.0)
+
+        with patch.object(
+            financial_graph_evidence,
+            "coerce_operand_unit_from_evidence",
+        ) as owner:
+            self.assertEqual(
+                agent._build_required_operands_from_candidates(
+                    [],
+                    required_operands=[operand],
+                    query="metric",
+                    report_scope={},
+                ),
+                [],
+            )
+        owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(agent, "_coerce_operand_row_from_evidence") as later_row_coercion,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                agent._build_required_operands_from_candidates(
+                    [candidate],
+                    required_operands=[operand],
+                    query="metric",
+                    report_scope={},
+                )
+        later_row_coercion.assert_not_called()
 
     def test_structured_direct_operand_row_uses_value_local_unit_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3806,7 +4623,7 @@ class OperationContractTests(unittest.TestCase):
             }
         }
 
-        evidence_item = agent._evidence_item_for_operand_row(row, evidence_by_id)
+        evidence_item = evidence_item_for_operand_row(row, evidence_by_id)
         coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
 
         self.assertEqual(coerced["raw_unit"], "억원")
@@ -3915,7 +4732,34 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        result = agent._execute_calculation(state)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
+        ):
+            result = agent._execute_calculation(state)
+
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        state_projection.assert_called_once()
         trace = result["resolved_calculation_trace"]
         operands = {row["operand_id"]: row for row in trace["calculation_operands"]}
 
@@ -3923,6 +4767,125 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(operands["numerator"]["source_raw_unit"], "천원")
         self.assertEqual(operands["numerator"]["unit_normalization_repair_source"], "table_metadata_unit_hint")
         self.assertAlmostEqual(trace["calculation_result"]["result_value"], 3.5)
+        raw_operands = state["resolved_calculation_trace"]["calculation_operands"]
+        plan = state["resolved_calculation_trace"]["calculation_plan"]
+        original_trace = json.loads(json.dumps(state["resolved_calculation_trace"]))
+        stale_result = {
+            "status": "ok",
+            "result_value": 0.0035,
+            "result_unit": "times",
+            "rendered_value": "0 times",
+            "source_row_ids": ["row_stale"],
+            "answer_slots": {"operation_family": "ratio"},
+        }
+
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            repair = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=raw_operands,
+                plan=plan,
+                calculation_result=stale_result,
+            )
+
+        repaired_operands = repair.calculation_operands
+        repaired_plan = repair.calculation_plan
+        repaired_result = repair.calculation_result
+        self.assertTrue(repair.repair_applied)
+        self.assertEqual(repair.reason, "repaired")
+        self.assertEqual(repair.selected_evidence_ids, ("ev_result", "ev_cost"))
+        recursive_execute.assert_not_called()
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        self.assertEqual(
+            [call.args for call in formula_evaluation.call_args_list],
+            [
+                ("A / B", {"A": 3_500_000_000.0, "B": 1_000_000_000.0}),
+            ],
+        )
+        self.assertEqual(repaired_operands, trace["calculation_operands"])
+        self.assertEqual(repaired_plan, trace["calculation_plan"])
+        repaired_without_marker = dict(repaired_result)
+        repaired_without_marker.pop("stale_result_repaired_from_operands")
+        self.assertEqual(repaired_without_marker, trace["calculation_result"])
+        self.assertEqual(repaired_result["source_row_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(result["selected_claim_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(state["resolved_calculation_trace"], original_trace)
+
+        capture_state = {
+            **state,
+            "evidence_items": [
+                *state["evidence_items"],
+                {"evidence_id": "ev_stale", "claim": "stale ratio"},
+            ],
+            "selected_claim_ids": ["ev_stale"],
+            "kept_claim_ids": ["ev_stale"],
+            "tasks": [
+                {
+                    "task_id": "task_ratio",
+                    "artifact_ids": ["result:task_ratio:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "result:task_ratio:001",
+                    "task_id": "task_ratio",
+                    "kind": "calculation_result",
+                    "evidence_refs": ["ev_stale"],
+                    "payload": {"calculation_result": stale_result},
+                }
+            ],
+            "resolved_calculation_trace": {
+                "calculation_operands": raw_operands,
+                "calculation_plan": plan,
+                "calculation_result": stale_result,
+            },
+        }
+        original_capture_lists = (
+            capture_state["selected_claim_ids"],
+            capture_state["kept_claim_ids"],
+            capture_state["tasks"],
+            capture_state["artifacts"],
+        )
+        original_capture_state = json.loads(json.dumps(capture_state))
+
+        captured = agent._capture_current_subtask_result(capture_state)
+
+        self.assertEqual(captured["calculation_operands"], trace["calculation_operands"])
+        self.assertEqual(captured["calculation_result"]["source_row_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(
+            capture_state["artifacts"][0]["payload"]["calculation_result"]["source_row_ids"],
+            ["row_stale"],
+        )
+        self.assertIs(capture_state["selected_claim_ids"], original_capture_lists[0])
+        self.assertIs(capture_state["kept_claim_ids"], original_capture_lists[1])
+        self.assertIs(capture_state["tasks"], original_capture_lists[2])
+        self.assertIs(capture_state["artifacts"], original_capture_lists[3])
+        self.assertEqual(capture_state, original_capture_state)
+        self.assertEqual(captured["selected_claim_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(captured["artifact_ids"], ["result:task_ratio:001"])
 
     def test_lookup_slot_refinement_prefers_value_local_unit_over_table_unit_hint(self) -> None:
         slot = {
@@ -3941,7 +4904,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "백만원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "억원")
         self.assertEqual(refined["normalized_value"], 676900000000.0)
@@ -3964,7 +4927,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "천원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "원")
         self.assertEqual(refined["normalized_value"], 2176431531380.0)
@@ -3987,7 +4950,7 @@ class OperationContractTests(unittest.TestCase):
             "metadata": {"unit_hint": "백만원"},
         }
 
-        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+        refined = refine_lookup_slot_unit_from_evidence(slot, evidence)
 
         self.assertEqual(refined["raw_unit"], "백만원")
         self.assertEqual(refined["normalized_value"], 2163234000000.0)
@@ -4038,7 +5001,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertNotIn("29.93%", answer)
 
     def test_lookup_direct_support_accepts_raw_value_with_embedded_unit(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "첨단제조 생산세액공제",
             "matched_operand_label": "첨단제조 생산세액공제",
@@ -4058,7 +5020,7 @@ class OperationContractTests(unittest.TestCase):
             }
         ]
 
-        self.assertTrue(agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands))
+        self.assertTrue(_llm_lookup_operand_has_direct_support(row, evidence_item, required_operands))
 
     def test_difference_renderer_prefers_slot_contract_over_llm_rendering(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -4116,7 +5078,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertIn("1,486,360백만원", rendered["answer"])
         self.assertNotIn("1,486,334백만원", rendered["answer"])
         self.assertEqual(trace["calculation_result"]["formatted_result"], rendered["answer"])
@@ -4150,7 +5112,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertEqual(rendered["answer"], "The result is 25.4%.")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "The result is 25.4%.")
         self.assertNotIn("calculation_operands", rendered)
@@ -4229,7 +5191,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(rendered)
+        trace = resolve_runtime_calculation_trace(rendered)
         self.assertEqual(rendered["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(rendered["structured_result"]["formatted_result"], "25.4%")
@@ -4286,7 +5248,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(verified)
+        trace = resolve_runtime_calculation_trace(verified)
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "error_keep")
@@ -4317,7 +5279,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "skip")
         self.assertEqual(
-            _resolve_runtime_calculation_trace(verified, allow_legacy_top_level=False),
+            resolve_runtime_calculation_trace(verified, allow_legacy_top_level=False),
             {},
         )
         self.assertNotIn("calculation_operands", verified)
@@ -4360,7 +5322,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(verified)
+        trace = resolve_runtime_calculation_trace(verified)
         self.assertEqual(verified["answer"], "25.4%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "25.4%")
         self.assertEqual(verified["calculation_debug_trace"]["verification"]["verdict"], "keep")
@@ -4425,7 +5387,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 employee_benefits_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -4515,7 +5477,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_direct_lookup_row_uses_aggregate_cell_when_operand_policy_prefers_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._lookup_row_from_direct_structured_evidence(
+        row = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
             {
                 "label": "매출액",
                 "concept": "revenue",
@@ -4560,7 +5522,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_direct_lookup_row_uses_aggregate_cell_when_evidence_row_is_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._lookup_row_from_direct_structured_evidence(
+        row = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
             {
                 "label": "selected borrowing",
                 "concept": "selected_borrowing",
@@ -4698,123 +5660,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(row_metadata["unit_hint"], "백만원")
         self.assertEqual(row_metadata["structured_cells"][0]["unit_hint"], "백만원")
 
-    def test_direct_target_lookup_does_not_replace_existing_row_with_conflicting_unit_family(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertTrue(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "normalized_unit": "COUNT",
-                    "matched_operand_label": "selected metric",
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "normalized_unit": "KRW",
-                    }
-                ],
-                [{"label": "selected metric", "required": True}],
-            )
-        )
-        self.assertFalse(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "normalized_unit": "KRW",
-                    "matched_operand_label": "selected metric",
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "normalized_unit": "KRW",
-                    }
-                ],
-                [{"label": "selected metric", "required": True}],
-            )
-        )
-
-    def test_direct_target_lookup_does_not_replace_structured_detail_row_with_aggregate_fallback(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertTrue(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "matched_operand_label": "selected metric",
-                    "matched_operand_role": "primary_value",
-                    "raw_value": "300",
-                    "normalized_value": 300.0,
-                    "normalized_unit": "KRW",
-                    "value_role": "aggregate",
-                    "aggregation_stage": "final",
-                    "direct_target_metric_lookup": True,
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "matched_operand_role": "primary_value",
-                        "raw_value": "100",
-                        "normalized_value": 100.0,
-                        "normalized_unit": "KRW",
-                        "source_row_id": "recon::table::value:1",
-                        "source_row_ids": ["recon::table::value:1"],
-                        "table_source_id": "table_1",
-                    }
-                ],
-                [
-                    {
-                        "label": "selected metric",
-                        "role": "primary_value",
-                        "required": True,
-                    }
-                ],
-            )
-        )
-
-    def test_direct_target_lookup_can_replace_structured_row_when_operand_prefers_aggregate(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertFalse(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "matched_operand_label": "selected metric",
-                    "matched_operand_role": "primary_value",
-                    "raw_value": "300",
-                    "normalized_value": 300.0,
-                    "normalized_unit": "KRW",
-                    "value_role": "aggregate",
-                    "aggregation_stage": "final",
-                    "direct_target_metric_lookup": True,
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "matched_operand_role": "primary_value",
-                        "raw_value": "100",
-                        "normalized_value": 100.0,
-                        "normalized_unit": "KRW",
-                        "source_row_id": "recon::table::value:1",
-                        "source_row_ids": ["recon::table::value:1"],
-                        "table_source_id": "table_1",
-                    }
-                ],
-                [
-                    {
-                        "label": "selected metric",
-                        "role": "primary_value",
-                        "required": True,
-                        "binding_policy": {"prefer_value_roles": ["aggregate"]},
-                    }
-                ],
-            )
-        )
-
     def test_operand_coerce_realigns_value_to_direct_structured_evidence_period_cell(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
@@ -4874,9 +5719,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_conflicts_with_operand_concept(candidate, operand))
+        self.assertTrue(candidate_conflicts_with_operand_concept(candidate, operand))
         self.assertLess(
-            _score_operand_candidate(
+            score_operand_candidate(
                 candidate,
                 operand=operand,
                 preferred_statement_types=[],
@@ -4888,8 +5733,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_krw_unit_repair_uses_alternate_table_surface_for_count_like_operand(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        repaired = agent._repair_krw_operand_units_from_table_metadata(
+        repaired = financial_operand_resolution.repair_krw_operand_units_from_table_metadata(
             [
                 {
                     "operand_id": "op_001",
@@ -5036,12 +5880,170 @@ class OperationContractTests(unittest.TestCase):
             },
             evidence,
         )
-        score = agent._table_label_metadata_lookup_score(slot, evidence)
+        score = table_label_metadata_lookup_score(slot, evidence)
 
         self.assertEqual(slot["raw_value"], "300")
         self.assertEqual(slot["value_role"], "aggregate")
         self.assertEqual(slot["aggregation_stage"], "final")
         self.assertGreater(score, 10.0)
+
+    def test_semantic_row_selection_owns_ambiguous_lookup_while_source_row_owns_value_and_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operand = agent._complete_required_operand_from_ontology(
+            {
+                "label": "연구개발비용",
+                "concept": "research_and_development_expense",
+                "role": "",
+                "required": True,
+            }
+        )
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "report_type": "annual",
+            "section_path": "research activities",
+            "table_source_id": "research::table:1",
+            "unit_hint": "백만원",
+            "period_labels": ["2023", "2022"],
+            "table_header_context": "구분 | 2023 | 2022",
+            "table_row_labels_text": "연구개발비용 총계\n연구개발비용 계",
+            "table_value_labels_text": "\n".join(
+                [
+                    "연구개발비용 총계 130",
+                    "연구개발비용 총계 110",
+                    "연구개발비용 계 120",
+                    "연구개발비용 계 100",
+                ]
+            ),
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_id": "row_total",
+                        "row_label": "연구개발비용 총계",
+                        "row_headers": ["연구개발비용 총계"],
+                        "cells": [
+                            {"column_headers": ["2023"], "value_text": "130", "unit_hint": "백만원"},
+                            {"column_headers": ["2022"], "value_text": "110", "unit_hint": "백만원"},
+                        ],
+                    },
+                    {
+                        "row_id": "row_amount",
+                        "row_label": "연구개발비용 계",
+                        "row_headers": ["연구개발비용 계"],
+                        "cells": [
+                            {"column_headers": ["2023"], "value_text": "120", "unit_hint": "백만원"},
+                            {"column_headers": ["2022"], "value_text": "100", "unit_hint": "백만원"},
+                        ],
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        query = "2023년 연결 연구개발비용 총액을 알려줘."
+        constraints = {"consolidation_scope": "consolidated", "period_focus": "current"}
+        report_scope = {"company": "ExampleCo", "year": 2023, "consolidation": "연결"}
+        active_subtask = {
+            "task_id": "task_lookup",
+            "query": query,
+            "metric_label": "2023년 연구개발비용 총액",
+            "operation_family": "lookup",
+            "required_operands": [operand],
+            "constraints": constraints,
+        }
+        state = {
+            "query": query,
+            "active_subtask": active_subtask,
+            "years": [2023],
+            "report_scope": report_scope,
+            "evidence_items": [],
+            "retrieved_docs": [(Document(page_content="연구개발비용 표", metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+        }
+        candidates = agent._build_reconciliation_candidates(state)
+        total_candidate = next(
+            candidate
+            for candidate in candidates
+            if (candidate.get("metadata") or {}).get("row_label") == "연구개발비용 총계"
+            and candidate.get("candidate_kind") == "structured_row"
+        )
+        amount_candidate = next(
+            candidate
+            for candidate in candidates
+            if (candidate.get("metadata") or {}).get("row_label") == "연구개발비용 계"
+            and candidate.get("candidate_kind") == "structured_row"
+        )
+        deterministic = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2023],
+            reconciliation_retry_count=0,
+            report_scope=report_scope,
+        )
+        self.assertEqual(
+            deterministic["matched_operands"][0]["candidate_ids"][0],
+            amount_candidate["candidate_id"],
+        )
+
+        semantic_decision = {
+            "ordered_candidate_ids": [total_candidate["candidate_id"], amount_candidate["candidate_id"]],
+            "selected_candidate_id": total_candidate["candidate_id"],
+            "selection_status": "selected",
+            "llm_completed": True,
+        }
+        with patch.object(agent, "_should_llm_rerank_candidates", return_value=True), patch.object(
+            agent,
+            "_llm_rerank_operand_candidates",
+            return_value=semantic_decision,
+        ):
+            reconciliation = agent._rerank_reconciliation_matches_with_llm(
+                state,
+                deterministic,
+                candidates,
+                [2023],
+            )
+
+        state["reconciliation_result"] = reconciliation
+        rows = agent._extract_structured_operands_from_reconciliation(state)
+        evidence_items = agent._evidence_items_from_reconciliation_matches(state)
+
+        self.assertEqual(reconciliation["status"], "ready")
+        self.assertEqual(
+            reconciliation["matched_operands"][0]["semantic_selected_candidate_id"],
+            total_candidate["candidate_id"],
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "130")
+        self.assertEqual(rows[0]["raw_unit"], "백만원")
+        self.assertEqual(rows[0]["evidence_id"], total_candidate["candidate_id"])
+        self.assertEqual(rows[0]["semantic_selected_candidate_id"], total_candidate["candidate_id"])
+        self.assertEqual(rows[0]["semantic_selection_status"], "selected")
+        self.assertEqual(len(evidence_items), 1)
+        self.assertEqual(evidence_items[0]["metadata"]["row_label"], "연구개발비용 총계")
+        self.assertEqual(
+            agent._lookup_value_from_table_label_metadata(
+                operand,
+                {"evidence_id": "coarse", "source_anchor": "[source]", "metadata": metadata},
+            ),
+            {},
+        )
+
+    def test_index_metadata_prefix_is_removed_before_llm_context_without_dropping_source_heading(self) -> None:
+        indexed = "\n".join(
+            [
+                "[회사: ExampleCo] [연도: 2023] [보고서: annual]",
+                "[섹션: business]",
+                "[분류: business / paragraph]",
+                "[키워드: business, technology, paragraph]",
+                "",
+                "[Harman]Harman은 끊임없는 혁신을 추구합니다.",
+            ]
+        )
+
+        cleaned = financial_text_surface.strip_index_metadata_prefix(indexed)
+
+        self.assertNotIn("키워드:", cleaned)
+        self.assertNotIn("회사:", cleaned)
+        self.assertEqual(cleaned, "[Harman]Harman은 끊임없는 혁신을 추구합니다.")
 
     def test_required_operand_assembly_prefers_aggregate_table_label_value_with_structured_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5173,7 +6175,7 @@ class OperationContractTests(unittest.TestCase):
             "aliases": ["인건비", "종업원급여"],
             "role": "numerator_1",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_generic_ratio_denominator_accepts_aggregate_total_row_via_table_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5299,10 +6301,10 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(broad_context_candidate, operand))
-        self.assertLess(_candidate_direct_match_strength(broad_context_candidate, operand), 1.0)
-        self.assertTrue(_candidate_matches_operand(local_metric_candidate, operand))
-        self.assertGreaterEqual(_candidate_direct_match_strength(local_metric_candidate, operand), 1.0)
+        self.assertFalse(candidate_matches_operand(broad_context_candidate, operand))
+        self.assertLess(candidate_direct_match_strength(broad_context_candidate, operand), 1.0)
+        self.assertTrue(candidate_matches_operand(local_metric_candidate, operand))
+        self.assertGreaterEqual(candidate_direct_match_strength(local_metric_candidate, operand), 1.0)
 
     def test_structured_value_does_not_match_only_broad_table_context(self) -> None:
         operand = {
@@ -5333,9 +6335,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(wrong_structured_value, operand))
+        self.assertFalse(candidate_matches_operand(wrong_structured_value, operand))
 
-    def test_candidate_row_block_signature_tracks_local_subtable_header(self) -> None:
+    def test_row_block_signature_tracks_local_subtable_header(self) -> None:
         row_context_text = "\n".join(
             [
                 "| 주식결제형 주식기준보상 | 현금결제형 주식기준보상 | 양도제한조건부 주식",
@@ -5366,8 +6368,8 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertNotEqual(
-            _candidate_row_block_signature(reserve_candidate),
-            _candidate_row_block_signature(operating_expense_candidate),
+            candidate_row_block_signature(reserve_candidate),
+            candidate_row_block_signature(operating_expense_candidate),
         )
 
     def test_candidate_target_year_respects_prior_period_focus(self) -> None:
@@ -5400,9 +6402,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
-        self.assertTrue(_candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
-        self.assertTrue(_candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
+        self.assertFalse(candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
+        self.assertTrue(candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
+        self.assertTrue(candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
 
     def test_candidate_score_respects_operand_aggregate_stage_order(self) -> None:
         operand = {
@@ -5441,21 +6443,21 @@ class OperationContractTests(unittest.TestCase):
                 },
             }
 
-        final_score = _score_operand_candidate(
+        final_score = score_operand_candidate(
             candidate("final"),
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        subtotal_score = _score_operand_candidate(
+        subtotal_score = score_operand_candidate(
             candidate("subtotal"),
             operand=operand,
             preferred_statement_types=["notes"],
             constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
             query_years=[2023],
         )
-        detail_score = _score_operand_candidate(
+        detail_score = score_operand_candidate(
             candidate("none", value_role="detail"),
             operand=operand,
             preferred_statement_types=["notes"],
@@ -5502,8 +6504,8 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        direct_score = _score_operand_candidate(direct_row, **score_kwargs)
-        multicell_score = _score_operand_candidate(multicell_row, **score_kwargs)
+        direct_score = score_operand_candidate(direct_row, **score_kwargs)
+        multicell_score = score_operand_candidate(multicell_row, **score_kwargs)
 
         self.assertGreater(direct_score, multicell_score)
 
@@ -5535,7 +6537,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 separate_note_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5575,7 +6577,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 separate_candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5615,7 +6617,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5656,8 +6658,8 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertFalse(_candidate_matches_operand(candidate, operand))
-        self.assertLess(_candidate_direct_match_strength(candidate, operand), 1.0)
+        self.assertFalse(candidate_matches_operand(candidate, operand))
+        self.assertLess(candidate_direct_match_strength(candidate, operand), 1.0)
 
     def test_lookup_direct_acceptance_rejects_raw_table_row_when_structured_records_exist(self) -> None:
         operand = {
@@ -5687,7 +6689,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5727,7 +6729,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5768,9 +6770,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+        self.assertGreaterEqual(candidate_direct_match_strength(candidate, operand), 2.5)
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5812,16 +6814,16 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        selected_cell = _candidate_selected_cell_for_operand(
+        selected_cell = candidate_selected_cell_for_operand(
             candidate,
             operand=operand,
             query_years=[2023],
             period_focus="current",
         )
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
+        self.assertTrue(candidate_matches_operand(candidate, operand))
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5863,8 +6865,8 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
-        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+        self.assertTrue(candidate_matches_operand(candidate, operand))
+        self.assertGreaterEqual(candidate_direct_match_strength(candidate, operand), 2.5)
 
     def test_operand_text_match_ignores_leading_year_prefix_for_note_rows(self) -> None:
         operand = {
@@ -5896,8 +6898,8 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(_candidate_matches_operand(candidate, operand))
-        self.assertGreaterEqual(_candidate_direct_match_strength(candidate, operand), 2.5)
+        self.assertTrue(candidate_matches_operand(candidate, operand))
+        self.assertGreaterEqual(candidate_direct_match_strength(candidate, operand), 2.5)
 
     def test_lookup_direct_acceptance_rejects_broad_partial_related_party_label(self) -> None:
         operand = {
@@ -5933,9 +6935,9 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        self.assertLess(_candidate_direct_match_strength(candidate, operand), 2.0)
+        self.assertLess(candidate_direct_match_strength(candidate, operand), 2.0)
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -5979,7 +6981,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_is_direct_grounding_candidate(
+            candidate_is_direct_grounding_candidate(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6031,7 +7033,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
@@ -6074,7 +7076,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -6127,7 +7129,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "current", "segment_scope": "segment"},
@@ -6178,7 +7180,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        selected_cell = _candidate_selected_cell_for_operand(
+        selected_cell = candidate_selected_cell_for_operand(
             candidate,
             operand=operand,
             query_years=[2023, 2022],
@@ -6187,7 +7189,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIsNotNone(selected_cell)
         self.assertEqual((selected_cell or {}).get("value_text"), "1,801,079")
         self.assertTrue(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"consolidation_scope": "consolidated", "period_focus": "prior", "segment_scope": "segment"},
@@ -6297,8 +7299,8 @@ class OperationContractTests(unittest.TestCase):
             "concept": "income_before_income_taxes",
             "role": "prior_period",
         }
-        self.assertTrue(_operand_row_matches_requirement(row, current_req))
-        self.assertFalse(_operand_row_matches_requirement(row, prior_req))
+        self.assertTrue(operand_row_matches_requirement(row, current_req))
+        self.assertFalse(operand_row_matches_requirement(row, prior_req))
 
     def test_dependency_slot_match_respects_symbolic_prior_period_hint(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -6325,7 +7327,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._dependency_slot_matches_input(
+            financial_dependency_projection.dependency_slot_matches_input(
                 binding,
                 current_slot,
                 sibling_row=sibling_row,
@@ -6333,7 +7335,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._dependency_slot_matches_input(
+            financial_dependency_projection.dependency_slot_matches_input(
                 binding,
                 prior_slot,
                 sibling_row=sibling_row,
@@ -6362,7 +7364,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
         self.assertEqual(trace.get("calculation_result", {}), {})
@@ -6398,7 +7400,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
+        trace = resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
         self.assertEqual(result["planner_debug_trace"]["reason"], "no operands")
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
@@ -6446,7 +7448,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertIn("distinct_operands", trace["calculation_plan"]["missing_info"])
@@ -6489,7 +7491,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
         self.assertIn("error", result["planner_debug_trace"])
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
@@ -6549,7 +7551,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertTrue(result["planner_debug_trace"]["llm_invoked"])
         self.assertTrue(result["planner_debug_trace"]["guard_applied"])
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
@@ -6592,7 +7594,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(result["evidence_status"], "missing")
         self.assertIn("error", result["calculation_debug_trace"])
         self.assertEqual(trace.get("calculation_operands", []), [])
@@ -6643,7 +7645,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
@@ -6691,7 +7693,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         plan = trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "subtract")
@@ -6757,7 +7759,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        plan_trace = _resolve_runtime_calculation_trace(plan_result)
+        plan_trace = resolve_runtime_calculation_trace(plan_result)
         plan = plan_trace["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["operation"], "ratio")
@@ -6765,7 +7767,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan["formula"], "((A) / (((B + C) / 2))) * 100")
 
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 4.3113887664, places=6)
@@ -6818,21 +7820,20 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        plan = _resolve_runtime_calculation_trace(plan_result)["calculation_plan"]
+        plan = resolve_runtime_calculation_trace(plan_result)["calculation_plan"]
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(plan["formula"], "((A) / (B)) * 100")
         self.assertEqual(plan["result_unit"], "%p")
 
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        calc = resolve_runtime_calculation_trace(execution_result)["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.3646014776, places=6)
         self.assertEqual(calc["rendered_value"], "8.36%p")
 
     def test_time_series_success_publishes_calculation_task_artifact_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = _execute_calculation_with_runtime_trace(agent,
-            {
+        state = {
                 "query": "Show the multi-period trend for target metric.",
                 "active_subtask": {
                     "task_id": "task_trend",
@@ -6890,9 +7891,43 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
-        )
+        runtime_state = _with_runtime_calculation_trace(state)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
+            patch.object(
+                agent,
+                "_align_ratio_operands_with_sibling_table_context",
+                wraps=agent._align_ratio_operands_with_sibling_table_context,
+            ) as ratio_alignment,
+        ):
+            result = agent._execute_calculation(runtime_state)
 
-        trace = _resolve_runtime_calculation_trace(result)
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        state_projection.assert_called_once()
+        ratio_alignment.assert_not_called()
+
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "21.0%")
@@ -6909,6 +7944,25 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["tasks"][0]["kind"], "calculation")
         self.assertEqual(result["tasks"][0]["status"], "completed")
         self.assertEqual(result["tasks"][0]["artifact_ids"], ["result:task_trend:001"])
+
+        failure_state = json.loads(json.dumps(runtime_state))
+        failure_state["active_subtask"]["operation_family"] = "single_value"
+        with patch.object(
+            financial_graph_calculation,
+            "build_success_calculation_state_payload",
+            side_effect=RuntimeError("time-series projection failed"),
+        ):
+            failed = agent._execute_calculation(failure_state)
+
+        failed_trace = resolve_runtime_calculation_trace(failed)
+        self.assertEqual(failed_trace["calculation_result"]["status"], "parse_error")
+        self.assertEqual(
+            failed_trace["calculation_result"]["explanation"],
+            "time-series projection failed",
+        )
+        self.assertEqual(failed.get("artifacts", []), [])
+        self.assertEqual(failed.get("tasks", []), [])
+        self.assertEqual(failed["selected_claim_ids"], ["ev_2021", "ev_2022", "ev_2023"])
 
     def test_ratio_recomputes_operand_scale_from_source_visible_rendered_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -6958,8 +8012,56 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        owner_calls = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
+        current_alignment = agent._align_ratio_operands_with_sibling_table_context
+
+        def record_repair(row):
+            owner_calls.append(deepcopy(row))
+            return {
+                **current_repair(row),
+                "rendered_unit_repair_owner_order": len(owner_calls),
+            }
+
+        def record_alignment(rows, evidence_items):
+            return [
+                {**row, "shared_table_prep_caller_marker": True}
+                for row in current_alignment(rows, evidence_items)
+            ]
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=record_repair,
+            ) as repair_owner,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_align_ratio_operands_with_sibling_table_context",
+                side_effect=record_alignment,
+            ) as ratio_alignment,
+        ):
+            execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+            candidate_input = candidate_preparation.call_args.args[0]
+            owner_call_count = repair_owner.call_count
+            early_failure = agent._prepare_calculation_candidate(
+                candidate_input._replace(
+                    calculation_plan={**candidate_input.calculation_plan, "mode": "none"},
+                )
+            )
+
+        self.assertEqual(early_failure.status, "insufficient_operands")
+        self.assertEqual(owner_call_count, 2)
+        self.assertEqual(repair_owner.call_count, owner_call_count)
+        ratio_alignment.assert_called_once()
+        self.assertEqual(ratio_alignment.call_args.args[1], [])
+        self.assertEqual([row["operand_id"] for row in owner_calls], ["op_amortization", "op_revenue"])
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
@@ -6968,6 +8070,10 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(repaired_operand["raw_unit"], "천원")
         self.assertEqual(repaired_operand["normalized_value"], 182049824000.0)
         self.assertTrue(repaired_operand["unit_repaired_from_rendered_value"])
+        self.assertEqual(repaired_operand["rendered_unit_repair_owner_order"], 1)
+        self.assertTrue(repaired_operand["shared_table_prep_caller_marker"])
+        revenue_operand = next(row for row in trace["calculation_operands"] if row["operand_id"] == "op_revenue")
+        self.assertEqual(revenue_operand["rendered_unit_repair_owner_order"], 2)
 
     def test_ratio_recomputes_operand_scale_from_embedded_raw_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7018,7 +8124,7 @@ class OperationContractTests(unittest.TestCase):
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        trace = _resolve_runtime_calculation_trace(execution_result)
+        trace = resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
@@ -7074,36 +8180,9 @@ class OperationContractTests(unittest.TestCase):
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
         execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
-        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        calc = resolve_runtime_calculation_trace(execution_result)["calculation_result"]
         self.assertEqual(calc["status"], "scale_mismatch")
         self.assertEqual(calc["rendered_value"], "")
-
-    def test_dependency_aggregate_policy_blocks_detail_context_replacement(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        row = {
-            "dependency_resolved": True,
-            "source_task_id": "task_revenue",
-            "evidence_id": "task_output:task_revenue",
-            "source_row_ids": ["task_output:task_revenue", "summary_total_value"],
-            "matched_operand_label": "매출액",
-            "matched_operand_role": "denominator",
-            "raw_value": "2,176,431,531",
-            "normalized_value": 2176431531000.0,
-            "aggregation_stage": "final",
-            "binding_policy": {"prefer_aggregation_stages": ["final", "subtotal"]},
-        }
-        replacement = {
-            "evidence_id": "segment_detail_value",
-            "source_row_ids": ["segment_detail_value", "summary_total_value"],
-            "matched_operand_label": "매출액",
-            "matched_operand_role": "denominator",
-            "raw_value": "1,873,430,064",
-            "normalized_value": 1873430064000.0,
-            "value_role": "detail",
-            "aggregation_stage": "none",
-        }
-
-        self.assertTrue(agent._task_output_operand_row_should_keep_value(row, replacement))
 
     def test_formula_planner_prefers_resolved_runtime_trace_over_stale_flat_fields(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7272,12 +8351,14 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         slots = trace["calculation_result"]["answer_slots"]
+        self.assertEqual(slots["result_semantics"], "derived_value")
         self.assertEqual(slots["primary_value"]["role"], "primary_value")
-        self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
-        self.assertEqual(slots["prior_value"]["rendered_value"], "-6,406억원")
-        self.assertEqual(slots["delta_value"]["rendered_value"], "1조 3,616억원")
+        self.assertIsNone(slots["current_value"])
+        self.assertIsNone(slots["prior_value"])
+        self.assertIsNone(slots["delta_value"])
+        self.assertIsNone(slots["direction"])
         self.assertNotIn("calculation_result", result)
 
     def test_rendered_subtraction_answer_rewrites_double_negative_subtrahend(self) -> None:
@@ -7460,7 +8541,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["current_period"], "2023")
@@ -7544,7 +8625,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "0.10%p")
@@ -7610,7 +8691,7 @@ class OperationContractTests(unittest.TestCase):
                 "tasks": [],
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["answer_slots"]["prior_value"]["normalized_unit"], "KRW")
@@ -7623,8 +8704,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_growth_rate_preserves_stated_source_percent_when_available(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = _execute_calculation_with_runtime_trace(agent,
-            {
+        state = {
                 "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
                 "active_subtask": {
                     "task_id": "task_count_growth",
@@ -7673,9 +8753,9 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
-        )
+        result = _execute_calculation_with_runtime_trace(agent, state)
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["rendered_value"], "11.5%")
         self.assertEqual(calc["result_value"], 11.5)
@@ -7691,6 +8771,287 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
         self.assertTrue(calc["derived_metrics"]["source_stated_result_used"])
+        operands = trace["calculation_operands"]
+        plan = trace["calculation_plan"]
+        original_inputs = json.loads(
+            json.dumps({"operands": operands, "plan": plan, "result": calc})
+        )
+
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            first_repair = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=operands,
+                plan=plan,
+                calculation_result=calc,
+            )
+            second_repair = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=first_repair.calculation_operands,
+                plan=first_repair.calculation_plan,
+                calculation_result=first_repair.calculation_result,
+            )
+
+        first_operands = first_repair.calculation_operands
+        first_plan = first_repair.calculation_plan
+        first_result = first_repair.calculation_result
+        second_operands = second_repair.calculation_operands
+        second_plan = second_repair.calculation_plan
+        second_result = second_repair.calculation_result
+        self.assertEqual(recursive_execute.call_count, 0)
+        self.assertEqual(formula_evaluation.call_count, 2)
+        self.assertEqual(canonical_execution.call_count, 2)
+        self.assertEqual(candidate_preparation.call_count, 2)
+        candidate_projection.assert_not_called()
+        self.assertFalse(first_repair.repair_applied)
+        self.assertEqual(first_repair.reason, "current")
+        self.assertEqual(first_repair.selected_evidence_ids, ())
+        self.assertFalse(second_repair.repair_applied)
+        self.assertEqual(second_repair.reason, "current")
+        self.assertEqual(second_repair.selected_evidence_ids, ())
+        self.assertIs(first_operands, operands)
+        self.assertIs(first_plan, plan)
+        self.assertIs(first_result, calc)
+        self.assertIs(second_operands, first_operands)
+        self.assertIs(second_plan, first_plan)
+        self.assertIs(second_result, first_result)
+        self.assertEqual(second_result, calc)
+        self.assertNotIn("stale_result_repaired_from_operands", second_result)
+        self.assertEqual(operands, original_inputs["operands"])
+        self.assertEqual(plan, original_inputs["plan"])
+        self.assertEqual(calc, original_inputs["result"])
+
+        changed_operands = [dict(row) for row in operands]
+        changed_operands[0].update(raw_value="90.0", normalized_value=900000.0)
+        changed_operands_before_repair = json.loads(json.dumps(changed_operands))
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "safe_eval_formula",
+                wraps=financial_calculation_execution.safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            changed_repair = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=changed_operands,
+                plan=plan,
+                calculation_result=calc,
+            )
+            settled_repair = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=changed_operands,
+                plan=plan,
+                calculation_result=changed_repair.calculation_result,
+            )
+
+        changed_result = changed_repair.calculation_result
+        settled_result = settled_repair.calculation_result
+        recursive_execute.assert_not_called()
+        self.assertEqual(formula_evaluation.call_count, 2)
+        self.assertEqual(canonical_execution.call_count, 2)
+        self.assertEqual(candidate_preparation.call_count, 2)
+        candidate_projection.assert_called_once()
+        self.assertTrue(changed_repair.repair_applied)
+        self.assertEqual(changed_repair.reason, "repaired")
+        self.assertEqual(changed_repair.selected_evidence_ids, ("sales_2023",))
+        self.assertFalse(settled_repair.repair_applied)
+        self.assertEqual(settled_repair.reason, "current")
+        self.assertEqual(settled_repair.selected_evidence_ids, ())
+        self.assertIs(settled_result, changed_result)
+        self.assertTrue(changed_result["stale_result_repaired_from_operands"])
+        self.assertEqual(changed_result["result_value"], 11.5)
+        self.assertAlmostEqual(
+            changed_result["derived_metrics"]["formula_result_value"],
+            15.23687580025608,
+        )
+        self.assertEqual(operands, original_inputs["operands"])
+        self.assertEqual(plan, original_inputs["plan"])
+        self.assertEqual(calc, original_inputs["result"])
+        self.assertEqual(changed_operands, changed_operands_before_repair)
+
+        aggregate_input_state = {
+            "query": state["query"],
+            "tasks": [],
+            "artifacts": [],
+        }
+        stale_projection = {
+            "calculation_operands": changed_operands,
+            "calculation_plan": plan,
+            "calculation_result": calc,
+        }
+        stale_row = {
+            "task_id": "task_count_growth",
+            "metric_family": "generic_numeric",
+            "metric_label": state["active_subtask"]["metric_label"],
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": calc["rendered_value"],
+            "calculation_operands": changed_operands,
+            "calculation_plan": plan,
+            "calculation_result": calc,
+            "selected_claim_ids": ["ev_stale"],
+        }
+        narrative_row = {
+            "task_id": "task_narrative",
+            "metric_family": "narrative_summary",
+            "metric_label": "market context",
+            "operation_family": "narrative_summary",
+            "status": "ok",
+            "answer": "Market context remained supported.",
+            "selected_claim_ids": ["ev_narrative"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Market context remained supported.",
+                "source_row_ids": ["ev_narrative"],
+                "answer_slots": {"operation_family": "narrative_summary"},
+            },
+        }
+        other_metric_row = {
+            "task_id": "task_other_growth",
+            "metric_family": "generic_numeric",
+            "metric_label": "other growth metric",
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": "Other growth remained supported.",
+            "selected_claim_ids": ["ev_other_metric"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Other growth remained supported.",
+                "source_row_ids": ["ev_other_metric"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": "other growth metric",
+                },
+            },
+        }
+        other_period_row = {
+            "task_id": "task_count_growth_other_period",
+            "metric_family": "generic_numeric",
+            "metric_label": state["active_subtask"]["metric_label"],
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": "Earlier-period growth remained supported.",
+            "selected_claim_ids": ["ev_other_period"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Earlier-period growth remained supported.",
+                "source_row_ids": ["ev_other_period"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": state["active_subtask"]["metric_label"],
+                    "current_period": "2021",
+                    "prior_period": "2020",
+                },
+            },
+        }
+        aggregate_evidence = [
+            {"evidence_id": "ev_narrative", "claim": "Supported market context."},
+            {"evidence_id": "ev_other_metric", "claim": "Supported other growth metric."},
+            {"evidence_id": "ev_other_period", "claim": "Supported earlier-period growth."},
+            {"evidence_id": "ev_stale", "claim": "stale growth result"},
+            {
+                "evidence_id": "sales_2023",
+                "claim": "2023 sales were 87.0 and the source-stated growth was 11.5%.",
+            },
+        ]
+        original_aggregate_inputs = json.loads(
+            json.dumps(
+                {
+                    "state": aggregate_input_state,
+                    "projection": stale_projection,
+                    "evidence": aggregate_evidence,
+                }
+            )
+        )
+        aggregate_repaired = agent._apply_stale_projection_repair_to_aggregate_state(
+            state=aggregate_input_state,
+            aggregate_state=financial_graph_calculation._AggregateSynthesisState(
+                [narrative_row, other_metric_row, other_period_row, stale_row],
+                stale_projection,
+                calc["rendered_value"],
+                ["ev_narrative", "ev_other_metric", "ev_other_period", "ev_stale"],
+            ),
+            evidence_items=aggregate_evidence,
+        )
+        aggregate_completion = agent._build_aggregate_completion_update(
+            aggregate_input_state,
+            ordered_results=aggregate_repaired.ordered_results,
+            aggregate_projection=aggregate_repaired.aggregate_projection,
+            final_answer=aggregate_repaired.final_answer,
+            selected_claim_ids=aggregate_repaired.selected_claim_ids,
+            aggregate_evidence_items=aggregate_evidence,
+            ledger_artifacts=[],
+            planner_feedback="",
+            should_replan=False,
+            replan_blocked_reason="",
+            aggregate_synthesis_debug={},
+        )
+        completion_trace = resolve_runtime_calculation_trace(aggregate_completion)
+        aggregate_artifact = next(
+            artifact
+            for artifact in aggregate_completion["artifacts"]
+            if artifact.get("kind") == "aggregated_answer"
+        )
+
+        self.assertTrue(
+            completion_trace["calculation_result"]["stale_result_repaired_from_operands"]
+        )
+        self.assertEqual(
+            completion_trace["calculation_result"]["source_row_ids"],
+            ["sales_2023"],
+        )
+        self.assertEqual(changed_operands, changed_operands_before_repair)
+        self.assertEqual(aggregate_input_state, original_aggregate_inputs["state"])
+        self.assertEqual(stale_projection, original_aggregate_inputs["projection"])
+        self.assertEqual(aggregate_evidence, original_aggregate_inputs["evidence"])
+        # Accepted repairs must refresh final evidence selection before completion;
+        # this pure-numeric fixture drops the stale numeric reference.
+        expected_aggregate_refs = [
+            "ev_narrative",
+            "ev_other_metric",
+            "ev_other_period",
+            "sales_2023",
+        ]
+        self.assertEqual(aggregate_completion["selected_claim_ids"], expected_aggregate_refs)
+        self.assertEqual(aggregate_completion["kept_claim_ids"], expected_aggregate_refs)
+        self.assertEqual(aggregate_artifact["evidence_refs"], expected_aggregate_refs)
 
     def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7753,7 +9114,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["answer_slots"]["prior_value"]["period"], "2022년")
         self.assertEqual(calc["answer_slots"]["prior_value"]["rendered_value"], "78.1만 대")
@@ -7816,7 +9177,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "insufficient_operands")
         self.assertEqual(calc["rendered_value"], "")
@@ -7871,7 +9232,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        answer = agent._ensure_complete_growth_numeric_answer(
+        answer = financial_aggregate_projection.ensure_complete_growth_numeric_answer(
             (
                 "2023년 서비스 매출액은 3,589,060,852천원이며, 2022년 2,546,648,516천원 대비 "
                 "41.4% 성장했습니다. 2023년 서비스 매출액은 2조 5,466억원이며, "
@@ -7888,7 +9249,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("주요 성장 요인", answer)
 
     def test_growth_slot_keeps_display_when_source_task_unit_conflicts(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         slot = {
             "status": "ok",
             "source_task_id": "task_prior",
@@ -7918,9 +9278,95 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertEqual(
-            agent._growth_slot_display_value(slot, ordered_results),
+            financial_aggregate_projection.growth_slot_display_value(slot, ordered_results),
             "1조 8,011억원",
         )
+
+        with patch.object(financial_aggregate_projection, "_slot_display_from_source_task", return_value="") as source_owner, patch.object(
+            financial_aggregate_projection,
+            "source_task_display_compatible_with_slot",
+        ) as compatibility_owner:
+            self.assertEqual(financial_aggregate_projection.growth_slot_display_value(slot, ordered_results), slot["rendered_value"])
+        source_owner.assert_called_once_with(slot, ordered_results)
+        compatibility_owner.assert_not_called()
+
+        for owner_result, expected in ((True, "source display"), (False, slot["rendered_value"])):
+            with self.subTest(owner_result=owner_result), patch.object(
+                financial_aggregate_projection,
+                "_slot_display_from_source_task",
+                return_value="source display",
+            ), patch.object(
+                financial_aggregate_projection,
+                "source_task_display_compatible_with_slot",
+                return_value=owner_result,
+            ) as compatibility_owner:
+                self.assertEqual(financial_aggregate_projection.growth_slot_display_value(slot, ordered_results), expected)
+            compatibility_owner.assert_called_once()
+            slot_arg, display_arg = compatibility_owner.call_args.args
+            self.assertIs(slot_arg, slot)
+            self.assertEqual(display_arg, "source display")
+
+        class TrackedSlot(dict):
+            def __init__(self, values):
+                super().__init__(values)
+                self.events = []
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                return super().get(key, default)
+
+        tracked_slot = TrackedSlot(
+            {
+                "rendered_value": "",
+                "raw_value": "slot fallback",
+                "source_row_id": "source",
+                "raw_unit": "million",
+                "normalized_unit": "KRW",
+            }
+        )
+        with patch.object(
+            financial_aggregate_projection,
+            "_slot_display_from_source_task",
+            return_value="source won",
+        ), patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "CALCULATION_RENDER_POLICY",
+            {"krw_normalized_unit": "KRW", "krw_display_units": ["won"]},
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.growth_slot_display_value(tracked_slot, ordered_results),
+                "slot fallback",
+            )
+        self.assertEqual(
+            tracked_slot.events,
+            [
+                "rendered_value",
+                "raw_value",
+                "source_row_id",
+                "raw_unit",
+                "normalized_unit",
+                "rendered_value",
+                "raw_value",
+            ],
+        )
+
+        class FallbackBomb(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("fallback accessed")
+
+        fallback_bomb = FallbackBomb(slot)
+        with patch.object(
+            financial_aggregate_projection,
+            "_slot_display_from_source_task",
+            return_value="source display",
+        ), patch.object(
+            financial_aggregate_projection,
+            "source_task_display_compatible_with_slot",
+            side_effect=RuntimeError("compatibility owner failed"),
+        ) as compatibility_owner:
+            with self.assertRaisesRegex(RuntimeError, "compatibility owner failed"):
+                financial_aggregate_projection.growth_slot_display_value(fallback_bomb, ordered_results)
+        compatibility_owner.assert_called_once_with(fallback_bomb, "source display")
 
     def test_growth_numeric_answer_uses_magnitude_for_parenthesized_currency_displays(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7970,7 +9416,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        answer = agent._compose_complete_growth_numeric_answer(growth_row, [growth_row])
+        answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(growth_row, [growth_row])
 
         self.assertIn("3,146,409백만원", answer)
         self.assertIn("1,847,775백만원", answer)
@@ -8012,7 +9458,7 @@ class OperationContractTests(unittest.TestCase):
                 },
             }
         )
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "insufficient_operands")
         self.assertEqual(calc["answer_slots"]["operation_family"], "lookup")
@@ -8065,7 +9511,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(plan_result)
+        trace = resolve_runtime_calculation_trace(plan_result)
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["mode"], "none")
         self.assertNotIn("calculation_plan", plan_result)
@@ -8110,7 +9556,7 @@ class OperationContractTests(unittest.TestCase):
             }
             )
         )
-        trace = _resolve_runtime_calculation_trace(plan_result)
+        trace = resolve_runtime_calculation_trace(plan_result)
         self.assertEqual(trace["calculation_plan"]["status"], "ok")
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
         self.assertEqual(trace["calculation_plan"]["formula"], "A")
@@ -8164,7 +9610,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         calculation_result = trace["calculation_result"]
         self.assertEqual(calculation_result["rendered_value"], "2,526,280천원")
         self.assertEqual(calculation_result["series"][0]["rendered_value"], "2,526,280천원")
@@ -8230,7 +9676,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["mode"], "none")
@@ -8252,7 +9698,7 @@ class OperationContractTests(unittest.TestCase):
             "raw_value": "985,018",
             "raw_unit": "백만원",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_operand_requirement_rejects_conflicting_row_concept_even_when_label_matches(self) -> None:
         row = {
@@ -8266,7 +9712,7 @@ class OperationContractTests(unittest.TestCase):
             "concept": "operating_expense_total",
             "role": "primary_value",
         }
-        self.assertFalse(_operand_row_matches_requirement(row, operand))
+        self.assertFalse(operand_row_matches_requirement(row, operand))
 
     def test_evidence_item_conflict_rejects_continuing_income_quote_for_pretax_operand(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -8330,7 +9776,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_ratio_task_with_explicit_concepts_requires_direct_numeric_grounding(self) -> None:
         self.assertTrue(
-            _requires_direct_numeric_grounding(
+            requires_direct_numeric_grounding(
                 {
                     "operation_family": "ratio",
                     "required_operands": [
@@ -8503,7 +9949,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("70.0조원", claims)
 
     def test_credit_loss_narrative_policy_extends_hybrid_retrieval_plan(self) -> None:
-        subtask = _build_hybrid_narrative_subtask(
+        subtask = build_hybrid_narrative_subtask(
             query="신용손실충당금전입액 전년 대비 증가율을 계산하고 원인을 요약해 줘.",
             intent="trend",
             report_scope={"company": "ExampleCo", "year": 2023},
@@ -9181,7 +10627,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("summary-profit-loss-table", chunk_ids)
 
     def test_entity_metric_narrative_task_prefers_table_format(self) -> None:
-        task = _build_hybrid_narrative_subtask(
+        task = build_hybrid_narrative_subtask(
             query="Summarize Motional ownership, carrying amount, and profit or loss.",
             intent="numeric_fact",
             report_scope={"company": "현대자동차", "year": 2023},
@@ -9382,9 +10828,9 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("liquidity-payout", chunk_ids)
 
     def test_query_focus_markers_preserve_parenthetical_entity_pairs(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
+        from src.agent.financial_text_surface import query_focus_marker_groups
 
-        marker_groups = agent._query_focus_marker_groups(
+        marker_groups = query_focus_marker_groups(
             "모셔널(Motional)의 지분율과 인플레이션 감축법(IRA) 대응을 요약해 줘."
         )
         variants = [variant for group in marker_groups for variant in group.get("variants", [])]
@@ -9750,7 +11196,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("잉여현금흐름의 50%", result["answer"])
         self.assertNotIn("완전히 확정", result["answer"])
         self.assertEqual(result["planner_feedback"], "")
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_result"]["status"], "ok")
         self.assertEqual(result["structured_result"]["status"], "ok")
         self.assertNotIn("calculation_result", result)
@@ -9883,16 +11329,147 @@ class OperationContractTests(unittest.TestCase):
             }
         ]
 
-        with patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows), patch.object(
-            agent,
-            "_evidence_items_from_reconciliation_matches",
-            return_value=reconciliation_evidence,
+        owner_calls = []
+        real_owner = financial_graph_calculation.surface_contract_numeric_evidence_items
+
+        def select_surface_contract_evidence(evidence_items, required_rows):
+            selected = real_owner(evidence_items, required_rows)
+            owner_calls.append((evidence_items, required_rows))
+            return selected
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=select_surface_contract_evidence,
+            ) as owner,
         ):
             result = agent._extract_calculation_operands(state)
 
+        owner.assert_called_once()
+        called_evidence, called_requirements = owner_calls[0]
+        self.assertIsNot(called_evidence, state["evidence_items"])
+        self.assertIs(called_evidence[0], state["evidence_items"][0])
+        self.assertIs(called_evidence[0]["metadata"], state["evidence_items"][0]["metadata"])
+        self.assertEqual(
+            [row.get("evidence_id") for row in called_evidence],
+            ["ev_001", "ev_002", "ev_recon_001"],
+        )
+        source_requirements = state["active_subtask"]["required_operands"]
+        self.assertIsNot(called_requirements, source_requirements)
+        self.assertIsNot(called_requirements[0], source_requirements[0])
+        self.assertEqual(called_requirements, source_requirements)
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(len(result["evidence_items"]), 2)
         self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
+
+        surface_row = {
+            "evidence_id": "ev_surface",
+            "source_anchor": "[surface]",
+            "claim": "커머스 매출액 2,546,649",
+            "raw_row_text": "커머스 매출액 2,546,649",
+        }
+        surface_rows = [surface_row]
+        merge_inputs = []
+
+        class DummyLlm:
+            def with_structured_output(self, _model):
+                return object()
+
+        class DummyPrompt:
+            def __or__(self, _structured_llm):
+                return SimpleNamespace(
+                    invoke=lambda _payload: SimpleNamespace(operands=[], coverage="missing")
+                )
+
+        def observe_surface_merge(*args, **_kwargs):
+            merge_inputs.append(args[2])
+            return args[1], []
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(financial_graph_calculation, "query_requests_narrative_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                return_value=surface_rows,
+            ) as adoption_owner,
+            patch.object(agent, "_llm_for_phase", return_value=DummyLlm()),
+            patch.object(
+                financial_graph_calculation,
+                "chat_prompt_template_from_template",
+                return_value=DummyPrompt(),
+            ),
+            patch.object(
+                agent,
+                "_merge_required_operand_fallback_rows",
+                side_effect=observe_surface_merge,
+            ),
+        ):
+            agent._extract_calculation_operands(deepcopy(state))
+        adoption_owner.assert_called_once()
+        self.assertIs(merge_inputs[0], surface_rows)
+
+        grounding_false_calls = []
+
+        def select_when_grounding_false(evidence_items, required_rows):
+            grounding_false_calls.append((evidence_items, required_rows))
+            raise RuntimeError("grounding-false owner observed")
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(financial_graph_calculation, "requires_direct_numeric_grounding", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=select_when_grounding_false,
+            ) as grounding_false_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "grounding-false owner observed"):
+                agent._extract_calculation_operands(deepcopy(state))
+        grounding_false_owner.assert_called_once()
+        self.assertEqual(len(grounding_false_calls), 1)
+        self.assertEqual(grounding_false_calls[0][1], source_requirements)
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=RuntimeError("surface owner failed"),
+            ) as failing_owner,
+            patch.object(
+                financial_graph_calculation,
+                "query_requests_narrative_context",
+            ) as later_narrative_gate,
+            patch.object(agent, "_merge_required_operand_fallback_rows") as later_merge,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface owner failed"):
+                agent._extract_calculation_operands(deepcopy(state))
+        failing_owner.assert_called_once()
+        later_narrative_gate.assert_not_called()
+        later_merge.assert_not_called()
 
     def test_lookup_prefers_direct_structured_row_label_evidence_over_indirect_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -9987,21 +11564,164 @@ class OperationContractTests(unittest.TestCase):
         }
         state["runtime_evidence"] = [direct_evidence]
 
-        with patch.object(
-            agent,
-            "_extract_structured_operands_from_reconciliation",
-            return_value=[indirect_row],
-        ), patch.object(
-            agent,
-            "_evidence_items_from_reconciliation_matches",
-            return_value=reconciliation_evidence,
-        ):
-            result = agent._extract_calculation_operands(state)
+        expected_target_row = {
+            "operand_id": "primary_value",
+            "evidence_id": "ev_direct",
+            "source_row_id": "ev_direct",
+            "source_row_ids": ["ev_direct"],
+            "source_anchor": direct_evidence["source_anchor"],
+            "label": direct_evidence["metadata"]["row_label"],
+            "raw_value": "900",
+            "raw_unit": direct_evidence["metadata"]["unit_hint"],
+            "normalized_value": 900000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": f"900{direct_evidence['metadata']['unit_hint']}",
+            "period": "2023",
+            "matched_operand_label": state["active_subtask"]["metric_label"],
+            "matched_operand_concept": "",
+            "matched_operand_role": "primary_value",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_direct",
+            "value_role": "detail",
+            "aggregation_stage": "none",
+            "aggregate_label": "",
+            "direct_target_metric_lookup": True,
+        }
+        expected_existing_row = {
+            **indirect_row,
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_indirect",
+        }
+        original_acceptance = financial_graph_calculation.resolve_direct_structured_operand_acceptance
+        no_target_override = object()
+
+        def run_with_owner(owner_result, *, target_override=no_target_override):
+            acceptance_inputs = []
+
+            def record_acceptance(acceptance_input):
+                acceptance_inputs.append(acceptance_input)
+                return original_acceptance(acceptance_input)
+
+            with ExitStack() as stack:
+                stack.enter_context(
+                    patch.object(
+                        agent,
+                        "_extract_structured_operands_from_reconciliation",
+                        return_value=[indirect_row],
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        agent,
+                        "_evidence_items_from_reconciliation_matches",
+                        return_value=reconciliation_evidence,
+                    )
+                )
+                if target_override is not no_target_override:
+                    stack.enter_context(
+                        patch.object(
+                            agent,
+                            "_direct_target_metric_operand_from_evidence",
+                            return_value=target_override,
+                        )
+                    )
+                owner = stack.enter_context(
+                    patch.object(
+                        financial_graph_calculation,
+                        "direct_target_metric_row_conflicts_existing_units",
+                        return_value=owner_result,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_graph_calculation,
+                        "resolve_direct_structured_operand_acceptance",
+                        side_effect=record_acceptance,
+                    )
+                )
+                result = agent._extract_calculation_operands(state)
+            return result, owner, acceptance_inputs
+
+        result, owner_false, adopted_inputs = run_with_owner(False)
+        owner_false.assert_called_once_with(
+            expected_target_row,
+            [expected_existing_row],
+            state["active_subtask"]["required_operands"],
+        )
+        self.assertEqual(adopted_inputs[0].direct_operand_rows, [expected_target_row])
+        self.assertEqual(
+            [item["evidence_id"] for item in adopted_inputs[0].evidence_items],
+            ["ev_indirect", "ev_direct"],
+        )
+        self.assertEqual(adopted_inputs[0].required_operands[0]["label"], state["active_subtask"]["metric_label"])
 
         rows = result["calculation_debug_trace"]["operands"]
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["source_row_id"], "ev_direct")
         self.assertEqual(rows[0]["raw_value"], "900")
+
+        _, owner_true, retained_inputs = run_with_owner(True)
+        owner_true.assert_called_once()
+        self.assertEqual(retained_inputs[0].direct_operand_rows, [expected_existing_row])
+        self.assertEqual(
+            [item["evidence_id"] for item in retained_inputs[0].evidence_items],
+            ["ev_indirect"],
+        )
+        self.assertEqual(
+            retained_inputs[0].required_operands,
+            state["active_subtask"]["required_operands"],
+        )
+
+        _, absent_owner, _ = run_with_owner(False, target_override=({}, {}))
+        absent_owner.assert_not_called()
+        out_of_scope_target = {**expected_target_row, "consolidation_scope": "separate"}
+        _, scoped_owner, _ = run_with_owner(
+            False,
+            target_override=(out_of_scope_target, state["active_subtask"]["required_operands"][0]),
+        )
+        scoped_owner.assert_not_called()
+
+        with patch.object(
+            agent,
+            "_extract_structured_operands_from_reconciliation",
+            return_value=[],
+        ), patch.object(
+            agent,
+            "_evidence_items_from_reconciliation_matches",
+            return_value=[],
+        ), patch.object(
+            agent,
+            "_direct_target_metric_operand_from_evidence",
+            return_value=(expected_target_row, state["active_subtask"]["required_operands"][0]),
+        ), patch.object(
+            financial_graph_calculation,
+            "evidence_item_for_operand_row",
+            return_value=None,
+        ), patch.object(
+            agent,
+            "_coerce_operand_row_from_evidence",
+            side_effect=lambda row, _evidence: row,
+        ), patch.object(
+            financial_graph_calculation,
+            "direct_target_metric_row_conflicts_existing_units",
+            side_effect=RuntimeError("direct target conflict stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_clean_source_row_ids",
+            wraps=financial_graph_calculation._clean_source_row_ids,
+        ) as stopped_source_append, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=original_acceptance,
+        ) as stopped_acceptance, self.assertRaisesRegex(
+            RuntimeError,
+            "direct target conflict stopped",
+        ):
+            agent._extract_calculation_operands(state)
+        stopped_source_append.assert_not_called()
+        stopped_acceptance.assert_not_called()
 
     def test_aggregate_lookup_repair_uses_state_runtime_evidence_for_ok_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -10180,7 +11900,10 @@ class OperationContractTests(unittest.TestCase):
             lookup["calculation_result"]["answer_slots"]["components_by_role"]["numerator_1"][0]["raw_value"],
             "900",
         )
-        projection = agent._build_aggregate_calculation_projection(aligned, "900백만원")
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+            aligned,
+            "900백만원",
+        )
         projected_subtask = projection["calculation_result"]["answer_slots"]["subtask_results"][0]
         self.assertEqual(projected_subtask["answer"], "900백만원")
         self.assertEqual(projected_subtask["rendered_value"], "900백만원")
@@ -10231,7 +11954,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        projection = agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             ordered_results,
             "Segment grew 25%. Management described a policy response.",
         )

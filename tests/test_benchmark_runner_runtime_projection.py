@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -23,10 +24,25 @@ from src.ops.benchmark_runner import (
     _estimate_cost_usd,
     _flatten_review_rows,
     _progress_watch_path_summary,
+    _rerun_company_full_evaluation_only,
+    _rerun_single_full_evaluation_only,
     _render_cross_company_summary_markdown,
     _render_summary_markdown,
     _serialise_eval_results,
+    _write_json,
+    main as benchmark_main,
 )
+
+
+def _write_results_json_only(**kwargs) -> None:
+    _write_json(
+        Path(kwargs["output_dir"]) / "results.json",
+        {
+            "recorded_matrix": kwargs["recorded_matrix"],
+            "full_eval_candidates": kwargs["selected_ids"],
+            "results": kwargs["results"],
+        },
+    )
 
 
 class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
@@ -242,6 +258,271 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(events[1]["current"], 1)
         self.assertEqual(events[1]["total"], 3)
         self.assertEqual(events[-1]["details"]["status"], "completed")
+
+    def test_progress_reporter_context_writes_failed_terminal_event(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            heartbeat_log = Path(temp_dir) / "heartbeat.jsonl"
+            reporter = _BenchmarkProgressReporter(
+                heartbeat_sec=0,
+                heartbeat_log=heartbeat_log,
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "benchmark failed"):
+                with reporter:
+                    reporter.update("screening:ingest", experiment_id="exp-1", emit_now=True)
+                    raise RuntimeError("benchmark failed")
+
+            events = [
+                json.loads(line)
+                for line in heartbeat_log.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+
+        self.assertEqual(events[0]["event"], "started")
+        self.assertEqual(events[-1]["event"], "progress")
+        self.assertEqual(events[-1]["details"]["status"], "failed")
+
+    def test_main_writes_failed_terminal_event_for_config_error(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "empty-profile.json"
+            heartbeat_log = root / "heartbeat.jsonl"
+            config_path.write_text('{"experiments": []}', encoding="utf-8")
+            argv = [
+                "benchmark_runner",
+                "--config",
+                str(config_path),
+                "--output-dir",
+                str(root / "output"),
+                "--heartbeat-log",
+                str(heartbeat_log),
+            ]
+
+            with patch.object(sys, "argv", argv):
+                with self.assertRaisesRegex(ValueError, "No experiments found"):
+                    benchmark_main()
+
+            events = [
+                json.loads(line)
+                for line in heartbeat_log.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+
+        self.assertEqual(events[0]["event"], "started")
+        self.assertEqual(events[-1]["details"]["status"], "failed")
+
+    def test_main_rejects_eval_output_dir_without_eval_only(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            argv = [
+                "benchmark_runner",
+                "--config",
+                str(root / "profile.json"),
+                "--output-dir",
+                str(root / "source"),
+                "--eval-output-dir",
+                str(root / "target"),
+            ]
+
+            with patch.object(sys, "argv", argv), patch(
+                "src.ops.benchmark_runner._load_json"
+            ) as load_json:
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "--eval-output-dir requires --eval-only",
+                ):
+                    benchmark_main()
+
+            load_json.assert_not_called()
+
+    def test_main_forwards_distinct_eval_only_source_and_target_paths(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path = root / "profile.json"
+            source = root / "source"
+            target = root / "target"
+            argv = [
+                "benchmark_runner",
+                "--config",
+                str(config_path),
+                "--output-dir",
+                str(source),
+                "--eval-only",
+                "--eval-output-dir",
+                str(target),
+            ]
+
+            with patch.object(sys, "argv", argv), patch(
+                "src.ops.benchmark_runner._execute_benchmark_command"
+            ) as execute:
+                benchmark_main()
+
+            execute.assert_called_once()
+            call = execute.call_args.kwargs
+            self.assertTrue(call["args"].eval_only)
+            self.assertEqual(call["args"].eval_output_dir, str(target))
+            self.assertEqual(call["config_path"], config_path.resolve())
+            self.assertEqual(call["output_dir"], source.resolve())
+            self.assertEqual(call["eval_output_dir"], target.resolve())
+            self.assertIsInstance(
+                call["progress_reporter"],
+                _BenchmarkProgressReporter,
+            )
+
+    def test_write_json_replaces_from_same_directory(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "results.json"
+            target.write_text('{"version": "old"}', encoding="utf-8")
+
+            with patch("src.ops.benchmark_runner.os.replace", wraps=os.replace) as replace:
+                _write_json(target, {"version": "new"})
+
+            source_path, destination_path = map(Path, replace.call_args.args)
+            payload = json.loads(target.read_text(encoding="utf-8"))
+            temporary_files = list(target.parent.glob(f".{target.name}.*.tmp"))
+
+        self.assertEqual(source_path.parent, target.parent)
+        self.assertEqual(destination_path, target)
+        self.assertEqual(payload, {"version": "new"})
+        self.assertEqual(temporary_files, [])
+
+    def test_write_json_failure_preserves_existing_target_and_removes_temp(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "results.json"
+            original = '{"version": "old"}'
+            target.write_text(original, encoding="utf-8")
+
+            with self.assertRaises(TypeError):
+                _write_json(target, {"unserialisable": object()})
+
+            current = target.read_text(encoding="utf-8")
+            temporary_files = list(target.parent.glob(f".{target.name}.*.tmp"))
+
+        self.assertEqual(current, original)
+        self.assertEqual(temporary_files, [])
+
+    def test_write_json_replace_failure_preserves_existing_target_and_removes_temp(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "results.json"
+            original = '{"version": "old"}'
+            target.write_text(original, encoding="utf-8")
+
+            with patch(
+                "src.ops.benchmark_runner.os.replace",
+                side_effect=OSError("replace failed"),
+            ) as replace:
+                with self.assertRaisesRegex(OSError, "replace failed"):
+                    _write_json(target, {"version": "new"})
+
+            temporary_source, destination = map(Path, replace.call_args.args)
+            current = target.read_text(encoding="utf-8")
+            temporary_files = list(target.parent.glob(f".{target.name}.*.tmp"))
+
+        self.assertEqual(destination, target)
+        self.assertEqual(temporary_source.parent, target.parent)
+        self.assertEqual(current, original)
+        self.assertEqual(temporary_files, [])
+        self.assertFalse(temporary_source.exists())
+
+    def test_single_eval_only_can_write_to_distinct_target(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            source_payload = {
+                "recorded_matrix": {"mode": "single_company"},
+                "full_eval_candidates": ["exp-1"],
+                "results": [
+                    {
+                        "id": "exp-1",
+                        "config": {},
+                        "ingest": {},
+                        "screening_eval": {},
+                        "full_eval": {"marker": "source"},
+                    }
+                ],
+            }
+            _write_json(source / "results.json", source_payload)
+
+            with patch(
+                "src.ops.benchmark_runner._run_full_evaluation",
+                return_value={"marker": "refreshed"},
+            ), patch(
+                "src.ops.benchmark_runner._write_benchmark_outputs",
+                side_effect=_write_results_json_only,
+            ):
+                result = _rerun_single_full_evaluation_only(
+                    config_path=root / "profile.json",
+                    source_output_dir=source,
+                    target_output_dir=target,
+                    defaults={},
+                    experiments=[{"id": "exp-1"}],
+                    merged_by_id={"exp-1": {"id": "exp-1"}},
+                    screening_config={},
+                    full_eval_config={},
+                )
+
+            source_after = json.loads((source / "results.json").read_text(encoding="utf-8"))
+            target_after = json.loads((target / "results.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(source_after, source_payload)
+        self.assertEqual(target_after["results"][0]["full_eval"], {"marker": "refreshed"})
+        self.assertEqual(Path(result["source_output_dir"]), source)
+        self.assertEqual(Path(result["output_dir"]), target)
+
+    def test_company_eval_only_can_write_to_distinct_target_root(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source_root = root / "source"
+            target_root = root / "target"
+            source_company = source_root / "company-output"
+            source_company.mkdir(parents=True)
+            source_payload = {
+                "recorded_matrix": {"mode": "company_run"},
+                "full_eval_candidates": ["exp-1"],
+                "results": [
+                    {
+                        "id": "exp-1",
+                        "config": {},
+                        "ingest": {},
+                        "screening_eval": {},
+                        "full_eval": {"marker": "source"},
+                    }
+                ],
+            }
+            _write_json(source_company / "results.json", source_payload)
+
+            with patch(
+                "src.ops.benchmark_runner._run_full_evaluation",
+                return_value={"marker": "refreshed"},
+            ), patch(
+                "src.ops.benchmark_runner._write_benchmark_outputs",
+                side_effect=_write_results_json_only,
+            ):
+                result = _rerun_company_full_evaluation_only(
+                    config_path=root / "profile.json",
+                    output_root=source_root,
+                    target_output_root=target_root,
+                    global_defaults={},
+                    shared_experiments=[{"id": "exp-1"}],
+                    screening_config={},
+                    full_eval_config={},
+                    company_run={
+                        "id": "company-1",
+                        "output_subdir": "company-output",
+                    },
+                )
+
+            source_after = json.loads((source_company / "results.json").read_text(encoding="utf-8"))
+            target_after = json.loads(
+                (target_root / "company-output" / "results.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(source_after, source_payload)
+        self.assertEqual(target_after["results"][0]["full_eval"], {"marker": "refreshed"})
+        self.assertEqual(Path(result["source_output_dir"]), source_company)
+        self.assertEqual(Path(result["output_dir"]), target_root / "company-output")
 
     def test_progress_watch_path_summary_reports_latest_file(self) -> None:
         with TemporaryDirectory() as temp_dir:

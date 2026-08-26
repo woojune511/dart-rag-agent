@@ -41,7 +41,7 @@ is internal representation cleanup, not a new answer-quality fix.
 - `src/agent/financial_graph_helpers.py` owns the compatibility boundary:
   `_resolve_runtime_calculation_trace()` rejects top-level fallback by default,
   compatibility readers must opt in with `allow_legacy_top_level = true`, and
-  `_runtime_trace_state_update()` now publishes only canonical
+  `runtime_trace_state_update()` now publishes only canonical
   `resolved_calculation_trace` / `structured_result` updates.
 - Most live graph readers already use strict mode or mirror-free updates.
   `financial_graph_calculation.py` call sites rely on the helper's mirror-free
@@ -63,7 +63,7 @@ is internal representation cleanup, not a new answer-quality fix.
    removing state fields. Existing tests already cover many stale top-level
    rejection paths.
 2. Stop adding new top-level `calculation_*` writes. New runtime updates should
-   use `_runtime_trace_state_update()`, which no longer supports compatibility
+   use `runtime_trace_state_update()`, which no longer supports compatibility
    mirror opt-in.
 3. Keep `calculation_debug_trace` as optional calculation-node scratch state
    only. Public and current-run ops output should use `debug_traces.calculation`
@@ -96,11 +96,11 @@ is internal representation cleanup, not a new answer-quality fix.
   projection in code. Calculation diagnostics now flow through
   `_calculation_debug_state_update()` / `_clear_calculation_debug_state()`, and
   `FinancialAgent.run()` exposes them under `debug_traces.calculation`.
-- 2026-06-22: removed the unused `_runtime_trace_state_update()` compatibility
+- 2026-06-22: removed the unused `runtime_trace_state_update()` compatibility
   mirror opt-in and the explicit `include_compatibility_mirrors = false` call
   sites. The helper now has a single mirror-free update contract.
 - 2026-06-22: removed omitted-part carry-forward from
-  `_runtime_trace_state_update()`. Callers must now pass operands, plan, and
+  `runtime_trace_state_update()`. Callers must now pass operands, plan, and
   result explicitly; legacy top-level fallback stays only in explicit
   export/review/historical readers.
 - 2026-06-22: changed `_resolve_runtime_calculation_trace()` to strict default.
@@ -122,7 +122,7 @@ is internal representation cleanup, not a new answer-quality fix.
   remains available through explicit resolver/adapters for historical bundles,
   not through the live graph state contract.
 - 2026-06-22: removed the live graph flat `calculation_*` reader path from
-  `_project_task_trace_from_state()`. Direct aggregate-node tests now provide
+  `project_task_trace_from_state()`. Direct aggregate-node tests now provide
   current active-task material through canonical `resolved_calculation_trace`
   or task artifacts; stale top-level flat fields remain regression fixtures
   proving that live capture ignores them.

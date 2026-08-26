@@ -9,6 +9,143 @@ from src.agent.financial_runtime_normalization import _normalise_spaces, _parse_
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
 
 
+def ratio_components_have_suspicious_scale(calculation_result: Dict[str, Any]) -> bool:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components_by_role = dict(answer_slots.get("components_by_role") or {})
+    for entries in components_by_role.values():
+        for entry in entries or []:
+            raw_unit = _normalise_spaces(str((entry or {}).get("raw_unit") or "")).lower()
+            raw_value = str((entry or {}).get("raw_value") or "").strip()
+            if raw_unit not in {"원", "krw"}:
+                continue
+            if not re.fullmatch(r"[\(\)\-]?\d[\d,]*(?:\.\d+)?", raw_value):
+                continue
+            digit_count = len(re.sub(r"\D", "", raw_value))
+            if digit_count >= 8:
+                return True
+    return False
+
+
+def ratio_result_has_suspicious_krw_scale(
+    *,
+    operation_family: str,
+    ordered_operands: List[Dict[str, Any]],
+    result_value: Optional[float],
+    result_unit: str,
+    source_normalized_unit: str,
+) -> bool:
+    if _normalise_spaces(operation_family).lower() != "ratio":
+        return False
+    if result_value is None:
+        return False
+    if _normalise_spaces(result_unit) not in {"%", "%p"}:
+        return False
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
+    if _normalise_spaces(source_normalized_unit).upper() != krw_unit:
+        return False
+    krw_operands = [
+        row
+        for row in ordered_operands
+        if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() == krw_unit
+        and row.get("normalized_value") is not None
+    ]
+    if len(krw_operands) < 2:
+        return False
+    try:
+        threshold = float(render_policy.get("ratio_krw_suspicious_percent_threshold") or 0.0)
+        numeric_result = abs(float(result_value))
+    except (TypeError, ValueError):
+        return False
+    return bool(threshold > 0 and numeric_result > threshold)
+
+
+def _table_numeric_support_text_for_final_answer(
+    evidence: Dict[str, Any],
+    *,
+    final_answer: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> str:
+    metadata = dict(evidence.get("metadata") or {})
+    table_lines = [
+        _normalise_spaces(line)
+        for line in str(metadata.get("table_value_labels_text") or "").splitlines()
+        if _normalise_spaces(line)
+    ]
+    if not table_lines:
+        return ""
+    answer_surface = re.sub(r"\s+", "", _normalise_spaces(final_answer))
+    unit_terms = sorted(
+        {
+            *[str(unit) for unit in dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})],
+            *[str(unit) for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())],
+        },
+        key=len,
+        reverse=True,
+    )
+    unit_pattern = "|".join(re.escape(unit) for unit in unit_terms if unit)
+
+    def _line_label(line: str) -> str:
+        label = re.sub(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", " ", line)
+        if unit_pattern:
+            label = re.sub(unit_pattern, " ", label)
+        label = re.sub(r"[|:;()\[\]/,]+", " ", label)
+        return re.sub(r"\s+", "", _normalise_spaces(label))
+
+    support_lines: List[str] = []
+    for line in table_lines:
+        label = _line_label(line)
+        if len(label) < 2 or label not in answer_surface:
+            continue
+        line_candidates = extract_numeric_surface_candidates(line)
+        if not line_candidates:
+            continue
+        if any(
+            numeric_surface_candidates_equivalent(answer_candidate, line_candidate)
+            for answer_candidate in answer_candidates
+            for line_candidate in line_candidates
+        ):
+            support_lines.append(line)
+        if len(support_lines) >= 4:
+            break
+    if not support_lines:
+        return ""
+    header = _normalise_spaces(
+        " ".join(
+            str(value or "")
+            for value in (
+                metadata.get("table_header_context"),
+                metadata.get("table_context"),
+            )
+        )
+    )
+    return _normalise_spaces(" ; ".join([header, *support_lines] if header else support_lines))
+
+
+def promote_table_numeric_support_evidence(
+    evidence: Dict[str, Any],
+    *,
+    final_answer: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    support_text = _table_numeric_support_text_for_final_answer(
+        evidence,
+        final_answer=final_answer,
+        answer_candidates=answer_candidates,
+    )
+    if not support_text:
+        return evidence
+    promoted = dict(evidence)
+    claim = _normalise_spaces(str(promoted.get("claim") or ""))
+    quote_span = _normalise_spaces(str(promoted.get("quote_span") or ""))
+    promoted["claim"] = _normalise_spaces(" | ".join(part for part in (claim, support_text) if part))
+    promoted["quote_span"] = _normalise_spaces(" | ".join(part for part in (quote_span, support_text) if part))
+    metadata = dict(promoted.get("metadata") or {})
+    metadata["final_answer_table_numeric_support"] = support_text
+    promoted["metadata"] = metadata
+    return promoted
+
+
 def _numeric_unit_terms() -> tuple[Dict[str, float], List[str], List[str]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     unit_scale = {
@@ -126,6 +263,61 @@ def _numeric_surface_candidate_from_match(
     return {}
 
 
+def numeric_candidates_with_spans_from_surface(
+    surface: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    text = str(surface or "")
+    if not text:
+        return []
+    unit_scale, percent_units, unit_terms = _numeric_unit_terms()
+    pattern = _numeric_surface_pattern(unit_terms)
+    metadata = dict(metadata or {})
+    context_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+    if context_unit not in unit_scale:
+        context_unit = next((unit for unit in unit_terms if unit in unit_scale and unit in text), "")
+    candidates: List[Dict[str, Any]] = []
+    for match in pattern.finditer(text):
+        raw_value = match.group("value")
+        parsed = _parse_number_text(raw_value)
+        if parsed is None:
+            continue
+        unit = _normalise_spaces(str(match.groupdict().get("unit") or ""))
+        digit_count = len(re.sub(r"\D", "", raw_value))
+        if not unit and digit_count == 4 and 1900 <= abs(parsed) <= 2100:
+            continue
+        normalized_value = parsed
+        normalized_unit = ""
+        display_step = 1.0
+        if unit in unit_scale:
+            normalized_value = parsed * unit_scale[unit]
+            normalized_unit = "KRW"
+            display_step = unit_scale[unit]
+        elif not unit and context_unit in unit_scale:
+            if digit_count < 4 and "," not in raw_value:
+                continue
+            normalized_value = parsed * unit_scale[context_unit]
+            normalized_unit = "KRW"
+            unit = context_unit
+            display_step = unit_scale[context_unit]
+        elif unit in percent_units:
+            normalized_unit = "PERCENT"
+        candidates.append(
+            {
+                "kind": "currency" if normalized_unit == "KRW" else "percent" if normalized_unit == "PERCENT" else "generic",
+                "value": normalized_value,
+                "normalized_value": normalized_value,
+                "normalized_unit": normalized_unit,
+                "value_text": raw_value,
+                "unit": unit,
+                "unit_text": unit,
+                "display_step": display_step,
+                "span": [match.start("value"), match.end("value")],
+            }
+        )
+    return candidates
+
+
 def extract_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     unit_scale, percent_units, unit_terms = _numeric_unit_terms()
@@ -180,6 +372,58 @@ def numeric_surface_candidates_equivalent(left: Dict[str, Any], right: Dict[str,
     else:
         tolerance = max(abs(left_value) * 1e-6, 0.5)
     return abs(left_value - right_value) <= tolerance
+
+
+def answer_covers_numeric_answer(
+    answer: str,
+    numeric_answer: str,
+) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    numeric_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(numeric_answer or "")))
+    if not numeric_candidates:
+        return True
+    if not answer_candidates:
+        return False
+    return all(
+        any(
+            numeric_surface_candidates_equivalent(answer_candidate, numeric_candidate)
+            for answer_candidate in answer_candidates
+        )
+        for numeric_candidate in numeric_candidates
+    )
+
+
+def answer_has_numeric_material_outside_reference(
+    answer: str,
+    reference_answer: str,
+) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference_answer or "")))
+    if not answer_candidates or not reference_candidates:
+        return False
+    return any(
+        not any(
+            numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+            for reference_candidate in reference_candidates
+        )
+        for answer_candidate in answer_candidates
+    )
+
+
+def numeric_surface_conflicts_with_reference(answer: str, reference: str) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference or "")))
+    return bool(
+        answer_candidates
+        and reference_candidates
+        and any(
+            not any(
+                numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+                for reference_candidate in reference_candidates
+            )
+            for answer_candidate in answer_candidates
+        )
+    )
 
 
 def numeric_evidence_relevance_score(
@@ -350,6 +594,34 @@ def evidence_text_for_numeric_support(
             )
             if str(value or "").strip()
         )
+    )
+
+
+def evidence_supports_numeric_candidates(
+    evidence: Dict[str, Any],
+    answer_candidates: List[Dict[str, Any]],
+) -> bool:
+    evidence_candidates = extract_numeric_surface_candidates(evidence_text_for_numeric_support(evidence))
+    if not evidence_candidates:
+        return False
+    return any(
+        numeric_surface_candidates_equivalent(answer_candidate, evidence_candidate)
+        for answer_candidate in answer_candidates
+        for evidence_candidate in evidence_candidates
+    )
+
+
+def text_supports_numeric_candidates(
+    text: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> bool:
+    text_candidates = extract_numeric_surface_candidates(text)
+    if not text_candidates:
+        return False
+    return any(
+        numeric_surface_candidates_equivalent(answer_candidate, text_candidate)
+        for answer_candidate in answer_candidates
+        for text_candidate in text_candidates
     )
 
 

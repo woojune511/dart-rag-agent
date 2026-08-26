@@ -19,15 +19,34 @@ class PortfolioReviewGateTests(unittest.TestCase):
     def test_run_review_gates_aggregates_ready_subgates(self) -> None:
         result = run_review_gates()
 
-        self.assertEqual(result["status"], "ready")
-        self.assertTrue(result["checks"]["portfolio_demo_ready"])
+        self.assertEqual(result["status"], "review_surface_ready")
+        self.assertEqual(result["scope"], "review_surface_only")
+        self.assertEqual(result["publication_validation"]["status"], "not_run")
+        self.assertEqual(result["publication_validation"]["unit_tests"], "not_run")
+        self.assertEqual(
+            result["publication_validation"]["runtime_domain_term_audit"],
+            "not_run",
+        )
+        self.assertIsNone(result["publication_validation"]["publication_ready"])
+        self.assertTrue(
+            result["checks"]["portfolio_demo_fixture_contract_ready"]
+        )
         self.assertTrue(result["checks"]["cache_reviewer_ok"])
         self.assertTrue(result["checks"]["cache_handoff_ready"])
         self.assertTrue(result["checks"]["cache_promotion_evidence_ready"])
         self.assertTrue(result["checks"]["reflection_promotion_ready"])
         self.assertTrue(result["checks"]["reference_note_capability_ready"])
         self.assertTrue(result["checks"]["promotion_trace_materiality_ready"])
-        self.assertEqual(result["portfolio_demo"]["readiness"], "ready")
+        self.assertEqual(
+            result["portfolio_demo"]["readiness"],
+            "fixture_contract_ready",
+        )
+        self.assertEqual(result["portfolio_demo"]["scope"], "fixture_contract")
+        self.assertEqual(result["portfolio_demo"]["fixture_evidence"], "verified")
+        self.assertEqual(
+            result["portfolio_demo"]["contract_checks_passed"],
+            result["portfolio_demo"]["contract_check_count"],
+        )
         self.assertEqual(result["cache_reviewer"]["status"], "ok")
         self.assertEqual(result["cache_reviewer"]["reviewer_handoff_status"], "ready")
         self.assertEqual(result["cache_reviewer"]["producer_policy_ready_count"], 1)
@@ -76,7 +95,14 @@ class PortfolioReviewGateTests(unittest.TestCase):
         text = render_text(run_review_gates())
 
         self.assertIn("# Portfolio Review Gates", text)
+        self.assertIn("Status: review_surface_ready", text)
+        self.assertIn("Scope: review_surface_only", text)
+        self.assertIn("Publication Validation: not_run", text)
+        self.assertIn("unit_tests: not_run", text)
+        self.assertIn("runtime_domain_term_audit: not_run", text)
         self.assertIn("Portfolio Demo:", text)
+        self.assertIn("readiness: fixture_contract_ready", text)
+        self.assertIn("fixture_evidence: verified", text)
         self.assertIn("Cache Reviewer:", text)
         self.assertIn("Cache Promotion Evidence:", text)
         self.assertIn("Reflection Promotion:", text)
@@ -113,9 +139,11 @@ class PortfolioReviewGateTests(unittest.TestCase):
             )
 
             self.assertEqual(gate_result.returncode, 0, gate_result.stderr)
-            self.assertIn('"status": "ready"', gate_result.stdout)
+            self.assertIn('"status": "review_surface_ready"', gate_result.stdout)
             payload = json.loads(output.read_text(encoding="utf-8"))
-            self.assertEqual(payload["status"], "ready")
+            self.assertEqual(payload["status"], "review_surface_ready")
+            self.assertEqual(payload["scope"], "review_surface_only")
+            self.assertEqual(payload["publication_validation"]["status"], "not_run")
             self.assertEqual(payload["cache_reviewer"]["status"], "ok")
             self.assertEqual(payload["reflection_promotion"]["status"], "ready")
             self.assertEqual(payload["reference_note_capability"]["status"], "ready")

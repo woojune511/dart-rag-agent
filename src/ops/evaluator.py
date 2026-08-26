@@ -60,7 +60,7 @@ def _mlflow() -> Any:
 
 
 def _resolve_runtime_calculation_trace(*args, **kwargs):
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 
@@ -103,14 +103,18 @@ DEFAULT_NUMERIC_SECTION_ALIASES = [
     "연결재무제표 주석",
 ]
 MISSING_RESPONSE_MARKERS = (
-    "없",
     "찾지 못",
+    "찾을 수 없",
     "근거를 찾지 못",
     "답할 수 있는 근거를 찾지 못",
     "확인되지",
     "확인할 수 없",
     "명시되지",
-    "어렵",
+)
+MISSING_RESPONSE_PATTERNS = (
+    r"(?:정보|근거|자료|내용|값|수치|기록|언급|표시|명시|결과)(?:이|가|은|는|을|를|도)?\s*없(?:습니다|다|음|어|었|는|거나)",
+    r"(?:확인|답변|답|계산|판단)(?:하|할|하기)?\s*수\s*없",
+    r"(?:확인|답변|계산|판단)(?:이|가|은|는|을|를|하기)?\s*어렵",
 )
 ABSTENTION_RESPONSE_MARKERS = (
     "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다",
@@ -492,36 +496,6 @@ _TREND_INTERPRETATION_PROMPT = """\
 }}
 """
 
-_GROUNDED_RENDERING_PROMPT = """\
-다음은 계산 노드가 만든 구조화된 계산 결과와 최종 답변입니다.
-최종 답변이 CalculationResult/Operands에 있는 금액과 비율만 사용해 작성되었는지 평가하세요.
-
-중요 규칙:
-- 연도(2022, 2023, 2024 등), 기수, 분기, 항목 이름에 포함된 숫자는 검증 대상이 아닙니다.
-- 오직 금액(원, 억원, 조원, 백만원 등)과 비율(%)이 grounded 되어 있는지만 보세요.
-- 반올림이나 단위 변환으로 의미가 같은 경우는 grounded로 인정하세요.
-- 답변이 새로운 금액이나 비율을 만들어냈다면 not_grounded입니다.
-
-[질문]
-{question}
-
-[Operands]
-{operands_json}
-
-[CalculationResult]
-{result_json}
-
-[답변]
-{answer}
-
-다음 JSON만 답하세요.
-{{
-  "score": 0.0,
-  "reason": "짧은 이유"
-}}
-"""
-
-
 def _tokenize_ko(text: str) -> set[str]:
     tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
     return {token.lower() for token in tokens if len(token) >= 2}
@@ -732,9 +706,29 @@ def _build_runtime_evidence_contexts(runtime_evidence: List[Dict[str, Any]], lim
     return contexts
 
 
+def _prioritize_runtime_evidence_contexts(
+    contexts: List[str],
+    runtime_evidence: List[Dict[str, Any]],
+) -> List[str]:
+    """Put final, claim-scoped runtime evidence before broad retrieval context."""
+
+    prioritized: List[str] = []
+    seen: set[str] = set()
+    for context in [*_build_runtime_evidence_contexts(runtime_evidence), *list(contexts or [])]:
+        normalized = str(context or "").strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        prioritized.append(normalized)
+    return prioritized
+
+
 def _looks_like_missing_answer(text: str) -> bool:
     lowered = (text or "").lower()
-    return any(marker in lowered for marker in MISSING_RESPONSE_MARKERS)
+    return any(marker in lowered for marker in MISSING_RESPONSE_MARKERS) or any(
+        re.search(pattern, lowered)
+        for pattern in MISSING_RESPONSE_PATTERNS
+    )
 
 
 def _looks_like_full_abstention_answer(text: str) -> bool:
@@ -2459,16 +2453,7 @@ def _should_override_numeric_grounding(
     if not calculation_operands:
         return False
 
-    operand_grounding_debug = dict((numeric_eval.get("numeric_debug") or {}).get("operand_grounding") or {})
-    deterministic_operand_grounding_pass = (
-        not list(operand_grounding_debug.get("unmatched_operands") or [])
-        and len(list(operand_grounding_debug.get("matched_operands") or [])) == len(calculation_operands)
-    )
-    if (
-        grounded_rendering_correctness is not None
-        and grounded_rendering_correctness != 1.0
-        and not deterministic_operand_grounding_pass
-    ):
+    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
         return False
 
     def _has_direct_or_resolved_source(operand: Dict[str, Any]) -> bool:
@@ -2700,48 +2685,139 @@ def _compact_calculation_result_for_llm_judge(calculation_result: Dict[str, Any]
     return result if isinstance(result, dict) else {}
 
 
+def _append_distinct_numeric_candidates(
+    target: List[Dict[str, Any]],
+    candidates: Iterable[Dict[str, Any]],
+) -> None:
+    for candidate in candidates:
+        if _safe_float(candidate.get("normalized_value")) is None:
+            continue
+        if any(_numeric_values_equivalent(candidate, existing) for existing in target):
+            continue
+        target.append(dict(candidate))
+
+
+def _collect_structured_calculation_numeric_candidates(
+    calculation_operands: List[Dict[str, Any]],
+    calculation_result: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    for operand in calculation_operands:
+        _append_distinct_numeric_candidates(candidates, _operand_to_numeric_candidates(dict(operand)))
+
+    blocked_nested_keys = {
+        "answer",
+        "formatted_result",
+        "explanation",
+        "runtime_evidence",
+        "evidence_items",
+        "retrieved_docs",
+        "seed_retrieved_docs",
+        "debug_trace",
+        "retrieval_debug_trace",
+    }
+
+    def _visit(value: Any, depth: int = 0) -> None:
+        if depth > 8:
+            return
+        if isinstance(value, dict):
+            row = dict(value)
+            _append_distinct_numeric_candidates(candidates, _operand_to_numeric_candidates(row))
+            for key in ("rendered_value", "display_value"):
+                surface = str(row.get(key) or "").strip()
+                if surface:
+                    _append_distinct_numeric_candidates(candidates, _extract_numeric_candidates(surface))
+            stated_value = str(row.get("stated_change_raw_value") or "").strip()
+            stated_unit = str(row.get("stated_change_raw_unit") or "").strip()
+            if stated_value and stated_unit:
+                _append_distinct_numeric_candidates(
+                    candidates,
+                    _extract_numeric_candidates(f"{stated_value}{stated_unit}"),
+                )
+            for key, child in row.items():
+                if key in blocked_nested_keys:
+                    continue
+                if isinstance(child, (dict, list)):
+                    _visit(child, depth + 1)
+            return
+        if isinstance(value, list):
+            for child in value:
+                _visit(child, depth + 1)
+
+    _visit(calculation_result)
+    return candidates
+
+
+def _numeric_candidate_supported_by_candidates(
+    candidate: Dict[str, Any],
+    support_candidates: List[Dict[str, Any]],
+) -> bool:
+    if any(
+        _numeric_values_equivalent(candidate, support_candidate)
+        or _numeric_magnitudes_equivalent(candidate, support_candidate)
+        for support_candidate in support_candidates
+    ):
+        return True
+    return _numeric_candidate_supported_by_candidate_derivation(candidate, support_candidates)
+
+
 def _compute_grounded_rendering_correctness(
-    llm: ChatGoogleGenerativeAI,
-    example: EvalExample,
+    *,
     answer: str,
     calculation_operands: List[Dict[str, Any]],
     calculation_result: Dict[str, Any],
+    runtime_evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> tuple[Optional[float], Optional[str]]:
+    """Validate rendered numeric surfaces; qualitative claims are scored elsewhere."""
     if not calculation_result or str(calculation_result.get("status") or "") != "ok":
         return None, None
     if not answer.strip():
         return 0.0, "답변이 비어 있음"
-    prompt = _GROUNDED_RENDERING_PROMPT.format(
-        question=example.question,
-        operands_json=json.dumps(calculation_operands, ensure_ascii=False, indent=2),
-        result_json=json.dumps(
-            _compact_calculation_result_for_llm_judge(calculation_result),
-            ensure_ascii=False,
-            indent=2,
-        ),
-        answer=answer[:1500],
+    answer_candidates = _extract_numeric_candidates(answer)
+    trace_candidates = _collect_structured_calculation_numeric_candidates(
+        calculation_operands,
+        calculation_result,
     )
-    try:
-        response = llm.invoke(prompt)
-        payload = _extract_json_object(getattr(response, "content", ""))
-        score = _safe_float(payload.get("score"))
-        reason = str(payload.get("reason") or "").strip() or None
-        return (_clip_score(score) if score is not None else 0.5), reason
-    except Exception as exc:
-        logger.warning("grounded rendering judge failed: %s", exc)
-        return 0.5, str(exc)
+    if not trace_candidates:
+        return None, "structured calculation numeric surfaces unavailable"
+    if not answer_candidates:
+        return 0.0, "calculation numeric surface missing from answer"
+
+    evidence_candidates = _runtime_evidence_numeric_candidates(list(runtime_evidence or []))
+    trace_match_count = 0
+    unsupported: List[Dict[str, Any]] = []
+    for answer_candidate in answer_candidates:
+        if _numeric_candidate_supported_by_candidates(answer_candidate, trace_candidates):
+            trace_match_count += 1
+            continue
+        if evidence_candidates and _numeric_candidate_supported_by_candidates(
+            answer_candidate,
+            evidence_candidates,
+        ):
+            continue
+        unsupported.append(answer_candidate)
+
+    if unsupported:
+        unsupported_surfaces = [
+            str(candidate.get("value_text") or "").strip()
+            for candidate in unsupported[:5]
+            if str(candidate.get("value_text") or "").strip()
+        ]
+        return 0.0, f"unsupported numeric surfaces: {unsupported_surfaces}"
+    if trace_match_count == 0:
+        return 0.0, "answer does not render a calculation numeric surface"
+    return 1.0, "deterministic numeric surfaces grounded in calculation trace or evidence"
 
 
 def _compute_calculation_correctness(
     numeric_result_correctness: Optional[float],
-    trend_interpretation_correctness: Optional[float],
     grounded_rendering_correctness: Optional[float],
 ) -> Optional[float]:
+    """Aggregate numeric execution checks without semantic trend judgement."""
     checks = [
         value
         for value in (
             numeric_result_correctness,
-            trend_interpretation_correctness,
             grounded_rendering_correctness,
         )
         if value is not None
@@ -3338,7 +3414,7 @@ def _compute_unit_consistency_pass(
     if not operands:
         operands = calculation_operands
     if len(operands) < 2:
-        return 0.0
+        return None
 
     base_unit = str(operands[0].get("normalized_unit") or "").strip()
     if not base_unit or base_unit == "UNKNOWN":
@@ -3576,9 +3652,7 @@ class RAGEvaluator:
             for item in retrieved_docs:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
-            for context in _build_runtime_evidence_contexts(runtime_evidence):
-                if context and context not in contexts:
-                    contexts.append(context)
+            contexts = _prioritize_runtime_evidence_contexts(contexts, runtime_evidence)
         except Exception as exc:
             error = str(exc)
             logger.error("[%s] agent.run failed: %s", example.id, exc)
@@ -3709,7 +3783,6 @@ class RAGEvaluator:
         grounded_reason = ""
         if numeric_fast_gate_pass or self.skip_llm_judges:
             trend_interpretation_correctness = None
-            grounded_rendering_correctness = None
         else:
             trend_interpretation_correctness, trend_reason = _compute_trend_interpretation_correctness(
                 llm=self._llm,
@@ -3717,16 +3790,14 @@ class RAGEvaluator:
                 answer=answer,
                 calculation_result=calculation_result,
             )
-            grounded_rendering_correctness, grounded_reason = _compute_grounded_rendering_correctness(
-                llm=self._llm,
-                example=example,
-                answer=answer,
-                calculation_operands=calculation_operands,
-                calculation_result=calculation_result,
-            )
+        grounded_rendering_correctness, grounded_reason = _compute_grounded_rendering_correctness(
+            answer=answer,
+            calculation_operands=calculation_operands,
+            calculation_result=calculation_result,
+            runtime_evidence=runtime_evidence,
+        )
         calculation_correctness = _compute_calculation_correctness(
             numeric_result_correctness=numeric_result_correctness,
-            trend_interpretation_correctness=trend_interpretation_correctness,
             grounded_rendering_correctness=grounded_rendering_correctness,
         )
         if _should_override_numeric_grounding(
@@ -3756,18 +3827,13 @@ class RAGEvaluator:
             )
             numeric_eval["numeric_final_judgement"] = final_judgement
             numeric_eval["numeric_confidence"] = confidence
-            if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
-                grounded_rendering_correctness = 1.0
-                grounded_reason = "deterministic_override_from_direct_resolved_operands"
-                calculation_correctness = _compute_calculation_correctness(
-                    numeric_result_correctness=numeric_result_correctness,
-                    trend_interpretation_correctness=trend_interpretation_correctness,
-                    grounded_rendering_correctness=grounded_rendering_correctness,
-                )
-        elif _should_override_numeric_grounding_from_runtime_evidence(
-            answer=answer,
-            numeric_eval=numeric_eval,
-            runtime_evidence=runtime_evidence,
+        elif (
+            grounded_rendering_correctness in {None, 1.0}
+            and _should_override_numeric_grounding_from_runtime_evidence(
+                answer=answer,
+                numeric_eval=numeric_eval,
+                runtime_evidence=runtime_evidence,
+            )
         ):
             grounding_debug = dict((numeric_eval.get("numeric_debug") or {}).get("grounding") or {})
             existing_confidence = _safe_float(grounding_debug.get("confidence"))
@@ -3789,14 +3855,6 @@ class RAGEvaluator:
             )
             numeric_eval["numeric_final_judgement"] = final_judgement
             numeric_eval["numeric_confidence"] = confidence
-            if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
-                grounded_rendering_correctness = 1.0
-                grounded_reason = "deterministic_override_from_runtime_evidence_derivation"
-                calculation_correctness = _compute_calculation_correctness(
-                    numeric_result_correctness=numeric_result_correctness,
-                    trend_interpretation_correctness=trend_interpretation_correctness,
-                    grounded_rendering_correctness=grounded_rendering_correctness,
-                )
         if _should_override_numeric_faithfulness(numeric_eval):
             faithfulness = 1.0
             faithfulness_override_reason = (

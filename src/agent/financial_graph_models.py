@@ -251,10 +251,18 @@ class SingleValueAnswerSlots(BaseAnswerSlots):
 
 class DifferenceAnswerSlots(BaseAnswerSlots):
     operation_family: Literal["difference"] = "difference"
+    result_semantics: Optional[Literal["derived_value", "period_delta"]] = Field(
+        default=None,
+        description=(
+            "derived_value means a value produced by subtracting components; "
+            "period_delta means a change between current and prior periods. "
+            "None is reserved for legacy traces whose structure must be inferred."
+        ),
+    )
     primary_value: AnswerSlotValue
-    current_value: AnswerSlotValue
-    prior_value: AnswerSlotValue
-    delta_value: AnswerSlotValue
+    current_value: Optional[AnswerSlotValue] = Field(default=None)
+    prior_value: Optional[AnswerSlotValue] = Field(default=None)
+    delta_value: Optional[AnswerSlotValue] = Field(default=None)
     direction: Optional[Literal["increase", "decrease", "flat"]] = Field(default=None)
 
 
@@ -324,7 +332,15 @@ def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class CalculationResult(_DeferredBaseModel):
-    status: Literal["ok", "insufficient_operands", "zero_division", "unsupported_operation", "unit_mismatch", "parse_error"] = Field(
+    status: Literal[
+        "ok",
+        "insufficient_operands",
+        "zero_division",
+        "unsupported_operation",
+        "unit_mismatch",
+        "scale_mismatch",
+        "parse_error",
+    ] = Field(
         description="계산 수행 상태"
     )
     result_value: Optional[float] = Field(default=None, description="정규화 단위 기준 계산 결과")
@@ -479,6 +495,14 @@ class ReconciliationCandidateRerank(_DeferredBaseModel):
     ordered_candidate_ids: List[str] = Field(
         default_factory=list,
         description="질문과 operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬한 목록",
+    )
+    selected_candidate_id: str = Field(
+        default="",
+        description="Candidate selected only when one option is semantically unambiguous; empty otherwise.",
+    )
+    selection_status: Literal["selected", "ambiguous"] = Field(
+        default="ambiguous",
+        description="Whether semantic interpretation resolved exactly one candidate.",
     )
     rationale: str = Field(default="", description="선택 이유를 간단히 설명")
 

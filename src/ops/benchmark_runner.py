@@ -14,6 +14,7 @@ import logging
 import os
 import shutil
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_runtime_calculation_trace(*args, **kwargs):
-    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+    from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace as impl
 
     return impl(*args, **kwargs)
 
@@ -344,8 +345,28 @@ def _load_json(path: Path) -> Any:
 
 def _write_json(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=2)
+    file_descriptor, temp_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(file_descriptor, "w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temp_path, path)
+    except BaseException:
+        try:
+            os.close(file_descriptor)
+        except OSError:
+            pass
+        try:
+            temp_path.unlink()
+        except OSError:
+            pass
+        raise
 
 
 def _hash_file(path: Path) -> str:
@@ -4499,6 +4520,7 @@ def _rerun_company_full_evaluation_only(
     *,
     config_path: Path,
     output_root: Path,
+    target_output_root: Optional[Path] = None,
     global_defaults: Dict[str, Any],
     shared_experiments: List[Dict[str, Any]],
     screening_config: Dict[str, Any],
@@ -4514,16 +4536,19 @@ def _rerun_company_full_evaluation_only(
 
     company_id = str(company_run.get("id") or _company_output_subdir(company_run, global_defaults))
     company_label = _company_run_label(company_run, global_defaults)
-    company_output_dir = output_root / _company_output_subdir(company_run, global_defaults)
+    company_output_subdir = _company_output_subdir(company_run, global_defaults)
+    source_company_output_dir = output_root / company_output_subdir
+    target_company_output_dir = (target_output_root or output_root) / company_output_subdir
     if progress_reporter:
         progress_reporter.update(
             "company:eval_only",
             company_id=company_id,
             company_label=company_label,
-            output_dir=company_output_dir,
+            source_output_dir=source_company_output_dir,
+            target_output_dir=target_company_output_dir,
             emit_now=True,
         )
-    result_path = company_output_dir / "results.json"
+    result_path = source_company_output_dir / "results.json"
     if not result_path.exists():
         raise FileNotFoundError(
             f"--eval-only requires an existing company results.json: {result_path}"
@@ -4565,7 +4590,7 @@ def _rerun_company_full_evaluation_only(
         }
 
     _write_benchmark_outputs(
-        output_dir=company_output_dir,
+        output_dir=target_company_output_dir,
         config_path=config_path,
         recorded_matrix=recorded_matrix,
         screening_config=screening_config,
@@ -4576,11 +4601,256 @@ def _rerun_company_full_evaluation_only(
     return {
         "company_id": company_id,
         "company_label": company_label,
-        "output_dir": str(company_output_dir),
+        "source_output_dir": str(source_company_output_dir),
+        "output_dir": str(target_company_output_dir),
         "full_eval_candidates": selected_ids,
         "results": results,
         "recorded_matrix": recorded_matrix,
     }
+
+
+def _rerun_single_full_evaluation_only(
+    *,
+    config_path: Path,
+    source_output_dir: Path,
+    target_output_dir: Path,
+    defaults: Dict[str, Any],
+    experiments: List[Dict[str, Any]],
+    merged_by_id: Dict[str, Dict[str, Any]],
+    screening_config: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+) -> Dict[str, Any]:
+    result_path = source_output_dir / "results.json"
+    if not result_path.exists():
+        raise FileNotFoundError(f"--eval-only requires an existing results.json: {result_path}")
+
+    data = _load_json(result_path)
+    results = list(data.get("results") or [])
+    selected_ids = list(data.get("full_eval_candidates") or [])
+    if not selected_ids:
+        selected_ids = _select_full_eval_candidates(results, screening_config)
+    if progress_reporter:
+        progress_reporter.update(
+            "eval_only:prepare",
+            source_output_dir=source_output_dir,
+            target_output_dir=target_output_dir,
+            selected_ids=selected_ids,
+            emit_now=True,
+        )
+
+    for experiment_id in selected_ids:
+        if experiment_id not in merged_by_id:
+            raise ValueError(f"Cannot eval-only unknown experiment id: {experiment_id}")
+        logger.info("Re-running full evaluation only: %s", experiment_id)
+        result = next((item for item in results if str(item.get("id")) == experiment_id), None)
+        if result is None:
+            raise ValueError(f"Existing results.json has no result for experiment id: {experiment_id}")
+        result["full_eval"] = _run_full_evaluation(
+            result,
+            merged_by_id[experiment_id],
+            full_eval_config,
+            progress_reporter=progress_reporter,
+        )
+
+    recorded_matrix = dict(
+        data.get("recorded_matrix")
+        or {
+            "mode": "single_company",
+            "defaults": _sanitize_settings(defaults),
+            "screening": _sanitize_settings(screening_config),
+            "full_evaluation": _sanitize_settings(full_eval_config),
+            "experiments": [_sanitize_settings(experiment) for experiment in experiments],
+        }
+    )
+    _write_benchmark_outputs(
+        output_dir=target_output_dir,
+        config_path=config_path,
+        recorded_matrix=recorded_matrix,
+        screening_config=screening_config,
+        full_eval_config=full_eval_config,
+        selected_ids=selected_ids,
+        results=results,
+    )
+    return {
+        "source_output_dir": str(source_output_dir),
+        "output_dir": str(target_output_dir),
+        "full_eval_candidates": selected_ids,
+        "results": results,
+        "recorded_matrix": recorded_matrix,
+    }
+
+
+def _execute_benchmark_command(
+    *,
+    args: argparse.Namespace,
+    config_path: Path,
+    output_dir: Path,
+    eval_output_dir: Path,
+    progress_reporter: _BenchmarkProgressReporter,
+) -> None:
+    if str(args.eval_output_dir or "").strip() and not args.eval_only:
+        raise ValueError("--eval-output-dir requires --eval-only")
+
+    matrix = _load_json(config_path)
+    defaults = matrix.get("defaults", {})
+    experiments = _filter_experiments_by_candidate_ids(
+        matrix.get("experiments", []),
+        list(matrix.get("candidate_ids") or defaults.get("candidate_ids") or []),
+    )
+    company_runs = matrix.get("company_runs", [])
+    screening_config = matrix.get("screening", {})
+    full_eval_config = _apply_question_id_override(
+        dict(matrix.get("full_evaluation", {}) or {}),
+        list(args.question_id or []),
+    )
+    if args.numeric_fast_gate:
+        full_eval_config["numeric_fast_gate"] = True
+    if args.skip_llm_judges:
+        full_eval_config["skip_llm_judges"] = True
+    if args.skip_embedding_metrics:
+        full_eval_config["skip_embedding_metrics"] = True
+    if args.retrieval_query_budget:
+        full_eval_config["retrieval_query_budget"] = max(int(args.retrieval_query_budget), 0)
+    if args.focused_retrieval_query_budget:
+        full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
+    if args.retry_retrieval_query_budget:
+        full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
+    if str(args.report_cache_index_path or "").strip():
+        full_eval_config["report_cache_index_path"] = str(args.report_cache_index_path).strip()
+    full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
+    if not experiments:
+        raise ValueError("No experiments found in benchmark config.")
+
+    if company_runs:
+        requested_company_ids = set(args.company_run_id or [])
+        selected_company_runs = [
+            company_run
+            for company_run in company_runs
+            if not requested_company_ids or str(company_run.get("id")) in requested_company_ids
+        ]
+        if requested_company_ids and len(selected_company_runs) != len(requested_company_ids):
+            found_ids = {str(company_run.get("id")) for company_run in selected_company_runs}
+            missing_ids = sorted(requested_company_ids - found_ids)
+            raise ValueError(f"Unknown company_run ids requested: {missing_ids}")
+
+        for company_run in selected_company_runs:
+            logger.info("Running company benchmark: %s", company_run.get("id") or company_run.get("defaults", {}))
+            if args.eval_only:
+                _rerun_company_full_evaluation_only(
+                    config_path=config_path,
+                    output_root=output_dir,
+                    target_output_root=eval_output_dir,
+                    global_defaults=defaults,
+                    shared_experiments=experiments,
+                    screening_config=screening_config,
+                    full_eval_config=full_eval_config,
+                    company_run=company_run,
+                    progress_reporter=progress_reporter,
+                )
+            else:
+                _run_company_bundle(
+                    config_path=config_path,
+                    output_root=output_dir,
+                    global_defaults=defaults,
+                    shared_experiments=experiments,
+                    screening_config=screening_config,
+                    full_eval_config=full_eval_config,
+                    company_run=company_run,
+                    progress_reporter=progress_reporter,
+                )
+
+        completed_bundles: List[Dict[str, Any]] = []
+        completed_output_root = eval_output_dir if args.eval_only else output_dir
+        for company_run in company_runs:
+            bundle = _load_completed_company_bundle(
+                output_root=completed_output_root,
+                company_run=company_run,
+                defaults=defaults,
+            )
+            if bundle is not None:
+                completed_bundles.append(bundle)
+
+        _write_multi_company_outputs(
+            output_dir=completed_output_root,
+            config_path=config_path,
+            defaults=defaults,
+            experiments=experiments,
+            company_runs=company_runs,
+            screening_config=screening_config,
+            full_eval_config=full_eval_config,
+            company_bundles=completed_bundles,
+        )
+        logger.info("Wrote multi-company benchmark outputs to %s", completed_output_root)
+        return
+
+    merged_by_id = _merged_experiment_lookup(defaults, experiments)
+    merged_experiments = list(merged_by_id.values())
+
+    if args.eval_only:
+        _rerun_single_full_evaluation_only(
+            config_path=config_path,
+            source_output_dir=output_dir,
+            target_output_dir=eval_output_dir,
+            defaults=defaults,
+            experiments=experiments,
+            merged_by_id=merged_by_id,
+            screening_config=screening_config,
+            full_eval_config=full_eval_config,
+            progress_reporter=progress_reporter,
+        )
+        logger.info("Wrote eval-only benchmark outputs to %s", eval_output_dir)
+        return
+
+    results = _run_screening_experiments(
+        merged_experiments,
+        output_dir,
+        screening_config,
+        full_eval_config,
+        progress_reporter=progress_reporter,
+    )
+
+    baseline_id = screening_config.get("baseline_experiment_id")
+    baseline_result = next((result for result in results if result["id"] == baseline_id), None)
+    if baseline_id and baseline_result is None:
+        raise ValueError(f"baseline_experiment_id not found: {baseline_id}")
+    baseline_aggregate = baseline_result.get("screening_eval", {}).get("aggregate", {}) if baseline_result else {}
+
+    for result in results:
+        reasons = _screen_failure_reasons(result, baseline_aggregate, screening_config)
+        result["screen_failure_reasons"] = reasons
+        result["screen_pass"] = len(reasons) == 0
+    _attach_baseline_comparison(results, baseline_result)
+
+    selected_ids: List[str] = []
+    if full_eval_config.get("enabled", True):
+        selected_ids = _select_full_eval_candidates(results, screening_config)
+        for experiment_id in selected_ids:
+            logger.info("Running full evaluation: %s", experiment_id)
+            result = next(result for result in results if result["id"] == experiment_id)
+            result["full_eval"] = _run_full_evaluation(
+                result,
+                merged_by_id[experiment_id],
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
+
+    _write_benchmark_outputs(
+        output_dir=output_dir,
+        config_path=config_path,
+        recorded_matrix={
+            "mode": "single_company",
+            "defaults": _sanitize_settings(defaults),
+            "screening": _sanitize_settings(screening_config),
+            "full_evaluation": _sanitize_settings(full_eval_config),
+            "experiments": [_sanitize_settings(experiment) for experiment in experiments],
+        },
+        screening_config=screening_config,
+        full_eval_config=full_eval_config,
+        selected_ids=selected_ids,
+        results=results,
+    )
+    logger.info("Wrote benchmark outputs to %s", output_dir)
 
 
 def main() -> None:
@@ -4607,6 +4877,15 @@ def main() -> None:
         help=(
             "Reuse an existing output-dir results.json and vector store, skip parse/ingest/screening, "
             "and rerun only the configured full evaluation candidates."
+        ),
+    )
+    parser.add_argument(
+        "--eval-output-dir",
+        default="",
+        help=(
+            "Optional target directory for refreshed eval-only outputs. "
+            "The existing --output-dir remains the read-only source bundle. "
+            "Omit this option to preserve the legacy in-place refresh behavior."
         ),
     )
     parser.add_argument(
@@ -4688,203 +4967,24 @@ def main() -> None:
 
     config_path = _normalise_path(args.config)
     output_dir = _normalise_path(args.output_dir)
+    eval_output_dir = (
+        _normalise_path(args.eval_output_dir)
+        if str(args.eval_output_dir or "").strip()
+        else output_dir
+    )
     heartbeat_log = _normalise_path(args.heartbeat_log) if str(args.heartbeat_log or "").strip() else None
     progress_reporter = _BenchmarkProgressReporter(
         heartbeat_sec=int(args.progress_heartbeat_sec or 0),
         heartbeat_log=heartbeat_log,
     )
-    progress_reporter.start()
-    matrix = _load_json(config_path)
-    defaults = matrix.get("defaults", {})
-    experiments = _filter_experiments_by_candidate_ids(
-        matrix.get("experiments", []),
-        list(matrix.get("candidate_ids") or defaults.get("candidate_ids") or []),
-    )
-    company_runs = matrix.get("company_runs", [])
-    screening_config = matrix.get("screening", {})
-    full_eval_config = _apply_question_id_override(
-        dict(matrix.get("full_evaluation", {}) or {}),
-        list(args.question_id or []),
-    )
-    if args.numeric_fast_gate:
-        full_eval_config["numeric_fast_gate"] = True
-    if args.skip_llm_judges:
-        full_eval_config["skip_llm_judges"] = True
-    if args.skip_embedding_metrics:
-        full_eval_config["skip_embedding_metrics"] = True
-    if args.retrieval_query_budget:
-        full_eval_config["retrieval_query_budget"] = max(int(args.retrieval_query_budget), 0)
-    if args.focused_retrieval_query_budget:
-        full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
-    if args.retry_retrieval_query_budget:
-        full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
-    if str(args.report_cache_index_path or "").strip():
-        full_eval_config["report_cache_index_path"] = str(args.report_cache_index_path).strip()
-    full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
-    if not experiments:
-        raise ValueError("No experiments found in benchmark config.")
-
-    if company_runs:
-        requested_company_ids = set(args.company_run_id or [])
-        selected_company_runs = [
-            company_run
-            for company_run in company_runs
-            if not requested_company_ids or str(company_run.get("id")) in requested_company_ids
-        ]
-        if requested_company_ids and len(selected_company_runs) != len(requested_company_ids):
-            found_ids = {str(company_run.get("id")) for company_run in selected_company_runs}
-            missing_ids = sorted(requested_company_ids - found_ids)
-            raise ValueError(f"Unknown company_run ids requested: {missing_ids}")
-
-        company_bundles: List[Dict[str, Any]] = []
-        for company_run in selected_company_runs:
-            logger.info("Running company benchmark: %s", company_run.get("id") or company_run.get("defaults", {}))
-            if args.eval_only:
-                company_bundles.append(
-                    _rerun_company_full_evaluation_only(
-                        config_path=config_path,
-                        output_root=output_dir,
-                        global_defaults=defaults,
-                        shared_experiments=experiments,
-                        screening_config=screening_config,
-                        full_eval_config=full_eval_config,
-                        company_run=company_run,
-                        progress_reporter=progress_reporter,
-                    )
-                )
-            else:
-                company_bundles.append(
-                    _run_company_bundle(
-                        config_path=config_path,
-                        output_root=output_dir,
-                        global_defaults=defaults,
-                        shared_experiments=experiments,
-                        screening_config=screening_config,
-                        full_eval_config=full_eval_config,
-                        company_run=company_run,
-                        progress_reporter=progress_reporter,
-                    )
-                )
-
-        completed_bundles: List[Dict[str, Any]] = []
-        for company_run in company_runs:
-            bundle = _load_completed_company_bundle(
-                output_root=output_dir,
-                company_run=company_run,
-                defaults=defaults,
-            )
-            if bundle is not None:
-                completed_bundles.append(bundle)
-
-        _write_multi_company_outputs(
-            output_dir=output_dir,
+    with progress_reporter:
+        _execute_benchmark_command(
+            args=args,
             config_path=config_path,
-            defaults=defaults,
-            experiments=experiments,
-            company_runs=company_runs,
-            screening_config=screening_config,
-            full_eval_config=full_eval_config,
-            company_bundles=completed_bundles,
-        )
-        logger.info("Wrote multi-company benchmark outputs to %s", output_dir)
-        progress_reporter.stop(status="completed")
-        return
-
-    merged_by_id = _merged_experiment_lookup(defaults, experiments)
-    merged_experiments = list(merged_by_id.values())
-
-    if args.eval_only:
-        result_path = output_dir / "results.json"
-        if not result_path.exists():
-            raise FileNotFoundError(f"--eval-only requires an existing results.json: {result_path}")
-        data = _load_json(result_path)
-        results = list(data.get("results") or [])
-        selected_ids = list(data.get("full_eval_candidates") or [])
-        if not selected_ids:
-            selected_ids = _select_full_eval_candidates(results, screening_config)
-        for experiment_id in selected_ids:
-            if experiment_id not in merged_by_id:
-                raise ValueError(f"Cannot eval-only unknown experiment id: {experiment_id}")
-            logger.info("Re-running full evaluation only: %s", experiment_id)
-            result = next((item for item in results if str(item.get("id")) == experiment_id), None)
-            if result is None:
-                raise ValueError(f"Existing results.json has no result for experiment id: {experiment_id}")
-            result["full_eval"] = _run_full_evaluation(
-                result,
-                merged_by_id[experiment_id],
-                full_eval_config,
-                progress_reporter=progress_reporter,
-            )
-        _write_benchmark_outputs(
             output_dir=output_dir,
-            config_path=config_path,
-            recorded_matrix=dict(data.get("recorded_matrix") or {
-                "mode": "single_company",
-                "defaults": _sanitize_settings(defaults),
-                "screening": _sanitize_settings(screening_config),
-                "full_evaluation": _sanitize_settings(full_eval_config),
-                "experiments": [_sanitize_settings(experiment) for experiment in experiments],
-            }),
-            screening_config=screening_config,
-            full_eval_config=full_eval_config,
-            selected_ids=selected_ids,
-            results=results,
+            eval_output_dir=eval_output_dir,
+            progress_reporter=progress_reporter,
         )
-        logger.info("Wrote eval-only benchmark outputs to %s", output_dir)
-        progress_reporter.stop(status="completed")
-        return
-
-    results = _run_screening_experiments(
-        merged_experiments,
-        output_dir,
-        screening_config,
-        full_eval_config,
-        progress_reporter=progress_reporter,
-    )
-
-    baseline_id = screening_config.get("baseline_experiment_id")
-    baseline_result = next((result for result in results if result["id"] == baseline_id), None)
-    if baseline_id and baseline_result is None:
-        raise ValueError(f"baseline_experiment_id not found: {baseline_id}")
-    baseline_aggregate = baseline_result.get("screening_eval", {}).get("aggregate", {}) if baseline_result else {}
-
-    for result in results:
-        reasons = _screen_failure_reasons(result, baseline_aggregate, screening_config)
-        result["screen_failure_reasons"] = reasons
-        result["screen_pass"] = len(reasons) == 0
-    _attach_baseline_comparison(results, baseline_result)
-
-    selected_ids: List[str] = []
-    if full_eval_config.get("enabled", True):
-        selected_ids = _select_full_eval_candidates(results, screening_config)
-        for experiment_id in selected_ids:
-            logger.info("Running full evaluation: %s", experiment_id)
-            result = next(result for result in results if result["id"] == experiment_id)
-            result["full_eval"] = _run_full_evaluation(
-                result,
-                merged_by_id[experiment_id],
-                full_eval_config,
-                progress_reporter=progress_reporter,
-            )
-
-    _write_benchmark_outputs(
-        output_dir=output_dir,
-        config_path=config_path,
-        recorded_matrix={
-            "mode": "single_company",
-            "defaults": _sanitize_settings(defaults),
-            "screening": _sanitize_settings(screening_config),
-            "full_evaluation": _sanitize_settings(full_eval_config),
-            "experiments": [_sanitize_settings(experiment) for experiment in experiments],
-        },
-        screening_config=screening_config,
-        full_eval_config=full_eval_config,
-        selected_ids=selected_ids,
-        results=results,
-    )
-    logger.info("Wrote benchmark outputs to %s", output_dir)
-    progress_reporter.stop(status="completed")
-
 
 if __name__ == "__main__":
     main()

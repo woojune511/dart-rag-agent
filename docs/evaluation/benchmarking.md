@@ -140,15 +140,30 @@ Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](.
 
 | 항목 | 내용 |
 | --- | --- |
-| 공식 gate 재평가 | `python -m src.ops.benchmark_runner --eval-only` |
+| 공식 gate 재평가 | `python -m src.ops.benchmark_runner --eval-only --eval-output-dir <fresh-target>` |
 | legacy/standalone 스크립트 | [src/ops/run_eval_only.py](../../src/ops/run_eval_only.py) |
 | 용도 | 기존 store 재사용, current agent/evaluator 전체 회귀, answer/evidence/rendering 회귀 |
 | 주의 1 | source output dir는 persisted store가 실제로 들어 있는 결과 번들이어야 한다 |
-| 주의 2 | `latest/` 같은 임시 번들은 source로 부적절할 수 있다 |
+| 주의 2 | `--eval-output-dir`를 지정하면 `--output-dir`은 read-only source로 유지된다. 생략하면 기존 in-place refresh 동작을 유지한다 |
 | 주의 3 | 이 경로는 **같은 answer를 재채점하는 evaluator-only replay가 아니다**. 같은 store를 읽고 current code path를 다시 실행한다 |
 | 주의 4 | `benchmark_runner --eval-only`는 parse / ingest / screening을 건너뛰지만, agent answer generation과 evaluator LLM은 다시 호출한다 |
+| 주의 5 | `--eval-output-dir`는 persisted store를 복사하지 않는다. refreshed 결과가 계속 source store를 참조할 수 있으므로 원본 bundle을 보존한다 |
 
 > evaluator만 바꿔서 **같은 historical answer / runtime_evidence / calculation trace**를 재판정하려면 `retrospective_*_eval.py` 계열 replay 스크립트를 사용한다.
+
+새 refresh에서는 source evidence 보존을 위해 별도 target을 기본 운영 방식으로
+사용한다. JSON 결과는 같은 디렉터리의 임시 파일에 먼저 기록한 뒤 원자적으로
+교체되므로, 직렬화나 교체 실패가 기존 `results.json`을 부분 파일로 남기지 않는다.
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\<profile>.json `
+  --output-dir benchmarks\results\<source-bundle> `
+  --eval-only `
+  --eval-output-dir benchmarks\results\<fresh-target> `
+  --progress-heartbeat-sec 60 `
+  --heartbeat-log benchmarks\results\<fresh-target>\_logs\heartbeat.jsonl
+```
 
 Concept-runtime promotion baseline:
 
@@ -173,6 +188,20 @@ Concept-runtime promotion baseline:
 | single-question eval-only | `benchmark_runner --eval-only --question-id <ID>` | 특정 문항 agent run + full eval | 나머지 문항, parse, ingest, screening | 디버깅 루프 단축 |
 | numeric fast gate | `benchmark_runner --eval-only --question-id <ID> --numeric-fast-gate` | 특정 numeric 문항 agent run + deterministic numeric gate | generic faithfulness/completeness/relevancy judge, LLM numeric grounding when operand grounding is deterministic | numeric canary quick check |
 | historical replay | `replay_full_eval_from_results` | saved answer/runtime evidence/trace의 deterministic numeric 재채점 | agent run, retrieval, all LLM judges | evaluator-only / trace-only 확인 |
+
+### Numeric Evaluator Applicability And Replay Parity
+
+`unit_consistency` compares resolved calculation inputs, so fewer than two
+evaluator-resolved operands is not a failed comparison. In that shape the metric
+is N/A (`null`), including a single-value lookup whose answer and source unit are
+otherwise valid. Gate summaries must not coerce that N/A to zero or treat it as a
+numeric failure.
+
+`replay_full_eval_from_results` must apply the same evaluator operand-resolution
+projection as the production evaluator before unit consistency and numeric
+judgement. Replay-only synthetic verdicts for mixed or lookup rows whose recorded
+source judgement is N/A remain diagnostic; they are not replacements for the
+stored gate verdict or evidence that a provider-backed run passed.
 
 ### Cost-Controlled Debug Loop
 
@@ -210,7 +239,7 @@ API 비용 절감은 runtime 의미 경로를 우회하는 deterministic fallbac
 | 플래그 | 줄이는 호출 | 남는 진단 |
 | --- | --- | --- |
 | `--numeric-fast-gate` | deterministic operand grounding이 가능한 numeric 문항에서 numeric grounding LLM judge | numeric equivalence, operand grounding, retrieval support |
-| `--skip-llm-judges` | evaluator faithfulness/completeness/trend/rendering LLM judges | deterministic numeric verdict, heuristic completeness |
+| `--skip-llm-judges` | evaluator faithfulness/completeness/trend LLM judges | deterministic numeric verdict, grounded rendering, heuristic completeness |
 | `--skip-embedding-metrics` | evaluator answer relevancy embedding calls | retrieval hit/context/section/citation metrics |
 
 공식 smoke/gate는 evidence extraction, concept planning, formula planning,
@@ -818,14 +847,17 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 | `operand_selection_correctness` | 필요한 operand를 제대로 뽑았는가 |
 | `unit_consistency_pass` | 단위 정규화가 맞는가 |
 | `numeric_result_correctness` | 계산 결과값 자체가 맞는가 |
-| `trend_interpretation_correctness` | trend 해석이 맞는가 |
-| `grounded_rendering_correctness` | renderer가 없는 숫자를 만들지 않았는가 |
-| `calculation_correctness` | math path 전체 correctness |
+| `trend_interpretation_correctness` | LLM이 trend 의미 해석을 별도로 평가하는가; calculation score에는 합치지 않음 |
+| `grounded_rendering_correctness` | 답변의 수치 표면이 canonical trace, trace-derived value, 또는 runtime evidence와 동치인지 deterministic하게 검증 |
+| `calculation_correctness` | `numeric_result_correctness`와 deterministic `grounded_rendering_correctness`만 결합한 math-path correctness |
 
 핵심 원칙:
 - generic judge 하나로 숫자 질문을 채점하지 않는다
 - 최종 numeric PASS는 **정답성 + grounding** 중심으로 본다
 - `retrieval_hit_at_k`는 이제 numeric PASS의 직접 기준이 아니라 retriever diagnostic이다
+- mixed numeric+narrative 답변의 정성 문장 존재 자체는 grounded-rendering
+  실패 사유가 아니다. 추가 수치가 있으면 의미 문장이 아니라 그 수치 표면만
+  canonical trace 또는 runtime evidence에 대해 검증한다.
 
 ## Reviewer artifacts
 
@@ -848,6 +880,13 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 | `selected_claim_ids` / `kept_claim_ids` / `dropped_claim_ids` | claim selection 흐름 추적 |
 | `unsupported_sentences` / `sentence_checks` | answer faithfulness 디버그 |
 | `calculation_operands` / `calculation_plan` / `calculation_result` | math path 디버그 |
+| `answer_slots.result_semantics` | `difference`가 기간 증감(`period_delta`)인지 구성요소 차감 결과(`derived_value`)인지 확인 |
+
+`difference`라는 operation family만 보고 trend를 판정하면 안 된다. Focused
+review에서는 `current_period`/`prior_period` 역할이 함께 있는 경우에만 기간
+증감 슬롯과 방향을 기대하고, `minuend`/`subtrahend` 차감은 `primary_value`와
+중립적인 절대 결과 표현을 기대한다. Legacy aggregate projection에
+`delta_value` 별칭이 남아 있더라도 명시적인 `result_semantics`가 우선한다.
 
 ## 캐시 정책
 
@@ -3512,3 +3551,357 @@ Decision:
 - The next release-grade validation, if needed, is a fresh official
   OpenAI-backed five-question policy gate rerun, not another Hyundai-specific
   runtime patch.
+
+## 2026-08-26 Samsung Semantic-Selection And Store-Fixed Gate Refresh
+
+Purpose:
+
+- verify that LLM semantic row selection plus deterministic execution resolves
+  the close-row ambiguity in `SAM_T2_078` without company/question tuning;
+- verify lookup source-row/value/unit provenance over repeated current-agent
+  runs;
+- rerun the required four-company/five-question release gate from the persisted
+  Google-backed stores;
+- treat `numeric_final_judgement = null` as N/A for mixed rows when grounded
+  rendering, calculation, faithfulness, completeness, refusal, and error signals
+  are healthy.
+
+Focused Samsung command pattern:
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks/results/policy_gate_regression_2026-06-03_1138_actual `
+  --eval-output-dir benchmarks/results/sam_t2_078_semantic_row_selection_replay_b_2026-08-26 `
+  --company-run-id samsung_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id SAM_T2_078 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks/results/sam_t2_078_semantic_row_selection_replay_b_2026-08-26/_logs/heartbeat.jsonl
+```
+
+Replay B and C both selected exact source row
+`연구개발비용 총계 | 제55기 | 28,352,769 | 백만원`, source id `ev_001`, and
+canonical `28,352,769백만원`. Their final answers were byte-identical, and both
+numeric-extraction fingerprints were
+`de311d9fa0818ca04bacad873ee16ad8dda94633ee3296287722cd64a7067c08`.
+Both returned faithfulness/completeness/refusal/grounded rendering/calculation
+`1.000`, error `0.0%`; context recall was `0.800 / 1.000`. Combined runtime
+usage was 18 LLM calls, 79,841 tokens, 12 query embeddings, zero document
+embeddings, estimated LLM cost `$0.0831895`.
+
+Full gate command:
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks/results/policy_gate_regression_2026-06-03_1138_actual `
+  --eval-output-dir benchmarks/results/integration_policy_gate_after_samsung_semantic_selection_2026-08-26 `
+  --eval-only `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks/results/integration_policy_gate_after_samsung_semantic_selection_2026-08-26/_logs/heartbeat.jsonl
+```
+
+Run evidence:
+
+- status completed, 4 / 4 companies and 5 / 5 questions, 747.5 wall seconds;
+- current agent/evaluator executed; historical answers were not replayed;
+- persisted store reused; no fresh DART fetch/parse/ingest and zero document
+  embedding calls (the copied historical ingest fields are not current work);
+- 62 LLM calls, 354,014 total tokens, 46 query embeddings, estimated runtime
+  LLM cost `$0.3427218`; embedding cost not reported;
+- error rate `0.0%`, aggregate faithfulness `0.9125`, completeness `0.8375`,
+  context recall `0.9500`, numeric pass rate `1.000`, full-eval fail count `2`.
+
+Per-row interpretation:
+
+| Row | Numeric/runtime result | Quality/evaluator result | Gate interpretation |
+| --- | --- | --- | --- |
+| `SAM_T2_078` | same canonical tuple and byte-identical answer as focused B/C | faithfulness/completeness/refusal/grounded/calculation `1.000`, error 0 | closed |
+| `NAV_T2_006` | correct `41.4%`; required operand artifact had empty payload and integrity `error` | faithfulness/completeness 1.000; latency 272.587 s after two replans | hard ledger blocker |
+| `HYU_T2_010` | correct `87.0 / 78.1만 대 = 11.5%` and direct narrative quote | faithfulness/completeness `0.300 / 0.700` | exact-artifact evaluator diagnosis before any runtime change |
+| `HYU_T3_072` | expected Motional values | faithfulness/completeness 1.000 | stable control |
+| `LGE_T1_051` | numeric PASS and top `1,486,334백만원`; old sync corrupted nested derived row to component `6,769억원` | faithfulness 1.000, completeness 0.500 | trace blocker plus narrative residual |
+
+The full bundle is not a release pass. Its top-level and Samsung company result
+SHA-256 values are
+`fc23d30421fe521c86c2e5fba896e66afff30967d12de43beb60fbfb48acfe26`
+and `f442b6c9c1bf4c741216427f7403c711f0e86cc9edcb9db465295e667ed4432c`.
+
+Post-gate derived-value follow-up:
+
+- Explicit `result_semantics=derived_value` differences no longer reverse-sync
+  numeric surfaces from final prose.
+- A focused LGE successor repeated the same terse three-number answer but kept
+  nested calculation result, primary slot, and top result
+  `1,486,334백만원`; the reverse-sync marker was absent.
+- Numeric judgement PASS, faithfulness/grounded rendering/calculation `1.000`,
+  error `0.0%`; completeness remained `0.500`, so no benchmark-keyed wording
+  change was made.
+- Usage: 9 LLM calls, 44,095 tokens, 5 query and zero document embeddings,
+  estimated runtime LLM cost `$0.0418109`.
+- Local bundle:
+  `benchmarks/results/lge_t1_051_derived_value_one_way_replay_2026-08-26/`;
+  top/company SHA-256:
+  `a62d020d9616d772423d0e0917307f106340f903980b6e8fb3225a7711eaf478` /
+  `f8167ce1f212a99cd8358b9c54d05ba047bf83be65c1b4656f7a3c09936bcaae`.
+
+Post-gate NAV operand-artifact successor:
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks/results/policy_gate_regression_2026-06-03_1138_actual `
+  --eval-output-dir benchmarks/results/nav_t2_006_operand_artifact_finalization_replay_b_2026-08-26 `
+  --company-run-id naver_2023_policy_driven_runtime_gate `
+  --eval-only `
+  --question-id NAV_T2_006 `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks/results/nav_t2_006_operand_artifact_finalization_replay_b_2026-08-26/_logs/heartbeat.jsonl
+```
+
+- The run reproduced the target condition: operand extraction logged
+  `coverage=sufficient operands=0`, then deterministic execution calculated
+  `41.4%` from the same `2,546,649 / 1,801,079` source values.
+- The attached `operands:task_1:003` was finalized in place from the successful
+  task's plan-complete input slots. Its trace summary changed from zero operands
+  and no refs to `2 finalized dependency operand(s)` with `ev_001`.
+- Integrity changed from `error / 1 issue` to `ok / 0 issues`; no
+  `semantic_plan_replan` was logged. Missing artifacts, incomplete plan coverage,
+  or missing provenance still remain integrity failures in contract tests.
+- Question latency changed from `268.740` to `129.626` seconds. Agent usage
+  changed from 21 calls / 126,829 tokens / `$0.1366214` to 11 calls / 70,923
+  tokens / `$0.0744392`. Both runs made eight query and zero document embedding
+  calls; no fresh DART fetch, parse, or ingest occurred.
+- Faithfulness, completeness, and calculation remained `1.000`; error rate was
+  `0.0%`. `numeric_final_judgement=null` is N/A for this mixed row, not failure.
+- Runtime audit 217, focused subtask/aggregate tests 381/381, and full unittest
+  2,160/2,160 passed. Top/company result SHA-256 values are
+  `b1a0748557cbb8405055ad9aacce7afc40738d61d8b47502cbfe49abbcd6f078` /
+  `be3f09147e9c592d86e1fcbbe0ac55a516df6f7e50a6116bf4421079a0b901c7`.
+- The bundle is ignored local experiment evidence and is not a successor full
+  gate or publishable benchmark artifact.
+
+Decision at this checkpoint (superseded by the clean successor below):
+
+- Samsung is closed at repeated focused and full-gate levels.
+- The post-gate LGE trace successor closes explicit derived-value reverse sync,
+  but makes the full artifact stale relative to current source.
+- The NAVER successor closes the hard required operand-artifact contract at the
+  focused level and further invalidates the older full artifact as current-source
+  release evidence.
+- Next diagnose HYU/LGE qualitative scores without company/question-specific
+  tuning, then rerun the same monitored five-question gate. The following
+  section records that completed work.
+- All benchmark outputs remain ignored local artifacts and must not be staged.
+
+## 2026-08-26 Late Numeric Surface Preservation And Clean Integration Gate
+
+Purpose:
+
+- classify the remaining HYU/LGE qualitative residuals from exact artifacts;
+- keep numeric execution, qualitative judgement, and public-answer surface
+  ownership separate;
+- verify the generic fixes with a focused LGE successor and the same monitored
+  four-company/five-question gate.
+
+The diagnosis did not add company, question-id, metric, or answer-value rules.
+Final claim-scoped runtime evidence is now placed before broad retrieved context
+for evaluator prompts. Preferred component-difference answers render explicit
+`minuend`, `subtrahend`, and `primary_value` slots, and the central late numeric
+refresh reapplies the evidence-bound source-visible query-term preservation
+contract.
+
+Focused replay B at
+`benchmarks/results/lge_t1_051_explicit_difference_term_preservation_replay_b_2026-08-26/`
+returned numeric PASS, faithfulness `1.000`, calculation/grounded rendering
+`1.000`, and integrity `ok`, but completeness stayed `0.700`. The answer still
+lost `IRA` and `AMPC` because a later numeric refresh overwrote the earlier
+grounded term note. After moving the same generic preservation contract to that
+central refresh boundary, replay C at
+`benchmarks/results/lge_t1_051_late_numeric_surface_preservation_replay_c_2026-08-26/`
+returned:
+
+> LG에너지솔루션 2023년 영업이익은 2,163,234백만원입니다. 첨단제조 생산세액공제 금액은 6,769억원이며, 이를 제외한 실질 영업이익은 1,486,334백만원입니다. 원문 표기: IRA, AMPC.
+
+Replay C had completeness `1.000`, numeric PASS, final faithfulness `1.000`,
+calculation/grounded rendering `1.000`, context recall/hit@k `1.000`, integrity
+`ok`, and two resolved operands.
+
+Final gate command:
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks/profiles/curated_policy_driven_runtime_gate.json `
+  --output-dir benchmarks/results/policy_gate_regression_2026-06-03_1138_actual `
+  --eval-output-dir benchmarks/results/integration_policy_gate_after_late_numeric_surface_preservation_2026-08-26 `
+  --eval-only `
+  --progress-heartbeat-sec 30 `
+  --heartbeat-log benchmarks/results/integration_policy_gate_after_late_numeric_surface_preservation_2026-08-26/_logs/heartbeat.jsonl
+```
+
+Aggregate result:
+
+- status `completed` in `570.031` wall seconds;
+- 4 / 4 companies and 5 / 5 questions completed;
+- company pass count 4, full-eval fail count 0, error count 0, artifact-integrity
+  issue count 0;
+- aggregate faithfulness, completeness, context recall, and numeric pass rate
+  were each `1.000`;
+- 52 LLM calls, 290,893 LLM tokens, 46 query embeddings, zero document
+  embeddings, and estimated runtime LLM cost `$0.2595345`.
+
+| Row | Final signals | Trace / interpretation |
+| --- | --- | --- |
+| `NAV_T2_006` | faithfulness/completeness/context recall `1.000`, integrity `ok`, error null | `41.4%` and finalized dependency operands remained stable; numeric judgement is N/A for the mixed row |
+| `HYU_T2_010` | faithfulness/completeness/context recall `1.000`, integrity `ok`, error null | `87.0만 / 78.1만 = 11.5%` plus the supported IRA narrative; numeric judgement is N/A |
+| `HYU_T3_072` | all key quality signals `1.000`, integrity `ok`, error null | Motional ownership/book-value/loss slots remained stable; numeric judgement is N/A |
+| `LGE_T1_051` | final faithfulness/completeness/context recall `1.000`, numeric PASS, integrity `ok`, error null | deterministic `2,163,234백만원 - 6,769억원 = 1,486,334백만원`; `IRA`/`AMPC` survived the late refresh |
+| `SAM_T2_078` | final faithfulness/completeness/context recall `1.000`, integrity `ok`, error null | canonical `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`; numeric judgement is N/A for the mixed row |
+
+The LGE entity-coverage diagnostic remained `0.833` although the completeness
+judge explicitly reported that all requested entities were present. The raw
+faithfulness score for LGE and Samsung was `0.700`, then the existing grounded
+numeric/hybrid evidence override produced final faithfulness `1.000`. These
+intermediate diagnostics are retained rather than rewritten as independent
+passes.
+
+Result SHA-256 receipts:
+
+- top-level `results.json`:
+  `2d786dd729b17b374681ad986250b72bca062093f626ebf9547822c366ad72b3`;
+- NAVER:
+  `c5d5ce8e8c5f2201d1d3e8990fabb4747065feb13ddb2fd1cd3fc6816e42bd8c`;
+- Hyundai:
+  `78e9ce1fe0b65968e1602396859d81c8df14bab49bc8f829984cd146b909a2f6`;
+- LG Energy Solution:
+  `6f538a75edaccaf7f639b823610df9bbce3f2d565aecafadf3c0ef088046e7a9`;
+- Samsung:
+  `7907dccb012ff88fd181f07b256a77f3bdc5f336f8011081b1068bd48c340f05`.
+
+Validation:
+
+- related evaluator/answer-surface tests: 498 / 498 passed;
+- runtime-domain audit: 217 reviewed literals passed;
+- full unittest discovery: 2,163 / 2,163 passed in `308.805` seconds.
+
+Evidence limits and operational note:
+
+- This was store-fixed `--eval-only`: current agent/evaluator execution, but no
+  fresh DART fetch, parse, ingest, or document embedding. It supports the PR
+  integration gate, not a new fresh-ingest or held-out quality claim.
+- `numeric_final_judgement = null` is N/A, not failure, for the healthy mixed or
+  narrative rows above.
+- All result and heartbeat directories are ignored local artifacts and must not
+  be staged or published as source.
+- During command discovery, `python -m src.ops.evaluator --help` unexpectedly
+  entered the legacy default parse/ingest path instead of acting as help-only.
+  The exact processes were stopped immediately. The ignored local
+  `data/chroma_dart` store was touched and intentionally left in place rather
+  than deleted without authorization; it was not used as fresh-ingest evidence
+  for the clean gate.
+
+Decision:
+
+- The bounded release gate is clean and the stabilization work is complete.
+- PR #86 remains draft and `main` remains unchanged. Review the accumulated diff
+  and evidence before making an explicit history-preserving merge decision.
+- Refactoring remains paused.
+
+## 2026-08-26 Post-Gate Pre-Commit Contract Hardening
+
+The final diff review did not tune another benchmark row. It tightened three
+generic boundaries exposed by synthetic and contract probes:
+
+- exact numeric source recovery scans visible and eligible seed documents but
+  refuses when an active required operand's raw value occurs in multiple distinct
+  source rows; semantic row choice remains LLM-owned;
+- already-materialized direct operands may finalize a provisional ledger artifact
+  only when they cover every ordered plan operand id and retain provenance;
+- an LLM numeric-grounding correction cannot turn deterministic
+  `grounded_rendering_correctness = 0` into a pass or bypass that failure.
+
+Validation after these changes:
+
+- runtime-domain audit: 217 reviewed literals passed;
+- full unittest discovery: 2,165 / 2,165 passed in `231.977` seconds;
+- no provider-backed agent run, fresh ingest, DART fetch/parse, or document
+  embedding was performed.
+
+The first remote full-suite run on docs head `99c4429` executed all 2,165 tests
+but failed one structural receipt because an unsorted `Path.glob()` yielded a
+different caller order on Ubuntu. Commit `40ae6a7` sorted that test-only module
+enumeration. Local focused 1 / 1 and the complete structural helper module
+290 / 290 passed; successor GitHub Actions run `32964249893` then passed reviewer
+contracts and Ubuntu/Python 3.13 full discovery 2,165 / 2,165. This portability
+repair did not change runtime or benchmark behavior.
+
+One no-call compatibility replay used the stored clean-gate Samsung answer and
+runtime projection with the current replay/evaluator code. It returned numeric
+equivalence `1.000`, retrieval support `1.000`, grounded rendering `1.000`, and
+calculation correctness `1.000`. `numeric_grounding` remained null, so the final
+judgement was `UNCERTAIN` with `source_numeric_grounding_missing`. This is a
+historical-answer replay, not current-agent execution and not a fresh benchmark
+pass. At this 2026-08-26 checkpoint, the preceding clean store-fixed gate remained
+the latest provider evidence and predated this defensive hardening.
+
+Release interpretation at that checkpoint, superseded by the 2026-08-27 canary
+below:
+
+- the current source has clean unit/contract evidence;
+- the five-question provider gate is a recorded pre-hardening integration result;
+- exact-current-source provider replay remains an optional explicit pre-merge
+  decision, not an implied result;
+- all benchmark outputs remain ignored and must not be staged.
+
+## 2026-08-27 Exact-Current-Head Three-Row Canary
+
+The optional exact-current replay was executed on `b422a9b`. It reused the
+persisted stores and the curated policy profile, ran one monitored `--eval-only`
+question at a time, and performed no fresh fetch, parse, ingest, or document
+embedding.
+
+Output directories:
+
+- `benchmarks/results/focused_current_head_sam_t2_078_2026-08-27/`;
+- `benchmarks/results/focused_current_head_nav_t2_006_2026-08-27/`;
+- `benchmarks/results/focused_current_head_lge_t1_051_2026-08-27/`.
+
+| Row | Result | Gate interpretation |
+| --- | --- | --- |
+| `SAM_T2_078` | canonical `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`; key quality, rendering, and calculation signals `1.000`; integrity `ok` | healthy |
+| `NAV_T2_006` | same-row `2,546.6억원 / 1,801.1억원 = 41.4%`; two operands; integrity `ok`; key quality/calculation signals `1.000` | correctness healthy, efficiency unstable because reflection/replan expanded to 30 calls |
+| `LGE_T1_051` | wrong `28,980백만원 - 6,769억원 = -647,920백만원`; numeric FAIL, operand correctness `0.5`, unit consistency `0`, integrity still `ok` | correctness blocker |
+
+LGE's correct consolidated `2,163,234백만원` row was already in retrieved table
+metadata. The semantic extractor also wrote that value in final prose, but its
+required structured `raw_value` was empty. One-way provenance correctly prevented
+reverse parsing of the prose. The generic fallback then selected a different
+entity table's same-label `영업이익 28,980백만원` row. This isolates the failure to
+incomplete semantic structured output plus insufficient entity/table-scope
+validation in fallback acceptance, not retrieval, difference rendering, or
+arithmetic execution.
+
+The extraction prompt fingerprint
+`17c499459ec2a8602f1811df9d9a54b8390fcb1260c4ebda5b23cc9c85aad290`
+matches the earlier clean run, where the provider supplied the raw value. This
+is evidence of run-to-run structured-output variance and a runtime robustness
+gap. An unchanged repeat that happens to pass would not close it.
+
+Aggregate usage was 57 LLM calls, 311,132 tokens, 589.281 question-seconds,
+32 query embeddings, zero document embeddings, and estimated runtime LLM cost
+`$0.3217084`. Per-row top-level result SHA-256 values are Samsung
+`03183027568fd244133723e01c35a109c16d97055ec827c46481635c901a81de`,
+NAVER `4dde511bcd4986c54865dc560c598c7b30569c6d21348446efec3aae14f31121`,
+and LGE `b6c47452018a7d3a7710a59fc39355a35c4ac7433b2e87c93cff3816d8c6ba16`.
+
+Decision:
+
+- exact-current integration status is HOLD;
+- keep PR #86 draft and do not merge;
+- first add a generic incomplete-structured-output / entity-scope repair and a
+  synthetic consolidated-versus-subsidiary same-label regression;
+- rerun focused LGE after source validation, then diagnose and rerun NAVER's
+  replan/cost path;
+- consider a broader store-fixed gate only after those focused checks are clean;
+- raw outputs, stores, and heartbeat logs remain ignored and must not be staged.

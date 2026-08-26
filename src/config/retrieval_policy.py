@@ -290,6 +290,9 @@ EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
     "metric_label_template": "{denominator_label} 대비 {numerator_label} 비율",
 }
 
+CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER = "부채"
+CAPEX_TOTAL_CONCEPT_KEY = "capital_expenditure_total"
+
 OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "note_context_markers": ("주석",),
     "related_party_penalty_terms": ("특수관계자", "관계기업", "공동기업"),
@@ -837,13 +840,19 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
     "ambiguous_krw_units": ("", "원", "KRW"),
     "note_statement_type": "notes",
     "candidate_rerank_prompt_template": (
-        "당신은 재무 계산 후보 재정렬기입니다.\n"
-        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n\n"
+        "당신은 재무 계산 후보의 의미를 판별하는 선택기입니다.\n"
+        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n"
+        "질문의 총액/부분값/조정값 같은 의미와 각 row label의 의미를 우선 비교하세요.\n"
+        "후보에 적힌 숫자와 단위는 비교 자료일 뿐이며 수정하거나 새로 만들지 마세요.\n"
+        "질문이 후보 하나를 명확히 지목하면 selection_status=selected와 selected_candidate_id를 기록하고, "
+        "문서 표현만으로 구분할 수 없으면 selection_status=ambiguous와 빈 selected_candidate_id를 기록하세요.\n\n"
         "우선순위:\n"
-        "1. 직접 숫자 값이 있는 표 row\n"
-        "2. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
-        "3. narrative paragraph보다 table row / structured row\n"
-        "4. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
+        "1. 질문이 요구한 값의 의미와 row label의 의미가 정확히 일치하는 후보\n"
+        "2. 표의 row_headers, column headers, table_context가 가리키는 값의 주체와 질문 주체가 일치하는 후보\n"
+        "3. 직접 숫자 값이 있는 표 row\n"
+        "4. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
+        "5. narrative paragraph보다 table row / structured row\n"
+        "6. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
         "질문:\n{query}\n\n"
         "target operand:\n{operand_label}\n\n"
         "candidate options:\n{options}\n"
@@ -896,6 +905,24 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
         "현재 계산 결과:\n{calc_result_text}\n\n"
         "현재 seed sections:\n{seed_sections}\n\n"
         "참고용 heuristic retry plan:\n{heuristic_plan}\n"
+    ),
+}
+
+
+INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
+    "line_labels": (
+        "회사",
+        "연도",
+        "보고서",
+        "섹션",
+        "분류",
+        "키워드",
+        "선택사유",
+        "statement_type",
+        "consolidation_scope",
+        "period_focus",
+        "table_source_id",
+        "unit_hint",
     ),
 }
 
@@ -1530,6 +1557,14 @@ EVIDENCE_RUNTIME_POLICY: Dict[str, Any] = {
         "3. raw_value는 문서에서 찾은 숫자를 변환 없이 그대로 적으세요.\n"
         "4. final_value는 raw_value와 unit을 바탕으로 질문에 직접 답하는 자연스러운 한국어 한 문장으로 작성하세요.\n"
         "5. 수치를 찾지 못한 경우 raw_value와 final_value를 빈 문자열로 두세요.\n\n"
+        "질문: {query}\n\n"
+        "컨텍스트:\n{context}\n"
+    ),
+    "numeric_extractor_incomplete_retry_prompt_template": (
+        "직전 structured 응답은 final_value를 작성했지만 raw_value를 비워 schema 계약을 위반했습니다.\n"
+        "최종 문장을 역으로 파싱하지 말고, 아래 원문 컨텍스트에서 요청한 값을 다시 확인하세요.\n"
+        "값을 찾았다면 raw_value에 원문 숫자를 그대로 넣고 unit과 final_value를 함께 채우세요.\n"
+        "근거로 확정할 수 없다면 raw_value와 final_value를 모두 빈 문자열로 두세요.\n\n"
         "질문: {query}\n\n"
         "컨텍스트:\n{context}\n"
     ),

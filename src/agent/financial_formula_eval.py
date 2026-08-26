@@ -16,7 +16,7 @@ _ALLOWED_FORMULA_FUNCTIONS: Dict[str, Any] = {
 }
 
 
-def _safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
+def safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
     """Evaluate a restricted arithmetic expression used by calculation plans."""
     tree = ast.parse(expression, mode="eval")
 

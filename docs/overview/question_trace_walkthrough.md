@@ -1,7 +1,8 @@
 # Question Trace Walkthrough
 
 이 문서는 질문 1개가 현재 코드에서 어떻게 흐르는지 따라가기 위한
-walkthrough다. 기준은 2026-06-22 PR #77 merge 이후의 single-agent runtime이다.
+walkthrough다. 기준은 Phase 5 core-runtime surface 정리가 끝난 현재
+single-agent runtime이다.
 
 같이 보면 좋은 문서:
 
@@ -23,9 +24,11 @@ walkthrough다. 기준은 2026-06-22 PR #77 merge 이후의 single-agent runtime
 4. 각 graph node의 mixin 구현
 5. helper/module 내부
 
-현재 runtime의 핵심 계약은 `answer`, `structured_result`,
-`resolved_calculation_trace`, `review_trace`, `debug_bundle`이다. 오래된 flat
-field도 아직 반환되지만, 새 코드가 먼저 봐야 하는 표면은 named projection이다.
+현재 runtime의 핵심 계약은 `agent_answer`, `review_trace`, `debug_bundle` named
+projection이다. `answer`, `structured_result`, `resolved_calculation_trace` 같은
+선택된 canonical field는 기존 API/eval caller를 위해 top level에도 보이지만,
+top-level `calculation_operands`, `calculation_plan`, `calculation_result` mirror는
+더 이상 기본 응답에 포함되지 않는다.
 
 ## 2. 한 화면으로 보는 호출 체인
 
@@ -83,6 +86,7 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 파일:
 
 - [src/agent/financial_graph.py](../../src/agent/financial_graph.py)
+- [src/agent/financial_agent_run_projection.py](../../src/agent/financial_agent_run_projection.py)
 
 이 class는 facade다. 실제 node body는 mixin에 있고, 본체는 아래 책임을 갖는다.
 
@@ -92,11 +96,11 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 | LangGraph node/edge wiring | `_build_graph()` |
 | phase별 LLM 선택 | `_build_llm_routes()`, `_llm_for_phase()` |
 | graph 실행 | `run()` |
-| caller-facing output 조립 | `run()`, `_project_agent_answer()`, `_project_review_trace()`, `_project_debug_bundle()` |
-| runtime evidence/citation fallback | `_runtime_evidence_from_retrieved_docs()`, `_augment_citations_from_runtime_evidence()` |
+| caller-facing output 조립 | `run()` plus `financial_agent_run_projection.project_agent_answer()`, `project_review_trace()`, `project_debug_bundle()`, `complete_aggregate_public_answer_projection()`, `public_projection_state()` |
+| runtime evidence/citation fallback | `_runtime_evidence_from_retrieved_docs()` plus `financial_agent_run_projection.enrich_runtime_evidence_metadata()`, `augment_citations_from_runtime_evidence()` |
 | final answer projection repair | `run()` plus helper modules |
 
-`FinancialAgent`는 아직 작지 않지만, “graph wiring + output projection facade”로
+`FinancialAgent`는 아직 작지 않지만, “graph wiring + output sequencing facade”로
 보면 읽을 수 있다. retrieval, 계산, evidence, reconciliation, planning의 세부 로직은 아래
 mixin 파일들로 내려간다.
 
@@ -239,34 +243,38 @@ graph node가 만든 raw runtime state이고, 그대로 API에 내보내는 payl
    결과에서 더 완성된 public answer를 고른다.
 7. `_structured_result_projection_for_stale_public_numeric_answer()`가 stale public
    numeric answer를 structured subtask projection으로 교체할 수 있다.
-8. `_structured_subtask_projection_for_public_answer()`가 public answer와 맞는
-   aggregate trace를 재구성한다.
+8. public `structured_subtask_projection_for_public_answer()`가 public answer와
+   맞는 aggregate trace를 재구성한다.
 9. `_retrieved_ratio_context_projection_for_public_answer()`가 retrieved context의
    ratio projection을 보강할 수 있다.
 
-PR #77 이후 새로 중요한 helper:
+현재 output projection에서 중요한 helper:
 
 - [src/agent/financial_answer_projection.py](../../src/agent/financial_answer_projection.py)
+- [src/agent/financial_aggregate_projection.py](../../src/agent/financial_aggregate_projection.py)
 
-이 파일은 aggregate/narrative answer candidate를 고르는 순수 helper다. 회사명,
-benchmark id, 특정 metric keyword를 보지 않고 answer shape, numeric-surface
-overlap, conflicting numeric surface 감소 여부만 본다.
+`financial_answer_projection.py`는 aggregate/narrative answer candidate를 고르는
+순수 policy helper다. `financial_aggregate_projection.py`는 그 정책을 사용하는
+state-free aggregate calculation/public projection과 subtask upsert/rank를 소유한다.
+둘 다 회사명, benchmark id, 특정 metric keyword에 맞춘 runtime branch를 두지 않는다.
 
 ### 6.4 최종 return shape
 
-`run()`은 named projection과 legacy flat compatibility field를 함께 반환한다.
+`run()`은 세 개의 named projection과 기존 caller에 필요한 선택된 canonical
+top-level field를 반환한다.
 
 | Projection | 의미 |
 | --- | --- |
 | `agent_answer` | public answer, query metadata, citations, `structured_result`, `resolved_calculation_trace` |
 | `review_trace` | retrieval/evidence/numeric/debug/retry/subtask/task-artifact review material |
 | `debug_bundle` | calculation debug trace, LLM usage, phase usage, embedding usage |
-| top-level flat fields | 기존 API/eval code를 위한 compatibility adapter |
+| selected top-level fields | 기존 API/eval code를 위한 compatibility adapter; calculation mirror 제외 |
 
 새 코드가 가능하면 `agent_answer`, `review_trace`, `debug_bundle`를 먼저 소비해야
-한다. 오래된 flat field는 compatibility bridge다.
+한다. top-level adapter가 canonical calculation trace를 복제한 별도
+`calculation_*` 상태를 만들지는 않는다.
 
-## 7. Numeric 질문의 실제 흐름
+## 7. Numeric question trace
 
 대표 질문:
 
@@ -293,6 +301,19 @@ overlap, conflicting numeric surface 감소 여부만 본다.
 15. `cite`: citation 문자열을 붙인다.
 16. `run()` output projection: public answer와 trace/evidence surface를 최종
     정규화한다.
+
+8~10번 node는 owner 자체가 아니라 graph adapter다. Operand candidate의
+matching/selection/merge는 `financial_operand_resolution.py`가 맡는다. Dependency
+projection과 precedence-decision primitive는 `financial_dependency_projection.py`가
+explicit reason과 provenance를 남기며 제공하지만, end-to-end precedence 일부는
+아직 graph adapter가 조립한다. Candidate 입력 순서가 바뀌어도 선택 결과는 같아야
+하고, 동순위의 서로 다른 값은 임의 선택하지 않고 abstain한다. 값이 동등한 tie만
+stable key로 선택할 수 있다.
+
+Execution 단계는 `financial_calculation_execution.py`가 ordered operand ids와
+variable bindings를 operand set에 대해 검증한 뒤 typed
+`CalculationExecutionOutcome`을 반환한다. `financial_graph_calculation.py`의
+adapter가 이 outcome을 trace, structured result, task/artifact state에 투영한다.
 
 숫자 질문 디버깅은 먼저 “어느 layer에서 틀렸는지”를 가르는 것이 중요하다.
 
@@ -338,17 +359,21 @@ validation 결과를 먼저 봐야 한다.
 | [financial_graph.py](../../src/agent/financial_graph.py) | facade, graph wiring, output projection |
 | [financial_graph_state.py](../../src/agent/financial_graph_state.py) | lightweight graph state contract |
 | [financial_graph_models.py](../../src/agent/financial_graph_models.py) | Pydantic structured-output schema and compatibility exports |
-| [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning |
+| [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning, graph-owned subtask capture/promotion |
 | [financial_retrieval_pipeline.py](../../src/agent/financial_retrieval_pipeline.py) | retrieval query/filter/search/rerank/selection/trace owner |
 | [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | expansion, numeric extraction, evidence/compress/validate |
 | [financial_graph_reconciliation.py](../../src/agent/financial_graph_reconciliation.py) | retrieved candidates와 required operands 매칭 |
-| [financial_graph_calculation.py](../../src/agent/financial_graph_calculation.py) | operand extraction, formula planning, execution orchestration, subtask loop |
+| [financial_reconciliation_candidates.py](../../src/agent/financial_reconciliation_candidates.py) | prepared candidate/cell statement, unit, period, score, identity, row, match, and ID projection |
+| [financial_graph_calculation.py](../../src/agent/financial_graph_calculation.py) | graph-state adapter/orchestrator, owner result projection, subtask loop |
 | [financial_graph_helpers.py](../../src/agent/financial_graph_helpers.py) | shared runtime projection, trace, normalization, matching helpers |
 | [financial_answer_projection.py](../../src/agent/financial_answer_projection.py) | aggregate/narrative answer candidate 선택 |
 | [financial_answer_slots.py](../../src/agent/financial_answer_slots.py) | answer slot payload construction |
-| [financial_calculation_execution.py](../../src/agent/financial_calculation_execution.py) | deterministic calculation result helpers |
+| [financial_aggregate_projection.py](../../src/agent/financial_aggregate_projection.py) | state-free aggregate selection, ranking, dedupe, evidence/answer surface projection; selected subtask projection/upsert move remains characterize-first |
+| [financial_operand_resolution.py](../../src/agent/financial_operand_resolution.py) | state-free operand matching, selection, merge owner |
+| [financial_dependency_projection.py](../../src/agent/financial_dependency_projection.py) | dependency projection 및 precedence-decision primitive owner |
+| [financial_calculation_execution.py](../../src/agent/financial_calculation_execution.py) | plan validation and typed execution outcome owner |
 | [financial_graph_calculation_rendering.py](../../src/agent/financial_graph_calculation_rendering.py) | calculation answer rendering helpers |
-| [financial_reflection_projection.py](../../src/agent/financial_reflection_projection.py) | reflection/task-artifact projection helpers |
+| [financial_reflection_projection.py](../../src/agent/financial_reflection_projection.py) | reflection retry-query, request, action/report, and task-artifact projection helpers |
 | [financial_text_surface.py](../../src/agent/financial_text_surface.py) | text/narrative surface helpers |
 | [financial_numeric_surface.py](../../src/agent/financial_numeric_surface.py) | numeric display surface extraction/equivalence |
 
@@ -362,39 +387,48 @@ validation 결과를 먼저 봐야 한다.
 4. `financial_graph_planning.py::_plan_semantic_numeric_tasks()`
 5. `financial_retrieval_pipeline.py::_retrieve()`
 6. `financial_graph_reconciliation.py::_reconcile_retrieved_evidence()`
-7. `financial_graph_calculation.py::_extract_calculation_operands()`
-8. `financial_graph_calculation.py::_plan_formula_calculation()`
-9. `financial_graph_calculation.py::_execute_calculation()`
-10. `financial_graph_calculation.py::_aggregate_calculation_subtasks()`
-11. `financial_answer_projection.py`
-12. 다시 `financial_graph.py::run()` output projection 후반부
+7. `financial_reconciliation_candidates.py`의 prepared candidate projection
+8. `financial_graph_calculation.py::_extract_calculation_operands()` adapter
+9. `financial_operand_resolution.py`와 `financial_dependency_projection.py`
+10. `financial_graph_calculation.py::_plan_formula_calculation()` adapter
+11. `financial_calculation_execution.py` plan guard와 execution
+12. `financial_graph_calculation.py::_execute_calculation()` outcome projection
+13. `financial_graph_calculation.py::_aggregate_calculation_subtasks()`
+14. `financial_answer_projection.py`
+15. 다시 `financial_graph.py::run()` output projection 후반부
 
 helper를 먼저 읽지 않는다. state field와 node order를 먼저 잡고, 증상이 생긴
 layer의 helper만 내려간다.
 
-## 11. MAS 쪽과의 관계
+## 11. Optional MAS appendix
 
-MAS 경로는 numeric engine을 새로 구현하지 않는다.
+MAS 경로는 core portfolio를 이해하기 위한 선행 읽기 항목이 아니다. 선택적으로
+확인할 경우에도 numeric engine을 새로 구현하지 않고 `FinancialAgent.run()`을
+감싼다는 점만 먼저 보면 된다.
 
-- [src/agent/mas_graph.py](../../src/agent/mas_graph.py)
+- [src/experimental/mas](../../src/experimental/mas)
 - [src/agent/nodes/analyst_node.py](../../src/agent/nodes/analyst_node.py)
 
 `Analyst` node가 기존 `FinancialAgent.run()`을 감싸서 재사용한다. 따라서 MAS를
 읽기 전에도 single-agent `FinancialAgent.run()` 계약을 먼저 이해하는 것이 맞다.
 
-## 12. 다음 리팩터링을 할 때의 안전선
+## 12. 현재 stop line
 
-`FinancialAgent`가 어렵게 느껴지는 주된 이유는 output projection이 아직
-`run()` 안에 많이 남아 있기 때문이다. 다음 리팩터링 후보는 아래다.
+Phase 5의 broad surface refactoring은 완료됐다. 파일 크기만을 이유로 output
+projection을 다시 이동하거나 public surface를 바꾸지 않는다. 다음 구조 변경은
+재현 가능한 runtime regression, 실제 caller 의존성, 또는 reviewer가 설명할 수
+없는 core contract가 확인될 때만 연다.
 
-- `run()` 후반부의 caller-facing output projection을 별도 module로 extraction
-- 단, `FinancialAgent` facade와 return shape는 유지
-- `agent_answer`, `review_trace`, `debug_bundle` named projection을 우선 계약으로
-  보존
-- legacy flat field는 compatibility adapter로만 유지
-
-이 작업을 하기 전에는 반드시 관련 테스트를 먼저 고정한다.
+public output 계약을 다시 바꿔야 한다면 아래 검증을 먼저 고정한다.
 
 - `tests.test_financial_agent_run_projection`
 - `tests.test_benchmark_runner_runtime_projection`
 - `python3 -m src.ops.audit_runtime_domain_terms`
+
+현재 aggregate calculation/public projection과 subtask upsert/rank는 aggregate
+owner에 있다. 다음 선택은 planning의 nested subtask traversal/specificity/
+promotion만 answer-projection owner로 옮기는 characterize-first 경계다. 현재
+state/task/evidence capture와 calculation의 dependency-coherence row replacement,
+projection sync/rebuild, artifact/ledger 및 final sequencing은 이동 대상이 아니다.
+정확한 API, gate와 stop line은
+[Project Status의 Next Work](project_status.md#next-work)를 따른다.

@@ -16,58 +16,60 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.agent.financial_graph_helpers import (
-    _build_generic_metric_aliases,
-    _extract_generic_operand_labels,
-    _operand_row_matches_requirement,
-    _scoped_surface_affinity_priority,
-    _score_structured_cell,
+    build_generic_metric_aliases,
+    extract_generic_operand_labels,
 )
+from src.agent.financial_aggregate_projection import compose_supported_quantitative_impact_answer
 from src.agent.financial_graph_model_loaders import (
-    _compression_output_model,
-    _evidence_extraction_model,
-    _numeric_extraction_model,
-    _validate_answer_slots_payload,
-    _validation_output_model,
+    compression_output_model,
+    evidence_extraction_model,
+    numeric_extraction_model,
+    validate_answer_slots_payload,
+    validation_output_model,
+)
+from src.agent.financial_operand_resolution import (
+    operand_row_matches_requirement,
+    coerce_operand_unit_from_evidence,
 )
 from src.agent.financial_langchain_loaders import (
-    _chat_prompt_template_from_template,
-    _document,
-    _str_output_parser,
+    chat_prompt_template_from_template,
+    str_output_parser,
 )
 from src.agent.financial_retrieval_pipeline import (
     _COUNT_VALUE_UNIT_RE,
     _lookup_numeric_extraction_has_direct_support,
-    _make_document,
+    make_document,
     _numeric_extractor_query_for_state,
     _period_comparison_count_value_from_text,
     _period_scoped_count_value_from_text,
-    _sentence_matches_operand_context,
+    sentence_matches_operand_context,
 )
 from src.agent.financial_retrieval_hints import (
-    _active_preferred_sections,
     _desired_statement_types,
+    compression_guidance,
+    evidence_extraction_focus_terms,
+    preferred_section_evidence_subset,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
-    _text_has_negative_surface,
-    _text_has_positive_surface,
+    text_has_negative_surface,
+    text_has_positive_surface,
+    scoped_surface_affinity_priority,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
-    _extract_table_row_label,
-    _operand_text_match,
-    _parse_unstructured_table_row_cells,
+    extract_numeric_value_after_operand_text,
+    extract_table_row_label,
+    operand_text_match,
+    parse_unstructured_table_row_cells,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import score_structured_cell, structured_cell_period_text
 if TYPE_CHECKING:
     from src.agent.financial_graph_models import EvidenceItem
     from src.agent.financial_graph_state import FinancialAgentState
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
-    _is_percent_point_difference_query,
-    _is_ratio_percent_query,
-    _query_requests_narrative_context,
-    _requires_direct_numeric_grounding,
+    is_percent_point_difference_query,
+    is_ratio_percent_query,
+    query_requests_narrative_context,
+    requires_direct_numeric_grounding,
 )
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
@@ -75,20 +77,21 @@ from src.agent.financial_runtime_normalization import (
     _parse_number_text,
 )
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
-    _metadata_period_match_strength,
+    desired_consolidation_scope,
+    metadata_period_match_strength,
 )
 from src.agent.financial_text_surface import (
-    _split_sentences,
-    _strip_anchor_text,
-    _strip_rerank_metadata,
-    _tokenize_terms,
+    split_sentences,
+    strip_anchor_text,
+    strip_index_metadata_prefix,
+    strip_rerank_metadata,
+    tokenize_terms,
+    query_focus_marker_groups,
+    query_focus_markers,
 )
 from src.config import get_financial_ontology
-from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
     CALCULATION_SLOT_POLICY,
-    KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY,
@@ -96,21 +99,14 @@ from src.config.retrieval_policy import (
     EVIDENCE_COMPRESSION_GUIDANCE_POLICY,
     EVIDENCE_EXTRACTION_POLICY,
     EVIDENCE_RUNTIME_POLICY,
-    METRIC_TOPIC_EXTRACTION_TERMS,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
-    PERIOD_COMPARISON_COUNT_POLICY,
-    QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
-    QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_MARKER_POLICY,
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
-    QUERY_FOCUS_STOPWORDS,
     SENTENCE_NORMALISATION_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     VALUE_NEAR_MATCH_POLICY,
-    active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
-    narrative_policy_facets,
     narrative_policy_slot_groups,
     narrative_policy_terms,
 )
@@ -128,7 +124,7 @@ def _prioritize_candidate_items(
     query_years: List[int],
 ) -> List[Dict[str, Any]]:
     desired_statement_types = set(_desired_statement_types(query, topic))
-    desired_consolidation = _desired_consolidation_scope(query, report_scope)
+    desired_consolidation = desired_consolidation_scope(query, report_scope)
     table_counts: Dict[str, int] = {}
     for item in candidate_items:
         metadata = dict(item.get("metadata") or {})
@@ -151,13 +147,13 @@ def _prioritize_candidate_items(
                 points += 2.0
             elif consolidation_scope != "unknown":
                 points -= 2.0
-        period_strength = _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
+        period_strength = metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
         points += period_strength * 1.5
         affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
         metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
         query_surface = _normalise_spaces(f"{query} {topic}")
         if statement_type == "segment_note" and any(term in query_surface for term in metric_terms):
-            points += _scoped_surface_affinity_priority(
+            points += scoped_surface_affinity_priority(
                 [item],
                 query=query,
                 topic=topic,
@@ -195,9 +191,6 @@ def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional
 
 
 class FinancialAgentEvidenceMixin:
-    _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
-
-
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Attach nearby structural context to seed retrieval hits.
 
@@ -247,7 +240,7 @@ class FinancialAgentEvidenceMixin:
             seed_metadata = dict(metadata)
             if include_parent_context and parent_id:
                 seed_metadata["graph_seed_with_parent_context"] = True
-            add_doc(_make_document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
+            add_doc(make_document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
 
             if include_parent_context and parent_id:
                 parent_text = self.vsm.get_parent(parent_id)
@@ -260,7 +253,7 @@ class FinancialAgentEvidenceMixin:
                         "chunk_uid": f"{chunk_uid}::parent_context" if chunk_uid else f"{parent_id}::parent_context",
                     }
                     add_doc(
-                        _make_document(page_content=parent_text, metadata=parent_metadata),
+                        make_document(page_content=parent_text, metadata=parent_metadata),
                         float(score) - 0.005,
                         "parent_context",
                     )
@@ -310,7 +303,7 @@ class FinancialAgentEvidenceMixin:
                         "chunk_uid": f"{chunk_uid}::table_context" if chunk_uid else f"{parent_id}::table_context",
                     }
                     add_doc(
-                        _make_document(page_content=table_context, metadata=table_metadata),
+                        make_document(page_content=table_context, metadata=table_metadata),
                         float(score) - 0.007,
                         "table_context",
                     )
@@ -331,6 +324,251 @@ class FinancialAgentEvidenceMixin:
             max_docs,
         )
         return {"retrieved_docs": expanded}
+
+    def _numeric_extraction_source_evidence(
+        self,
+        docs: List[Any],
+        raw_value: str,
+        seed_docs: Optional[List[Any]] = None,
+        reject_ambiguous: bool = False,
+        state: Optional[FinancialAgentState] = None,
+    ) -> Dict[str, Any]:
+        """Recover the exact source row that supports an LLM-extracted number."""
+
+        raw_compact = re.sub(r"[\s,]", "", _normalise_spaces(str(raw_value or "")))
+        if not raw_compact:
+            return {}
+
+        def _contains_exact_value(text: str) -> bool:
+            for match in re.finditer(r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?", str(text or "")):
+                if re.sub(r"[\s,]", "", _normalise_spaces(match.group(0))) == raw_compact:
+                    return True
+            return False
+
+        def _source_item(
+            *,
+            metadata: Dict[str, Any],
+            row_label: str,
+            row_text: str,
+            cells: Optional[List[Dict[str, Any]]] = None,
+            unit_hint: str = "",
+        ) -> Dict[str, Any]:
+            source_metadata = dict(metadata)
+            if row_label:
+                source_metadata["row_label"] = row_label
+                source_metadata["semantic_label"] = row_label
+            if cells:
+                source_metadata["structured_cells"] = [dict(cell) for cell in cells]
+            if unit_hint:
+                source_metadata["unit_hint"] = unit_hint
+            anchor = self._build_source_anchor(source_metadata)
+            return {
+                "source_anchor": anchor,
+                "claim": row_text,
+                "quote_span": row_text[:500],
+                "raw_row_text": row_text,
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": source_metadata,
+            }
+
+        matches: List[Dict[str, Any]] = []
+        for doc_score in [*docs[: min(8, len(docs))], *list(seed_docs or [])[:32]]:
+            doc = doc_score[0] if isinstance(doc_score, (tuple, list)) else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            structured_match = False
+            for key in ("table_row_records_json", "table_value_records_json"):
+                payload = str(metadata.get(key) or "").strip()
+                if not payload:
+                    continue
+                try:
+                    records = json.loads(payload)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(records, list):
+                    continue
+                for record in records:
+                    if not isinstance(record, dict):
+                        continue
+                    row_label = _normalise_spaces(
+                        str(record.get("row_label") or record.get("semantic_label") or "")
+                    )
+                    cells = [dict(cell) for cell in (record.get("cells") or []) if isinstance(cell, dict)]
+                    if not cells and record.get("value_text") not in (None, ""):
+                        cells = [dict(record)]
+                    for cell in cells:
+                        value_text = _normalise_spaces(str(cell.get("value_text") or ""))
+                        if not _contains_exact_value(value_text):
+                            continue
+                        headers = " / ".join(
+                            _normalise_spaces(str(value))
+                            for value in (cell.get("column_headers") or [])
+                            if _normalise_spaces(str(value))
+                        )
+                        unit_hint = _normalise_spaces(
+                            str(cell.get("unit_hint") or record.get("unit_hint") or metadata.get("unit_hint") or "")
+                        )
+                        row_text = " | ".join(
+                            part for part in (row_label, headers, value_text, unit_hint) if part
+                        )
+                        matches.append(
+                            _source_item(
+                                metadata=metadata,
+                                row_label=row_label,
+                                row_text=row_text,
+                                cells=[cell],
+                                unit_hint=unit_hint,
+                            )
+                        )
+                        structured_match = True
+
+            if structured_match:
+                continue
+            for surface in (
+                str(metadata.get("table_value_labels_text") or ""),
+                strip_index_metadata_prefix(str(getattr(doc, "page_content", "") or "")),
+            ):
+                for line in str(surface or "").splitlines():
+                    line_text = _normalise_spaces(line)
+                    if not line_text or not _contains_exact_value(line_text):
+                        continue
+                    matches.append(
+                        _source_item(
+                            metadata=metadata,
+                            row_label=extract_table_row_label(line_text),
+                            row_text=line_text,
+                            unit_hint=_normalise_spaces(str(metadata.get("unit_hint") or "")),
+                        )
+                    )
+
+        unique_matches: Dict[tuple[str, str], Dict[str, Any]] = {}
+        for item in matches:
+            key = (
+                _normalise_spaces(str(item.get("source_anchor") or "")),
+                _normalise_spaces(str(item.get("raw_row_text") or "")),
+            )
+            unique_matches.setdefault(key, item)
+        if len(unique_matches) == 1:
+            return next(iter(unique_matches.values()))
+        if len(unique_matches) > 1 and reject_ambiguous:
+            active_subtask = dict((state or {}).get("active_subtask") or {})
+            required_operands = [
+                dict(item)
+                for item in (active_subtask.get("required_operands") or [])
+                if isinstance(item, dict) and bool(item.get("required", True))
+            ]
+            semantic_selector = getattr(self, "_llm_rerank_operand_candidates", None)
+            if required_operands and callable(semantic_selector):
+                operand = required_operands[0]
+                query = _normalise_spaces(
+                    str(active_subtask.get("query") or (state or {}).get("query") or "")
+                )
+                ranked_matches = _prioritize_candidate_items(
+                    list(unique_matches.values()),
+                    query,
+                    _normalise_spaces(str((state or {}).get("topic") or "")),
+                    dict((state or {}).get("report_scope") or {}),
+                    [int(value) for value in re.findall(r"20\d{2}", query)],
+                )
+                scored_candidates: List[Dict[str, Any]] = []
+                source_by_candidate_id: Dict[str, Dict[str, Any]] = {}
+                for index, item in enumerate(ranked_matches, start=1):
+                    source_item = dict(item)
+                    metadata = dict(source_item.get("metadata") or {})
+                    row_text = _normalise_spaces(str(source_item.get("raw_row_text") or ""))
+                    source_key = "|".join(
+                        (
+                            _normalise_spaces(str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")),
+                            _normalise_spaces(str(source_item.get("source_anchor") or "")),
+                            row_text,
+                        )
+                    )
+                    candidate_id = f"numeric_source::{hashlib.sha256(source_key.encode('utf-8')).hexdigest()[:16]}"
+                    metadata["row_text"] = row_text
+                    candidate = {
+                        "candidate_id": candidate_id,
+                        "candidate_kind": "structured_row" if metadata.get("structured_cells") else "evidence_row",
+                        "text": row_text,
+                        "metadata": metadata,
+                    }
+                    semantic_surface = _normalise_spaces(
+                        " ".join(
+                            str(value or "")
+                            for value in (
+                                metadata.get("row_label"),
+                                metadata.get("semantic_label"),
+                                " ".join(str(value) for value in (metadata.get("row_headers") or [])),
+                                row_text,
+                            )
+                        )
+                    )
+                    surface_match = bool(
+                        text_has_positive_surface(semantic_surface, operand)
+                        or operand_text_match(semantic_surface, operand)
+                    )
+                    scored_candidates.append(
+                        {
+                            "candidate": candidate,
+                            "score": (10.0 if surface_match else 0.0) - (index * 0.001),
+                        }
+                    )
+                    source_by_candidate_id[candidate_id] = source_item
+                scored_candidates.sort(key=lambda item: float(item.get("score") or 0.0), reverse=True)
+                try:
+                    decision = semantic_selector(
+                        query=query,
+                        operand=operand,
+                        scored_candidates=scored_candidates,
+                    )
+                except Exception as exc:
+                    logger.info(
+                        "[numeric_extractor] semantic source selection unavailable raw=%s error=%s",
+                        raw_value,
+                        exc,
+                    )
+                    decision = {}
+                selected_candidate_id = _normalise_spaces(
+                    str(decision.get("selected_candidate_id") or "")
+                )
+                if (
+                    _normalise_spaces(str(decision.get("selection_status") or "")) == "selected"
+                    and selected_candidate_id in source_by_candidate_id
+                ):
+                    selected = dict(source_by_candidate_id[selected_candidate_id])
+                    selected_metadata = dict(selected.get("metadata") or {})
+                    selected_metadata["semantic_selected_candidate_id"] = selected_candidate_id
+                    selected_metadata["semantic_selection_status"] = "selected"
+                    selected["metadata"] = selected_metadata
+                    selected["source_selection_status"] = "selected"
+                    selected["semantic_selected_candidate_id"] = selected_candidate_id
+                    return selected
+            return {"source_selection_status": "ambiguous"}
+        return next(iter(unique_matches.values()), {})
+
+    @staticmethod
+    def _render_numeric_extraction_with_source_unit(
+        answer: str,
+        *,
+        raw_value: str,
+        previous_unit: str,
+        source_unit: str,
+        metric_label: str,
+    ) -> str:
+        rendered_answer = str(answer or "")
+        value = _normalise_spaces(raw_value)
+        old_unit = _normalise_spaces(previous_unit)
+        new_unit = _normalise_spaces(source_unit)
+        if not value or not new_unit:
+            return rendered_answer
+        if old_unit:
+            pattern = rf"({re.escape(value)})\s*{re.escape(old_unit)}"
+            replaced, count = re.subn(pattern, rf"\1{new_unit}", rendered_answer, count=1)
+            if count:
+                return replaced
+        if value in rendered_answer and not old_unit:
+            return rendered_answer.replace(value, f"{value}{new_unit}", 1)
+        label = _normalise_spaces(metric_label)
+        return f"{label}: {value}{new_unit}" if label else f"{value}{new_unit}"
 
     def _format_context(self, docs) -> str:
         """검색된 자식 청크를 부모 청크(섹션 전체)로 확장해 LLM 컨텍스트 구성.
@@ -357,7 +595,8 @@ class FinancialAgentEvidenceMixin:
             )
 
             if graph_relation:
-                parts.append(f"{header}\n{doc.page_content}")
+                body = strip_index_metadata_prefix(str(doc.page_content or ""))
+                parts.append(f"{header}\n{body}")
                 continue
 
             # 부모 청크 우선 사용
@@ -365,7 +604,8 @@ class FinancialAgentEvidenceMixin:
                 parent_text = self.vsm.get_parent(parent_id)
                 if parent_text:
                     seen_parents.add(parent_id)
-                    parts.append(f"{header}\n{parent_text}")
+                    parent_body = strip_index_metadata_prefix(str(parent_text or ""))
+                    parts.append(f"{header}\n{parent_body}")
                     continue
 
             # 부모가 없거나 이미 포함된 parent_id → 자식 청크 사용
@@ -373,8 +613,9 @@ class FinancialAgentEvidenceMixin:
                 # 이미 이 섹션의 부모를 포함했으므로 중복 제외
                 continue
 
-            table_context = metadata.get("table_context")
-            body = f"[table_context] {table_context}\n{doc.page_content}" if table_context else doc.page_content
+            table_context = strip_index_metadata_prefix(str(metadata.get("table_context") or ""))
+            page_content = strip_index_metadata_prefix(str(doc.page_content or ""))
+            body = f"[table_context] {table_context}\n{page_content}" if table_context else page_content
             parts.append(f"{header}\n{body}")
 
         return "\n\n---\n\n".join(parts)
@@ -536,47 +777,6 @@ class FinancialAgentEvidenceMixin:
             "available_anchors": list(anchor_lookup.keys()),
         }
 
-    def _evidence_extraction_focus_terms(self, query: str) -> List[str]:
-        extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
-        stopwords = {
-            _normalise_spaces(str(item))
-            for item in (extraction_policy.get("focus_term_stopwords") or ())
-            if _normalise_spaces(str(item))
-        }
-        max_terms = int(extraction_policy.get("max_focus_terms") or 12)
-        token_pattern = str(extraction_policy.get("focus_term_token_pattern") or r"\S+")
-        particle_suffix_pattern = str(extraction_policy.get("focus_term_particle_suffix_pattern") or r"$^")
-        terms: List[str] = []
-
-        def _add(term: str) -> None:
-            cleaned = _normalise_spaces(str(term or "")).strip()
-            if not cleaned:
-                return
-            variants = [cleaned]
-            variants.extend(
-                _normalise_spaces(match)
-                for match in re.findall(r"\(([^)]+)\)", cleaned)
-                if _normalise_spaces(match)
-            )
-            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
-            if outside_parentheses and outside_parentheses != cleaned:
-                variants.append(outside_parentheses)
-            for variant in variants:
-                normalized = _normalise_spaces(variant).strip()
-                normalized = re.sub(particle_suffix_pattern, "", normalized)
-                if len(normalized) < 2 or normalized in stopwords:
-                    continue
-                if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
-                    continue
-                if normalized not in terms:
-                    terms.append(normalized)
-
-        for token in re.findall(token_pattern, _normalise_spaces(str(query or ""))):
-            _add(token)
-            if len(terms) >= max_terms:
-                break
-        return terms[:max_terms]
-
     def _resolve_anchor_metadata(
         self,
         anchor_lookup: Dict[str, Any],
@@ -683,11 +883,11 @@ class FinancialAgentEvidenceMixin:
 
     def _evidence_item_conflicts_with_operand(self, item: Dict[str, Any], operand: Dict[str, Any]) -> bool:
         quote_surface = str(item.get("quote_span") or item.get("raw_row_text") or "").strip()
-        if quote_surface and _text_has_negative_surface(quote_surface, operand):
+        if quote_surface and text_has_negative_surface(quote_surface, operand):
             return True
 
         claim_surface = str(item.get("claim") or "").strip()
-        if claim_surface and _text_has_negative_surface(claim_surface, operand) and not _text_has_positive_surface(claim_surface, operand):
+        if claim_surface and text_has_negative_surface(claim_surface, operand) and not text_has_positive_surface(claim_surface, operand):
             return True
         return False
 
@@ -730,7 +930,7 @@ class FinancialAgentEvidenceMixin:
         )
         if not merged:
             return False
-        if _query_requests_narrative_context(merged):
+        if query_requests_narrative_context(merged):
             return True
         return block_type in {"paragraph", "parent_context", "section_lead", "described_by_paragraph"} or graph_relation in {
             "parent_context",
@@ -876,7 +1076,7 @@ class FinancialAgentEvidenceMixin:
         topic: str,
     ) -> List[Dict[str, Any]]:
         combined_query = _normalise_spaces(f"{query} {topic}")
-        if not _is_ratio_percent_query(combined_query):
+        if not is_ratio_percent_query(combined_query):
             return []
 
         metric_patterns: List[str] = get_financial_ontology().row_patterns(query, topic, "comparison")
@@ -961,9 +1161,9 @@ class FinancialAgentEvidenceMixin:
         topic: str,
     ) -> List[Dict[str, Any]]:
         combined_query = _normalise_spaces(f"{query} {topic}")
-        if not _is_ratio_percent_query(combined_query):
+        if not is_ratio_percent_query(combined_query):
             return []
-        if _is_percent_point_difference_query(combined_query):
+        if is_percent_point_difference_query(combined_query):
             return []
 
         specs: List[Dict[str, Any]] = []
@@ -1205,7 +1405,7 @@ class FinancialAgentEvidenceMixin:
                 )
 
         if operand_rows:
-            if _is_percent_point_difference_query(query_text):
+            if is_percent_point_difference_query(query_text):
                 if query_years:
                     filtered = [row for row in operand_rows if row.get("period") in query_years]
                     if len(filtered) >= 2:
@@ -1218,7 +1418,7 @@ class FinancialAgentEvidenceMixin:
             return operand_rows[:1]
 
         # 2) component-based operands from the active ontology metric family.
-        if _is_percent_point_difference_query(query_text):
+        if is_percent_point_difference_query(query_text):
             return []
 
         ontology = get_financial_ontology()
@@ -1366,7 +1566,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_row:
                     continue
                 metadata = dict(item.get("metadata") or {})
-                row_label = _extract_table_row_label(raw_row)
+                row_label = extract_table_row_label(raw_row)
                 context_text = _normalise_spaces(
                     " ".join(
                         part
@@ -1399,11 +1599,11 @@ class FinancialAgentEvidenceMixin:
                     }
                     aggregate_context_match = (
                         ("aggregate" in prefer_value_roles or aggregate_stage in prefer_aggregation_stages)
-                        and _operand_text_match(context_text, operand)
+                        and operand_text_match(context_text, operand)
                     )
                 surface_contract_match = (
-                    _text_has_positive_surface(context_text or raw_row, operand)
-                    and not _text_has_negative_surface(context_text or raw_row, operand)
+                    text_has_positive_surface(context_text or raw_row, operand)
+                    and not text_has_negative_surface(context_text or raw_row, operand)
                 )
                 binding_policy = dict(operand.get("binding_policy") or {})
                 prefer_value_roles = {
@@ -1429,7 +1629,7 @@ class FinancialAgentEvidenceMixin:
                 period_count_context_match = (
                     bool(re.search(KOREAN_PERIOD_COMPARISON_RE_FRAGMENT, context_text or raw_row))
                     and bool(re.search(_COUNT_VALUE_UNIT_RE, context_text or raw_row))
-                    and _sentence_matches_operand_context(context_text or raw_row, operand)
+                    and sentence_matches_operand_context(context_text or raw_row, operand)
                 )
                 location_context_pattern = str(assembly_policy.get("location_context_pattern") or "")
                 period_count_location_context = bool(
@@ -1441,10 +1641,10 @@ class FinancialAgentEvidenceMixin:
                     and period_count_location_context
                     and str(operand.get("role") or "").strip() in {"current_period", "prior_period"}
                 )
-                parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
+                parsed_cells = parse_unstructured_table_row_cells(raw_row, metadata)
                 target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
                 cell_context_match = any(
-                    _score_structured_cell(
+                    score_structured_cell(
                         cell,
                         query_years=target_years,
                         period_focus="unknown",
@@ -1453,29 +1653,29 @@ class FinancialAgentEvidenceMixin:
                     > 0
                     for cell in parsed_cells
                 )
-                raw_row_direct_match = _operand_text_match(raw_row, operand) or _text_has_positive_surface(raw_row, operand)
+                raw_row_direct_match = operand_text_match(raw_row, operand) or text_has_positive_surface(raw_row, operand)
                 table_value_context_raw = str(metadata.get("table_value_labels_text") or "")
                 table_value_context = _normalise_spaces(table_value_context_raw)
                 table_value_context_match = bool(table_value_context) and (
-                    _text_has_positive_surface(table_value_context, operand)
+                    text_has_positive_surface(table_value_context, operand)
                     if requires_surface_contract
                     else (
-                        _operand_text_match(table_value_context, operand)
-                        or _text_has_positive_surface(table_value_context, operand)
+                        operand_text_match(table_value_context, operand)
+                        or text_has_positive_surface(table_value_context, operand)
                     )
                 )
                 raw_row_matches_other_required = any(
                     other_operand is not operand
                     and (
-                        _operand_text_match(raw_row, other_operand)
-                        or _text_has_positive_surface(raw_row, other_operand)
+                        operand_text_match(raw_row, other_operand)
+                        or text_has_positive_surface(raw_row, other_operand)
                     )
                     for other_operand in required_operands
                 )
                 if not raw_row_direct_match and raw_row_matches_other_required and not table_value_context_match:
                     continue
                 if (
-                    not _operand_text_match(raw_row, operand)
+                    not operand_text_match(raw_row, operand)
                     and not aggregate_context_match
                     and not surface_contract_match
                     and not period_count_context_match
@@ -1512,16 +1712,16 @@ class FinancialAgentEvidenceMixin:
                                 if not normalized_line:
                                     continue
                                 line_matches_operand = (
-                                    _text_has_positive_surface(normalized_line, operand)
+                                    text_has_positive_surface(normalized_line, operand)
                                     if requires_surface_contract
                                     else (
-                                        _operand_text_match(normalized_line, operand)
-                                        or _text_has_positive_surface(normalized_line, operand)
+                                        operand_text_match(normalized_line, operand)
+                                        or text_has_positive_surface(normalized_line, operand)
                                     )
                                 )
                                 if not line_matches_operand:
                                     continue
-                                line_value = _extract_numeric_value_after_operand_text(normalized_line, operand)
+                                line_value = extract_numeric_value_after_operand_text(normalized_line, operand)
                                 if line_value:
                                     matched_context_values.append(line_value)
                         if matched_context_values:
@@ -1540,7 +1740,7 @@ class FinancialAgentEvidenceMixin:
                                 inferred_value_role = "aggregate"
                                 inferred_aggregation_stage = "final"
                         if table_value_context_match and not raw_value:
-                            raw_value = _extract_numeric_value_after_operand_text(table_value_context, operand)
+                            raw_value = extract_numeric_value_after_operand_text(table_value_context, operand)
                         if raw_value and not raw_unit:
                             raw_unit = str(metadata.get("unit_hint") or "") or _fallback_unit(
                                 raw_value,
@@ -1551,7 +1751,7 @@ class FinancialAgentEvidenceMixin:
                     if parsed_cells:
                         ranked_cells = sorted(
                             parsed_cells,
-                            key=lambda cell: _score_structured_cell(
+                            key=lambda cell: score_structured_cell(
                                 cell,
                                 query_years=target_years,
                                 period_focus="unknown",
@@ -1561,18 +1761,18 @@ class FinancialAgentEvidenceMixin:
                         )
                         selected_cell = ranked_cells[0] if ranked_cells else None
                         if selected_cell:
-                            selected_score = _score_structured_cell(
+                            selected_score = score_structured_cell(
                                 selected_cell,
                                 query_years=target_years,
                                 period_focus="unknown",
                                 operand=operand,
                             )
                             selected_row_label = _normalise_spaces(str(selected_cell.get("row_label") or ""))
-                            if selected_score > 0 or _operand_text_match(selected_row_label, operand):
+                            if selected_score > 0 or operand_text_match(selected_row_label, operand):
                                 raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
                                 raw_unit = str(selected_cell.get("unit_hint") or raw_unit or "")
                                 if not period:
-                                    period = _structured_cell_period_text(
+                                    period = structured_cell_period_text(
                                         selected_cell,
                                         target_years,
                                         "unknown",
@@ -1611,7 +1811,7 @@ class FinancialAgentEvidenceMixin:
                     or surface_contract_match
                     or table_value_context_match
                 ):
-                    raw_value = _extract_numeric_value_after_operand_text(raw_row, operand)
+                    raw_value = extract_numeric_value_after_operand_text(raw_row, operand)
                     if raw_value and not raw_unit:
                         raw_unit = _fallback_unit(raw_value, context_text)
 
@@ -1631,7 +1831,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_unit:
                     raw_unit = _fallback_unit(raw_value, context_text)
                 if raw_value:
-                    raw_unit = self._coerce_operand_unit_from_evidence(
+                    raw_unit = coerce_operand_unit_from_evidence(
                         raw_value=raw_value,
                         raw_unit=raw_unit,
                         evidence_item=item,
@@ -1692,7 +1892,7 @@ class FinancialAgentEvidenceMixin:
                     and observed_raw_unit
                 ):
                     continue
-                if not _operand_row_matches_requirement(row_payload, operand):
+                if not operand_row_matches_requirement(row_payload, operand):
                     continue
                 key = (
                     str(row_payload.get("source_anchor") or item.get("source_anchor") or ""),
@@ -1725,7 +1925,7 @@ class FinancialAgentEvidenceMixin:
         limit = self._EVIDENCE_CAP_BY_QUERY_TYPE.get(query_type, 6)
         ranked = self._sort_evidence_items(evidence_items)
         if state:
-            preferred_ranked = self._preferred_section_evidence_subset(ranked, state)
+            preferred_ranked = preferred_section_evidence_subset(ranked, state)
             if preferred_ranked:
                 ranked = preferred_ranked
         high_priority = [item for item in ranked if item.get("question_relevance") == "high"]
@@ -1740,66 +1940,6 @@ class FinancialAgentEvidenceMixin:
                     return selected
         return selected[:limit]
 
-    def _preferred_section_evidence_subset(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        state: FinancialAgentState,
-    ) -> List[Dict[str, Any]]:
-        """Prefer section-aligned narrative evidence when it is already sufficient."""
-        if not evidence_items:
-            return []
-        active_subtask = dict(state.get("active_subtask") or {})
-        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
-        query_type = str(state.get("query_type") or "").strip().lower()
-        format_preference = str(
-            active_subtask.get("format_preference_override")
-            or state.get("format_preference")
-            or ""
-        ).strip().lower()
-        narrative_like = operation_family == "narrative_summary" or query_type in {
-            "qa",
-            "business_overview",
-            "risk",
-        }
-        if not narrative_like or format_preference == "table":
-            return []
-        query = str(state.get("query") or "")
-        preferred_sections = _active_preferred_sections(
-            state,
-            query,
-            str(state.get("topic") or query),
-            str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type") or "qa"),
-        )
-        preferred_markers = [str(item).strip().lower() for item in preferred_sections if str(item).strip()]
-        if not preferred_markers:
-            return []
-
-        def _section_surface(item: Dict[str, Any]) -> str:
-            metadata = dict(item.get("metadata") or {})
-            return _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(metadata.get("section_path") or ""),
-                        str(metadata.get("section") or ""),
-                        str(item.get("source_anchor") or ""),
-                    )
-                    if part
-                )
-            ).lower()
-
-        for marker in preferred_markers:
-            marker_items = [item for item in evidence_items if marker in _section_surface(item)]
-            direct_high_preferred = [
-                item
-                for item in marker_items
-                if str(item.get("question_relevance") or "").strip().lower() == "high"
-                and str(item.get("support_level") or "").strip().lower() == "direct"
-            ]
-            if len(direct_high_preferred) >= 2:
-                return marker_items
-        return []
-
     def _narrative_driver_groups(self, query: str) -> List[Dict[str, Any]]:
         groups: List[Dict[str, Any]] = narrative_policy_driver_groups(
             self._active_narrative_policies_for_query(query)
@@ -1811,7 +1951,7 @@ class FinancialAgentEvidenceMixin:
             for variant in (group.get("variants") or [])
             if str(variant).strip()
         }
-        for focus_group in self._query_focus_marker_groups(query):
+        for focus_group in query_focus_marker_groups(query):
             variants = [
                 str(variant).strip()
                 for variant in (focus_group.get("variants") or [])
@@ -1949,7 +2089,7 @@ class FinancialAgentEvidenceMixin:
                             "quote_span": snippet or amount_surface,
                             "support_level": "direct",
                             "question_relevance": "high",
-                            "allowed_terms": sorted(_tokenize_terms((snippet or amount_surface)))[:8],
+                            "allowed_terms": sorted(tokenize_terms((snippet or amount_surface)))[:8],
                             "metadata": self._resolve_anchor_metadata(
                                 anchor_lookup,
                                 anchor,
@@ -1978,7 +2118,7 @@ class FinancialAgentEvidenceMixin:
                             "quote_span": snippet,
                             "support_level": "direct",
                             "question_relevance": "high",
-                            "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                            "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                             "metadata": self._resolve_anchor_metadata(
                                 anchor_lookup,
                                 anchor,
@@ -2021,11 +2161,11 @@ class FinancialAgentEvidenceMixin:
             return evidence_items
 
         active_policies = self._active_narrative_policies_for_query(query)
-        query_focus_terms = self._query_focus_markers(query)
+        query_focus_terms = query_focus_markers(query)
         if not active_policies:
             return evidence_items
         exclusive_narrative_policy = any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies)
-        if not exclusive_narrative_policy and not _query_requests_narrative_context(query):
+        if not exclusive_narrative_policy and not query_requests_narrative_context(query):
             return evidence_items
 
         supplemented = [dict(item) for item in evidence_items]
@@ -2094,7 +2234,7 @@ class FinancialAgentEvidenceMixin:
                         if part
                     )
                 )
-                surface = _strip_rerank_metadata(surface) or surface
+                surface = strip_rerank_metadata(surface) or surface
                 if not surface:
                     continue
                 lowered_surface = surface.lower()
@@ -2141,7 +2281,7 @@ class FinancialAgentEvidenceMixin:
                     "quote_span": snippet,
                     "support_level": "direct",
                     "question_relevance": "high",
-                    "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                    "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                     "metadata": self._resolve_anchor_metadata(
                         anchor_lookup,
                         anchor,
@@ -2189,7 +2329,7 @@ class FinancialAgentEvidenceMixin:
         if not any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies):
             return evidence_items
 
-        query_focus_terms = self._query_focus_markers(query)
+        query_focus_terms = query_focus_markers(query)
         if not query_focus_terms:
             return evidence_items
 
@@ -2265,7 +2405,7 @@ class FinancialAgentEvidenceMixin:
                     if part
                 )
             )
-            surface = _strip_rerank_metadata(surface) or surface
+            surface = strip_rerank_metadata(surface) or surface
             if not surface:
                 continue
 
@@ -2316,7 +2456,7 @@ class FinancialAgentEvidenceMixin:
                         "quote_span": snippet,
                         "support_level": "context",
                         "question_relevance": "high",
-                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                        "allowed_terms": sorted(tokenize_terms(snippet))[:8],
                         "metadata": self._resolve_anchor_metadata(
                             anchor_lookup,
                             anchor,
@@ -2359,7 +2499,7 @@ class FinancialAgentEvidenceMixin:
             return draft
         active_policies = self._active_narrative_policies_for_query(query)
         exclusive_policies = [policy for policy in active_policies if bool(policy.get("exclusive_narrative_task"))]
-        narrative_context_query = _query_requests_narrative_context(query)
+        narrative_context_query = query_requests_narrative_context(query)
         if exclusive_policies:
             draft_lower = draft.lower()
             for policy in exclusive_policies:
@@ -2377,7 +2517,7 @@ class FinancialAgentEvidenceMixin:
                 best_snippet = ""
                 best_score = 0
                 for item in selected_evidence:
-                    claim = _strip_rerank_metadata(
+                    claim = strip_rerank_metadata(
                         _normalise_spaces(
                             " ".join(
                                 part
@@ -2467,7 +2607,7 @@ class FinancialAgentEvidenceMixin:
             return None
 
         entity_variants: List[str] = []
-        for group in self._query_focus_marker_groups(query_text):
+        for group in query_focus_marker_groups(query_text):
             variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
             if len(variants) >= 2 and any(re.search(r"[A-Za-z]", variant) for variant in variants):
                 entity_variants.extend(variants)
@@ -2831,7 +2971,7 @@ class FinancialAgentEvidenceMixin:
             calculation_operands[0] if calculation_operands else {},
         )
         primary_slot = dict(next(iter(components_by_role.get(str(primary_operand.get("operand_id") or ""), [])), {}))
-        answer_slots = _validate_answer_slots_payload(
+        answer_slots = validate_answer_slots_payload(
             {
                 "operation_family": "lookup",
                 "metric_label": entity_label,
@@ -2957,7 +3097,7 @@ class FinancialAgentEvidenceMixin:
             return default
 
         entity = ""
-        for group in self._query_focus_marker_groups(query_text):
+        for group in query_focus_marker_groups(query_text):
             variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
             entity = next((variant for variant in variants if re.search(r"[A-Za-z]", variant)), "")
             if entity:
@@ -3330,7 +3470,7 @@ class FinancialAgentEvidenceMixin:
         query: str,
     ) -> List[str]:
         selected = [str(value).strip() for value in selected_claim_ids if str(value).strip()]
-        if not selected or not evidence_items or not _query_requests_narrative_context(query):
+        if not selected or not evidence_items or not query_requests_narrative_context(query):
             return selected
 
         selected_evidence = self._filter_evidence_by_ids(evidence_items, selected)
@@ -3429,7 +3569,7 @@ class FinancialAgentEvidenceMixin:
                     "reason": "fallback_keep",
                     "supporting_claim_ids": selected_claim_ids,
                 }
-                for sentence in _split_sentences(compressed_answer)
+                for sentence in split_sentences(compressed_answer)
             ]
 
         seen_sentences: set[str] = set()
@@ -3441,7 +3581,7 @@ class FinancialAgentEvidenceMixin:
             if not sentence or sentence in seen_sentences:
                 continue
             seen_sentences.add(sentence)
-            normalized_sentence = _strip_anchor_text(sentence)
+            normalized_sentence = strip_anchor_text(sentence)
 
             verdict = str(entry.get("verdict", "keep") or "keep").strip()
             reason = _normalise_spaces(str(entry.get("reason", "")))
@@ -3459,8 +3599,8 @@ class FinancialAgentEvidenceMixin:
                 reason = reason or str(SENTENCE_NORMALISATION_POLICY.get("missing_support_reason") or "")
 
             support_text = self._sentence_support_text(supporting_claim_ids, evidence_lookup)
-            support_tokens = _tokenize_terms(support_text)
-            sentence_tokens = _tokenize_terms(normalized_sentence)
+            support_tokens = tokenize_terms(support_text)
+            sentence_tokens = tokenize_terms(normalized_sentence)
             overlap_ratio = len(sentence_tokens & support_tokens) / max(len(sentence_tokens), 1)
             aggregate_supported = (
                 query_type in {"business_overview", "risk"}
@@ -3537,49 +3677,30 @@ class FinancialAgentEvidenceMixin:
             "answer": final_answer,
         }
 
-    def _compression_guidance(self, query_type: str, query: str, coverage: str) -> Dict[str, str]:
-        policy = dict(EVIDENCE_COMPRESSION_GUIDANCE_POLICY)
-        trend_instruction = str(policy.get("trend_instruction") or "")
-        trend_output_style = str(policy.get("trend_output_style") or "")
-        if _query_requests_narrative_context(query):
-            trend_instruction = str(policy.get("trend_context_instruction") or trend_instruction)
-            trend_output_style = str(policy.get("trend_context_output_style") or trend_output_style)
-        instructions = dict(policy.get("instructions") or {})
-        instructions["trend"] = trend_instruction
-        output_styles = dict(policy.get("output_styles") or {})
-        output_styles["trend"] = trend_output_style
-        coverage_notes = dict(policy.get("coverage_notes") or {})
-
-        return {
-            "instruction": str(instructions.get(query_type) or instructions.get("qa") or ""),
-            "output_style": str(output_styles.get(query_type) or output_styles.get("qa") or ""),
-            "coverage_note": str(coverage_notes.get(coverage) or ""),
-        }
-
     def _extract_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Convert retrieved docs into claim-level evidence items."""
         docs = state.get("retrieved_docs", [])
         if not docs:
             return {"evidence_bullets": [], "evidence_items": [], "evidence_status": "missing"}
-        direct_numeric_grounding = _requires_direct_numeric_grounding(state.get("active_subtask") or {})
+        direct_numeric_grounding = requires_direct_numeric_grounding(state.get("active_subtask") or {})
         preserve_narrative_context = (
             direct_numeric_grounding
-            and _query_requests_narrative_context(str(state.get("query") or ""))
+            and query_requests_narrative_context(str(state.get("query") or ""))
         )
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
-        EvidenceExtraction = _evidence_extraction_model()
+        EvidenceExtraction = evidence_extraction_model()
         structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
-        focus_terms = self._evidence_extraction_focus_terms(str(state.get("query") or ""))
+        focus_terms = evidence_extraction_focus_terms(str(state.get("query") or ""))
         evidence_context = self._build_evidence_context(docs[: min(8, len(docs))], focus_terms=focus_terms)
         anchor_lookup = evidence_context["anchor_lookup"]
         extraction_policy = dict(EVIDENCE_EXTRACTION_POLICY)
         extra_rules = str(dict(extraction_policy.get("extra_rules_by_query_type") or {}).get(query_type) or "")
         if not extra_rules:
             extra_rules = str(dict(extraction_policy.get("extra_rules_by_operation_family") or {}).get(operation_family) or "")
-        prompt = _chat_prompt_template_from_template(str(extraction_policy.get("prompt_template") or ""))
+        prompt = chat_prompt_template_from_template(str(extraction_policy.get("prompt_template") or ""))
 
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
@@ -3685,12 +3806,12 @@ class FinancialAgentEvidenceMixin:
             return entity_table_answer
         selected_evidence = self._select_evidence_for_compression(evidence_items, query_type, state)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
-        guidance = self._compression_guidance(query_type, query, coverage)
+        guidance = compression_guidance(query_type, query, coverage)
 
         compression_llm = self._llm_for_phase("compression")
-        CompressionOutput = _compression_output_model()
+        CompressionOutput = compression_output_model()
         structured_llm = compression_llm.with_structured_output(CompressionOutput)
-        prompt = _chat_prompt_template_from_template(
+        prompt = chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("compression_prompt_template") or "")
         )
 
@@ -3732,7 +3853,7 @@ class FinancialAgentEvidenceMixin:
             }
         except Exception as exc:
             logger.warning("Compression structured output failed, using fallback text output: %s", exc)
-            chain = prompt | compression_llm | _str_output_parser()
+            chain = prompt | compression_llm | str_output_parser()
             compressed_answer = chain.invoke(
                 {
                     "instruction": guidance["instruction"],
@@ -3759,236 +3880,6 @@ class FinancialAgentEvidenceMixin:
                 "compressed_answer": compressed_answer,
             }
 
-    @staticmethod
-    def _parse_labeled_numeric_lines(item: Dict[str, Any]) -> List[Dict[str, Any]]:
-        metadata = dict(item.get("metadata") or {})
-        text = str(metadata.get("table_value_labels_text") or "")
-        rows: List[Dict[str, Any]] = []
-        for line_index, line in enumerate(text.splitlines()):
-            cleaned = _normalise_spaces(line)
-            match = re.match(r"^(.+?)\s+(\(?-?\d[\d,]*(?:\.\d+)?\)?%?)$", cleaned)
-            if not match:
-                continue
-            label = _normalise_spaces(match.group(1))
-            raw_value = match.group(2).strip()
-            numeric_text = raw_value.replace(",", "").replace("%", "")
-            negative = numeric_text.startswith("(") and numeric_text.endswith(")")
-            numeric_text = numeric_text.strip("()")
-            try:
-                numeric_value = float(numeric_text)
-            except ValueError:
-                continue
-            if negative:
-                numeric_value *= -1
-            rows.append(
-                {
-                    "label": label,
-                    "raw_value": raw_value,
-                    "value": numeric_value,
-                    "unit": str(metadata.get("unit_hint") or "").strip(),
-                    "evidence_id": str(item.get("evidence_id") or "").strip(),
-                    "metadata": metadata,
-                    "claim": str(item.get("claim") or ""),
-                    "line_index": line_index,
-                }
-            )
-        return rows
-
-    def _compose_supported_quantitative_impact_answer(
-        self,
-        *,
-        query: str,
-        evidence_items: List[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        query_text = _normalise_spaces(query)
-        if not any(marker in query_text for marker in QUANTITATIVE_IMPACT_QUERY_TERMS):
-            return None
-        policy = dict(QUANTITATIVE_IMPACT_ASSEMBLY_POLICY)
-
-        rows: List[Dict[str, Any]] = []
-        for item in evidence_items:
-            rows.extend(self._parse_labeled_numeric_lines(item))
-        if len(rows) < 2:
-            return None
-
-        query_compact = re.sub(r"\s+", "", query_text)
-        quoted_terms = [
-            re.sub(r"\s+", "", term)
-            for term in re.findall(r"[\"'“”‘’](.+?)[\"'“”‘’]", query_text)
-            if str(term).strip()
-        ]
-        primary_denominator_markers = tuple(str(marker) for marker in (policy.get("primary_denominator_markers") or ()))
-        denominator_markers = primary_denominator_markers + tuple(
-            str(marker) for marker in (policy.get("denominator_markers") or ())
-        )
-
-        def label_matches_query(label: str) -> bool:
-            compact = re.sub(r"\s+", "", label)
-            base_compact = re.sub(r"\([^)]*\)", "", compact)
-            for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
-                base_compact = base_compact.replace(drop_term, "")
-            if base_compact and base_compact in query_compact:
-                return True
-            if any(term and (term in compact or compact in term) for term in quoted_terms):
-                return True
-            label_terms = [term for term in _tokenize_terms(label) if len(term) >= 3]
-            return any(term in query_text for term in label_terms)
-
-        current_rows = [
-            row
-            for row in rows
-            if label_matches_query(str(row.get("label") or ""))
-            and str(row.get("metadata", {}).get("period_focus") or "") != "prior"
-        ]
-        if len(current_rows) < 2:
-            return None
-
-        numerator_candidates = [
-            row
-            for row in current_rows
-            if not any(marker in str(row.get("label") or "") for marker in primary_denominator_markers)
-        ]
-        if not numerator_candidates:
-            return None
-        numerator_candidates.sort(
-            key=lambda row: (
-                str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
-                str(row.get("metadata", {}).get("statement_type") or "") == "notes",
-                -int(row.get("line_index") or 0),
-            ),
-            reverse=True,
-        )
-        numerator = numerator_candidates[0]
-
-        denominator_candidates = [
-            row
-            for row in current_rows
-            if row is not numerator
-            and any(marker in str(row.get("label") or "") for marker in denominator_markers)
-            and float(row.get("value") or 0.0) != 0.0
-        ]
-        if not denominator_candidates:
-            return None
-        denominator_candidates.sort(
-            key=lambda row: (
-                str(row.get("metadata", {}).get("consolidation_scope") or "") == "consolidated",
-                str(row.get("metadata", {}).get("statement_type") or "") in {"income_statement", "summary_financials"},
-                -int(row.get("line_index") or 0),
-            ),
-            reverse=True,
-        )
-        denominator = denominator_candidates[0]
-
-        numerator_value = abs(float(numerator.get("value") or 0.0))
-        denominator_value = abs(float(denominator.get("value") or 0.0))
-        if denominator_value <= 0:
-            return None
-        ratio = numerator_value / denominator_value * 100.0
-        unit = str(numerator.get("unit") or denominator.get("unit") or "").strip()
-        unit_suffix = unit if unit else ""
-        scope_prefix = (
-            str(policy.get("consolidated_scope_prefix") or "")
-            if str(numerator.get("metadata", {}).get("consolidation_scope") or "") == "consolidated"
-            else ""
-        )
-        numerator_label = str(numerator.get("label") or "").strip()
-        denominator_label = str(denominator.get("label") or "").strip()
-        numerator_raw = str(numerator.get("raw_value") or "").strip()
-        denominator_raw = str(denominator.get("raw_value") or "").strip()
-
-        def _claim_links_labels(claim: str, left_label: str, right_label: str) -> bool:
-            claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
-            left_compact = re.sub(r"\s+", "", _normalise_spaces(left_label))
-            right_compact = re.sub(r"\s+", "", _normalise_spaces(right_label))
-            return bool(claim_compact and left_compact and right_compact and left_compact in claim_compact and right_compact in claim_compact)
-
-        def _label_base(label: str) -> str:
-            compact = re.sub(r"\s+", "", _normalise_spaces(label))
-            compact = re.sub(r"\([^)]*\)", "", compact)
-            for drop_term in tuple(str(term) for term in (policy.get("label_drop_terms") or ()) if str(term)):
-                compact = compact.replace(re.sub(r"\s+", "", drop_term), "")
-            return compact
-
-        relation_markers = tuple(str(marker) for marker in (policy.get("relation_markers") or ()) if str(marker))
-        relation_context_markers = tuple(
-            str(marker)
-            for marker in (
-                tuple(policy.get("primary_denominator_markers") or ())
-                + tuple(policy.get("denominator_markers") or ())
-                + tuple(policy.get("cost_relation_context_markers") or ())
-            )
-            if str(marker)
-        )
-
-        def _claim_has_policy_relation(claim: str, left_label: str) -> bool:
-            claim_compact = re.sub(r"\s+", "", _normalise_spaces(claim))
-            left_compact = _label_base(left_label)
-            if not (claim_compact and left_compact and left_compact in claim_compact):
-                return False
-            if relation_markers and not any(marker in claim_compact for marker in relation_markers):
-                return False
-            return not relation_context_markers or any(marker in claim_compact for marker in relation_context_markers)
-
-        relation_visible = any(
-            _claim_links_labels(
-                str(row.get("claim") or ""),
-                numerator_label,
-                denominator_label,
-            )
-            for row in (numerator, denominator)
-        ) or any(
-            _claim_has_policy_relation(str(item.get("claim") or item.get("quote_span") or ""), numerator_label)
-            for item in evidence_items
-        )
-        cost_denominator_markers = tuple(str(marker) for marker in (policy.get("cost_denominator_markers") or ()))
-        loss_markers = tuple(str(marker) for marker in (policy.get("loss_markers") or ()))
-        impact_sentence = str(
-            policy.get("scale_only_impact_template")
-            or policy.get("default_impact_sentence")
-            or "{denominator_label}"
-        ).format(denominator_label=denominator_label)
-        if (
-            relation_visible
-            and
-            any(marker in denominator_label for marker in cost_denominator_markers)
-            and any(marker in numerator_label for marker in loss_markers)
-            and numerator_value > 0
-        ):
-            impact_sentence = str(policy.get("cost_loss_impact_template") or "{denominator_label}").format(
-                denominator_label=denominator_label
-            )
-        elif relation_visible and any(marker in denominator_label for marker in cost_denominator_markers):
-            impact_sentence = str(policy.get("cost_impact_template") or "{denominator_label}").format(
-                denominator_label=denominator_label
-            )
-
-        caveat = ""
-        caveat_trigger_terms = tuple(str(marker) for marker in (policy.get("caveat_trigger_terms") or ()))
-        caveat_exception_terms = tuple(str(marker) for marker in (policy.get("caveat_exception_terms") or ()))
-        if any(marker in numerator_label for marker in caveat_trigger_terms) and not any(
-            marker in query_text for marker in caveat_exception_terms
-        ):
-            caveat = str(policy.get("caveat_sentence") or "")
-
-        answer = str(policy.get("answer_template") or "").format(
-            scope_prefix=scope_prefix,
-            numerator_label=numerator_label,
-            numerator_raw=numerator_raw,
-            unit_suffix=unit_suffix,
-            impact_sentence=impact_sentence,
-            denominator_label=denominator_label,
-            denominator_raw=denominator_raw,
-            ratio=ratio,
-            caveat=caveat,
-        )
-        supporting_claim_ids = sorted(
-            {
-                str(numerator.get("evidence_id") or ""),
-                str(denominator.get("evidence_id") or ""),
-            }
-            - {""}
-        )
-        return {"answer": answer, "supporting_claim_ids": supporting_claim_ids}
 
     def _validate_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Check whether the drafted narrative answer is supported by evidence."""
@@ -4012,9 +3903,9 @@ class FinancialAgentEvidenceMixin:
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
 
         validation_llm = self._llm_for_phase("validation")
-        ValidationOutput = _validation_output_model()
+        ValidationOutput = validation_output_model()
         structured_llm = validation_llm.with_structured_output(ValidationOutput)
-        validator_prompt = _chat_prompt_template_from_template(
+        validator_prompt = chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("validation_prompt_template") or "")
         )
         try:
@@ -4078,7 +3969,7 @@ class FinancialAgentEvidenceMixin:
                     ],
                     "answer": str(deterministic_dividend_answer.get("answer") or ""),
                 }
-            quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
+            quantitative_impact_answer = compose_supported_quantitative_impact_answer(
                 query=str(state.get("query") or ""),
                 evidence_items=combined_evidence,
             )
@@ -4112,7 +4003,7 @@ class FinancialAgentEvidenceMixin:
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
-            validated_answer = (validator_prompt | validation_llm | _str_output_parser()).invoke(
+            validated_answer = (validator_prompt | validation_llm | str_output_parser()).invoke(
                 {
                     "query_type": query_type,
                     "query": state["query"],
@@ -4161,7 +4052,7 @@ class FinancialAgentEvidenceMixin:
                     ],
                     "answer": str(deterministic_dividend_answer.get("answer") or ""),
                 }
-            quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
+            quantitative_impact_answer = compose_supported_quantitative_impact_answer(
                 query=str(state.get("query") or ""),
                 evidence_items=list(selected_evidence) or list(evidence_items),
             )
@@ -4216,8 +4107,8 @@ class FinancialAgentEvidenceMixin:
             return None
 
         aliases: List[str] = []
-        for label in _extract_generic_operand_labels(query):
-            aliases.extend(_build_generic_metric_aliases(label))
+        for label in extract_generic_operand_labels(query):
+            aliases.extend(build_generic_metric_aliases(label))
         aliases = list(dict.fromkeys(_normalise_spaces(alias) for alias in aliases if _normalise_spaces(alias)))
         if not aliases:
             return None
@@ -4341,7 +4232,7 @@ class FinancialAgentEvidenceMixin:
                 "quote_span": total_hit["quote"],
                 "support_level": "direct",
                 "question_relevance": "high",
-                "allowed_terms": sorted(_tokenize_terms(total_hit["quote"]))[:8],
+                "allowed_terms": sorted(tokenize_terms(total_hit["quote"]))[:8],
                 "metadata": total_hit["metadata"],
             },
             {
@@ -4351,7 +4242,7 @@ class FinancialAgentEvidenceMixin:
                 "quote_span": impairment_hit["quote"],
                 "support_level": "direct",
                 "question_relevance": "high",
-                "allowed_terms": sorted(_tokenize_terms(impairment_hit["quote"]))[:8],
+                "allowed_terms": sorted(tokenize_terms(impairment_hit["quote"]))[:8],
                 "metadata": impairment_hit["metadata"],
             },
         ]
@@ -4464,9 +4355,9 @@ class FinancialAgentEvidenceMixin:
             debug_trace = reused_debug_trace
             answer = reused_answer
         else:
-            NumericExtraction = _numeric_extraction_model()
+            NumericExtraction = numeric_extraction_model()
             structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
-            prompt = _chat_prompt_template_from_template(
+            prompt = chat_prompt_template_from_template(
                 str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
             )
 
@@ -4496,18 +4387,147 @@ class FinancialAgentEvidenceMixin:
                 }
                 answer = empty_result["answer"]
 
-        if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(
-            state,
-            debug_trace,
-            docs,
-            context=context,
-        ):
-            logger.info(
-                "[numeric_extractor] rejected lookup raw=%s without direct operand support",
-                debug_trace.get("raw_value"),
+        incomplete_structured_output = bool(
+            debug_trace
+            and not debug_trace.get("error")
+            and not _normalise_spaces(str(debug_trace.get("raw_value") or ""))
+            and _normalise_spaces(str(debug_trace.get("final_value") or ""))
+        )
+        if incomplete_structured_output:
+            retry_template = _normalise_spaces(
+                str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_incomplete_retry_prompt_template") or "")
             )
-            debug_trace = {**debug_trace, "raw_value": "", "rejected_reason": "missing_direct_lookup_operand_support"}
+            if retry_template:
+                retry_prompt = chat_prompt_template_from_template(retry_template)
+                try:
+                    retry_result: NumericExtraction = (retry_prompt | structured_llm).invoke(
+                        {"query": numeric_query, "context": context}
+                    )
+                    retry_trace = dict(retry_result.model_dump())
+                    if _normalise_spaces(str(retry_trace.get("raw_value") or "")):
+                        debug_trace = {
+                            **retry_trace,
+                            "numeric_extraction_fingerprint": extraction_fingerprint,
+                            "numeric_extraction_prompt": prompt_diagnostics,
+                            "incomplete_retry_attempted": True,
+                        }
+                        answer = retry_result.final_value if retry_result.final_value else empty_result["answer"]
+                        incomplete_structured_output = False
+                    else:
+                        debug_trace = {
+                            **debug_trace,
+                            "incomplete_retry_attempted": True,
+                            "incomplete_retry_returned_raw_value": False,
+                        }
+                except Exception as exc:
+                    logger.info("[numeric_extractor] incomplete structured retry failed: %s", exc)
+                    debug_trace = {
+                        **debug_trace,
+                        "incomplete_retry_attempted": True,
+                        "incomplete_retry_error": str(exc),
+                    }
+
+        if incomplete_structured_output:
+            logger.info(
+                "[numeric_extractor] rejected incomplete structured output with final prose but no raw value"
+            )
+            debug_trace = {
+                **debug_trace,
+                "raw_value": "",
+                "rejected_reason": "incomplete_structured_numeric_extraction",
+            }
             answer = empty_result["answer"]
+
+        source_evidence: Dict[str, Any] = {}
+        if debug_trace.get("raw_value"):
+            if not _lookup_numeric_extraction_has_direct_support(
+                state,
+                debug_trace,
+                docs,
+                context=context,
+            ):
+                logger.info(
+                    "[numeric_extractor] rejected lookup raw=%s without direct operand support",
+                    debug_trace.get("raw_value"),
+                )
+                debug_trace = {
+                    **debug_trace,
+                    "raw_value": "",
+                    "rejected_reason": "missing_direct_lookup_operand_support",
+                }
+                answer = empty_result["answer"]
+            else:
+                raw_value = _normalise_spaces(str(debug_trace.get("raw_value") or ""))
+                active_required_operands = [
+                    dict(item)
+                    for item in (dict(state.get("active_subtask") or {}).get("required_operands") or [])
+                    if isinstance(item, dict) and bool(item.get("required", True))
+                ]
+                source_evidence = self._numeric_extraction_source_evidence(
+                    docs,
+                    raw_value,
+                    list(state.get("seed_retrieved_docs") or []),
+                    bool(active_required_operands),
+                    state,
+                )
+                if source_evidence.get("source_selection_status") == "ambiguous":
+                    logger.info(
+                        "[numeric_extractor] rejected lookup raw=%s with ambiguous source evidence",
+                        raw_value,
+                    )
+                    debug_trace = {
+                        **debug_trace,
+                        "raw_value": "",
+                        "rejected_reason": "ambiguous_direct_lookup_source_evidence",
+                    }
+                    answer = empty_result["answer"]
+                    source_evidence = {}
+                elif source_evidence.get("source_selection_status") == "selected":
+                    debug_trace = {
+                        **debug_trace,
+                        "source_selection_status": "selected",
+                        "semantic_selected_candidate_id": source_evidence.get(
+                            "semantic_selected_candidate_id"
+                        ),
+                    }
+                llm_unit = _normalise_spaces(str(debug_trace.get("unit") or ""))
+                source_unit = coerce_operand_unit_from_evidence(
+                    raw_value=raw_value,
+                    raw_unit=llm_unit,
+                    evidence_item=source_evidence,
+                )
+                if (
+                    source_evidence
+                    and source_unit
+                    and _normalise_spaces(source_unit) != llm_unit
+                ):
+                    active_subtask = dict(state.get("active_subtask") or {})
+                    required_operands = [
+                        dict(item)
+                        for item in (active_subtask.get("required_operands") or [])
+                        if isinstance(item, dict)
+                    ]
+                    metric_label = _normalise_spaces(
+                        str(
+                            active_subtask.get("metric_label")
+                            or (required_operands[0].get("label") if required_operands else "")
+                            or ""
+                        )
+                    )
+                    answer = self._render_numeric_extraction_with_source_unit(
+                        answer,
+                        raw_value=raw_value,
+                        previous_unit=llm_unit,
+                        source_unit=source_unit,
+                        metric_label=metric_label,
+                    )
+                    debug_trace = {
+                        **debug_trace,
+                        "llm_unit": llm_unit,
+                        "unit": source_unit,
+                        "unit_source": "source_evidence",
+                        "final_value": answer,
+                    }
 
         if not debug_trace.get("raw_value"):
             deterministic = self._supplement_numeric_impairment_lookup(state, docs)
@@ -4541,21 +4561,25 @@ class FinancialAgentEvidenceMixin:
         evidence_bullets: List[str] = []
         evidence_status = "missing"
         if debug_trace and debug_trace.get("raw_value"):
-            anchor = self._build_source_anchor(
-                (docs[0][0].metadata if docs else {})
-            )
+            fallback_metadata = dict(docs[0][0].metadata if docs else {})
+            evidence_metadata = dict(source_evidence.get("metadata") or fallback_metadata)
+            anchor = str(source_evidence.get("source_anchor") or self._build_source_anchor(evidence_metadata))
             claim = f"{debug_trace.get('raw_value', '')} ({debug_trace.get('unit', '')})"
             quote_span = debug_trace.get("raw_value", "")
+            if source_evidence:
+                claim = str(source_evidence.get("claim") or claim)
+                quote_span = str(source_evidence.get("quote_span") or source_evidence.get("raw_row_text") or quote_span)
             evidence_items = [
                 {
                     "evidence_id": "ev_001",
                     "source_anchor": anchor,
                     "claim": claim,
                     "quote_span": quote_span,
+                    "raw_row_text": source_evidence.get("raw_row_text") or None,
                     "support_level": "direct",
                     "question_relevance": "high",
                     "allowed_terms": [debug_trace.get("raw_value", ""), debug_trace.get("unit", "")],
-                    "metadata": docs[0][0].metadata if docs else {},
+                    "metadata": evidence_metadata,
                 }
             ]
             evidence_bullets = [f"- {anchor} {claim} (direct)"]

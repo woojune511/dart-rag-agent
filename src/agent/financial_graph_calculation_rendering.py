@@ -1,17 +1,17 @@
-"""Presentation helpers for calculation results.
+"""State-free presentation policy and rendering helpers for calculation results.
 
-The calculation mixin keeps the public method surface for compatibility; this
-module holds the behavior-neutral rendering logic behind those methods.
+This module owns ratio result-unit and magnitude projection plus shared answer
+rendering; graph modules retain state preparation, orchestration, and adoption.
 """
 
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from src.agent.financial_scope_policies import _desired_consolidation_scope
+from src.agent.financial_scope_policies import desired_consolidation_scope
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _display_operand_label,
-    _format_korean_won_compact,
+    display_operand_label,
+    format_korean_won_compact,
     _normalise_spaces,
 )
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, CONCEPT_RATIO_RESULT_UNIT_POLICY
@@ -49,7 +49,7 @@ def coerce_rendered_value_for_direction(
 
 def format_calculation_value(value: float, result_unit: str, normalized_unit: str) -> str:
     if normalized_unit == "KRW":
-        return _format_korean_won_compact(value)
+        return format_korean_won_compact(value)
     normalized_upper = str(normalized_unit or "").upper()
     percent_normalized_units = {
         str(item).upper()
@@ -67,6 +67,18 @@ def format_calculation_value(value: float, result_unit: str, normalized_unit: st
     return f"{value}"
 
 
+def infer_concept_ratio_result_unit(query: str, metric_label: str, operation_family: str) -> str:
+    if _normalise_spaces(operation_family) != "ratio":
+        return ""
+    text = _normalise_spaces(f"{query} {metric_label}")
+    ratio_policy = dict(CONCEPT_RATIO_RESULT_UNIT_POLICY)
+    multiplier_markers = tuple(str(item) for item in (ratio_policy.get("multiplier_markers") or ()) if str(item))
+    percent_markers = tuple(str(item) for item in (ratio_policy.get("percent_markers") or ()) if str(item))
+    if any(marker in text for marker in multiplier_markers) and not any(marker in text for marker in percent_markers):
+        return str(ratio_policy.get("multiplier_unit") or "")
+    return str(ratio_policy.get("percent_unit") or "")
+
+
 def format_ratio_percent_result(result_value: float) -> str:
     rendered_value = format_calculation_value(result_value, "%", "PERCENT")
     return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
@@ -79,6 +91,42 @@ def format_ratio_result(result_value: float, result_unit: str) -> str:
         rendered_value = format_calculation_value(result_value, unit, "COUNT")
         return f"{rendered_value}{unit}"
     return format_ratio_percent_result(result_value)
+
+
+def ratio_query_requests_absolute_magnitude(query: str) -> bool:
+    query_text = _normalise_spaces(str(query or "")).lower()
+    markers = tuple(
+        _normalise_spaces(str(marker or "")).lower()
+        for marker in (CALCULATION_RENDER_POLICY.get("ratio_absolute_magnitude_markers") or ())
+        if _normalise_spaces(str(marker or ""))
+    )
+    return bool(query_text and markers and any(marker in query_text for marker in markers))
+
+
+def ratio_result_projection(
+    *,
+    numerator_value: float,
+    denominator_value: float,
+    query: str,
+    metric_label: str,
+) -> Dict[str, Any]:
+    result_unit = infer_concept_ratio_result_unit(query, metric_label, "ratio") or "%"
+    multiplier_unit = str(CONCEPT_RATIO_RESULT_UNIT_POLICY.get("multiplier_unit") or "")
+    if result_unit == multiplier_unit:
+        result_value = numerator_value / denominator_value
+        normalized_unit = "COUNT"
+    else:
+        result_unit = "%"
+        result_value = numerator_value / denominator_value * 100.0
+        normalized_unit = "PERCENT"
+    if result_value < 0 and ratio_query_requests_absolute_magnitude(query):
+        result_value = abs(result_value)
+    return {
+        "result_value": result_value,
+        "result_unit": result_unit,
+        "normalized_unit": normalized_unit,
+        "rendered_value": format_ratio_result(result_value, result_unit),
+    }
 
 
 def format_calculation_value_in_display_unit(value: float, display_unit: str) -> str:
@@ -216,7 +264,7 @@ def scalar_result_series(
             )
         result_series.append(
             {
-                "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                "label": display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
                 "period": str(row.get("period") or ""),
                 "raw_value": str(row.get("raw_value") or ""),
                 "raw_unit": str(row.get("raw_unit") or ""),
@@ -243,7 +291,7 @@ def time_series_result_series(
         )
         result_series.append(
             {
-                "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                "label": display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
                 "period": str(row.get("period") or ""),
                 "raw_value": str(row.get("raw_value") or ""),
                 "raw_unit": str(row.get("raw_unit") or ""),
@@ -350,7 +398,7 @@ def collect_negative_subtrahend_slots(
                     continue
                 rows.append(
                     {
-                        "label": _display_operand_label(str(slot.get("label") or "")),
+                        "label": display_operand_label(str(slot.get("label") or "")),
                         "negative": rendered,
                         "positive": positive,
                     }
@@ -431,15 +479,15 @@ def _nested_difference_calculation_result(
     answer_slots: Dict[str, Any],
     calculation_result: Dict[str, Any],
 ) -> Dict[str, Any]:
-    subtask_rows = list(answer_slots.get("subtask_results") or calculation_result.get("subtask_results") or [])
+    subtask_rows = list(calculation_result.get("subtask_results") or []) + list(
+        answer_slots.get("subtask_results") or []
+    )
     for row in subtask_rows:
         row_payload = dict(row or {})
         row_result = dict(row_payload.get("calculation_result") or {})
         row_slots = dict(row_result.get("answer_slots") or row_payload.get("answer_slots") or {})
-        row_family = _normalise_spaces(
-            str(row_slots.get("operation_family") or row_payload.get("operation_family") or "")
-        ).lower()
-        if row_family != "difference":
+        row_family = _normalise_spaces(str(row_slots.get("operation_family") or row_result.get("operation_family") or row_payload.get("operation_family") or "")).lower()
+        if row_family != "difference" or not row_slots:
             continue
         candidate = dict(row_result)
         candidate["answer_slots"] = row_slots
@@ -464,7 +512,7 @@ def _difference_answer_prefix(
     period = _normalise_spaces(
         str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
     )
-    scope = _desired_consolidation_scope(query, report_scope or {})
+    scope = desired_consolidation_scope(query, report_scope or {})
     scope_text = dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {}).get(scope, "")
     period_prefix_template = str(CALCULATION_RENDER_POLICY.get("ratio_period_prefix_template") or "{period} ")
     period_suffix = period_prefix_template.replace("{period}", "").strip()
@@ -486,6 +534,48 @@ def _period_text(period: str) -> str:
         if period_value and period_suffix and not period_value.endswith(period_suffix)
         else period_value
     )
+
+
+def difference_slots_are_period_delta(
+    answer_slots: Dict[str, Any],
+) -> bool:
+    """Return whether a difference result represents a change across periods."""
+
+    semantics = _normalise_spaces(str(answer_slots.get("result_semantics") or "")).lower()
+    if semantics:
+        return semantics == "period_delta"
+
+    components_by_role = dict(answer_slots.get("components_by_role") or {})
+    component_roles = {
+        _normalise_spaces(str(role or "")).lower()
+        for role in components_by_role
+        if _normalise_spaces(str(role or ""))
+    }
+    for rows in components_by_role.values():
+        component_roles.update(
+            _normalise_spaces(str((row or {}).get("role") or "")).lower()
+            for row in list(rows or [])
+            if isinstance(row, dict) and _normalise_spaces(str(row.get("role") or ""))
+        )
+    if {"current_period", "prior_period"}.issubset(component_roles):
+        return True
+    if {"minuend", "subtrahend"} & component_roles:
+        return False
+
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    slot_roles = {
+        _normalise_spaces(str(slot.get("role") or "")).lower()
+        for slot in (current_slot, prior_slot)
+        if _normalise_spaces(str(slot.get("role") or ""))
+    }
+    if {"current_period", "prior_period"} & slot_roles:
+        return True
+    current_period = _normalise_spaces(str(current_slot.get("period") or "")).lower()
+    prior_period = _normalise_spaces(str(prior_slot.get("period") or "")).lower()
+    if current_period and prior_period:
+        return current_period != prior_period
+    return bool(current_slot or prior_slot)
 
 
 def _render_difference_answer(
@@ -634,7 +724,9 @@ def compose_slot_based_difference_answer(
     current_slot = dict(answer_slots.get("current_value") or {})
     prior_slot = dict(answer_slots.get("prior_value") or {})
     delta_slot = dict(answer_slots.get("delta_value") or {})
-    if all(answer_slot_has_material(slot) for slot in (current_slot, prior_slot, delta_slot)):
+    if difference_slots_are_period_delta(answer_slots) and all(
+        answer_slot_has_material(slot) for slot in (current_slot, prior_slot, delta_slot)
+    ):
         period_answer = _render_period_difference_answer(
             prefix=prefix,
             current_label=_normalise_spaces(str(current_slot.get("label") or minuend_label)),
@@ -657,4 +749,42 @@ def compose_slot_based_difference_answer(
         subtrahend_value=subtrahend_value,
         result_label=result_label,
         result_value=result_value,
+    )
+
+
+def compose_explicit_slot_based_difference_answer(
+    *,
+    query: str,
+    calculation_result: Dict[str, Any],
+    answer_slot_has_material: Callable[[Dict[str, Any]], bool],
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> str:
+    """Render only a difference that retains explicit operand-role slots."""
+
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components = dict(answer_slots.get("components_by_role") or {})
+    has_explicit_components = bool(
+        any(answer_slot_has_material(dict(slot or {})) for slot in components.get("minuend") or [])
+        and any(answer_slot_has_material(dict(slot or {})) for slot in components.get("subtrahend") or [])
+        and answer_slot_has_material(dict(answer_slots.get("primary_value") or {}))
+    )
+    if not has_explicit_components:
+        return ""
+    answer = compose_slot_based_difference_answer(
+        query=query,
+        report_scope={},
+        calculation_result=calculation_result,
+        answer_slot_has_material=answer_slot_has_material,
+    )
+    if not answer:
+        return ""
+    from src.agent.financial_text_surface import preserve_source_visible_query_terms
+
+    return preserve_source_visible_query_terms(
+        answer,
+        query=query,
+        ordered_results=ordered_results,
+        evidence_items=evidence_items,
+        docs=[],
     )

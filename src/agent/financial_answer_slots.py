@@ -1,16 +1,180 @@
 """Answer slot construction helpers for calculation traces."""
 
-from typing import Any, Dict, List, Optional
+import re
+from dataclasses import dataclass
+from typing import Any, Dict, List, Mapping, Optional
 
 from src.agent.financial_graph_calculation_rendering import (
     adjusted_difference_source_display_unit,
     format_calculation_value_in_display_unit,
+    format_ratio_percent_result,
     render_grounded_operand_display,
     render_value_with_unit,
 )
-from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
-from src.agent.financial_runtime_normalization import _clean_source_row_ids, _display_operand_label
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
+from src.agent.financial_numeric_surface import (
+    extract_numeric_surface_candidates,
+    numeric_surface_candidates_equivalent,
+)
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    display_operand_label,
+    _normalise_spaces,
+)
+from src.config.retrieval_policy import (
+    CALCULATION_RENDER_POLICY,
+    CALCULATION_SLOT_POLICY,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
+)
+
+
+def answer_slot_has_material(slot: Dict[str, Any]) -> bool:
+    if not isinstance(slot, dict) or not slot:
+        return False
+    status = str(slot.get("status") or "").strip().lower()
+    if status == "missing":
+        return False
+    if slot.get("normalized_value") is not None:
+        return True
+    return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
+
+
+def answer_slot_period_hint(slot: Dict[str, Any]) -> str:
+    period = _normalise_spaces(str(slot.get("period") or ""))
+    if period:
+        return period
+    label = _normalise_spaces(str(slot.get("label") or ""))
+    period_pattern = str(CALCULATION_SLOT_POLICY.get("period_pattern") or "")
+    if period_pattern:
+        match = re.search(period_pattern, label)
+        if match:
+            return _normalise_spaces(match.group(0))
+    return ""
+
+
+def period_match_key(value: str) -> str:
+    return re.sub(r"\D", "", _normalise_spaces(str(value or "")))
+
+
+def ratio_component_consolidation_scope(
+    calculation_result: Dict[str, Any],
+    operands: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    scopes: List[str] = []
+    for entries in dict(answer_slots.get("components_by_group") or {}).values():
+        for entry in entries or []:
+            scope = _normalise_spaces(str((entry or {}).get("consolidation_scope") or ""))
+            if scope in {"consolidated", "separate"} and scope not in scopes:
+                scopes.append(scope)
+    for operand in operands or []:
+        scope = _normalise_spaces(str((operand or {}).get("consolidation_scope") or ""))
+        if scope in {"consolidated", "separate"} and scope not in scopes:
+            scopes.append(scope)
+    return scopes[0] if len(scopes) == 1 else ""
+
+
+def ratio_components_collapse_to_same_slot(calculation_result: Dict[str, Any]) -> bool:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components_by_group = dict(answer_slots.get("components_by_group") or {})
+    numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
+    denominator_slots = [
+        dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+    ]
+
+    def _slot_identity(slot: Dict[str, Any]) -> tuple[str, str, str, str, str]:
+        source_ids = "|".join(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
+        normalized_value = slot.get("normalized_value")
+        try:
+            normalized_text = f"{float(normalized_value):.6f}" if normalized_value is not None else ""
+        except (TypeError, ValueError):
+            normalized_text = _normalise_spaces(str(normalized_value or ""))
+        return (
+            _normalise_spaces(str(slot.get("label") or "")),
+            _normalise_spaces(str(slot.get("raw_value") or "")),
+            _normalise_spaces(str(slot.get("raw_unit") or "")),
+            normalized_text,
+            source_ids,
+        )
+
+    if numerator_slots and denominator_slots:
+        numerator_identities = {_slot_identity(slot) for slot in numerator_slots if answer_slot_has_material(slot)}
+        denominator_identities = {_slot_identity(slot) for slot in denominator_slots if answer_slot_has_material(slot)}
+        if numerator_identities and numerator_identities == denominator_identities:
+            return True
+        numerator_value_identities = {identity[1:] for identity in numerator_identities if identity[-1]}
+        denominator_value_identities = {identity[1:] for identity in denominator_identities if identity[-1]}
+        if numerator_value_identities and numerator_value_identities & denominator_value_identities:
+            return True
+    return False
+
+
+def ratio_components_are_complete(calculation_result: Dict[str, Any]) -> bool:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components_by_group = dict(answer_slots.get("components_by_group") or {})
+    numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
+    denominator_slots = [
+        dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+    ]
+
+    def _slot_has_value(slot: Dict[str, Any]) -> bool:
+        return bool(
+            _normalise_spaces(
+                str(slot.get("rendered_value") or slot.get("raw_value") or slot.get("normalized_value") or "")
+            )
+        )
+
+    if ratio_components_collapse_to_same_slot(calculation_result):
+        return False
+
+    return any(_slot_has_value(slot) for slot in numerator_slots) and any(
+        _slot_has_value(slot) for slot in denominator_slots
+    )
+
+
+def source_task_display_compatible_with_slot(
+    slot: Mapping[str, Any],
+    source_display: str,
+) -> bool:
+    display = _normalise_spaces(str(source_display or ""))
+    if not display:
+        return False
+    slot_display = _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+    if slot_display and display == slot_display:
+        return True
+    source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
+    if source_row_id.startswith("task_output:"):
+        return True
+    raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+    if not raw_unit:
+        return True
+    if raw_unit in display:
+        return True
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
+    if normalized_unit == krw_normalized_unit:
+        krw_display_units = tuple(
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+            if str(item)
+        )
+        if any(unit in display for unit in krw_display_units):
+            return False
+    return True
+
+
+@dataclass(frozen=True)
+class RatioResultDisplaySyncInput:
+    """Prepared ratio calculation result whose display may need synchronization."""
+
+    calculation_result: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RatioResultDisplaySyncResult:
+    """The original or copied calculation result after display synchronization."""
+
+    calculation_result: Dict[str, Any]
 
 
 def slot_status(
@@ -33,6 +197,93 @@ def coerce_slot_numeric(value: Any) -> Optional[float]:
         return None
 
 
+def synchronize_ratio_result_display(
+    sync_input: RatioResultDisplaySyncInput,
+) -> RatioResultDisplaySyncResult:
+    """Synchronize a ratio result and its primary answer-slot display."""
+
+    calculation_result = sync_input.calculation_result
+    if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    if _normalise_spaces(str(calculation_result.get("operation_family") or "")).lower() not in {"", "ratio"}:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+    if derived_metrics.get("source_stated_result_used"):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    result_value = calculation_result.get("result_value")
+    formula_result_value = coerce_slot_numeric(
+        derived_metrics.get("formula_result_value")
+    )
+    result_numeric_value = coerce_slot_numeric(result_value)
+    if formula_result_value is not None and result_numeric_value is not None:
+        tolerance = max(abs(float(formula_result_value)), abs(float(result_numeric_value)), 1.0) * 1e-6
+        if abs(float(formula_result_value) - float(result_numeric_value)) > tolerance:
+            calculation_result = dict(calculation_result)
+            calculation_result["result_value"] = float(formula_result_value)
+            derived_metrics["result_value_synced_from_formula_trace"] = True
+            calculation_result["derived_metrics"] = derived_metrics
+            result_value = formula_result_value
+    try:
+        result_float = float(result_value)
+    except (TypeError, ValueError):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    result_unit = _normalise_spaces(str(calculation_result.get("result_unit") or ""))
+    percent_units = {
+        _normalise_spaces(str(unit))
+        for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
+        if _normalise_spaces(str(unit))
+    }
+    if result_unit not in percent_units:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    target_rendered = format_ratio_percent_result(result_float)
+    target_candidates = extract_numeric_surface_candidates(target_rendered)
+    target_candidate = next(
+        (candidate for candidate in target_candidates if str(candidate.get("kind") or "") == "percent"),
+        {},
+    )
+    if not target_candidate:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    current_surface = _normalise_spaces(
+        str(
+            (dict(calculation_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
+            or calculation_result.get("rendered_value")
+            or calculation_result.get("formatted_result")
+            or ""
+        )
+    )
+    current_candidates = [
+        candidate
+        for candidate in extract_numeric_surface_candidates(current_surface)
+        if str(candidate.get("kind") or "") == "percent"
+    ]
+    if current_candidates and any(
+        numeric_surface_candidates_equivalent(candidate, target_candidate)
+        for candidate in current_candidates
+    ):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    primary_value = dict(answer_slots.get("primary_value") or {})
+    primary_value.update(
+        {
+            "status": primary_value.get("status") or "ok",
+            "raw_value": target_rendered,
+            "raw_unit": "%",
+            "normalized_value": result_float,
+            "normalized_unit": "PERCENT",
+            "rendered_value": target_rendered,
+        }
+    )
+    answer_slots["primary_value"] = primary_value
+    calculation_result.update(
+        {
+            "rendered_value": target_rendered,
+            "answer_slots": answer_slots,
+            "ratio_display_synced_from_result_value": True,
+        }
+    )
+    return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+
+
 def build_missing_value_slot(
     *,
     role: str,
@@ -48,7 +299,7 @@ def build_missing_value_slot(
     return {
         "status": "missing",
         "role": role,
-        "label": _display_operand_label(label),
+        "label": display_operand_label(label),
         "concept": concept,
         "period": str(period or ""),
         "raw_value": "",
@@ -91,7 +342,7 @@ def build_operand_value_slot(
             raw_value=str(row.get("raw_value") or ""),
         ),
         "role": str(row.get("matched_operand_role") or default_role),
-        "label": _display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
+        "label": display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
         "concept": str(row.get("matched_operand_concept") or ""),
         "period": str(row.get("period") or ""),
         "raw_value": str(row.get("raw_value") or ""),
@@ -140,7 +391,7 @@ def build_calculated_value_slot(
             raw_value="",
         ),
         "role": role,
-        "label": _display_operand_label(label),
+        "label": display_operand_label(label),
         "concept": "",
         "period": str(period or ""),
         "raw_value": "",
@@ -294,7 +545,11 @@ def _period_comparison_requested(
         for row in ordered_operands
         if str(row.get("matched_operand_role") or "").strip()
     }
-    return bool(family in {"difference", "growth_rate"} and {"current_period", "prior_period"} & (operand_roles | row_roles))
+    comparison_roles = {"current_period", "prior_period"}
+    return bool(
+        family in {"difference", "growth_rate"}
+        and comparison_roles.issubset(operand_roles | row_roles)
+    )
 
 
 def _difference_direction(
@@ -316,6 +571,7 @@ def _add_period_comparison_answer_slots(
     answer_slots: Dict[str, Any],
     *,
     family: str,
+    period_comparison: bool,
     required_operands: List[Dict[str, Any]],
     ordered_operands: List[Dict[str, Any]],
     metric_label: str,
@@ -332,6 +588,8 @@ def _add_period_comparison_answer_slots(
     prior_row: Optional[Dict[str, Any]],
 ) -> None:
     if family not in {"difference", "growth_rate"}:
+        return
+    if family == "difference" and not period_comparison:
         return
     current_seed = current_row or _seed_for_roles(
         required_operands=required_operands,
@@ -442,13 +700,15 @@ def build_answer_slots(
             source_normalized_unit=source_normalized_unit,
             current_period=current_period,
         )
-        return _validate_answer_slots_payload(answer_slots)
+        return validate_answer_slots_payload(answer_slots)
 
     period_difference = _period_comparison_requested(
         family=family,
         required_operands=required_operands,
         ordered_operands=ordered_operands,
     )
+    if family == "difference":
+        answer_slots["result_semantics"] = "period_delta" if period_difference else "derived_value"
 
     primary_role = "delta_value" if family == "difference" and period_difference else "primary_value"
     answer_slots["primary_value"] = build_calculated_value_slot(
@@ -464,6 +724,7 @@ def build_answer_slots(
     _add_period_comparison_answer_slots(
         answer_slots,
         family=family,
+        period_comparison=period_difference,
         required_operands=required_operands,
         ordered_operands=ordered_operands,
         metric_label=metric_label,
@@ -480,4 +741,4 @@ def build_answer_slots(
         prior_row=prior_row,
     )
 
-    return _validate_answer_slots_payload(answer_slots)
+    return validate_answer_slots_payload(answer_slots)

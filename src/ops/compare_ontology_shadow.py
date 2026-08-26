@@ -11,7 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_graph_helpers import _candidate_matches_operand, _score_operand_candidate
+from src.agent.financial_operand_resolution import (
+    candidate_matches_operand,
+    score_operand_candidate,
+)
 
 if TYPE_CHECKING:
     from src.config.ontology import FinancialOntologyManager
@@ -97,9 +100,9 @@ def _score_matches(
 ) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for candidate in candidates:
-        if not _candidate_matches_operand(candidate, operand):
+        if not candidate_matches_operand(candidate, operand):
             continue
-        score = _score_operand_candidate(
+        score = score_operand_candidate(
             candidate,
             operand=operand,
             preferred_statement_types=preferred_statement_types,

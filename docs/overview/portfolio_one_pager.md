@@ -94,11 +94,13 @@ are classified by system layer before any change is made.
 The latest recorded expanded structural run closed `9 / 9` numeric questions.
 The most recent plain-retrieval comparison remains `5 / 9` and exposes three
 useful failure families: display/unit mismatch, wrong denominator, and wrong
-row/period binding.
+row/period binding. Both are locally executed benchmark summaries. Their raw
+artifacts are not checked into this repository, and availability varies by run.
 
 These numbers are not presented as a freshly synchronized leaderboard
-ablation. They are reproducible engineering evidence for the failure taxonomy.
-The methodology and limitations are in
+ablation or as independently reproducible evidence from this checkout. They are
+recorded engineering evidence for the failure taxonomy. The methodology and
+limitations are in
 [portfolio_experiment_report.md](portfolio_experiment_report.md).
 
 A compact representative case is the CIR calculation:
@@ -114,19 +116,35 @@ verified trace.
 
 ## Review path
 
-Run the fixture-backed commands from the repository README:
+Run the fixture-backed core demo from the repository README:
 
 ```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 ```
 
-Then inspect:
+The first scan should confirm the manifest boundary and five connected surfaces
+in one output:
 
-1. [Question trace walkthrough](question_trace_walkthrough.md)
-2. [Portfolio experiment report](portfolio_experiment_report.md)
-3. [Technical highlights](technical_highlights.md)
-4. [Demo walkthrough](portfolio_demo_walkthrough.md)
+1. a SHA-256-bound `curated_contract_fixture` whose upstream lineage is
+   `not_provided`;
+2. a representative semantic-plan contract with required operands;
+3. a representative hybrid-retrieval trace with candidate and selected-chunk
+   counts;
+4. deterministic operands, formula, and result;
+5. citations, task/artifact integrity, critic targets, and cross-surface
+   acceptance checks.
+
+The [fixture evidence manifest](../../tests/fixtures/portfolio_demo/evidence_manifest.json)
+binds the curated fixture bytes and states its claim boundary. The hash proves
+fixture integrity and internal consistency, not runtime provenance. The demo
+reports `fixture_contract_ready`, not live-runtime or publication readiness.
+`portfolio_review_gates` reports `review_surface_ready` and explicitly does not
+run the unit suite or domain audit; the CI workflow owns those publication
+checks. The demo is not a live provider call.
+Use the [question trace walkthrough](question_trace_walkthrough.md),
+[experiment report](portfolio_experiment_report.md), or
+[technical highlights](technical_highlights.md) only when a deeper code,
+evidence, or implementation review is useful.
 
 ## Scope boundary
 

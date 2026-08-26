@@ -16,7 +16,7 @@ from src.routing import cosine_similarity, default_canonical_queries_path, load_
 
 
 DEFAULT_CANONICAL_PATH = default_canonical_queries_path()
-DEFAULT_EVAL_PATH = ROOT / "benchmarks" / "golden" / "query_routing_eval_v1.json"
+DEFAULT_EVAL_PATH = ROOT / "benchmarks" / "golden" / "query_routing_eval_v2.json"
 DEFAULT_OUTPUT_DIR = ROOT / "benchmarks" / "results"
 
 

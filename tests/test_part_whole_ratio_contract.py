@@ -1,7 +1,9 @@
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -10,11 +12,19 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
+from src.agent import financial_graph_calculation, financial_operand_resolution
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
     _build_semantic_numeric_plan,
-    _candidate_satisfies_direct_acceptance_contract,
+)
+from src.agent.financial_operand_resolution import (
+    DirectStructuredLookupEvidenceScoreInput,
+    _llm_lookup_operand_has_direct_support,
+    _operand_row_satisfies_required_surface_contract,
+    candidate_satisfies_direct_acceptance_contract,
+    operand_prefers_aggregate_value_role,
+    score_direct_structured_lookup_evidence,
 )
 
 
@@ -139,7 +149,6 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertEqual(coerced["normalized_unit"], "KRW")
 
     def test_lookup_direct_support_requires_positive_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -173,11 +182,10 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
         contracted_row = {**broad_row, "raw_value": "181,624,107", "normalized_value": 181624107000.0}
 
-        self.assertFalse(agent._llm_lookup_operand_has_direct_support(broad_row, broad_evidence, [operand]))
-        self.assertTrue(agent._llm_lookup_operand_has_direct_support(contracted_row, contracted_evidence, [operand]))
+        self.assertFalse(_llm_lookup_operand_has_direct_support(broad_row, broad_evidence, [operand]))
+        self.assertTrue(_llm_lookup_operand_has_direct_support(contracted_row, contracted_evidence, [operand]))
 
     def test_direct_lookup_score_requires_positive_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -218,8 +226,117 @@ class PartWholeRatioContractTests(unittest.TestCase):
             },
         }
 
-        self.assertEqual(agent._direct_structured_lookup_evidence_score(operand, broad_evidence), 0.0)
-        self.assertGreaterEqual(agent._direct_structured_lookup_evidence_score(operand, contracted_evidence), 6.0)
+        broad_result = score_direct_structured_lookup_evidence(
+            DirectStructuredLookupEvidenceScoreInput(operand=operand, evidence_item=broad_evidence)
+        )
+        contracted_result = score_direct_structured_lookup_evidence(
+            DirectStructuredLookupEvidenceScoreInput(operand=operand, evidence_item=contracted_evidence)
+        )
+        self.assertEqual((broad_result.score, broad_result.reason), (0.0, "surface_contract_not_satisfied"))
+        self.assertEqual((contracted_result.score, contracted_result.reason), (12.0, "evidence_scored"))
+
+        base_operand = {"label": "target metric", "role": "primary_value"}
+        base_cell = {"column_headers": ["2023"], "value_text": "100", "unit_hint": "KRW"}
+
+        def _evidence(**metadata_updates):
+            metadata = {
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "structured_cells": [base_cell],
+            }
+            metadata.update(metadata_updates)
+            return {
+                "claim": "target metric 100",
+                "quote_span": "target metric 100",
+                "metadata": metadata,
+            }
+
+        multi_cells = [base_cell, {**base_cell, "column_headers": ["2022"], "value_text": "90"}]
+        cases = {
+            "no_cells": ({}, {"structured_cells": []}, 0.0),
+            "fuzzy_labels": (
+                {},
+                {"row_label": "target metric total", "semantic_label": "target metric disclosed"},
+                6.5,
+            ),
+            "header_affinity": (
+                {},
+                {"structured_cells": [{**base_cell, "column_headers": ["target metric"]}]},
+                13.0,
+            ),
+            "normalization_failure": (
+                {},
+                {"structured_cells": [{**base_cell, "value_text": "not-a-number"}]},
+                11.0,
+            ),
+            "multiple_numeric_cells": ({}, {"structured_cells": multi_cells}, 9.0),
+            "direct_label_multiple_cells": (
+                {},
+                {"structured_cells": multi_cells, "direct_row_from_table_value_labels": True},
+                12.0,
+            ),
+            "adjustment_penalty": ({}, {"value_role": "adjustment"}, 8.0),
+            "detail_penalty": (
+                {"binding_policy": {"prefer_value_roles": ["aggregate"]}},
+                {"value_role": "detail"},
+                10.5,
+            ),
+            "aggregate_stage_bonuses": (
+                {
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate"],
+                        "prefer_aggregation_stages": ["final"],
+                    }
+                },
+                {"value_role": "aggregate", "aggregation_stage": "final"},
+                18.75,
+            ),
+        }
+        for name, (operand_updates, metadata_updates, expected_score) in cases.items():
+            with self.subTest(name=name):
+                scoring_operand = {**base_operand, **operand_updates}
+                evidence_item = _evidence(**metadata_updates)
+                before = deepcopy((scoring_operand, evidence_item))
+                result = score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=scoring_operand,
+                        evidence_item=evidence_item,
+                    )
+                )
+                expected_reason = "no_structured_cells" if name == "no_cells" else "evidence_scored"
+                self.assertEqual((result.score, result.reason), (expected_score, expected_reason))
+                self.assertEqual((scoring_operand, evidence_item), before)
+
+        for roles, expected in (
+            ([], False),
+            (["aggregate", "detail"], True),
+            (["other", "aggregate"], True),
+            (["detail", "aggregate"], False),
+        ):
+            with self.subTest(preferred_roles=roles):
+                self.assertIs(
+                    operand_prefers_aggregate_value_role(
+                        {**base_operand, "binding_policy": {"prefer_value_roles": roles}}
+                    ),
+                    expected,
+                )
+
+        exceptional_operand = deepcopy(base_operand)
+        exceptional_evidence = _evidence()
+        exceptional_before = deepcopy((exceptional_operand, exceptional_evidence))
+        with patch.object(
+            financial_operand_resolution,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=exceptional_operand,
+                        evidence_item=exceptional_evidence,
+                    )
+                )
+        self.assertEqual((exceptional_operand, exceptional_evidence), exceptional_before)
 
     def test_dependency_row_prefers_better_structured_slot_when_value_surface_matches(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -304,7 +421,6 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertIn("ev_strong", rows[0]["source_row_ids"])
 
     def test_required_surface_contract_applies_to_ratio_operand_rows(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -346,10 +462,10 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(broad_row, evidence_by_id, [operand])
+            _operand_row_satisfies_required_surface_contract(broad_row, evidence_by_id, [operand])
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(contracted_row, evidence_by_id, [operand])
+            _operand_row_satisfies_required_surface_contract(contracted_row, evidence_by_id, [operand])
         )
 
     def test_lookup_recovery_replaces_same_raw_value_when_unit_differs(self) -> None:
@@ -443,6 +559,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "period": "2023",
             },
         ]
+        nested_context = {"keep": "ratio"}
         direct_rows = [
             {
                 "operand_id": "op_001",
@@ -455,6 +572,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "normalized_unit": "KRW",
                 "source_row_id": "ev_weak",
                 "source_row_ids": ["ev_weak"],
+                "nested_context": nested_context,
             },
             {
                 "operand_id": "op_002",
@@ -467,6 +585,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "normalized_unit": "KRW",
                 "source_row_id": "ev_denominator",
                 "source_row_ids": ["ev_denominator"],
+                "nested_context": nested_context,
             },
         ]
         evidence_items = [
@@ -526,18 +645,77 @@ class PartWholeRatioContractTests(unittest.TestCase):
             },
         ]
 
-        refined_rows = agent._prefer_direct_structured_evidence_rows(
-            direct_rows,
-            evidence_items=evidence_items,
-            required_operands=required_operands,
-            operation_family="ratio",
-            state={"active_subtask": {"operation_family": "ratio"}},
-        )
+        state = {"active_subtask": {"operation_family": "ratio"}}
+        direct_rows_before = json.loads(json.dumps(direct_rows, ensure_ascii=False))
+        evidence_items_before = json.loads(json.dumps(evidence_items, ensure_ascii=False))
+        required_operands_before = json.loads(json.dumps(required_operands, ensure_ascii=False))
+        state_before = json.loads(json.dumps(state, ensure_ascii=False))
+        preferred_calls = []
+        resolution_events = []
+        original_preferred_slot = agent._best_direct_lookup_slot_from_evidence_pool
+        original_resolver = financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption
 
+        def record_preferred_slot(operand, pool, **kwargs):
+            slot, score = original_preferred_slot(operand, pool, **kwargs)
+            preferred_calls.append((operand["role"], pool, kwargs, slot.get("source_row_id"), score))
+            return slot, score
+
+        def record_resolution(adoption_input):
+            result = original_resolver(adoption_input)
+            resolution_events.append((adoption_input, result))
+            return result
+
+        agent._best_direct_lookup_slot_from_evidence_pool = record_preferred_slot
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            side_effect=record_resolution,
+        ):
+            refined_rows = agent._prefer_direct_structured_evidence_rows(
+                direct_rows,
+                evidence_items=evidence_items,
+                required_operands=required_operands,
+                operation_family="ratio",
+                state=state,
+            )
+
+        self.assertEqual(
+            [(role, kwargs["preferred_raw_units"], source_id, score) for role, _, kwargs, source_id, score in preferred_calls],
+            [
+                ("numerator_1", {"\ubc31\ub9cc\uc6d0"}, "ev_strong", 12.0),
+                ("denominator_1", {"\ubc31\ub9cc\uc6d0"}, "ev_denominator", 12.0),
+            ],
+        )
+        self.assertTrue(all(pool is evidence_items for _, pool, _, _, _ in preferred_calls))
+        self.assertTrue(all(kwargs["state"] is state for _, _, kwargs, _, _ in preferred_calls))
+        self.assertEqual(
+            [
+                (
+                    adoption_input.row_index,
+                    adoption_input.normalized_peer_raw_units,
+                    result.reason,
+                    result.preferred_slot_adopted,
+                )
+                for adoption_input, result in resolution_events
+            ],
+            [
+                (0, {"\ubc31\ub9cc\uc6d0"}, "ratio_unit_alignment_selected", True),
+                (1, {"\ubc31\ub9cc\uc6d0"}, "equal_evidence_score", False),
+            ],
+        )
+        self.assertIsNot(refined_rows, direct_rows)
+        self.assertEqual([row["operand_id"] for row in refined_rows], ["op_001", "op_002"])
+        self.assertTrue(all(result is not source for result, source in zip(refined_rows, direct_rows)))
+        self.assertTrue(all(row["nested_context"] is nested_context for row in refined_rows))
+        self.assertEqual(direct_rows, direct_rows_before)
+        self.assertEqual(evidence_items, evidence_items_before)
+        self.assertEqual(required_operands, required_operands_before)
+        self.assertEqual(state, state_before)
         numerator = refined_rows[0]
         self.assertEqual(numerator["source_row_id"], "ev_strong")
         self.assertEqual(numerator["raw_unit"], "\ubc31\ub9cc\uc6d0")
         self.assertEqual(numerator["normalized_value"], 3531423000000.0)
+        self.assertEqual(refined_rows[1]["source_row_id"], "ev_denominator")
 
     def test_surface_contract_required_lookup_rejects_broad_column_only_match(self) -> None:
         operand = {
@@ -575,7 +753,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},
@@ -591,7 +769,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
             )
         )
         self.assertFalse(
-            _candidate_satisfies_direct_acceptance_contract(
+            candidate_satisfies_direct_acceptance_contract(
                 candidate,
                 operand=operand,
                 constraints={"period_focus": "current", "consolidation_scope": "consolidated"},

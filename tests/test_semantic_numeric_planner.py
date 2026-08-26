@@ -9,7 +9,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_graph_helpers import _build_semantic_numeric_plan
+from src.agent.financial_graph_helpers import _build_semantic_numeric_plan, align_scope_hints
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin, _non_numeric_operation_intent_override
 
 
@@ -35,9 +35,7 @@ class SemanticNumericPlannerTests(unittest.TestCase):
         self.assertEqual(note, "non_numeric_operation_promoted_by_ontology")
 
     def test_single_report_scope_collapses_company_aliases_to_metadata_company(self) -> None:
-        mixin = FinancialAgentPlanningMixin()
-
-        companies, years = mixin._align_scope_hints(
+        companies, years = align_scope_hints(
             companies=["Hyundai Motor Company"],
             years=[],
             report_scope={

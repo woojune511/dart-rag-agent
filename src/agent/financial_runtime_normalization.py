@@ -121,7 +121,7 @@ def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[fl
     return value, "UNKNOWN"
 
 
-def _format_korean_won_compact(value: float) -> str:
+def format_korean_won_compact(value: float) -> str:
     format_policy = dict(KOREAN_WON_COMPACT_FORMAT_POLICY)
     threshold = int(format_policy.get("hundred_million_threshold") or 100_000_000)
     hundred_million_scale = int(format_policy.get("hundred_million_scale") or threshold)
@@ -154,7 +154,7 @@ def _format_korean_won_compact(value: float) -> str:
     return f"-{rendered}" if negative else rendered
 
 
-def _display_operand_label(label: str) -> str:
+def display_operand_label(label: str) -> str:
     text = _normalise_spaces(label)
     text = re.sub(r"^[\uac00-\ud7a3A-Za-z0-9&.\- ]{2,40}\s+(?=\d{4}\ub144\s+)", "", text)
     text = re.sub(r"^\d{4}년\s*", "", text)

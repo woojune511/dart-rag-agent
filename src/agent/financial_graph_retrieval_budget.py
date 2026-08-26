@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from src.agent.financial_runtime_normalization import _normalise_spaces
 
 
-def _query_budget_int(value: Any) -> int:
+def query_budget_int(value: Any) -> int:
     try:
         parsed = int(value or 0)
     except (TypeError, ValueError):
@@ -37,7 +37,7 @@ def _dedupe_queries_for_retrieval(queries: List[str]) -> List[str]:
     return deduped
 
 
-def _drop_queries_already_selected(
+def drop_queries_already_selected(
     queries: List[str],
     selected_queries: List[str],
 ) -> tuple[List[str], Dict[str, Any]]:
@@ -60,7 +60,7 @@ def _drop_queries_already_selected(
     }
 
 
-def _drop_duplicate_executed_query(
+def drop_duplicate_executed_query(
     seen_signatures_by_source: Dict[str, set[str]],
     trace: Dict[str, Any],
     *,
@@ -96,7 +96,7 @@ def _drop_duplicate_executed_query(
     return True
 
 
-def _limit_query_context_terms(
+def limit_query_context_terms(
     items: List[str],
     budget: int,
     *,
@@ -156,7 +156,7 @@ def _period_balanced_queries_for_retrieval(queries: List[str]) -> List[str]:
     return balanced
 
 
-def _apply_query_budget(
+def apply_query_budget(
     queries: List[str],
     budget: int,
     *,
@@ -181,7 +181,7 @@ def _apply_query_budget(
     }
 
 
-def _summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]:
+def summarize_executed_query_telemetry(executed_queries: List[Dict[str, Any]]) -> Dict[str, Any]:
     summary: Dict[str, Any] = {
         "executed_query_count": len(executed_queries),
         "cache_hit_count": 0,
@@ -251,7 +251,7 @@ def _query_result_cache_key(
     return "\0".join((source_key, query_signature, _filter_signature(where_filter)))
 
 
-def _lookup_query_result_cache(
+def lookup_query_result_cache(
     cache: Dict[str, Dict[str, Any]],
     *,
     source: str,
@@ -298,7 +298,7 @@ def _lookup_query_result_cache(
     }
 
 
-def _store_query_result_cache(
+def store_query_result_cache(
     cache: Dict[str, Dict[str, Any]],
     *,
     source: str,
@@ -337,7 +337,7 @@ def _trace_task_context(trace: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def _cross_trace_reuse_candidate_diagnostics(
+def cross_trace_reuse_candidate_diagnostics(
     current_queries: List[Dict[str, Any]],
     previous_traces: List[Dict[str, Any]],
     *,

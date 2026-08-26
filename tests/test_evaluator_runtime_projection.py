@@ -2,7 +2,10 @@ import json
 import subprocess
 import sys
 import unittest
+from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -14,6 +17,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.ops.evaluator import (
     _build_operand_grounding_corpus,
     _build_runtime_evidence_contexts,
+    _prioritize_runtime_evidence_contexts,
     _build_example_report_scope,
     _collect_aggregate_subtask_provenance,
     _compute_runtime_evidence_retrieval_hit_at_k,
@@ -22,6 +26,7 @@ from src.ops.evaluator import (
     _compute_entity_coverage,
     _compute_ndcg_at_k,
     _contains_section,
+    _compute_calculation_correctness,
     _compute_grounded_rendering_correctness,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
@@ -33,6 +38,7 @@ from src.ops.evaluator import (
     EvalExample,
     RAGEvaluator,
     _format_runtime_evidence_for_numeric_judge,
+    _looks_like_missing_answer,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
     _supplement_resolved_operands_from_runtime_evidence,
@@ -41,7 +47,8 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
-from src.agent.financial_runtime_trace import _runtime_trace_state_update
+from src.agent import financial_runtime_trace
+from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
 class _DummyDoc:
@@ -62,20 +69,318 @@ class _FailingAgent:
         raise RuntimeError("model unavailable")
 
 
-class _RecordingJudgeLLM:
-    def __init__(self) -> None:
-        self.prompt = ""
-
-    def invoke(self, prompt: str):
-        self.prompt = prompt
-
-        class _Response:
-            content = '{"score": 1.0, "reason": "ok"}'
-
-        return _Response()
-
-
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_faithfulness_context_prioritizes_final_runtime_evidence(self) -> None:
+        broad_contexts = [
+            "retrieved chunk one",
+            "retrieved chunk two",
+        ]
+        runtime_evidence = [
+            {
+                "claim": "The selected result increased by 11.5%.",
+                "quote_span": "increased by 11.5%",
+                "source_anchor": "ExampleCo | 2023 | Management Discussion",
+            }
+        ]
+
+        contexts = _prioritize_runtime_evidence_contexts(broad_contexts, runtime_evidence)
+
+        self.assertIn("selected result increased by 11.5%", contexts[0])
+        self.assertEqual(contexts[1:], broad_contexts)
+
+    def test_missing_answer_detection_uses_refusal_phrases_not_bare_substrings(self) -> None:
+        self.assertFalse(_looks_like_missing_answer("차별화된 기술 개발을 통해 끊임없는 혁신을 추구합니다."))
+        self.assertTrue(_looks_like_missing_answer("관련 정보가 없습니다."))
+        self.assertTrue(_looks_like_missing_answer("현재 근거만으로는 확인하기 어렵습니다."))
+        self.assertTrue(_looks_like_missing_answer("질문에 답할 근거를 찾지 못했습니다."))
+
+    def test_operand_row_material_numeric_payload_preserves_value_policy(self) -> None:
+        has_material = financial_runtime_trace.operand_row_has_material_numeric_payload
+
+        cases = (
+            ("missing status", {"status": " missing ", "normalized_value": 1}, False),
+            ("unknown short raw", {"normalized_unit": "UNKNOWN", "raw_value": "123"}, False),
+            ("unknown four digits", {"normalized_unit": "UNKNOWN", "raw_value": "1,234"}, True),
+            (
+                "whitespace raw unit suppresses fallback",
+                {"raw_unit": " ", "unit": "count", "normalized_unit": "UNKNOWN", "raw_value": "123"},
+                False,
+            ),
+            (
+                "empty raw unit uses fallback",
+                {"raw_unit": "", "unit": " count ", "normalized_unit": "UNKNOWN", "raw_value": "123"},
+                True,
+            ),
+            (
+                "display fallback",
+                {
+                    "normalized_unit": "UNKNOWN",
+                    "raw_value": "",
+                    "value": "",
+                    "rendered_value": "",
+                    "display_value": "1234",
+                },
+                True,
+            ),
+            ("zero normalized value", {"normalized_unit": "COUNT", "normalized_value": 0}, True),
+            ("known unit without value", {"normalized_unit": "COUNT"}, False),
+            ("unit with nonnumeric raw", {"raw_unit": "unit", "raw_value": "value"}, True),
+        )
+        for name, row, expected in cases:
+            with self.subTest(name=name):
+                before = deepcopy(row)
+                self.assertEqual(has_material(row), expected)
+                self.assertEqual(row, before)
+
+    def test_operand_row_material_numeric_payload_preserves_access_and_exception_contract(self) -> None:
+        has_material = financial_runtime_trace.operand_row_has_material_numeric_payload
+        events = []
+
+        class TrackedRow(Mapping):
+            def __init__(self, values, *, poison_keys=()):
+                self.values = values
+                self.poison_keys = set(poison_keys)
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(key)
+                if key in self.poison_keys:
+                    raise RuntimeError(f"unexpected getter: {key}")
+                return self.values.get(key, default)
+
+        self.assertTrue(
+            has_material(
+                TrackedRow(
+                    {
+                        "status": "ok",
+                        "raw_unit": "",
+                        "unit": "count",
+                        "normalized_unit": "COUNT",
+                        "raw_value": "",
+                        "value": "",
+                        "rendered_value": "",
+                        "display_value": "1234",
+                        "normalized_value": None,
+                    }
+                )
+            )
+        )
+        self.assertEqual(
+            events,
+            [
+                "status",
+                "raw_unit",
+                "unit",
+                "normalized_unit",
+                "raw_value",
+                "value",
+                "rendered_value",
+                "display_value",
+                "normalized_value",
+            ],
+        )
+
+        events.clear()
+        self.assertFalse(has_material(TrackedRow({"status": "missing"})))
+        self.assertEqual(events, ["status"])
+        events.clear()
+        self.assertFalse(
+            has_material(TrackedRow({"normalized_unit": "UNKNOWN", "raw_value": "123"}))
+        )
+        self.assertNotIn("normalized_value", events)
+
+        events.clear()
+        self.assertTrue(
+            has_material(
+                TrackedRow(
+                    {
+                        "raw_unit": "count",
+                        "normalized_unit": "COUNT",
+                        "raw_value": "1234",
+                    },
+                    poison_keys={"unit", "value", "rendered_value", "display_value"},
+                )
+            )
+        )
+        self.assertEqual(events, ["status", "raw_unit", "normalized_unit", "raw_value", "normalized_value"])
+
+        for name, values, poison_keys, expected_events in (
+            (
+                "raw value",
+                {"normalized_unit": "COUNT", "raw_value": "1234"},
+                {"value", "rendered_value", "display_value"},
+                ["status", "raw_unit", "unit", "normalized_unit", "raw_value", "normalized_value"],
+            ),
+            (
+                "value",
+                {"normalized_unit": "COUNT", "raw_value": "", "value": "1234"},
+                {"rendered_value", "display_value"},
+                ["status", "raw_unit", "unit", "normalized_unit", "raw_value", "value", "normalized_value"],
+            ),
+            (
+                "rendered value",
+                {
+                    "normalized_unit": "COUNT",
+                    "raw_value": "",
+                    "value": "",
+                    "rendered_value": "1234",
+                },
+                {"display_value"},
+                [
+                    "status",
+                    "raw_unit",
+                    "unit",
+                    "normalized_unit",
+                    "raw_value",
+                    "value",
+                    "rendered_value",
+                    "normalized_value",
+                ],
+            ),
+        ):
+            with self.subTest(lazy=name):
+                events.clear()
+                self.assertTrue(has_material(TrackedRow(values, poison_keys=poison_keys)))
+                self.assertEqual(events, expected_events)
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("status",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            has_material(GetBomb())
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            has_material({"status": StringBomb()})
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            has_material({"raw_unit": TruthBomb()})
+        with patch.object(
+            financial_runtime_trace,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                has_material({})
+        with patch.object(
+            financial_runtime_trace.re,
+            "findall",
+            side_effect=RuntimeError("regex failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                has_material({"raw_value": "1234"})
+
+    def test_append_aggregate_operand_uses_material_predicate_contract(self) -> None:
+        nested = {"keep": True}
+        operand = {
+            "task_id": "task_a",
+            "operand_id": "operand_a",
+            "raw_value": "100",
+            "raw_unit": "count",
+            "source_row_id": "stale",
+            "nested": nested,
+        }
+        before = deepcopy(operand)
+        expected = {
+            **operand,
+            "source_row_id": "ev_a",
+            "source_row_ids": ["ev_a", "ev_b"],
+        }
+
+        aggregate_operands = []
+        seen = set()
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                return_value=False,
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key") as later_key,
+        ):
+            financial_runtime_trace._append_aggregate_operand(
+                aggregate_operands,
+                seen,
+                operand,
+                source_ids=[" ev_a ", "ev_b", "ev_a"],
+            )
+        predicate.assert_called_once()
+        copied_row = predicate.call_args.args[0]
+        self.assertEqual(copied_row, expected)
+        self.assertIsNot(copied_row, operand)
+        self.assertIs(copied_row["nested"], nested)
+        self.assertEqual((aggregate_operands, seen), ([], set()))
+        later_key.assert_not_called()
+
+        aggregate_operands = []
+        seen = set()
+        real_key = financial_runtime_trace._aggregate_operand_key
+        expected_key = real_key(expected, ["ev_a", "ev_b"])
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                return_value=True,
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key", wraps=real_key) as key_builder,
+        ):
+            financial_runtime_trace._append_aggregate_operand(
+                aggregate_operands,
+                seen,
+                operand,
+                source_ids=[" ev_a ", "ev_b", "ev_a"],
+            )
+        predicate.assert_called_once()
+        copied_row = predicate.call_args.args[0]
+        self.assertEqual(aggregate_operands, [expected])
+        self.assertIs(aggregate_operands[0], copied_row)
+        key_builder.assert_called_once_with(copied_row, ["ev_a", "ev_b"])
+        self.assertEqual(seen, {expected_key})
+
+        aggregate_operands = []
+        seen = set()
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                side_effect=RuntimeError("material predicate failed"),
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key") as later_key,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "material predicate failed"):
+                financial_runtime_trace._append_aggregate_operand(
+                    aggregate_operands,
+                    seen,
+                    operand,
+                    source_ids=["ev_a", "ev_b"],
+                )
+        predicate.assert_called_once()
+        self.assertEqual((aggregate_operands, seen), ([], set()))
+        later_key.assert_not_called()
+        self.assertEqual(operand, before)
+
     def test_evaluator_import_does_not_load_runtime_trace_owner(self) -> None:
         code = (
             "import sys\n"
@@ -337,41 +642,73 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
-    def test_grounded_rendering_judge_compacts_nested_calculation_result(self) -> None:
-        llm = _RecordingJudgeLLM()
-        example = EvalExample(
-            id="Q1",
-            question="Calculate growth.",
-            ground_truth="70.28%",
-            company="ExampleCo",
-            year=2023,
-            section="Financial review",
-        )
+    def test_grounded_rendering_ignores_narrative_and_validates_numeric_surfaces(self) -> None:
         calculation_result = {
             "status": "ok",
-            "rendered_value": "70.28%",
-            "formatted_result": "2023 value grew 70.28%.",
+            "rendered_value": "41.4%",
+            "formatted_result": "Narrative text that is outside numeric rendering scope.",
             "answer_slots": {
-                "primary_value": {"rendered_value": "70.28%"},
-                "subtask_results": [{"payload": "x" * 80_000}],
+                "primary_value": {"rendered_value": "41.4%"},
             },
-            "subtask_results": [{"payload": "y" * 120_000}],
         }
 
         score, reason = _compute_grounded_rendering_correctness(
-            llm,
-            example,
-            answer="2023 value grew 70.28%.",
-            calculation_operands=[{"label": "growth", "raw_value": "70.28", "raw_unit": "%"}],
+            answer=(
+                "Current revenue was 2,546,649백만원 versus 1,801,079백만원, "
+                "so it grew 41.4%. The acquisition integration improved the business."
+            ),
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
             calculation_result=calculation_result,
         )
 
         self.assertEqual(score, 1.0)
-        self.assertEqual(reason, "ok")
-        self.assertLess(len(llm.prompt), 10_000)
-        self.assertNotIn("x" * 100, llm.prompt)
-        self.assertNotIn("y" * 100, llm.prompt)
-        self.assertIn("70.28%", llm.prompt)
+        self.assertIn("deterministic", reason)
+
+    def test_grounded_rendering_rejects_unsupported_numeric_surface(self) -> None:
+        score, reason = _compute_grounded_rendering_correctness(
+            answer="Revenue grew 41.4%, while an unsupported claim says 99.9%.",
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
+            calculation_result={"status": "ok", "rendered_value": "41.4%"},
+        )
+
+        self.assertEqual(score, 0.0)
+        self.assertIn("99.9%", reason)
+
+    def test_grounded_rendering_accepts_additional_evidence_backed_numeric_narrative(self) -> None:
+        score, reason = _compute_grounded_rendering_correctness(
+            answer="Revenue grew 41.4%; a separate integration cost changed 24.3%.",
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
+            calculation_result={"status": "ok", "rendered_value": "41.4%"},
+            runtime_evidence=[{"quote_span": "The separate integration cost changed 24.3%."}],
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertIn("evidence", reason)
+
+    def test_calculation_correctness_uses_numeric_checks_only(self) -> None:
+        self.assertEqual(
+            _compute_calculation_correctness(
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            ),
+            1.0,
+        )
+        self.assertEqual(
+            _compute_calculation_correctness(
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=1.0,
+            ),
+            1.0,
+        )
 
     def test_should_override_numeric_grounding_for_direct_composed_ratio(self) -> None:
         numeric_eval = {
@@ -407,7 +744,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
-    def test_should_override_numeric_grounding_when_llm_rendering_misses_grounded_operands(self) -> None:
+    def test_should_not_override_numeric_grounding_when_deterministic_rendering_fails(self) -> None:
         calculation_operands = [
             {
                 "operand_id": "op_current_assets",
@@ -441,7 +778,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(
+        self.assertFalse(
             _should_override_numeric_grounding(
                 numeric_eval=numeric_eval,
                 calculation_operands=calculation_operands,
@@ -1505,7 +1842,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_result_source", trace["runtime_projection"])
 
     def test_runtime_trace_state_update_omits_compatibility_mirrors_by_default(self) -> None:
-        update = _runtime_trace_state_update(
+        update = runtime_trace_state_update(
             {
                 "resolved_calculation_trace": {},
                 "structured_result": {},
@@ -1806,6 +2143,20 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertTrue(_operand_matches(example.expected_operands[0], operands[0]))
         self.assertEqual(_compute_operand_selection_correctness(example, operands), 1.0)
         self.assertEqual(_compute_unit_consistency_pass(operands, plan), 1.0)
+
+    def test_unit_consistency_is_not_applicable_to_single_operand_lookup(self) -> None:
+        operands = [
+            {
+                "operand_id": "lookup_value",
+                "raw_value": "28,352,769",
+                "raw_unit": "백만원",
+                "normalized_value": 28_352_769_000_000.0,
+                "normalized_unit": "KRW",
+            }
+        ]
+        plan = {"ordered_operand_ids": ["lookup_value"]}
+
+        self.assertIsNone(_compute_unit_consistency_pass(operands, plan))
 
     def test_resolve_evaluator_operands_flattens_aggregate_subtask_answer_slots(self) -> None:
         operands = [

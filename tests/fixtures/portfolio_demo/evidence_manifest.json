@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "fixture_binding": {
+    "path": "demo_payload.json",
+    "algorithm": "sha256",
+    "normalization": "line_endings_lf",
+    "sha256": "37515d48ff193a9d8785ff65fedbad6234ac14020c617740978a68ad4030ce34"
+  },
+  "source_provenance": {
+    "evidence_kind": "curated_contract_fixture",
+    "upstream_artifact_availability": "not_provided",
+    "live_runtime_replayed": false,
+    "raw_runtime_bundle_checked_in": false,
+    "limitations": [
+      "This fixture is a checked-in curated contract example, not a live DART or model-provider replay.",
+      "No upstream run identifier, source artifact path, or raw runtime bundle is provided; the fixture must not be presented as a captured production run.",
+      "The SHA-256 binding normalizes checkout line endings to LF before hashing and detects other fixture changes relative to this manifest; it establishes fixture integrity, not runtime provenance or authenticity."
+    ]
+  },
+  "claim_boundary": {
+    "supports": [
+      "Inspection of representative answer, planning, retrieval, calculation, provenance, artifact, and critic surfaces.",
+      "Deterministic cross-surface contract validation against the bound fixture."
+    ],
+    "does_not_support": [
+      "A claim that the demo command performs live ingest, retrieval, model inference, or provider calls.",
+      "Independent reproduction or provenance validation of an upstream runtime run."
+    ]
+  }
+}

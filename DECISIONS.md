@@ -1,7 +1,9 @@
 # 기술 결정 로그
 
 > 이 문서는 **append-only 성격의 결정 로그**다.
-> 현재 상태와 다음 작업은 각각 `CONTEXT.md`, `PLAN.md`를 기준으로 본다.
+> 현재 상태와 다음 작업은 `CONTEXT.md`와
+> `docs/overview/project_status.md`를 기준으로 본다. `PLAN.md`는 과거 실행
+> 계획을 보존하는 historical log다.
 > 즉, 이 문서는 최신 snapshot을 유지하려고 덮어쓰지 않고,
 > 중요한 설계 판단과 그 근거를 누적 기록하는 용도로 쓴다.
 
@@ -2246,3 +2248,35 @@ Faithfulness/Recall/Numeric Pass 유지. 큰 regression 없음.
 
 - 이건 runtime 품질 보정이 아니라 benchmark curation 보정이다.
 - concept planner promotion gate는 planner/runtime이 필요한 evidence를 모으는지 평가해야 하며, answer key 밖의 배경어 포함 여부를 평가하면 안 된다.
+
+---
+
+## 결정 94 — runtime canonical과 held-out routing data를 분리하고 오염된 v1은 보존한다
+
+**배경**: runtime semantic router의 canonical query가
+`benchmarks/golden` 아래에 있어 core runtime이 evaluation surface를 기본
+설정으로 참조했다. 또한 2026-04-24 calibration 이후 risk canonical에
+추가된 질문 1건이 기존 `query_routing_eval_v1.json`과 정확히 겹치게 되어,
+현재 canonical 기준으로는 v1 전체를 clean held-out set이라고 부를 수 없게
+됐다.
+
+**결정**:
+
+- runtime canonical v1은 내용 변경 없이 `src/config`로 이동한다.
+- `query_routing_eval_v1.json`은 과거 calibration 재현용 historical artifact로
+  수정 없이 보존한다.
+- exact overlap을 제거한 `query_routing_eval_v2.json`을 현재 calibration
+  기본값으로 사용한다.
+- 계약 테스트는 canonical과 v2 사이의 NFKC, casefold, whitespace 정규화
+  이후 exact disjointness를 검증한다. semantic independence까지 증명한다고
+  주장하지 않는다.
+- 과거 v1 기반 accuracy `1.000`은 현재 canonical 대비 clean held-out 성능으로
+  재해석하거나 v2 결과와 직접 비교하지 않는다.
+
+**검증 기준**:
+
+- 이동 전후 canonical JSON의 Git blob hash가 같아야 한다.
+- runtime은 benchmark eval 파일을 import하지 않아야 한다.
+- v1과 v2는 각각 30개 query를 유지하고, calibration 기본 경로는 v2여야 한다.
+- routing focused tests, runtime domain-language audit, full unit discovery를
+  통과해야 한다.

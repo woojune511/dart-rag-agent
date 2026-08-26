@@ -272,7 +272,7 @@ runtime contract를 고정하는 선행 작업으로 본다.
 - `RuntimeCalculationTrace` and `TaskResultRecord` typed contracts now describe
   the preferred graph-state projection; remaining cleanup should reduce writes
   to top-level `calculation_*` mirrors.
-- `_runtime_trace_state_update()` now emits only canonical
+- `runtime_trace_state_update()` now emits only canonical
   `resolved_calculation_trace` / `structured_result` state. The earlier
   `include_compatibility_mirrors = false` transition is complete, and the
   helper no longer has a compatibility mirror opt-in. Calculation verification
@@ -288,7 +288,7 @@ runtime contract를 고정하는 선행 작업으로 본다.
   formula planning
   guard/incomplete branches now follow the same canonical trace contract.
   Non-formula calculation-node reset/no-op branches are converted too, and
-  `_runtime_trace_state_update()` now omits top-level compatibility mirrors
+  `runtime_trace_state_update()` now omits top-level compatibility mirrors
   unconditionally. The helper-level compatibility mirror opt-in has been
   removed; older external readers must use the public runtime/export
   compatibility boundary instead. A no-LLM replay audit over
@@ -321,7 +321,7 @@ runtime contract를 고정하는 선행 작업으로 본다.
   internal current-state reader. `_resolve_runtime_structured_result()` is now
   limited to that public bridge and direct compatibility tests; current
   benchmark export, MAS handoff, and debug readers read `structured_result` or
-  canonical `resolved_calculation_trace` directly. `_runtime_trace_state_update()`
+  canonical `resolved_calculation_trace` directly. `runtime_trace_state_update()`
   is now strict and requires callers to pass operands, plan, and result
   explicitly. Benchmark runner serialized results, smoke summaries, and review
   exports are now classified as strict current-contract projection surfaces;
@@ -529,7 +529,7 @@ It classifies candidates as `reusable`, `requires_evidence_verification`, or
 synthesized/LLM-only material or values with incomplete provenance.
 
 Twenty-second step completed: runtime calculation traces now carry a read-only
-`report_cache_candidate` projection. `_runtime_trace_state_update()` classifies
+`report_cache_candidate` projection. `runtime_trace_state_update()` classifies
 the active calculation result with `classify_report_cache_candidate()`, attaches
 status/reasons/key/key id under `resolved_calculation_trace`, and the runtime
 trace resolver preserves that projection through public output and MAS Analyst

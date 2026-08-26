@@ -4,11 +4,11 @@ from langchain_core.documents import Document
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_retrieval_budget import (
-    _apply_query_budget,
-    _cross_trace_reuse_candidate_diagnostics,
-    _summarize_executed_query_telemetry,
+    apply_query_budget,
+    cross_trace_reuse_candidate_diagnostics,
+    summarize_executed_query_telemetry,
 )
-from src.agent.financial_scope_policies import _should_apply_strict_company_scope
+from src.agent.financial_scope_policies import should_apply_strict_company_scope
 
 
 class _EvidenceBiasProbe:
@@ -43,7 +43,7 @@ class _BM25OnlyVSM:
 
 class RetrievalScopeTests(unittest.TestCase):
     def test_query_budget_preserves_period_diversity_when_truncating(self) -> None:
-        selected, trace = _apply_query_budget(
+        selected, trace = apply_query_budget(
             [
                 "2023년 current primary",
                 "2023년 current statement",
@@ -62,7 +62,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["dropped_count"], 2)
 
     def test_query_budget_preserves_cjk_spacing_variants(self) -> None:
-        selected, trace = _apply_query_budget(
+        selected, trace = apply_query_budget(
             [
                 "2023년 커머스 매출액",
                 "2023년 커머스매출액",
@@ -83,7 +83,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(trace["deduped_count"], 3)
 
     def test_executed_query_telemetry_summary_groups_by_source(self) -> None:
-        summary = _summarize_executed_query_telemetry(
+        summary = summarize_executed_query_telemetry(
             [
                 {
                     "source": "primary",
@@ -131,7 +131,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(summary["by_source"]["retry"]["query_embedding_api_calls"], 1)
 
     def test_cross_trace_reuse_candidate_diagnostics_matches_prior_same_source_filter_query(self) -> None:
-        diagnostics = _cross_trace_reuse_candidate_diagnostics(
+        diagnostics = cross_trace_reuse_candidate_diagnostics(
             [
                 {
                     "source": "primary",
@@ -189,7 +189,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_disabled_when_rcept_no_is_present(self) -> None:
         self.assertFalse(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {"company": "네이버", "year": 2023, "rcept_no": "20240318000844"},
             )
@@ -197,7 +197,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_enabled_without_rcept_no(self) -> None:
         self.assertTrue(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {"company": "네이버", "year": 2023},
             )
@@ -205,7 +205,7 @@ class RetrievalScopeTests(unittest.TestCase):
 
     def test_strict_company_scope_is_disabled_when_multi_report_receipts_are_present(self) -> None:
         self.assertFalse(
-            _should_apply_strict_company_scope(
+            should_apply_strict_company_scope(
                 ["네이버"],
                 {
                     "company": "네이버",

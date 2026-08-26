@@ -12,41 +12,41 @@ import json
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from src.agent.financial_graph_helpers import _build_generic_metric_aliases
 from src.agent.financial_graph_retrieval_budget import (
-    _apply_query_budget,
-    _cross_trace_reuse_candidate_diagnostics,
-    _drop_duplicate_executed_query,
-    _drop_queries_already_selected,
-    _limit_query_context_terms,
-    _lookup_query_result_cache,
-    _query_budget_int,
-    _store_query_result_cache,
-    _summarize_executed_query_telemetry,
+    apply_query_budget,
+    cross_trace_reuse_candidate_diagnostics,
+    drop_duplicate_executed_query,
+    drop_queries_already_selected,
+    limit_query_context_terms,
+    lookup_query_result_cache,
+    query_budget_int,
+    store_query_result_cache,
+    summarize_executed_query_telemetry,
 )
-from src.agent.financial_langchain_loaders import _document
+from src.agent.financial_langchain_loaders import document
 from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
-    _retrieval_hint_from_topic,
+    retrieval_hint_from_topic,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
+from src.agent.financial_row_surfaces import operand_text_match
 from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
-    _metadata_period_match_strength,
-    _report_scope_source_receipts,
-    _should_apply_strict_company_scope,
+    desired_consolidation_scope,
+    metadata_period_match_strength,
+    report_scope_source_receipts,
+    should_apply_strict_company_scope,
 )
 from src.agent.financial_surface_contracts import (
-    _operand_needles,
-    _text_has_negative_surface,
-    _text_has_positive_surface,
+    operand_needles,
+    text_has_negative_surface,
+    text_has_positive_surface,
 )
 from src.agent.financial_text_surface import (
-    _strip_rerank_metadata,
-    _tokenize_terms,
+    strip_rerank_metadata,
+    tokenize_terms,
+    query_focus_markers,
 )
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
@@ -92,7 +92,7 @@ def _metric_terms_from_topic(topic: str) -> set[str]:
 
 
 def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
-    trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
     if not candidate:
         candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
@@ -138,7 +138,7 @@ def _report_cache_index_diagnostics_for_retrieval(
     # it only when a caller explicitly configures an index path.
     from src.storage.report_cache_index import ReportCacheIndex
 
-    trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
     if not candidate:
         candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
@@ -188,7 +188,7 @@ def _period_target_for_operand(operand: Dict[str, Any], query_years: List[str], 
 
 def _operand_context_surface_variants(operand: Dict[str, Any]) -> List[str]:
     variants: List[str] = []
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
         if not normalized:
             continue
@@ -204,7 +204,7 @@ def _operand_context_surface_variants(operand: Dict[str, Any]) -> List[str]:
     return list(dict.fromkeys(item for item in expanded if item))
 
 
-def _sentence_matches_operand_context(sentence: str, operand: Dict[str, Any]) -> bool:
+def sentence_matches_operand_context(sentence: str, operand: Dict[str, Any]) -> bool:
     normalized = _normalise_spaces(sentence)
     compact = re.sub(r"\s+", "", normalized)
     for surface in _operand_context_surface_variants(operand):
@@ -320,7 +320,7 @@ def _lookup_retrieval_objective_signature(active_subtask: Dict[str, Any]) -> str
 
 
 def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> bool:
-    if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
+    if text_has_positive_surface(line, operand) or operand_text_match(line, operand):
         return True
     assembly_policy = dict(REQUIRED_OPERAND_ASSEMBLY_POLICY)
     token_split_pattern = str(assembly_policy.get("lookup_surface_token_split_pattern") or r"[\s/|,()]+")
@@ -332,7 +332,7 @@ def _lookup_line_matches_operand_surface(line: str, operand: Dict[str, Any]) -> 
     period_prefix_pattern = str(assembly_policy.get("lookup_surface_period_prefix_pattern") or "")
     year_token_pattern = str(QUERY_FOCUS_MARKER_POLICY.get("year_pattern") or "")
     compact_line = re.sub(r"\s+", "", _normalise_spaces(line))
-    for needle in _operand_needles(operand):
+    for needle in operand_needles(operand):
         needle = _normalise_spaces(needle)
         if period_prefix_pattern:
             needle = re.sub(period_prefix_pattern, "", needle)
@@ -544,7 +544,7 @@ def _lookup_numeric_extraction_has_direct_support(
             continue
         operand_checks: List[Dict[str, Any]] = []
         for support_operand in support_operands:
-            negative_surface = _text_has_negative_surface(normalized, support_operand)
+            negative_surface = text_has_negative_surface(normalized, support_operand)
             surface_match = False if negative_surface else _lookup_line_matches_operand_surface(normalized, support_operand)
             operand_checks.append(
                 {
@@ -636,7 +636,7 @@ def _period_comparison_count_value_from_text(
     context_indexes = [
         index
         for index, sentence in enumerate(sentences)
-        if _sentence_matches_operand_context(sentence, operand)
+        if sentence_matches_operand_context(sentence, operand)
     ]
     if not context_indexes:
         return None
@@ -660,7 +660,7 @@ def _period_comparison_count_value_from_text(
         if not value_matches:
             continue
 
-        context_hit = _sentence_matches_operand_context(sentence, operand)
+        context_hit = sentence_matches_operand_context(sentence, operand)
         subject_context_hit = _sentence_has_subject_after_location_context(sentence)
         follows_context = any(0 <= index - context_index <= 2 for context_index in subject_context_indexes)
         if not context_hit and not follows_context:
@@ -808,8 +808,8 @@ def _is_document_like(doc: Any) -> bool:
     return hasattr(doc, "page_content") and hasattr(doc, "metadata")
 
 
-def _make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
-    return _document(page_content=page_content, metadata=metadata)
+def make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
+    return document(page_content=page_content, metadata=metadata)
 
 
 def _required_operand_coverage_from_docs(
@@ -843,7 +843,7 @@ def _required_operand_coverage_from_docs(
                 continue
             if not _doc_has_numeric_signal(doc, ignored_numeric_periods):
                 continue
-            if not _sentence_matches_operand_context(_doc_operand_context_text(doc), operand):
+            if not sentence_matches_operand_context(_doc_operand_context_text(doc), operand):
                 continue
             if not _doc_matches_target_period(doc, target_period):
                 continue
@@ -894,7 +894,7 @@ def _doc_period_count_operand_matches(doc: Document, required_operands: List[Dic
     return [
         index
         for index, operand in enumerate(required_operands)
-        if _sentence_matches_operand_context(text, operand)
+        if sentence_matches_operand_context(text, operand)
     ]
 
 
@@ -1015,7 +1015,7 @@ class FinancialRetrievalPipelineMixin:
         operand_needles_by_role = [
             [
                 _normalise_spaces(str(needle))
-                for needle in _operand_needles(operand)
+                for needle in operand_needles(operand)
                 if _normalise_spaces(str(needle))
             ]
             for operand in required_operands
@@ -1108,101 +1108,6 @@ class FinancialRetrievalPipelineMixin:
     def _narrative_policy_facets_for_query(self, query: str, key: str) -> List[Dict[str, Any]]:
         return narrative_policy_facets(self._active_narrative_policies_for_query(query), key)
 
-    def _query_focus_marker_groups(self, query: str, *, limit: int = 8) -> List[Dict[str, Any]]:
-        """Extract query-specific entity/policy/concept markers without case IDs."""
-        surface = _normalise_spaces(str(query or ""))
-        if not surface:
-            return []
-
-        groups: List[Dict[str, Any]] = []
-        seen: set[str] = set()
-        marker_policy = dict(QUERY_FOCUS_MARKER_POLICY)
-
-        def _clean_marker(value: str) -> str:
-            marker = _normalise_spaces(value)
-            marker = marker.strip(str(marker_policy.get("strip_chars") or ""))
-            marker = re.sub(str(marker_policy.get("leading_connector_pattern") or r"$^"), "", marker)
-            marker = re.sub(str(marker_policy.get("trailing_connector_pattern") or r"$^"), "", marker)
-            marker = re.sub(str(marker_policy.get("trailing_particle_pattern") or r"$^"), "", marker)
-            return marker.strip()
-
-        def _is_useful_marker(value: str) -> bool:
-            marker = _clean_marker(value)
-            if not marker:
-                return False
-            lowered = marker.lower()
-            if lowered in self._QUERY_FOCUS_STOPWORDS:
-                return False
-            if re.fullmatch(str(marker_policy.get("year_pattern") or r"$^"), marker):
-                return False
-            if marker.isdigit():
-                return False
-            if re.fullmatch(str(marker_policy.get("single_letter_pattern") or r"$^"), marker):
-                return False
-            if len(marker) < 2:
-                return False
-            return True
-
-        def _append_group(variants: List[str]) -> None:
-            cleaned = []
-            for variant in variants:
-                marker = _clean_marker(variant)
-                if not _is_useful_marker(marker):
-                    continue
-                marker_key = marker.lower()
-                if marker_key in {item.lower() for item in cleaned}:
-                    continue
-                cleaned.append(marker)
-            if not cleaned:
-                return
-            key = "|".join(sorted(marker.lower() for marker in cleaned))
-            if key in seen:
-                return
-            seen.add(key)
-            groups.append(
-                {
-                    "label": str(marker_policy.get("label_template") or "{index}").format(index=len(groups) + 1),
-                    "variants": cleaned,
-                    "phrase": "",
-                    "query_focus": True,
-                }
-            )
-
-        for match in re.finditer(str(marker_policy.get("parenthetical_pair_pattern") or r"$^"), surface):
-            left_surface = _clean_marker(match.group(1))
-            for pattern in marker_policy.get("left_context_drop_patterns") or ():
-                left_surface = re.sub(str(pattern), "", left_surface)
-            left = _clean_marker(left_surface.split()[-1])
-            if len(left_surface.split()) > 1 and re.search(r"[가-힣]", left_surface):
-                left = _clean_marker(left_surface)
-            right = _clean_marker(match.group(2))
-            _append_group([left, right])
-
-        for quoted in re.findall(str(marker_policy.get("quoted_pattern") or r"$^"), surface):
-            _append_group([quoted])
-
-        for acronym in re.findall(str(marker_policy.get("acronym_pattern") or r"$^"), surface):
-            _append_group([acronym])
-
-        for token in re.findall(str(marker_policy.get("english_token_pattern") or r"$^"), surface):
-            _append_group([token])
-
-        for token in re.findall(str(marker_policy.get("generic_token_pattern") or r"$^"), surface):
-            if len(token) < 2:
-                continue
-            _append_group([token])
-
-        return groups[:limit]
-
-    def _query_focus_markers(self, query: str, *, limit: int = 8) -> List[str]:
-        markers: List[str] = []
-        for group in self._query_focus_marker_groups(query, limit=limit):
-            for variant in group.get("variants") or []:
-                marker = str(variant).strip()
-                if marker and marker.lower() not in {item.lower() for item in markers}:
-                    markers.append(marker)
-        return markers
-
     def _merge_retry_candidates(self, docs, previous_docs) -> List[tuple[Document, float]]:
         merged: List[tuple[Document, float]] = list(docs)
         seen_chunk_uids = {
@@ -1250,7 +1155,7 @@ class FinancialRetrievalPipelineMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         companies = {company.lower() for company in state.get("companies", [])}
         years = {int(year) for year in state.get("years", [])}
-        topic_terms = _tokenize_terms(state.get("topic") or state["query"])
+        topic_terms = tokenize_terms(state.get("topic") or state["query"])
         section_filter = (state.get("section_filter") or "").strip()
         intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
         format_preference = str(
@@ -1261,11 +1166,11 @@ class FinancialRetrievalPipelineMixin:
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
         desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
-        desired_consolidation = _desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
+        desired_consolidation = desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
         query_years = sorted(years)
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
-        query_focus_markers = (
-            self._query_focus_markers(str(state.get("query") or ""))
+        query_focus_marker_values = (
+            query_focus_markers(str(state.get("query") or ""))
             if operation_family == "narrative_summary"
             else []
         )
@@ -1281,8 +1186,8 @@ class FinancialRetrievalPipelineMixin:
             statement_type = str(metadata.get("statement_type") or "unknown").strip()
             consolidation_scope = str(metadata.get("consolidation_scope") or "unknown").strip()
             period_labels = list(metadata.get("period_labels") or [])
-            body_text = _strip_rerank_metadata(doc.page_content)
-            document_terms = _tokenize_terms(
+            body_text = strip_rerank_metadata(doc.page_content)
+            document_terms = tokenize_terms(
                 " ".join(
                     [
                         body_text,
@@ -1324,7 +1229,7 @@ class FinancialRetrievalPipelineMixin:
                     boosted += 0.12
                 elif consolidation_scope != "unknown":
                     boosted -= 0.18
-            period_match_strength = _metadata_period_match_strength(period_labels, query_years)
+            period_match_strength = metadata_period_match_strength(period_labels, query_years)
             if period_match_strength > 0:
                 boosted += 0.10 * period_match_strength
 
@@ -1344,7 +1249,7 @@ class FinancialRetrievalPipelineMixin:
                 causal_markers = tuple(str(item) for item in (NARRATIVE_RERANK_POLICY.get("causal_markers") or ()))
                 if any(marker in body_text or marker in section_path for marker in causal_markers):
                     boosted += 0.08
-                if query_focus_markers:
+                if query_focus_marker_values:
                     focus_surface = _normalise_spaces(
                         " ".join(
                             part
@@ -1359,7 +1264,7 @@ class FinancialRetrievalPipelineMixin:
                             if part
                         )
                     ).lower()
-                    focus_hits = sum(1 for marker in query_focus_markers if marker.lower() in focus_surface)
+                    focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in focus_surface)
                     if focus_hits:
                         boosted += min(0.08 * focus_hits, 0.32)
 
@@ -1406,7 +1311,7 @@ class FinancialRetrievalPipelineMixin:
         dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
         dividend_policy_period_markers = policy_terms_by_key["policy_period_markers"]
         driver_groups = self._narrative_driver_groups(query)
-        query_focus_markers = self._query_focus_markers(query)
+        query_focus_marker_values = query_focus_markers(query)
         active_subtask = dict(state.get("active_subtask") or {})
         format_preference = str(
             active_subtask.get("format_preference_override")
@@ -1436,7 +1341,7 @@ class FinancialRetrievalPipelineMixin:
             block_type = str(metadata.get("block_type") or "").strip().lower()
             section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
             text = _doc_surface(doc).lower()
-            focus_markers = list(dict.fromkeys([*query_focus_markers, *focus_policy_terms]))
+            focus_markers = list(dict.fromkeys([*query_focus_marker_values, *focus_policy_terms]))
             priority = 0
             if block_type == "paragraph":
                 priority += 3
@@ -1527,7 +1432,7 @@ class FinancialRetrievalPipelineMixin:
             surface_lower = surface.lower()
             content = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
             priority = 0
-            focus_hits = sum(1 for marker in query_focus_markers if marker.lower() in surface_lower)
+            focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in surface_lower)
             priority += min(focus_hits, 6) * 2
             if block_type == "table":
                 priority += 2
@@ -1585,7 +1490,7 @@ class FinancialRetrievalPipelineMixin:
             policy
             for policy in active_policies
             if narrative_policy_terms([policy], "realized_terms")
-            and (narrative_policy_terms([policy], "focus_terms") or query_focus_markers)
+            and (narrative_policy_terms([policy], "focus_terms") or query_focus_marker_values)
         ]
 
         def _policy_realized_priority_for_policy(item: Any, policy: Dict[str, Any]) -> tuple[int, float]:
@@ -1597,7 +1502,7 @@ class FinancialRetrievalPipelineMixin:
             surface_lower = _doc_surface(doc).lower()
             policy_focus_terms = narrative_policy_terms([policy], "focus_terms")
             if not policy_focus_terms:
-                policy_focus_terms = list(query_focus_markers)
+                policy_focus_terms = list(query_focus_marker_values)
             policy_realized_terms = narrative_policy_terms([policy], "realized_terms")
             required_realized_terms = narrative_policy_terms([policy], "required_realized_terms")
             focus_hits = sum(1 for marker in policy_focus_terms if marker.lower() in surface_lower)
@@ -2111,7 +2016,7 @@ class FinancialRetrievalPipelineMixin:
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
         scope_company = str(report_scope.get("company") or "").strip()
-        strict_company_scope = _should_apply_strict_company_scope(companies, report_scope)
+        strict_company_scope = should_apply_strict_company_scope(companies, report_scope)
         if scope_company and strict_company_scope and scope_company not in companies:
             companies = [scope_company, *companies] if companies else [scope_company]
         scope_year_raw = report_scope.get("year")
@@ -2125,7 +2030,7 @@ class FinancialRetrievalPipelineMixin:
             years = [scope_year, *years] if years else [scope_year]
         scope_report_type = str(report_scope.get("report_type") or "").strip()
         scope_rcept_no = str(report_scope.get("rcept_no") or "").strip()
-        scope_source_receipts = _report_scope_source_receipts(report_scope)
+        scope_source_receipts = report_scope_source_receipts(report_scope)
         has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
         section_filter = state.get("section_filter")
@@ -2188,7 +2093,7 @@ class FinancialRetrievalPipelineMixin:
             "numeric_fact",
         }:
             retrieval_intent = "comparison"
-        retrieval_hint = _retrieval_hint_from_topic(query, state.get("topic") or query, retrieval_intent)
+        retrieval_hint = retrieval_hint_from_topic(query, state.get("topic") or query, retrieval_intent)
         preferred_sections = _active_preferred_sections(state, query, state.get("topic") or "", retrieval_intent)
         query_bundle = (
             active_subtask_retrieval_queries
@@ -2257,20 +2162,20 @@ class FinancialRetrievalPipelineMixin:
             "active_subtask_retrieval_query_count": len(active_subtask_retrieval_queries),
             "state_retrieval_query_count": len(retrieval_queries),
         }
-        primary_budget = _query_budget_int(getattr(self, "retrieval_query_budget", 0))
-        query_bundle, query_budget_trace["primary"] = _apply_query_budget(
+        primary_budget = query_budget_int(getattr(self, "retrieval_query_budget", 0))
+        query_bundle, query_budget_trace["primary"] = apply_query_budget(
             list(query_bundle),
             primary_budget,
             dedupe=primary_budget > 0,
         )
-        hint_budget = _query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
-        section_budget = _query_budget_int(getattr(self, "preferred_section_query_budget", 8))
+        hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
+        section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
         retrieval_hint_terms = [item for item in _normalise_spaces(retrieval_hint).split(" ") if item]
-        selected_retrieval_hint_terms, hint_enrichment_trace = _limit_query_context_terms(
+        selected_retrieval_hint_terms, hint_enrichment_trace = limit_query_context_terms(
             retrieval_hint_terms,
             hint_budget,
         )
-        selected_preferred_sections, section_enrichment_trace = _limit_query_context_terms(
+        selected_preferred_sections, section_enrichment_trace = limit_query_context_terms(
             list(preferred_sections or []),
             section_budget,
             strategy="head_tail",
@@ -2304,7 +2209,7 @@ class FinancialRetrievalPipelineMixin:
                 enriched_query = f"{enriched_query} {' '.join(selected_retrieval_hint_terms)}".strip()
             if selected_preferred_sections:
                 enriched_query = f"{enriched_query} {' '.join(selected_preferred_sections)}".strip()
-            if _drop_duplicate_executed_query(
+            if drop_duplicate_executed_query(
                 seen_executed_query_signatures_by_source,
                 executed_duplicate_trace,
                 source="primary",
@@ -2325,7 +2230,7 @@ class FinancialRetrievalPipelineMixin:
                 },
                 "objective_signature": lookup_objective_signature,
             }
-            cached_result = _lookup_query_result_cache(
+            cached_result = lookup_query_result_cache(
                 retrieval_query_result_cache,
                 source="primary",
                 executed_query=enriched_query,
@@ -2352,7 +2257,7 @@ class FinancialRetrievalPipelineMixin:
             search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
             if isinstance(search_telemetry, dict) and search_telemetry:
                 query_trace["search_telemetry"] = dict(search_telemetry)
-            _store_query_result_cache(
+            store_query_result_cache(
                 retrieval_query_result_cache,
                 source="primary",
                 executed_query=enriched_query,
@@ -2363,10 +2268,10 @@ class FinancialRetrievalPipelineMixin:
             )
             docs = batch_docs if not docs else self._merge_retry_candidates(docs, batch_docs)
         focused_operand_queries = _focused_operand_surface_queries(active_subtask, query, report_scope)
-        configured_focused_budget = _query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
+        configured_focused_budget = query_budget_int(getattr(self, "focused_retrieval_query_budget", 0))
         focused_budget = configured_focused_budget or 8
         primary_operand_coverage = _required_operand_coverage_from_docs(docs, active_subtask, query, report_scope)
-        focused_operand_queries, query_budget_trace["operand_focus"] = _apply_query_budget(
+        focused_operand_queries, query_budget_trace["operand_focus"] = apply_query_budget(
             focused_operand_queries,
             focused_budget,
             dedupe=configured_focused_budget > 0,
@@ -2376,7 +2281,7 @@ class FinancialRetrievalPipelineMixin:
         if _has_narrative_sibling_subtask(state, active_subtask):
             skip_blocked_reason = "narrative_sibling_subtask_present"
         if not skip_blocked_reason:
-            focused_operand_queries, duplicate_focus_trace = _drop_queries_already_selected(
+            focused_operand_queries, duplicate_focus_trace = drop_queries_already_selected(
                 focused_operand_queries,
                 query_bundle,
             )
@@ -2406,7 +2311,7 @@ class FinancialRetrievalPipelineMixin:
         if focused_operand_queries:
             focused_docs: List[tuple[Document, float]] = []
             for focused_query in focused_operand_queries:
-                if _drop_duplicate_executed_query(
+                if drop_duplicate_executed_query(
                     seen_executed_query_signatures_by_source,
                     executed_duplicate_trace,
                     source="operand_focus",
@@ -2423,7 +2328,7 @@ class FinancialRetrievalPipelineMixin:
                     "where_filter": where_filter,
                     "objective_signature": lookup_objective_signature,
                 }
-                cached_result = _lookup_query_result_cache(
+                cached_result = lookup_query_result_cache(
                     retrieval_query_result_cache,
                     source="operand_focus",
                     executed_query=focused_query,
@@ -2449,7 +2354,7 @@ class FinancialRetrievalPipelineMixin:
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
-                _store_query_result_cache(
+                store_query_result_cache(
                     retrieval_query_result_cache,
                     source="operand_focus",
                     executed_query=focused_query,
@@ -2461,15 +2366,15 @@ class FinancialRetrievalPipelineMixin:
                 focused_docs.extend(batch_docs)
             if focused_docs:
                 docs = focused_docs if not docs else self._merge_retry_candidates(docs, focused_docs)
-        configured_retry_budget = _query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
+        configured_retry_budget = query_budget_int(getattr(self, "retry_retrieval_query_budget", 0))
         retry_budget = configured_retry_budget or 3
-        retry_queries, query_budget_trace["retry"] = _apply_query_budget(
+        retry_queries, query_budget_trace["retry"] = apply_query_budget(
             retry_queries,
             retry_budget,
             dedupe=configured_retry_budget > 0,
         )
         if not skip_blocked_reason:
-            retry_queries, duplicate_retry_trace = _drop_queries_already_selected(
+            retry_queries, duplicate_retry_trace = drop_queries_already_selected(
                 retry_queries,
                 [*query_bundle, *focused_operand_queries],
             )
@@ -2484,7 +2389,7 @@ class FinancialRetrievalPipelineMixin:
         if retry_queries:
             retry_docs: List[tuple[Document, float]] = []
             for retry_query in retry_queries:
-                if _drop_duplicate_executed_query(
+                if drop_duplicate_executed_query(
                     seen_executed_query_signatures_by_source,
                     executed_duplicate_trace,
                     source="retry",
@@ -2501,7 +2406,7 @@ class FinancialRetrievalPipelineMixin:
                     "where_filter": where_filter,
                     "objective_signature": lookup_objective_signature,
                 }
-                cached_result = _lookup_query_result_cache(
+                cached_result = lookup_query_result_cache(
                     retrieval_query_result_cache,
                     source="retry",
                     executed_query=retry_query,
@@ -2527,7 +2432,7 @@ class FinancialRetrievalPipelineMixin:
                 search_telemetry = getattr(self.vsm, "last_search_telemetry", None)
                 if isinstance(search_telemetry, dict) and search_telemetry:
                     query_trace["search_telemetry"] = dict(search_telemetry)
-                _store_query_result_cache(
+                store_query_result_cache(
                     retrieval_query_result_cache,
                     source="retry",
                     executed_query=retry_query,
@@ -2648,7 +2553,7 @@ class FinancialRetrievalPipelineMixin:
             for item in (state.get("retrieval_debug_trace_history") or [])
             if isinstance(item, dict)
         ]
-        cross_trace_reuse_candidates = _cross_trace_reuse_candidate_diagnostics(
+        cross_trace_reuse_candidates = cross_trace_reuse_candidate_diagnostics(
             [*executed_queries, *reused_queries],
             retrieval_debug_trace_history,
             current_trace_index=len(retrieval_debug_trace_history) + 1,
@@ -2674,7 +2579,7 @@ class FinancialRetrievalPipelineMixin:
             "query_bundle": list(query_bundle),
             "executed_queries": executed_queries,
             "reused_queries": reused_queries,
-            "search_summary": _summarize_executed_query_telemetry(executed_queries),
+            "search_summary": summarize_executed_query_telemetry(executed_queries),
             "where_filter": where_filter,
             "effective_k": effective_k,
             "reflection_count": reflection_count,

@@ -1,9 +1,13 @@
+import inspect
 import json
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Optional
+from unittest.mock import Mock, patch
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -16,8 +20,16 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_aggregate_projection
+from src.agent import financial_answer_projection
+from src.agent import financial_answer_slots
+from src.agent import financial_graph_calculation
+from src.agent import financial_text_surface
+from src.agent import financial_lookup_recovery
+from src.agent import financial_operand_resolution
+from src.agent import financial_runtime_trace
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationOperand,
@@ -79,6 +91,70 @@ class _RecordingVectorStore:
     def search(self, query, k=4, where_filter=None):
         self.queries.append({"query": query, "k": k, "where_filter": where_filter})
         return []
+
+
+def _record_graph_resolver(symbol):
+    results = []
+    resolver = getattr(financial_graph_calculation, symbol)
+
+    def recording_resolver(resolver_input):
+        result = resolver(resolver_input)
+        results.append(result)
+        return result
+
+    return results, patch.object(
+        financial_graph_calculation,
+        symbol,
+        side_effect=recording_resolver,
+    )
+
+
+def _spy_method(target, symbol):
+    return patch.object(target, symbol, wraps=getattr(target, symbol))
+
+
+def _record_aggregate_candidate_packaging():
+    events = []
+    base_packager = financial_graph_calculation.package_aggregate_answer_candidate
+    refreshed_packager = financial_graph_calculation.package_refreshed_aggregate_answer_candidate
+
+    def record_base(*args, **kwargs):
+        events.append("base")
+        return base_packager(*args, **kwargs)
+
+    def record_refreshed(*args, **kwargs):
+        events.append("refreshed")
+        return refreshed_packager(*args, **kwargs)
+
+    return events, patch.object(
+        financial_graph_calculation, "package_aggregate_answer_candidate", side_effect=record_base
+    ), patch.object(
+        financial_graph_calculation,
+        "package_refreshed_aggregate_answer_candidate",
+        side_effect=record_refreshed,
+    )
+
+
+def _record_required_candidate_merges():
+    return _record_graph_resolver("resolve_required_operand_candidate_merge")
+
+
+def _required_candidate_merge_contract(result):
+    return (
+        result.reason,
+        result.candidate_rows_cover_required,
+        result.coherent_candidate_merge_applied,
+    )
+
+
+def _direct_acceptance_contract(result):
+    return (
+        tuple(row.get("evidence_id") for row in result.accepted_operand_rows),
+        result.required_surface_filter_applied,
+        result.pre_lookup_ambiguity_filter_applied,
+        result.lookup_direct_support_filter_applied,
+        result.lookup_ambiguity_filter_applied,
+    )
 
 
 class SubtaskLoopTests(unittest.TestCase):
@@ -189,12 +265,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
     def test_growth_explanatory_signal_ignores_numeric_direction_only_sentence(self) -> None:
         self.assertFalse(
-            self.agent._sentence_has_growth_explanatory_signal(
+            financial_answer_projection.sentence_has_growth_explanatory_signal(
                 "2023 revenue increased 70.28% compared with 2022."
             )
         )
         self.assertTrue(
-            self.agent._sentence_has_growth_explanatory_signal(
+            financial_answer_projection.sentence_has_growth_explanatory_signal(
                 "The reason was weaker demand and stricter risk management."
             )
         )
@@ -370,7 +446,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([stale_prior, narrative])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([stale_prior, narrative])
 
         self.assertEqual(promoted[0]["calculation_result"]["rendered_value"], "(1,847,775) units")
         self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
@@ -617,7 +693,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], supported_answer)
         self.assertEqual(trace["calculation_result"]["formatted_result"], supported_answer)
         self.assertEqual(trace["calculation_result"]["rendered_value"], supported_answer)
@@ -807,11 +883,11 @@ class SubtaskLoopTests(unittest.TestCase):
 
     def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
         self.assertFalse(
-            self.agent._query_requests_explanatory_context(
+            financial_answer_projection.query_requests_explanatory_context(
                 "2023년 CIR을 계산해 줘. 여기서 CIR은 A 대비 B 비율을 의미한다."
             )
         )
-        self.assertTrue(self.agent._query_requests_explanatory_context("2023년 CIR의 의미를 설명해 줘."))
+        self.assertTrue(financial_answer_projection.query_requests_explanatory_context("2023년 CIR의 의미를 설명해 줘."))
 
     def test_dependency_rows_preserve_sibling_operand_source_anchor(self) -> None:
         state = {
@@ -979,9 +1055,35 @@ class SubtaskLoopTests(unittest.TestCase):
             "normalized_value": -11_526_297_000_000.0,
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
+
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
+        with patch.object(financial_graph_calculation, "infer_dependency_row_unit", new=record_unit_owner):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
+        self.assertEqual(unit_callers, ["_build_dependency_operand_rows"] * 2)
+        self.assertEqual(
+            [
+                (
+                    slot.get("raw_value"),
+                    slot.get("normalized_value"),
+                    slot.get("role"),
+                )
+                for slot, _sibling_result in unit_calls
+            ],
+            [
+                ("(11,526,297)", -11_526_297_000_000.0, None),
+                ("6,566,976", 6_566_976_000_000.0, "numerator"),
+            ],
+        )
+        self.assertIs(unit_calls[0][1], unit_calls[1][1])
         self.assertEqual(
             rows[0]["source_anchor"],
             "[ACME | 2023 | III. Financial Statements > 2. Consolidated Financial Statements]",
@@ -1137,11 +1239,84 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        table_lookup = self.agent._lookup_value_from_table_label_metadata
+        table_scorer = financial_graph_calculation.table_label_metadata_lookup_score
+        lookup_calls = []
+        score_calls = []
+        events = []
+
+        def table_score_caller():
+            return next(
+                frame.function
+                for frame in inspect.stack()
+                if frame.function
+                in {"_best_direct_lookup_slot_from_evidence_pool", "_build_dependency_operand_rows"}
+            )
+
+        def record_lookup(binding, evidence):
+            caller = table_score_caller()
+            slot = table_lookup(binding, evidence)
+            lookup_calls.append((caller, binding, evidence, slot))
+            events.append(("lookup", caller, evidence.get("evidence_id"), slot.get("raw_value")))
+            return slot
+
+        def record_score(slot, evidence):
+            caller = table_score_caller()
+            result = table_scorer(slot, evidence)
+            score_calls.append((caller, slot, evidence, result))
+            events.append(("score", caller, evidence.get("evidence_id"), result))
+            return result
+
+        with patch.object(
+            self.agent,
+            "_lookup_value_from_table_label_metadata",
+            side_effect=record_lookup,
+        ), patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=record_score,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "4,145,647")
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_short", "ev_borrowings"])
+        self.assertEqual(
+            events,
+            [
+                ("lookup", "_best_direct_lookup_slot_from_evidence_pool", "ev_borrowings", "4,145,647"),
+                ("score", "_best_direct_lookup_slot_from_evidence_pool", "ev_borrowings", 10.0),
+                ("lookup", "_build_dependency_operand_rows", "ev_borrowings", "4,145,647"),
+                ("score", "_build_dependency_operand_rows", "ev_borrowings", 10.0),
+            ],
+        )
+        for lookup_call, score_call in zip(lookup_calls, score_calls):
+            self.assertEqual(score_call[0], lookup_call[0])
+            self.assertIs(score_call[1], lookup_call[3])
+            self.assertIs(score_call[2], lookup_call[2])
+        original_evidence = state["subtask_results"][0]["runtime_evidence"][0]
+        self.assertIsNot(lookup_calls[1][2], original_evidence)
+        self.assertEqual(lookup_calls[1][2], original_evidence)
+
+        stopped_callers = []
+
+        def stop_at_dependency_score(slot, evidence):
+            caller = table_score_caller()
+            stopped_callers.append(caller)
+            if caller == "_build_dependency_operand_rows":
+                raise RuntimeError("dependency table score stopped")
+            return table_scorer(slot, evidence)
+
+        with patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=stop_at_dependency_score,
+        ), self.assertRaisesRegex(RuntimeError, "dependency table score stopped"):
+            self.agent._build_dependency_operand_rows(state)
+        self.assertEqual(
+            stopped_callers,
+            ["_best_direct_lookup_slot_from_evidence_pool", "_build_dependency_operand_rows"],
+        )
 
     def test_dependency_rows_repair_prior_task_output_from_period_table_context(self) -> None:
         period_table_evidence = {
@@ -1333,7 +1508,6 @@ class SubtaskLoopTests(unittest.TestCase):
             "source_row_ids": ["ev_target"],
             "consolidation_scope": "separate",
         }
-        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda binding, _pool, state=None, preferred_raw_units=None: (dict(separate_slot), 10.0)
             if binding.get("label") == "target metric"
@@ -1457,9 +1631,22 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with (
+            _spy_method(
+                self.agent, "_build_period_comparison_operands_from_table_label_context"
+            ) as build_context,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_recovered_operand_context_adoption",
+            ) as context_adoption,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        self.assertEqual(state, state_before)
+        build_context.assert_called_once()
+        context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(len(trace["calculation_operands"]), 2)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
@@ -1467,7 +1654,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "growth_rate")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -1757,7 +1944,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        aligned = self.agent._align_growth_operand_units_when_raw_scale_matches(rows)
+        aligned = financial_operand_resolution.align_growth_operand_units_when_raw_scale_matches(rows)
         prior = next(row for row in aligned if row["operand_id"] == "prior")
 
         self.assertEqual(prior["raw_unit"], "백만원")
@@ -2122,16 +2309,29 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with (
+            _spy_method(
+                self.agent, "_build_complete_ratio_operands_from_coherent_context"
+            ) as build_context,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_recovered_operand_context_adoption",
+            ) as context_adoption,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        self.assertEqual(state, state_before)
+        build_context.assert_called_once()
+        context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["numerator_1", "denominator_1"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "ratio")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -2321,7 +2521,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -2376,12 +2576,203 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: [dict(ambiguous_row)]
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
+        state_before = deepcopy(state)
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with (
+            acceptance_patch,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                wraps=financial_graph_calculation.resolve_post_coercion_llm_direct_support,
+            ) as lookup_direct_support,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_operand_selection",
+                wraps=financial_graph_calculation.resolve_post_coercion_llm_operand_selection,
+            ) as operand_selection,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            ((), False, False, False, True),
+        )
+        lookup_direct_support.assert_not_called()
+        operand_selection.assert_not_called()
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
+
+        nonlookup_state = deepcopy(state)
+        nonlookup_state["active_subtask"] = {
+            "task_id": "task_difference",
+            "metric_family": "generic_numeric",
+            "operation_family": "difference",
+        }
+        nonlookup_before = deepcopy(nonlookup_state)
+        self.agent._direct_target_metric_operand_from_evidence = lambda *_args, **_kwargs: (None, {})
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance:
+            nonlookup_extracted = self.agent._extract_calculation_operands(nonlookup_state)
+        nonlookup_rows = resolve_runtime_calculation_trace(nonlookup_extracted)["calculation_operands"]
+
+        resolve_direct_acceptance.assert_not_called()
+        self.assertEqual(nonlookup_state, nonlookup_before)
+        self.assertEqual(nonlookup_rows[0]["evidence_id"], "ev_context_table")
+
+    def test_lookup_post_coercion_selection_preserves_stage_order_and_catches_errors(self) -> None:
+        required_operand = {"label": "target metric", "concept": "target_metric", "role": "primary_value"}
+        evidence_ids = ("llm_scope", "llm_unsupported", "llm_kept")
+        state = {
+            "query": "Return the target metric.",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "required_operands": [required_operand],
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": evidence_id,
+                    "claim": f"target metric {index}",
+                    "source_anchor": "[Example | 2023]",
+                }
+                for index, evidence_id in enumerate(evidence_ids, start=1)
+            ],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {"status": "ready"},
+            "calc_subtasks": [],
+        }
+        response = OperandExtraction(
+            coverage="sufficient",
+            operands=[
+                CalculationOperand(
+                    operand_id=f"model_{index}",
+                    evidence_id=evidence_id,
+                    source_anchor="[Example | 2023]",
+                    label="target metric",
+                    raw_value=str(index),
+                    raw_unit="KRW",
+                    normalized_value=float(index),
+                    normalized_unit="KRW",
+                    period="2023",
+                )
+                for index, evidence_id in enumerate(evidence_ids, start=1)
+            ],
+        )
+        selection_active = {"value": False}
+
+        class _ActivatingLLM:
+            def with_structured_output(self, _schema):
+                def _invoke(_prompt_value):
+                    selection_active["value"] = True
+                    return response
+
+                return RunnableLambda(_invoke)
+
+        self.agent.llm = _ActivatingLLM()
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        state_before = deepcopy(state)
+        events = []
+        original_coerce = self.agent._coerce_operand_row_from_evidence
+        original_selection = financial_graph_calculation.resolve_post_coercion_llm_operand_selection
+
+        def scope_conflicts(evidence_item, _desired_scope):
+            evidence_id = str(evidence_item.get("evidence_id") or "")
+            if selection_active["value"] and evidence_id in evidence_ids:
+                events.append(("scope", evidence_id))
+                return evidence_id == "llm_scope"
+            return False
+
+        def coerce(row, evidence_item):
+            evidence_id = str(row.get("evidence_id") or "")
+            events.append(("coerce", evidence_id, row.get("operand_id")))
+            return original_coerce(row, evidence_item)
+
+        def direct_support(support_input):
+            evidence_id = str(support_input.operand_row.get("evidence_id") or "")
+            events.append(("support", evidence_id))
+            accepted = evidence_id != "llm_unsupported"
+            return financial_operand_resolution.PostCoercionLlmDirectSupportResult(
+                support_input.operand_row,
+                accepted,
+                "direct_support_present" if accepted else "missing_direct_support",
+            )
+
+        def select_operands(selection_input):
+            events.append(
+                ("batch", tuple(row.get("evidence_id") for row in selection_input.operand_rows))
+            )
+            return original_selection(selection_input)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "evidence_item_conflicts_requested_scope",
+                side_effect=scope_conflicts,
+            ),
+            patch.object(self.agent, "_coerce_operand_row_from_evidence", side_effect=coerce),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                side_effect=direct_support,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_operand_selection",
+                side_effect=select_operands,
+            ),
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+
+        rows = resolve_runtime_calculation_trace(extracted)["calculation_operands"]
+        self.assertEqual(state, state_before)
+        self.assertEqual([row["evidence_id"] for row in rows], ["llm_kept"])
+        self.assertEqual(rows[0]["operand_id"], "op_003")
+        self.assertEqual(
+            events,
+            [
+                ("scope", "llm_scope"),
+                ("scope", "llm_unsupported"),
+                ("coerce", "llm_unsupported", "op_002"),
+                ("support", "llm_unsupported"),
+                ("scope", "llm_kept"),
+                ("coerce", "llm_kept", "op_003"),
+                ("support", "llm_kept"),
+                ("batch", ("llm_kept",)),
+            ],
+        )
+
+        self.agent.llm = _StubLLM(response)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "evidence_item_conflicts_requested_scope",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                side_effect=RuntimeError("post-coercion support failed"),
+            ),
+        ):
+            failed = self.agent._extract_calculation_operands(state)
+        failed_trace = resolve_runtime_calculation_trace(failed)
+        self.assertEqual(
+            (state, failed["evidence_status"], failed_trace.get("calculation_operands", [])),
+            (state_before, "missing", []),
+        )
+        self.assertIn("post-coercion support failed", failed["calculation_debug_trace"]["error"])
 
     def test_lookup_allows_context_dependent_table_when_scope_requested(self) -> None:
         scoped_row = {
@@ -2440,11 +2831,25 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: [dict(scoped_row)]
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(scoped_evidence)]
+        state_before = deepcopy(state)
+        row_before = deepcopy(scoped_row)
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with acceptance_patch:
+            extracted = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(scoped_row, row_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            (("ev_context_table",), True, True, True, True),
+        )
         self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["evidence_id"], "ev_context_table")
         self.assertEqual(trace["calculation_operands"][0]["raw_value"], "(718,937)")
 
     def test_ratio_rejects_context_dependent_table_operand_when_scope_not_requested(self) -> None:
@@ -2539,13 +2944,26 @@ class SubtaskLoopTests(unittest.TestCase):
             dict(income_evidence),
             dict(ambiguous_evidence),
         ]
+        state_before = deepcopy(state)
+        rows_before = deepcopy([numerator_row, ambiguous_denominator_row])
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with acceptance_patch:
+            extracted = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands = list(trace.get("calculation_operands") or [])
         debug_operands = list((extracted.get("calculation_debug_trace") or {}).get("operands") or [])
         all_rows = operands + debug_operands
 
+        self.assertEqual(state, state_before)
+        self.assertEqual([numerator_row, ambiguous_denominator_row], rows_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            (("ev_income",), True, True, False, False),
+        )
         self.assertFalse(any(row.get("raw_value") == "(1,180,096)" for row in all_rows))
 
     def test_ratio_rejects_direct_rows_when_consolidation_scope_conflicts(self) -> None:
@@ -2637,7 +3055,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -2699,7 +3117,15 @@ class SubtaskLoopTests(unittest.TestCase):
                     },
                 ],
             },
-            "evidence_items": [],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "source_anchor": "[ACME | 2023 | overview]",
+                    "claim": "Narrative context only.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
             "retrieved_docs": [],
             "seed_retrieved_docs": [],
             "reconciliation_result": {"status": "ready"},
@@ -2716,7 +3142,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -2779,7 +3205,15 @@ class SubtaskLoopTests(unittest.TestCase):
                     ],
                 }
             ],
-            "evidence_items": [],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "source_anchor": "[ACME | 2023 | overview]",
+                    "claim": "Narrative context only.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
             "retrieved_docs": [],
             "seed_retrieved_docs": [],
             "reconciliation_result": {"status": "ready"},
@@ -2795,7 +3229,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
@@ -2855,12 +3289,36 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, [])
+        owner_inputs = []
+        current_owner = financial_graph_calculation.align_ratio_operand_units_with_shared_table_context
 
+        def record_owner(rows):
+            owner_inputs.append(rows)
+            return [
+                {**row, "shared_table_alignment_owner_marker": True}
+                for row in current_owner(rows)
+            ]
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=record_owner,
+        ) as alignment_owner:
+            aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, [])
+            single_operand = [ordered_operands[0]]
+            self.assertIs(
+                self.agent._align_ratio_operands_with_sibling_table_context(single_operand, []),
+                single_operand,
+            )
+
+        alignment_owner.assert_called_once()
+        self.assertIs(owner_inputs[0], ordered_operands)
         self.assertEqual(aligned[1]["raw_unit"], larger_unit)
         self.assertEqual(aligned[1]["original_raw_unit"], smaller_unit)
         self.assertEqual(aligned[1]["normalized_value"], 258_935_494 * scale_by_unit[larger_unit])
         self.assertTrue(aligned[1]["ratio_unit_aligned_from_sibling_table"])
+        self.assertTrue(aligned[0]["shared_table_alignment_owner_marker"])
+        self.assertTrue(aligned[1]["shared_table_alignment_owner_marker"])
 
     def test_ratio_operand_alignment_rejects_direct_candidate_with_conflicting_scope(self) -> None:
         ordered_operands = [
@@ -2919,12 +3377,54 @@ class SubtaskLoopTests(unittest.TestCase):
             lambda _operand, _pool, state=None, preferred_raw_units=None: (dict(direct_slot), 10.0)
         )
 
-        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, evidence_items)
+        owner_inputs = []
+        current_owner = financial_graph_calculation.align_ratio_operand_units_with_shared_table_context
 
+        def record_owner(rows):
+            owner_inputs.append(rows)
+            return [
+                {**row, "shared_table_alignment_owner_order": len(owner_inputs)}
+                for row in current_owner(rows)
+            ]
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=record_owner,
+        ) as alignment_owner:
+            aligned = self.agent._align_ratio_operands_with_sibling_table_context(
+                ordered_operands,
+                evidence_items,
+            )
+            direct_slot["consolidation_scope"] = "consolidated"
+            realigned = self.agent._align_ratio_operands_with_sibling_table_context(
+                ordered_operands,
+                evidence_items,
+            )
+
+        self.assertEqual(alignment_owner.call_count, 2)
+        self.assertIs(owner_inputs[0], ordered_operands)
+        self.assertIsNot(owner_inputs[1], ordered_operands)
+        self.assertTrue(owner_inputs[1][0]["sibling_table_context_realigned"])
         self.assertEqual(aligned[0]["raw_value"], "120")
         self.assertEqual(aligned[0]["normalized_value"], 120.0)
         self.assertEqual(aligned[0]["source_row_ids"], ["task_output:numerator", "ev_consolidated_numerator"])
         self.assertNotIn("sibling_table_context_realigned", aligned[0])
+        self.assertEqual(aligned[0]["shared_table_alignment_owner_order"], 1)
+        self.assertEqual(realigned[0]["raw_value"], "70")
+        self.assertTrue(realigned[0]["sibling_table_context_realigned"])
+        self.assertEqual(realigned[0]["shared_table_alignment_owner_order"], 2)
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=RuntimeError("shared-table owner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "shared-table owner failed"):
+                self.agent._align_ratio_operands_with_sibling_table_context(
+                    ordered_operands,
+                    evidence_items,
+                )
 
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {
@@ -3105,9 +3605,32 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent.llm = None
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "sync_aggregate_projection_final_answer",
+            wraps=financial_graph_calculation.sync_aggregate_projection_final_answer,
+        ) as final_answer_sync, patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_answer_candidate",
+            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+        ) as candidate_apply, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            wraps=financial_graph_calculation.synchronize_aggregate_artifact_projection_payload,
+        ) as artifact_payload_sync:
+            updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
+        candidate_apply.assert_not_called()
+        artifact_payload_sync.assert_not_called()
+        final_answer_sync.assert_called_once()
+        self.assertEqual(
+            (
+                final_answer_sync.call_args.args[0].sync_rendered_for_aggregate,
+                final_answer_sync.call_args.args[0].status_ok,
+            ),
+            (True, True),
+        )
         self.assertIn("37.47%", updated["answer"])
         self.assertNotIn("0.04%", updated["answer"])
         self.assertIn("37.47%", trace["calculation_result"]["formatted_result"])
@@ -3118,6 +3641,156 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertIn("37.47%", trace_ratio_row["answer"])
         self.assertNotIn("0.04%", trace_ratio_row["answer"])
+
+    def test_ratio_projection_fallback_syncs_prepared_artifact_payload_once(self) -> None:
+        def projection():
+            return {
+                "calculation_operands": [{"operand_id": "num"}],
+                "calculation_plan": {"operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "80%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "components_by_group": {
+                            "numerator": [{"label": "numerator", "raw_value": "80"}],
+                            "denominator": [{"label": "denominator", "raw_value": "100"}],
+                        },
+                    },
+                },
+            }
+
+        original_artifacts = [
+            {
+                "artifact_id": "aggregate:001",
+                "summary": "stale",
+                "payload": {"preserve": True},
+            }
+        ]
+        original_artifacts_before = deepcopy(original_artifacts)
+        aggregate_projection = projection()
+        owner = financial_graph_calculation.synchronize_aggregate_artifact_projection_payload
+        owner_events = []
+        owner_results = []
+
+        def record_owner(sync_input):
+            owner_events.append(
+                (
+                    sync_input.artifacts,
+                    sync_input.artifact_id,
+                    sync_input.final_answer,
+                    sync_input.aggregate_projection["calculation_result"]["formatted_result"],
+                    sync_input.aggregate_projection,
+                )
+            )
+            result = owner(sync_input)
+            owner_results.append(result)
+            return result
+
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ) as formatter, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=record_owner,
+        ) as artifact_owner:
+            updated_projection, final_answer, updated_artifacts = (
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    aggregate_projection,
+                    final_answer="stale answer",
+                    artifacts=original_artifacts,
+                    artifact_id="aggregate:001",
+                )
+            )
+
+        formatter.assert_called_once()
+        artifact_owner.assert_called_once()
+        prepared_artifacts, artifact_id, owner_answer, formatted_result, owner_projection = owner_events[0]
+        self.assertIsNot(prepared_artifacts, original_artifacts)
+        self.assertIsNot(prepared_artifacts[0], original_artifacts[0])
+        self.assertEqual(
+            (artifact_id, owner_answer, formatted_result),
+            ("aggregate:001", "target share is 80%.", "target share is 80%."),
+        )
+        self.assertIs(owner_projection, aggregate_projection)
+        self.assertIs(updated_projection, aggregate_projection)
+        self.assertEqual(final_answer, "target share is 80%.")
+        self.assertIs(updated_artifacts, owner_results[0].artifacts)
+        self.assertIsNot(updated_artifacts, prepared_artifacts)
+        self.assertIsNot(updated_artifacts[0], prepared_artifacts[0])
+        self.assertEqual(updated_artifacts[0]["summary"], "target share is 80%.")
+        self.assertEqual(updated_artifacts[0]["payload"]["final_answer"], final_answer)
+        self.assertEqual(original_artifacts, original_artifacts_before)
+
+        empty_projection = projection()
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ), patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=record_owner,
+        ) as empty_owner:
+            _, _, empty_artifacts = self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                {},
+                empty_projection,
+                final_answer="stale answer",
+                artifacts=[],
+                artifact_id="aggregate:001",
+            )
+        empty_owner.assert_called_once()
+        self.assertEqual(owner_events[1][0], [])
+        self.assertIs(owner_events[1][4], empty_projection)
+        self.assertIs(empty_artifacts, owner_results[1].artifacts)
+
+        raising_projection = projection()
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ), patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=RuntimeError("artifact owner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "artifact owner failed"):
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    raising_projection,
+                    final_answer="stale answer",
+                    artifacts=[],
+                    artifact_id="aggregate:001",
+                )
+        self.assertEqual(
+            raising_projection["calculation_result"]["formatted_result"],
+            "target share is 80%.",
+        )
+
+        for case_name, artifacts, artifact_id in (
+            ("none", None, "aggregate:001"),
+            ("blank_id", original_artifacts, ""),
+        ):
+            with self.subTest(owner_zero=case_name), patch.object(
+                self.agent,
+                "_compact_ratio_answer_from_projection",
+                return_value="target share is 80%.",
+            ), patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_artifact_projection_payload",
+                side_effect=AssertionError("artifact owner must stay lazy"),
+            ) as artifact_owner:
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    projection(),
+                    final_answer="stale answer",
+                    artifacts=artifacts,
+                    artifact_id=artifact_id,
+                )
+            artifact_owner.assert_not_called()
 
     def test_aggregate_recovers_ratio_from_retrieved_same_table_context(self) -> None:
         stale_lookup_rows = [
@@ -3238,17 +3911,73 @@ class SubtaskLoopTests(unittest.TestCase):
             "seed_retrieved_docs": [],
         }
 
-        prepared = self.agent._prepare_initial_aggregate_state(state)
+        signature_owner = financial_graph_calculation.aggregate_result_signature
+        append_owner = self.agent._append_ratio_result_from_retrieved_context
+        append_active = [False]
+        append_input_rows = []
+        append_signature_rows = []
+
+        def record_signature(row):
+            if append_active[0]:
+                append_signature_rows.append(row)
+            return signature_owner(row)
+
+        def record_append(ordered_results, append_state):
+            append_input_rows.append(ordered_results)
+            append_active[0] = True
+            try:
+                return append_owner(ordered_results, append_state)
+            finally:
+                append_active[0] = False
+
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            side_effect=record_signature,
+        ), patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_signature",
+            side_effect=record_signature,
+        ), patch.object(
+            self.agent,
+            "_append_ratio_result_from_retrieved_context",
+            side_effect=record_append,
+        ):
+            prepared = self.agent._prepare_initial_aggregate_state(state)
+
+        self.assertEqual(len(append_input_rows), 1)
+        self.assertEqual(len(append_signature_rows), 5)
+        candidate_row, appended_filter, appended_value, preserved_first, preserved_second = append_signature_rows
+        self.assertEqual(candidate_row["task_id"], "task_ratio")
+        self.assertIs(appended_filter, appended_value)
+        self.assertTrue(appended_filter.get("recovered_from_retrieved_ratio_context"))
+        self.assertIs(preserved_first, append_input_rows[0][0])
+        self.assertIs(preserved_second, append_input_rows[0][1])
 
         self.assertIn("37.47%", prepared.complete_numeric_answer)
         self.assertIn("37.47%", prepared.fallback_answer)
         self.assertIn("4,355억원", prepared.complete_numeric_answer)
         self.assertNotIn("435,542천원", prepared.complete_numeric_answer)
         self.assertNotIn("435,542천원", prepared.fallback_answer)
-        projection = self.agent._rebuild_aggregate_projection(
-            prepared.ordered_results,
-            prepared.complete_numeric_answer,
-        )
+        with patch.object(
+            financial_graph_calculation,
+            "filter_aggregate_projection_provenance",
+            wraps=financial_graph_calculation.filter_aggregate_projection_provenance,
+        ) as provenance_filter:
+            projection = self.agent._rebuild_aggregate_projection(
+                prepared.ordered_results,
+                prepared.complete_numeric_answer,
+            )
+            provenance_filter.assert_not_called()
+            empty_kept_projection = self.agent._rebuild_aggregate_projection(
+                prepared.ordered_results,
+                prepared.complete_numeric_answer,
+                kept_evidence_ids=[],
+            )
+        provenance_filter.assert_called_once()
+        provenance_input = provenance_filter.call_args.args[0]
+        self.assertEqual(provenance_input.kept_evidence_ids, [])
+        self.assertEqual(empty_kept_projection, projection)
         projection_operands = projection["calculation_operands"]
         self.assertEqual(
             {(row["matched_operand_role"], row["raw_value"], row["raw_unit"]) for row in projection_operands},
@@ -3389,13 +4118,106 @@ class SubtaskLoopTests(unittest.TestCase):
             "seed_retrieved_docs": [],
         }
 
-        prepared = self.agent._prepare_initial_aggregate_state(state)
+        owner_events = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
+
+        def record_repair(row):
+            owner_events.append(str(row.get("operand_id") or ""))
+            return current_repair(row)
+
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
+
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=record_repair,
+            ) as repair_owner,
+            patch.object(
+                financial_graph_calculation,
+                "infer_dependency_row_unit",
+                new=record_unit_owner,
+            ),
+        ):
+            prepared = self.agent._prepare_initial_aggregate_state(state)
+            owner_call_count = repair_owner.call_count
+            unit_owner_call_count = len(unit_calls)
+            empty_results = []
+            self.assertIs(
+                self.agent._append_ratio_result_from_task_outputs(
+                    empty_results,
+                    {"calc_subtasks": []},
+                ),
+                empty_results,
+            )
+            self.assertIs(
+                self.agent._append_ratio_result_from_retrieved_context(
+                    empty_results,
+                    {"calc_subtasks": []},
+                ),
+                empty_results,
+            )
+
+        self.assertEqual(repair_owner.call_count, owner_call_count)
+        self.assertEqual(len(unit_calls), unit_owner_call_count)
+        self.assertEqual(
+            unit_callers,
+            ["_append_ratio_result_from_retrieved_context"] * 2
+            + ["_append_ratio_result_from_task_outputs"] * 2,
+        )
+        self.assertEqual(
+            [
+                (
+                    slot.get("role"),
+                    slot.get("raw_value"),
+                    sibling_result.get("result_unit"),
+                )
+                for slot, sibling_result in unit_calls
+            ],
+            [
+                ("numerator_1", "181,624,107", None),
+                ("denominator_1", "342,736,271", None),
+                ("numerator_1", "181,624,107", None),
+                ("denominator_1", "342,736,271", None),
+            ],
+        )
+        self.assertEqual(
+            owner_events,
+            [
+                "aggregate_dep_task_numerator",
+                "aggregate_dep_task_denominator",
+                "aggregate_task_output_task_numerator_001",
+                "aggregate_task_output_task_denominator_002",
+            ],
+        )
 
         self.assertNotIn("2%", prepared.complete_numeric_answer)
         self.assertFalse(
             any(row.get("recovered_from_retrieved_ratio_context") for row in prepared.ordered_results)
         )
         self.assertNotIn("259,611천원", prepared.complete_numeric_answer)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=RuntimeError("rendered-unit owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "ratio_result_projection",
+            ) as later_projection,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rendered-unit owner failed"):
+                self.agent._append_ratio_result_from_task_outputs(dependency_rows, state)
+        later_projection.assert_not_called()
 
     def test_dependency_rows_keep_task_output_when_sibling_context_candidate_conflicts(self) -> None:
         state = {
@@ -3468,66 +4290,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(by_role["denominator_1"]["raw_value"], "342,736,271")
         self.assertNotEqual(by_role["numerator_1"]["raw_value"], "259,611")
         self.assertNotEqual(by_role["denominator_1"]["raw_value"], "12,966,955")
-
-    def test_period_comparison_allows_direct_rows_over_weak_unit_repaired_task_output(self) -> None:
-        dependency_rows = [
-            {
-                "matched_operand_role": "current_period",
-                "label": "selected metric",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3_146_409_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "task_output:current",
-                "source_row_ids": ["task_output:current", "current_cell"],
-                "source_task_id": "current",
-                "dependency_resolved": True,
-            },
-            {
-                "matched_operand_role": "prior_period",
-                "label": "selected metric",
-                "raw_value": "54",
-                "raw_unit": "백만원",
-                "normalized_value": 54_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "task_output:prior",
-                "source_row_ids": ["task_output:prior", "weak_cell"],
-                "source_task_id": "prior",
-                "dependency_resolved": True,
-                "source_raw_unit": "",
-                "source_normalized_value": 54.0,
-                "unit_normalization_repair_source": "alternate_table_krw_surface",
-            },
-        ]
-        direct_rows = [
-            {
-                "matched_operand_role": "current_period",
-                "label": "selected metric",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3_146_409_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "table_current",
-                "table_source_id": "period_table",
-            },
-            {
-                "matched_operand_role": "prior_period",
-                "label": "selected metric",
-                "raw_value": "1,847,775",
-                "raw_unit": "백만원",
-                "normalized_value": 1_847_775_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "table_prior",
-                "table_source_id": "period_table",
-            },
-        ]
-
-        conflicts = self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
-            dependency_rows,
-            direct_rows,
-        )
-
-        self.assertFalse(conflicts)
 
     def test_task_output_ratio_can_replace_conflicting_retrieved_context_without_inputs(self) -> None:
         numerator_row = self._lookup_result_row(
@@ -3730,10 +4492,24 @@ class SubtaskLoopTests(unittest.TestCase):
                 "metadata": {"table_value_labels_text": "목표값 100\n기준값 1,000"},
             },
         ]
-        original_context_docs = self.agent._retrieval_context_docs
+        original_context_docs = financial_graph_calculation.collect_retrieval_context_docs
         original_context_evidence = self.agent._ratio_operand_context_evidence_from_docs
         original_build_context = self.agent._build_complete_ratio_operands_from_coherent_context
-        self.agent._retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
+        signature_owner = financial_aggregate_projection.aggregate_result_signature
+        signature_spy = Mock(wraps=signature_owner)
+        signature_patcher = patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            signature_spy,
+        )
+        owner_signature_patcher = patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_signature",
+            signature_spy,
+        )
+        signature_patcher.start()
+        owner_signature_patcher.start()
+        financial_graph_calculation.collect_retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
         self.agent._ratio_operand_context_evidence_from_docs = lambda *_args, **_kwargs: context_evidence
         self.agent._build_complete_ratio_operands_from_coherent_context = lambda *_args, **_kwargs: context_rows
         try:
@@ -3783,8 +4559,11 @@ class SubtaskLoopTests(unittest.TestCase):
                     ],
                 },
             )
+            appended = self.agent._append_ratio_result_from_retrieved_context([], base_state)
         finally:
-            self.agent._retrieval_context_docs = original_context_docs
+            signature_patcher.stop()
+            owner_signature_patcher.stop()
+            financial_graph_calculation.collect_retrieval_context_docs = original_context_docs
             self.agent._ratio_operand_context_evidence_from_docs = original_context_evidence
             self.agent._build_complete_ratio_operands_from_coherent_context = original_build_context
 
@@ -3792,32 +4571,157 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertFalse(updated[0].get("recovered_from_retrieved_ratio_context"))
         self.assertEqual(updated[0]["calculation_result"]["result_value"], 25.0)
         self.assertEqual(artifact_updated, [])
-        preferred_artifact_row = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
-            {
-                "artifacts": [
-                    {
-                        "artifact_id": "result:task_ratio:001",
-                        "task_id": "task_ratio",
-                        "kind": "calculation_result",
-                        "status": "ok",
-                        "summary": "25.00%",
-                        "payload": {
-                            "calculation_result": {
-                                "status": "ok",
-                                "operation_family": "ratio",
-                                "result_value": 25.0,
-                                "result_unit": "%",
-                                "rendered_value": "25.00%",
-                            }
-                        },
-                    }
-                ]
-            },
-            {"task_id": "task_ratio", "metric_family": "concept_ratio", "metric_label": metric_label},
-            {"status": "ok", "operation_family": "ratio", "result_value": 10.0},
-        )
+        self.assertEqual(signature_spy.call_count, 7)
+        (
+            candidate_row,
+            existing_arg,
+            artifact_candidate,
+            artifact_row,
+            append_candidate,
+            appended_filter,
+            appended_value,
+        ) = [
+            call.args[0] for call in signature_spy.call_args_list
+        ]
+        self.assertIs(existing_arg, existing_row)
+        self.assertEqual(candidate_row, artifact_candidate)
+        self.assertIsNot(candidate_row, artifact_candidate)
+        self.assertEqual(candidate_row["task_id"], "task_ratio")
+        self.assertTrue(artifact_row.get("artifact_backed_complete_result"))
+        self.assertEqual(append_candidate, candidate_row)
+        self.assertIs(appended_filter, appended_value)
+        self.assertIs(appended_filter, appended[0])
+
+        conflict_task = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": metric_label,
+        }
+        conflict_context = [{"evidence_id": "ctx", "claim": "context without the metric surface"}]
+        incomplete_row = deepcopy(existing_row)
+        incomplete_row["calculation_result"]["answer_slots"]["components_by_group"] = {}
+        with patch.object(financial_aggregate_projection, "ratio_context_has_metric_surface") as metric_surface_owner:
+            for rows, result_value in (([incomplete_row], 10.0), ([existing_row], 25.0)):
+                self.assertFalse(
+                    financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                        rows,
+                        conflict_task,
+                        result_value=result_value,
+                        context_evidence=conflict_context,
+                    )
+                )
+        metric_surface_owner.assert_not_called()
+
+        for owner_result, expected_conflict in ((False, True), (True, False)):
+            with self.subTest(metric_surface=owner_result), patch.object(
+                financial_aggregate_projection,
+                "ratio_context_has_metric_surface",
+                return_value=owner_result,
+            ) as metric_surface_owner:
+                self.assertEqual(
+                    financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                        [existing_row],
+                        conflict_task,
+                        result_value=10.0,
+                        context_evidence=conflict_context,
+                    ),
+                    expected_conflict,
+                )
+            metric_surface_owner.assert_called_once()
+            context_arg, task_arg = metric_surface_owner.call_args.args
+            self.assertIs(context_arg, conflict_context)
+            self.assertIs(task_arg, conflict_task)
+
+        class LaterRow(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("later row accessed")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "ratio_context_has_metric_surface",
+            side_effect=RuntimeError("metric surface owner failed"),
+        ) as metric_surface_owner:
+            with self.assertRaisesRegex(RuntimeError, "metric surface owner failed"):
+                financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                    [existing_row, LaterRow()],
+                    conflict_task,
+                    result_value=10.0,
+                    context_evidence=conflict_context,
+                )
+        metric_surface_owner.assert_called_once()
+
+        artifact_state = {
+            "artifacts": [
+                {
+                    "artifact_id": "result:task_ratio:001",
+                    "task_id": "task_ratio",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "summary": "25.00%",
+                    "payload": {
+                        "calculation_result": {
+                            "status": "ok",
+                            "operation_family": "ratio",
+                            "result_value": 25.0,
+                            "result_unit": "%",
+                            "rendered_value": "25.00%",
+                        }
+                    },
+                }
+            ]
+        }
+        artifact_task = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": metric_label,
+        }
+        recalculated_result = {"status": "ok", "operation_family": "ratio", "result_value": 10.0}
+        artifact_inputs_before = deepcopy([artifact_state, artifact_task, recalculated_result])
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "ratio_result_rows_from_task_artifacts",
+                wraps=financial_graph_calculation.ratio_result_rows_from_task_artifacts,
+            ) as artifact_builder,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_ratio_artifact_conflict_selection",
+                wraps=financial_graph_calculation.resolve_ratio_artifact_conflict_selection,
+            ) as artifact_owner,
+        ):
+            preferred_artifact_row = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                artifact_state,
+                artifact_task,
+                recalculated_result,
+            )
+        artifact_builder.assert_called_once_with(artifact_state, artifact_task)
+        artifact_owner.assert_called_once()
+        owner_input = artifact_owner.call_args.args[0]
+        self.assertEqual((len(owner_input.artifact_rows), owner_input.recalculated_value), (1, 10.0))
+        self.assertEqual([artifact_state, artifact_task, recalculated_result], artifact_inputs_before)
         self.assertTrue(preferred_artifact_row.get("artifact_ratio_result_preserved_over_alignment"))
         self.assertEqual(preferred_artifact_row["calculation_result"]["result_value"], 25.0)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "ratio_result_rows_from_task_artifacts",
+                wraps=financial_graph_calculation.ratio_result_rows_from_task_artifacts,
+            ) as invalid_builder,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_ratio_artifact_conflict_selection",
+                wraps=financial_graph_calculation.resolve_ratio_artifact_conflict_selection,
+            ) as invalid_owner,
+        ):
+            invalid = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                artifact_state,
+                artifact_task,
+                {"status": "ok", "result_value": "not-a-number"},
+            )
+        self.assertEqual(invalid, {})
+        invalid_builder.assert_not_called()
+        invalid_owner.assert_not_called()
 
     def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
         state = {
@@ -3947,7 +4851,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = None
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("9.00%p", updated["answer"])
         self.assertNotIn("7.50%p", updated["answer"])
@@ -4085,7 +4989,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = None
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("9.00%p", updated["answer"])
         self.assertNotIn("0.01%p", updated["answer"])
@@ -4096,7 +5000,96 @@ class SubtaskLoopTests(unittest.TestCase):
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
 
+    def test_initial_aggregate_state_uses_numeric_outside_reference_owner(self) -> None:
+        fallback_answer = "target share is 10%."
+        complete_answer = "target share is 20%."
+        row = {"task_id": "task_ratio", "operation_family": "ratio", "answer": fallback_answer}
+        state = {
+            "calc_subtasks": [{"task_id": "task_ratio"}],
+            "subtask_results": [row],
+        }
+
+        def preserve_rows(rows, *_args):
+            return rows
+
+        complete_owner = Mock(return_value=complete_answer)
+        replacement_gate = Mock(return_value=True)
+        later_composer = Mock(return_value="")
+        patched_owners = {
+            "_capture_current_subtask_result": Mock(return_value={}),
+            "_recover_lookup_results_from_sibling_table_evidence": Mock(side_effect=preserve_rows),
+            "_align_lookup_result_units_from_peer_source_slots": Mock(side_effect=preserve_rows),
+            "_append_ratio_result_from_retrieved_context": Mock(side_effect=preserve_rows),
+            "_append_ratio_result_from_task_outputs": Mock(side_effect=preserve_rows),
+            "_sync_ratio_result_displays_in_ordered_results": Mock(side_effect=preserve_rows),
+            "_preferred_aggregate_fallback_answer": Mock(return_value=fallback_answer),
+            "_rebuild_aggregate_projection": Mock(return_value={}),
+            "_align_lookup_results_with_dependency_projection": Mock(side_effect=preserve_rows),
+            "_supported_aggregate_subtask_answer": Mock(return_value=""),
+            "_preferred_complete_numeric_answer": complete_owner,
+            "_answer_covers_numeric_projection": Mock(return_value=True),
+            "_complete_numeric_answer_can_replace_final": replacement_gate,
+        }
+        with (
+            patch.multiple(self.agent, **patched_owners),
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=preserve_rows,
+            ),
+            patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=[row]),
+            patch.object(
+                financial_graph_calculation,
+                "compose_lookup_list_numeric_answer",
+                later_composer,
+            ),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "dedupe_aggregate_subtask_results",
+                side_effect=preserve_rows,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_has_numeric_material_outside_reference",
+                side_effect=(False, True, RuntimeError("outside owner failed")),
+            ) as outside_owner,
+        ):
+            preserved = self.agent._prepare_initial_aggregate_state(state)
+            adopted = self.agent._prepare_initial_aggregate_state(state)
+            with self.assertRaisesRegex(RuntimeError, "outside owner failed"):
+                self.agent._prepare_initial_aggregate_state(state)
+
+            self.assertEqual(
+                [item.args for item in outside_owner.call_args_list],
+                [
+                    (fallback_answer, complete_answer),
+                    (fallback_answer, complete_answer),
+                    (fallback_answer, complete_answer),
+                ],
+            )
+            replacement_gate.assert_called_once_with(complete_answer, adopted.ordered_results)
+            self.assertEqual(later_composer.call_count, 2)
+            self.assertEqual(preserved.fallback_answer, fallback_answer)
+            self.assertEqual(adopted.fallback_answer, complete_answer)
+
+            outside_owner.reset_mock()
+            outside_owner.side_effect = RuntimeError("outside owner accessed")
+            complete_owner.return_value = ""
+            replacement_gate.reset_mock()
+            owner_zero = self.agent._prepare_initial_aggregate_state(state)
+        outside_owner.assert_not_called()
+        replacement_gate.assert_not_called()
+        self.assertEqual(owner_zero.complete_numeric_answer, "")
+        self.assertEqual(owner_zero.fallback_answer, fallback_answer)
+
     def test_aggregate_compact_ratio_preserves_uncovered_lookup_item(self) -> None:
+        packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
+        base_patch.start()
+        refreshed_patch.start()
+        self.addCleanup(base_patch.stop)
+        self.addCleanup(refreshed_patch.stop)
+
         state = {
             "query": "Extract the target and peer metrics, then calculate the target share of total.",
             "calc_subtasks": [
@@ -4210,9 +5203,31 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent.llm = None
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        with patch.object(
+            financial_graph_calculation,
+            "sync_aggregate_projection_final_answer",
+            wraps=financial_graph_calculation.sync_aggregate_projection_final_answer,
+        ) as final_answer_sync, patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_answer_candidate",
+            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+        ) as candidate_apply:
+            updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = resolve_runtime_calculation_trace(updated)
 
+        self.assertEqual(packaging_events, ["refreshed"])
+        candidate_apply.assert_called_once()
+        self.assertFalse(candidate_apply.call_args.args[0].candidate["sync_projection"])
+        self.assertEqual(
+            [
+                (call.args[0].sync_rendered_for_aggregate, call.args[0].status_ok)
+                for call in final_answer_sync.call_args_list
+            ],
+            [
+                (True, True),
+                (False, False),
+            ],
+        )
         self.assertIn("80%", updated["answer"])
         self.assertIn("peer metric 30백만원", updated["answer"])
         self.assertNotIn("30천원", updated["answer"])
@@ -4258,13 +5273,661 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        answer = self.agent._append_uncovered_lookup_numeric_items(
+        answer = financial_aggregate_projection.append_uncovered_lookup_numeric_items(
             "translation gain was 5,739억원 and net effect was -3,322억원.",
             [lookup_row, difference_row],
         )
 
         self.assertNotIn("0백만원", answer)
         self.assertIn("5,739억원", answer)
+
+    def test_aggregate_projection_row_selector_preserves_precedence_and_copy_contract(self) -> None:
+        select_row = financial_aggregate_projection.select_aggregate_projection_row_for_task
+
+        class Poison:
+            def __getattribute__(self, name):
+                if name.startswith("__"):
+                    return object.__getattribute__(self, name)
+                raise RuntimeError(f"later input accessed: {name}")
+
+            def __bool__(self):
+                raise RuntimeError("later input truth-tested")
+
+            def __iter__(self):
+                raise RuntimeError("later input iterated")
+
+        self.assertEqual(select_row(" \n ", Poison(), Poison()), {})
+
+        nested = {"keep": True}
+        first = {"task_id": " task_target ", "nested": nested, "source": "result"}
+        duplicate = {"task_id": "task_target", "source": "duplicate"}
+        slot_match = {"task_id": "task_target", "source": "slot"}
+        projection = {
+            "calculation_result": {
+                "subtask_results": [None, {"task_id": "other"}, first, duplicate],
+                "answer_slots": {"subtask_results": Poison()},
+            }
+        }
+        first_snapshot = deepcopy(first)
+
+        selected = select_row(" task_target ", Poison(), projection)
+
+        self.assertEqual(selected, first)
+        self.assertIsNot(selected, first)
+        self.assertIs(selected["nested"], nested)
+        self.assertEqual(first, first_snapshot)
+        self.assertIs(
+            projection["calculation_result"]["subtask_results"][2],
+            first,
+        )
+
+        slot_projection = {
+            "calculation_result": {
+                "subtask_results": [{"task_id": "other"}],
+                "answer_slots": {"subtask_results": [slot_match, duplicate]},
+            }
+        }
+        selected = select_row("task_target", Poison(), slot_projection)
+        self.assertEqual(selected, slot_match)
+        self.assertIsNot(selected, slot_match)
+
+        ordered_match = {"task_id": "task_target", "source": "ordered"}
+        selected = select_row(
+            "task_target",
+            [ordered_match, duplicate],
+            {
+                "calculation_result": {
+                    "subtask_results": [{"task_id": "other"}],
+                    "answer_slots": {"subtask_results": [None]},
+                }
+            },
+        )
+        self.assertEqual(selected, ordered_match)
+        self.assertIsNot(selected, ordered_match)
+        self.assertEqual(select_row("missing", [ordered_match], slot_projection), {})
+
+    def test_projection_sentence_selector_preserves_score_and_access_contract(self) -> None:
+        select_sentence = financial_aggregate_projection.select_aggregate_projection_answer_sentence
+
+        class Poison:
+            def get(self, _key, _default=None):
+                raise RuntimeError("row accessed")
+
+        self.assertEqual(select_sentence(" \n ", Poison()), "")
+
+        cases = (
+            (
+                "label precedence",
+                "lookup",
+                "target",
+                ["target alpha 10.", "other longer surface 20."],
+                {"target alpha 10.": 1, "other longer surface 20.": 1},
+                set(),
+                "target alpha 10.",
+            ),
+            (
+                "ratio percent precedence",
+                "ratio",
+                "",
+                ["alpha value 10.", "beta value 20%."],
+                {"alpha value 10.": 1, "beta value 20%.": 1},
+                set(),
+                "beta value 20%.",
+            ),
+            (
+                "arithmetic candidate precedence",
+                "difference",
+                "",
+                ["alpha value 10.", "beta values 20 and 30."],
+                {"alpha value 10.": 1, "beta values 20 and 30.": 2},
+                set(),
+                "beta values 20 and 30.",
+            ),
+            (
+                "conflict precedence",
+                "lookup",
+                "metric",
+                ["metric alpha 10.", "metric bravo 20."],
+                {"metric alpha 10.": 1, "metric bravo 20.": 1},
+                {"metric bravo 20."},
+                "metric bravo 20.",
+            ),
+            (
+                "length precedence",
+                "lookup",
+                "metric",
+                ["metric short 10.", "metric substantially longer 20."],
+                {"metric short 10.": 1, "metric substantially longer 20.": 1},
+                set(),
+                "metric substantially longer 20.",
+            ),
+            (
+                "stable first tie",
+                "lookup",
+                "metric",
+                ["metric alpha 10.", "metric bravo 20."],
+                {"metric alpha 10.": 1, "metric bravo 20.": 1},
+                set(),
+                "metric alpha 10.",
+            ),
+        )
+        for name, operation_family, label, sentences, candidate_counts, conflicts, expected in cases:
+            with self.subTest(score=name):
+                row = {"metric_label": label, "operation_family": operation_family}
+                extraction_events = []
+                conflict_events = []
+
+                def extract_candidates(text):
+                    extraction_events.append(text)
+                    return [
+                        {"text": f"candidate-{index}"}
+                        for index in range(candidate_counts[text])
+                    ]
+
+                def conflict(answer, candidate_row):
+                    self.assertIs(candidate_row, row)
+                    conflict_events.append(answer["answer"])
+                    return answer["answer"] in conflicts
+
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_split_narrative_sentences",
+                        return_value=sentences,
+                    ) as splitter,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "aggregate_result_operation_family",
+                        return_value=operation_family,
+                    ) as family_owner,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "extract_numeric_surface_candidates",
+                        side_effect=extract_candidates,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "subtask_numeric_answers_conflict",
+                        side_effect=conflict,
+                    ),
+                ):
+                    selected = select_sentence(" ignored answer ", row)
+
+                self.assertEqual(selected, expected)
+                family_owner.assert_called_once_with(row)
+                splitter.assert_called_once_with("ignored answer")
+                self.assertEqual(extraction_events, [*sentences, expected])
+                self.assertEqual(conflict_events, [*sentences, expected])
+
+        fallback_cases = (
+            (
+                "row label",
+                {"label": "row fallback", "operation_family": "lookup"},
+                "row fallback",
+                "row fallback value 10.",
+            ),
+            (
+                "primary slot stripped label",
+                {
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {"label": "period metric"},
+                        }
+                    },
+                },
+                "metric",
+                "metric value 20.",
+            ),
+        )
+        for name, row, stripped_label, sentence in fallback_cases:
+            with self.subTest(label_source=name):
+                original_label = (
+                    row.get("label")
+                    or row["calculation_result"]["answer_slots"]["primary_value"]["label"]
+                )
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "strip_leading_period_qualifiers",
+                        return_value=stripped_label,
+                    ) as stripper,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_split_narrative_sentences",
+                        return_value=[sentence],
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "extract_numeric_surface_candidates",
+                        return_value=[{"text": "numeric"}],
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "subtask_numeric_answers_conflict",
+                        return_value=False,
+                    ),
+                ):
+                    self.assertEqual(select_sentence("answer", row), sentence)
+                stripper.assert_called_once_with(original_label)
+
+        gate_sentences = ["alpha value 10.", "substantially longer beta value 20."]
+        gate_events = []
+
+        def gate_conflict(answer, _row):
+            gate_events.append(answer["answer"])
+            return answer["answer"] == gate_sentences[1]
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                return_value=gate_sentences,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"text": "numeric"}],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=gate_conflict,
+            ),
+        ):
+            self.assertEqual(
+                select_sentence("answer", {"operation_family": "lookup"}),
+                "",
+            )
+        self.assertEqual(gate_events, [*gate_sentences, gate_sentences[1]])
+
+        events = []
+        row = {"metric_label": "metric", "operation_family": "lookup"}
+
+        def record_strip(label):
+            events.append(("strip", label))
+            return label
+
+        def record_family(candidate_row):
+            self.assertIs(candidate_row, row)
+            events.append(("family", candidate_row["operation_family"]))
+            return "lookup"
+
+        def record_split(answer):
+            events.append(("split", answer))
+            return ["metric 10."]
+
+        def fail_extract(sentence):
+            events.append(("extract", sentence))
+            raise RuntimeError("candidate extraction failed")
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "strip_leading_period_qualifiers",
+                side_effect=record_strip,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=record_family,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                side_effect=record_split,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=fail_extract,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+            ) as stopped_conflict,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "candidate extraction failed"):
+                select_sentence(" answer ", row)
+        self.assertEqual(
+            events,
+            [
+                ("strip", "metric"),
+                ("family", "lookup"),
+                ("split", "answer"),
+                ("extract", "metric 10."),
+            ],
+        )
+        stopped_conflict.assert_not_called()
+
+    def test_projection_rendered_value_preserves_family_and_candidate_contract(self) -> None:
+        rendered_value = financial_aggregate_projection.aggregate_projection_rendered_value
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("numeric extraction should stay lazy"),
+        ) as lazy_extractor:
+            self.assertEqual(rendered_value(" \n ", "ratio"), "")
+            self.assertEqual(
+                rendered_value("value 10 and -12.5   %p before 30%", "ratio"),
+                "-12.5 %p",
+            )
+            self.assertEqual(rendered_value("value 10 without percent", "growth_rate"), "")
+        lazy_extractor.assert_not_called()
+
+        candidates = [
+            {"text": "first candidate"},
+            {"text": "  final   candidate  ", "nested": {"keep": True}},
+        ]
+        snapshot = deepcopy(candidates)
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=candidates,
+        ) as extractor:
+            self.assertEqual(
+                rendered_value("  normalized   sentence  ", "difference"),
+                "final candidate",
+            )
+        extractor.assert_called_once_with("normalized sentence")
+        self.assertEqual(candidates, snapshot)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=[],
+        ):
+            self.assertEqual(rendered_value("value 10", "lookup"), "")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("numeric extraction failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "numeric extraction failed"):
+                rendered_value("value 10", "lookup")
+
+    def test_projection_selection_owners_bind_ledger_and_surface_sync_callers(self) -> None:
+        task = {
+            "task_id": " task_target ",
+            "status": "completed",
+            "artifact_ids": ["artifact_old"],
+        }
+        ordered_results = [{"task_id": "task_target", "answer": "old 10"}]
+        projection_row = {
+            "task_id": "task_target",
+            "operation_family": "lookup",
+            "calculation_result": {"formatted_result": "new 20"},
+        }
+        aggregate_projection = {
+            "calculation_result": {
+                "formatted_result": "aggregate 20",
+                "subtask_results": [projection_row],
+            }
+        }
+        supersession_calls = []
+        ledger_events = []
+
+        preserve_results = iter((False, True))
+
+        def preserve_surface(answer, reference):
+            ledger_events.append(("preserve", answer, reference))
+            return next(preserve_results)
+
+        def select_ledger_row(task_id, rows, projection):
+            ledger_events.append(("row", task_id, rows, projection))
+            return projection_row
+
+        def select_ledger_sentence(answer, row):
+            ledger_events.append(("sentence", answer, row))
+            return "new 20"
+
+        def ledger_conflict(answer, reference):
+            ledger_events.append(("conflict", answer, reference))
+            return True
+
+        def supersede(**kwargs):
+            ledger_events.append(("supersede", kwargs["replacement_summary"]))
+            supersession_calls.append(kwargs)
+            return {"tasks": kwargs["tasks"], "artifacts": kwargs["artifacts"]}
+
+        with (
+            patch.object(
+                self.agent,
+                "_final_aggregate_resolved_slots",
+                return_value=[{"task_id": "task_target"}],
+            ),
+            patch.object(
+                self.agent,
+                "_task_target_matches_resolved_slot",
+                return_value=True,
+            ),
+            patch.object(
+                self.agent,
+                "_latest_task_artifact",
+                return_value={"artifact_id": "artifact_old", "summary": "old 10"},
+            ),
+            patch.object(
+                self.agent,
+                "_answer_preserves_task_numeric_surface",
+                side_effect=preserve_surface,
+            ) as preserves_surface,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+                side_effect=select_ledger_row,
+            ) as row_selector,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+                side_effect=select_ledger_sentence,
+            ) as sentence_selector,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=ledger_conflict,
+            ) as conflict_owner,
+            patch.object(
+                financial_graph_calculation,
+                "_supersede_task_with_aggregate_result",
+                side_effect=supersede,
+            ),
+        ):
+            self.agent._finalize_aggregate_task_ledger(
+                [task],
+                [{"artifact_id": "artifact_old"}],
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="artifact_aggregate",
+                final_answer=" aggregate 20 ",
+            )
+
+        self.assertEqual(row_selector.call_count, 2)
+        self.assertEqual(
+            [call.args for call in row_selector.call_args_list],
+            [
+                ("task_target", ordered_results, aggregate_projection),
+                ("task_target", ordered_results, aggregate_projection),
+            ],
+        )
+        sentence_selector.assert_called_once_with("aggregate 20", projection_row)
+        self.assertEqual(
+            [call.args for call in preserves_surface.call_args_list],
+            [("aggregate 20", "old 10"), ("new 20", "aggregate 20")],
+        )
+        conflict_owner.assert_called_once_with(
+            {"answer": "new 20"},
+            {"answer": "old 10"},
+        )
+        self.assertEqual(len(supersession_calls), 1)
+        self.assertEqual(
+            [event[0] for event in ledger_events],
+            ["preserve", "row", "sentence", "preserve", "conflict", "row", "supersede"],
+        )
+        replacement_payload = supersession_calls[0]["replacement_payload"]
+        self.assertEqual(replacement_payload["replacement_summary"], "new 20")
+        self.assertEqual(
+            replacement_payload["calculation_result"],
+            projection_row["calculation_result"],
+        )
+        self.assertIsNot(
+            replacement_payload["calculation_result"],
+            projection_row["calculation_result"],
+        )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+                side_effect=RuntimeError("row selection failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+            ) as stopped_sentence,
+            patch.object(
+                self.agent,
+                "_resolved_slot_summary_for_task",
+            ) as stopped_fallback,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row selection failed"):
+                self.agent._task_aggregate_replacement_summary(
+                    task,
+                    [],
+                    ordered_results=ordered_results,
+                    aggregate_projection=aggregate_projection,
+                    final_answer="aggregate 20",
+                )
+        stopped_sentence.assert_not_called()
+        stopped_fallback.assert_not_called()
+
+        stale_row = {
+            "task_id": "task_ratio",
+            "operation_family": "ratio",
+            "answer": "target share is 400%.",
+            "calculation_result": {"rendered_value": "400%"},
+        }
+        sync_projection = {
+            "calculation_result": {"subtask_results": [stale_row]},
+        }
+        sync_events = []
+        updated_row = {
+            **stale_row,
+            "answer": "target share is 80%.",
+            "calculation_result": {"rendered_value": "80%"},
+        }
+
+        def select_for_sync(answer, row):
+            sync_events.append(("sentence", answer, row))
+            return "target share is 80%."
+
+        def conflict_for_sync(answer, row):
+            sync_events.append(("conflict", answer, row))
+            return True
+
+        def coverage_for_sync(answer, reference):
+            sync_events.append(("coverage", answer, reference))
+            return False
+
+        def render_for_sync(answer, operation_family):
+            sync_events.append(("rendered", answer, operation_family))
+            return "80%"
+
+        def synchronize_for_sync(sync_input):
+            sync_events.append(("synchronize", sync_input))
+            return SimpleNamespace(projection_row=updated_row)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                side_effect=select_for_sync,
+            ) as sync_sentence,
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_projection_rendered_value",
+                side_effect=render_for_sync,
+            ) as sync_rendered,
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=conflict_for_sync,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                side_effect=coverage_for_sync,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                side_effect=synchronize_for_sync,
+            ) as row_sync,
+        ):
+            synced_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_row],
+                sync_projection,
+                "target share is 80%.",
+            )
+
+        self.assertEqual(sync_sentence.call_count, 2)
+        first_row = sync_sentence.call_args_list[0].args[1]
+        self.assertIs(first_row, sync_sentence.call_args_list[1].args[1])
+        self.assertIsNot(first_row, stale_row)
+        self.assertEqual(first_row, stale_row)
+        sync_rendered.assert_called_once_with("target share is 80%.", "ratio")
+        row_sync.assert_called_once()
+        sync_input = row_sync.call_args.args[0]
+        self.assertIs(sync_input.projection_row, first_row)
+        self.assertEqual(
+            (sync_input.answer, sync_input.rendered_value),
+            ("target share is 80%.", "80%"),
+        )
+        self.assertEqual(
+            [event[0] for event in sync_events],
+            ["sentence", "conflict", "coverage", "sentence", "rendered", "synchronize"],
+        )
+        self.assertEqual(synced_results[0], updated_row)
+        self.assertEqual(
+            synced_projection["calculation_result"]["subtask_results"][0],
+            updated_row,
+        )
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value="target share is 80%.",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_projection_rendered_value",
+                side_effect=RuntimeError("rendered selection failed"),
+            ) as failing_rendered,
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                return_value=False,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+            ) as stopped_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rendered selection failed"):
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_row],
+                    sync_projection,
+                    "target share is 80%.",
+                )
+        failing_rendered.assert_called_once_with("target share is 80%.", "ratio")
+        stopped_sync.assert_not_called()
 
     def test_aggregate_trace_sync_replaces_stale_single_ratio_subtask_surface(self) -> None:
         stale_ratio_row = {
@@ -4318,11 +5981,64 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_ratio_row],
-            projection,
-            final_answer,
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
+        sentence_owner = financial_aggregate_projection.select_aggregate_projection_answer_sentence
+        conflict_owner = financial_aggregate_projection.subtask_numeric_answers_conflict
+        coverage_owner = financial_aggregate_projection.answer_covers_numeric_answer
+
+        with patch.object(
+            financial_aggregate_projection,
+            "subtask_numeric_answers_conflict",
+            wraps=conflict_owner,
+        ) as scorer_conflict:
+            selected_sentence = sentence_owner(final_answer, stale_ratio_row)
+        self.assertEqual(selected_sentence, final_answer)
+        self.assertTrue(scorer_conflict.called)
+        self.assertTrue(
+            all(
+                call.args == ({"answer": final_answer}, stale_ratio_row)
+                for call in scorer_conflict.call_args_list
+            )
         )
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value=final_answer,
+            ) as sentence_spy,
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                wraps=conflict_owner,
+            ) as conflict_spy,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as row_sync_spy,
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                wraps=coverage_owner,
+            ) as coverage_spy,
+        ):
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        self.assertEqual(sentence_spy.call_count, 2)
+        first_sentence_row = sentence_spy.call_args_list[0].args[1]
+        self.assertIs(first_sentence_row, sentence_spy.call_args_list[1].args[1])
+        self.assertIsNot(first_sentence_row, stale_ratio_row)
+        self.assertEqual(first_sentence_row, stale_ratio_row)
+        conflict_spy.assert_called_once_with({"answer": final_answer}, first_sentence_row)
+        coverage_spy.assert_called_once_with(final_answer, "target share is 400.00%.")
+        row_sync_spy.assert_called_once()
+        ratio_sync_input = row_sync_spy.call_args.args[0]
+        self.assertEqual(ratio_sync_input.projection_row["task_id"], "task_ratio")
+        self.assertEqual((ratio_sync_input.answer, ratio_sync_input.rendered_value), (final_answer, "80.00%"))
 
         ratio_row = next(row for row in ordered_results if row["task_id"] == "task_ratio")
         projected_ratio_row = next(
@@ -4339,6 +6055,149 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected_ratio_row["calculation_result"]["rendered_value"], "80.00%")
         self.assertEqual(slot_ratio_row["rendered_value"], "80.00%")
         self.assertNotIn("400.00%", projected_ratio_row["answer"])
+
+        empty_projection = {"calculation_result": {"subtask_results": []}}
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+            ) as gated_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as gated_row_sync,
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+            ) as gated_coverage,
+        ):
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                empty_projection,
+                final_answer,
+            )
+        gated_conflict.assert_not_called()
+        gated_coverage.assert_not_called()
+        gated_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, empty_projection)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                return_value=False,
+            ) as no_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as false_row_sync,
+        ):
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        no_conflict.assert_called_once()
+        false_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, projection)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                return_value=True,
+            ) as covering_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as covered_row_sync,
+        ):
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        covering_owner.assert_called_once_with(final_answer, "target share is 400.00%.")
+        covered_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, projection)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                side_effect=RuntimeError("coverage owner failed"),
+            ) as failing_coverage,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as stopped_row_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coverage owner failed"):
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_ratio_row],
+                    projection,
+                    final_answer,
+                )
+        failing_coverage.assert_called_once_with(final_answer, "target share is 400.00%.")
+        stopped_row_sync.assert_not_called()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "select_aggregate_projection_answer_sentence",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as stopped_row_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_ratio_row],
+                    projection,
+                    final_answer,
+                )
+        failing_conflict.assert_called_once()
+        stopped_row_sync.assert_not_called()
 
     def test_aggregate_trace_sync_updates_difference_scalar_from_final_answer(self) -> None:
         stale_difference_row = {
@@ -4411,11 +6270,22 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_difference_row],
-            projection,
-            final_answer,
-        )
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
+        with patch.object(
+            financial_aggregate_projection,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as row_sync_spy:
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_difference_row],
+                projection,
+                final_answer,
+            )
+        row_sync_spy.assert_called_once()
+        difference_sync_input = row_sync_spy.call_args.args[0]
+        self.assertEqual(difference_sync_input.projection_row["task_id"], "task_net")
+        self.assertIn("-3,322", difference_sync_input.answer)
+        self.assertIn("-3,322", difference_sync_input.rendered_value)
 
         synced_row = next(row for row in ordered_results if row["task_id"] == "task_net")
         projected_row = next(
@@ -4431,7 +6301,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(projected_row["calculation_result"]["result_value"], -332_200_000_000.0)
 
-    def test_aggregate_trace_sync_updates_stale_lookup_but_preserves_rounded_source_lookup(self) -> None:
+    def test_aggregate_trace_sync_never_reverse_syncs_source_lookup_from_final_answer(self) -> None:
         stale_lookup_row = self._lookup_result_row(
             task_id="task_gain",
             metric_label="2023년 translation gain",
@@ -4577,55 +6447,68 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_lookup_row, precise_lookup_row, net_row],
-            projection,
-            final_answer,
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
+        component_sync = financial_aggregate_projection.synchronize_aggregate_arithmetic_components
+        component_sync_events = []
+
+        def record_component_sync(sync_input):
+            sync_result = component_sync(sync_input)
+            row = sync_input.projection_row
+            component_sync_events.append(
+                (
+                    row["task_id"],
+                    sync_result.projection_row is row,
+                    sync_result.projection_row,
+                    sync_input.lookup_slots,
+                )
+            )
+            return sync_result
+
+        with patch.object(
+            financial_aggregate_projection,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as row_sync_spy, patch.object(
+            financial_aggregate_projection,
+            "synchronize_aggregate_arithmetic_components",
+            side_effect=record_component_sync,
+        ) as component_sync_spy:
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_lookup_row, precise_lookup_row, net_row],
+                projection,
+                final_answer,
+            )
+        row_sync_spy.assert_not_called()
+        component_sync_spy.assert_not_called()
+        self.assertEqual(component_sync_events, [])
+        self.assertEqual(ordered_results, [stale_lookup_row, precise_lookup_row, net_row])
+        self.assertIs(synced_projection, projection)
+        self.assertEqual(
+            ordered_results[0]["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "0백만원",
+        )
+        self.assertNotIn("projection_surface_synced_from_final_answer", ordered_results[0])
+        self.assertEqual(
+            synced_projection["calculation_result"]["subtask_results"][0]["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "0백만원",
         )
 
-        gain_row = next(row for row in ordered_results if row["task_id"] == "task_gain")
-        loss_row = next(row for row in ordered_results if row["task_id"] == "task_loss")
-        projected_gain = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_gain"
-        )
-        projected_loss = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_loss"
-        )
-        projected_net = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_net"
-        )
-
-        self.assertIn("5,739억원", gain_row["answer"])
-        self.assertEqual(gain_row["calculation_result"]["rendered_value"], "5,739억원")
-        self.assertEqual(gain_row["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
-        self.assertEqual(
-            gain_row["calculation_result"]["answer_slots"]["components_by_role"]["primary_value"][0]["rendered_value"],
-            "5,739억원",
-        )
-        self.assertEqual(projected_gain["calculation_result"]["rendered_value"], "5,739억원")
-        self.assertEqual(
-            loss_row["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
-            "906,120백만원",
-        )
-        self.assertEqual(
-            projected_loss["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
-            "906,120백만원",
-        )
-        self.assertEqual(projected_net["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
-        self.assertEqual(
-            projected_net["calculation_result"]["answer_slots"]["components_by_role"]["minuend"][0]["rendered_value"],
-            "5,739억원",
-        )
-        self.assertEqual(
-            projected_net["calculation_result"]["answer_slots"]["delta_value"]["rendered_value"],
-            "-3,322억원",
-        )
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_lookup_primary_slots",
+            return_value=[],
+        ) as empty_lookup_slots, patch.object(
+            financial_aggregate_projection,
+            "synchronize_aggregate_arithmetic_components",
+            side_effect=AssertionError("component sync must stay lazy"),
+        ) as owner_zero:
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_lookup_row, precise_lookup_row, net_row],
+                projection,
+                final_answer,
+            )
+        empty_lookup_slots.assert_not_called()
+        owner_zero.assert_not_called()
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
         source_lookup = {
@@ -4720,11 +6603,209 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        deduped = self.agent._dedupe_aggregate_subtask_results([source_lookup, coherent_ratio, conflicting_ratio])
+        signature_owner = financial_aggregate_projection.aggregate_result_signature
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_signature",
+            wraps=signature_owner,
+        ) as signature_spy, patch.object(
+            financial_aggregate_projection,
+            "growth_operand_sign_consistency_rank",
+            wraps=sign_rank_owner,
+        ) as sign_rank_spy:
+            deduped = financial_aggregate_projection.dedupe_aggregate_subtask_results(
+                [source_lookup, coherent_ratio, conflicting_ratio]
+            )
+
+        self.assertEqual(signature_spy.call_count, 3)
+        self.assertEqual(sign_rank_spy.call_count, 3)
+        expected_rows = [source_lookup, coherent_ratio, conflicting_ratio]
+        self.assertTrue(
+            all(call.args[0] is row for call, row in zip(signature_spy.call_args_list, expected_rows))
+        )
+        self.assertTrue(
+            all(call.args[0] is row for call, row in zip(sign_rank_spy.call_args_list, expected_rows))
+        )
 
         ratio_row = next(row for row in deduped if row.get("task_id") == "task_ratio")
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "80.00%")
         self.assertEqual(ratio_row["calculation_operands"][0]["consolidation_scope"], "consolidated")
+
+    def test_collapsed_ratio_trace_adopts_operand_overlay_even_when_empty(self) -> None:
+        trace = {
+            "calculation_operands": [{"matched_operand_role": "numerator_1", "raw_value": "old"}],
+            "calculation_plan": {"operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "role": "numerator_1",
+                                "label": "numerator",
+                                "normalized_value": 1.0,
+                                "source_row_id": "same",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "role": "denominator_1",
+                                "label": "denominator",
+                                "normalized_value": 1.0,
+                                "source_row_id": "same",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        state = {
+            "evidence_items": [
+                {"evidence_id": "ev_n", "claim": "numerator 10", "source_anchor": "source-n"},
+                {"evidence_id": "ev_d", "claim": "denominator 20", "source_anchor": "source-d"},
+            ]
+        }
+        trace_before = deepcopy(trace)
+        empty_overlay = []
+
+        def candidates(surface):
+            numerator = "numerator" in surface
+            return [
+                {
+                    "normalized_value": 10.0 if numerator else 20.0,
+                    "value_text": "10" if numerator else "20",
+                    "unit_text": "",
+                    "span": (len(surface) - 2, len(surface)),
+                }
+            ]
+
+        overlay_owner = Mock(side_effect=(empty_overlay, RuntimeError("overlay owner failed")))
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=candidates,
+            ) as extractor,
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "overlay_calculation_operands_from_slots",
+                overlay_owner,
+            ),
+        ):
+            non_ratio = {"calculation_result": {"answer_slots": {"operation_family": "difference"}}}
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence({}, non_ratio),
+                non_ratio,
+            )
+            overlay_owner.assert_not_called()
+            extractor.assert_not_called()
+
+            updated = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                state,
+                trace,
+            )
+            with self.assertRaisesRegex(RuntimeError, "overlay owner failed"):
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                    state,
+                    trace,
+                )
+
+        self.assertEqual(len(overlay_owner.call_args_list), 2)
+        first_args, second_args = [item.args for item in overlay_owner.call_args_list]
+        self.assertIs(first_args[0], trace)
+        self.assertIs(second_args[0], trace)
+        self.assertEqual(overlay_owner.call_args_list[0].kwargs, {})
+        self.assertEqual(overlay_owner.call_args_list[1].kwargs, {})
+        self.assertEqual(list(first_args[1]), ["numerator_1", "denominator_1"])
+        self.assertEqual(
+            [first_args[1][role]["raw_value"] for role in ("numerator_1", "denominator_1")],
+            ["10", "20"],
+        )
+        self.assertIs(updated["calculation_operands"], empty_overlay)
+        self.assertEqual(updated["calculation_result"]["result_value"], 50.0)
+        self.assertEqual(trace, trace_before)
+
+    def test_period_comparison_trace_adopts_only_nonempty_operand_overlay(self) -> None:
+        original_operands = [{"matched_operand_role": " Current_Period ", "raw_value": "old"}]
+        trace = {"calculation_operands": original_operands, "keep": True}
+        calculation_result = {"status": "ok", "formatted_result": "old"}
+        current_slot = {"raw_value": "10", "raw_unit": "unit", "nested": {"keep": "current"}}
+        prior_slot = {"raw_value": "5", "raw_unit": "unit", "nested": {"keep": "prior"}}
+        realigned = [
+            {
+                "period_comparison_recovered_from_table_label_context": True,
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "new",
+                    "answer_slots": {
+                        "current_value": current_slot,
+                        "prior_value": prior_slot,
+                    },
+                },
+            }
+        ]
+        nonempty_overlay = [{"matched_operand_role": "current_period", "raw_value": "10"}]
+        overlay_owner = Mock(
+            side_effect=([], nonempty_overlay, RuntimeError("overlay owner failed"))
+        )
+        evidence_owner = Mock(side_effect=([], [{}], [{}], [{}]))
+        trace_before = deepcopy(trace)
+
+        def repair():
+            return self.agent._repair_single_period_comparison_trace_from_evidence(
+                state={},
+                trace=trace,
+                calculation_plan={},
+                calculation_result=calculation_result,
+                answer_slots={"metric_label": "metric"},
+                operation_family="growth_rate",
+            )
+
+        with (
+            patch.object(
+                self.agent,
+                "_runtime_evidence_rows_with_context_docs",
+                evidence_owner,
+            ),
+            patch.object(
+                self.agent,
+                "_realign_period_comparison_results_from_table_label_context",
+                return_value=realigned,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "overlay_calculation_operands_from_slots",
+                overlay_owner,
+            ),
+        ):
+            self.assertIs(repair(), trace)
+            empty = repair()
+            nonempty = repair()
+            with self.assertRaisesRegex(RuntimeError, "overlay owner failed"):
+                repair()
+
+        self.assertEqual(len(overlay_owner.call_args_list), 3)
+        expected_slots = {
+            "current_period": current_slot,
+            "prior_period": prior_slot,
+            "minuend": current_slot,
+            "subtrahend": prior_slot,
+        }
+        for item in overlay_owner.call_args_list:
+            self.assertIs(item.args[0], trace)
+            self.assertEqual(item.args[1], expected_slots)
+            self.assertEqual(item.kwargs, {"normalize_role": True})
+        self.assertIs(empty["calculation_operands"], original_operands)
+        self.assertIs(nonempty["calculation_operands"], nonempty_overlay)
+        self.assertTrue(nonempty["calculation_result"]["stale_result_repaired_from_evidence"])
+        self.assertEqual(trace, trace_before)
 
     def test_collapsed_ratio_runtime_override_rejects_dependency_incoherent_trace(self) -> None:
         source_lookup = {
@@ -4881,15 +6962,141 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
-            stale_state,
-            aggregate_projection,
-            [source_lookup, coherent_ratio, collapsed_ratio],
-            "target share is 80%.",
-        )
+        with patch.object(
+            financial_graph_calculation,
+            "project_runtime_ratio_absolute_magnitude",
+        ) as magnitude_projection:
+            projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+                stale_state,
+                aggregate_projection,
+                [source_lookup, coherent_ratio, collapsed_ratio],
+                "target share is 80%.",
+            )
 
+        magnitude_projection.assert_not_called()
         self.assertEqual(answer, "target share is 80%.")
         self.assertEqual(projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+        absolute_state = deepcopy(stale_state)
+        absolute_state["resolved_calculation_trace"]["calculation_result"]["result_value"] = -46.67
+        state_before = deepcopy(absolute_state)
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "ratio_query_requests_absolute_magnitude",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "project_runtime_ratio_absolute_magnitude",
+                wraps=financial_graph_calculation.project_runtime_ratio_absolute_magnitude,
+            ) as magnitude_projection,
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "format_calculation_value",
+                side_effect=RuntimeError("projection failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_dependency_slot_coherence_rank_for_operands",
+            ) as coherence,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "projection failed"):
+                self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+                    absolute_state,
+                    aggregate_projection,
+                    [source_lookup, coherent_ratio, collapsed_ratio],
+                    "target share is 80%.",
+                )
+        magnitude_projection.assert_called_once()
+        coherence.assert_not_called()
+        self.assertEqual(absolute_state, state_before)
+
+    def test_stale_projection_repair_uses_numeric_outside_reference_owner(self) -> None:
+        repaired_answer = "target share is 20%."
+        aggregate_state = _AggregateSynthesisState(
+            [{"task_id": "task_ratio", "operation_family": "ratio"}],
+            {"calculation_result": {"status": "ok", "formatted_result": "target share is 10%."}},
+            "target share is 10%.",
+            ["ev_old"],
+        )
+        repaired_result = {
+            "status": "ok",
+            "formatted_result": repaired_answer,
+            "answer_slots": {"operation_family": "ratio"},
+        }
+        stale_repair = SimpleNamespace(
+            repair_applied=True,
+            calculation_operands=[],
+            calculation_plan={"operation": "ratio"},
+            calculation_result=repaired_result,
+            selected_evidence_ids=("ev_new",),
+        )
+        adopted_state = aggregate_state.with_updates(final_answer="adopted 20%")
+        repair_owner = Mock(
+            side_effect=lambda *_args, **_kwargs: (
+                {"calculation_result": dict(repaired_result)},
+                stale_repair,
+            )
+        )
+        coherence_owner = Mock(return_value=1)
+        replacement_builder = Mock(return_value="complete target share is 20%.")
+        answer_adoption = Mock(return_value=adopted_state)
+        provenance_owner = Mock(return_value=SimpleNamespace(selected_claim_ids=("ev_new",)))
+        outside_owner = Mock(side_effect=(False, True, RuntimeError("outside owner failed")))
+        patched_owners = {
+            "_repair_stale_aggregate_projection_result": repair_owner,
+            "_compact_ratio_answer_from_projection": Mock(return_value=repaired_answer),
+            "_answer_covers_numeric_projection": Mock(return_value=True),
+            "_complete_numeric_projection_replacement_answer": replacement_builder,
+            "_apply_numeric_answer_to_aggregate_state": answer_adoption,
+        }
+
+        def repair():
+            return self.agent._apply_stale_projection_repair_to_aggregate_state(
+                state={"query": "target share"},
+                aggregate_state=aggregate_state,
+                evidence_items=[],
+                prefer_compact_ratio_answer=True,
+            )
+
+        with patch.multiple(self.agent, **patched_owners), patch.multiple(
+            financial_graph_calculation,
+            _select_aggregate_stale_repair_provenance=provenance_owner,
+            answer_has_numeric_material_outside_reference=outside_owner,
+            aggregate_dependency_slot_coherence_rank_for_operands=coherence_owner,
+        ):
+            preserved = repair()
+            adopted = repair()
+            with self.assertRaisesRegex(RuntimeError, "outside owner failed"):
+                repair()
+
+            self.assertEqual(
+                [item.args for item in outside_owner.call_args_list],
+                [(aggregate_state.final_answer, repaired_answer)] * 3,
+            )
+            replacement_builder.assert_called_once_with(
+                final_answer=repaired_answer,
+                ordered_results=aggregate_state.ordered_results,
+                query="target share",
+                evidence_items=[],
+            )
+            answer_adoption.assert_called_once()
+            self.assertEqual(preserved.final_answer, aggregate_state.final_answer)
+            self.assertEqual(preserved.selected_claim_ids, ["ev_new"])
+            self.assertEqual(
+                preserved.aggregate_projection["calculation_result"]["formatted_result"],
+                aggregate_state.final_answer,
+            )
+            self.assertIs(adopted, adopted_state)
+
+            coherence_owner.return_value = 0
+            provenance_owner.reset_mock()
+            outside_owner.reset_mock(side_effect=True)
+            outside_owner.side_effect = RuntimeError("outside owner accessed")
+            self.assertIs(repair(), aggregate_state)
+        provenance_owner.assert_not_called()
+        outside_owner.assert_not_called()
 
     def test_stale_projection_repair_rejects_dependency_incoherent_operands(self) -> None:
         source_lookup = {
@@ -5010,7 +7217,7 @@ class SubtaskLoopTests(unittest.TestCase):
             [source_lookup, coherent_ratio],
             stale_projection,
             "target share is 80%.",
-            [],
+            ["ev_stale"],
         )
 
         repaired = self.agent._apply_stale_projection_repair_to_aggregate_state(
@@ -5022,6 +7229,9 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(repaired.final_answer, "target share is 80%.")
         self.assertEqual(repaired.aggregate_projection["calculation_result"]["formatted_result"], "target share is 80%.")
+        self.assertIs(repaired, aggregate_state)
+        self.assertIs(repaired.selected_claim_ids, aggregate_state.selected_claim_ids)
+        self.assertEqual(repaired.selected_claim_ids, ["ev_stale"])
 
     def test_stale_projection_repair_preserves_complete_multi_operand_ratio_answer(self) -> None:
         ratio_result = {
@@ -5222,12 +7432,41 @@ class SubtaskLoopTests(unittest.TestCase):
             }
         ]
 
-        _filtered, updated_projection, _selected, _kept = self.agent._filter_final_aggregate_evidence_and_projection(
-            evidence_items,
-            projection,
-            final_answer="2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%.",
-            selected_claim_ids=[],
-        )
+        provenance_events = []
+        provenance_filter = financial_aggregate_projection.filter_aggregate_projection_provenance
+        surface_append = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence
+
+        def _record_provenance(*args, **kwargs):
+            provenance_events.append("provenance")
+            return provenance_filter(*args, **kwargs)
+
+        def _record_surface(*args, **kwargs):
+            provenance_events.append("surface")
+            return surface_append(*args, **kwargs)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "filter_aggregate_projection_provenance",
+            side_effect=_record_provenance,
+        ) as provenance_filter_spy, patch.object(
+            financial_aggregate_projection,
+            "append_final_answer_surface_operands_from_evidence",
+            side_effect=_record_surface,
+        ):
+            _filtered, updated_projection, _selected, _kept = (
+                financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
+                    evidence_items,
+                    projection,
+                    final_answer=(
+                        "2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%."
+                    ),
+                    selected_claim_ids=[],
+                )
+            )
+        provenance_filter_spy.assert_called_once()
+        provenance_input = provenance_filter_spy.call_args.args[0]
+        self.assertEqual(provenance_input.kept_evidence_ids, ["recon::row:all"])
+        self.assertEqual(provenance_events, ["provenance", "surface"])
 
         operands = list(updated_projection.get("calculation_operands") or [])
         self.assertEqual(len(operands), 2)
@@ -5628,7 +7867,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        trace = self.agent._structured_subtask_projection_for_public_answer(
+        trace = financial_aggregate_projection.structured_subtask_projection_for_public_answer(
             state,
             state["resolved_calculation_trace"],
         )
@@ -5640,26 +7879,8 @@ class SubtaskLoopTests(unittest.TestCase):
             "3.5배",
         )
 
-    def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
-        original_execute = self.agent._execute_calculation
-        calls = []
-
-        def _legacy_only_execute(state):
-            calls.append(state)
-            runtime_trace = dict(state.get("resolved_calculation_trace") or {})
-            return {
-                "calculation_operands": list(runtime_trace.get("calculation_operands") or []),
-                "calculation_plan": dict(runtime_trace.get("calculation_plan") or {}),
-                "calculation_result": {
-                    "status": "ok",
-                    "rendered_value": "999%",
-                    "formatted_result": "legacy top-level result",
-                },
-            }
-
-        self.agent._execute_calculation = _legacy_only_execute
-        try:
-            ordered = [
+    def test_dependency_recalculation_uses_candidate_projection_without_state_execution(self) -> None:
+        ordered = [
                 {
                     "task_id": "task_numerator",
                     "metric_family": "concept_lookup",
@@ -5749,37 +7970,287 @@ class SubtaskLoopTests(unittest.TestCase):
                         "answer_slots": {"operation_family": "ratio"},
                     },
                 },
-            ]
-            state = {
-                "query": "Calculate 2023 CIR.",
-                "calc_subtasks": [
-                    {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
-                    {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
-                    {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
-                ],
-            }
-            projection = {
-                "calculation_operands": [
-                    {
-                        "operand_id": "op_001",
-                        "source_row_ids": ["task_output:task_numerator"],
-                    },
-                    {
-                        "operand_id": "op_002",
-                        "source_row_ids": ["task_output:task_denominator"],
-                    },
-                ],
-            }
+        ]
+        state = {
+            "query": "Calculate 2023 CIR.",
+            "calc_subtasks": [
+                {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+        }
+        projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "op_001",
+                    "source_row_ids": ["task_output:task_numerator"],
+                },
+                {
+                    "operand_id": "op_002",
+                    "source_row_ids": ["task_output:task_denominator"],
+                },
+            ],
+        }
+        original_inputs = json.loads(json.dumps([ordered, state, projection]))
+        original_rows = tuple(ordered)
+        candidate_runs = []
+        candidate_projections = []
+        finalization_inputs = []
+        finalization_result_before = []
+        stage_events = []
+        original_run = self.agent._run_calculation_candidate_input
+        original_candidate_projection = (
+            financial_graph_calculation.resolve_dependency_recalculation_candidate_projection
+        )
+        original_artifact_selector = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation
+        original_finalizer = financial_graph_calculation.finalize_dependency_recalculated_row
 
+        def _record_candidate_run(candidate_input):
+            stage_events.append("candidate")
+            candidate_runs.append(original_run(candidate_input))
+            return candidate_runs[-1]
+
+        def _record_artifact_selection(*args, **kwargs):
+            stage_events.append("artifact")
+            return original_artifact_selector(*args, **kwargs)
+
+        def _record_candidate_projection(projection_input):
+            stage_events.append("candidate_projection")
+            candidate_projections.append(original_candidate_projection(projection_input))
+            return candidate_projections[-1]
+
+        def _record_finalization(finalization_input):
+            stage_events.append("finalization")
+            finalization_inputs.append(finalization_input)
+            finalization_result_before.append(dict(finalization_input.recalculated_result))
+            return original_finalizer(finalization_input)
+
+        candidate_projection_patch = patch.object(
+            financial_graph_calculation,
+            "resolve_dependency_recalculation_candidate_projection",
+            side_effect=_record_candidate_projection,
+        )
+        candidate_projection = candidate_projection_patch.start()
+        self.addCleanup(candidate_projection_patch.stop)
+        finalizer_patch = patch.object(
+            financial_graph_calculation,
+            "finalize_dependency_recalculated_row",
+            side_effect=_record_finalization,
+        )
+        finalizer = finalizer_patch.start()
+        self.addCleanup(finalizer_patch.stop)
+
+        with (
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                side_effect=_record_candidate_run,
+            ) as run_candidate_input,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate",
+                wraps=self.agent._run_calculation_candidate,
+            ) as legacy_run_candidate,
+            patch.object(
+                self.agent,
+                "_execute_calculation",
+                wraps=self.agent._execute_calculation,
+            ) as execute_calculation,
+            patch.object(
+                self.agent,
+                "_project_calculation_candidate_state",
+                wraps=self.agent._project_calculation_candidate_state,
+            ) as state_projection,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                side_effect=_record_artifact_selection,
+            ) as artifact_selector,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                side_effect=lambda *_args, **_kwargs: stage_events.append("formatter")
+                or "post-candidate formatted",
+            ) as ratio_formatter,
+        ):
             aligned = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
-        finally:
-            self.agent._execute_calculation = original_execute
 
+        run_candidate_input.assert_called_once()
+        legacy_run_candidate.assert_not_called()
+        execute_calculation.assert_not_called()
+        state_projection.assert_not_called()
+        candidate_projection.assert_called_once()
+        artifact_selector.assert_called_once()
+        ratio_formatter.assert_called_once()
+        finalizer.assert_called_once()
+        self.assertEqual(
+            stage_events,
+            ["candidate", "candidate_projection", "artifact", "formatter", "finalization"],
+        )
         ratio_row = aligned[-1]
-        self.assertTrue(calls)
-        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "0.04%")
-        self.assertNotEqual(ratio_row.get("answer"), "legacy top-level result")
-        self.assertNotIn("aligned_from_source_task_slots", ratio_row)
+        canonical_projection = candidate_runs[0].projection
+        finalization_input = finalization_inputs[0]
+        candidate_projection_result = candidate_projections[0]
+        self.assertIsNot(finalization_input.current_row, original_rows[-1])
+        self.assertIs(finalization_input.recalculated_trace, candidate_projection_result.recalculated_trace)
+        self.assertIs(finalization_input.recalculated_result, candidate_projection_result.recalculated_result)
+        self.assertEqual(finalization_input.formatted_answer, "post-candidate formatted")
+        self.assertNotEqual(
+            finalization_result_before[0].get("formatted_result"),
+            "post-candidate formatted",
+        )
+        self.assertEqual(finalization_input.recalculated_result["formatted_result"], "post-candidate formatted")
+        self.assertEqual(ratio_row["calculation_operands"], list(canonical_projection.calculation_operands))
+        self.assertEqual(ratio_row["calculation_plan"], canonical_projection.calculation_plan)
+        projected_result = dict(ratio_row["calculation_result"])
+        canonical_result = dict(canonical_projection.calculation_result)
+        projected_formatted_result = projected_result.pop("formatted_result")
+        canonical_result.pop("formatted_result")
+        self.assertEqual(projected_result, canonical_result)
+        self.assertEqual(projected_formatted_result, ratio_row["answer"])
+        self.assertEqual([ordered, state, projection], original_inputs)
+        self.assertTrue(all(row is original for row, original in zip(ordered, original_rows)))
+
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
+        artifact_call_order = []
+
+        def _record_artifact_candidate(candidate_input):
+            artifact_call_order.append("candidate")
+            return candidate_runs[0]
+
+        def _select_existing_artifact(_state, _task, _recalculated_result):
+            artifact_call_order.append("artifact")
+            return ordered[-1]
+
+        with (
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                side_effect=_record_artifact_candidate,
+            ) as artifact_candidate,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                side_effect=_select_existing_artifact,
+            ) as artifact_selector,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as artifact_formatter,
+        ):
+            artifact_preserved = self.agent._align_lookup_results_with_dependency_projection(
+                ordered,
+                state,
+                projection,
+            )
+        artifact_candidate.assert_called_once()
+        candidate_projection.assert_called_once()
+        artifact_selector.assert_called_once()
+        artifact_formatter.assert_not_called()
+        finalizer.assert_not_called()
+        self.assertEqual(artifact_call_order, ["candidate", "artifact"])
+        self.assertIs(artifact_preserved, ordered)
+        self.assertIs(artifact_preserved[-1], original_rows[-1])
+        self.assertEqual([ordered, state, projection], original_inputs)
+
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
+        failed_run = candidate_runs[0]._replace(
+            projection=candidate_runs[0].projection._replace(
+                calculation_result={"status": "parse_error"}
+            )
+        )
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
+            ) as failed_raw_plan_builder,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                return_value=failed_run,
+            ) as failed_candidate_input,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as failed_formatter,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                wraps=self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation,
+            ) as failed_artifact_selector,
+        ):
+            failed = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
+        failed_raw_plan_builder.assert_not_called()
+        failed_candidate_input.assert_called_once()
+        candidate_projection.assert_called_once()
+        failed_artifact_selector.assert_not_called()
+        failed_formatter.assert_not_called()
+        finalizer.assert_not_called()
+        self.assertIs(failed, ordered)
+
+        time_series_ordered = json.loads(json.dumps(ordered))
+        time_series_ordered[-1]["calculation_plan"].update(
+            {
+                "mode": "time_series",
+                "operation": "time_series_trend",
+                "formula": "((B - A) / A) * 100",
+                "pairwise_formula": "((CURR - PREV) / PREV) * 100",
+            }
+        )
+        original_time_series_inputs = json.loads(
+            json.dumps([time_series_ordered, state, projection])
+        )
+        original_time_series_rows = tuple(time_series_ordered)
+
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
+            ) as time_series_raw_builder,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                wraps=self.agent._run_calculation_candidate_input,
+            ) as time_series_candidate,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as time_series_formatter,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                wraps=self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation,
+            ) as time_series_artifact_selector,
+        ):
+            time_series_aligned = self.agent._align_lookup_results_with_dependency_projection(
+                time_series_ordered,
+                state,
+                projection,
+            )
+
+        time_series_raw_builder.assert_not_called()
+        time_series_candidate.assert_not_called()
+        candidate_projection.assert_not_called()
+        time_series_artifact_selector.assert_not_called()
+        time_series_formatter.assert_not_called()
+        finalizer.assert_not_called()
+        self.assertIs(time_series_aligned, time_series_ordered)
+        self.assertEqual([time_series_ordered, state, projection], original_time_series_inputs)
+        self.assertTrue(
+            all(row is original for row, original in zip(time_series_ordered, original_time_series_rows))
+        )
 
     def test_ratio_recalculation_binds_lookup_slots_by_prefixed_roles(self) -> None:
         lookup_numerator = {
@@ -5942,7 +8413,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("task_output:task_denominator", denominator["source_row_ids"])
 
     def test_task_output_ratio_projection_uses_multiplier_unit_for_ratio_marker(self) -> None:
-        projection = self.agent._ratio_result_projection(
+        projection = financial_graph_calculation.calculation_rendering.ratio_result_projection(
             numerator_value=350_000_000.0,
             denominator_value=100_000_000.0,
             query="2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
@@ -6112,8 +8583,34 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
 
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
+        with patch.object(financial_graph_calculation, "infer_dependency_row_unit", new=record_unit_owner):
+            updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        self.assertEqual(unit_callers, ["_append_ratio_result_from_task_outputs"] * 3)
+        self.assertEqual(
+            [
+                (
+                    slot.get("role"),
+                    slot.get("raw_value"),
+                    sibling_result.get("result_unit"),
+                )
+                for slot, sibling_result in unit_calls
+            ],
+            [
+                ("numerator_1", "4,145,647", "million"),
+                ("numerator_2", "10,121,033", "백만원"),
+                ("denominator_1", "100,000,000", "백만원"),
+            ],
+        )
         ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
         short_row = next(
             row for row in ratio_row["calculation_operands"] if row["matched_operand_role"] == "numerator_1"
@@ -6503,39 +9000,8 @@ class SubtaskLoopTests(unittest.TestCase):
         ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
         self.assertEqual(ratio_row["answer"], "cost income ratio is 37.47%.")
 
-    def test_ratio_display_sync_uses_formula_trace_when_result_value_diverges(self) -> None:
-        synced = self.agent._sync_ratio_display_from_result_value(
-            {
-                "status": "ok",
-                "operation_family": "ratio",
-                "result_value": 3.746881183859589,
-                "result_unit": "%",
-                "rendered_value": "3.75%",
-                "answer_slots": {
-                    "primary_value": {
-                        "status": "ok",
-                        "raw_value": "3.75",
-                        "raw_unit": "%",
-                        "normalized_value": 3.746881183859589,
-                        "normalized_unit": "PERCENT",
-                        "rendered_value": "3.75%",
-                    }
-                },
-                "derived_metrics": {
-                    "operation_family": "ratio",
-                    "formula_result_value": 37.46881183859589,
-                    "source_stated_result_used": False,
-                },
-            }
-        )
-
-        self.assertEqual(synced["result_value"], 37.46881183859589)
-        self.assertEqual(synced["rendered_value"], "37.47%")
-        self.assertEqual(synced["answer_slots"]["primary_value"]["rendered_value"], "37.47%")
-        self.assertTrue(synced["derived_metrics"]["result_value_synced_from_formula_trace"])
-
     def test_ratio_projection_uses_absolute_magnitude_for_coverage_query(self) -> None:
-        projection = self.agent._ratio_result_projection(
+        projection = financial_graph_calculation.calculation_rendering.ratio_result_projection(
             numerator_value=350_000_000.0,
             denominator_value=-100_000_000.0,
             query="절대값 기준 2023년 연결기준 이자보상배율을 계산해 줘.",
@@ -6608,7 +9074,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([weak_current, aggregate_row])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([weak_current, aggregate_row])
 
         self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
         self.assertEqual(
@@ -6717,41 +9183,217 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        source_ref_owner = financial_aggregate_projection.subtask_row_has_direct_source_refs
+        family_owner = financial_aggregate_projection.aggregate_result_operation_family
+        conflict_owner = financial_aggregate_projection.subtask_numeric_answers_conflict
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
+        owner_events = []
+        source_ref_seen = False
+
+        def invoke_source_ref(row):
+            nonlocal source_ref_seen
+            owner_events.append(("source_ref", row))
+            source_ref_seen = True
+            return source_ref_owner(row)
+
+        def invoke_family(row):
+            family = family_owner(row)
+            if source_ref_seen:
+                owner_events.append(("family", row, family))
+            return family
+
+        def invoke_conflict(candidate, current):
+            owner_events.append(("conflict", candidate, current))
+            return conflict_owner(candidate, current)
+
+        def invoke_sign_rank(row):
+            owner_events.append(("rank", row))
+            return sign_rank_owner(row)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_row_has_direct_source_refs",
+                side_effect=invoke_source_ref,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=invoke_family,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=invoke_conflict,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_operand_sign_consistency_rank",
+                side_effect=invoke_sign_rank,
+            ),
+        ):
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+
+        self.assertEqual(
+            [event[0] for event in owner_events],
+            ["source_ref", "family", "family", "conflict", "rank", "family", "rank", "family"],
+        )
+        current_owner_row = owner_events[0][1]
+        nested_owner_row = owner_events[2][1]
+        self.assertIs(owner_events[1][1], current_owner_row)
+        self.assertEqual(owner_events[1][2], "growth_rate")
+        self.assertEqual(owner_events[2][2], "growth_rate")
+        self.assertIs(owner_events[3][1], nested_owner_row)
+        self.assertIs(owner_events[3][2], current_owner_row)
+        self.assertIs(owner_events[4][1], nested_owner_row)
+        self.assertIs(owner_events[5][1], nested_owner_row)
+        self.assertEqual(owner_events[5][2], "growth_rate")
+        self.assertIs(owner_events[6][1], current_owner_row)
+        self.assertIs(owner_events[7][1], current_owner_row)
+        self.assertEqual(owner_events[7][2], "growth_rate")
+        self.assertIsNot(current_owner_row, current_growth)
+        self.assertIsNot(nested_owner_row, conflicting_nested_growth)
+        self.assertEqual(current_owner_row, current_growth)
+        self.assertEqual(nested_owner_row, conflicting_nested_growth)
 
         self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
         self.assertIn("84.3%", promoted[0]["answer"])
         self.assertNotIn("76.08%", promoted[0]["answer"])
 
-    def test_period_comparison_rows_detect_same_source_value_collapse(self) -> None:
-        current_row = {
-            "matched_operand_role": "current_period",
-            "source_row_id": "row_income",
-            "source_row_ids": ["row_income"],
-            "raw_value": "1,000",
-            "normalized_value": 1000.0,
-            "period": "2023",
-        }
-        stale_prior_row = {
-            "matched_operand_role": "prior_period",
-            "source_row_id": "row_income",
-            "source_row_ids": ["row_income"],
-            "raw_value": "1,000",
-            "normalized_value": 1000.0,
-            "period": "2022",
-        }
-        real_prior_row = {
-            **stale_prior_row,
-            "raw_value": "700",
-            "normalized_value": 700.0,
-        }
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_row_has_direct_source_refs",
+                return_value=False,
+            ) as no_direct_ref,
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+            ) as gated_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "growth_operand_sign_consistency_rank",
+            ) as gated_rank,
+            patch.object(
+                financial_aggregate_projection,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_without_direct_ref = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        no_direct_ref.assert_called_once()
+        gated_conflict.assert_not_called()
+        gated_rank.assert_not_called()
+        self.assertTrue(promoted_without_direct_ref[0]["promoted_from_nested_aggregate"])
 
-        self.assertTrue(
-            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, stale_prior_row])
-        )
-        self.assertFalse(
-            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, real_prior_row])
-        )
+        family_gate_active = False
+        post_source_families = []
+
+        def enable_family_gate(_row):
+            nonlocal family_gate_active
+            family_gate_active = True
+            return True
+
+        def mismatch_after_source_ref(row):
+            family = family_owner(row)
+            if not family_gate_active:
+                return family
+            post_source_families.append(row)
+            return "growth_rate" if len(post_source_families) == 1 else "ratio"
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_row_has_direct_source_refs",
+                side_effect=enable_family_gate,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=mismatch_after_source_ref,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+            ) as family_gated_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "growth_operand_sign_consistency_rank",
+            ) as family_gated_rank,
+            patch.object(
+                financial_aggregate_projection,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_with_family_mismatch = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        self.assertEqual(len(post_source_families), 2)
+        family_gated_conflict.assert_not_called()
+        family_gated_rank.assert_not_called()
+        self.assertTrue(promoted_with_family_mismatch[0]["promoted_from_nested_aggregate"])
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                return_value=False,
+            ) as no_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "growth_operand_sign_consistency_rank",
+            ) as conflict_gated_rank,
+            patch.object(
+                financial_aggregate_projection,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_without_conflict = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        no_conflict.assert_called_once()
+        conflict_gated_rank.assert_not_called()
+        self.assertTrue(promoted_without_conflict[0]["promoted_from_nested_aggregate"])
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(
+                financial_aggregate_projection,
+                "growth_operand_sign_consistency_rank",
+            ) as stopped_rank,
+            patch.object(
+                financial_aggregate_projection,
+                "nested_aggregate_result_rank",
+            ) as later_nested_rank,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        failing_conflict.assert_called_once()
+        stopped_rank.assert_not_called()
+        later_nested_rank.assert_not_called()
 
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
@@ -6850,7 +9492,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
 
         self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
         self.assertIn("41.4%", promoted[0]["answer"])
@@ -7163,7 +9805,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["calculation_debug_trace"]["retry_strategy"], "synthesize_from_task_outputs")
@@ -7271,7 +9913,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertIn(
@@ -7358,13 +10000,28 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        late_owner_results = []
+        original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
+
+        def _record_late_owner(owner_input):
+            result = original_late_owner(owner_input)
+            late_owner_results.append(result)
+            return result
+
+        financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
+        try:
+            extracted = self.agent._extract_calculation_operands(state)
+        finally:
+            financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "partial")
         self.assertEqual(len(trace["calculation_operands"]), 1)
         self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "minuend")
         self.assertEqual(extracted["artifacts"][0]["payload"]["calculation_operands"][0]["raw_value"], "10")
+        self.assertEqual(len(late_owner_results), 1)
+        self.assertTrue(late_owner_results[0].dependency_remerge_applied)
+        self.assertEqual(late_owner_results[0].dependency_remerge_reason, "dependency_remerged")
 
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
@@ -7492,7 +10149,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -7542,7 +10199,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_plan": {},
             "calculation_result": {},
         }
-        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+        structured_operand_rows = [
             {
                 "operand_id": "op_001",
                 "evidence_id": "ev_source",
@@ -7554,9 +10211,38 @@ class SubtaskLoopTests(unittest.TestCase):
                 "matched_operand_role": "value",
             }
         ]
+        self.agent._extract_structured_operands_from_reconciliation = (
+            lambda _state: structured_operand_rows
+        )
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
-        extracted = self.agent._extract_calculation_operands(state)
+        real_enricher = financial_graph_calculation.enrich_reconciliation_artifact_refs
+        real_builder = financial_graph_calculation._build_operand_set_artifact_update
+        events = []
+        enrich_calls = []
+        builder_calls = []
+
+        def record_enrichment(artifacts, **kwargs):
+            enriched = real_enricher(artifacts, **kwargs)
+            enrich_calls.append((artifacts, kwargs, enriched))
+            events.append("enrich")
+            return enriched
+
+        def record_builder(**kwargs):
+            builder_calls.append(kwargs)
+            events.append("build")
+            return real_builder(**kwargs)
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=record_enrichment,
+        ), patch.object(
+            financial_graph_calculation,
+            "_build_operand_set_artifact_update",
+            side_effect=record_builder,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
         reconcile_artifact = next(
             artifact
             for artifact in extracted["artifacts"]
@@ -7564,6 +10250,33 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertEqual(reconcile_artifact["evidence_refs"], ["ev_source", "row_source"])
+        self.assertEqual(events, ["enrich", "build"])
+        prepared_artifacts, enrich_kwargs, enriched_artifacts = enrich_calls[0]
+        self.assertIsNot(prepared_artifacts, state["artifacts"])
+        self.assertIs(prepared_artifacts[0], state["artifacts"][0])
+        self.assertEqual(enrich_kwargs["task_id"], "task_1")
+        self.assertEqual(enrich_kwargs["operand_rows"], structured_operand_rows)
+        self.assertEqual(set(enrich_kwargs), {"task_id", "operand_rows"})
+        self.assertIs(builder_calls[0]["artifacts"], enriched_artifacts)
+        self.assertIs(builder_calls[0]["operand_rows"], enrich_kwargs["operand_rows"])
+        self.assertIsNot(reconcile_artifact, enriched_artifacts[0])
+        self.assertEqual(reconcile_artifact, enriched_artifacts[0])
+        self.assertIs(reconcile_artifact["payload"], enriched_artifacts[0]["payload"])
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=RuntimeError("artifact ref enrichment stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_build_operand_set_artifact_update",
+            wraps=real_builder,
+        ) as stopped_builder, self.assertRaisesRegex(
+            RuntimeError,
+            "artifact ref enrichment stopped",
+        ):
+            self.agent._extract_calculation_operands(state)
+        self.assertEqual(stopped_builder.call_count, 0)
 
     def test_ratio_missing_dependency_binding_can_fall_back_to_retrieved_docs(self) -> None:
         state = {
@@ -7671,7 +10384,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -7825,10 +10538,24 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
-        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        selection_inputs = []
+        selection_results = []
+        original_selection = financial_graph_calculation.resolve_post_coercion_llm_operand_selection
+
+        def record_selection(selection_input):
+            selection_inputs.append(selection_input)
+            result = original_selection(selection_input)
+            selection_results.append(result)
+            return result
+
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_post_coercion_llm_operand_selection",
+            side_effect=record_selection,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(
@@ -7841,6 +10568,21 @@ class SubtaskLoopTests(unittest.TestCase):
             if row.get("label") == "operating profit"
         )
         self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(len(selection_inputs), 1)
+        self.assertEqual(
+            [row.get("evidence_id") for row in selection_inputs[0].operand_rows],
+            ["task_output:task_expense", "ev_doc_001"],
+        )
+        self.assertEqual(
+            (
+                selection_inputs[0].require_direct_support,
+                selection_inputs[0].lookup_rematch_required,
+                selection_results[0].required_surface_filter_applied,
+                selection_results[0].lookup_rematch_filter_applied,
+                selection_results[0].direct_merge_applied,
+            ),
+            (True, False, True, False, True),
+        )
 
     def test_ratio_missing_dependency_binding_can_use_active_reconciliation_evidence(self) -> None:
         state = {
@@ -7940,10 +10682,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "metadata": {"statement_type": "income_statement"},
             },
         ]
-        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -8099,7 +10840,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(len(trace["calculation_operands"]), 1)
@@ -8258,7 +10999,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(item) for item in reconciliation_evidence]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["calculation_debug_trace"]["source"], "structured_row_direct")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -8382,7 +11123,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
 
         self.assertNotEqual(extracted["calculation_debug_trace"]["source"], "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -8390,6 +11131,18 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(
             {row["matched_operand_role"] for row in trace["calculation_operands"]},
             {"current_period", "prior_period"},
+        )
+        operands_by_role = {
+            row["matched_operand_role"]: row
+            for row in trace["calculation_operands"]
+        }
+        self.assertIn(
+            "task_output:task_1",
+            operands_by_role["current_period"]["source_row_ids"],
+        )
+        self.assertEqual(
+            operands_by_role["prior_period"]["evidence_id"],
+            "value:capex:2022",
         )
 
     def test_growth_rate_partial_direct_rows_use_reconciliation_fallback(self) -> None:
@@ -8520,17 +11273,25 @@ class SubtaskLoopTests(unittest.TestCase):
                 ],
             )
         )
+        state_before = deepcopy(state)
 
-        extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
+        trace = resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("current_operand_rows_preferred", False, False),
+        )
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(len(trace["calculation_operands"]), 2)
-        self.assertEqual(
-            {row["period"] for row in trace["calculation_operands"]},
-            {"2023", "2022"},
-        )
+        rows = trace["calculation_operands"]
+        self.assertEqual([row["evidence_id"] for row in rows], ["task_output:task_current", "recon_prior"])
+        self.assertEqual([row["period"] for row in rows], ["2023", "2022"])
+        self.assertEqual([row["raw_value"] for row in rows], ["200", "100"])
 
     def test_growth_rate_prefers_complete_reconciliation_rows_over_dependency_outputs(self) -> None:
         state = {
@@ -8682,7 +11443,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands_by_role = {
             row["matched_operand_role"]: row
             for row in trace["calculation_operands"]
@@ -8830,7 +11591,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
         extracted = self.agent._extract_calculation_operands(state)
-        trace = _resolve_runtime_calculation_trace(extracted)
+        trace = resolve_runtime_calculation_trace(extracted)
         operands_by_role = {
             row["matched_operand_role"]: row
             for row in trace["calculation_operands"]
@@ -9153,13 +11914,24 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(state["evidence_items"])
         self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        state_before = deepcopy(state)
+        fallback_rows_before = deepcopy(fallback_rows)
 
-        extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
-        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        self.assertEqual(state, state_before)
+        self.assertEqual(fallback_rows, fallback_rows_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("complete_ratio_candidate_rows_preferred", True, False),
+        )
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
-        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual([row["operand_id"] for row in rows], ["fallback_numerator", "fallback_denominator"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["table_ratio"] * 2)
+        self.assertEqual([row["raw_value"] for row in rows], ["4,355", "11,623"])
 
     def test_ratio_complete_retrieved_context_replaces_partial_dependency_operand(self) -> None:
         state = {
@@ -9297,13 +12069,24 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
         self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        state_before = deepcopy(state)
+        fallback_rows_before = deepcopy(fallback_rows)
 
-        extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
-        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        self.assertEqual(state, state_before)
+        self.assertEqual(fallback_rows, fallback_rows_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("complete_ratio_candidate_rows_preferred", True, True),
+        )
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
-        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual([row["operand_id"] for row in rows], ["fallback_numerator", "fallback_denominator"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["ev_doc_001"] * 2)
+        self.assertEqual([row["raw_value"] for row in rows], ["4,355", "11,623"])
 
     def test_ratio_complete_retrieved_context_replaces_complete_dependency_operands(self) -> None:
         state = {
@@ -9467,7 +12250,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
 
         extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -9475,6 +12258,336 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
         self.assertEqual(rows_by_role["numerator_1"]["raw_unit"], "억원")
         self.assertEqual(rows_by_role["denominator_1"]["raw_unit"], "억원")
+
+    def test_ratio_main_owner_purges_nonconflicting_dependency_state_in_graph(self) -> None:
+        operand_specs = [
+            ("expense input", "numerator_1", 100.0, "task_expense"),
+            ("profit base", "denominator_1", 50.0, "task_profit"),
+        ]
+        required_operands = [
+            {"label": label, "role": role}
+            for label, role, _value, _task_id in operand_specs
+        ]
+        dependency_bindings = [
+            {**operand, "preferred_task_id": spec[3]}
+            for operand, spec in zip(required_operands, operand_specs)
+        ]
+
+        def _operand_row(index, source_id, *, dependency):
+            operand = required_operands[index]
+            value = operand_specs[index][2]
+            row = {
+                **operand,
+                "evidence_id": source_id,
+                "source_row_id": source_id,
+                "source_row_ids": [source_id],
+                "raw_value": f"{value:g}",
+                "raw_unit": "unit",
+                "normalized_value": value,
+                "normalized_unit": "KRW",
+                "matched_operand_label": operand["label"],
+                "matched_operand_role": operand["role"],
+            }
+            if dependency:
+                row.update(
+                    dependency_resolved=True,
+                    source_task_id=operand_specs[index][3],
+                )
+            else:
+                row.update(operand_id=source_id, table_source_id="ratio_table")
+            return row
+
+        dependency_rows = [
+            _operand_row(index, f"task_output:{spec[3]}", dependency=True)
+            for index, spec in enumerate(operand_specs)
+        ]
+        direct_ids = ["direct_ratio_numerator", "direct_ratio_denominator"]
+        coherent_direct_rows = [
+            _operand_row(index, source_id, dependency=False)
+            for index, source_id in enumerate(direct_ids)
+        ]
+        stale_direct_rows = [
+            _operand_row(index, f"stale_direct_{index}", dependency=False)
+            for index in range(len(operand_specs))
+        ]
+        existing_evidence = {
+            "evidence_id": direct_ids[0],
+            "metadata": {"marker": "existing"},
+        }
+        context_evidence = [
+            {"evidence_id": direct_ids[0], "metadata": {"marker": "recovered-existing"}},
+            {"evidence_id": "unused_context", "metadata": {"marker": "unused"}},
+            {"evidence_id": direct_ids[1], "metadata": {"marker": "first-new"}},
+            {"evidence_id": direct_ids[1], "metadata": {"marker": "second-new"}},
+        ]
+        dependency_binding_keys = {
+            (operand["label"], operand["role"])
+            for operand in required_operands
+        }
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "evidence_items": [existing_evidence],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+        }
+        self.agent._dependency_binding_resolution_state = lambda _state: {
+            "rows": dependency_rows,
+            "bindings": dependency_bindings,
+            "binding_keys": dependency_binding_keys,
+            "resolved_keys": {("expense input", "numerator_1")},
+            "missing_bindings": [dict(dependency_bindings[1])],
+            "all_resolved": False,
+        }
+        self.agent._extract_structured_operands_from_reconciliation = (
+            lambda _state: [dict(row) for row in stale_direct_rows]
+        )
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._ratio_operand_context_evidence_from_docs = (
+            lambda *_args, **_kwargs: context_evidence
+        )
+        self.agent._build_complete_ratio_operands_from_coherent_context = (
+            lambda *_args, **_kwargs: [dict(row) for row in coherent_direct_rows]
+        )
+        state_before = deepcopy(state)
+        inputs_before = deepcopy((stale_direct_rows, coherent_direct_rows, context_evidence))
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        context_adoptions, adoption_patch = _record_graph_resolver(
+            "resolve_recovered_operand_context_adoption"
+        )
+        owner_results, owner_patch = _record_graph_resolver(
+            "resolve_main_operand_precedence"
+        )
+        with (
+            acceptance_patch,
+            adoption_patch,
+            owner_patch,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+
+        self.assertEqual(state, state_before)
+        self.assertEqual((stale_direct_rows, coherent_direct_rows, context_evidence), inputs_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            [row["evidence_id"] for row in direct_acceptances[0].accepted_operand_rows],
+            ["stale_direct_0", "stale_direct_1"],
+        )
+        self.assertEqual(len(context_adoptions), 1)
+        context_adoption = context_adoptions[0]
+        self.assertEqual(context_adoption.reason, "coherent_ratio_context_replaced")
+        self.assertEqual(
+            [row["evidence_id"] for row in context_adoption.selected_operand_rows],
+            direct_ids,
+        )
+        self.assertEqual(
+            context_adoption.adopted_evidence_ids,
+            (direct_ids[1], direct_ids[1]),
+        )
+        self.assertEqual(len(owner_results), 1)
+        owner_result = owner_results[0]
+        self.assertEqual(
+            (
+                owner_result.ratio_direct_context_should_override_dependency,
+                owner_result.ratio_direct_context_override_applied,
+                owner_result.source_selection.precedence,
+            ),
+            (True, True, "no_dependency"),
+        )
+        self.assertEqual(
+            (
+                owner_result.source_selection.dependency_rows,
+                owner_result.active_dependency_bindings,
+                owner_result.dependency_resolved_keys,
+                owner_result.missing_dependency_bindings,
+            ),
+            ([], [], set(), []),
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in owner_result.selected_operand_rows],
+            direct_ids,
+        )
+
+        trace_rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        self.assertEqual(extracted["calculation_debug_trace"]["source"], "structured_row_direct")
+        self.assertEqual(
+            extracted["calculation_debug_trace"].get("dependency_operands") or [],
+            [],
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in trace_rows],
+            direct_ids,
+        )
+        adopted_evidence = extracted["evidence_items"]
+        self.assertIs(adopted_evidence, context_adoption.evidence_items)
+        self.assertEqual(
+            [item["evidence_id"] for item in adopted_evidence],
+            [direct_ids[0], direct_ids[1], direct_ids[1]],
+        )
+        self.assertTrue(
+            all(
+                source_id and not source_id.startswith("task_output:")
+                for row in trace_rows
+                for source_id in row.get("source_row_ids") or []
+            )
+        )
+
+    def test_ratio_aggregate_stage_dependency_precedence_survives_coherent_retrieved_context(self) -> None:
+        required_operands = [
+            {
+                "label": "expense input",
+                "concept": "expense_input",
+                "role": "numerator_1",
+                "period": "2023",
+                "binding_policy": {
+                    "prefer_aggregation_stages": ["final", "subtotal"],
+                },
+            },
+            {
+                "label": "profit base",
+                "concept": "profit_base",
+                "role": "denominator_1",
+                "period": "2023",
+            },
+        ]
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "profit_base",
+                        "period": "2023",
+                        "label": "profit base",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                self._lookup_result_row(
+                    task_id="task_expense",
+                    label="expense input",
+                    concept="expense_input",
+                    raw_value="435,542",
+                    raw_unit="백만원",
+                    normalized_value=435_542_000_000.0,
+                    source_row_id="task_output:task_expense",
+                ),
+                self._lookup_result_row(
+                    task_id="task_profit",
+                    label="profit base",
+                    concept="profit_base",
+                    raw_value="11,623",
+                    raw_unit="백만원",
+                    normalized_value=11_623_000_000.0,
+                    source_row_id="task_output:task_profit",
+                ),
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "expense input | 2023 4,355 억원\n"
+                            "profit base | 2023 11,623 억원"
+                        ),
+                        metadata={
+                            "block_type": "table",
+                            "table_source_id": "ratio-table",
+                            "unit_hint": "억원",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        coherent_direct_rows = [
+            {
+                "operand_id": "direct_numerator",
+                "evidence_id": "direct_ratio_table",
+                "source_row_id": "direct_numerator",
+                "source_anchor": "[Example | 2023 | table]",
+                "table_source_id": "ratio-table",
+                "label": "expense input",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+                "normalized_value": 435_500_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "expense input",
+                "matched_operand_concept": "expense_input",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "operand_id": "direct_denominator",
+                "evidence_id": "direct_ratio_table",
+                "source_row_id": "direct_denominator",
+                "source_anchor": "[Example | 2023 | table]",
+                "table_source_id": "ratio-table",
+                "label": "profit base",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+                "normalized_value": 1_162_300_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "profit base",
+                "matched_operand_concept": "profit_base",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._build_complete_ratio_operands_from_coherent_context = (
+            lambda *_args, **_kwargs: [dict(row) for row in coherent_direct_rows]
+        )
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "435,542")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertIn(
+            "task_output:task_expense",
+            rows_by_role["numerator_1"]["source_row_ids"],
+        )
+        self.assertIn(
+            "task_output:task_profit",
+            rows_by_role["denominator_1"]["source_row_ids"],
+        )
 
     def test_ratio_coherent_table_context_overrides_mixed_table_operands(self) -> None:
         required_operands = [
@@ -9634,18 +12747,100 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(evidence_items)
         self.agent._build_required_operands_from_candidates = build_required
-        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="sufficient", operands=[]))
 
-        extracted = self.agent._extract_calculation_operands(state)
-        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        late_owner_results = []
+        original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
+        finalization_results = []
+        original_finalization_owner = financial_graph_calculation.resolve_late_operand_finalization
+
+        def _record_late_owner(owner_input):
+            result = original_late_owner(owner_input)
+            late_owner_results.append(result)
+            return result
+
+        def _record_finalization_owner(owner_input):
+            result = original_finalization_owner(owner_input)
+            finalization_results.append(result)
+            return result
+
+        financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
+        try:
+            extracted = self.agent._extract_calculation_operands(state)
+            percent_point_state = {
+                **state,
+                "query": f"{state['query']} in %p",
+            }
+            financial_graph_calculation.resolve_late_operand_finalization = (
+                _record_finalization_owner
+            )
+            try:
+                percent_point_extracted = self.agent._extract_calculation_operands(
+                    percent_point_state
+                )
+            finally:
+                financial_graph_calculation.resolve_late_operand_finalization = (
+                    original_finalization_owner
+                )
+        finally:
+            financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
+        ratio_denominator["normalized_unit"] = "PERCENT"
+        partial_percent_extracted = self.agent._extract_calculation_operands(
+            percent_point_state
+        )
+        rows = list(resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        percent_point_rows = list(
+            resolve_runtime_calculation_trace(percent_point_extracted).get("calculation_operands", [])
+        )
+        partial_percent_rows = list(
+            resolve_runtime_calculation_trace(partial_percent_extracted).get(
+                "calculation_operands",
+                [],
+            )
+        )
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual(len(late_owner_results), 2)
+        self.assertTrue(
+            all(
+                result.complete_direct_context_blocks_dependency_remerge
+                and not result.dependency_remerge_applied
+                and result.dependency_remerge_reason == "complete_direct_context"
+                for result in late_owner_results
+            )
+        )
+        self.assertEqual(percent_point_rows, [])
+        self.assertEqual(percent_point_extracted["evidence_status"], "missing")
+        self.assertEqual(
+            percent_point_extracted["calculation_debug_trace"]["coverage"],
+            "missing",
+        )
+        self.assertEqual(len(finalization_results), 1)
+        self.assertTrue(finalization_results[0].operand_filter_applied)
+        self.assertEqual(finalization_results[0].preserved_operand_source, "")
+        self.assertEqual(finalization_results[0].finalization_reason, "normalized_unit_filtered")
+        self.assertEqual(
+            [row.get("matched_operand_role") for row in partial_percent_rows],
+            ["denominator_1"],
+        )
+        self.assertEqual(partial_percent_extracted["evidence_status"], "partial")
+        self.assertEqual(
+            partial_percent_extracted["calculation_debug_trace"]["coverage"],
+            "partial",
+        )
+        self.assertFalse(
+            any(
+                str(source_id or "").startswith("task_output:")
+                for row in percent_point_rows
+                for source_id in row.get("source_row_ids") or []
+            )
+        )
 
     def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
-        recovered = self.agent._recover_growth_prior_material_from_evidence(
+        recovered = financial_aggregate_projection.recover_growth_prior_material_from_evidence(
             current_slot={
                 "label": "target metric",
                 "period": "2023",
@@ -9871,14 +13066,14 @@ class SubtaskLoopTests(unittest.TestCase):
 
         extracted = self.agent._extract_calculation_operands(state)
         merged_state = {**state, **extracted}
-        trace = _resolve_runtime_calculation_trace(merged_state)
+        trace = resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
             [row["matched_operand_role"] for row in trace["calculation_operands"]],
             ["addend_1", "addend_2"],
         )
 
         planned = self.agent._plan_formula_calculation(merged_state)
-        plan_trace = _resolve_runtime_calculation_trace(planned)
+        plan_trace = resolve_runtime_calculation_trace(planned)
         self.assertEqual(plan_trace["calculation_plan"]["status"], "ok")
         self.assertEqual(plan_trace["calculation_plan"]["operation"], "add")
         self.assertEqual(len(plan_trace["calculation_plan"]["ordered_operand_ids"]), 2)
@@ -10224,11 +13419,19 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        answer = self.agent._compact_ratio_answer(
-            {"active_subtask": {"metric_label": "target share"}},
-            calculation_result,
-        )
+        display_sync = financial_answer_slots.synchronize_ratio_result_display
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as display_sync_spy:
+            answer = self.agent._compact_ratio_answer(
+                {"active_subtask": {"metric_label": "target share"}},
+                calculation_result,
+            )
 
+        display_sync_spy.assert_called_once()
+        self.assertIs(display_sync_spy.call_args.args[0].calculation_result, calculation_result)
         self.assertIn("42.02%", answer)
         self.assertNotIn("7.87%", answer)
         self.assertEqual(calculation_result["rendered_value"], "42.02%")
@@ -10285,12 +13488,36 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        updated = self.agent._sync_ratio_result_displays_in_ordered_results([ratio_row])
+        display_sync = financial_answer_slots.synchronize_ratio_result_display
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as display_sync_spy:
+            updated = self.agent._sync_ratio_result_displays_in_ordered_results([ratio_row])
 
+        self.assertEqual(display_sync_spy.call_count, 2)
+        prepared_result = display_sync_spy.call_args_list[0].args[0].calculation_result
+        self.assertIsNot(prepared_result, ratio_row["calculation_result"])
+        self.assertIs(prepared_result, display_sync_spy.call_args_list[1].args[0].calculation_result)
+        self.assertEqual(prepared_result["result_value"], 42.01863054131083)
         self.assertIn("42.02%", updated[0]["answer"])
         self.assertNotIn("7.87%", updated[0]["answer"])
         self.assertEqual(updated[0]["calculation_result"]["rendered_value"], "42.02%")
         self.assertEqual(updated[0]["calculation_result"]["formatted_result"], updated[0]["answer"])
+
+        no_change_rows = [
+            {"operation_family": "lookup", "calculation_result": {"status": "ok"}},
+            {"operation_family": "ratio", "calculation_result": {}},
+        ]
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as gated_display_sync:
+            unchanged = self.agent._sync_ratio_result_displays_in_ordered_results(no_change_rows)
+        gated_display_sync.assert_not_called()
+        self.assertIs(unchanged, no_change_rows)
 
     def test_aggregate_subtasks_joins_answers_in_task_order(self) -> None:
         state = {
@@ -10399,7 +13626,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "2023년 연결기준 부채비율은 25.4%입니다. 2023년 연결기준 유동비율은 258.8%입니다.",
         )
         self.assertEqual(updated["selected_claim_ids"], ["ev_001", "ev_002"])
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(len(trace["calculation_operands"]), 4)
         self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
         self.assertEqual(trace["calculation_plan"]["subtask_count"], 2)
@@ -10506,9 +13733,62 @@ class SubtaskLoopTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        prompt_owner = financial_graph_calculation.aggregate_synthesis_prompt_rows
+        rebuild_owner = self.agent._rebuild_aggregate_projection
+        period_owner = self.agent._apply_period_context_realignment_to_aggregate
+        owner_inputs = []
+        owner_input_refs = []
+        owner_outputs = []
+        rebuild_outputs = []
+        period_records = []
+
+        def record_rebuild(*args, **kwargs):
+            projection = rebuild_owner(*args, **kwargs)
+            rebuild_outputs.append(projection)
+            return projection
+
+        def record_period(*args, **kwargs):
+            aggregate_state = kwargs["aggregate_state"]
+            latest_rebuild = rebuild_outputs[-1]
+            result = period_owner(*args, **kwargs)
+            period_records.append((aggregate_state, latest_rebuild, result))
+            return result
+
+        def record_prompt_rows(ordered_results, aggregate_projection):
+            owner_input_refs.append((ordered_results, aggregate_projection))
+            owner_inputs.append(deepcopy((ordered_results, aggregate_projection)))
+            projected = prompt_owner(ordered_results, aggregate_projection)
+            owner_outputs.append(projected)
+            return projected
+
+        with (
+            patch.object(self.agent, "_rebuild_aggregate_projection", side_effect=record_rebuild),
+            patch.object(
+                self.agent,
+                "_apply_period_context_realignment_to_aggregate",
+                side_effect=record_period,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_synthesis_prompt_rows",
+                side_effect=record_prompt_rows,
+            ) as prompt_owner_spy,
+        ):
+            updated = self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        prompt_owner_spy.assert_called_once()
         prompt_json = capturing_llm.prompt_text.split("Subtask Results JSON:\n", 1)[1]
         prompt_rows = json.loads(prompt_json)
+        called_ordered_results, called_projection = owner_inputs[0]
+        period_input, latest_rebuild, period_output = period_records[0]
+        self.assertIs(period_input.aggregate_projection, latest_rebuild)
+        self.assertIs(owner_input_refs[0][0], period_output.ordered_results)
+        self.assertIs(owner_input_refs[0][1], period_output.aggregate_projection)
+        self.assertEqual(called_ordered_results[0]["task_id"], "task_1")
+        self.assertEqual(
+            called_projection["calculation_result"]["subtask_results"][0]["task_id"],
+            "task_1",
+        )
+        self.assertEqual(prompt_rows, owner_outputs[0])
 
         self.assertEqual(len(prompt_rows), 1)
         self.assertEqual(prompt_rows[0]["task_id"], "task_1")
@@ -10521,9 +13801,40 @@ class SubtaskLoopTests(unittest.TestCase):
             updated["subtask_debug_trace"]["aggregate_synthesis_prompt"]["input_json_chars"],
             len(json.dumps([state], ensure_ascii=False)),
         )
+        self.assertEqual(
+            updated["subtask_debug_trace"]["aggregate_synthesis_prompt"],
+            {
+                "row_count": len(prompt_rows),
+                "input_json_chars": len(
+                    json.dumps(owner_outputs[0], ensure_ascii=False, separators=(",", ":"))
+                ),
+                "source": "projection_compact_rows",
+            },
+        )
+
+        self.agent.llm = None
+        with patch.object(financial_graph_calculation, "aggregate_synthesis_prompt_rows") as disabled_owner:
+            self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        disabled_owner.assert_not_called()
+
+        fallback_llm = _CapturingLLM(
+            AggregateSynthesisOutput.model_validate(
+                {"final_answer": "unused", "planner_feedback": "unused"}
+            )
+        )
+        self.agent.llm = fallback_llm
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_synthesis_prompt_rows",
+            side_effect=RuntimeError("prompt row projection failed"),
+        ) as failing_owner:
+            fallback_update = self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        failing_owner.assert_called_once()
+        self.assertEqual(fallback_llm.prompt_text, "")
+        self.assertEqual(fallback_update["answer"], state["answer"])
 
     def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
-        projection = self.agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_1",
@@ -10574,7 +13885,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
 
     def test_aggregate_projection_drops_null_source_id_surfaces(self) -> None:
-        projection = self.agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_1",
@@ -10818,7 +14129,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["answer"], "90.7%")
         self.assertEqual(trace["calculation_result"]["formatted_result"], "90.7%")
         self.assertNotIn("277.94%", updated["answer"])
@@ -10933,7 +14244,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("13.77%", updated["answer"])
         self.assertNotIn("100%", updated["answer"])
@@ -11800,7 +15111,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "reflection_request",
         ])
         self.assertEqual(
-            _resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
+            resolve_runtime_calculation_trace(update, allow_legacy_top_level=False),
             {},
         )
 
@@ -12288,13 +15599,13 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(tasks_by_id["task_3"]["superseded_by_task_id"], "aggregate")
 
-    def test_aggregate_ledger_supersedes_tasks_from_final_subtask_slots(self) -> None:
+    def test_aggregate_ledger_supersedes_in_progress_tasks_from_final_subtask_slots(self) -> None:
         tasks = [
             {
                 "task_id": "task_2",
                 "kind": "reconciliation",
                 "label": "reconcile 2023 base amount",
-                "status": "partial",
+                "status": "in_progress",
                 "metric_family": "concept_lookup",
                 "artifact_ids": ["reconcile:task_2:001"],
             }
@@ -12428,15 +15739,47 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
-            tasks,
-            artifacts,
-            ordered_results=ordered_results,
-            aggregate_projection=aggregate_projection,
-            aggregate_artifact_id="aggregate:002",
-            final_answer=final_answer,
-        )
+        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+        preserve_owner = self.agent._answer_preserves_task_numeric_surface
+        with (
+            patch.object(
+                self.agent,
+                "_task_aggregate_replacement_summary",
+                return_value=final_answer,
+            ) as replacement_summary_owner,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                wraps=conflict_owner,
+            ) as conflict_spy,
+            patch.object(
+                self.agent,
+                "_answer_preserves_task_numeric_surface",
+                wraps=preserve_owner,
+            ) as preserve_spy,
+        ):
+            updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
+                tasks,
+                artifacts,
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="aggregate:002",
+                final_answer=final_answer,
+            )
         trace = _project_task_artifact_trace(updated_tasks, updated_artifacts)
+
+        replacement_summary_owner.assert_called_once()
+        conflict_spy.assert_called_once_with(
+            {"answer": final_answer},
+            {"answer": "target metric 70.24%"},
+        )
+        self.assertEqual(
+            [call.args for call in preserve_spy.call_args_list],
+            [
+                (final_answer, "target metric 70.24%"),
+                (final_answer, final_answer),
+            ],
+        )
 
         self.assertEqual(trace["integrity_status"], "ok")
         self.assertEqual(trace["tasks"][0]["status"], "superseded")
@@ -12447,6 +15790,104 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["tasks"][0]["latest_artifact_status"], "superseded_by_aggregate_result")
         self.assertEqual(trace["tasks"][0]["latest_artifact_summary"], final_answer)
         self.assertEqual(len(updated_artifacts), 2)
+
+        replacement_answer = "target metric 70.28%."
+        latest_summary = "target metric 70.24%"
+        for fallback_preserves, expected_status, expected_artifact_count in (
+            (True, "completed", 1),
+            (False, "superseded", 2),
+        ):
+            with self.subTest(fallback_preserves=fallback_preserves):
+                fallback_calls = []
+
+                def preserve_for_false_conflict(answer, reference):
+                    pair = (answer, reference)
+                    if pair == (final_answer, latest_summary):
+                        return False
+                    if pair == (replacement_answer, final_answer):
+                        return True
+                    if pair == (replacement_answer, latest_summary):
+                        fallback_calls.append(pair)
+                        return fallback_preserves
+                    raise AssertionError(f"unexpected preservation pair: {pair!r}")
+
+                with (
+                    patch.object(
+                        self.agent,
+                        "_task_aggregate_replacement_summary",
+                        return_value=replacement_answer,
+                    ),
+                    patch.object(
+                        financial_graph_calculation,
+                        "subtask_numeric_answers_conflict",
+                        return_value=False,
+                    ) as false_conflict,
+                    patch.object(
+                        self.agent,
+                        "_answer_preserves_task_numeric_surface",
+                        side_effect=preserve_for_false_conflict,
+                    ),
+                ):
+                    branch_tasks, branch_artifacts = self.agent._finalize_aggregate_task_ledger(
+                        tasks,
+                        artifacts,
+                        ordered_results=ordered_results,
+                        aggregate_projection=aggregate_projection,
+                        aggregate_artifact_id="aggregate:002",
+                        final_answer=final_answer,
+                    )
+                false_conflict.assert_called_once_with(
+                    {"answer": replacement_answer},
+                    {"answer": latest_summary},
+                )
+                self.assertEqual(fallback_calls, [(replacement_answer, latest_summary)])
+                self.assertEqual(branch_tasks[0]["status"], expected_status)
+                self.assertEqual(len(branch_artifacts), expected_artifact_count)
+
+        with patch.object(
+            financial_graph_calculation,
+            "subtask_numeric_answers_conflict",
+        ) as gated_conflict:
+            self.agent._finalize_aggregate_task_ledger(
+                tasks,
+                artifacts,
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="aggregate:002",
+                final_answer="target metric 70.24%",
+            )
+        gated_conflict.assert_not_called()
+
+        with (
+            patch.object(
+                self.agent,
+                "_task_aggregate_replacement_summary",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+            ) as later_projection,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                self.agent._finalize_aggregate_task_ledger(
+                    tasks,
+                    artifacts,
+                    ordered_results=ordered_results,
+                    aggregate_projection=aggregate_projection,
+                    aggregate_artifact_id="aggregate:002",
+                    final_answer=final_answer,
+                )
+        failing_conflict.assert_called_once_with(
+            {"answer": final_answer},
+            {"answer": "target metric 70.24%"},
+        )
+        later_projection.assert_not_called()
 
     def test_aggregate_ledger_keeps_non_conflicting_completed_task_summary(self) -> None:
         tasks = [
@@ -12903,7 +16344,33 @@ class SubtaskLoopTests(unittest.TestCase):
             "plan_loop_count": 0,
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        real_enricher = financial_graph_calculation.enrich_reconciliation_artifact_refs
+        real_integrity_projection = financial_graph_calculation._project_task_artifact_trace
+        events = []
+        enrich_calls = []
+        integrity_calls = []
+
+        def record_enrichment(artifacts, **kwargs):
+            enriched = real_enricher(artifacts, **kwargs)
+            enrich_calls.append((artifacts, kwargs, enriched))
+            events.append("enrich")
+            return enriched
+
+        def record_integrity_projection(tasks, artifacts):
+            integrity_calls.append((tasks, artifacts))
+            events.append("integrity")
+            return real_integrity_projection(tasks, artifacts)
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=record_enrichment,
+        ), patch.object(
+            financial_graph_calculation,
+            "_project_task_artifact_trace",
+            side_effect=record_integrity_projection,
+        ):
+            updated = self.agent._aggregate_calculation_subtasks(state)
         reconcile_artifact = next(
             artifact
             for artifact in updated["artifacts"]
@@ -12912,12 +16379,48 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(reconcile_artifact["evidence_refs"], ["row:source", "claim:source"])
         self.assertNotIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertEqual(events, ["enrich", "integrity"])
+        prepared_artifacts, enrich_kwargs, enriched_artifacts = enrich_calls[0]
+        self.assertIsNot(prepared_artifacts, state["artifacts"])
+        self.assertIs(prepared_artifacts[0], state["artifacts"][0])
+        self.assertEqual(
+            enrich_kwargs,
+            {
+                "task_id": "",
+                "task_ids": ["task_1"],
+                "operand_rows": [],
+                "extra_refs": [
+                    None,
+                    ["row:source"],
+                    None,
+                    None,
+                    ["row:source"],
+                    ["claim:source"],
+                ],
+            },
+        )
+        self.assertIs(integrity_calls[0][1], enriched_artifacts)
         trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
         aggregate_task = next(task for task in trace["tasks"] if task["task_id"] == "aggregate")
 
         self.assertEqual(trace["orphan_artifact_ids"], [])
         self.assertEqual(aggregate_task["kind"], "synthesis")
         self.assertEqual(aggregate_task["latest_artifact_kind"], "aggregated_answer")
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=RuntimeError("artifact integrity refs stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_project_task_artifact_trace",
+            wraps=real_integrity_projection,
+        ) as stopped_integrity, self.assertRaisesRegex(
+            RuntimeError,
+            "artifact integrity refs stopped",
+        ):
+            self.agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(stopped_integrity.call_count, 0)
 
     def test_aggregate_subtasks_ignores_stale_top_level_source_refs_for_reconciliation_artifact(self) -> None:
         self.agent.llm = _StubLLM(
@@ -14257,7 +17760,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         updated = self.agent._aggregate_calculation_subtasks(state)
 
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
         self.assertEqual(updated["planner_feedback"], "")
         self.assertNotIn("완전히 확정할 수는 없습니다", updated["answer"])
         self.assertIn("메모리", updated["answer"])
@@ -14422,7 +17925,6 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-
         self.assertIn("70.28%", updated["answer"])
         self.assertNotIn("70.23%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
@@ -14528,8 +18030,66 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        real_conflicting_candidate = self.agent._preferred_conflicting_growth_narrative_answer
+        preserved_conflicting_candidate = {}
 
+        def preserve_candidate_for_final_conflict_call(*args, **kwargs):
+            candidate = real_conflicting_candidate(*args, **kwargs)
+            if candidate:
+                preserved_conflicting_candidate.clear()
+                preserved_conflicting_candidate.update(candidate)
+            return candidate or dict(preserved_conflicting_candidate)
+
+        real_numeric_conflict = financial_graph_calculation.numeric_surface_conflicts_with_reference
+        packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
+        with (
+            base_patch,
+            refreshed_patch,
+            patch.object(
+                self.agent,
+                "_preferred_conflicting_growth_narrative_answer",
+                side_effect=preserve_candidate_for_final_conflict_call,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "numeric_surface_conflicts_with_reference",
+                wraps=real_numeric_conflict,
+            ) as numeric_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "apply_aggregate_answer_candidate",
+                wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+            ) as candidate_apply,
+        ):
+            updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(packaging_events, ["base", "base"])
+        self.assertEqual(candidate_apply.call_count, 2)
+        self.assertEqual(
+            [
+                (
+                    list(call.args[0].selected_claim_ids),
+                    call.args[0].candidate["selected_claim_ids"],
+                    call.args[0].candidate["sync_projection"],
+                )
+                for call in candidate_apply.call_args_list
+            ],
+            [
+                (["ev_driver"], ["ev_driver"], False),
+                (["ev_driver"], ["ev_driver"], True),
+            ],
+        )
+        self.assertEqual(numeric_conflict.call_count, 2)
+        first_answer, first_reference = numeric_conflict.call_args_list[0].args
+        final_answer, final_reference = numeric_conflict.call_args_list[1].args
+        self.assertEqual(first_reference, final_reference)
+        self.assertIn("98.15%", first_answer)
+        self.assertIn("70.28%", first_reference)
+        self.assertNotIn("98.15%", final_answer)
+        self.assertEqual(
+            [real_numeric_conflict(*call.args) for call in numeric_conflict.call_args_list],
+            [True, False],
+        )
         self.assertIn("70.28%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
         self.assertIn("1,847,775백만원", updated["answer"])
@@ -14740,8 +18300,29 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results(
-            [sign_mixed_growth, aggregate_summary]
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
+        sign_rank_rows = []
+
+        def tracked_sign_rank(row):
+            sign_rank_rows.append(row)
+            return sign_rank_owner(row)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "growth_operand_sign_consistency_rank",
+            side_effect=tracked_sign_rank,
+        ) as owner_sign_rank_spy:
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
+                [sign_mixed_growth, aggregate_summary]
+            )
+
+        self.assertEqual(
+            owner_sign_rank_spy.call_count,
+            6,
+        )
+        self.assertEqual(
+            [row.get("answer") for row in sign_rank_rows],
+            ["70.28%", "-270.28%", "70.28%", "-270.28%", "70.28%", "70.28%"],
         )
 
         self.assertEqual(promoted[0]["answer"], "70.28%")
@@ -15256,14 +18837,14 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertTrue(
-            self.agent._growth_answer_has_untraced_numeric_material(
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                 answer,
                 ordered_results,
                 evidence_items=[],
             )
         )
         self.assertFalse(
-            self.agent._growth_answer_has_untraced_numeric_material(
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                 answer,
                 ordered_results,
                 evidence_items=[
@@ -15314,6 +18895,45 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("PolicyA requires an active response", selected["claim"])
         self.assertEqual(selected["metadata"]["section_path"], "Management discussion")
 
+    def test_retrieved_doc_narrative_evidence_strips_index_prefix_before_quote_window(self) -> None:
+        docs = [
+            (
+                Document(
+                    page_content="\n".join(
+                        [
+                            "[회사: ExampleCo] [연도: 2023] [보고서: annual]",
+                            "[섹션: business overview]",
+                            "[분류: overview / paragraph]",
+                            "[키워드: company overview, products, table context, paragraph]",
+                            "",
+                            "[Harman]Harman develops connected vehicle systems.",
+                        ]
+                    ),
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Business overview",
+                    },
+                ),
+                0.9,
+            )
+        ]
+
+        updated, selected_ids = self.agent._append_retrieved_narrative_evidence_for_final_answer(
+            [],
+            final_answer="Harman develops connected vehicle systems.",
+            docs=docs,
+        )
+
+        self.assertEqual(len(selected_ids), 1)
+        selected = next(item for item in updated if item["evidence_id"] == selected_ids[0])
+        self.assertEqual(
+            selected["quote_span"],
+            "[Harman]Harman develops connected vehicle systems.",
+        )
+        self.assertNotIn("키워드", selected["quote_span"])
+        self.assertNotIn("paragraph]", selected["quote_span"])
+
     def test_retrieved_doc_narrative_evidence_skips_missing_answer_sentences(self) -> None:
         docs = [
             (
@@ -15339,7 +18959,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "2023 regional sales volume was 870,000 units, up 11.5%. "
             "The company stated that PolicyA requires an active response."
         )
-        updated = self.agent._preserve_retrieved_narrative_source_surface(
+        updated = financial_text_surface.preserve_retrieved_narrative_source_surface(
             answer,
             [
                 {
@@ -15358,7 +18978,7 @@ class SubtaskLoopTests(unittest.TestCase):
     def test_retrieved_narrative_source_surface_keeps_missing_answer_sentence(self) -> None:
         answer = "요청한 수치는 제공된 보고서에서 찾을 수 없습니다."
 
-        updated = self.agent._preserve_retrieved_narrative_source_surface(
+        updated = financial_text_surface.preserve_retrieved_narrative_source_surface(
             answer,
             [
                 {
@@ -15564,7 +19184,7 @@ class SubtaskLoopTests(unittest.TestCase):
             self.assertIn("11.5%", composed["compressed_answer"])
             self.assertIn("781.0 thousand units", composed["compressed_answer"])
             self.assertIn("from 2022Y 781.0 thousand units", composed["compressed_answer"])
-            numeric_answer = self.agent._compose_complete_growth_numeric_answer(
+            numeric_answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(
                 ordered_results[0],
                 ordered_results,
                 evidence_items=[],
@@ -15676,7 +19296,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=(
                 "2023 regional sales volume was 870,000 units, up 11.5% "
@@ -15691,7 +19311,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("ev_unselected_long_chunk", filtered_ids)
 
     def test_operand_evidence_uses_rendered_display_surface(self) -> None:
-        updated = self.agent._append_operand_evidence_for_final_answer(
+        updated = financial_aggregate_projection.append_operand_evidence_for_final_answer(
             [],
             operands=[
                 {
@@ -15715,7 +19335,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated[0]["evidence_id"], "operand::prior")
         self.assertEqual(updated[0]["quote_span"], "The 2022 regional sales volume was 781.0 thousand units.")
         self.assertTrue(updated[0]["metadata"]["supports_answer_numeric_surface"])
-        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             updated,
             final_answer="2023 sales rose 11.5% from 781.0 thousand units in 2022.",
             selected_claim_ids=[],
@@ -15959,7 +19579,7 @@ class SubtaskLoopTests(unittest.TestCase):
             self.agent._narrative_driver_groups = original_driver_groups
 
     def test_preserve_source_visible_query_terms_from_retrieved_docs(self) -> None:
-        answer = self.agent._preserve_source_visible_query_terms(
+        answer = financial_text_surface.preserve_source_visible_query_terms(
             "Adjusted operating income is 100 million.",
             query="Calculate adjusted operating income excluding Alpha Program (ABC) and production credit (XYZ).",
             ordered_results=[],
@@ -15979,7 +19599,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("XYZ", answer)
 
     def test_preserve_query_terms_from_ontology_alias_binding(self) -> None:
-        answer = self.agent._preserve_source_visible_query_terms(
+        answer = financial_text_surface.preserve_source_visible_query_terms(
             "LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원입니다. "
             "첨단제조 생산세액공제 금액은 676,874백만원이며, 이를 제외한 실질 영업이익은 1,486,360백만원입니다.",
             query="2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘.",
@@ -16118,295 +19738,32 @@ class SubtaskLoopTests(unittest.TestCase):
             "rendered_value": "3,589,061 thousand",
             "source_row_id": "ev_direct",
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = (
-            lambda _binding, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
-        )
-        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
+        events = []
+        score_resolver = financial_graph_calculation.score_direct_structured_lookup_evidence
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        def _score_current(score_input):
+            events.append("score_current")
+            return score_resolver(score_input)
+
+        def _select_preferred(_binding, _pool, state=None, preferred_raw_units=None):
+            events.append("select_preferred")
+            return preferred_slot, 10.0
+
+        self.agent._best_direct_lookup_slot_from_evidence_pool = _select_preferred
+
+        with patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "2,546,649")
         self.assertEqual(rows[0]["raw_unit"], "million")
         self.assertEqual(rows[0]["normalized_value"], 2546649000000.0)
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_current", "ev_current"])
-
-    def test_dependency_alignment_preserves_task_output_when_direct_value_has_distinct_provenance(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "100",
-                "raw_unit": "unit",
-                "normalized_value": 100.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "task_output:task_lookup",
-                "source_row_ids": ["task_output:task_lookup", "ev_lookup"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "80",
-                "raw_unit": "unit",
-                "normalized_value": 80.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "40",
-                "raw_unit": "unit",
-                "normalized_value": 40.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "100")
-        self.assertEqual(rows[0]["normalized_value"], 100.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup", "ev_lookup"])
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_preserves_task_output_only_row_when_direct_value_conflicts(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "120",
-                "raw_unit": "unit",
-                "normalized_value": 120.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "task_output:task_lookup",
-                "source_row_ids": ["task_output:task_lookup"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "70",
-                "raw_unit": "unit",
-                "normalized_value": 70.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "30",
-                "raw_unit": "unit",
-                "normalized_value": 30.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "120")
-        self.assertEqual(rows[0]["normalized_value"], 120.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup"])
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_preserves_source_task_row_when_shared_id_has_conflicting_anchor(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "120",
-                "raw_unit": "unit",
-                "normalized_value": 120.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "ev_shared",
-                "source_row_ids": ["ev_shared"],
-                "source_anchor": "source task table",
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_shared",
-                "source_row_id": "ev_shared",
-                "source_row_ids": ["ev_shared"],
-                "source_anchor": "direct sibling table",
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "70",
-                "raw_unit": "unit",
-                "normalized_value": 70.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "source_anchor": "direct sibling table",
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "30",
-                "raw_unit": "unit",
-                "normalized_value": 30.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "120")
-        self.assertEqual(rows[0]["normalized_value"], 120.0)
-        self.assertEqual(rows[0]["source_anchor"], "source task table")
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_realigns_task_output_to_same_table_component_row(self) -> None:
-        dependency_rows = [
-            {
-                "label": "short-term borrowings",
-                "matched_operand_label": "short-term borrowings",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "9,857,189",
-                "raw_unit": "백만원",
-                "normalized_value": 9857189000000.0,
-                "normalized_unit": "KRW",
-                "source_task_id": "task_short",
-                "source_row_id": "task_output:task_short",
-                "source_row_ids": ["task_output:task_short", "ev_subtotal", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "row_short",
-                "source_row_id": "row_short",
-                "source_row_ids": ["row_short", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "short-term borrowings",
-                "matched_operand_label": "short-term borrowings",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "4,145,647",
-                "raw_unit": "백만원",
-                "normalized_value": 4145647000000.0,
-                "normalized_unit": "KRW",
-            },
-            {
-                "evidence_id": "row_long",
-                "source_row_id": "row_long",
-                "source_row_ids": ["row_long", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "long-term borrowings",
-                "matched_operand_label": "long-term borrowings",
-                "matched_operand_role": "numerator_2",
-                "raw_value": "10,121,033",
-                "raw_unit": "백만원",
-                "normalized_value": 10121033000000.0,
-                "normalized_unit": "KRW",
-            },
-            {
-                "evidence_id": "row_bond",
-                "source_row_id": "row_bond",
-                "source_row_ids": ["row_bond", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "bonds",
-                "matched_operand_label": "bonds",
-                "matched_operand_role": "numerator_3",
-                "raw_value": "9,490,410",
-                "raw_unit": "백만원",
-                "normalized_value": 9490410000000.0,
-                "normalized_unit": "KRW",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "4,145,647")
-        self.assertEqual(rows[0]["source_row_id"], "row_short")
-        self.assertTrue(rows[0]["sibling_table_context_realigned"])
-
-    def test_period_comparison_complete_direct_context_does_not_block_dependency(self) -> None:
-        dependency_rows = [
-            {
-                "label": "prior metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "prior_period",
-                "raw_value": "54",
-                "raw_unit": "백만원",
-                "normalized_value": 54000000.0,
-                "normalized_unit": "KRW",
-                "source_task_id": "task_prior",
-                "source_row_id": "task_output:task_prior",
-                "source_row_ids": ["task_output:task_prior", "ev_note"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "label": "current metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "current_period",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3146409000000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "row_current",
-                "source_row_ids": ["row_current"],
-                "table_source_id": "period_table",
-            },
-            {
-                "label": "prior metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "prior_period",
-                "raw_value": "1,847,775",
-                "raw_unit": "백만원",
-                "normalized_value": 1847775000000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "row_prior",
-                "source_row_ids": ["row_prior"],
-                "table_source_id": "period_table",
-            },
-        ]
-
-        self.assertFalse(
-            self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
-                dependency_rows,
-                direct_rows,
-            )
-        )
+        self.assertEqual(events, ["score_current", "select_preferred"])
 
     def test_period_comparison_table_context_prefers_pure_period_columns_over_change_columns(self) -> None:
         required_operands = [
@@ -16472,56 +19829,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows_by_role["prior_period"]["raw_value"], "100")
         self.assertEqual(rows_by_role["prior_period"]["source_row_id"], "ev_pure_period")
 
-    def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "100",
-                "raw_unit": "unit",
-                "normalized_value": 100.0,
-                "normalized_unit": "COUNT",
-                "source_row_id": "ev_lookup",
-                "source_row_ids": ["ev_lookup"],
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "80",
-                "raw_unit": "unit",
-                "normalized_value": 80.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "40",
-                "raw_unit": "unit",
-                "normalized_value": 40.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "80")
-        self.assertEqual(rows[0]["normalized_value"], 80.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["ev_direct_num"])
-        self.assertTrue(rows[0]["sibling_table_context_realigned"])
-
     def test_aggregate_dependency_coherence_infers_source_task_from_matching_slot(self) -> None:
         source_slots = {
             "task_lookup": {
@@ -16561,9 +19868,105 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         self.assertEqual(
-            self.agent._aggregate_result_dependency_coherence_ranks(row, source_slots)[0],
+            financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
+                row, source_slots
+            )[0],
             0,
         )
+
+        source_slot = {
+            "raw_value": "100",
+            "raw_unit": "thousand",
+            "normalized_value": 100_000.0,
+            "normalized_unit": "KRW",
+            "source_row_id": "ev_denominator",
+            "source_row_ids": ["ev_denominator"],
+            "source_anchor": "source task table",
+        }
+        realigned_operand = {
+            "role": "denominator_1",
+            "raw_value": "100",
+            "raw_unit": "million",
+            "normalized_value": 100_000_000.0,
+            "normalized_unit": "KRW",
+            "source_task_id": "task_lookup",
+            "source_row_id": "task_output:task_lookup",
+            "source_row_ids": ["task_output:task_lookup", "ev_denominator"],
+            "source_anchor": "structured graph table",
+            "unit_realigned_from_structured_provenance": True,
+        }
+
+        def ranks(operand, slot, operation_family="ratio"):
+            return financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
+                {
+                    "operation_family": operation_family,
+                    "calculation_operands": [operand],
+                },
+                {"task_lookup": slot},
+            )
+
+        matching_operand = {
+            **realigned_operand,
+            "raw_unit": source_slot["raw_unit"],
+            "normalized_value": source_slot["normalized_value"],
+            "source_anchor": source_slot["source_anchor"],
+        }
+        with patch.object(
+            financial_aggregate_projection,
+            "structured_unit_realigned_operand_matches_source_slot",
+        ) as owner_zero:
+            self.assertEqual(ranks(realigned_operand, source_slot, "lookup"), (1, 1))
+            self.assertEqual(
+                financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
+                    {"operation_family": "ratio", "calculation_operands": [realigned_operand]},
+                    {},
+                ),
+                (1, 1),
+            )
+            self.assertEqual(ranks(realigned_operand, {}), (1, 1))
+            self.assertEqual(ranks(matching_operand, source_slot), (2, 1))
+        owner_zero.assert_not_called()
+
+        with patch.object(
+            financial_aggregate_projection,
+            "structured_unit_realigned_operand_matches_source_slot",
+            return_value=True,
+        ) as owner_true:
+            self.assertEqual(ranks(realigned_operand, source_slot), (2, 1))
+        owner_true.assert_called_once()
+        called_source, called_operand = owner_true.call_args.args
+        called_structured = owner_true.call_args.kwargs["structured_realigned_operands"]
+        self.assertEqual((called_source, called_operand), (source_slot, realigned_operand))
+        self.assertEqual(called_structured, [realigned_operand])
+        self.assertIsNot(called_source, source_slot)
+        self.assertIsNot(called_operand, realigned_operand)
+        self.assertIsNot(called_structured[0], realigned_operand)
+        self.assertIsNot(called_structured[0], called_operand)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "structured_unit_realigned_operand_matches_source_slot",
+            return_value=False,
+        ) as owner_false:
+            self.assertEqual(ranks(realigned_operand, source_slot), (0, 1))
+        owner_false.assert_called_once()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "structured_unit_realigned_operand_matches_source_slot",
+                side_effect=RuntimeError("structured match stopped"),
+            ) as owner_error,
+            patch.object(
+                financial_aggregate_projection,
+                "known_consolidation_scope_value",
+                side_effect=AssertionError("scope logic reached"),
+            ) as scope_logic,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "structured match stopped"):
+                ranks(realigned_operand, {**source_slot, "consolidation_scope": "scope"})
+        owner_error.assert_called_once()
+        scope_logic.assert_not_called()
 
     def test_compact_ratio_answer_from_projection_rejects_dependency_incoherent_operands(self) -> None:
         self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
@@ -16677,7 +20080,15 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
         ]
 
-        self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+        ordered_results_before = deepcopy(ordered_results)
+        with patch.object(
+            financial_graph_calculation,
+            "build_dependency_ratio_result_projection",
+            wraps=financial_graph_calculation.build_dependency_ratio_result_projection,
+        ) as result_builder:
+            self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+        result_builder.assert_not_called()
+        self.assertEqual(ordered_results, ordered_results_before)
 
     def test_preferred_complete_numeric_answer_rebuilds_ratio_from_dependency_source_slots(self) -> None:
         ordered_results = [
@@ -16724,8 +20135,44 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
         ]
 
-        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+        events = []
 
+        def record(name, function):
+            def wrapped(*args, **kwargs):
+                events.append(name)
+                return function(*args, **kwargs)
+
+            return wrapped
+
+        ordered_results_before = deepcopy(ordered_results)
+        with patch.object(
+            financial_graph_calculation.calculation_rendering,
+            "ratio_result_projection",
+            side_effect=record(
+                "projection",
+                financial_graph_calculation.calculation_rendering.ratio_result_projection,
+            ),
+        ), patch.object(
+            financial_graph_calculation,
+            "_clean_source_row_ids",
+            side_effect=record("clean", financial_graph_calculation._clean_source_row_ids),
+        ), patch.object(
+            financial_graph_calculation,
+            "build_dependency_ratio_result_projection",
+            side_effect=record(
+                "owner",
+                financial_graph_calculation.build_dependency_ratio_result_projection,
+            ),
+        ), patch.object(
+            self.agent,
+            "_compact_ratio_answer",
+            side_effect=record("compact", self.agent._compact_ratio_answer),
+        ):
+            answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertEqual(events[-4:], ["projection", "clean", "owner", "compact"])
+        self.assertEqual(events.count("owner"), 1)
+        self.assertEqual(ordered_results, ordered_results_before)
         self.assertIn("80%", answer)
         self.assertIn("target value", answer)
         self.assertIn("base value", answer)
@@ -16891,7 +20338,7 @@ class SubtaskLoopTests(unittest.TestCase):
                                 "normalized_unit": "KRW",
                                 "rendered_value": "100천원",
                                 "source_row_id": "ev_lookup",
-                                "source_row_ids": ["ev_lookup"],
+                                "source_row_ids": ["ev_lookup", "node_1", "ev_lookup"],
                             }
                         },
                     },
@@ -16906,17 +20353,34 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        state_before = deepcopy(state)
+
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "100")
         self.assertEqual(rows[0]["raw_unit"], "백만원")
         self.assertEqual(rows[0]["normalized_value"], 100000000.0)
         self.assertTrue(rows[0]["unit_realigned_from_structured_provenance"])
-        self.assertIn("node_1", rows[0]["source_row_ids"])
+        self.assertEqual(
+            rows[0]["source_row_ids"],
+            ["task_output:task_lookup", "ev_lookup", "node_1"],
+        )
+        self.assertEqual(rows[0]["source_anchor"], "[ExampleCo | 2023 | Financial statements]")
+        self.assertEqual(
+            (rows[0]["consolidation_scope"], rows[0]["statement_type"], rows[0]["table_source_id"]),
+            ("consolidated", "income_statement", "table_income"),
+        )
+        adoption.assert_called_once()
+        self.assertEqual(state, state_before)
 
     def test_dependency_row_preserves_source_visible_converted_unit_over_graph_hint(self) -> None:
-        self.agent.vector_store = type(
+        self.agent.vsm = type(
             "Store",
             (),
             {
@@ -16992,16 +20456,22 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "100")
         self.assertEqual(rows[0]["raw_unit"], "원")
         self.assertEqual(rows[0]["normalized_value"], 100.0)
         self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+        adoption.assert_called_once()
 
     def test_dependency_row_preserves_high_magnitude_converted_unit_without_rendered_display(self) -> None:
-        self.agent.vector_store = type(
+        self.agent.vsm = type(
             "Store",
             (),
             {
@@ -17077,12 +20547,18 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_unit"], "원")
         self.assertEqual(rows[0]["normalized_value"], 651481422157.0)
         self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+        adoption.assert_called_once()
 
     def test_lookup_recovery_prefers_table_unit_hint_when_source_surface_has_no_unit(self) -> None:
         state = {
@@ -17135,8 +20611,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -17196,8 +20670,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -17365,8 +20837,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -17503,15 +20973,215 @@ class SubtaskLoopTests(unittest.TestCase):
             10.0,
         )
         self.agent._lookup_value_from_table_label_metadata = lambda _operand, _evidence: {}
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-        self.agent._structured_graph_provenance_for_dependency_operand = lambda *_args, **_kwargs: {}
-
-        rows = self.agent._build_dependency_operand_rows(state)
+        with (
+            patch.object(
+                self.agent,
+                "_structured_graph_provenance_for_dependency_operand",
+                return_value={},
+            ) as structured_provenance,
+            patch.object(
+                financial_graph_calculation,
+                "adopt_dependency_structured_provenance",
+                wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+            ) as adoption,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["matched_operand_role"], "denominator_1")
         self.assertEqual(rows[0]["source_row_id"], "task_output:task_asset")
         self.assertEqual(rows[0]["raw_value"], "52,704,853")
+        self.assertNotIn("unit_realigned_from_structured_provenance", rows[0])
+        structured_provenance.assert_called_once()
+        adoption.assert_not_called()
+
+    def test_lookup_unit_normalization_uses_evidence_local_unit_owner(self) -> None:
+        slot = {
+            "raw_value": "100",
+            "raw_unit": "원",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "100원",
+            "source_row_id": "ev_metric",
+        }
+        direct_hint_evidence = {
+            "evidence_id": "ev_metric",
+            "quote_span": "100",
+            "metadata": {"unit_hint": "백만원"},
+        }
+        owner = Mock(return_value="억원")
+        with patch.object(
+            financial_lookup_recovery,
+            "coerce_operand_unit_from_evidence",
+            owner,
+        ):
+            direct_hint = financial_lookup_recovery.normalize_lookup_slot_unit(
+                slot,
+                evidence_by_id={"ev_metric": direct_hint_evidence},
+            )
+        owner.assert_not_called()
+        self.assertEqual(direct_hint["raw_unit"], "백만원")
+        self.assertEqual(direct_hint["rendered_value"], "100백만원")
+
+        visible_unit_evidence = {
+            "evidence_id": "ev_metric",
+            "claim": "metric 100원",
+            "metadata": {"unit_hint": "백만원"},
+        }
+        owner.reset_mock()
+        with patch.object(
+            financial_lookup_recovery,
+            "coerce_operand_unit_from_evidence",
+            owner,
+        ):
+            normalized = financial_lookup_recovery.normalize_lookup_slot_unit(
+                slot,
+                evidence_by_id={"ev_metric": visible_unit_evidence},
+            )
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=visible_unit_evidence,
+        )
+        self.assertEqual(normalized["raw_unit"], "억원")
+        self.assertEqual(normalized["normalized_value"], 10_000_000_000.0)
+        self.assertEqual(normalized["rendered_value"], "100억원")
+        self.assertEqual(slot["raw_unit"], "원")
+
+        for metadata in ({}, {"unit_hint": "원"}):
+            with self.subTest(metadata=metadata):
+                same_or_missing_hint_evidence = {
+                    "evidence_id": "ev_metric",
+                    "claim": "metric 100원",
+                    "metadata": metadata,
+                }
+                owner.reset_mock()
+                with patch.object(
+                    financial_lookup_recovery,
+                    "coerce_operand_unit_from_evidence",
+                    owner,
+                ):
+                    financial_lookup_recovery.normalize_lookup_slot_unit(
+                        slot,
+                        evidence_by_id={"ev_metric": same_or_missing_hint_evidence},
+                    )
+                owner.assert_called_once_with(
+                    raw_value="100",
+                    raw_unit="원",
+                    evidence_item=same_or_missing_hint_evidence,
+                )
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+            ) as later_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                financial_lookup_recovery.normalize_lookup_slot_unit(
+                    slot,
+                    evidence_by_id={"ev_metric": visible_unit_evidence},
+                )
+        later_normalizer.assert_not_called()
+
+    def test_own_evidence_unit_alignment_uses_evidence_local_unit_owner(self) -> None:
+        slot = {
+            "status": "ok",
+            "label": "metric",
+            "raw_value": "100",
+            "raw_unit": "원",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "100원",
+            "source_row_id": "ev_metric",
+            "source_row_ids": ["ev_metric"],
+        }
+        row = {
+            "task_id": "task_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": slot},
+            },
+        }
+        evidence_item = {
+            "evidence_id": "ev_metric",
+            "claim": "metric 100",
+            "metadata": {"unit_hint": "억원"},
+        }
+        original_rows = [row]
+
+        with patch.object(
+            financial_aggregate_projection,
+            "coerce_operand_unit_from_evidence",
+            return_value="억원",
+        ) as owner:
+            aligned = financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
+                original_rows,
+                [evidence_item],
+            )
+
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=evidence_item,
+        )
+        self.assertIsNot(aligned, original_rows)
+        self.assertEqual(
+            aligned[0]["calculation_result"]["answer_slots"]["primary_value"]["raw_unit"],
+            "억원",
+        )
+        self.assertEqual(aligned[0]["answer"], "metric 100억원")
+        self.assertEqual(slot["raw_unit"], "원")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "coerce_operand_unit_from_evidence",
+            return_value="원",
+        ) as owner:
+            unchanged = financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
+                original_rows,
+                [evidence_item],
+            )
+        owner.assert_called_once()
+        self.assertIs(unchanged, original_rows)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "coerce_operand_unit_from_evidence",
+        ) as owner:
+            self.assertIs(
+                financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
+                    original_rows,
+                    [],
+                ),
+                original_rows,
+            )
+        owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "replace_lookup_primary_slot",
+            ) as later_replacement,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
+                    original_rows,
+                    [evidence_item],
+                )
+        later_replacement.assert_not_called()
 
     def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
         state = {
@@ -17561,17 +21231,64 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": current_slot},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = (
-            lambda _operand, _pool, state=None, preferred_raw_units=None: ({}, 0.0)
-        )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 10.0
+        events = []
+        score_resolver = financial_lookup_recovery.score_direct_structured_lookup_evidence
 
-        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        def _score_current(score_input):
+            events.append("score_current")
+            return score_resolver(score_input)
+
+        def _select_no_preferred(_operand, _pool, state=None, preferred_raw_units=None):
+            events.append("select_preferred")
+            return {}, 0.0
+
+        self.agent._best_direct_lookup_slot_from_evidence_pool = _select_no_preferred
+
+        with patch.object(
+            financial_lookup_recovery,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
         self.assertTrue(recovered[0].get("unit_aligned_from_evidence_metadata"))
         self.assertEqual(slot["raw_unit"], "백만원")
         self.assertEqual(slot["normalized_value"], 2546649000000.0)
+        self.assertEqual(events, ["score_current", "select_preferred"])
+
+        preferred_slot = {
+            **slot,
+            "raw_value": "3,000,000",
+            "raw_unit": "백만원",
+            "normalized_value": 3_000_000_000_000.0,
+            "rendered_value": "3,000,000백만원",
+        }
+        refinement_evidence = {
+            "metadata": {
+                "row_label": "segment revenue",
+                "structured_cells": [{"value_text": "3,000,000", "unit_hint": "백만원"}],
+            }
+        }
+        events.clear()
+        with patch.object(
+            financial_lookup_recovery,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            refinement_allowed = financial_lookup_recovery.lookup_recovery_value_refinement_allowed(
+                slot,
+                preferred_slot,
+                refinement_evidence,
+                desired_scope="unknown",
+                current_evidence=refinement_evidence,
+                operand=state["calc_subtasks"][0]["required_operands"][0],
+                recovered_slot_matches_primary_label=lambda _slot: True,
+                operand_rows_materially_conflict=lambda _current, _preferred: False,
+            )
+
+        self.assertTrue(refinement_allowed)
+        self.assertEqual(events, ["score_current"])
 
     def test_lookup_recovery_uses_nested_subtask_runtime_evidence(self) -> None:
         state = {
@@ -17942,8 +21659,50 @@ class SubtaskLoopTests(unittest.TestCase):
                     "metadata": {"section_path": "Management discussion"},
                 }
             ],
-            "plan_loop_count": 2,
-            "artifacts": [],
+            "plan_loop_count": 0,
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "segment revenue growth rate",
+                    "status": "completed",
+                    "metric_family": "concept_growth_rate",
+                    "artifact_ids": [
+                        "operands:task_1:001",
+                        "plan:task_1:002",
+                        "result:task_1:003",
+                    ],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from llm/fallback extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                },
+                {
+                    "artifact_id": "plan:task_1:002",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "summary": "growth plan",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "growth_rate"}},
+                    "evidence_refs": [],
+                },
+                {
+                    "artifact_id": "result:task_1:003",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "summary": "41.4%",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "41.4%"}},
+                    "evidence_refs": [],
+                },
+            ],
             "selected_claim_ids": [],
         }
 
@@ -17960,16 +21719,175 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(growth_slots["current_value"]["raw_value"], "2,546,649")
         self.assertEqual(growth_slots["prior_value"]["raw_value"], "1,801,079")
         self.assertEqual(growth_slots["prior_value"]["period"], "2022")
+        self.assertEqual(updated["planner_mode"], "initial")
+        self.assertEqual(updated["planner_feedback"], "")
+        task_trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
+        self.assertEqual(task_trace["integrity_status"], "ok")
+        finalized_operand_artifact = next(
+            artifact
+            for artifact in updated["artifacts"]
+            if artifact.get("artifact_id") == "operands:task_1:001"
+        )
+        finalized_operands = finalized_operand_artifact["payload"]["calculation_operands"]
+        self.assertEqual(len(finalized_operands), 2)
+        self.assertEqual(
+            {operand["matched_operand_role"] for operand in finalized_operands},
+            {"current_period", "prior_period"},
+        )
+        self.assertTrue(finalized_operand_artifact["evidence_refs"])
+
+    def test_ledger_finalizes_empty_operand_artifact_from_successful_result_input_slots(self) -> None:
+        state = {
+            "tasks": [
+                {
+                    "task_id": "task_growth",
+                    "kind": "calculation",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_growth:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_growth:001",
+                    "task_id": "task_growth",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from llm/fallback extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                }
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_plan": {
+                    "status": "ok",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["current_period", "prior_period"],
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 41.39574110852439,
+                    "rendered_value": "41.4%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "current_value": {
+                            "status": "ok",
+                            "role": "current_period",
+                            "label": "segment revenue",
+                            "period": "2023",
+                            "raw_value": "2,546,649",
+                            "raw_unit": "million",
+                            "normalized_value": 2546649000000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_shared",
+                            "source_row_ids": ["ev_shared"],
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "role": "prior_period",
+                            "label": "segment revenue",
+                            "period": "2022",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "million",
+                            "normalized_value": 1801079000000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_shared",
+                            "source_row_ids": ["ev_shared"],
+                        },
+                    },
+                },
+            }
+        ]
+
+        artifacts = self.agent._synchronize_dependency_operand_artifacts(state, ordered_results)
+
+        self.assertEqual(len(artifacts), 1)
+        finalized = artifacts[0]
+        self.assertEqual(finalized["artifact_id"], "operands:task_growth:001")
+        self.assertEqual(finalized["evidence_refs"], ["ev_shared"])
+        self.assertEqual(
+            [operand["operand_id"] for operand in finalized["payload"]["calculation_operands"]],
+            ["current_period", "prior_period"],
+        )
+        self.assertNotIn("aligned_from_source_task_slots", ordered_results[0])
+
+        unprovenanced_results = deepcopy(ordered_results)
+        for slot_key in ("current_value", "prior_value"):
+            slot = unprovenanced_results[0]["calculation_result"]["answer_slots"][slot_key]
+            slot.pop("source_row_id", None)
+            slot.pop("source_row_ids", None)
+        unchanged = self.agent._synchronize_dependency_operand_artifacts(state, unprovenanced_results)
+        self.assertEqual(unchanged, state["artifacts"])
+
+    def test_ledger_keeps_provisional_artifact_for_partial_direct_operands(self) -> None:
+        state = {
+            "tasks": [
+                {
+                    "task_id": "task_growth",
+                    "kind": "calculation",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_growth:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_growth:001",
+                    "task_id": "task_growth",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from provisional extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                }
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "calculation_plan": {
+                    "status": "ok",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["current_period", "prior_period"],
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "current_period",
+                        "matched_operand_role": "current_period",
+                        "raw_value": "200",
+                        "normalized_value": 200.0,
+                        "source_row_id": "ev_current",
+                    }
+                ],
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "100%",
+                },
+            }
+        ]
+
+        artifacts = self.agent._synchronize_dependency_operand_artifacts(state, ordered_results)
+
+        self.assertEqual(artifacts, state["artifacts"])
+        self.assertEqual(artifacts[0]["payload"]["calculation_operands"], [])
+        self.assertEqual(artifacts[0]["evidence_refs"], [])
 
     def test_late_nested_lookup_promotion_recalculates_growth_before_final_projection(self) -> None:
         self.agent.llm = None
         self.agent._append_retrieved_narrative_evidence_for_final_answer = (
             lambda evidence_items, **_kwargs: (list(evidence_items or []), ["ev_driver"])
         )
-        self.agent._preserve_retrieved_narrative_source_surface = (
-            lambda _answer, _evidence_items: (
-                "2023 segment revenue was 2,546,649 million, "
-                "up 41.4% from 1,801,079 million."
+        self.enterContext(
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                new=lambda _answer, _evidence_items: (
+                    "2023 segment revenue was 2,546,649 million, "
+                    "up 41.4% from 1,801,079 million."
+                ),
             )
         )
         correct_prior_row = {
@@ -18149,7 +22067,13 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            wraps=financial_graph_calculation.synchronize_nested_aggregate_subtask_rows,
+        ) as nested_sync:
+            updated = self.agent._aggregate_calculation_subtasks(state)
+        nested_sync.assert_called_once()
 
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("1,801,079 million", updated["answer"])
@@ -18212,6 +22136,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         current_row = _lookup_row("task_current", "2023", "2,546,649", "ev_current")
         stale_prior_row = _lookup_row("task_prior", "2022", "303", "ev_weak_prior")
+        stale_prior_row["artifact_ids"] = ["artifact:preserved"]
         correct_prior_row = _lookup_row("task_prior", "2022", "1,801,079", "ev_prior")
         stale_growth_row = {
             "task_id": "task_growth",
@@ -18298,11 +22223,41 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        synced_results, synced_projection = self.agent._sync_projection_subtask_results_with_nested_promotions(
-            ordered_results,
-            state,
-            aggregate_projection,
-            "Segment revenue increased 41.4%.",
+        sync_events = []
+        nested_sync = financial_graph_calculation.synchronize_nested_aggregate_subtask_rows
+        rebuild_projection = self.agent._rebuild_aggregate_projection
+
+        def _record_nested_sync(*args, **kwargs):
+            sync_events.append("nested_sync")
+            return nested_sync(*args, **kwargs)
+
+        def _record_rebuild(*args, **kwargs):
+            sync_events.append("rebuild")
+            return rebuild_projection(*args, **kwargs)
+
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            side_effect=_record_nested_sync,
+        ) as nested_sync_spy, patch.object(
+            self.agent,
+            "_rebuild_aggregate_projection",
+            side_effect=_record_rebuild,
+        ):
+            synced_results, synced_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    ordered_results,
+                    state,
+                    aggregate_projection,
+                    "Segment revenue increased 41.4%.",
+                )
+            )
+        nested_sync_spy.assert_called_once()
+        self.assertEqual(sync_events, ["rebuild", "nested_sync", "rebuild"])
+        nested_sync_rows = nested_sync_spy.call_args.args[0].ordered_results
+        self.assertEqual(
+            next(row for row in nested_sync_rows if row["task_id"] == "task_prior")["artifact_ids"],
+            ["artifact:preserved"],
         )
 
         prior_row = next(row for row in synced_results if row["task_id"] == "task_prior")
@@ -18337,6 +22292,43 @@ class SubtaskLoopTests(unittest.TestCase):
                 for row in projected_summary_prior_rows
             )
         )
+
+        empty_projection = {"calculation_result": {"subtask_results": []}}
+        stable_results = [current_row]
+        stable_projection = {"calculation_result": {"subtask_results": [current_row]}}
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            wraps=nested_sync,
+        ) as skipped_sync, patch.object(
+            self.agent,
+            "_rebuild_aggregate_projection",
+            wraps=rebuild_projection,
+        ) as gated_rebuild:
+            empty_results, empty_selected_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    ordered_results,
+                    state,
+                    empty_projection,
+                    "unchanged",
+                )
+            )
+            skipped_sync.assert_not_called()
+            gated_rebuild.assert_not_called()
+            unchanged_results, unchanged_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    stable_results,
+                    state,
+                    stable_projection,
+                    "unchanged",
+                )
+            )
+        skipped_sync.assert_not_called()
+        gated_rebuild.assert_called_once()
+        self.assertIs(empty_results, ordered_results)
+        self.assertIs(empty_selected_projection, empty_projection)
+        self.assertIs(unchanged_results, stable_results)
+        self.assertIs(unchanged_projection, stable_projection)
 
     def test_dependency_slot_alignment_dedupes_stale_operand_ids(self) -> None:
         state = {
@@ -18679,7 +22671,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        gap = self.agent._material_gap_feedback_for_subtask_result(row)
+        gap = financial_answer_projection.material_gap_feedback_for_subtask_result(row)
 
         self.assertTrue(gap)
         self.assertIn("segment revenue growth", gap)
@@ -18731,7 +22723,10 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        projection = self.agent._build_aggregate_calculation_projection([row], "partial answer")
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+            [row],
+            "partial answer",
+        )
 
         self.assertEqual(projection["calculation_operands"], [])
         self.assertEqual(projection["calculation_result"]["source_row_ids"], [])
@@ -19014,8 +23009,14 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._align_lookup_results_with_dependency_projection = (
             lambda ordered_results, _state, _projection: list(ordered_results)
         )
-        self.agent._preserve_retrieved_narrative_source_surface = (
-            lambda _answer, _evidence_items: "The acquisition improved commerce revenue growth by 41.4%."
+        self.enterContext(
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                new=lambda _answer, _evidence_items: (
+                    "The acquisition improved commerce revenue growth by 41.4%."
+                ),
+            )
         )
         state = {
             "query": "Calculate the 2023 commerce revenue growth rate and summarize the acquisition impact.",
@@ -19530,7 +23531,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-        trace = _resolve_runtime_calculation_trace(updated)
+        trace = resolve_runtime_calculation_trace(updated)
 
         self.assertIn("스마트스토어와", updated["answer"])
         self.assertIn("성장과 연결 편입 효과", updated["answer"])

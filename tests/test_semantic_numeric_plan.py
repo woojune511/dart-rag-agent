@@ -17,19 +17,22 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
-    _infer_period_focus,
-    _merge_operand_rows,
-    _missing_required_operands,
+    llm_plan_preserves_analysis_shape,
+    llm_plan_preserves_segment_sum_shape,
+)
+from src.agent.financial_scope_policies import query_period_focus
+from src.agent.financial_operand_resolution import (
+    merge_operand_rows,
+    missing_required_operands,
 )
 from src.agent.financial_row_surfaces import (
-    _extract_numeric_value_after_operand_text,
-    _parse_unstructured_table_row_cells,
+    extract_numeric_value_after_operand_text,
+    parse_unstructured_table_row_cells,
 )
 from src.agent.financial_retrieval_hints import _active_preferred_sections
 from src.agent.financial_retrieval_pipeline import _ensure_period_count_operand_docs, _focused_operand_surface_queries
-from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
-from src.agent.financial_operation_policies import _is_percent_point_difference_query
+from src.agent.financial_operation_policies import is_percent_point_difference_query
 
 
 class _StubStructuredLLM:
@@ -765,7 +768,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         )
 
     def test_parse_unstructured_row_uses_header_context(self) -> None:
-        cells = _parse_unstructured_table_row_cells(
+        cells = parse_unstructured_table_row_cells(
             "법인세비용차감전순이익 | 1,481,396,318 | 1,083,717,091",
             {
                 "table_header_context": "구분 | 2023년 | 2022년",
@@ -2028,11 +2031,11 @@ class SemanticNumericPlanTests(unittest.TestCase):
 
     def test_single_year_query_defaults_period_focus_to_current(self) -> None:
         self.assertEqual(
-            _infer_period_focus("2023년 연결 재무상태표에서 단기차입금을 찾아줘."),
+            query_period_focus("2023년 연결 재무상태표에서 단기차입금을 찾아줘."),
             "current",
         )
         self.assertEqual(
-            _infer_period_focus("2023년과 2022년 부채비율을 비교해 줘."),
+            query_period_focus("2023년과 2022년 부채비율을 비교해 줘."),
             "unknown",
         )
 
@@ -2090,7 +2093,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertGreaterEqual(len(operand_labels), 1)
 
     def test_extract_numeric_value_after_operand_text_handles_spaced_korean_text(self) -> None:
-        value = _extract_numeric_value_after_operand_text(
+        value = extract_numeric_value_after_operand_text(
             "회 사 채 | 13,189,950 | 7,467,594 | 5,722,356",
             {"label": "사채", "aliases": ["사채"]},
         )
@@ -2278,7 +2281,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertIn("2023년 지역시장", queries)
 
     def test_percent_result_row_does_not_satisfy_raw_period_operand(self) -> None:
-        missing = _missing_required_operands(
+        missing = missing_required_operands(
             [
                 {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
                 {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
@@ -2298,7 +2301,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertEqual(len(missing), 2)
 
     def test_period_specific_row_does_not_satisfy_other_period_operand(self) -> None:
-        missing = _missing_required_operands(
+        missing = missing_required_operands(
             [
                 {"label": "2023년 지역 시장 판매대수", "role": "current_period", "period_hint": "2023"},
                 {"label": "2022년 지역 시장 판매대수", "role": "prior_period", "period_hint": "2022"},
@@ -2386,8 +2389,8 @@ class SemanticNumericPlanTests(unittest.TestCase):
             },
         ]
 
-        missing = _missing_required_operands(required_operands, direct_rows)
-        merged = _merge_operand_rows(
+        missing = missing_required_operands(required_operands, direct_rows)
+        merged = merge_operand_rows(
             direct_rows,
             fallback_rows,
             required_operands=required_operands,
@@ -2401,12 +2404,12 @@ class SemanticNumericPlanTests(unittest.TestCase):
 
     def test_ratio_query_is_not_misclassified_as_percent_point_difference(self) -> None:
         self.assertFalse(
-            _is_percent_point_difference_query(
+            is_percent_point_difference_query(
                 "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘."
             )
         )
         self.assertTrue(
-            _is_percent_point_difference_query(
+            is_percent_point_difference_query(
                 "2023년과 2022년 부채비율의 차이를 %p 기준으로 계산해 줘."
             )
         )
@@ -2643,8 +2646,8 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         }
 
-        self.assertFalse(_llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
-        self.assertTrue(_llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
+        self.assertFalse(llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
+        self.assertTrue(llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
 
     def test_concept_only_ontology_builds_capex_growth_task_for_multi_report_query(self) -> None:
         import src.config.ontology as ontology_module
@@ -2881,8 +2884,8 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ]
         }
 
-        self.assertFalse(_llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
-        self.assertTrue(_llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
+        self.assertFalse(llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
+        self.assertTrue(llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
 
     def test_segment_in_narrative_clause_does_not_scope_unrelated_numeric_lookup(self) -> None:
         query = "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘."

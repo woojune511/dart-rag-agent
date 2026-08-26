@@ -249,7 +249,7 @@ For each P0 record, classify it as one of:
   render concept labels from ordered ontology specs, score table headers,
   validate selected-cell period compatibility, and preserve evidence-visible
   nearby values.
-- `_format_korean_won_compact()`, `_clean_metric_label()`,
+- `format_korean_won_compact()`, `_clean_metric_label()`,
   `_is_single_metric_period_comparison()`,
   `_build_generic_required_operands()`, `_build_concept_period_operands()`,
   `_structured_cell_period_text()`, `_build_generic_retrieval_queries()`, and
@@ -259,8 +259,8 @@ For each P0 record, classify it as one of:
   retrieval policy. Runtime keeps the generic mechanics: normalize labels,
   build current/prior operands, derive year-aware query surfaces, and assemble
   retry queries from missing operands.
-- `_infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
-  `_operand_period_focus()`, `_aggregate_like_row_stage()`,
+- `infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
+  `_operand_period_focus()`, `aggregate_like_row_stage()`,
   `_candidate_explicit_years()`, `_is_capex_total_operand()`,
   `_candidate_consolidation_scope()`, `_candidate_source_priority_bonus()`,
   and `_is_delta_like_row_label()` now read ratio-result units, task query
@@ -376,12 +376,12 @@ For each P0 record, classify it as one of:
   `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics: preserve
   evidence-visible raw values when they already carry a unit and append source
   units only when needed.
-- `_material_gap_feedback_for_subtask_result()` and the generic planner
+- `material_gap_feedback_for_subtask_result()` and the generic planner
   feedback fallback now read fallback metric labels, missing-slot labels,
   joiners, and feedback templates from `CALCULATION_FEEDBACK_POLICY`. Runtime
   keeps the generic mechanics: inspect operation family, status, answer slots,
   and rendered material before reporting which required material is absent.
-- `_slot_metric_keys()`, `_slot_period_hint()`,
+- `_slot_metric_keys()`, `answer_slot_period_hint()`,
   `_refine_operand_precision_from_evidence_table()`,
   `_infer_dependency_row_unit()`, and `_verify_calculation_answer()` now read
   slot cleanup terms, period patterns, display-unit groups, KRW magnitude
