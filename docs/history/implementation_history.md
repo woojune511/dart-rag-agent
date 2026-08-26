@@ -12526,3 +12526,40 @@ are complete. It remains only as an audit record, not an active priority.
 - This is a test portability correction and remote source/contract validation,
   not a runtime behavior, provider benchmark, fresh-ingest, or quality claim.
   PR #86 remains draft and `main` remains unchanged pending explicit integration.
+
+### Semantic numeric source-scope and evaluator-role closure
+
+- The exact-head canary exposed a generic boundary failure: the semantic numeric
+  extractor named the correct value in final prose but omitted structured
+  `raw_value`; later deterministic fallback then accepted a same-label row from a
+  different entity table. The required row was already retrieved, so this was
+  neither an ingest/retrieval miss nor arithmetic failure.
+- Numeric extraction now treats that shape as a schema violation, retries once
+  against the same context, and then fails closed without parsing prose backward.
+  Duplicate exact-value rows receive stable source candidate ids for LLM semantic
+  selection; code verifies membership and preserves row/value/unit/source
+  authority. No company, question id, or metric-specific runtime branch was
+  added.
+- Reconciliation escalates materially conflicting structured values even when a
+  heuristic gap is large and exposes row headers, cells, and table context to the
+  semantic chooser. The selected marker survives operand projection and blocks a
+  broad direct-target fallback overwrite.
+- Structured period recovery retains row/column subjects. A bounded aggregate
+  realignment retry ignores stale planner operand roles only after the normal path
+  cannot recover an otherwise coherent table pair, and resolved aggregate slots
+  may close an already in-progress ledger task without weakening missing or
+  unprovenanced failure states.
+- Unit consistency is now evaluator N/A for a single resolved lookup input rather
+  than a failed comparison. Historical deterministic replay applies the same
+  answer-slot operand projection as the production evaluator before scoring.
+- Generic tests cover incomplete retry/rejection, exact-value ambiguity and
+  semantic id selection, material-value reconciliation, subject-preserving period
+  rows, fallback conflict, bounded realignment, ledger supersession, and evaluator
+  replay parity. Runtime-domain audit passed 217; related contracts 794/794,
+  structural helpers 290/290, dependency projection 75/75, and full unittest
+  2,172/2,172 in 290.959 seconds passed.
+- Source/tests are recorded in `d87e030`. Provider-backed focused successors and
+  their evidence boundaries are recorded in `experiment_history.md`; result and
+  heartbeat bundles remain ignored. GitHub Actions `33007869709` passed reviewer
+  contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,172/2,172
+  in 211.605 seconds. PR #86 stays draft and `main` unchanged.

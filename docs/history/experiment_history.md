@@ -79,6 +79,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Late Numeric Surface And Clean Integration Gate (2026-08-26)](#late-numeric-surface-and-clean-integration-gate-2026-08-26) | exact-artifact qualitative diagnosis, LGE focused B/C, successor 4-company/5-question gate | generic context/surface contracts restored LGE completeness; final gate is 4/4 company, 5/5 question, full-eval fail 0 |
 | [Post-Gate Historical-Answer Compatibility Replay (2026-08-26)](#post-gate-historical-answer-compatibility-replay-2026-08-26) | final defensive hardening 뒤 stored Samsung answer를 현재 evaluator/replay로 no-call 재평가 | deterministic metrics 1.000, but missing numeric grounding keeps `UNCERTAIN`; provider/current-agent pass가 아님 |
 | [Exact-Current-Head Three-Row Canary (2026-08-27)](#exact-current-head-three-row-canary-2026-08-27) | `b422a9b`의 SAM/NAV/LGE store-fixed provider replay | SAM/NAV correctness는 유지됐지만 LGE incomplete structured output 뒤 wrong-entity fallback으로 numeric FAIL; integration HOLD |
+| [Semantic Source-Scope Repair Three-Row Successor (2026-08-27)](#semantic-source-scope-repair-three-row-successor-2026-08-27) | bounded incomplete-output repair, semantic exact-value source selection, deterministic evaluator replay 뒤 SAM/NAV/LGE focused refresh | 세 answer/provenance 모두 clean; LGE blocker closed, Samsung unit comparison N/A, NAV one-replan/schema residual documented |
 
 ## 보는 법
 
@@ -89,6 +90,87 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Semantic Source-Scope Repair Three-Row Successor (2026-08-27)
+
+### Setup
+
+- runtime/source contract recorded in `d87e030`;
+- profile: `benchmarks/profiles/curated_policy_driven_runtime_gate.json`;
+- source stores:
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`;
+- mode: sequential monitored store-fixed `--eval-only` for `SAM_T2_078`,
+  `NAV_T2_006`, and `LGE_T1_051`;
+- no fresh DART fetch, parse, ingest, or document embedding;
+- representative ignored local output directories:
+  - `benchmarks/results/focused_semantic_scope_repair_sam_t2_078_b_2026-08-27/`;
+  - `benchmarks/results/focused_semantic_scope_repair_nav_t2_006_b_2026-08-27/`;
+  - `benchmarks/results/focused_semantic_scope_repair_lge_t1_051_c_2026-08-27/`.
+
+### Generic Contract Change
+
+- A structured numeric response that contains final prose but omits the required
+  raw value receives one bounded semantic retry against the same retrieved
+  context. A second incomplete response is rejected; final prose is never parsed
+  backward into provenance.
+- Multiple exact-value source rows receive stable candidate identifiers. The LLM
+  selects their meaning or returns ambiguous; code checks that the selected id is
+  in the exact-value set and retains row/value/unit/source as deterministic
+  authority.
+- Materially different structured values force semantic reconciliation despite
+  a heuristic score gap. The LLM sees row headers, selected cells, and table
+  context. A semantically selected structured row prevents a broad direct
+  fallback from overwriting it.
+- Structured period recovery preserves actual row and column subjects. A bounded
+  realignment retry can ignore stale planner operand roles, and an already
+  in-progress ledger task may be superseded only when the resolved aggregate slot
+  closes it.
+- Evaluator unit consistency returns N/A when fewer than two resolved operands
+  exist. The historical replay utility now applies production answer-slot operand
+  resolution before deterministic scoring.
+
+### Results
+
+| Row | Answer / provenance | Evaluation | Residual interpretation |
+| --- | --- | --- | --- |
+| `SAM_T2_078` | `28,352,769백만원`; exact `연구개발비용 총계` row, source `ev_001`, grounded Harman narrative | faithfulness/completeness/refusal/grounded rendering/calculation `1.000`, integrity `ok`, error `0` | stored provider bundle predates the evaluator-only fix and recorded unit `0`; no-call production-order replay returns unit N/A and keeps calculation `1.000` |
+| `NAV_T2_006` | exact raw `2,546,649 / 1,801,079백만원`, source-stated display `2조 5,466억원 / 1조 8,011억원`, result `41.4%`, grounded narrative | faithfulness/completeness/refusal/unit/grounded rendering/calculation `1.000`, integrity `ok`, error `0` | operand `0.6667` is two matched calculation inputs divided by three dataset `expected_operands`; the third entry is the derived output `41.4%`. One reflection/replan remains |
+| `LGE_T1_051` | selected `영업이익(손실) 2,163,234백만원`; subtracts `6,769억원` to `1,486,334백만원`; preserves `IRA, AMPC` | numeric/operand/unit/faithfulness/completeness/refusal/grounded rendering/calculation `1.000`, integrity `ok`, error `0` | the canary's other-entity `28,980백만원` substitution is gone |
+
+The NAV operand score is an evaluator-schema limitation, not a missing runtime
+input. Changing runtime binding to manufacture a third input would violate the
+calculation contract. Likewise, the remaining NAV replan is tracked as an
+efficiency residual rather than converted into a company/question rule.
+
+### Usage, Receipts, And Decision
+
+- Samsung: 9 LLM calls, 39,861 tokens, 6 query embeddings, 77.308 seconds,
+  `$0.0429035`;
+- NAVER: 20 calls, 112,062 tokens, 19 query embeddings, 222.486 seconds,
+  `$0.1178148`;
+- LGE: 11 calls, 48,932 tokens, 5 query embeddings, 61.314 seconds,
+  `$0.0457700`;
+- aggregate: 40 calls, 200,855 tokens, 30 query embeddings, zero document
+  embeddings, 361.107 question-seconds, `$0.2064883`;
+- top-level result SHA-256: Samsung
+  `81e4f317c95212770d87fce802d51f7455ee1fc9624738c2df55368f36680c89`,
+  NAVER `0053610696f624e6614a746b9085e785429f388b027e808262b2bb6a6fc7b931`,
+  LGE `b575172602a21e7548a09487027305e06accdea9ec1f3f0dfddef92a5ff35a98`.
+
+Compared with the failed canary, the observed aggregate calls/tokens/latency
+changed from `57 / 311,132 / 589.281s` to `40 / 200,855 / 361.107s`. This is a
+focused-run observation under provider variance, not a general performance
+claim. Runtime-domain audit passed 217; related contracts 794/794, structural
+helpers 290/290, dependency projection 75/75, and full unittest 2,172/2,172 in
+290.959 seconds passed. GitHub Actions `33007869709` then passed reviewer
+contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,172/2,172 in
+211.605 seconds; the full job took 4 minutes 26 seconds.
+
+The LGE correctness blocker is closed for the selected set. These outputs remain
+local ignored artifacts and are not fresh-ingest or held-out evidence. PR #86 is
+still draft and `main` unchanged. The next decision is whether to buy one broader
+five-question store-fixed gate or proceed to integration review with the NAV
+efficiency and evaluator-schema residuals explicitly accepted.
 
 ## Exact-Current-Head Three-Row Canary (2026-08-27)
 
@@ -160,12 +242,11 @@ observed variance.
   NAVER `c0b83cd3558b6b047562ea46042fe2a607dc89f6c5d405a37f7695bd56c7321c`,
   LGE `bfc05ce8b4bf24aa90ee2f3811669e06442ab48d055ff1cfc197a43161a48461`.
 
-All raw outputs and heartbeats are ignored local artifacts. The previous clean
-five-row gate remains useful historical contrast, but the exact-current canary
-is the current integration authority. PR #86 stays draft, `main` is unchanged,
-and integration is HOLD. After the LGE correctness boundary is repaired and
-focused-clean, diagnose NAVER's replan/cost instability before considering a
-broader gate.
+All raw outputs and heartbeats are ignored local artifacts. At this historical
+checkpoint the exact-current canary superseded the previous clean five-row gate
+and put integration on HOLD. The semantic source-scope successor recorded above
+later closed the LGE correctness boundary; this section remains the failure
+receipt rather than current authority.
 
 ## Late Numeric Surface And Clean Integration Gate (2026-08-26)
 
