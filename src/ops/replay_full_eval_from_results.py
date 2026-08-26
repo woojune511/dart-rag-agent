@@ -68,6 +68,12 @@ def _compute_unit_consistency_pass(*args: Any, **kwargs: Any) -> Any:
     return impl(*args, **kwargs)
 
 
+def _resolve_evaluator_operands(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_evaluator_operands as impl
+
+    return impl(*args, **kwargs)
+
+
 def _resolve_numeric_judgement(*args: Any, **kwargs: Any) -> Any:
     from src.ops.evaluator import _resolve_numeric_judgement as impl
 
@@ -160,6 +166,10 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
     calculation_operands = list(resolved_trace.get("calculation_operands") or [])
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_result = dict(resolved_trace.get("calculation_result") or {})
+    calculation_operands = _resolve_evaluator_operands(
+        calculation_operands=calculation_operands,
+        calculation_result=calculation_result,
+    )
     runtime_evidence = list(row.get("runtime_evidence") or [])
     contexts = []
     for evidence in runtime_evidence:

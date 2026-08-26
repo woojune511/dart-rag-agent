@@ -5918,11 +5918,20 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             self.assertIs(kwargs["operand"], events[1][2])
             return 4.0
 
-        def should_rerank(scored: List[Dict[str, Any]]) -> bool:
-            events.append(("should", scored))
+        def should_rerank(
+            scored: List[Dict[str, Any]],
+            *,
+            operand: Dict[str, Any],
+            query_years: List[int],
+            period_focus: str,
+        ) -> bool:
+            events.append(("should", scored, operand, query_years, period_focus))
             self.assertEqual(len(scored), 1)
             self.assertIs(scored[0]["candidate"], candidates[0])
             self.assertEqual(scored[0]["score"], 4.0)
+            self.assertIs(operand, events[1][2])
+            self.assertEqual(query_years, [2024])
+            self.assertEqual(period_focus, "current")
             return False
 
         with patch.object(

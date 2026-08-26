@@ -4239,6 +4239,30 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         self.assertFalse(conflicts({}, TruthBomb(), TruthBomb()))
         self.assertFalse(conflicts(target(), [], TruthBomb()))
+        self.assertTrue(
+            conflicts(
+                target(raw_value="900", normalized_value=900.0),
+                [
+                    existing(
+                        semantic_selected_candidate_id="semantic-row",
+                        semantic_selection_status="selected",
+                    )
+                ],
+                required,
+            )
+        )
+        self.assertFalse(
+            conflicts(
+                target(),
+                [
+                    existing(
+                        semantic_selected_candidate_id="semantic-row",
+                        semantic_selection_status="ambiguous",
+                    )
+                ],
+                required,
+            )
+        )
 
         for name, existing_units, target_unit, expected in (
             ("blank existing", [" "], "KRW", False),
@@ -4473,7 +4497,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             )
         )
         self.assertEqual(source_access_events, [])
-        self.assertFalse(
+        self.assertTrue(
             conflicts(
                 target(normalized_value=200.0),
                 [existing(source_row_id="source")],
@@ -7339,8 +7363,8 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 "src/agent/financial_graph_helpers.py": {},
                 "src/agent/financial_graph_reconciliation.py": {},
                 "src/agent/financial_operand_resolution.py": {
-                    "candidate_row_block_signature": (4690, 4718, 29, ["candidate"]),
-                    "repair_note_operand_units_from_same_block": (4773, 4829, 57, ["operand_rows", "candidate_map"]),
+                    "candidate_row_block_signature": (4689, 4717, 29, ["candidate"]),
+                    "repair_note_operand_units_from_same_block": (4772, 4828, 57, ["operand_rows", "candidate_map"]),
                 },
             },
         )

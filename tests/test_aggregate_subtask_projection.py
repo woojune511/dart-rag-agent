@@ -9097,6 +9097,43 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(row["normalized_value"], 1_701_152_000_000.0)
         self.assertTrue(row["direct_target_metric_lookup"])
 
+    def test_retrieved_table_row_context_preserves_structured_column_subject(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        doc = SimpleNamespace(
+            page_content="Subsidiary A | revenue 500 | operating profit 30",
+            metadata={
+                "company": "ExampleCo",
+                "year": 2023,
+                "section_path": "notes",
+                "unit_hint": "million",
+                "table_row_labels_text": "operating profit",
+                "table_value_labels_text": "operating profit 30",
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "row-1",
+                            "row_label": "operating profit",
+                            "row_headers": ["operating profit"],
+                            "cells": [
+                                {
+                                    "column_headers": ["Subsidiary A"],
+                                    "value_text": "30",
+                                    "unit_hint": "million",
+                                }
+                            ],
+                        }
+                    ]
+                ),
+            },
+        )
+
+        evidence_pool = agent._ratio_operand_context_evidence_from_docs([(doc, 1.0)], max_docs=1)
+        row_item = next(item for item in evidence_pool if item["evidence_id"].endswith("::row:1"))
+
+        self.assertEqual(row_item["metadata"]["structured_cells"][0]["column_headers"], ["Subsidiary A"])
+        self.assertNotIn("current", row_item["claim"])
+        self.assertIn("Subsidiary A", row_item["claim"])
+
     def test_direct_target_metric_prefers_context_matching_consolidation_scope(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         generic_doc = SimpleNamespace(
@@ -11543,6 +11580,68 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         failed_candidate_run.assert_called_once()
         self.assertIs(failed_rows, ordered_results)
+
+    def test_aggregate_period_realign_retries_without_unusable_planner_roles(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        original_results = [{"task_id": "task_growth", "status": "insufficient_operands"}]
+        recovered_results = [{"task_id": "task_growth", "status": "ok"}]
+        original_projection = {"calculation_result": {"status": "ok"}}
+        rebuilt_projection = {"calculation_result": {"status": "ok", "rendered_value": "25.0%"}}
+        aggregate_state = _AggregateSynthesisState(
+            original_results,
+            original_projection,
+            "existing answer",
+            ["ev_existing"],
+        )
+        state = {
+            "query": "calculate year-over-year growth",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": [
+                        {"label": "target value", "role": "operand"},
+                        {"label": "target value", "role": "operand"},
+                    ],
+                }
+            ],
+        }
+
+        with (
+            patch.object(
+                agent,
+                "_realign_period_comparison_results_from_table_label_context",
+                side_effect=[original_results, recovered_results],
+            ) as realign,
+            patch.object(agent, "_preferred_complete_numeric_answer", return_value="") as preferred_answer,
+            patch.object(agent, "_rebuild_aggregate_projection", return_value=rebuilt_projection) as rebuild,
+        ):
+            result = agent._apply_period_context_realignment_to_aggregate(
+                aggregate_state=aggregate_state,
+                state=state,
+                evidence_items=[{"evidence_id": "ev_table"}],
+            )
+
+        self.assertEqual(realign.call_count, 2)
+        self.assertIs(realign.call_args_list[0].args[1], state)
+        fallback_state = realign.call_args_list[1].args[1]
+        self.assertEqual(fallback_state["calc_subtasks"], [])
+        self.assertEqual(state["calc_subtasks"][0]["required_operands"][0]["role"], "operand")
+        preferred_answer.assert_called_once_with(recovered_results)
+        rebuild.assert_called_once_with(
+            recovered_results,
+            "existing answer",
+            kept_evidence_ids=None,
+        )
+        self.assertEqual(
+            result,
+            _AggregateSynthesisState(
+                recovered_results,
+                rebuilt_projection,
+                "existing answer",
+                ["ev_existing"],
+            ),
+        )
 
     def test_period_comparison_realign_does_not_replace_complete_growth_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

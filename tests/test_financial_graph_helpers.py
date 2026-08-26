@@ -1492,6 +1492,75 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     SimpleNamespace(),
                     scored,
                 )
+
+        consolidated_candidate = {
+            "candidate_id": "consolidated",
+            "candidate_kind": "structured_row",
+            "metadata": {
+                "row_label": "operating profit",
+                "structured_cells": [
+                    {"column_headers": ["reported amount"], "value_text": "2,000", "unit_hint": "million"}
+                ],
+            },
+        }
+        subsidiary_candidate = {
+            "candidate_id": "subsidiary",
+            "candidate_kind": "structured_row",
+            "metadata": {
+                "row_label": "Subsidiary A",
+                "row_headers": ["all subsidiaries", "Subsidiary A"],
+                "structured_cells": [
+                    {"column_headers": ["revenue"], "value_text": "500", "unit_hint": "million"},
+                    {"column_headers": ["operating profit"], "value_text": "30", "unit_hint": "million"},
+                ],
+            },
+        }
+        conflict_scored = [
+            {"score": 20.0, "candidate": subsidiary_candidate},
+            {"score": 10.0, "candidate": consolidated_candidate},
+        ]
+        with patch.object(
+            financial_graph_reconciliation,
+            "candidate_is_descriptor_row",
+            return_value=False,
+        ):
+            self.assertTrue(
+                financial_graph_reconciliation.FinancialAgentReconciliationMixin._should_llm_rerank_candidates(
+                    SimpleNamespace(),
+                    conflict_scored,
+                    operand={"label": "operating profit", "role": "primary_value"},
+                    query_years=[2023],
+                    period_focus="current",
+                )
+            )
+            same_value_scored = [
+                conflict_scored[0],
+                {
+                    "score": 10.0,
+                    "candidate": {
+                        **consolidated_candidate,
+                        "metadata": {
+                            **consolidated_candidate["metadata"],
+                            "structured_cells": [
+                                {
+                                    "column_headers": ["reported amount"],
+                                    "value_text": "30",
+                                    "unit_hint": "million",
+                                }
+                            ],
+                        },
+                    },
+                },
+            ]
+            self.assertFalse(
+                financial_graph_reconciliation.FinancialAgentReconciliationMixin._should_llm_rerank_candidates(
+                    SimpleNamespace(),
+                    same_value_scored,
+                    operand={"label": "operating profit", "role": "primary_value"},
+                    query_years=[2023],
+                    period_focus="current",
+                )
+            )
         self.assertEqual(candidate["metadata"]["nested"], nested)
         self.assertIs(candidate["metadata"]["nested"], nested)
         self.assertIs(candidate["nested"], nested)
@@ -13814,7 +13883,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertEqual(
             {name: len(entries) for name, entries in calls.items()},
-            {"operand_target_years": 14, "operand_period_focus": 25},
+            {"operand_target_years": 14, "operand_period_focus": 26},
         )
         self.assertTrue(
             all(entry[2] == "Name" for entries in calls.values() for entry in entries)
@@ -13848,7 +13917,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     "financial_dependency_projection": 2,
                     "financial_graph_calculation": 3,
                     "financial_graph_helpers": 1,
-                    "financial_graph_reconciliation": 6,
+                    "financial_graph_reconciliation": 7,
                     "financial_lookup_recovery": 5,
                     "financial_operand_resolution": 5,
                     "financial_reconciliation_candidates": 2,
@@ -15818,6 +15887,18 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         ("operand", "operand"),
                         ("query_years", "years"),
+                        ("period_focus", "period_focus"),
+                    ),
+                    0,
+                ),
+                (
+                    "financial_graph_reconciliation",
+                    "_should_llm_rerank_candidates",
+                    "Name",
+                    ("candidate",),
+                    (
+                        ("operand", "operand"),
+                        ("query_years", "list(query_years or [])"),
                         ("period_focus", "period_focus"),
                     ),
                     0,
@@ -43357,7 +43438,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "financial_graph_calculation": 2,
-                "financial_graph_evidence": 8,
+                "financial_graph_evidence": 9,
                 "financial_lookup_recovery": 1,
                 "financial_operand_resolution": 12,
                 "financial_retrieval_pipeline": 1,
@@ -43365,7 +43446,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "financial_surface_contracts": 1,
             },
         )
-        self.assertEqual(sum(map(len, direct_calls_by_module.values())), 26)
+        self.assertEqual(sum(map(len, direct_calls_by_module.values())), 27)
         self.assertEqual(len(direct_calls_by_module["financial_surface_contracts"]), 1)
         self.assertTrue(
             all(direct_calls_by_module[module_name] for module_name in external_modules)
@@ -43585,6 +43666,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ],
                 "financial_graph_evidence": [
                     (
+                        "_numeric_extraction_source_evidence",
+                        ("semantic_surface", "operand"),
+                        (),
+                        0,
+                    ),
+                    (
                         "_evidence_item_conflicts_with_operand",
                         ("claim_surface", "operand"),
                         (),
@@ -43746,6 +43833,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             {
                 "financial_graph_calculation": ["UnaryOp", "BoolOp"],
                 "financial_graph_evidence": [
+                    "BoolOp",
                     "UnaryOp",
                     "BoolOp",
                     "BoolOp",
@@ -43775,7 +43863,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "financial_surface_contracts": ["GeneratorExp"],
             },
         )
-        self.assertEqual(sum(map(len, calls_by_module.values())), 26)
+        self.assertEqual(sum(map(len, calls_by_module.values())), 27)
         self.assertEqual(len(calls_by_module["financial_surface_contracts"]), 1)
         self.assertEqual(
             sum(
@@ -43783,7 +43871,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 for module_name, calls in calls_by_module.items()
                 if module_name != "financial_surface_contracts"
             ),
-            25,
+            26,
         )
         self.assertTrue(
             all(
@@ -52743,7 +52831,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "financial_aggregate_projection": 5,
                 "financial_dependency_projection": 1,
                 "financial_graph_calculation": 15,
-                "financial_graph_evidence": 7,
+                "financial_graph_evidence": 8,
                 "financial_lookup_recovery": 1,
                 "financial_operand_resolution": 24,
                 "financial_retrieval_pipeline": 1,
@@ -52752,7 +52840,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "financial_task_artifacts": 1,
             },
         )
-        self.assertEqual(sum(direct_call_counts.values()), 62)
+        self.assertEqual(sum(direct_call_counts.values()), 63)
 
         future_public_definitions = [
             (module_name, node.lineno)
@@ -52800,10 +52888,10 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
             )
 
-        self.assertEqual(identifier_references(target_name), 72)
+        self.assertEqual(identifier_references(target_name), 73)
         self.assertEqual(
             identifier_references(retired_private_name),
-            0 if target_name == future_public_name else 72,
+            0 if target_name == future_public_name else 73,
         )
         row_functions = [
             node
@@ -53190,7 +53278,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     caller_body.encode("utf-8")
                 ).hexdigest()
 
-        self.assertEqual(len(call_records), 62)
+        self.assertEqual(len(call_records), 63)
         self.assertTrue(
             all(
                 len(arguments) == 2
@@ -53211,7 +53299,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 "financial_aggregate_projection": 5,
                 "financial_dependency_projection": 1,
                 "financial_graph_calculation": 15,
-                "financial_graph_evidence": 7,
+                "financial_graph_evidence": 8,
                 "financial_lookup_recovery": 1,
                 "financial_operand_resolution": 24,
                 "financial_retrieval_pipeline": 1,
@@ -53227,13 +53315,13 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "ca765e46cc33a543de1f7ab5b093592871f736578be509e6e0d3395674a8771d",
+            "363fbc87748df799d99abf48c83a508538220f3fe61ecc21b197f4089c1b14a3",
         )
         caller_names = sorted(
             f"{module_name}:{caller_name}"
             for module_name, caller_name in caller_hashes
         )
-        self.assertEqual(len(caller_names), 36)
+        self.assertEqual(len(caller_names), 37)
         self.assertEqual(
             hashlib.sha256(
                 json.dumps(
@@ -53241,7 +53329,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "6f6a45df586cdf386e52b6464614f6a5bc05252f1d3b3c5912465e49bb87c8d6",
+            "628c03815f5f3b94a29affdf3200961196bc0fa1ec99689d9e7c37979d5ed15d",
         )
         caller_hash_payload = {
             f"{module_name}:{caller_name}": digest
@@ -53257,7 +53345,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             caller_hash_digest,
             (
-                "17a92affd54e3c6ef577c19e7c4a7bdafb23aaf9ee683415f93ca0a17f901358"
+                "4009d66bde7c8570fe70ca8f5afbea45186b8ef7644dc2228dfaffc6d98bb403"
                 if target_name == future_public_name
                 else "86099e5c1ede01ac288fcba6097d5a75e1c008d3122821ad12e508d1cd7387c7"
             ),
@@ -57084,7 +57172,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "f431ba3356a0ffd63ebe57eb13fab20cfa06434f0c8eac93f6d02495d6621160"
+                "df07973102e2ec91bc957dde9966893494e4af67212486734113170b2c590666"
                 if target_name == future_public_name
                 else "56c133f9852c0e013747dfb6a625d7af13a5713f15dcc06974d6fafe0e9fc201"
             ),
@@ -57104,7 +57192,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     (
                         "financial_graph_reconciliation",
                         "_extract_structured_operands_from_reconciliation",
-                    ): "d66591c624b14cc4455c0befec82de27438cac2c77f6da891d25f4c0feba9c2c",
+                    ): "1632ea1229d7282c0e437cdeac0cf85aed5905ab81554b9a10068f49ae30fc23",
                     (
                         "financial_graph_reconciliation",
                         "candidate_supports_operand",
@@ -57160,7 +57248,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "825ee946b468009ca4c9f5432d9a37c674f92572276e3e5186d562d492f08aac"
+                "43e2441532f287e7814a099b065a1f794d2f54dbcb5d67f786f2a8515bd410c4"
                 if target_name == future_public_name
                 else "d9baa809818738f83553b8eb486972848e9510c6a353ed4520b09164c9214e72"
             ),
@@ -58280,7 +58368,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "5f43cdc8f9cf3235268fec1a731ee508f112f29489f31cd46cdbc64687923e45"
+                "7d1badd1ca76a38871b45f44cd349991a4ce6a06a1d151e5e9a47cb8be30f433"
                 if target_name == future_public_name
                 else "541b793fe8e0596a0d0271c2a87e373c1c88d12a34ffe549b641e6b67d7ffec1"
             ),
@@ -59631,7 +59719,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "11847323b8b6cbb9e286a15acfbfa8b2b6f77d4187e8cb535efce4ab04242c0d"
+                "63783f52081dfb657095abb3ec162b2278728d71221f90e4619399f57142d799"
                 if target_name == future_public_name
                 else "86067daddcf3b370a5219834120499482d0cbec9b38f4088fa35a0fab079aab5"
             ),
@@ -61231,7 +61319,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "087f4501f23ae4e404aa7b17dc08aecdf1762384ac6159ae53e4616dd61facac"
+                "1d5a581b8ce3f698b2ff718bfb2f16261eb5b33b87cc4f07c35a19852f64aff1"
                 if target_name == future_public_name
                 else "ef07a28d7d4fd72951c8814b810062cb60e49922590f83d0f6585986aa3fb063"
             ),
@@ -66140,7 +66228,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "7b4e9463a1e422d12d37fae5b4e815f125063c05a995137114ecbcb21dacf83b"
+                "2ee75b724ea631213b32a0c7d96377a0d2456bfdc40e26aa0aabf7d110bb84a7"
                 if target_name == future_public_name
                 else "6d616b0dafa05079353357f3a054a4c1becf84a53af35b3a7691589b58a667ab"
             ),
@@ -68132,7 +68220,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "c19a28420a7176ea91f001e15bd8308fa16134f48a7f57ed0901110eda972b99"
+                "082132e49b0f5022115f5aae10ea08e76fea92eea78b9cc739f7cde87ebad7d7"
                 if target_name == future_public_name
                 else "ff3cdf0499f96f1e3cc8022b6ed27ce65590a5bf0f0672d986b46bb7965ed06b"
             ),
@@ -69735,7 +69823,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "f1f1e315d7bbd57ca9a0644bd2b90d709e098b1166acf799c5246da8a1360bc4"
+                "56713a86de63139e20c18532a70b08adcc93e3bdf1683568f15d4e6c59c06f8d"
                 if target_name == future_public_name
                 else "aa187e357d32f0f88d5df7cfe266c6d08e1eb65209d19763cc6ae702c2ae266a"
             ),
@@ -71193,7 +71281,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(
             actual_call_hash,
             (
-                "3b8a758cef7f57f9844a8550f64a6d4fb8ea07707b71e654e111ace8c9ad9e93"
+                "a099d2b0bc34b57d067c070866c4d6900309a2fd104aed5db10719023365a406"
                 if target_name == future_public_name
                 else "cd8514984ff6aa3bcf0d8e4adf2b544732a118dd2d561be16bcb6f7613a6e83b"
             ),
@@ -71460,7 +71548,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                     separators=(",", ":"),
                 ).encode("utf-8")
             ).hexdigest(),
-            "3b8a758cef7f57f9844a8550f64a6d4fb8ea07707b71e654e111ace8c9ad9e93",
+            "a099d2b0bc34b57d067c070866c4d6900309a2fd104aed5db10719023365a406",
         )
         projected_caller_payload = {
             f"{module_name}:{caller_name}": digest
@@ -72656,7 +72744,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 ).encode("utf-8")
             ).hexdigest(),
             (
-                "d5ebe79b17c0affa8c4af53bf2478ec590a9c71b7fa27737b5359e3a5fb8804f"
+                "8b7bb077853d086c526b1fed315ec2ca8ac2d30cb040e42cab1c306e1d22c275"
                 if target_name == future_public_name
                 else "e19265b9aa7ae72eaa65ca0e644e30c2dace02a26a884a3d6b3b392e5fa47742"
             ),

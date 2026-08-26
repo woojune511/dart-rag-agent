@@ -3414,7 +3414,7 @@ def _compute_unit_consistency_pass(
     if not operands:
         operands = calculation_operands
     if len(operands) < 2:
-        return 0.0
+        return None
 
     base_unit = str(operands[0].get("normalized_unit") or "").strip()
     if not base_unit or base_unit == "UNKNOWN":

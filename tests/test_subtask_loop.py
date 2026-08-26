@@ -15599,13 +15599,13 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(tasks_by_id["task_3"]["superseded_by_task_id"], "aggregate")
 
-    def test_aggregate_ledger_supersedes_tasks_from_final_subtask_slots(self) -> None:
+    def test_aggregate_ledger_supersedes_in_progress_tasks_from_final_subtask_slots(self) -> None:
         tasks = [
             {
                 "task_id": "task_2",
                 "kind": "reconciliation",
                 "label": "reconcile 2023 base amount",
-                "status": "partial",
+                "status": "in_progress",
                 "metric_family": "concept_lookup",
                 "artifact_ids": ["reconcile:task_2:001"],
             }

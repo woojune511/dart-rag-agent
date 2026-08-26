@@ -82,7 +82,7 @@ from src.agent.financial_operation_policies import (
     is_percent_point_difference_query,
     is_ratio_percent_query,
 )
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
@@ -200,6 +200,10 @@ class FinancialAgentReconciliationMixin:
     def _should_llm_rerank_candidates(
         self,
         scored_candidates: List[Dict[str, Any]],
+        *,
+        operand: Optional[Dict[str, Any]] = None,
+        query_years: Optional[List[int]] = None,
+        period_focus: str = "unknown",
     ) -> bool:
         """Escalate only ambiguous top candidates to the LLM reranker."""
         if len(scored_candidates) < 2:
@@ -219,6 +223,38 @@ class FinancialAgentReconciliationMixin:
             return True
         if top_kind == "chunk":
             return True
+        if operand:
+            material_values: set[tuple[str, str]] = set()
+            structured_kinds = {
+                "structured_value",
+                "structured_row",
+                "structured_column_value",
+                "table_row",
+                "evidence_row",
+            }
+            for item in scored_candidates[:5]:
+                candidate = dict(item.get("candidate") or {})
+                if str(candidate.get("candidate_kind") or "") not in structured_kinds:
+                    continue
+                selected_cell = candidate_selected_cell_for_operand(
+                    candidate,
+                    operand=operand,
+                    query_years=list(query_years or []),
+                    period_focus=period_focus,
+                )
+                if not selected_cell:
+                    continue
+                metadata = dict(candidate.get("metadata") or {})
+                raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
+                raw_unit = _normalise_spaces(
+                    str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or "")
+                )
+                normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+                if normalized_value is None:
+                    continue
+                material_values.add((repr(float(normalized_value)), str(normalized_unit or "")))
+            if len(material_values) > 1:
+                return True
         if score_gap < 1.0:
             return True
         if "chunk" in top_kinds and any(
@@ -261,8 +297,25 @@ class FinancialAgentReconciliationMixin:
             preview = _normalise_spaces(
                 str(metadata.get("row_text") or metadata.get("table_header_context") or candidate.get("text") or "")
             )[:280]
+            row_headers = " / ".join(
+                str(value).strip()
+                for value in (metadata.get("row_headers") or [])
+                if str(value).strip()
+            )
+            table_context = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        metadata.get("local_heading"),
+                        metadata.get("caption"),
+                        metadata.get("table_header_context"),
+                        metadata.get("table_summary_text"),
+                    )
+                    if str(value or "").strip()
+                )
+            )[:420]
             cell_values = []
-            for cell in (metadata.get("structured_cells") or [])[:4]:
+            for cell in (metadata.get("structured_cells") or [])[:8]:
                 if not isinstance(cell, dict):
                     continue
                 headers = " / ".join(
@@ -283,9 +336,11 @@ class FinancialAgentReconciliationMixin:
                         f"statement_type: {metadata.get('statement_type') or ''}",
                         f"consolidation_scope: {metadata.get('consolidation_scope') or ''}",
                         f"row_label: {metadata.get('row_label') or ''}",
+                        f"row_headers: {row_headers}",
                         f"value_role: {metadata.get('value_role') or ''}",
                         f"aggregation_stage: {metadata.get('aggregation_stage') or ''}",
                         f"cells: {'; '.join(cell_values)}",
+                        f"table_context: {table_context}",
                         f"preview: {preview}",
                     ]
                 )
@@ -420,7 +475,15 @@ class FinancialAgentReconciliationMixin:
                 for candidate in matches
             ]
             scored_candidates.sort(key=lambda item: item["score"], reverse=True)
-            if not self._should_llm_rerank_candidates(scored_candidates):
+            if not self._should_llm_rerank_candidates(
+                scored_candidates,
+                operand=operand,
+                query_years=years,
+                period_focus=operand_period_focus(
+                    operand,
+                    str(constraints.get("period_focus") or "unknown").strip(),
+                ),
+            ):
                 reranked_rows.append(current)
                 continue
 
@@ -981,6 +1044,13 @@ class FinancialAgentReconciliationMixin:
             )
             if not operand_row:
                 continue
+            if (
+                semantic_selected_candidate_id
+                and _normalise_spaces(str(candidate.get("candidate_id") or ""))
+                == semantic_selected_candidate_id
+            ):
+                operand_row["semantic_selected_candidate_id"] = semantic_selected_candidate_id
+                operand_row["semantic_selection_status"] = "selected"
             operand_rows.append(operand_row)
             next_index += 1
 

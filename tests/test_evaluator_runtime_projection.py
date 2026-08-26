@@ -2144,6 +2144,20 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(_compute_operand_selection_correctness(example, operands), 1.0)
         self.assertEqual(_compute_unit_consistency_pass(operands, plan), 1.0)
 
+    def test_unit_consistency_is_not_applicable_to_single_operand_lookup(self) -> None:
+        operands = [
+            {
+                "operand_id": "lookup_value",
+                "raw_value": "28,352,769",
+                "raw_unit": "백만원",
+                "normalized_value": 28_352_769_000_000.0,
+                "normalized_unit": "KRW",
+            }
+        ]
+        plan = {"ordered_operand_ids": ["lookup_value"]}
+
+        self.assertIsNone(_compute_unit_consistency_pass(operands, plan))
+
     def test_resolve_evaluator_operands_flattens_aggregate_subtask_answer_slots(self) -> None:
         operands = [
             {"operand_id": "stale_current", "label": "2023 시설투자(CAPEX)", "raw_value": "531,139", "raw_unit": "억원"},

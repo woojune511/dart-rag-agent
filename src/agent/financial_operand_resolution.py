@@ -2502,6 +2502,13 @@ def direct_target_metric_row_conflicts_existing_units(
     if not matching_existing_rows:
         return False
 
+    if any(
+        _normalise_spaces(str(row.get("semantic_selected_candidate_id") or ""))
+        and _normalise_spaces(str(row.get("semantic_selection_status") or "")) == "selected"
+        for row in matching_existing_rows
+    ):
+        return True
+
     existing_units = {
         _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
         for row in matching_existing_rows
@@ -2527,14 +2534,6 @@ def direct_target_metric_row_conflicts_existing_units(
     if operand_prefers_aggregate_value_role(matching_target_operand):
         return False
 
-    target_value_role = _normalise_spaces(str(target_metric_row.get("value_role") or "")).lower()
-    target_aggregation_stage = _normalise_spaces(str(target_metric_row.get("aggregation_stage") or "")).lower()
-    target_is_aggregate_like = bool(
-        target_value_role == "aggregate"
-        or target_aggregation_stage in {"direct", "final", "subtotal"}
-        or _normalise_spaces(str(target_metric_row.get("aggregate_label") or ""))
-    )
-
     for existing_row in matching_existing_rows:
         existing_unit = _normalise_spaces(str(existing_row.get("normalized_unit") or "")).upper()
         if existing_unit and existing_unit != target_unit:
@@ -2552,7 +2551,7 @@ def direct_target_metric_row_conflicts_existing_units(
             or _normalise_spaces(str(existing_row.get("statement_type") or ""))
             or _normalise_spaces(str(existing_row.get("source_anchor") or ""))
         )
-        if existing_is_structured and target_is_aggregate_like:
+        if existing_is_structured:
             return True
     return False
 

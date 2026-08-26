@@ -328,7 +328,10 @@ class FinancialAgentEvidenceMixin:
     def _numeric_extraction_source_evidence(
         self,
         docs: List[Any],
-        raw_value: str, seed_docs: Optional[List[Any]] = None, reject_ambiguous: bool = False,
+        raw_value: str,
+        seed_docs: Optional[List[Any]] = None,
+        reject_ambiguous: bool = False,
+        state: Optional[FinancialAgentState] = None,
     ) -> Dict[str, Any]:
         """Recover the exact source row that supports an LLM-extracted number."""
 
@@ -448,6 +451,97 @@ class FinancialAgentEvidenceMixin:
         if len(unique_matches) == 1:
             return next(iter(unique_matches.values()))
         if len(unique_matches) > 1 and reject_ambiguous:
+            active_subtask = dict((state or {}).get("active_subtask") or {})
+            required_operands = [
+                dict(item)
+                for item in (active_subtask.get("required_operands") or [])
+                if isinstance(item, dict) and bool(item.get("required", True))
+            ]
+            semantic_selector = getattr(self, "_llm_rerank_operand_candidates", None)
+            if required_operands and callable(semantic_selector):
+                operand = required_operands[0]
+                query = _normalise_spaces(
+                    str(active_subtask.get("query") or (state or {}).get("query") or "")
+                )
+                ranked_matches = _prioritize_candidate_items(
+                    list(unique_matches.values()),
+                    query,
+                    _normalise_spaces(str((state or {}).get("topic") or "")),
+                    dict((state or {}).get("report_scope") or {}),
+                    [int(value) for value in re.findall(r"20\d{2}", query)],
+                )
+                scored_candidates: List[Dict[str, Any]] = []
+                source_by_candidate_id: Dict[str, Dict[str, Any]] = {}
+                for index, item in enumerate(ranked_matches, start=1):
+                    source_item = dict(item)
+                    metadata = dict(source_item.get("metadata") or {})
+                    row_text = _normalise_spaces(str(source_item.get("raw_row_text") or ""))
+                    source_key = "|".join(
+                        (
+                            _normalise_spaces(str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")),
+                            _normalise_spaces(str(source_item.get("source_anchor") or "")),
+                            row_text,
+                        )
+                    )
+                    candidate_id = f"numeric_source::{hashlib.sha256(source_key.encode('utf-8')).hexdigest()[:16]}"
+                    metadata["row_text"] = row_text
+                    candidate = {
+                        "candidate_id": candidate_id,
+                        "candidate_kind": "structured_row" if metadata.get("structured_cells") else "evidence_row",
+                        "text": row_text,
+                        "metadata": metadata,
+                    }
+                    semantic_surface = _normalise_spaces(
+                        " ".join(
+                            str(value or "")
+                            for value in (
+                                metadata.get("row_label"),
+                                metadata.get("semantic_label"),
+                                " ".join(str(value) for value in (metadata.get("row_headers") or [])),
+                                row_text,
+                            )
+                        )
+                    )
+                    surface_match = bool(
+                        text_has_positive_surface(semantic_surface, operand)
+                        or operand_text_match(semantic_surface, operand)
+                    )
+                    scored_candidates.append(
+                        {
+                            "candidate": candidate,
+                            "score": (10.0 if surface_match else 0.0) - (index * 0.001),
+                        }
+                    )
+                    source_by_candidate_id[candidate_id] = source_item
+                scored_candidates.sort(key=lambda item: float(item.get("score") or 0.0), reverse=True)
+                try:
+                    decision = semantic_selector(
+                        query=query,
+                        operand=operand,
+                        scored_candidates=scored_candidates,
+                    )
+                except Exception as exc:
+                    logger.info(
+                        "[numeric_extractor] semantic source selection unavailable raw=%s error=%s",
+                        raw_value,
+                        exc,
+                    )
+                    decision = {}
+                selected_candidate_id = _normalise_spaces(
+                    str(decision.get("selected_candidate_id") or "")
+                )
+                if (
+                    _normalise_spaces(str(decision.get("selection_status") or "")) == "selected"
+                    and selected_candidate_id in source_by_candidate_id
+                ):
+                    selected = dict(source_by_candidate_id[selected_candidate_id])
+                    selected_metadata = dict(selected.get("metadata") or {})
+                    selected_metadata["semantic_selected_candidate_id"] = selected_candidate_id
+                    selected_metadata["semantic_selection_status"] = "selected"
+                    selected["metadata"] = selected_metadata
+                    selected["source_selection_status"] = "selected"
+                    selected["semantic_selected_candidate_id"] = selected_candidate_id
+                    return selected
             return {"source_selection_status": "ambiguous"}
         return next(iter(unique_matches.values()), {})
 
@@ -4293,6 +4387,57 @@ class FinancialAgentEvidenceMixin:
                 }
                 answer = empty_result["answer"]
 
+        incomplete_structured_output = bool(
+            debug_trace
+            and not debug_trace.get("error")
+            and not _normalise_spaces(str(debug_trace.get("raw_value") or ""))
+            and _normalise_spaces(str(debug_trace.get("final_value") or ""))
+        )
+        if incomplete_structured_output:
+            retry_template = _normalise_spaces(
+                str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_incomplete_retry_prompt_template") or "")
+            )
+            if retry_template:
+                retry_prompt = chat_prompt_template_from_template(retry_template)
+                try:
+                    retry_result: NumericExtraction = (retry_prompt | structured_llm).invoke(
+                        {"query": numeric_query, "context": context}
+                    )
+                    retry_trace = dict(retry_result.model_dump())
+                    if _normalise_spaces(str(retry_trace.get("raw_value") or "")):
+                        debug_trace = {
+                            **retry_trace,
+                            "numeric_extraction_fingerprint": extraction_fingerprint,
+                            "numeric_extraction_prompt": prompt_diagnostics,
+                            "incomplete_retry_attempted": True,
+                        }
+                        answer = retry_result.final_value if retry_result.final_value else empty_result["answer"]
+                        incomplete_structured_output = False
+                    else:
+                        debug_trace = {
+                            **debug_trace,
+                            "incomplete_retry_attempted": True,
+                            "incomplete_retry_returned_raw_value": False,
+                        }
+                except Exception as exc:
+                    logger.info("[numeric_extractor] incomplete structured retry failed: %s", exc)
+                    debug_trace = {
+                        **debug_trace,
+                        "incomplete_retry_attempted": True,
+                        "incomplete_retry_error": str(exc),
+                    }
+
+        if incomplete_structured_output:
+            logger.info(
+                "[numeric_extractor] rejected incomplete structured output with final prose but no raw value"
+            )
+            debug_trace = {
+                **debug_trace,
+                "raw_value": "",
+                "rejected_reason": "incomplete_structured_numeric_extraction",
+            }
+            answer = empty_result["answer"]
+
         source_evidence: Dict[str, Any] = {}
         if debug_trace.get("raw_value"):
             if not _lookup_numeric_extraction_has_direct_support(
@@ -4323,6 +4468,7 @@ class FinancialAgentEvidenceMixin:
                     raw_value,
                     list(state.get("seed_retrieved_docs") or []),
                     bool(active_required_operands),
+                    state,
                 )
                 if source_evidence.get("source_selection_status") == "ambiguous":
                     logger.info(
@@ -4336,6 +4482,14 @@ class FinancialAgentEvidenceMixin:
                     }
                     answer = empty_result["answer"]
                     source_evidence = {}
+                elif source_evidence.get("source_selection_status") == "selected":
+                    debug_trace = {
+                        **debug_trace,
+                        "source_selection_status": "selected",
+                        "semantic_selected_candidate_id": source_evidence.get(
+                            "semantic_selected_candidate_id"
+                        ),
+                    }
                 llm_unit = _normalise_spaces(str(debug_trace.get("unit") or ""))
                 source_unit = coerce_operand_unit_from_evidence(
                     raw_value=raw_value,

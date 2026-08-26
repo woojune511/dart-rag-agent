@@ -534,14 +534,90 @@ class OpsRuntimeProjectionModeTests(unittest.TestCase):
         self.assertEqual(result["numeric_final_judgement"], "PASS")
         self.assertNotIn("999", str(captured))
 
+    def test_replay_reader_scores_evaluator_resolved_operands(self) -> None:
+        captured = {}
+        raw_operands = [
+            {"operand_id": "primary_value", "raw_value": "100", "raw_unit": "백만원"},
+            {"operand_id": "task_1:primary_value", "raw_value": "100", "raw_unit": "백만원"},
+        ]
+        resolved_operands = [
+            {"operand_id": "primary_value", "raw_value": "100", "raw_unit": "백만원"}
+        ]
+        calculation_result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "lookup",
+                "primary_value": {"raw_value": "100", "raw_unit": "백만원"},
+            },
+        }
+        row = {
+            "id": "Q1",
+            "answer": "100백만원",
+            "resolved_calculation_trace": {
+                "calculation_operands": raw_operands,
+                "calculation_plan": {"status": "empty", "mode": "aggregate_subtasks"},
+                "calculation_result": calculation_result,
+            },
+            "numeric_grounding": 1.0,
+        }
+        example = SimpleNamespace(canonical_answer_key="100백만원", evidence=[])
+
+        def capture_grounding(*, runtime_evidence, contexts, calculation_operands):
+            captured["grounding"] = list(calculation_operands)
+            return 1.0, {}
+
+        def capture_selection(*, example, calculation_operands):
+            captured["selection"] = list(calculation_operands)
+            return None
+
+        with (
+            patch.object(
+                replay_eval,
+                "_resolve_evaluator_operands",
+                return_value=resolved_operands,
+            ) as resolve_operands,
+            patch.object(replay_eval, "_compute_numeric_equivalence", return_value=(1.0, {})),
+            patch.object(replay_eval, "_compute_operand_grounding_score", side_effect=capture_grounding),
+            patch.object(replay_eval, "_compute_numeric_result_correctness", return_value=None),
+            patch.object(replay_eval, "_compute_operand_selection_correctness", side_effect=capture_selection),
+            patch.object(replay_eval, "_compute_unit_consistency_pass", return_value=None),
+            patch.object(replay_eval, "_compute_grounded_rendering_correctness", return_value=(1.0, "grounded")),
+            patch.object(replay_eval, "_compute_calculation_correctness", return_value=1.0),
+            patch.object(replay_eval, "_resolve_numeric_judgement", return_value=("PASS", 1.0)),
+        ):
+            replay_eval._score_row(row, {"Q1": example})
+
+        resolve_operands.assert_called_once_with(
+            calculation_operands=raw_operands,
+            calculation_result=calculation_result,
+        )
+        self.assertEqual(captured["grounding"], resolved_operands)
+        self.assertEqual(captured["selection"], resolved_operands)
+
     def test_replay_recomputes_deterministic_rendering_instead_of_source_llm_score(self) -> None:
         row = {
             "id": "Q1",
             "answer": "Current revenue was 100백만원 versus 80백만원, so growth was 25%.",
             "resolved_calculation_trace": {
                 "calculation_operands": [
-                    {"label": "current revenue", "raw_value": "100", "raw_unit": "백만원"},
-                    {"label": "prior revenue", "raw_value": "80", "raw_unit": "백만원"},
+                    {
+                        "operand_id": "current_period",
+                        "label": "current revenue",
+                        "period": "2023",
+                        "raw_value": "100",
+                        "raw_unit": "백만원",
+                        "normalized_value": 100_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "prior_period",
+                        "label": "prior revenue",
+                        "period": "2022",
+                        "raw_value": "80",
+                        "raw_unit": "백만원",
+                        "normalized_value": 80_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
                 ],
                 "calculation_plan": {"status": "ok", "operation": "growth_rate"},
                 "calculation_result": {"status": "ok", "rendered_value": "25%"},

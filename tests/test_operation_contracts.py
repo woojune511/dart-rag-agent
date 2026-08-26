@@ -130,6 +130,28 @@ class _StubLLM:
         return _StubStructuredLLM(self._response)
 
 
+class _SequenceStructuredLLM:
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.invoke_count = 0
+
+    def __call__(self, prompt_value):
+        return self.invoke(prompt_value)
+
+    def invoke(self, _prompt_value):
+        response = self._responses[min(self.invoke_count, len(self._responses) - 1)]
+        self.invoke_count += 1
+        return response
+
+
+class _SequenceLLM:
+    def __init__(self, responses):
+        self.structured = _SequenceStructuredLLM(responses)
+
+    def with_structured_output(self, _schema):
+        return self.structured
+
+
 class _CapturingStructuredLLM:
     def __init__(self, response):
         self._response = response
@@ -1480,6 +1502,87 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["selected_claim_ids"], [])
         self.assertEqual(result["numeric_debug_trace"]["rejected_reason"], "missing_direct_lookup_operand_support")
 
+    def test_numeric_extractor_rejects_final_prose_without_raw_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        unsupported_final = "ExampleCo's 2023 target metric is 2,000 million."
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="million",
+                raw_value="",
+                final_value=unsupported_final,
+            )
+        )
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find ExampleCo's 2023 consolidated target metric.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="target metric | 2,000 million",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "chunk-1"},
+                        ),
+                        1.0,
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["selected_claim_ids"], [])
+        self.assertNotEqual(result["answer"], unsupported_final)
+        self.assertEqual(result["numeric_debug_trace"]["raw_value"], "")
+        self.assertEqual(
+            result["numeric_debug_trace"]["rejected_reason"],
+            "incomplete_structured_numeric_extraction",
+        )
+        self.assertTrue(result["numeric_debug_trace"]["incomplete_retry_attempted"])
+
+    def test_numeric_extractor_retries_incomplete_structured_output_without_parsing_final_prose(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        sequence_llm = _SequenceLLM(
+            [
+                NumericExtraction(
+                    period_check="2023",
+                    consolidation_check="consolidated",
+                    unit="million",
+                    raw_value="",
+                    final_value="ExampleCo's 2023 target metric is 2,000 million.",
+                ),
+                NumericExtraction(
+                    period_check="2023",
+                    consolidation_check="consolidated",
+                    unit="million",
+                    raw_value="2,000",
+                    final_value="ExampleCo's 2023 target metric is 2,000 million.",
+                ),
+            ]
+        )
+        agent.llm = sequence_llm
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "Find ExampleCo's 2023 consolidated target metric.",
+                "retrieved_docs": [
+                    (
+                        Document(
+                            page_content="target metric | 2,000 million",
+                            metadata={"company": "ExampleCo", "year": 2023, "chunk_uid": "chunk-1"},
+                        ),
+                        1.0,
+                    )
+                ],
+            }
+        )
+
+        self.assertEqual(sequence_llm.structured.invoke_count, 2)
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertEqual(result["numeric_debug_trace"]["raw_value"], "2,000")
+        self.assertTrue(result["numeric_debug_trace"]["incomplete_retry_attempted"])
+        self.assertNotIn("rejected_reason", result["numeric_debug_trace"])
+
     def test_numeric_extractor_reuses_duplicate_direct_support_rejection(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         counting_llm = _CountingLLM(
@@ -1890,6 +1993,105 @@ class OperationContractTests(unittest.TestCase):
             result["numeric_debug_trace"]["rejected_reason"],
             "ambiguous_direct_lookup_source_evidence",
         )
+
+    def test_lookup_numeric_extractor_uses_semantic_candidate_id_for_duplicate_source_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        distractor_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "chunk_uid": "distractor",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "기타비용",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "억원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        target_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "chunk_uid": "target",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        def select_target(**kwargs):
+            candidates = [dict(item.get("candidate") or {}) for item in kwargs["scored_candidates"]]
+            selected_id = next(
+                str(candidate.get("candidate_id") or "")
+                for candidate in candidates
+                if dict(candidate.get("metadata") or {}).get("row_label") == "연구개발비용 총계"
+            )
+            return {
+                "ordered_candidate_ids": [selected_id],
+                "selected_candidate_id": selected_id,
+                "selection_status": "selected",
+                "llm_completed": True,
+            }
+
+        with patch.object(agent, "_llm_rerank_operand_candidates", side_effect=select_target):
+            result = agent._extract_numeric_fact(
+                {
+                    "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                    "retrieved_docs": [
+                        (Document(page_content="기타비용 | 2023 | 130", metadata=distractor_metadata), 1.0)
+                    ],
+                    "seed_retrieved_docs": [
+                        (Document(page_content="연구개발비용 총계 | 2023 | 130", metadata=target_metadata), 0.9)
+                    ],
+                    "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                    "active_subtask": {
+                        "task_id": "task_1",
+                        "operation_family": "lookup",
+                        "metric_label": "2023년 연구개발비용 총액",
+                        "required_operands": [
+                            {
+                                "label": "연구개발비용",
+                                "concept": "research_and_development_expense",
+                                "role": "primary_value",
+                                "required": True,
+                            }
+                        ],
+                    },
+                }
+            )
+
+        self.assertEqual(result["evidence_status"], "sufficient")
+        self.assertIn("130백만원", result["answer"])
+        self.assertEqual(result["numeric_debug_trace"]["source_selection_status"], "selected")
+        self.assertTrue(result["numeric_debug_trace"]["semantic_selected_candidate_id"])
+        self.assertEqual(result["evidence_items"][0]["metadata"]["row_label"], "연구개발비용 총계")
 
     def test_lookup_numeric_extractor_accepts_direct_table_object_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5813,6 +6015,8 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["raw_value"], "130")
         self.assertEqual(rows[0]["raw_unit"], "백만원")
         self.assertEqual(rows[0]["evidence_id"], total_candidate["candidate_id"])
+        self.assertEqual(rows[0]["semantic_selected_candidate_id"], total_candidate["candidate_id"])
+        self.assertEqual(rows[0]["semantic_selection_status"], "selected")
         self.assertEqual(len(evidence_items), 1)
         self.assertEqual(evidence_items[0]["metadata"]["row_label"], "연구개발비용 총계")
         self.assertEqual(

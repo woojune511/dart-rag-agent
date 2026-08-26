@@ -1012,6 +1012,7 @@ class FinancialAgentCalculationMixin:
             status = _normalise_spaces(str(task.get("status") or "")).lower()
             if status not in {
                 TaskStatus.PENDING.value,
+                TaskStatus.IN_PROGRESS.value,
                 TaskStatus.PARTIAL.value,
                 TaskStatus.COMPLETED.value,
             }:
@@ -3910,6 +3911,12 @@ class FinancialAgentCalculationMixin:
             state,
             evidence_items,
         )
+        if realigned_results is aggregate_state.ordered_results and state.get("calc_subtasks"):
+            realigned_results = self._realign_period_comparison_results_from_table_label_context(
+                aggregate_state.ordered_results,
+                {**dict(state), "calc_subtasks": []},
+                evidence_items,
+            )
         if realigned_results is aggregate_state.ordered_results:
             return aggregate_state
         ordered_results = realigned_results
@@ -8204,6 +8211,19 @@ class FinancialAgentCalculationMixin:
             row_labels = list(dict.fromkeys(row_labels))
             if not row_labels:
                 return []
+            structured_rows_by_label: Dict[str, Dict[str, Any]] = {}
+            row_records_text = str(metadata.get("table_row_records_json") or "").strip()
+            if row_records_text:
+                try:
+                    row_records = json.loads(row_records_text)
+                except json.JSONDecodeError:
+                    row_records = []
+                for record in row_records if isinstance(row_records, list) else []:
+                    if not isinstance(record, dict):
+                        continue
+                    record_label = _normalise_spaces(str(record.get("row_label") or ""))
+                    if record_label:
+                        structured_rows_by_label.setdefault(record_label, dict(record))
             unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
             try:
                 report_year = int(metadata.get("year"))
@@ -8244,46 +8264,74 @@ class FinancialAgentCalculationMixin:
             for row_index, row_label in enumerate(row_labels, start=1):
                 if not row_label or not re.search(KOREAN_TABLE_LABEL_ALPHA_RE_FRAGMENT, row_label):
                     continue
-                pattern = re.compile(
-                    rf"{KOREAN_TABLE_LABEL_LEFT_BOUNDARY_RE_FRAGMENT}{re.escape(row_label)}\s+"
-                    r"(?P<value>[\(\)\-+△]?\s*\d[\d,]*(?:\.\d+)?%?(?:\s*%p)?)",
-                    flags=re.IGNORECASE,
-                )
                 cells: List[Dict[str, Any]] = []
                 row_unit_hint = ""
-                for value_index, match in enumerate(pattern.finditer(value_labels)):
-                    raw_value = _normalise_spaces(match.group("value"))
-                    if not raw_value:
-                        continue
-                    raw_unit = unit_hint
-                    value_is_percent = "%" in raw_value
-                    if value_is_percent:
-                        raw_unit = "%"
-                    else:
-                        local_unit_hint = _resolve_candidate_local_unit_hint(
-                            {"metadata": {**metadata, "row_label": row_label}},
-                            raw_value,
-                        )
-                        local_unit_family = _unit_family_for_hint(local_unit_hint)
-                        if local_unit_hint and (
-                            not unit_hint
-                            or table_unit_family in {"", "UNKNOWN"}
-                            or local_unit_family == table_unit_family
-                        ):
-                            raw_unit = local_unit_hint
-                            row_unit_hint = row_unit_hint or local_unit_hint
-                    normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-                    if normalized_value is None:
-                        continue
-                    headers = period_headers[value_index] if value_index < len(period_headers) else [f"value_{value_index + 1}"]
-                    cells.append(
-                        {
-                            "value_text": raw_value,
-                            "unit_hint": raw_unit,
-                            "column_headers": headers,
-                            "row_label": row_label,
-                        }
+                structured_row = structured_rows_by_label.get(row_label)
+                if structured_rows_by_label and not structured_row:
+                    continue
+                if structured_row:
+                    for raw_cell in structured_row.get("cells") or []:
+                        if not isinstance(raw_cell, dict):
+                            continue
+                        cell = dict(raw_cell)
+                        raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
+                        raw_unit = _normalise_spaces(str(cell.get("unit_hint") or unit_hint))
+                        normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+                        if normalized_value is None:
+                            continue
+                        cell["value_text"] = raw_value
+                        cell["unit_hint"] = raw_unit
+                        cell["column_headers"] = [
+                            _normalise_spaces(str(header))
+                            for header in (cell.get("column_headers") or [])
+                            if _normalise_spaces(str(header))
+                        ]
+                        cell["row_label"] = row_label
+                        cells.append(cell)
+                        row_unit_hint = row_unit_hint or raw_unit
+                else:
+                    pattern = re.compile(
+                        rf"{KOREAN_TABLE_LABEL_LEFT_BOUNDARY_RE_FRAGMENT}{re.escape(row_label)}\s+"
+                        r"(?P<value>[\(\)\-+△]?\s*\d[\d,]*(?:\.\d+)?%?(?:\s*%p)?)",
+                        flags=re.IGNORECASE,
                     )
+                    for value_index, match in enumerate(pattern.finditer(value_labels)):
+                        raw_value = _normalise_spaces(match.group("value"))
+                        if not raw_value:
+                            continue
+                        raw_unit = unit_hint
+                        value_is_percent = "%" in raw_value
+                        if value_is_percent:
+                            raw_unit = "%"
+                        else:
+                            local_unit_hint = _resolve_candidate_local_unit_hint(
+                                {"metadata": {**metadata, "row_label": row_label}},
+                                raw_value,
+                            )
+                            local_unit_family = _unit_family_for_hint(local_unit_hint)
+                            if local_unit_hint and (
+                                not unit_hint
+                                or table_unit_family in {"", "UNKNOWN"}
+                                or local_unit_family == table_unit_family
+                            ):
+                                raw_unit = local_unit_hint
+                                row_unit_hint = row_unit_hint or local_unit_hint
+                        normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+                        if normalized_value is None:
+                            continue
+                        headers = (
+                            period_headers[value_index]
+                            if value_index < len(period_headers)
+                            else [f"value_{value_index + 1}"]
+                        )
+                        cells.append(
+                            {
+                                "value_text": raw_value,
+                                "unit_hint": raw_unit,
+                                "column_headers": headers,
+                                "row_label": row_label,
+                            }
+                        )
                 if not cells:
                     continue
                 row_metadata = {
@@ -8296,7 +8344,19 @@ class FinancialAgentCalculationMixin:
                 }
                 quote = _normalise_spaces(
                     " ".join(
-                        f"{row_label} {cell.get('value_text')}"
+                        " | ".join(
+                            part
+                            for part in (
+                                row_label,
+                                " / ".join(
+                                    str(header).strip()
+                                    for header in (cell.get("column_headers") or [])
+                                    if str(header).strip()
+                                ),
+                                str(cell.get("value_text") or "").strip(),
+                            )
+                            if part
+                        )
                         for cell in cells[:3]
                         if str(cell.get("value_text") or "").strip()
                     )
