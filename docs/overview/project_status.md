@@ -7,19 +7,19 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 ## At A Glance
 
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | No known hard runtime blocker remains in the bounded five-question integration set; exact code-head CI is green, while the clean provider gate predates final defensive hardening, so an explicit integration decision remains |
+| Is the core path blocked? | **YES for integration**: the exact-current-head three-row canary found an `LGE_T1_051` semantic source-selection failure after incomplete structured LLM output; unit/CI evidence remains green but does not close this provider-backed correctness blocker |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | Pre-commit review added three fail-closed contracts: duplicate-value exact source rows remain ambiguous, direct ledger operands must cover the complete plan, and an LLM grounding override cannot erase deterministic rendering failure |
-| What passed? | Runtime audit 217, local unittest 2,165/2,165, structural module 290/290, and exact code-head GitHub Actions run `32964249893` all passed; the earlier monitored four-company/five-question gate remains the latest provider evidence |
-| Was the benchmark refreshed? | **YES, BUT BEFORE FINAL HARDENING**; the store-fixed gate completed 4/4 companies and 5/5 questions with pass count 4, full-eval fail count 0, errors/integrity issues 0, and aggregate quality metrics 1.000. After the defensive changes, only a historical-answer no-call replay was run |
-| What is next? | Keep refactoring paused and PR #86 draft; decide explicitly whether the pre-hardening clean provider gate plus current source/CI evidence is sufficient or another provider replay is required before a history-preserving merge |
+| What just changed? | No source changed. Exact-current-head provider replay confirmed Samsung provenance, exposed NAVER recovery-replan cost variance, and reopened LGE correctness when `raw_value` was empty and fallback selected another entity's same-label row |
+| What passed? | Exact-current `SAM_T2_078` and `NAV_T2_006` passed answer/provenance checks; source-side runtime audit 217, local unittest 2,165/2,165, structural module 290/290, and GitHub Actions `32964249893` remain green. `LGE_T1_051` failed numeric correctness |
+| Was the benchmark refreshed? | **YES, EXACT CURRENT HEAD, FOCUSED** on `b422a9b`: three store-fixed rows ran with no fresh ingest; Samsung and NAVER were healthy, LGE numeric judgement failed. The 2026-08-26 clean five-row gate remains historical pre-hardening evidence, not current authority |
+| What is next? | Keep refactoring paused and PR #86 draft. Repair the generic incomplete-structured-output/source-scope boundary for LGE, cover it with synthetic ambiguity tests, rerun focused LGE, then diagnose NAVER's recovery-replan efficiency before any integration decision |
 
 ## Product Boundary
 
@@ -42,8 +42,8 @@ or an unconfigured `FinancialAgent` invocation.
   `main@f0a5145`.
 - Release source/tests are recorded in `6d6ca01`, evidence documentation in
   `99c4429`, and the cross-platform structural-receipt correction in `40ae6a7`.
-  All three were pushed and the code head passed remote CI; this status refresh
-  is a docs-only successor. None is merged into `main@f0a5145`.
+  Exact-current-head replay ran on pushed docs head `b422a9b`; none of these
+  commits is merged into `main@f0a5145`.
 - The current release stabilization includes bounded in-place
   dependency operand-artifact finalization, claim-scoped evaluator context
   ordering, explicit-role component-difference rendering, and late numeric
@@ -60,6 +60,11 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
+- The 2026-08-27 exact-current-head canary is the newest integration authority:
+  Samsung and NAVER retained correct answers, but LGE failed after an incomplete
+  semantic extraction let a generic fallback accept a same-label row from a
+  different entity table. PR #86 therefore remains draft and integration is on
+  HOLD.
 - An earlier two-seam owner batch moved prepared nested-result replacement and
   arithmetic subtask-surface synchronization. Across `6ed195e..b5d97ee`, the
   former 64 + 124 = 188 graph definition lines became public 63 + 123 = 186
@@ -749,7 +754,7 @@ For topology rather than normative behavior, use
 | Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
 | Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
 | Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
-| Policy-driven runtime gate | **RECORDED PASS** on the 2026-08-26 store-fixed eval-only refresh: 4 / 4 companies, 5 / 5 questions, full-eval fail count 0; the provider run predates final pre-commit hardening |
+| Policy-driven runtime gate | **HISTORICAL RECORDED PASS** on the 2026-08-26 pre-hardening store-fixed refresh: 4 / 4 companies, 5 / 5 questions, full-eval fail count 0; superseded as current integration authority by the failing exact-head canary below |
 | Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
 | Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after later repairs |
 | Reflection promotion gate | READY |
@@ -768,7 +773,8 @@ For topology rather than normative behavior, use
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
 | Full unittest discovery | PASS, local 2,165 / 2,165 after pre-commit hardening and exact code-head `40ae6a7` 2,165 / 2,165 on Ubuntu/Python 3.13 |
-| Benchmark refresh after release stabilization | **CLEAN PRE-HARDENING PROVIDER EVIDENCE**; 4 / 4 companies, 5 / 5 questions, pass count 4, error/integrity issue 0, aggregate faithfulness/completeness/context recall/numeric pass rate 1.000; no post-hardening provider rerun |
+| Exact-current-head focused canary | **HOLD / 2 HEALTHY, 1 FAIL** on `b422a9b`: `SAM_T2_078` and `NAV_T2_006` preserved answer/provenance; `LGE_T1_051` failed numeric correctness after a missing structured value enabled wrong-entity same-label fallback |
+| Benchmark refresh after release stabilization | The 2026-08-27 three-row run is post-hardening exact-current provider evidence over persisted stores. It used 57 LLM calls, 311,132 tokens, 32 query and zero document embeddings; it is not fresh-ingest or publishable held-out evidence |
 | GitHub Actions validation | PASS, run `32964249893` on `40ae6a7`: reviewer job 14 seconds; full discovery 2,165 / 2,165 in 294.776 seconds, full job 5 minutes 51 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -782,26 +788,24 @@ The semantic set is `tests.test_financial_graph_helpers`,
 `tests.test_concept_runtime_contracts`. `tests.test_import_side_effects` passed
 separately at 19 / 19.
 
-Recorded structural and plain-retrieval numbers remain historical evidence.
-The 2026-08-26 policy-gate refresh was current-agent/current-evaluator execution
-over the persisted store at its recorded source state, not fresh ingest evidence
-or a new publishable quality claim. Its raw outputs and heartbeat logs are
-ignored local artifacts. Within that bounded integration contract it was clean:
-all five rows completed without runtime error or artifact-integrity issue, and
-every company passed. The final defensive changes were subsequently validated by
-unit/contract tests and one no-call historical-answer replay, not another
-provider-backed current-agent run. This supports PR review but does not merge
-PR #86 or resume Phase 3 refactoring automatically.
+Recorded structural, plain-retrieval, and 2026-08-26 clean-gate numbers remain
+historical evidence. The 2026-08-27 focused refresh is current-agent/current-
+evaluator execution on exact head `b422a9b` over persisted stores, not fresh
+ingest or a new publishable quality claim. Its raw outputs and heartbeat logs are
+ignored local artifacts. Samsung and NAVER were correct, but LGE failed numeric
+correctness even though the required consolidated row was present in retrieved
+table metadata. This blocks PR #86 integration; it does not resume Phase 3
+refactoring.
 
 ## Active Blockers And Remaining Debt
 
 | Area | State |
 | --- | --- |
-| Core correctness | Unit/contract tests are green; Samsung semantic row/lookup provenance, LGE derived-value trace/surface preservation, NAVER operand-artifact registration, and evaluator claim-context ordering are closed in focused evidence and reproduced by the clean gate; three post-gate defensive contracts are source-tested but not provider-rerun |
-| Latest benchmark evidence | The latest provider-backed five-question store-fixed eval-only refresh is clean at its recorded pre-hardening source state; it is persisted-store integration evidence, not exact-current-source, fresh-ingest, or publishable benchmark evidence |
+| Core correctness | **BLOCKED at the semantic-to-deterministic boundary.** LGE extraction identified the correct consolidated value in prose but omitted structured `raw_value`; the fallback then accepted another entity table's same-label row. Arithmetic and integrity checks passed only for the wrong operand, so structural integrity is insufficient |
+| Latest benchmark evidence | Exact-head three-row store-fixed canary: Samsung/NAVER healthy, LGE numeric FAIL. The earlier five-row clean gate is useful historical contrast because the same LGE prompt fingerprint previously returned a complete structured value, but it no longer authorizes integration |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | Draft PR #86 is published; reviewed source/docs plus portability fix are pushed, exact code-head remote CI is green, and `main` remains unchanged. The next action is an explicit provider-replay/merge decision |
+| Release integration | **HOLD.** Draft PR #86 remains published and `main` unchanged. Do not merge until the LGE generic contract is repaired and focused provider evidence is clean; NAVER efficiency instability should then be resolved or explicitly accepted |
 
 The durable Phase 3 debt is:
 
@@ -819,15 +823,15 @@ may split or close only after caller, test, and stop-line characterization.
 
 **REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
 owner seam. Draft PR #86 contains release source/tests `6d6ca01`, evidence docs
-`99c4429`, and cross-platform receipt fix `40ae6a7`. GitHub Actions run
-`32964249893` passed reviewer and full-suite jobs on that exact code head. The
-accumulated stabilization diff and evidence have completed review. `main`
-remains at `f0a5145`.
+`99c4429`, cross-platform receipt fix `40ae6a7`, and exact-head status docs
+`b422a9b`. GitHub Actions run `32964249893` passed reviewer and full-suite jobs
+on the code head. `main` remains at `f0a5145`.
 
-The bounded release-gate stabilization sequence below is complete and remotely
-validated. The active work is an explicit integration decision, including
-whether exact-current-source provider replay is required. This is not Phase 3
-refactoring:
+The exact-current-source provider replay was performed on 2026-08-27 and reopened
+the release gate. The active work is the generic LGE semantic-output/fallback
+contract, followed by NAVER efficiency diagnosis and focused replay. This is not
+Phase 3 refactoring. Items 1-8 preserve the prior closure sequence; item 9 is the
+current authority:
 
 1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
    `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
@@ -894,17 +898,71 @@ refactoring:
    local focused 1 / 1 and structural module 290 / 290 passed, then successor run
    `32964249893` passed reviewer plus Ubuntu/Python 3.13 full unittest
    2,165 / 2,165.
+9. **EXACT-HEAD CANARY REOPENED / INTEGRATION HOLD:** monitored store-fixed
+   replays on `b422a9b` kept Samsung's canonical
+   `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001` and NAVER's coherent
+   `2,546.6억원 / 1,801.1억원 = 41.4%` result. NAVER nevertheless used a
+   reflection/replan path and expanded to 30 calls / 177,670 tokens. LGE numeric
+   extraction named the correct consolidated `2,163,234백만원` in final prose
+   but returned empty structured `raw_value`; the runtime correctly refused to
+   reverse-parse prose, then incorrectly accepted `28,980백만원` from another
+   entity's same-label row. The correct row was already retrieved. Fix this as a
+   generic structured-response/source-scope contract: a nonempty semantic answer
+   with missing value is a contract violation, semantic candidate selection may
+   be retried against explicit candidate ids, and deterministic validation must
+   fail closed rather than substitute an entity-incoherent row. Add a synthetic
+   consolidated-versus-subsidiary same-label regression, rerun focused LGE, then
+   diagnose the NAVER replan boundary and rerun it before integration review.
 
-The release-gate stabilization sequence, diff/evidence review, publication, and
-exact code-head CI are complete. Keep PR #86 in draft until the explicit
-integration decision. The clean provider gate plus post-gate source tests
-authorize that decision, not an automatic merge; whether to buy another focused
-or full provider replay before merge is part of it. If approved,
-use a history-preserving merge commit rather than squash or rebase because
-repository documents cite intermediate commit receipts. Do not tag, rewrite
-history, change branch protection, or resume refactoring as part of that
-decision. The parked docs-and-static-analysis-only Phase 3 audit remains the
-first step only if refactoring is explicitly resumed later.
+Keep PR #86 in draft and do not merge. A second unchanged LGE replay is not the
+next step: the prior same-fingerprint pass already demonstrates provider output
+variance, while another pass would not erase the observed fail. After the generic
+repair and focused LGE/NAVER evidence are clean, decide whether a broader gate is
+worth the additional cost. If integration is later approved, use a history-
+preserving merge commit rather than squash or rebase because repository documents
+cite intermediate commit receipts. Do not tag, rewrite history, change branch
+protection, or resume refactoring as part of that decision. The parked docs-and-
+static-analysis-only Phase 3 audit remains the first step only if refactoring is
+explicitly resumed later.
+
+## Exact-Current-Head Three-Row Canary (2026-08-27)
+
+The three rows selected for the pre-integration check ran sequentially on
+`b422a9b` with the existing policy profile, persisted stores, monitored
+`--eval-only`, and no document embedding or fresh DART ingest.
+
+| Row | Current result | Interpretation |
+| --- | --- | --- |
+| `SAM_T2_078` | Healthy: canonical `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`; key quality and calculation signals `1.000`, integrity `ok` | One-way provenance and semantic row selection remain stable |
+| `NAV_T2_006` | Healthy answer: `2,546.6억원 / 1,801.1억원 = 41.4%`; integrity `ok` | A partial first operand artifact triggered reflection/replan; correctness passed but latency/cost stability regressed |
+| `LGE_T1_051` | **Numeric FAIL:** selected `28,980백만원 - 6,769억원 = -647,920백만원` instead of `2,163,234백만원 - 6,769억원 = 1,486,334백만원` | Correct consolidated row was retrieved, but empty structured `raw_value` caused fallback to another entity table's same-label row |
+
+The LGE extraction prompt fingerprint
+`17c499459ec2a8602f1811df9d9a54b8390fcb1260c4ebda5b23cc9c85aad290`
+matches the previous clean LGE run. In that run the provider supplied
+`raw_value=2,163,234`; in this run it put the same value only in final prose and
+left `raw_value` empty. The runtime correctly preserved one-way provenance by not
+reverse-parsing final prose. The remaining defect is that deterministic fallback
+accepted a source-incoherent row after the semantic contract became incomplete.
+Arithmetic was correct only relative to that wrong operand. Artifact integrity
+was `ok`, demonstrating that ledger shape alone cannot validate entity meaning.
+
+Usage and evidence boundary:
+
+- Samsung: 9 LLM calls, 41,431 tokens, 88.820 seconds, `$0.0508589`;
+- NAVER: 30 calls, 177,670 tokens, 371.691 seconds, `$0.182507`;
+- LGE: 18 calls, 92,031 tokens, 128.770 seconds, `$0.0883425`;
+- aggregate: 57 calls, 311,132 tokens, 589.281 question-seconds,
+  `$0.3217084`, 32 query embeddings, zero document embeddings;
+- top-level result SHA-256: Samsung
+  `03183027568fd244133723e01c35a109c16d97055ec827c46481635c901a81de`,
+  NAVER `4dde511bcd4986c54865dc560c598c7b30569c6d21348446efec3aae14f31121`,
+  LGE `b6c47452018a7d3a7710a59fc39355a35c4ac7433b2e87c93cff3816d8c6ba16`.
+
+This is exact-current provider execution but store-fixed, not fresh-ingest or
+held-out evidence. The raw bundles and heartbeat logs remain ignored. Integration
+is HOLD until the LGE generic contract is repaired and focused evidence is clean;
+NAVER's replan cost is the next secondary diagnostic.
 
 ## Clean Store-Fixed Integration Gate Closure (2026-08-26)
 

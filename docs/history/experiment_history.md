@@ -78,6 +78,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [NAV Dependency Operand-Artifact Successor (2026-08-26)](#nav-dependency-operand-artifact-successor-2026-08-26) | empty provisional operand artifact를 성공한 task input slot으로 integrity 전에 확정하는 focused replay | `41.4%` 유지, integrity `error -> ok`, recovery replan 제거; qualitative diagnosis와 successor full gate는 남음 |
 | [Late Numeric Surface And Clean Integration Gate (2026-08-26)](#late-numeric-surface-and-clean-integration-gate-2026-08-26) | exact-artifact qualitative diagnosis, LGE focused B/C, successor 4-company/5-question gate | generic context/surface contracts restored LGE completeness; final gate is 4/4 company, 5/5 question, full-eval fail 0 |
 | [Post-Gate Historical-Answer Compatibility Replay (2026-08-26)](#post-gate-historical-answer-compatibility-replay-2026-08-26) | final defensive hardening 뒤 stored Samsung answer를 현재 evaluator/replay로 no-call 재평가 | deterministic metrics 1.000, but missing numeric grounding keeps `UNCERTAIN`; provider/current-agent pass가 아님 |
+| [Exact-Current-Head Three-Row Canary (2026-08-27)](#exact-current-head-three-row-canary-2026-08-27) | `b422a9b`의 SAM/NAV/LGE store-fixed provider replay | SAM/NAV correctness는 유지됐지만 LGE incomplete structured output 뒤 wrong-entity fallback으로 numeric FAIL; integration HOLD |
 
 ## 보는 법
 
@@ -88,6 +89,83 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Exact-Current-Head Three-Row Canary (2026-08-27)
+
+### Setup
+
+- source/docs head: `b422a9b`;
+- profile: `benchmarks/profiles/curated_policy_driven_runtime_gate.json`;
+- source stores:
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`;
+- mode: sequential monitored `--eval-only` for `SAM_T2_078`, `NAV_T2_006`,
+  and `LGE_T1_051`;
+- no fresh DART fetch, parse, ingest, or document embedding;
+- local ignored output directories:
+  - `benchmarks/results/focused_current_head_sam_t2_078_2026-08-27/`;
+  - `benchmarks/results/focused_current_head_nav_t2_006_2026-08-27/`;
+  - `benchmarks/results/focused_current_head_lge_t1_051_2026-08-27/`.
+
+### Results
+
+| Row | Answer / trace result | Evaluation | Interpretation |
+| --- | --- | --- | --- |
+| `SAM_T2_078` | `28,352,769백만원`; exact row `연구개발비용 총계 | 제55기 | 28,352,769 | 백만원`, source `ev_001` | faithfulness/completeness/refusal/grounded rendering/calculation `1.000`; integrity `ok` | canonical row/value/unit/source is stable; no final-prose reverse sync or retrieval-score leakage |
+| `NAV_T2_006` | same-row `2,546.6억원 / 1,801.1억원 = 41.4%`; two operands, integrity `ok` | key quality/calculation signals `1.000`; numeric judgement N/A for the mixed row | correct, but first partial operand artifact triggered reflection and semantic replan |
+| `LGE_T1_051` | wrong `28,980백만원 - 6,769억원 = -647,920백만원`; expected operand/result `2,163,234백만원 / 1,486,334백만원` | numeric FAIL, equivalence/grounding `0`, operand correctness `0.5`, unit consistency `0`; integrity `ok` | semantic extraction's missing value let fallback bind a subsidiary row despite correct consolidated retrieval coverage |
+
+`numeric_final_judgement=null` for the healthy Samsung/NAVER mixed rows is N/A,
+not failure. The LGE result is an actual numeric failure.
+
+### LGE Failure Boundary
+
+The LGE numeric extractor received a candidate window containing the correct
+consolidated row and wrote `2,163,234 백만원` in its semantic final prose, but
+returned empty structured `raw_value`. The fingerprint
+`17c499459ec2a8602f1811df9d9a54b8390fcb1260c4ebda5b23cc9c85aad290`
+is identical to the earlier clean run, where the provider did return the raw
+value. The runtime correctly did not parse final prose back into the source slot.
+
+The subsequent deterministic lookup fallback selected
+`ratio_doc_context_026::row:3`, label `영업이익`, value `28,980백만원`, from a
+different entity table. The correct `영업이익(손실) 2,163,234백만원` row remained
+present in retrieved table metadata. Therefore this is not a retrieval miss,
+derived-value rendering bug, or arithmetic bug. It is a robustness gap at the
+semantic structured-output / entity-and-table-scope acceptance boundary.
+
+The next implementation should remain generic: treat nonempty semantic prose
+with missing required structured value as a contract violation; allow a bounded
+semantic retry against explicit candidate identifiers or fail closed; and make
+deterministic validation reject entity-incoherent same-label substitution. A
+synthetic consolidated-versus-subsidiary same-label test should precede another
+provider replay. Repeating unchanged LGE until it passes would not close the
+observed variance.
+
+### Usage, Receipts, And Decision
+
+- Samsung: 9 LLM calls, 41,431 tokens, 6 query embeddings, 88.820 seconds,
+  `$0.0508589`;
+- NAVER: 30 calls, 177,670 tokens, 21 query embeddings, 371.691 seconds,
+  `$0.182507`;
+- LGE: 18 calls, 92,031 tokens, 5 query embeddings, 128.770 seconds,
+  `$0.0883425`;
+- aggregate: 57 calls, 311,132 tokens, 32 query embeddings, zero document
+  embeddings, 589.281 question-seconds, `$0.3217084`;
+- top-level result SHA-256: Samsung
+  `03183027568fd244133723e01c35a109c16d97055ec827c46481635c901a81de`,
+  NAVER `4dde511bcd4986c54865dc560c598c7b30569c6d21348446efec3aae14f31121`,
+  LGE `b6c47452018a7d3a7710a59fc39355a35c4ac7433b2e87c93cff3816d8c6ba16`;
+- company result SHA-256: Samsung
+  `e1866d55ccc8e0eaf1461d69a2d4e5ce9fe325a17db60534d60cd7b55ea3baf7`,
+  NAVER `c0b83cd3558b6b047562ea46042fe2a607dc89f6c5d405a37f7695bd56c7321c`,
+  LGE `bfc05ce8b4bf24aa90ee2f3811669e06442ab48d055ff1cfc197a43161a48461`.
+
+All raw outputs and heartbeats are ignored local artifacts. The previous clean
+five-row gate remains useful historical contrast, but the exact-current canary
+is the current integration authority. PR #86 stays draft, `main` is unchanged,
+and integration is HOLD. After the LGE correctness boundary is repaired and
+focused-clean, diagnose NAVER's replan/cost instability before considering a
+broader gate.
 
 ## Late Numeric Surface And Clean Integration Gate (2026-08-26)
 

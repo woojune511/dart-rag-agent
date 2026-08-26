@@ -3828,13 +3828,66 @@ equivalence `1.000`, retrieval support `1.000`, grounded rendering `1.000`, and
 calculation correctness `1.000`. `numeric_grounding` remained null, so the final
 judgement was `UNCERTAIN` with `source_numeric_grounding_missing`. This is a
 historical-answer replay, not current-agent execution and not a fresh benchmark
-pass. The preceding clean store-fixed gate remains the latest provider evidence
-and predates this defensive hardening.
+pass. At this 2026-08-26 checkpoint, the preceding clean store-fixed gate remained
+the latest provider evidence and predated this defensive hardening.
 
-Release interpretation:
+Release interpretation at that checkpoint, superseded by the 2026-08-27 canary
+below:
 
 - the current source has clean unit/contract evidence;
 - the five-question provider gate is a recorded pre-hardening integration result;
 - exact-current-source provider replay remains an optional explicit pre-merge
   decision, not an implied result;
 - all benchmark outputs remain ignored and must not be staged.
+
+## 2026-08-27 Exact-Current-Head Three-Row Canary
+
+The optional exact-current replay was executed on `b422a9b`. It reused the
+persisted stores and the curated policy profile, ran one monitored `--eval-only`
+question at a time, and performed no fresh fetch, parse, ingest, or document
+embedding.
+
+Output directories:
+
+- `benchmarks/results/focused_current_head_sam_t2_078_2026-08-27/`;
+- `benchmarks/results/focused_current_head_nav_t2_006_2026-08-27/`;
+- `benchmarks/results/focused_current_head_lge_t1_051_2026-08-27/`.
+
+| Row | Result | Gate interpretation |
+| --- | --- | --- |
+| `SAM_T2_078` | canonical `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`; key quality, rendering, and calculation signals `1.000`; integrity `ok` | healthy |
+| `NAV_T2_006` | same-row `2,546.6억원 / 1,801.1억원 = 41.4%`; two operands; integrity `ok`; key quality/calculation signals `1.000` | correctness healthy, efficiency unstable because reflection/replan expanded to 30 calls |
+| `LGE_T1_051` | wrong `28,980백만원 - 6,769억원 = -647,920백만원`; numeric FAIL, operand correctness `0.5`, unit consistency `0`, integrity still `ok` | correctness blocker |
+
+LGE's correct consolidated `2,163,234백만원` row was already in retrieved table
+metadata. The semantic extractor also wrote that value in final prose, but its
+required structured `raw_value` was empty. One-way provenance correctly prevented
+reverse parsing of the prose. The generic fallback then selected a different
+entity table's same-label `영업이익 28,980백만원` row. This isolates the failure to
+incomplete semantic structured output plus insufficient entity/table-scope
+validation in fallback acceptance, not retrieval, difference rendering, or
+arithmetic execution.
+
+The extraction prompt fingerprint
+`17c499459ec2a8602f1811df9d9a54b8390fcb1260c4ebda5b23cc9c85aad290`
+matches the earlier clean run, where the provider supplied the raw value. This
+is evidence of run-to-run structured-output variance and a runtime robustness
+gap. An unchanged repeat that happens to pass would not close it.
+
+Aggregate usage was 57 LLM calls, 311,132 tokens, 589.281 question-seconds,
+32 query embeddings, zero document embeddings, and estimated runtime LLM cost
+`$0.3217084`. Per-row top-level result SHA-256 values are Samsung
+`03183027568fd244133723e01c35a109c16d97055ec827c46481635c901a81de`,
+NAVER `4dde511bcd4986c54865dc560c598c7b30569c6d21348446efec3aae14f31121`,
+and LGE `b6c47452018a7d3a7710a59fc39355a35c4ac7433b2e87c93cff3816d8c6ba16`.
+
+Decision:
+
+- exact-current integration status is HOLD;
+- keep PR #86 draft and do not merge;
+- first add a generic incomplete-structured-output / entity-scope repair and a
+  synthetic consolidated-versus-subsidiary same-label regression;
+- rerun focused LGE after source validation, then diagnose and rerun NAVER's
+  replan/cost path;
+- consider a broader store-fixed gate only after those focused checks are clean;
+- raw outputs, stores, and heartbeat logs remain ignored and must not be staged.
