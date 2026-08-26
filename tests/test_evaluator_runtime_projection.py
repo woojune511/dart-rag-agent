@@ -17,6 +17,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.ops.evaluator import (
     _build_operand_grounding_corpus,
     _build_runtime_evidence_contexts,
+    _prioritize_runtime_evidence_contexts,
     _build_example_report_scope,
     _collect_aggregate_subtask_provenance,
     _compute_runtime_evidence_retrieval_hit_at_k,
@@ -25,6 +26,7 @@ from src.ops.evaluator import (
     _compute_entity_coverage,
     _compute_ndcg_at_k,
     _contains_section,
+    _compute_calculation_correctness,
     _compute_grounded_rendering_correctness,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
@@ -36,6 +38,7 @@ from src.ops.evaluator import (
     EvalExample,
     RAGEvaluator,
     _format_runtime_evidence_for_numeric_judge,
+    _looks_like_missing_answer,
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
     _supplement_resolved_operands_from_runtime_evidence,
@@ -66,20 +69,31 @@ class _FailingAgent:
         raise RuntimeError("model unavailable")
 
 
-class _RecordingJudgeLLM:
-    def __init__(self) -> None:
-        self.prompt = ""
-
-    def invoke(self, prompt: str):
-        self.prompt = prompt
-
-        class _Response:
-            content = '{"score": 1.0, "reason": "ok"}'
-
-        return _Response()
-
-
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_faithfulness_context_prioritizes_final_runtime_evidence(self) -> None:
+        broad_contexts = [
+            "retrieved chunk one",
+            "retrieved chunk two",
+        ]
+        runtime_evidence = [
+            {
+                "claim": "The selected result increased by 11.5%.",
+                "quote_span": "increased by 11.5%",
+                "source_anchor": "ExampleCo | 2023 | Management Discussion",
+            }
+        ]
+
+        contexts = _prioritize_runtime_evidence_contexts(broad_contexts, runtime_evidence)
+
+        self.assertIn("selected result increased by 11.5%", contexts[0])
+        self.assertEqual(contexts[1:], broad_contexts)
+
+    def test_missing_answer_detection_uses_refusal_phrases_not_bare_substrings(self) -> None:
+        self.assertFalse(_looks_like_missing_answer("차별화된 기술 개발을 통해 끊임없는 혁신을 추구합니다."))
+        self.assertTrue(_looks_like_missing_answer("관련 정보가 없습니다."))
+        self.assertTrue(_looks_like_missing_answer("현재 근거만으로는 확인하기 어렵습니다."))
+        self.assertTrue(_looks_like_missing_answer("질문에 답할 근거를 찾지 못했습니다."))
+
     def test_operand_row_material_numeric_payload_preserves_value_policy(self) -> None:
         has_material = financial_runtime_trace.operand_row_has_material_numeric_payload
 
@@ -628,41 +642,73 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
-    def test_grounded_rendering_judge_compacts_nested_calculation_result(self) -> None:
-        llm = _RecordingJudgeLLM()
-        example = EvalExample(
-            id="Q1",
-            question="Calculate growth.",
-            ground_truth="70.28%",
-            company="ExampleCo",
-            year=2023,
-            section="Financial review",
-        )
+    def test_grounded_rendering_ignores_narrative_and_validates_numeric_surfaces(self) -> None:
         calculation_result = {
             "status": "ok",
-            "rendered_value": "70.28%",
-            "formatted_result": "2023 value grew 70.28%.",
+            "rendered_value": "41.4%",
+            "formatted_result": "Narrative text that is outside numeric rendering scope.",
             "answer_slots": {
-                "primary_value": {"rendered_value": "70.28%"},
-                "subtask_results": [{"payload": "x" * 80_000}],
+                "primary_value": {"rendered_value": "41.4%"},
             },
-            "subtask_results": [{"payload": "y" * 120_000}],
         }
 
         score, reason = _compute_grounded_rendering_correctness(
-            llm,
-            example,
-            answer="2023 value grew 70.28%.",
-            calculation_operands=[{"label": "growth", "raw_value": "70.28", "raw_unit": "%"}],
+            answer=(
+                "Current revenue was 2,546,649백만원 versus 1,801,079백만원, "
+                "so it grew 41.4%. The acquisition integration improved the business."
+            ),
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
             calculation_result=calculation_result,
         )
 
         self.assertEqual(score, 1.0)
-        self.assertEqual(reason, "ok")
-        self.assertLess(len(llm.prompt), 10_000)
-        self.assertNotIn("x" * 100, llm.prompt)
-        self.assertNotIn("y" * 100, llm.prompt)
-        self.assertIn("70.28%", llm.prompt)
+        self.assertIn("deterministic", reason)
+
+    def test_grounded_rendering_rejects_unsupported_numeric_surface(self) -> None:
+        score, reason = _compute_grounded_rendering_correctness(
+            answer="Revenue grew 41.4%, while an unsupported claim says 99.9%.",
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
+            calculation_result={"status": "ok", "rendered_value": "41.4%"},
+        )
+
+        self.assertEqual(score, 0.0)
+        self.assertIn("99.9%", reason)
+
+    def test_grounded_rendering_accepts_additional_evidence_backed_numeric_narrative(self) -> None:
+        score, reason = _compute_grounded_rendering_correctness(
+            answer="Revenue grew 41.4%; a separate integration cost changed 24.3%.",
+            calculation_operands=[
+                {"label": "current revenue", "raw_value": "2,546,649", "raw_unit": "백만원"},
+                {"label": "prior revenue", "raw_value": "1,801,079", "raw_unit": "백만원"},
+            ],
+            calculation_result={"status": "ok", "rendered_value": "41.4%"},
+            runtime_evidence=[{"quote_span": "The separate integration cost changed 24.3%."}],
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertIn("evidence", reason)
+
+    def test_calculation_correctness_uses_numeric_checks_only(self) -> None:
+        self.assertEqual(
+            _compute_calculation_correctness(
+                numeric_result_correctness=1.0,
+                grounded_rendering_correctness=1.0,
+            ),
+            1.0,
+        )
+        self.assertEqual(
+            _compute_calculation_correctness(
+                numeric_result_correctness=None,
+                grounded_rendering_correctness=1.0,
+            ),
+            1.0,
+        )
 
     def test_should_override_numeric_grounding_for_direct_composed_ratio(self) -> None:
         numeric_eval = {
@@ -698,7 +744,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             )
         )
 
-    def test_should_override_numeric_grounding_when_llm_rendering_misses_grounded_operands(self) -> None:
+    def test_should_not_override_numeric_grounding_when_deterministic_rendering_fails(self) -> None:
         calculation_operands = [
             {
                 "operand_id": "op_current_assets",
@@ -732,7 +778,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             },
         }
 
-        self.assertTrue(
+        self.assertFalse(
             _should_override_numeric_grounding(
                 numeric_eval=numeric_eval,
                 calculation_operands=calculation_operands,

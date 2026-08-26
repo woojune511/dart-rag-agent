@@ -30,7 +30,7 @@ __all__ = [
     "calculation_result_artifact_update",
     "evidence_items_with_runtime",
     "enrich_reconciliation_artifact_refs",
-    "synchronize_calculation_result_artifact",
+    "synchronize_calculation_result_artifact", "synchronize_operand_set_artifact",
     "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
@@ -706,6 +706,96 @@ def synchronize_calculation_result_artifact(
             ),
         }
     )
+    updated_artifacts[target_index] = target_artifact
+    return {
+        "artifacts": updated_artifacts,
+        "artifact_id": target_artifact_id,
+        "synchronized": True,
+    }
+
+
+def synchronize_operand_set_artifact(
+    *,
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    task_id: str,
+    calculation_operands: Sequence[Mapping[str, Any]],
+    evidence_refs: Sequence[str],
+    status: str = "sufficient",
+    summary: str = "",
+) -> Dict[str, Any]:
+    """Finalize the latest attached operand artifact without changing ledger order."""
+
+    task_id = str(task_id or "").strip()
+    operands = [dict(item) for item in (calculation_operands or []) if isinstance(item, Mapping)]
+    if not task_id or not operands:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+    task_record = next(
+        (
+            dict(task)
+            for task in reversed(list(tasks or []))
+            if str((task or {}).get("task_id") or "").strip() == task_id
+        ),
+        {},
+    )
+    attached_artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+    operand_kind = str(ArtifactKind.OPERAND_SET.value)
+    target_index = -1
+    target_artifact_id = ""
+    for artifact_id in reversed(attached_artifact_ids):
+        for index in range(len(artifacts or []) - 1, -1, -1):
+            artifact = (artifacts or [])[index]
+            if str((artifact or {}).get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str((artifact or {}).get("kind") or "").strip() != operand_kind:
+                continue
+            target_index = index
+            target_artifact_id = artifact_id
+            break
+        if target_index >= 0:
+            break
+    if target_index < 0:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    target_artifact = dict(updated_artifacts[target_index])
+    target_payload = dict(target_artifact.get("payload") or {})
+    target_artifact.update(
+        {
+            "status": str(status or target_artifact.get("status") or "sufficient"),
+            "summary": str(summary or f"{len(operands)} finalized operand(s)"),
+            "payload": {
+                **target_payload,
+                "calculation_operands": operands,
+                "coverage": str(status or target_payload.get("coverage") or "sufficient"),
+            },
+            "evidence_refs": list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in (evidence_refs or [])
+                    if str(value).strip()
+                )
+            ),
+        }
+    )
+    if target_artifact == updated_artifacts[target_index]:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": target_artifact_id,
+            "synchronized": False,
+        }
     updated_artifacts[target_index] = target_artifact
     return {
         "artifacts": updated_artifacts,

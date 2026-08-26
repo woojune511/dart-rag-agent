@@ -479,15 +479,15 @@ def _nested_difference_calculation_result(
     answer_slots: Dict[str, Any],
     calculation_result: Dict[str, Any],
 ) -> Dict[str, Any]:
-    subtask_rows = list(answer_slots.get("subtask_results") or calculation_result.get("subtask_results") or [])
+    subtask_rows = list(calculation_result.get("subtask_results") or []) + list(
+        answer_slots.get("subtask_results") or []
+    )
     for row in subtask_rows:
         row_payload = dict(row or {})
         row_result = dict(row_payload.get("calculation_result") or {})
         row_slots = dict(row_result.get("answer_slots") or row_payload.get("answer_slots") or {})
-        row_family = _normalise_spaces(
-            str(row_slots.get("operation_family") or row_payload.get("operation_family") or "")
-        ).lower()
-        if row_family != "difference":
+        row_family = _normalise_spaces(str(row_slots.get("operation_family") or row_result.get("operation_family") or row_payload.get("operation_family") or "")).lower()
+        if row_family != "difference" or not row_slots:
             continue
         candidate = dict(row_result)
         candidate["answer_slots"] = row_slots
@@ -534,6 +534,48 @@ def _period_text(period: str) -> str:
         if period_value and period_suffix and not period_value.endswith(period_suffix)
         else period_value
     )
+
+
+def difference_slots_are_period_delta(
+    answer_slots: Dict[str, Any],
+) -> bool:
+    """Return whether a difference result represents a change across periods."""
+
+    semantics = _normalise_spaces(str(answer_slots.get("result_semantics") or "")).lower()
+    if semantics:
+        return semantics == "period_delta"
+
+    components_by_role = dict(answer_slots.get("components_by_role") or {})
+    component_roles = {
+        _normalise_spaces(str(role or "")).lower()
+        for role in components_by_role
+        if _normalise_spaces(str(role or ""))
+    }
+    for rows in components_by_role.values():
+        component_roles.update(
+            _normalise_spaces(str((row or {}).get("role") or "")).lower()
+            for row in list(rows or [])
+            if isinstance(row, dict) and _normalise_spaces(str(row.get("role") or ""))
+        )
+    if {"current_period", "prior_period"}.issubset(component_roles):
+        return True
+    if {"minuend", "subtrahend"} & component_roles:
+        return False
+
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    slot_roles = {
+        _normalise_spaces(str(slot.get("role") or "")).lower()
+        for slot in (current_slot, prior_slot)
+        if _normalise_spaces(str(slot.get("role") or ""))
+    }
+    if {"current_period", "prior_period"} & slot_roles:
+        return True
+    current_period = _normalise_spaces(str(current_slot.get("period") or "")).lower()
+    prior_period = _normalise_spaces(str(prior_slot.get("period") or "")).lower()
+    if current_period and prior_period:
+        return current_period != prior_period
+    return bool(current_slot or prior_slot)
 
 
 def _render_difference_answer(
@@ -682,7 +724,9 @@ def compose_slot_based_difference_answer(
     current_slot = dict(answer_slots.get("current_value") or {})
     prior_slot = dict(answer_slots.get("prior_value") or {})
     delta_slot = dict(answer_slots.get("delta_value") or {})
-    if all(answer_slot_has_material(slot) for slot in (current_slot, prior_slot, delta_slot)):
+    if difference_slots_are_period_delta(answer_slots) and all(
+        answer_slot_has_material(slot) for slot in (current_slot, prior_slot, delta_slot)
+    ):
         period_answer = _render_period_difference_answer(
             prefix=prefix,
             current_label=_normalise_spaces(str(current_slot.get("label") or minuend_label)),
@@ -705,4 +749,42 @@ def compose_slot_based_difference_answer(
         subtrahend_value=subtrahend_value,
         result_label=result_label,
         result_value=result_value,
+    )
+
+
+def compose_explicit_slot_based_difference_answer(
+    *,
+    query: str,
+    calculation_result: Dict[str, Any],
+    answer_slot_has_material: Callable[[Dict[str, Any]], bool],
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> str:
+    """Render only a difference that retains explicit operand-role slots."""
+
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components = dict(answer_slots.get("components_by_role") or {})
+    has_explicit_components = bool(
+        any(answer_slot_has_material(dict(slot or {})) for slot in components.get("minuend") or [])
+        and any(answer_slot_has_material(dict(slot or {})) for slot in components.get("subtrahend") or [])
+        and answer_slot_has_material(dict(answer_slots.get("primary_value") or {}))
+    )
+    if not has_explicit_components:
+        return ""
+    answer = compose_slot_based_difference_answer(
+        query=query,
+        report_scope={},
+        calculation_result=calculation_result,
+        answer_slot_has_material=answer_slot_has_material,
+    )
+    if not answer:
+        return ""
+    from src.agent.financial_text_surface import preserve_source_visible_query_terms
+
+    return preserve_source_visible_query_terms(
+        answer,
+        query=query,
+        ordered_results=ordered_results,
+        evidence_items=evidence_items,
+        docs=[],
     )

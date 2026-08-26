@@ -565,6 +565,17 @@ def coerce_operand_unit_from_evidence(
     }
     if bare_numeric and normalized_current in ambiguous_krw_units and normalized_hint in krw_display_units:
         return unit_hint
+    if (
+        bare_numeric
+        and normalized_current in krw_display_units
+        and normalized_hint in krw_display_units
+        and not _evidence_core_surface_contains_value_unit(
+            raw_value=raw_value,
+            raw_unit=current_unit,
+            evidence_item=evidence_item,
+        )
+    ):
+        return unit_hint
     return current_unit
 
 
@@ -4416,6 +4427,7 @@ def candidate_satisfies_direct_acceptance_contract(
     operation_family: str = "",
     selected_cell: Optional[Dict[str, Any]] = None,
     report_scope: Optional[Dict[str, Any]] = None,
+    semantic_selection_authorized: bool = False,
 ) -> bool:
     if not candidate_is_direct_grounding_candidate(
         candidate,
@@ -4502,7 +4514,8 @@ def candidate_satisfies_direct_acceptance_contract(
         ):
             return False
         direct_match_strength = candidate_direct_match_strength(candidate, operand)
-        if direct_match_strength < 2.0:
+        minimum_match_strength = 1.0 if semantic_selection_authorized else 2.0
+        if direct_match_strength < minimum_match_strength:
             return False
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()

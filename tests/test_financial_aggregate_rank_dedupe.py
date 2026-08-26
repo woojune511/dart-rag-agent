@@ -6783,14 +6783,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     "final 2",
                 )
             )
-        lookup_owner.assert_called_once()
-        projection_rows_arg = lookup_owner.call_args.args[0]
-        self.assertIsNot(projection_rows_arg, ordered_results)
-        self.assertEqual(projection_rows_arg[0]["answer"], "synced 2")
-        self.assertEqual(synced_results[0]["answer"], "synced 2")
-        self.assertEqual(synced_projection["calculation_result"]["subtask_results"][0]["answer"], "synced 2")
-        self.assertEqual(len(component_inputs), 1)
-        self.assertIs(component_inputs[0].lookup_slots, lookup_slots)
+        lookup_owner.assert_not_called()
+        self.assertIs(synced_results, ordered_results)
+        self.assertIs(synced_projection, aggregate_projection)
+        self.assertEqual(component_inputs, [])
         self.assertEqual(ordered_results, before_results)
         self.assertEqual(aggregate_projection, before_projection)
         self.assertIs(projection_row["nested"], nested)
@@ -6807,12 +6803,14 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", return_value="2"),
             patch.object(financial_aggregate_projection, "synchronize_aggregate_projection_row_surface", side_effect=sync_surface),
             patch.object(financial_aggregate_projection, "synchronize_aggregate_arithmetic_components", component_owner),
-            self.assertRaisesRegex(RuntimeError, "lookup failed"),
         ):
-            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 ordered_results, aggregate_projection, "final 2"
             )
+        failing_lookup_owner.assert_not_called()
         component_owner.assert_not_called()
+        self.assertIs(unchanged_results, ordered_results)
+        self.assertIs(unchanged_projection, aggregate_projection)
 
         context_rows = [
             {
@@ -13347,7 +13345,28 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             conflict=True,
             numeric_candidates=["20"],
         )
-        coverage.assert_called_once_with("final 20", "lookup 10")
+        coverage.assert_not_called()
+        selector.assert_not_called()
+        conflict.assert_not_called()
+        numeric.assert_not_called()
+        render.assert_not_called()
+
+        derived_difference = {
+            "task_id": "derived-difference",
+            "operation_family": "difference",
+            "answer": "derived 10",
+            "calculation_result": {
+                "answer_slots": {"result_semantics": "derived_value"},
+            },
+        }
+        coverage, selector, conflict, numeric, render = run_case(
+            derived_difference,
+            coverage=[False],
+            selected="component 20 and result 30",
+            conflict=True,
+            numeric_candidates=["20", "30"],
+        )
+        coverage.assert_not_called()
         selector.assert_not_called()
         conflict.assert_not_called()
         numeric.assert_not_called()
@@ -13396,9 +13415,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             conflict=True,
             numeric_candidates=["20", "30"],
         )
-        selector.assert_called_once()
-        conflict.assert_called_once()
-        numeric.assert_called_once_with("lookup 20 and 30")
+        coverage.assert_not_called()
+        selector.assert_not_called()
+        conflict.assert_not_called()
+        numeric.assert_not_called()
         render.assert_not_called()
 
     def test_current_source_arithmetic_surface_sync_pins_row_slot_component_adoption(self) -> None:
@@ -13483,29 +13503,28 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "final lookup 20 and ratio 20%",
             )
 
-        self.assertEqual(len(row_payloads), 2)
-        self.assertIsNot(row_payloads[0].projection_row, lookup_projection_row)
-        self.assertEqual(row_payloads[0].projection_row, lookup_projection_row)
+        self.assertEqual(len(row_payloads), 1)
+        self.assertIsNot(row_payloads[0].projection_row, ratio_projection_row)
+        self.assertEqual(row_payloads[0].projection_row, ratio_projection_row)
         self.assertIs(row_payloads[0].projection_row["nested"], shared)
-        self.assertEqual((row_payloads[0].answer, row_payloads[0].rendered_value), ("lookup 20", "20"))
-        self.assertEqual((row_payloads[1].answer, row_payloads[1].rendered_value), ("ratio 20%", "20%"))
+        self.assertEqual((row_payloads[0].answer, row_payloads[0].rendered_value), ("ratio 20%", "20%"))
         lookup_owner.assert_called_once()
         lookup_rows = lookup_owner.call_args.args[0]
         self.assertIsNot(lookup_rows, aggregate_projection["calculation_result"]["subtask_results"])
-        self.assertEqual([row["answer"] for row in lookup_rows], ["lookup 20", "ratio 20%"])
+        self.assertEqual([row["answer"] for row in lookup_rows], ["lookup 10", "ratio 20%"])
         self.assertEqual(len(component_payloads), 2)
         self.assertIs(component_payloads[0].lookup_slots, lookup_slots)
         self.assertIs(component_payloads[1].lookup_slots, lookup_slots)
-        self.assertEqual(synced_results[0]["answer"], "lookup 20")
+        self.assertEqual(synced_results[0]["answer"], "old lookup")
         self.assertEqual(synced_results[1]["answer"], "ratio 20%")
         self.assertTrue(synced_results[1]["component_synced"])
         self.assertEqual(synced_results[2], untouched)
         self.assertIsNot(synced_results[2], untouched)
         projected_rows = synced_projection["calculation_result"]["subtask_results"]
-        self.assertEqual([row["answer"] for row in projected_rows], ["lookup 20", "ratio 20%"])
+        self.assertEqual([row["answer"] for row in projected_rows], ["lookup 10", "ratio 20%"])
         self.assertTrue(projected_rows[1]["component_synced"])
         slot_rows = synced_projection["calculation_result"]["answer_slots"]["subtask_results"]
-        self.assertEqual(slot_rows[0]["answer"], "lookup 20")
+        self.assertEqual(slot_rows[0]["answer"], "slot lookup")
         self.assertEqual(slot_rows[1]["answer"], "ratio 20%")
         self.assertTrue(slot_rows[1]["component_synced"])
         self.assertEqual(slot_rows[2], slot_other)
@@ -13626,7 +13645,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         }
         targets = {
             "promotion": ("promote_stronger_nested_aggregate_results", 63),
-            "sync": ("sync_aggregate_arithmetic_subtask_surfaces", 123),
+            "sync": ("sync_aggregate_arithmetic_subtask_surfaces", 124),
         }
         definitions = {}
         calls = []
@@ -13685,11 +13704,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             {key: node.end_lineno - node.lineno + 1 for key, node in definitions.items()},
             {
                 ("owner", targets["promotion"][0]): 63,
-                ("owner", targets["sync"][0]): 123,
+                ("owner", targets["sync"][0]): 124,
             },
         )
         sync_definition = definitions[("owner", targets["sync"][0])]
-        self.assertEqual(sync_definition.end_lineno - sync_definition.lineno, 122)
+        self.assertEqual(sync_definition.end_lineno - sync_definition.lineno, 123)
         owner_functions = [
             node.name
             for node in trees["owner"].body

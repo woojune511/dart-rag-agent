@@ -840,13 +840,18 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
     "ambiguous_krw_units": ("", "원", "KRW"),
     "note_statement_type": "notes",
     "candidate_rerank_prompt_template": (
-        "당신은 재무 계산 후보 재정렬기입니다.\n"
-        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n\n"
+        "당신은 재무 계산 후보의 의미를 판별하는 선택기입니다.\n"
+        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n"
+        "질문의 총액/부분값/조정값 같은 의미와 각 row label의 의미를 우선 비교하세요.\n"
+        "후보에 적힌 숫자와 단위는 비교 자료일 뿐이며 수정하거나 새로 만들지 마세요.\n"
+        "질문이 후보 하나를 명확히 지목하면 selection_status=selected와 selected_candidate_id를 기록하고, "
+        "문서 표현만으로 구분할 수 없으면 selection_status=ambiguous와 빈 selected_candidate_id를 기록하세요.\n\n"
         "우선순위:\n"
-        "1. 직접 숫자 값이 있는 표 row\n"
-        "2. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
-        "3. narrative paragraph보다 table row / structured row\n"
-        "4. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
+        "1. 질문이 요구한 값의 의미와 row label의 의미가 정확히 일치하는 후보\n"
+        "2. 직접 숫자 값이 있는 표 row\n"
+        "3. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
+        "4. narrative paragraph보다 table row / structured row\n"
+        "5. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
         "질문:\n{query}\n\n"
         "target operand:\n{operand_label}\n\n"
         "candidate options:\n{options}\n"
@@ -899,6 +904,24 @@ RECONCILIATION_POLICY: Dict[str, Any] = {
         "현재 계산 결과:\n{calc_result_text}\n\n"
         "현재 seed sections:\n{seed_sections}\n\n"
         "참고용 heuristic retry plan:\n{heuristic_plan}\n"
+    ),
+}
+
+
+INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
+    "line_labels": (
+        "회사",
+        "연도",
+        "보고서",
+        "섹션",
+        "분류",
+        "키워드",
+        "선택사유",
+        "statement_type",
+        "consolidation_scope",
+        "period_focus",
+        "table_source_id",
+        "unit_hint",
     ),
 }
 

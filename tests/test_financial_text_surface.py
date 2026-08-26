@@ -4375,6 +4375,20 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         expected_preserve_calls = [
             (
                 "graph",
+                ("_refresh_numeric_answer_preserving_narrative_context",),
+                "",
+                ("_normalise_spaces(str(numeric_answer or ''))",),
+                (
+                    ("query", "query"),
+                    ("ordered_results", "ordered_results"),
+                    ("evidence_items", "evidence_items"),
+                    ("docs", "[]"),
+                ),
+                0,
+            ),
+            *[
+            (
+                "graph",
                 ("_aggregate_calculation_subtasks",),
                 "",
                 ("final_answer",),
@@ -4389,7 +4403,8 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 ),
                 0,
             ),
-        ] * 2
+            ] * 2,
+        ]
         self.assertEqual(calls["preserve_public"], expected_preserve_calls)
         self.assertEqual(
             {key: len(calls[key]) for key in ("groups", "markers")},
@@ -4408,14 +4423,14 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         }
         self.assertEqual(
             current_distribution,
-            {"groups": (3, 2), "markers": (5, 0), "preserve": (2, 0)},
+            {"groups": (3, 2), "markers": (5, 0), "preserve": (3, 0)},
         )
         self.assertEqual(
             (
                 sum(value[0] for value in current_distribution.values()),
                 sum(value[1] for value in current_distribution.values()),
             ),
-            (10, 2),
+            (11, 2),
         )
         self.assertEqual(public_node.end_lineno - public_node.lineno + 1, 126)
 

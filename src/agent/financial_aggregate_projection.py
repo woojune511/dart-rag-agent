@@ -3493,7 +3493,6 @@ def sync_aggregate_arithmetic_subtask_surfaces(
     if not projection_rows:
         return ordered_results, aggregate_projection
     arithmetic_families = {"ratio", "growth_rate", "difference", "sum"}
-    syncable_families = {*arithmetic_families, "lookup"}
     plan = dict(aggregate_projection.get("calculation_plan") or {})
     planned_arithmetic_task_ids = {
         _normalise_spaces(str(item.get("task_id") or ""))
@@ -3512,8 +3511,14 @@ def sync_aggregate_arithmetic_subtask_surfaces(
     for index, row in enumerate(projection_rows):
         task_id = _normalise_spaces(str(row.get("task_id") or ""))
         operation_family = aggregate_result_operation_family(row)
-        if operation_family not in syncable_families:
+        if operation_family not in arithmetic_families:
             continue
+        if operation_family == "difference":
+            answer_slots = dict(
+                (dict(row.get("calculation_result") or {})).get("answer_slots") or {}
+            )
+            if _normalise_spaces(str(answer_slots.get("result_semantics") or "")).lower() == "derived_value":
+                continue
         if (
             operation_family in arithmetic_families
             and planned_arithmetic_task_ids
@@ -3530,16 +3535,12 @@ def sync_aggregate_arithmetic_subtask_surfaces(
         )
         if not row_surface:
             continue
-        if operation_family == "lookup" and answer_covers_numeric_answer(final_answer, row_surface):
-            continue
         synced_answer = select_aggregate_projection_answer_sentence(final_answer, row)
         if not synced_answer:
             continue
         if not subtask_numeric_answers_conflict({"answer": synced_answer}, row):
             continue
         if operation_family in {"ratio", "growth_rate"} and answer_covers_numeric_answer(final_answer, row_surface):
-            continue
-        if operation_family == "lookup" and len(extract_numeric_surface_candidates(synced_answer)) != 1:
             continue
         candidate_indexes.append(index)
     if not candidate_indexes:

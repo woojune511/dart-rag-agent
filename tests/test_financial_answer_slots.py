@@ -1407,11 +1407,78 @@ class FinancialAnswerSlotTests(unittest.TestCase):
         )
 
         self.assertEqual(slots["operation_family"], "difference")
+        self.assertEqual(slots["result_semantics"], "period_delta")
         self.assertEqual(slots["primary_value"]["role"], "delta_value")
         self.assertEqual(slots["current_value"]["rendered_value"], "3%")
         self.assertEqual(slots["prior_value"]["rendered_value"], "1%")
         self.assertEqual(slots["delta_value"]["rendered_value"], "2.00%p")
         self.assertEqual(slots["direction"], "increase")
+
+    def test_build_answer_slots_keeps_component_subtraction_as_derived_value(self) -> None:
+        slots = build_answer_slots(
+            active_subtask={
+                "operation_family": "difference",
+                "metric_label": "adjusted result",
+                "required_operands": [
+                    {"role": "minuend", "label": "base amount"},
+                    {"role": "subtrahend", "label": "excluded component"},
+                ],
+            },
+            operation_family="difference",
+            ordered_operands=[
+                {
+                    "evidence_id": "row_base",
+                    "label": "base amount",
+                    "matched_operand_role": "minuend",
+                    "raw_value": "100",
+                    "raw_unit": "백만원",
+                    "normalized_value": 100_000_000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+                {
+                    "evidence_id": "row_component",
+                    "label": "excluded component",
+                    "matched_operand_role": "subtrahend",
+                    "raw_value": "40",
+                    "raw_unit": "백만원",
+                    "normalized_value": 40_000_000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+            ],
+            result_value=60_000_000.0,
+            result_unit="백만원",
+            normalized_unit="KRW",
+            source_normalized_unit="KRW",
+            current_value=100_000_000.0,
+            prior_value=40_000_000.0,
+            delta_value=60_000_000.0,
+            current_period="2023",
+            prior_period="2023",
+            source_row_ids=["row_base", "row_component"],
+        )
+
+        self.assertEqual(slots["result_semantics"], "derived_value")
+        self.assertEqual(slots["primary_value"]["role"], "primary_value")
+        self.assertIsNone(slots["current_value"])
+        self.assertIsNone(slots["prior_value"])
+        self.assertIsNone(slots["delta_value"])
+        self.assertIsNone(slots["direction"])
+        self.assertEqual(
+            financial_answer_projection.material_gap_feedback_for_subtask_result(
+                {
+                    "metric_label": "adjusted result",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "60백만원",
+                        "answer_slots": slots,
+                    },
+                }
+            ),
+            "",
+        )
 
 
 if __name__ == "__main__":

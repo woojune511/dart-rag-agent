@@ -22,6 +22,7 @@ from src.agent.financial_graph_helpers import (
     _query_years_from_state,
 )
 from src.agent.financial_structured_cells import (
+    candidate_selected_cell_for_operand,
     select_aggregate_structured_cell,
     select_structured_cell,
 )
@@ -233,14 +234,20 @@ class FinancialAgentReconciliationMixin:
         query: str,
         operand: Dict[str, Any],
         scored_candidates: List[Dict[str, Any]],
-    ) -> List[str]:
+    ) -> Dict[str, Any]:
         top_candidates = scored_candidates[: min(5, len(scored_candidates))]
         if len(top_candidates) < 2:
-            return [
+            ordered_ids = [
                 str(item.get("candidate", {}).get("candidate_id") or "").strip()
                 for item in top_candidates
                 if str(item.get("candidate", {}).get("candidate_id") or "").strip()
             ]
+            return {
+                "ordered_candidate_ids": ordered_ids,
+                "selected_candidate_id": "",
+                "selection_status": "not_needed",
+                "llm_completed": False,
+            }
 
         option_lines: List[str] = []
         allowed_ids: List[str] = []
@@ -254,6 +261,18 @@ class FinancialAgentReconciliationMixin:
             preview = _normalise_spaces(
                 str(metadata.get("row_text") or metadata.get("table_header_context") or candidate.get("text") or "")
             )[:280]
+            cell_values = []
+            for cell in (metadata.get("structured_cells") or [])[:4]:
+                if not isinstance(cell, dict):
+                    continue
+                headers = " / ".join(
+                    str(value).strip()
+                    for value in (cell.get("column_headers") or [])
+                    if str(value).strip()
+                )
+                value_text = _normalise_spaces(str(cell.get("value_text") or ""))
+                unit_hint = _normalise_spaces(str(cell.get("unit_hint") or metadata.get("unit_hint") or ""))
+                cell_values.append(" | ".join(part for part in (headers, value_text, unit_hint) if part))
             option_lines.append(
                 "\n".join(
                     [
@@ -264,13 +283,21 @@ class FinancialAgentReconciliationMixin:
                         f"statement_type: {metadata.get('statement_type') or ''}",
                         f"consolidation_scope: {metadata.get('consolidation_scope') or ''}",
                         f"row_label: {metadata.get('row_label') or ''}",
+                        f"value_role: {metadata.get('value_role') or ''}",
+                        f"aggregation_stage: {metadata.get('aggregation_stage') or ''}",
+                        f"cells: {'; '.join(cell_values)}",
                         f"preview: {preview}",
                     ]
                 )
             )
 
         if len(allowed_ids) < 2:
-            return allowed_ids
+            return {
+                "ordered_candidate_ids": allowed_ids,
+                "selected_candidate_id": "",
+                "selection_status": "not_needed",
+                "llm_completed": False,
+            }
 
         ReconciliationCandidateRerank = reconciliation_candidate_rerank_model()
         structured_llm = self._llm_for_phase("reconciliation_rerank").with_structured_output(ReconciliationCandidateRerank)
@@ -287,7 +314,12 @@ class FinancialAgentReconciliationMixin:
             )
         except Exception as exc:
             logger.info("[reconcile] llm rerank skipped operand=%s error=%s", operand.get("label"), exc)
-            return allowed_ids
+            return {
+                "ordered_candidate_ids": allowed_ids,
+                "selected_candidate_id": "",
+                "selection_status": "unavailable",
+                "llm_completed": False,
+            }
 
         ordered_ids: List[str] = []
         seen: set[str] = set()
@@ -299,7 +331,19 @@ class FinancialAgentReconciliationMixin:
         for candidate_id in allowed_ids:
             if candidate_id not in seen:
                 ordered_ids.append(candidate_id)
-        return ordered_ids
+        selection_status = str(reranked.selection_status or "ambiguous").strip().lower()
+        selected_candidate_id = str(reranked.selected_candidate_id or "").strip()
+        if selection_status != "selected" or selected_candidate_id not in allowed_ids:
+            selection_status = "ambiguous"
+            selected_candidate_id = ""
+        elif selected_candidate_id:
+            ordered_ids = [selected_candidate_id, *[item for item in ordered_ids if item != selected_candidate_id]]
+        return {
+            "ordered_candidate_ids": ordered_ids,
+            "selected_candidate_id": selected_candidate_id,
+            "selection_status": selection_status,
+            "llm_completed": True,
+        }
 
     def _rerank_reconciliation_matches_with_llm(
         self,
@@ -380,17 +424,78 @@ class FinancialAgentReconciliationMixin:
                 reranked_rows.append(current)
                 continue
 
-            ordered_ids = self._llm_rerank_operand_candidates(
+            decision = self._llm_rerank_operand_candidates(
                 query=query,
                 operand=operand,
                 scored_candidates=scored_candidates,
             )
+            ordered_ids = [
+                str(item).strip()
+                for item in (decision.get("ordered_candidate_ids") or [])
+                if str(item).strip()
+            ]
             if ordered_ids:
                 current["candidate_ids"] = ordered_ids
+            if bool(decision.get("llm_completed")):
                 notes.append(f"llm_rerank:{label}")
+
+            selected_candidate_id = _normalise_spaces(str(decision.get("selected_candidate_id") or ""))
+            selection_status = _normalise_spaces(str(decision.get("selection_status") or ""))
+            selected_candidate = next(
+                (
+                    candidate
+                    for candidate in matches
+                    if _normalise_spaces(str(candidate.get("candidate_id") or "")) == selected_candidate_id
+                ),
+                None,
+            )
+            if selection_status == "selected" and selected_candidate:
+                selected_cell = candidate_selected_cell_for_operand(
+                    selected_candidate,
+                    operand=operand,
+                    query_years=years,
+                    period_focus=operand_period_focus(
+                        operand,
+                        str(constraints.get("period_focus") or "unknown").strip(),
+                    ),
+                )
+                if candidate_satisfies_direct_acceptance_contract(
+                    selected_candidate,
+                    operand=operand,
+                    constraints=constraints,
+                    query_years=years,
+                    operation_family=str(active_subtask.get("operation_family") or "").strip().lower(),
+                    selected_cell=selected_cell,
+                    report_scope=report_scope,
+                    semantic_selection_authorized=True,
+                ):
+                    current["semantic_selected_candidate_id"] = selected_candidate_id
+                    current["semantic_selection_status"] = "selected"
+                    current["matched"] = True
+                    current["reason"] = "matched_semantic_candidate"
+                    notes.append(f"semantic_candidate_selected:{label}")
+                else:
+                    current["semantic_selection_status"] = "rejected_by_execution_contract"
+                    notes.append(f"semantic_candidate_rejected:{label}")
+            elif bool(decision.get("llm_completed")):
+                current["semantic_selection_status"] = "ambiguous"
             reranked_rows.append(current)
 
         updated["matched_operands"] = reranked_rows
+        unresolved_labels = {
+            _normalise_spaces(str(row.get("label") or ""))
+            for row in reranked_rows
+            if not bool(row.get("matched"))
+        }
+        missing_operands = [
+            _normalise_spaces(str(item))
+            for item in (updated.get("missing_operands") or [])
+            if _normalise_spaces(str(item)) in unresolved_labels
+        ]
+        updated["missing_operands"] = missing_operands
+        if not missing_operands and reranked_rows and all(bool(row.get("matched")) for row in reranked_rows):
+            updated["status"] = "ready"
+            updated["retry_queries"] = []
         updated["notes"] = list(dict.fromkeys(notes))
         return updated
 
@@ -512,7 +617,15 @@ class FinancialAgentReconciliationMixin:
                 or operand_map.get((str(operand_match.get("label") or "").strip(), ""))
                 or {}
             )
-            for candidate_id in (operand_match.get("candidate_ids") or [])[:2]:
+            semantic_selected_candidate_id = _normalise_spaces(
+                str(operand_match.get("semantic_selected_candidate_id") or "")
+            )
+            candidate_ids = (
+                [semantic_selected_candidate_id]
+                if semantic_selected_candidate_id
+                else list(operand_match.get("candidate_ids") or [])[:2]
+            )
+            for candidate_id in candidate_ids:
                 append_candidate_evidence(str(candidate_id).strip(), operand)
         if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
             artifact_evidence_refs = list(reconciliation_result.get("evidence_refs") or [])
@@ -614,6 +727,9 @@ class FinancialAgentReconciliationMixin:
             if (label, role) in handled_operands:
                 continue
             match_entry = match_map.get((label, role)) or match_map.get((label, "")) or {}
+            semantic_selected_candidate_id = _normalise_spaces(
+                str(match_entry.get("semantic_selected_candidate_id") or "")
+            )
             candidate_ids = [
                 str(value).strip()
                 for value in (match_entry.get("candidate_ids") or [])
@@ -655,6 +771,14 @@ class FinancialAgentReconciliationMixin:
                     ),
                     reverse=True,
                 )
+                if semantic_selected_candidate_id:
+                    structured_candidates.sort(
+                        key=lambda current: (
+                            _normalise_spaces(str(current.get("candidate_id") or ""))
+                            == semantic_selected_candidate_id
+                        ),
+                        reverse=True,
+                    )
                 for current_candidate in structured_candidates:
                     current_metadata = dict(current_candidate.get("metadata") or {})
                     cells = [dict(cell) for cell in (current_metadata.get("structured_cells") or []) if dict(cell)]
@@ -696,6 +820,11 @@ class FinancialAgentReconciliationMixin:
                         operation_family=operation_family,
                         selected_cell=current_cell,
                         report_scope=report_scope,
+                        semantic_selection_authorized=(
+                            bool(semantic_selected_candidate_id)
+                            and _normalise_spaces(str(current_candidate.get("candidate_id") or ""))
+                            == semantic_selected_candidate_id
+                        ),
                     ) and not (
                         operation_family == "ratio"
                         and candidate_satisfies_ratio_component_acceptance_contract(

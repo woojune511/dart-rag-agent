@@ -545,7 +545,11 @@ def _period_comparison_requested(
         for row in ordered_operands
         if str(row.get("matched_operand_role") or "").strip()
     }
-    return bool(family in {"difference", "growth_rate"} and {"current_period", "prior_period"} & (operand_roles | row_roles))
+    comparison_roles = {"current_period", "prior_period"}
+    return bool(
+        family in {"difference", "growth_rate"}
+        and comparison_roles.issubset(operand_roles | row_roles)
+    )
 
 
 def _difference_direction(
@@ -567,6 +571,7 @@ def _add_period_comparison_answer_slots(
     answer_slots: Dict[str, Any],
     *,
     family: str,
+    period_comparison: bool,
     required_operands: List[Dict[str, Any]],
     ordered_operands: List[Dict[str, Any]],
     metric_label: str,
@@ -583,6 +588,8 @@ def _add_period_comparison_answer_slots(
     prior_row: Optional[Dict[str, Any]],
 ) -> None:
     if family not in {"difference", "growth_rate"}:
+        return
+    if family == "difference" and not period_comparison:
         return
     current_seed = current_row or _seed_for_roles(
         required_operands=required_operands,
@@ -700,6 +707,8 @@ def build_answer_slots(
         required_operands=required_operands,
         ordered_operands=ordered_operands,
     )
+    if family == "difference":
+        answer_slots["result_semantics"] = "period_delta" if period_difference else "derived_value"
 
     primary_role = "delta_value" if family == "difference" and period_difference else "primary_value"
     answer_slots["primary_value"] = build_calculated_value_slot(
@@ -715,6 +724,7 @@ def build_answer_slots(
     _add_period_comparison_answer_slots(
         answer_slots,
         family=family,
+        period_comparison=period_difference,
         required_operands=required_operands,
         ordered_operands=ordered_operands,
         metric_label=metric_label,

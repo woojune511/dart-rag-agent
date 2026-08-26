@@ -77,6 +77,7 @@ from src.agent.financial_task_artifacts import (
     reflection_report_artifact_update,
     semantic_plan_artifact_update,
     synchronize_aggregate_artifact_projection_payload,
+    synchronize_operand_set_artifact,
     supersede_task_with_aggregate_result,
 )
 
@@ -6384,6 +6385,62 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(updated["tasks"][0]["task_id"], "calc")
         self.assertEqual(updated["tasks"][0]["label"], "calc")
 
+    def test_synchronize_operand_set_artifact_finalizes_latest_attached_payload_in_place(self) -> None:
+        tasks = [
+            {
+                "task_id": "task_growth",
+                "artifact_ids": [
+                    "operands:task_growth:001",
+                    "plan:task_growth:002",
+                    "result:task_growth:003",
+                ],
+            }
+        ]
+        artifacts = [
+            {
+                "artifact_id": "operands:task_growth:001",
+                "task_id": "task_growth",
+                "kind": "operand_set",
+                "status": "sufficient",
+                "summary": "0 operand(s)",
+                "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                "evidence_refs": [],
+            },
+            {
+                "artifact_id": "plan:task_growth:002",
+                "task_id": "task_growth",
+                "kind": "calculation_plan",
+            },
+            {
+                "artifact_id": "result:task_growth:003",
+                "task_id": "task_growth",
+                "kind": "calculation_result",
+            },
+        ]
+        operands = [
+            {"operand_id": "current", "source_row_ids": ["task_output:task_current", "ev_current"]},
+            {"operand_id": "prior", "source_row_ids": ["task_output:task_prior", "ev_prior"]},
+        ]
+
+        updated = synchronize_operand_set_artifact(
+            tasks=tasks,
+            artifacts=artifacts,
+            task_id="task_growth",
+            calculation_operands=operands,
+            evidence_refs=["task_output:task_current", "ev_current", "ev_current", "ev_prior"],
+            status="sufficient",
+            summary="2 finalized dependency operand(s)",
+        )
+
+        self.assertTrue(updated["synchronized"])
+        self.assertEqual(updated["artifact_id"], "operands:task_growth:001")
+        self.assertEqual(len(updated["artifacts"]), len(artifacts))
+        finalized = updated["artifacts"][0]
+        self.assertEqual(finalized["payload"]["calculation_operands"], operands)
+        self.assertEqual(finalized["payload"]["coverage"], "sufficient")
+        self.assertEqual(finalized["evidence_refs"], ["task_output:task_current", "ev_current", "ev_prior"])
+        self.assertEqual(updated["artifacts"][-1]["artifact_id"], "result:task_growth:003")
+
     def test_aggregate_synthesis_state_updates_selected_fields(self) -> None:
         state = _AggregateSynthesisState(
             [{"task_id": "old"}],
@@ -11155,6 +11212,61 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIs(gated_scorer.call_args.args[0], gated_slots[1][2])
         self.assertIs(gated_scorer.call_args.args[1], gated_slots[1][1])
 
+    def test_period_comparison_table_label_context_honors_segment_binding(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_segment_table",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "North Region revenue grew during the year.",
+            "quote_span": "North Region revenue grew during the year.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:segment",
+                "table_row_labels_text": "Total revenue\nNorth Region",
+                "table_value_labels_text": (
+                    "Total revenue 100\n"
+                    "Total revenue 80\n"
+                    "Total revenue 25.0%\n"
+                    "North Region 40\n"
+                    "North Region 20\n"
+                    "North Region 100.0%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "North Region revenue",
+                "aliases": ["Total revenue", "Revenue"],
+                "concept": "revenue",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+                "binding_policy": {"segment_label": "North Region"},
+            },
+            {
+                "label": "North Region revenue",
+                "aliases": ["Total revenue", "Revenue"],
+                "concept": "revenue",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+                "binding_policy": {"segment_label": "North Region"},
+            },
+        ]
+
+        rows = agent._build_period_comparison_operands_from_table_label_context(
+            [evidence],
+            required_operands=required_operands,
+            query="calculate North Region revenue growth",
+            operation_family="growth_rate",
+        )
+
+        self.assertEqual([row["raw_value"] for row in rows], ["40", "20"])
+        self.assertEqual(rows[0]["stated_change_raw_value"], "100.0")
+        self.assertTrue(all(row["table_source_id"] == "mda::table:segment" for row in rows))
+
     def test_period_comparison_table_label_context_prefers_source_stated_mda_change(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         broad_evidence = {
@@ -11538,6 +11650,126 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIs(rows[0], original_result_row)
         self.assertEqual(ordered_results, original_results)
         self.assertEqual(rows[0]["calculation_result"]["rendered_value"], "4.51%")
+
+    def test_period_comparison_realign_keeps_complete_slots_when_stated_change_agrees(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_segment_table",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "North Region revenue grew during the year.",
+            "quote_span": "North Region revenue grew during the year.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:segment",
+                "table_row_labels_text": "Total revenue\nNorth Region",
+                "table_value_labels_text": (
+                    "Total revenue 100\n"
+                    "Total revenue 80\n"
+                    "Total revenue 25.0%\n"
+                    "North Region 40\n"
+                    "North Region 20\n"
+                    "North Region 100.0%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "North Region revenue",
+                "aliases": ["Total revenue", "Revenue"],
+                "concept": "revenue",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+                "binding_policy": {"segment_label": "North Region"},
+            },
+            {
+                "label": "North Region revenue",
+                "aliases": ["Total revenue", "Revenue"],
+                "concept": "revenue",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+                "binding_policy": {"segment_label": "North Region"},
+            },
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "North Region revenue growth",
+                "operation_family": "growth_rate",
+                "answer": "100.0%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 100.0,
+                    "rendered_value": "100.0%",
+                    "derived_metrics": {"formula_result_value": 100.0},
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "100.0%"},
+                        "current_value": {
+                            "status": "ok",
+                            "label": "North Region revenue",
+                            "raw_value": "40,000",
+                            "raw_unit": "백만원",
+                            "normalized_value": 40_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "40,000백만원",
+                            "source_row_id": "task_output:current",
+                            "source_row_ids": ["task_output:current", "row_current"],
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "North Region revenue",
+                            "raw_value": "20,000",
+                            "raw_unit": "백만원",
+                            "normalized_value": 20_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "20,000백만원",
+                            "source_row_id": "task_output:prior",
+                            "source_row_ids": ["task_output:prior", "row_prior"],
+                        },
+                    },
+                },
+            }
+        ]
+        state = {
+            "query": "calculate North Region revenue growth",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "North Region revenue growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": required_operands,
+                }
+            ],
+        }
+
+        with patch.object(
+            agent,
+            "_run_calculation_candidate",
+            side_effect=AssertionError("matching complete result must keep semantic-plan operands"),
+        ) as run_candidate:
+            rows = agent._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                state,
+                [evidence],
+            )
+
+        run_candidate.assert_not_called()
+        self.assertIs(rows, ordered_results)
+        self.assertEqual(
+            rows[0]["calculation_result"]["answer_slots"]["current_value"]["raw_value"],
+            "40,000",
+        )
+        self.assertEqual(
+            rows[0]["calculation_result"]["answer_slots"]["prior_value"]["raw_value"],
+            "20,000",
+        )
 
     def test_period_comparison_realigns_complete_growth_slots_from_source_stated_change(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -13123,10 +13355,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         dependency_names = {
             "numeric_candidates_with_spans_from_surface": (0, 1),
             "overlay_calculation_operands_from_slots": (1, 1),
-            "extract_numeric_surface_candidates": (11, 1),
+            "extract_numeric_surface_candidates": (14, 1),
             "narrative_context_terms": (8, 1),
             "STRUCTURED_CELL_AFFINITY_POLICY": (3, 1),
-            "calculation_rendering": (22, 1),
+            "calculation_rendering": (23, 1),
         }
         for name, expected in dependency_names.items():
             calculation_loads = sum(

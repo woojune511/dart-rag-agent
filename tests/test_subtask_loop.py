@@ -6301,7 +6301,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(projected_row["calculation_result"]["result_value"], -332_200_000_000.0)
 
-    def test_aggregate_trace_sync_updates_stale_lookup_but_preserves_rounded_source_lookup(self) -> None:
+    def test_aggregate_trace_sync_never_reverse_syncs_source_lookup_from_final_answer(self) -> None:
         stale_lookup_row = self._lookup_result_row(
             task_id="task_gain",
             metric_label="2023년 translation gain",
@@ -6478,65 +6478,19 @@ class SubtaskLoopTests(unittest.TestCase):
                 projection,
                 final_answer,
             )
-        row_sync_spy.assert_called_once()
-        lookup_sync_input = row_sync_spy.call_args.args[0]
-        self.assertEqual(lookup_sync_input.projection_row["task_id"], "task_gain")
-        self.assertIn("5,739", lookup_sync_input.answer)
-        self.assertIn("5,739", lookup_sync_input.rendered_value)
-
-        gain_row = next(row for row in ordered_results if row["task_id"] == "task_gain")
-        loss_row = next(row for row in ordered_results if row["task_id"] == "task_loss")
-        projected_gain = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_gain"
-        )
-        projected_loss = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_loss"
-        )
-        projected_net = next(
-            row
-            for row in synced_projection["calculation_result"]["subtask_results"]
-            if row["task_id"] == "task_net"
-        )
+        row_sync_spy.assert_not_called()
+        component_sync_spy.assert_not_called()
+        self.assertEqual(component_sync_events, [])
+        self.assertEqual(ordered_results, [stale_lookup_row, precise_lookup_row, net_row])
+        self.assertIs(synced_projection, projection)
         self.assertEqual(
-            [(task_id, retained) for task_id, retained, _, _ in component_sync_events],
-            [("task_gain", True), ("task_loss", True), ("task_net", False)],
+            ordered_results[0]["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "0백만원",
         )
-        self.assertEqual(component_sync_spy.call_count, 3)
-        self.assertTrue(
-            all(event[3] is component_sync_events[0][3] for event in component_sync_events)
-        )
-        self.assertIs(projected_gain, component_sync_events[0][2])
-        self.assertIs(projected_loss, component_sync_events[1][2])
-        self.assertIs(projected_net, component_sync_events[2][2])
-
-        self.assertIn("5,739억원", gain_row["answer"])
-        self.assertEqual(gain_row["calculation_result"]["rendered_value"], "5,739억원")
-        self.assertEqual(gain_row["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
+        self.assertNotIn("projection_surface_synced_from_final_answer", ordered_results[0])
         self.assertEqual(
-            gain_row["calculation_result"]["answer_slots"]["components_by_role"]["primary_value"][0]["rendered_value"],
-            "5,739억원",
-        )
-        self.assertEqual(projected_gain["calculation_result"]["rendered_value"], "5,739억원")
-        self.assertEqual(
-            loss_row["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
-            "906,120백만원",
-        )
-        self.assertEqual(
-            projected_loss["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
-            "906,120백만원",
-        )
-        self.assertEqual(projected_net["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
-        self.assertEqual(
-            projected_net["calculation_result"]["answer_slots"]["components_by_role"]["minuend"][0]["rendered_value"],
-            "5,739억원",
-        )
-        self.assertEqual(
-            projected_net["calculation_result"]["answer_slots"]["delta_value"]["rendered_value"],
-            "-3,322억원",
+            synced_projection["calculation_result"]["subtask_results"][0]["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "0백만원",
         )
 
         with patch.object(
@@ -6553,7 +6507,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 projection,
                 final_answer,
             )
-        empty_lookup_slots.assert_called_once()
+        empty_lookup_slots.assert_not_called()
         owner_zero.assert_not_called()
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
@@ -18941,6 +18895,45 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("PolicyA requires an active response", selected["claim"])
         self.assertEqual(selected["metadata"]["section_path"], "Management discussion")
 
+    def test_retrieved_doc_narrative_evidence_strips_index_prefix_before_quote_window(self) -> None:
+        docs = [
+            (
+                Document(
+                    page_content="\n".join(
+                        [
+                            "[회사: ExampleCo] [연도: 2023] [보고서: annual]",
+                            "[섹션: business overview]",
+                            "[분류: overview / paragraph]",
+                            "[키워드: company overview, products, table context, paragraph]",
+                            "",
+                            "[Harman]Harman develops connected vehicle systems.",
+                        ]
+                    ),
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "Business overview",
+                    },
+                ),
+                0.9,
+            )
+        ]
+
+        updated, selected_ids = self.agent._append_retrieved_narrative_evidence_for_final_answer(
+            [],
+            final_answer="Harman develops connected vehicle systems.",
+            docs=docs,
+        )
+
+        self.assertEqual(len(selected_ids), 1)
+        selected = next(item for item in updated if item["evidence_id"] == selected_ids[0])
+        self.assertEqual(
+            selected["quote_span"],
+            "[Harman]Harman develops connected vehicle systems.",
+        )
+        self.assertNotIn("키워드", selected["quote_span"])
+        self.assertNotIn("paragraph]", selected["quote_span"])
+
     def test_retrieved_doc_narrative_evidence_skips_missing_answer_sentences(self) -> None:
         docs = [
             (
@@ -21666,8 +21659,50 @@ class SubtaskLoopTests(unittest.TestCase):
                     "metadata": {"section_path": "Management discussion"},
                 }
             ],
-            "plan_loop_count": 2,
-            "artifacts": [],
+            "plan_loop_count": 0,
+            "tasks": [
+                {
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "label": "segment revenue growth rate",
+                    "status": "completed",
+                    "metric_family": "concept_growth_rate",
+                    "artifact_ids": [
+                        "operands:task_1:001",
+                        "plan:task_1:002",
+                        "result:task_1:003",
+                    ],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_1:001",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from llm/fallback extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                },
+                {
+                    "artifact_id": "plan:task_1:002",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "status": "ok",
+                    "summary": "growth plan",
+                    "payload": {"calculation_plan": {"status": "ok", "operation": "growth_rate"}},
+                    "evidence_refs": [],
+                },
+                {
+                    "artifact_id": "result:task_1:003",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "summary": "41.4%",
+                    "payload": {"calculation_result": {"status": "ok", "rendered_value": "41.4%"}},
+                    "evidence_refs": [],
+                },
+            ],
             "selected_claim_ids": [],
         }
 
@@ -21684,6 +21719,161 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(growth_slots["current_value"]["raw_value"], "2,546,649")
         self.assertEqual(growth_slots["prior_value"]["raw_value"], "1,801,079")
         self.assertEqual(growth_slots["prior_value"]["period"], "2022")
+        self.assertEqual(updated["planner_mode"], "initial")
+        self.assertEqual(updated["planner_feedback"], "")
+        task_trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
+        self.assertEqual(task_trace["integrity_status"], "ok")
+        finalized_operand_artifact = next(
+            artifact
+            for artifact in updated["artifacts"]
+            if artifact.get("artifact_id") == "operands:task_1:001"
+        )
+        finalized_operands = finalized_operand_artifact["payload"]["calculation_operands"]
+        self.assertEqual(len(finalized_operands), 2)
+        self.assertEqual(
+            {operand["matched_operand_role"] for operand in finalized_operands},
+            {"current_period", "prior_period"},
+        )
+        self.assertTrue(finalized_operand_artifact["evidence_refs"])
+
+    def test_ledger_finalizes_empty_operand_artifact_from_successful_result_input_slots(self) -> None:
+        state = {
+            "tasks": [
+                {
+                    "task_id": "task_growth",
+                    "kind": "calculation",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_growth:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_growth:001",
+                    "task_id": "task_growth",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from llm/fallback extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                }
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_plan": {
+                    "status": "ok",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["current_period", "prior_period"],
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 41.39574110852439,
+                    "rendered_value": "41.4%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "current_value": {
+                            "status": "ok",
+                            "role": "current_period",
+                            "label": "segment revenue",
+                            "period": "2023",
+                            "raw_value": "2,546,649",
+                            "raw_unit": "million",
+                            "normalized_value": 2546649000000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_shared",
+                            "source_row_ids": ["ev_shared"],
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "role": "prior_period",
+                            "label": "segment revenue",
+                            "period": "2022",
+                            "raw_value": "1,801,079",
+                            "raw_unit": "million",
+                            "normalized_value": 1801079000000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_shared",
+                            "source_row_ids": ["ev_shared"],
+                        },
+                    },
+                },
+            }
+        ]
+
+        artifacts = self.agent._synchronize_dependency_operand_artifacts(state, ordered_results)
+
+        self.assertEqual(len(artifacts), 1)
+        finalized = artifacts[0]
+        self.assertEqual(finalized["artifact_id"], "operands:task_growth:001")
+        self.assertEqual(finalized["evidence_refs"], ["ev_shared"])
+        self.assertEqual(
+            [operand["operand_id"] for operand in finalized["payload"]["calculation_operands"]],
+            ["current_period", "prior_period"],
+        )
+        self.assertNotIn("aligned_from_source_task_slots", ordered_results[0])
+
+        unprovenanced_results = deepcopy(ordered_results)
+        for slot_key in ("current_value", "prior_value"):
+            slot = unprovenanced_results[0]["calculation_result"]["answer_slots"][slot_key]
+            slot.pop("source_row_id", None)
+            slot.pop("source_row_ids", None)
+        unchanged = self.agent._synchronize_dependency_operand_artifacts(state, unprovenanced_results)
+        self.assertEqual(unchanged, state["artifacts"])
+
+    def test_ledger_keeps_provisional_artifact_for_partial_direct_operands(self) -> None:
+        state = {
+            "tasks": [
+                {
+                    "task_id": "task_growth",
+                    "kind": "calculation",
+                    "status": "completed",
+                    "artifact_ids": ["operands:task_growth:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "operands:task_growth:001",
+                    "task_id": "task_growth",
+                    "kind": "operand_set",
+                    "status": "sufficient",
+                    "summary": "0 operand(s) from provisional extraction",
+                    "payload": {"calculation_operands": [], "coverage": "sufficient"},
+                    "evidence_refs": [],
+                }
+            ],
+        }
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "calculation_plan": {
+                    "status": "ok",
+                    "operation": "growth_rate",
+                    "ordered_operand_ids": ["current_period", "prior_period"],
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "current_period",
+                        "matched_operand_role": "current_period",
+                        "raw_value": "200",
+                        "normalized_value": 200.0,
+                        "source_row_id": "ev_current",
+                    }
+                ],
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "100%",
+                },
+            }
+        ]
+
+        artifacts = self.agent._synchronize_dependency_operand_artifacts(state, ordered_results)
+
+        self.assertEqual(artifacts, state["artifacts"])
+        self.assertEqual(artifacts[0]["payload"]["calculation_operands"], [])
+        self.assertEqual(artifacts[0]["evidence_refs"], [])
 
     def test_late_nested_lookup_promotion_recalculates_growth_before_final_projection(self) -> None:
         self.agent.llm = None

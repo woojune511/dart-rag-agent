@@ -534,6 +534,41 @@ class OpsRuntimeProjectionModeTests(unittest.TestCase):
         self.assertEqual(result["numeric_final_judgement"], "PASS")
         self.assertNotIn("999", str(captured))
 
+    def test_replay_recomputes_deterministic_rendering_instead_of_source_llm_score(self) -> None:
+        row = {
+            "id": "Q1",
+            "answer": "Current revenue was 100백만원 versus 80백만원, so growth was 25%.",
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {"label": "current revenue", "raw_value": "100", "raw_unit": "백만원"},
+                    {"label": "prior revenue", "raw_value": "80", "raw_unit": "백만원"},
+                ],
+                "calculation_plan": {"status": "ok", "operation": "growth_rate"},
+                "calculation_result": {"status": "ok", "rendered_value": "25%"},
+            },
+            "runtime_evidence": [],
+            "numeric_grounding": 1.0,
+            "grounded_rendering_correctness": 0.0,
+        }
+        example = SimpleNamespace(canonical_answer_key="25%", evidence=[])
+
+        with patch.object(replay_eval, "_compute_numeric_equivalence", return_value=(1.0, {})):
+            with patch.object(replay_eval, "_compute_operand_grounding_score", return_value=(1.0, {})):
+                with patch.object(replay_eval, "_compute_numeric_result_correctness", return_value=None):
+                    with patch.object(replay_eval, "_compute_operand_selection_correctness", return_value=1.0):
+                        with patch.object(replay_eval, "_compute_unit_consistency_pass", return_value=1.0):
+                            with patch.object(
+                                replay_eval,
+                                "_resolve_numeric_judgement",
+                                return_value=("PASS", 1.0),
+                            ):
+                                result = replay_eval._score_row(row, {"Q1": example})
+
+        self.assertEqual(result["source_grounded_rendering_correctness"], 0.0)
+        self.assertEqual(result["grounded_rendering_correctness"], 1.0)
+        self.assertEqual(result["calculation_correctness"], 1.0)
+        self.assertIn("deterministic", result["debug"]["grounded_rendering_reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

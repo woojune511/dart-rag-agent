@@ -28,6 +28,7 @@ from src.agent import (
     financial_task_artifacts,
 )
 from src.agent import financial_graph_evidence, financial_operand_resolution
+from src.agent import financial_text_surface
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
@@ -37,6 +38,7 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
+    _deterministic_reconcile_task,
     extract_generic_operand_labels,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
@@ -1745,6 +1747,150 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(result["selected_claim_ids"], ["ev_001"])
 
+    def test_lookup_numeric_extractor_repairs_llm_unit_from_exact_source_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "unit_hint": "백만원",
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                "retrieved_docs": [(Document(page_content="연구개발비용 표", metadata=metadata), 1.0)],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연구개발비용 총액",
+                    "required_operands": [
+                        {
+                            "label": "연구개발비용",
+                            "concept": "research_and_development_expense",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertIn("130백만원", result["answer"])
+        self.assertNotIn("130억원", result["answer"])
+        self.assertEqual(result["numeric_debug_trace"]["llm_unit"], "억원")
+        self.assertEqual(result["numeric_debug_trace"]["unit"], "백만원")
+        self.assertEqual(result["numeric_debug_trace"]["unit_source"], "source_evidence")
+        self.assertEqual(result["evidence_items"][0]["metadata"]["row_label"], "연구개발비용 총계")
+        self.assertIn("130", result["evidence_items"][0]["raw_row_text"])
+
+    def test_lookup_numeric_extractor_rejects_duplicate_value_across_source_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = _StubLLM(
+            NumericExtraction(
+                period_check="2023",
+                consolidation_check="consolidated",
+                unit="억원",
+                raw_value="130",
+                final_value="2023년 연구개발비용 총액은 130억원입니다.",
+            )
+        )
+        distractor_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "기타비용",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "억원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        target_metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_label": "연구개발비용 총계",
+                        "cells": [
+                            {
+                                "column_headers": ["2023"],
+                                "value_text": "130",
+                                "unit_hint": "백만원",
+                            }
+                        ],
+                    }
+                ],
+                ensure_ascii=False,
+            ),
+        }
+
+        result = agent._extract_numeric_fact(
+            {
+                "query": "2023년 연결 연구개발비용 총액을 알려줘.",
+                "retrieved_docs": [
+                    (Document(page_content="기타비용 | 2023 | 130", metadata=distractor_metadata), 1.0)
+                ],
+                "seed_retrieved_docs": [
+                    (Document(page_content="연구개발비용 총계 | 2023 | 130", metadata=target_metadata), 0.9)
+                ],
+                "calc_subtasks": [{"task_id": "task_1", "operation_family": "lookup"}],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "operation_family": "lookup",
+                    "metric_label": "2023년 연구개발비용 총액",
+                    "required_operands": [
+                        {
+                            "label": "연구개발비용",
+                            "concept": "research_and_development_expense",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                },
+            }
+        )
+
+        self.assertEqual(result["evidence_status"], "missing")
+        self.assertEqual(result["selected_claim_ids"], [])
+        self.assertEqual(
+            result["numeric_debug_trace"]["rejected_reason"],
+            "ambiguous_direct_lookup_source_evidence",
+        )
+
     def test_lookup_numeric_extractor_accepts_direct_table_object_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = _StubLLM(
@@ -3276,6 +3422,151 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("실질 영업이익은 1조 4,863억원", answer)
         self.assertNotIn("676,900백만원", answer)
 
+    def test_difference_answer_composer_prefers_detailed_result_rows_over_flattened_slots(self) -> None:
+        detailed_difference = {
+            "task_id": "task_difference",
+            "metric_label": "조정 결과",
+            "operation_family": "difference",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "60백만원",
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "result_semantics": "derived_value",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "기준 금액",
+                                "period": "2023",
+                                "rendered_value": "100백만원",
+                                "normalized_value": 100_000_000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "제외 항목",
+                                "period": "2023",
+                                "rendered_value": "40백만원",
+                                "normalized_value": 40_000_000.0,
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "조정 결과",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                },
+            },
+        }
+        aggregate_result = {
+            "subtask_results": [detailed_difference],
+            "answer_slots": {
+                "operation_family": "aggregate_subtasks",
+                "subtask_results": [
+                    {
+                        "task_id": "task_difference",
+                        "metric_label": "조정 결과",
+                        "operation_family": "difference",
+                        "answer": "60백만원",
+                        "rendered_value": "60백만원",
+                    }
+                ],
+            },
+        }
+
+        answer = calculation_rendering.compose_slot_based_difference_answer(
+            query="2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            report_scope={"company": "ExampleCo", "year": 2023},
+            calculation_result=aggregate_result,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
+        )
+
+        self.assertIn("기준 금액은 100백만원", answer)
+        self.assertIn("제외 항목 금액은 40백만원", answer)
+        self.assertIn("조정 결과은 60백만원", answer)
+
+    def test_preferred_complete_numeric_answer_keeps_structured_difference_sentence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = [
+            {
+                "task_id": "task_difference",
+                "metric_label": "조정 결과",
+                "operation_family": "difference",
+                "answer": "60백만원",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "60백만원",
+                    "rendered_value": "60백만원",
+                    "answer_slots": {
+                        "operation_family": "difference",
+                        "result_semantics": "derived_value",
+                        "components_by_role": {
+                            "minuend": [
+                                {
+                                    "status": "ok",
+                                    "role": "minuend",
+                                    "label": "기준 금액",
+                                    "period": "2023",
+                                    "rendered_value": "100백만원",
+                                    "normalized_value": 100_000_000.0,
+                                    "source_anchor": "[ExampleCo | 2023 | statement]",
+                                }
+                            ],
+                            "subtrahend": [
+                                {
+                                    "status": "ok",
+                                    "role": "subtrahend",
+                                    "label": "제외 항목",
+                                    "period": "2023",
+                                    "rendered_value": "40백만원",
+                                    "normalized_value": 40_000_000.0,
+                                    "source_anchor": "[ExampleCo | 2023 | note]",
+                                }
+                            ],
+                        },
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "조정 결과",
+                            "period": "2023",
+                            "rendered_value": "60백만원",
+                            "normalized_value": 60_000_000.0,
+                        },
+                    },
+                },
+            }
+        ]
+
+        answer = agent._preferred_complete_numeric_answer(
+            rows,
+            query="ABC 기준으로 2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            evidence_items=[{"claim": "ABC 기준으로 제외 항목을 계산한다."}],
+        )
+
+        self.assertIn("ExampleCo 2023년 기준 금액은 100백만원", answer)
+        self.assertIn("제외 항목 금액은 40백만원", answer)
+        self.assertIn("조정 결과은 60백만원입니다", answer)
+        self.assertIn("ABC", answer)
+        self.assertNotEqual(answer, "60백만원")
+
+        refreshed = agent._refresh_numeric_answer_preserving_narrative_context(
+            query="ABC 기준으로 2023년 기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            current_answer="ExampleCo 2023년 조정 결과은 60백만원입니다.",
+            numeric_answer="ExampleCo 2023년 조정 결과은 60백만원입니다.",
+            ordered_results=rows,
+            evidence_items=[{"claim": "ABC 기준으로 제외 항목을 계산한다."}],
+        )
+        self.assertIn("ABC", refreshed["answer"])
+
     def test_difference_answer_composer_renders_period_comparison_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         answer = calculation_rendering.compose_slot_based_difference_answer(
@@ -3284,6 +3575,7 @@ class OperationContractTests(unittest.TestCase):
             calculation_result={
                 "answer_slots": {
                     "operation_family": "difference",
+                    "result_semantics": "period_delta",
                     "metric_label": "지표 증감폭",
                     "components_by_role": {},
                     "current_value": {
@@ -3317,6 +3609,72 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("2022년 지표 1.73% 대비 지표 증감폭은 0.10%p 상승했습니다.", answer)
         self.assertNotIn("금액", answer)
         self.assertNotIn("이를 제외한", answer)
+
+    def test_difference_answer_composer_does_not_render_derived_value_as_direction(self) -> None:
+        answer = calculation_rendering.compose_slot_based_difference_answer(
+            query="기준 금액에서 제외 항목을 빼고 조정 결과를 계산해 줘.",
+            report_scope={"year": 2023},
+            calculation_result={
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "result_semantics": "derived_value",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "기준 금액",
+                                "period": "2023",
+                                "rendered_value": "100백만원",
+                                "normalized_value": 100_000_000.0,
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "제외 항목",
+                                "period": "2023",
+                                "rendered_value": "40백만원",
+                                "normalized_value": 40_000_000.0,
+                            }
+                        ],
+                    },
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "조정 결과",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "100백만원",
+                        "normalized_value": 100_000_000.0,
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "40백만원",
+                        "normalized_value": 40_000_000.0,
+                    },
+                    "delta_value": {
+                        "status": "ok",
+                        "period": "2023",
+                        "rendered_value": "60백만원",
+                        "normalized_value": 60_000_000.0,
+                    },
+                    "direction": "increase",
+                }
+            },
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
+        )
+
+        self.assertIn("이를 제외한 조정 결과은 60백만원입니다", answer)
+        self.assertNotIn("상승", answer)
+        self.assertNotIn("하락", answer)
 
     def test_difference_answer_composer_recovers_company_from_slot_anchor(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -3426,8 +3784,9 @@ class OperationContractTests(unittest.TestCase):
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,360백만원")
+        self.assertEqual(calc["answer_slots"]["result_semantics"], "derived_value")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,360백만원")
-        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,360백만원")
+        self.assertIsNone(calc["answer_slots"]["delta_value"])
         self.assertEqual(
             calc["answer_slots"]["components_by_role"]["subtrahend"][0]["rendered_value"],
             "676,874백만원",
@@ -3493,8 +3852,9 @@ class OperationContractTests(unittest.TestCase):
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
         self.assertEqual(calc["rendered_value"], "1,486,334백만원")
+        self.assertEqual(calc["answer_slots"]["result_semantics"], "derived_value")
         self.assertEqual(calc["answer_slots"]["primary_value"]["rendered_value"], "1,486,334백만원")
-        self.assertEqual(calc["answer_slots"]["delta_value"]["rendered_value"], "1,486,334백만원")
+        self.assertIsNone(calc["answer_slots"]["delta_value"])
 
     def test_execute_calculation_ignores_legacy_top_level_operands_and_plan(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5324,6 +5684,162 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(slot["value_role"], "aggregate")
         self.assertEqual(slot["aggregation_stage"], "final")
         self.assertGreater(score, 10.0)
+
+    def test_semantic_row_selection_owns_ambiguous_lookup_while_source_row_owns_value_and_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operand = agent._complete_required_operand_from_ontology(
+            {
+                "label": "연구개발비용",
+                "concept": "research_and_development_expense",
+                "role": "",
+                "required": True,
+            }
+        )
+        metadata = {
+            "company": "ExampleCo",
+            "year": 2023,
+            "report_type": "annual",
+            "section_path": "research activities",
+            "table_source_id": "research::table:1",
+            "unit_hint": "백만원",
+            "period_labels": ["2023", "2022"],
+            "table_header_context": "구분 | 2023 | 2022",
+            "table_row_labels_text": "연구개발비용 총계\n연구개발비용 계",
+            "table_value_labels_text": "\n".join(
+                [
+                    "연구개발비용 총계 130",
+                    "연구개발비용 총계 110",
+                    "연구개발비용 계 120",
+                    "연구개발비용 계 100",
+                ]
+            ),
+            "table_row_records_json": json.dumps(
+                [
+                    {
+                        "row_id": "row_total",
+                        "row_label": "연구개발비용 총계",
+                        "row_headers": ["연구개발비용 총계"],
+                        "cells": [
+                            {"column_headers": ["2023"], "value_text": "130", "unit_hint": "백만원"},
+                            {"column_headers": ["2022"], "value_text": "110", "unit_hint": "백만원"},
+                        ],
+                    },
+                    {
+                        "row_id": "row_amount",
+                        "row_label": "연구개발비용 계",
+                        "row_headers": ["연구개발비용 계"],
+                        "cells": [
+                            {"column_headers": ["2023"], "value_text": "120", "unit_hint": "백만원"},
+                            {"column_headers": ["2022"], "value_text": "100", "unit_hint": "백만원"},
+                        ],
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        }
+        query = "2023년 연결 연구개발비용 총액을 알려줘."
+        constraints = {"consolidation_scope": "consolidated", "period_focus": "current"}
+        report_scope = {"company": "ExampleCo", "year": 2023, "consolidation": "연결"}
+        active_subtask = {
+            "task_id": "task_lookup",
+            "query": query,
+            "metric_label": "2023년 연구개발비용 총액",
+            "operation_family": "lookup",
+            "required_operands": [operand],
+            "constraints": constraints,
+        }
+        state = {
+            "query": query,
+            "active_subtask": active_subtask,
+            "years": [2023],
+            "report_scope": report_scope,
+            "evidence_items": [],
+            "retrieved_docs": [(Document(page_content="연구개발비용 표", metadata=metadata), 1.0)],
+            "seed_retrieved_docs": [],
+        }
+        candidates = agent._build_reconciliation_candidates(state)
+        total_candidate = next(
+            candidate
+            for candidate in candidates
+            if (candidate.get("metadata") or {}).get("row_label") == "연구개발비용 총계"
+            and candidate.get("candidate_kind") == "structured_row"
+        )
+        amount_candidate = next(
+            candidate
+            for candidate in candidates
+            if (candidate.get("metadata") or {}).get("row_label") == "연구개발비용 계"
+            and candidate.get("candidate_kind") == "structured_row"
+        )
+        deterministic = _deterministic_reconcile_task(
+            active_subtask=active_subtask,
+            candidates=candidates,
+            years=[2023],
+            reconciliation_retry_count=0,
+            report_scope=report_scope,
+        )
+        self.assertEqual(
+            deterministic["matched_operands"][0]["candidate_ids"][0],
+            amount_candidate["candidate_id"],
+        )
+
+        semantic_decision = {
+            "ordered_candidate_ids": [total_candidate["candidate_id"], amount_candidate["candidate_id"]],
+            "selected_candidate_id": total_candidate["candidate_id"],
+            "selection_status": "selected",
+            "llm_completed": True,
+        }
+        with patch.object(agent, "_should_llm_rerank_candidates", return_value=True), patch.object(
+            agent,
+            "_llm_rerank_operand_candidates",
+            return_value=semantic_decision,
+        ):
+            reconciliation = agent._rerank_reconciliation_matches_with_llm(
+                state,
+                deterministic,
+                candidates,
+                [2023],
+            )
+
+        state["reconciliation_result"] = reconciliation
+        rows = agent._extract_structured_operands_from_reconciliation(state)
+        evidence_items = agent._evidence_items_from_reconciliation_matches(state)
+
+        self.assertEqual(reconciliation["status"], "ready")
+        self.assertEqual(
+            reconciliation["matched_operands"][0]["semantic_selected_candidate_id"],
+            total_candidate["candidate_id"],
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "130")
+        self.assertEqual(rows[0]["raw_unit"], "백만원")
+        self.assertEqual(rows[0]["evidence_id"], total_candidate["candidate_id"])
+        self.assertEqual(len(evidence_items), 1)
+        self.assertEqual(evidence_items[0]["metadata"]["row_label"], "연구개발비용 총계")
+        self.assertEqual(
+            agent._lookup_value_from_table_label_metadata(
+                operand,
+                {"evidence_id": "coarse", "source_anchor": "[source]", "metadata": metadata},
+            ),
+            {},
+        )
+
+    def test_index_metadata_prefix_is_removed_before_llm_context_without_dropping_source_heading(self) -> None:
+        indexed = "\n".join(
+            [
+                "[회사: ExampleCo] [연도: 2023] [보고서: annual]",
+                "[섹션: business]",
+                "[분류: business / paragraph]",
+                "[키워드: business, technology, paragraph]",
+                "",
+                "[Harman]Harman은 끊임없는 혁신을 추구합니다.",
+            ]
+        )
+
+        cleaned = financial_text_surface.strip_index_metadata_prefix(indexed)
+
+        self.assertNotIn("키워드:", cleaned)
+        self.assertNotIn("회사:", cleaned)
+        self.assertEqual(cleaned, "[Harman]Harman은 끊임없는 혁신을 추구합니다.")
 
     def test_required_operand_assembly_prefers_aggregate_table_label_value_with_structured_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7633,10 +8149,12 @@ class OperationContractTests(unittest.TestCase):
         )
         trace = resolve_runtime_calculation_trace(result)
         slots = trace["calculation_result"]["answer_slots"]
+        self.assertEqual(slots["result_semantics"], "derived_value")
         self.assertEqual(slots["primary_value"]["role"], "primary_value")
-        self.assertEqual(slots["current_value"]["rendered_value"], "2조 22억원")
-        self.assertEqual(slots["prior_value"]["rendered_value"], "-6,406억원")
-        self.assertEqual(slots["delta_value"]["rendered_value"], "1조 3,616억원")
+        self.assertIsNone(slots["current_value"])
+        self.assertIsNone(slots["prior_value"])
+        self.assertIsNone(slots["delta_value"])
+        self.assertIsNone(slots["direction"])
         self.assertNotIn("calculation_result", result)
 
     def test_rendered_subtraction_answer_rewrites_double_negative_subtrahend(self) -> None:

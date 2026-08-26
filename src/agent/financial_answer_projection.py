@@ -10,6 +10,7 @@ question, or metric-specific branches.
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_slots import (
     answer_slot_has_material,
     answer_slot_period_hint,
@@ -291,6 +292,12 @@ def material_gap_feedback_for_subtask_result(row: Dict[str, Any]) -> str:
         current_slot = dict(answer_slots.get("current_value") or {})
         prior_slot = dict(answer_slots.get("prior_value") or {})
         primary_slot = dict(answer_slots.get("primary_value") or {})
+        if operation_family == "difference" and not calculation_rendering.difference_slots_are_period_delta(
+            answer_slots
+        ):
+            if answer_slot_has_material(primary_slot):
+                return ""
+            return str(feedback_policy.get("missing_result_template") or "").format(metric_label=metric_label)
         if operation_family == "growth_rate" and growth_row_has_conflicting_periods(row):
             return str(feedback_policy.get("generic_missing_material_template") or "").format(
                 metric_label=metric_label

@@ -83,6 +83,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_text_surface import (
     split_sentences,
     strip_anchor_text,
+    strip_index_metadata_prefix,
     strip_rerank_metadata,
     tokenize_terms,
     query_focus_marker_groups,
@@ -324,6 +325,157 @@ class FinancialAgentEvidenceMixin:
         )
         return {"retrieved_docs": expanded}
 
+    def _numeric_extraction_source_evidence(
+        self,
+        docs: List[Any],
+        raw_value: str, seed_docs: Optional[List[Any]] = None, reject_ambiguous: bool = False,
+    ) -> Dict[str, Any]:
+        """Recover the exact source row that supports an LLM-extracted number."""
+
+        raw_compact = re.sub(r"[\s,]", "", _normalise_spaces(str(raw_value or "")))
+        if not raw_compact:
+            return {}
+
+        def _contains_exact_value(text: str) -> bool:
+            for match in re.finditer(r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?", str(text or "")):
+                if re.sub(r"[\s,]", "", _normalise_spaces(match.group(0))) == raw_compact:
+                    return True
+            return False
+
+        def _source_item(
+            *,
+            metadata: Dict[str, Any],
+            row_label: str,
+            row_text: str,
+            cells: Optional[List[Dict[str, Any]]] = None,
+            unit_hint: str = "",
+        ) -> Dict[str, Any]:
+            source_metadata = dict(metadata)
+            if row_label:
+                source_metadata["row_label"] = row_label
+                source_metadata["semantic_label"] = row_label
+            if cells:
+                source_metadata["structured_cells"] = [dict(cell) for cell in cells]
+            if unit_hint:
+                source_metadata["unit_hint"] = unit_hint
+            anchor = self._build_source_anchor(source_metadata)
+            return {
+                "source_anchor": anchor,
+                "claim": row_text,
+                "quote_span": row_text[:500],
+                "raw_row_text": row_text,
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": source_metadata,
+            }
+
+        matches: List[Dict[str, Any]] = []
+        for doc_score in [*docs[: min(8, len(docs))], *list(seed_docs or [])[:32]]:
+            doc = doc_score[0] if isinstance(doc_score, (tuple, list)) else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            structured_match = False
+            for key in ("table_row_records_json", "table_value_records_json"):
+                payload = str(metadata.get(key) or "").strip()
+                if not payload:
+                    continue
+                try:
+                    records = json.loads(payload)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(records, list):
+                    continue
+                for record in records:
+                    if not isinstance(record, dict):
+                        continue
+                    row_label = _normalise_spaces(
+                        str(record.get("row_label") or record.get("semantic_label") or "")
+                    )
+                    cells = [dict(cell) for cell in (record.get("cells") or []) if isinstance(cell, dict)]
+                    if not cells and record.get("value_text") not in (None, ""):
+                        cells = [dict(record)]
+                    for cell in cells:
+                        value_text = _normalise_spaces(str(cell.get("value_text") or ""))
+                        if not _contains_exact_value(value_text):
+                            continue
+                        headers = " / ".join(
+                            _normalise_spaces(str(value))
+                            for value in (cell.get("column_headers") or [])
+                            if _normalise_spaces(str(value))
+                        )
+                        unit_hint = _normalise_spaces(
+                            str(cell.get("unit_hint") or record.get("unit_hint") or metadata.get("unit_hint") or "")
+                        )
+                        row_text = " | ".join(
+                            part for part in (row_label, headers, value_text, unit_hint) if part
+                        )
+                        matches.append(
+                            _source_item(
+                                metadata=metadata,
+                                row_label=row_label,
+                                row_text=row_text,
+                                cells=[cell],
+                                unit_hint=unit_hint,
+                            )
+                        )
+                        structured_match = True
+
+            if structured_match:
+                continue
+            for surface in (
+                str(metadata.get("table_value_labels_text") or ""),
+                strip_index_metadata_prefix(str(getattr(doc, "page_content", "") or "")),
+            ):
+                for line in str(surface or "").splitlines():
+                    line_text = _normalise_spaces(line)
+                    if not line_text or not _contains_exact_value(line_text):
+                        continue
+                    matches.append(
+                        _source_item(
+                            metadata=metadata,
+                            row_label=extract_table_row_label(line_text),
+                            row_text=line_text,
+                            unit_hint=_normalise_spaces(str(metadata.get("unit_hint") or "")),
+                        )
+                    )
+
+        unique_matches: Dict[tuple[str, str], Dict[str, Any]] = {}
+        for item in matches:
+            key = (
+                _normalise_spaces(str(item.get("source_anchor") or "")),
+                _normalise_spaces(str(item.get("raw_row_text") or "")),
+            )
+            unique_matches.setdefault(key, item)
+        if len(unique_matches) == 1:
+            return next(iter(unique_matches.values()))
+        if len(unique_matches) > 1 and reject_ambiguous:
+            return {"source_selection_status": "ambiguous"}
+        return next(iter(unique_matches.values()), {})
+
+    @staticmethod
+    def _render_numeric_extraction_with_source_unit(
+        answer: str,
+        *,
+        raw_value: str,
+        previous_unit: str,
+        source_unit: str,
+        metric_label: str,
+    ) -> str:
+        rendered_answer = str(answer or "")
+        value = _normalise_spaces(raw_value)
+        old_unit = _normalise_spaces(previous_unit)
+        new_unit = _normalise_spaces(source_unit)
+        if not value or not new_unit:
+            return rendered_answer
+        if old_unit:
+            pattern = rf"({re.escape(value)})\s*{re.escape(old_unit)}"
+            replaced, count = re.subn(pattern, rf"\1{new_unit}", rendered_answer, count=1)
+            if count:
+                return replaced
+        if value in rendered_answer and not old_unit:
+            return rendered_answer.replace(value, f"{value}{new_unit}", 1)
+        label = _normalise_spaces(metric_label)
+        return f"{label}: {value}{new_unit}" if label else f"{value}{new_unit}"
+
     def _format_context(self, docs) -> str:
         """검색된 자식 청크를 부모 청크(섹션 전체)로 확장해 LLM 컨텍스트 구성.
 
@@ -349,7 +501,8 @@ class FinancialAgentEvidenceMixin:
             )
 
             if graph_relation:
-                parts.append(f"{header}\n{doc.page_content}")
+                body = strip_index_metadata_prefix(str(doc.page_content or ""))
+                parts.append(f"{header}\n{body}")
                 continue
 
             # 부모 청크 우선 사용
@@ -357,7 +510,8 @@ class FinancialAgentEvidenceMixin:
                 parent_text = self.vsm.get_parent(parent_id)
                 if parent_text:
                     seen_parents.add(parent_id)
-                    parts.append(f"{header}\n{parent_text}")
+                    parent_body = strip_index_metadata_prefix(str(parent_text or ""))
+                    parts.append(f"{header}\n{parent_body}")
                     continue
 
             # 부모가 없거나 이미 포함된 parent_id → 자식 청크 사용
@@ -365,8 +519,9 @@ class FinancialAgentEvidenceMixin:
                 # 이미 이 섹션의 부모를 포함했으므로 중복 제외
                 continue
 
-            table_context = metadata.get("table_context")
-            body = f"[table_context] {table_context}\n{doc.page_content}" if table_context else doc.page_content
+            table_context = strip_index_metadata_prefix(str(metadata.get("table_context") or ""))
+            page_content = strip_index_metadata_prefix(str(doc.page_content or ""))
+            body = f"[table_context] {table_context}\n{page_content}" if table_context else page_content
             parts.append(f"{header}\n{body}")
 
         return "\n\n---\n\n".join(parts)
@@ -4138,18 +4293,87 @@ class FinancialAgentEvidenceMixin:
                 }
                 answer = empty_result["answer"]
 
-        if debug_trace.get("raw_value") and not _lookup_numeric_extraction_has_direct_support(
-            state,
-            debug_trace,
-            docs,
-            context=context,
-        ):
-            logger.info(
-                "[numeric_extractor] rejected lookup raw=%s without direct operand support",
-                debug_trace.get("raw_value"),
-            )
-            debug_trace = {**debug_trace, "raw_value": "", "rejected_reason": "missing_direct_lookup_operand_support"}
-            answer = empty_result["answer"]
+        source_evidence: Dict[str, Any] = {}
+        if debug_trace.get("raw_value"):
+            if not _lookup_numeric_extraction_has_direct_support(
+                state,
+                debug_trace,
+                docs,
+                context=context,
+            ):
+                logger.info(
+                    "[numeric_extractor] rejected lookup raw=%s without direct operand support",
+                    debug_trace.get("raw_value"),
+                )
+                debug_trace = {
+                    **debug_trace,
+                    "raw_value": "",
+                    "rejected_reason": "missing_direct_lookup_operand_support",
+                }
+                answer = empty_result["answer"]
+            else:
+                raw_value = _normalise_spaces(str(debug_trace.get("raw_value") or ""))
+                active_required_operands = [
+                    dict(item)
+                    for item in (dict(state.get("active_subtask") or {}).get("required_operands") or [])
+                    if isinstance(item, dict) and bool(item.get("required", True))
+                ]
+                source_evidence = self._numeric_extraction_source_evidence(
+                    docs,
+                    raw_value,
+                    list(state.get("seed_retrieved_docs") or []),
+                    bool(active_required_operands),
+                )
+                if source_evidence.get("source_selection_status") == "ambiguous":
+                    logger.info(
+                        "[numeric_extractor] rejected lookup raw=%s with ambiguous source evidence",
+                        raw_value,
+                    )
+                    debug_trace = {
+                        **debug_trace,
+                        "raw_value": "",
+                        "rejected_reason": "ambiguous_direct_lookup_source_evidence",
+                    }
+                    answer = empty_result["answer"]
+                    source_evidence = {}
+                llm_unit = _normalise_spaces(str(debug_trace.get("unit") or ""))
+                source_unit = coerce_operand_unit_from_evidence(
+                    raw_value=raw_value,
+                    raw_unit=llm_unit,
+                    evidence_item=source_evidence,
+                )
+                if (
+                    source_evidence
+                    and source_unit
+                    and _normalise_spaces(source_unit) != llm_unit
+                ):
+                    active_subtask = dict(state.get("active_subtask") or {})
+                    required_operands = [
+                        dict(item)
+                        for item in (active_subtask.get("required_operands") or [])
+                        if isinstance(item, dict)
+                    ]
+                    metric_label = _normalise_spaces(
+                        str(
+                            active_subtask.get("metric_label")
+                            or (required_operands[0].get("label") if required_operands else "")
+                            or ""
+                        )
+                    )
+                    answer = self._render_numeric_extraction_with_source_unit(
+                        answer,
+                        raw_value=raw_value,
+                        previous_unit=llm_unit,
+                        source_unit=source_unit,
+                        metric_label=metric_label,
+                    )
+                    debug_trace = {
+                        **debug_trace,
+                        "llm_unit": llm_unit,
+                        "unit": source_unit,
+                        "unit_source": "source_evidence",
+                        "final_value": answer,
+                    }
 
         if not debug_trace.get("raw_value"):
             deterministic = self._supplement_numeric_impairment_lookup(state, docs)
@@ -4183,21 +4407,25 @@ class FinancialAgentEvidenceMixin:
         evidence_bullets: List[str] = []
         evidence_status = "missing"
         if debug_trace and debug_trace.get("raw_value"):
-            anchor = self._build_source_anchor(
-                (docs[0][0].metadata if docs else {})
-            )
+            fallback_metadata = dict(docs[0][0].metadata if docs else {})
+            evidence_metadata = dict(source_evidence.get("metadata") or fallback_metadata)
+            anchor = str(source_evidence.get("source_anchor") or self._build_source_anchor(evidence_metadata))
             claim = f"{debug_trace.get('raw_value', '')} ({debug_trace.get('unit', '')})"
             quote_span = debug_trace.get("raw_value", "")
+            if source_evidence:
+                claim = str(source_evidence.get("claim") or claim)
+                quote_span = str(source_evidence.get("quote_span") or source_evidence.get("raw_row_text") or quote_span)
             evidence_items = [
                 {
                     "evidence_id": "ev_001",
                     "source_anchor": anchor,
                     "claim": claim,
                     "quote_span": quote_span,
+                    "raw_row_text": source_evidence.get("raw_row_text") or None,
                     "support_level": "direct",
                     "question_relevance": "high",
                     "allowed_terms": [debug_trace.get("raw_value", ""), debug_trace.get("unit", "")],
-                    "metadata": docs[0][0].metadata if docs else {},
+                    "metadata": evidence_metadata,
                 }
             ]
             evidence_bullets = [f"- {anchor} {claim} (direct)"]

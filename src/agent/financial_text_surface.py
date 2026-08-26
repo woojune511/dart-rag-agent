@@ -12,6 +12,7 @@ from src.agent.financial_operation_policies import query_requests_narrative_cont
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import (
     CALCULATION_NARRATIVE_POLICY,
+    INDEX_PREFIX_METADATA_POLICY,
     QUERY_FOCUS_MARKER_POLICY,
     QUERY_FOCUS_STOPWORDS,
     narrative_policy_terms,
@@ -42,6 +43,34 @@ def strip_rerank_metadata(text: str) -> str:
     raw = re.sub(r"\[[^\]]+\]", " ", raw)
     raw = re.sub(r"\s+", " ", raw)
     return raw.strip()
+
+
+def strip_index_metadata_prefix(text: str) -> str:
+    """Remove indexed retrieval prefix lines without touching source brackets."""
+
+    labels = {
+        _normalise_spaces(str(item)).lower()
+        for item in (INDEX_PREFIX_METADATA_POLICY.get("line_labels") or ())
+        if _normalise_spaces(str(item))
+    }
+    if not labels:
+        return str(text or "")
+
+    kept_lines: List[str] = []
+    bracket_pattern = re.compile(r"\[\s*([^:\]\r\n]+)\s*:\s*[^\]\r\n]*\]")
+    for line in str(text or "").splitlines():
+        matches = list(bracket_pattern.finditer(line))
+        if matches:
+            unmatched = bracket_pattern.sub("", line).strip()
+            line_labels = {
+                _normalise_spaces(match.group(1)).lower()
+                for match in matches
+                if _normalise_spaces(match.group(1))
+            }
+            if not unmatched and line_labels and line_labels <= labels:
+                continue
+        kept_lines.append(line)
+    return "\n".join(kept_lines).strip()
 
 
 def query_focus_marker_groups(query: str, *, limit: int = 8) -> List[Dict[str, Any]]:

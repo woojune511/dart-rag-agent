@@ -278,6 +278,7 @@ from src.agent.financial_reflection_projection import (
     task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
 )
 from src.agent.financial_surface_contracts import (
+    candidate_matches_segment_binding,
     operand_needles,
     operand_segment_label,
     text_has_negative_surface,
@@ -317,7 +318,7 @@ from src.agent.financial_text_surface import (
     polish_korean_particle_pairs as _polish_korean_particle_pairs,
     preserve_retrieved_narrative_source_surface,
     preserve_source_visible_query_terms,
-    query_focus_markers,
+    query_focus_markers, strip_index_metadata_prefix,
     split_narrative_sentences as _split_narrative_sentences,
     topic_particle as _topic_particle,
 )
@@ -333,7 +334,7 @@ from src.agent.financial_task_artifacts import (
     reflection_report_artifact_update as _build_reflection_report_artifact_update,
     ratio_result_rows_from_task_artifacts,
     synchronize_aggregate_artifact_projection_payload,
-    synchronize_calculation_result_artifact as _synchronize_calculation_result_artifact,
+    synchronize_calculation_result_artifact as _synchronize_calculation_result_artifact, synchronize_operand_set_artifact as _synchronize_operand_set_artifact,
     supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
 from src.agent.financial_lookup_recovery import (
@@ -1121,6 +1122,7 @@ class FinancialAgentCalculationMixin:
         if not value_labels_text:
             return {}
         binding_policy = dict(operand.get("binding_policy") or {})
+        segment_label = operand_segment_label(operand)
         structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
         prefers_aggregate = bool(
             "aggregate"
@@ -1135,8 +1137,8 @@ class FinancialAgentCalculationMixin:
                 if _normalise_spaces(str(item))
             }
         )
-        requires_exact_line_label = bool(prefers_aggregate and not structured_cells)
-        if requires_exact_line_label:
+        requires_structured_context = bool(prefers_aggregate and not structured_cells)
+        if requires_structured_context:
             has_table_context = bool(
                 _normalise_spaces(str(metadata.get("table_source_id") or ""))
                 and (
@@ -1179,6 +1181,17 @@ class FinancialAgentCalculationMixin:
                 if _normalise_spaces(str(surface or ""))
             ]
             surfaces = list(dict.fromkeys([*surfaces, *[surface for surface in periodless_surfaces if surface]]))
+        if segment_label:
+            surfaces = [
+                surface
+                for surface in surfaces
+                if candidate_matches_segment_binding(
+                    {"metadata": {"semantic_label": surface}},
+                    operand,
+                    strict=True,
+                )
+            ]
+            surfaces = list(dict.fromkeys([*surfaces, segment_label]))
         value_pattern = r"\(?\s*[+-]?\d[\d,]*(?:\.\d+)?\s*\)?"
         percent_pattern = r"\(?\s*(?P<value>[+-]?\d[\d,]*(?:\.\d+)?)\s*%\s*\)?"
 
@@ -1192,9 +1205,23 @@ class FinancialAgentCalculationMixin:
             )
             return year_candidates[0] if year_candidates else ""
 
+        def _line_preserves_segment_binding(line_label: str) -> bool:
+            if not segment_label:
+                return True
+            return candidate_matches_segment_binding(
+                {
+                    "metadata": {
+                        "semantic_label": line_label,
+                        "row_label": line_label,
+                    }
+                },
+                operand,
+                strict=True,
+            )
+
         def _line_label_matches_operand(line_label: str) -> bool:
             normalized_label = _normalise_spaces(line_label)
-            if not normalized_label:
+            if not normalized_label or not _line_preserves_segment_binding(normalized_label):
                 return False
             for surface in surfaces:
                 normalized_surface = _normalise_spaces(surface)
@@ -1244,18 +1271,8 @@ class FinancialAgentCalculationMixin:
                 matched_value = _normalise_spaces(line_match.group("value")).replace(" ", "")
                 matched_line_label = line_label
             if matched_value:
-                if requires_exact_line_label:
-                    matched_line_compact = re.sub(r"\s+", "", matched_line_label)
-                    exact_line_match = any(
-                        matched_line_label == _normalise_spaces(surface)
-                        or (
-                            matched_line_compact
-                            and matched_line_compact == re.sub(r"\s+", "", _normalise_spaces(surface))
-                        )
-                        for surface in surfaces
-                    )
-                    if not exact_line_match:
-                        continue
+                if not _line_preserves_segment_binding(matched_line_label):
+                    continue
                 raw_value = matched_value
                 raw_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
                 normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
@@ -1283,6 +1300,22 @@ class FinancialAgentCalculationMixin:
                 })
         if not matches:
             return {}
+        if requires_structured_context:
+            distinct_line_labels = {
+                _normalise_spaces(str(match.get("_matched_line_label") or ""))
+                for match in matches
+                if _normalise_spaces(str(match.get("_matched_line_label") or ""))
+            }
+            distinct_values = {
+                (
+                    match.get("normalized_value"),
+                    _normalise_spaces(str(match.get("normalized_unit") or "")),
+                )
+                for match in matches
+                if match.get("normalized_value") is not None
+            }
+            if len(distinct_line_labels) > 1 and len(distinct_values) > 1:
+                return {}
 
         stated_change_raw_value = ""
         for line in str(metadata.get("table_value_labels_text") or "").splitlines():
@@ -2468,14 +2501,14 @@ class FinancialAgentCalculationMixin:
                 if answer:
                     _append_ranked_answer(row, answer)
                     continue
-            answer = _normalise_spaces(
-                str(
-                    calculation_result.get("formatted_result")
-                    or calculation_result.get("rendered_value")
-                    or row.get("answer")
-                    or ""
-                )
-            )
+            answer = (
+                calculation_rendering.compose_explicit_slot_based_difference_answer(
+                    query=query, calculation_result=calculation_result, answer_slot_has_material=answer_slot_has_material, ordered_results=ordered_results, evidence_items=evidence_items or [],
+                ) if operation_family == "difference" else ""
+            ) or _normalise_spaces(str(
+                calculation_result.get("formatted_result") or calculation_result.get("rendered_value")
+                or row.get("answer") or ""
+            ))
             if answer:
                 _append_ranked_answer(row, answer)
         if query_terms and answer_parts:
@@ -3083,7 +3116,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        numeric_text = _normalise_spaces(str(numeric_answer or ""))
+        numeric_text = preserve_source_visible_query_terms(_normalise_spaces(str(numeric_answer or "")), query=query, ordered_results=ordered_results, evidence_items=evidence_items, docs=[])
         current_answer_text = _normalise_spaces(str(current_answer or ""))
         if not any(row_is_narrative_summary(row) for row in ordered_results) and not (
             current_answer_text and query_requests_explanatory_context(query)
@@ -4636,7 +4669,7 @@ class FinancialAgentCalculationMixin:
         for item in docs or []:
             doc = item[0] if isinstance(item, (tuple, list)) and item else item
             page_content = _normalise_spaces(
-                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+                strip_index_metadata_prefix(str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or ""))
             )
             if not page_content:
                 continue
@@ -7264,9 +7297,7 @@ class FinancialAgentCalculationMixin:
                 best_cell = contextual_cell
                 best_normalized = float(contextual_value)
 
-        segment_label = _normalise_spaces(
-            str(operand_segment_label(row) or dict(row.get("binding_policy") or {}).get("segment_label") or "")
-        )
+        segment_label = _normalise_spaces(str(operand_segment_label(row) or ""))
         segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
         if segment_label and "|" in surface:
             tokens = [_normalise_spaces(token) for token in surface.split("|")]
@@ -7929,6 +7960,7 @@ class FinancialAgentCalculationMixin:
     ) -> List[Dict[str, Any]]:
         if not ordered_results or not evidence_items:
             return ordered_results
+
         def _result_has_complete_period_slots(row: Dict[str, Any]) -> bool:
             calculation_result = dict(row.get("calculation_result") or {})
             status = _normalise_spaces(str(calculation_result.get("status") or row.get("status") or "")).lower()
@@ -7947,6 +7979,54 @@ class FinancialAgentCalculationMixin:
                 if not _clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]):
                     return False
             return True
+
+        def _complete_result_matches_source_stated_change(
+            row: Dict[str, Any],
+            context_rows: List[Dict[str, Any]],
+        ) -> bool:
+            calculation_result = dict(row.get("calculation_result") or {})
+            derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+            formula_value = derived_metrics.get("formula_result_value")
+            result_value = formula_value if formula_value is not None else calculation_result.get("result_value")
+            result_candidates = (
+                [
+                    candidate
+                    for candidate in extract_numeric_surface_candidates(f"{result_value}%")
+                    if str(candidate.get("kind") or "") == "percent"
+                ]
+                if result_value is not None
+                else []
+            )
+            if not result_candidates:
+                answer_slots = dict(calculation_result.get("answer_slots") or {})
+                primary_value = dict(answer_slots.get("primary_value") or {})
+                result_candidates = [
+                    candidate
+                    for candidate in extract_numeric_surface_candidates(
+                        str(primary_value.get("rendered_value") or calculation_result.get("rendered_value") or "")
+                    )
+                    if str(candidate.get("kind") or "") == "percent"
+                ]
+            stated_candidates = [
+                candidate
+                for context_row in context_rows
+                for candidate in extract_numeric_surface_candidates(
+                    _normalise_spaces(
+                        f"{context_row.get('stated_change_raw_value') or ''}"
+                        f"{context_row.get('stated_change_raw_unit') or '%'}"
+                    )
+                )
+                if str(candidate.get("kind") or "") == "percent"
+            ]
+            return bool(
+                result_candidates
+                and stated_candidates
+                and any(
+                    numeric_surface_candidates_equivalent(result_candidate, stated_candidate)
+                    for result_candidate in result_candidates
+                    for stated_candidate in stated_candidates
+                )
+            )
 
         task_by_id = {
             str(task.get("task_id") or ""): dict(task)
@@ -7999,7 +8079,10 @@ class FinancialAgentCalculationMixin:
                 operation_family == "growth_rate"
                 and any(_normalise_spaces(str(row.get("stated_change_raw_value") or "")) for row in context_rows)
             )
-            if has_complete_period_slots and not context_has_source_stated_change:
+            if has_complete_period_slots and (
+                not context_has_source_stated_change
+                or _complete_result_matches_source_stated_change(result_row, context_rows)
+            ):
                 updated_results.append(result_row)
                 continue
             active_subtask = {
@@ -12336,7 +12419,7 @@ class FinancialAgentCalculationMixin:
             calculation_projection_override,
         )
         ledger_artifacts = enrich_reconciliation_artifact_refs(
-            list(state.get("artifacts") or []),
+            self._synchronize_dependency_operand_artifacts(state, ordered_results),
             task_id="",
             task_ids=source_task_ids,
             operand_rows=list(projection_for_integrity.get("calculation_operands") or []),
@@ -13462,3 +13545,203 @@ class FinancialAgentCalculationMixin:
                 f"/ {metadata.get('block_type', '?')} (score: {score:.3f})"
             )
         return {"citations": citations}
+
+    def _synchronize_dependency_operand_artifacts(
+        self,
+        state: FinancialAgentState,
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Finalize provisional operand artifacts after calculation inputs become authoritative."""
+
+        tasks = list(state.get("tasks") or [])
+        artifacts = list(state.get("artifacts") or [])
+        for row in ordered_results:
+            if not isinstance(row, dict):
+                continue
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            operands = self._authoritative_operand_rows_for_ledger(row)
+            if not task_id or not operands:
+                continue
+            evidence_refs = _clean_source_row_ids(
+                [
+                    [
+                        operand.get("evidence_id"),
+                        operand.get("source_row_id"),
+                        operand.get("source_row_ids"),
+                    ]
+                    for operand in operands
+                ]
+            )
+            artifact_update = _synchronize_operand_set_artifact(
+                tasks=tasks,
+                artifacts=artifacts,
+                task_id=task_id,
+                calculation_operands=operands,
+                evidence_refs=evidence_refs,
+                status="sufficient",
+                summary=f"{len(operands)} finalized dependency operand(s)",
+            )
+            if artifact_update.get("synchronized"):
+                artifacts = list(artifact_update.get("artifacts") or artifacts)
+        return artifacts
+
+    def _authoritative_operand_rows_for_ledger(
+        self,
+        row: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """Project task-owned calculation inputs only after a successful result exists."""
+
+        calculation_result = dict(row.get("calculation_result") or {})
+        result_status = _normalise_spaces(str(calculation_result.get("status") or "")).lower()
+        if result_status != "ok":
+            return []
+
+        calculation_plan = dict(row.get("calculation_plan") or {})
+        required_operand_ids = [
+            _normalise_spaces(str(value or ""))
+            for value in list(calculation_plan.get("ordered_operand_ids") or [])
+            if _normalise_spaces(str(value or ""))
+        ]
+        if not required_operand_ids:
+            required_operand_ids = [
+                _normalise_spaces(str(binding.get("operand_id") or ""))
+                for binding in list(calculation_plan.get("variable_bindings") or [])
+                if isinstance(binding, dict)
+                and _normalise_spaces(str(binding.get("operand_id") or ""))
+            ]
+        required_operand_ids = list(dict.fromkeys(required_operand_ids))
+        if not required_operand_ids:
+            return []
+
+        direct_operands = [
+            dict(item)
+            for item in list(row.get("calculation_operands") or [])
+            if isinstance(item, dict)
+        ]
+        if direct_operands and all(
+            (
+                operand.get("normalized_value") is not None
+                or _normalise_spaces(str(operand.get("raw_value") or ""))
+                or re.search(r"\d", _normalise_spaces(str(operand.get("rendered_value") or "")))
+            )
+            and _clean_source_row_ids(
+                [
+                    operand.get("evidence_id"),
+                    operand.get("source_row_id"),
+                    operand.get("source_row_ids"),
+                    operand.get("source_claim_ids"),
+                ]
+            )
+            for operand in direct_operands
+        ):
+            direct_operand_ids = {
+                candidate
+                for operand in direct_operands
+                for candidate in (
+                    _normalise_spaces(str(operand.get("operand_id") or "")),
+                    _normalise_spaces(str(operand.get("matched_operand_role") or "")),
+                    _normalise_spaces(str(operand.get("role") or "")),
+                )
+                if candidate in required_operand_ids
+            }
+            if all(operand_id in direct_operand_ids for operand_id in required_operand_ids):
+                return direct_operands
+
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = _normalise_spaces(
+            str(
+                answer_slots.get("operation_family")
+                or calculation_result.get("operation_family")
+                or calculation_plan.get("operation")
+                or row.get("operation_family")
+                or ""
+            )
+        ).lower()
+        if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+            return []
+
+        slot_candidates: List[tuple[str, Dict[str, Any]]] = []
+        for role, slot_key in (
+            ("current_period", "current_value"),
+            ("prior_period", "prior_value"),
+            ("minuend", "minuend"),
+            ("subtrahend", "subtrahend"),
+        ):
+            slot = dict(answer_slots.get(slot_key) or {})
+            if slot:
+                slot_candidates.append((role, slot))
+        for role, entries in dict(answer_slots.get("components_by_role") or {}).items():
+            for slot in list(entries or []):
+                if isinstance(slot, dict):
+                    slot_candidates.append((_normalise_spaces(str(role or "")), dict(slot)))
+        for group, entries in dict(answer_slots.get("components_by_group") or {}).items():
+            group_name = _normalise_spaces(str(group or ""))
+            if group_name not in {"numerator", "denominator"}:
+                continue
+            for slot in list(entries or []):
+                if not isinstance(slot, dict):
+                    continue
+                role = _normalise_spaces(str(slot.get("role") or group_name)) or group_name
+                slot_candidates.append((role, dict(slot)))
+
+        operands: List[Dict[str, Any]] = []
+        seen_keys: set[tuple[str, str, str, tuple[str, ...]]] = set()
+        for fallback_role, slot in slot_candidates:
+            role = _normalise_spaces(
+                str(slot.get("matched_operand_role") or slot.get("role") or fallback_role or "")
+            )
+            if not role:
+                continue
+            operand_id = _normalise_spaces(str(slot.get("operand_id") or role)) or role
+            if required_operand_ids and operand_id not in required_operand_ids and role in required_operand_ids:
+                operand_id = role
+            if required_operand_ids and operand_id not in required_operand_ids:
+                continue
+            raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
+            rendered_value = _normalise_spaces(str(slot.get("rendered_value") or ""))
+            if slot.get("normalized_value") is None and not raw_value and not re.search(r"\d", rendered_value):
+                continue
+            source_row_ids = _clean_source_row_ids(
+                [
+                    slot.get("evidence_id"),
+                    slot.get("source_row_id"),
+                    slot.get("source_row_ids"),
+                    slot.get("source_claim_ids"),
+                ]
+            )
+            if not source_row_ids:
+                continue
+            dedupe_key = (
+                operand_id,
+                raw_value or rendered_value,
+                _normalise_spaces(str(slot.get("raw_unit") or slot.get("normalized_unit") or "")),
+                tuple(source_row_ids),
+            )
+            if dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
+            label = _normalise_spaces(str(slot.get("label") or ""))
+            concept = _normalise_spaces(str(slot.get("concept") or ""))
+            operands.append(
+                {
+                    **slot,
+                    "operand_id": operand_id,
+                    "role": role,
+                    "matched_operand_role": role,
+                    "label": label,
+                    "matched_operand_label": _normalise_spaces(
+                        str(slot.get("matched_operand_label") or label)
+                    ),
+                    "concept": concept,
+                    "matched_operand_concept": _normalise_spaces(
+                        str(slot.get("matched_operand_concept") or concept)
+                    ),
+                    "source_row_id": source_row_ids[0],
+                    "source_row_ids": source_row_ids,
+                }
+            )
+
+        finalized_operand_ids = {str(operand.get("operand_id") or "") for operand in operands}
+        if not all(operand_id in finalized_operand_ids for operand_id in required_operand_ids):
+            return []
+        return operands
