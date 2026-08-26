@@ -165,6 +165,29 @@ artifact-level `evidence_refs` or in payload provenance fields such as evidence
 ids or source row ids. If no attached artifact preserves provenance, emit
 `missing_required_evidence_ref`.
 
+An `operand_set` may be registered provisionally while dependency-producing
+tasks are still running, but a completed calculation cannot close against that
+empty snapshot. Before the final integrity projection, the Orchestrator may
+finalize the latest attached `operand_set` in place only when all of the
+following are true:
+
+- the task has a successful `calculation_result`;
+- the calculation plan exposes the required operand ids;
+- task-owned input slots cover every required id and retain numeric material;
+- every finalized operand retains evidence or source-row provenance.
+
+Already-materialized direct `calculation_operands` are task-owned inputs under
+the same plan-completeness contract. They must cover every required plan id by
+operand id or bound role before they can finalize the provisional artifact. A
+non-empty, material, and provenanced direct list is still incomplete when even
+one required id is absent; it must not bypass the slot-derived coverage gate.
+
+Finalization must preserve the artifact id, task attachment, ledger order, and
+artifact cardinality. It must not create a missing operand artifact, infer an
+operand from final prose, accept the calculated output as its own input, or
+relax `missing_required_artifact_payload`. If any gate is incomplete, keep the
+provisional artifact unchanged and let the integrity error block closure.
+
 A completed `reconciliation` task must reference a `reconciliation_result`
 artifact. That artifact must contain `payload.reconciliation_result.status`. If
 the reconciliation status is `ready` or `ok`, the artifact must also preserve
@@ -244,6 +267,22 @@ Retrieval/routing policy는 `src/config/retrieval_policy.py`처럼 명명된 con
 Numeric path는 deterministic contract를 따른다. 산술, 단위 변환, operand ordering, dependency binding, dedupe, validation은 코드가 담당한다. LLM은 intent, concept, evidence interpretation처럼 의미 판단에만 쓴다.
 
 Evaluator는 평가 정의를 담을 수 있지만, runtime agent가 evaluator trick을 따라가면 안 된다.
+
+Evaluator scoring follows the same semantic/execution boundary. Qualitative
+faithfulness, completeness, and trend interpretation may use LLM judgement,
+but numeric rendering validation is deterministic. Every amount, count, ratio,
+or percentage rendered in an answer must be equivalent to a canonical
+calculation-trace surface, a derivation of trace operands, or current runtime
+evidence; non-numeric narrative is outside that metric and must not fail it.
+`calculation_correctness` combines numeric-result correctness with this
+deterministic rendering check only. Semantic trend judgement remains a separate
+metric and cannot raise or lower calculation correctness. Historical replay
+recomputes the current deterministic metric while retaining the saved source
+score for audit instead of inheriting an older LLM rendering verdict.
+Numeric-grounding false-negative correction is subordinate to this deterministic
+authority: it may correct judge grounding only when grounded rendering is pass
+or not applicable. A deterministic grounded-rendering failure cannot be raised
+to pass, and grounding override must not erase or bypass that failure.
 
 ## 5.1 Report-Scoped Value Cache Contract
 
@@ -423,6 +462,12 @@ This is a generic binding rule, not a place to encode company names, segment
 names, or benchmark-specific vocabulary. Metric surfaces must come from the
 ontology/policy-backed concept spec or the inferred generic metric label.
 
+Once the semantic plan attaches a `segment_label`, flattened table-label
+recovery must keep that binding row-local. Generic metric aliases may help find
+an unscoped operand, but they must not select a total or sibling row that omits
+the planned segment. A segment-only row label is eligible because the metric is
+already fixed by the operand contract; a row for another or no segment is not.
+
 ### Non-Numeric Intent With Numeric Operations
 
 Routing intent is not the only gate into the numeric planner. If a query is
@@ -515,6 +560,35 @@ and answer slots when it is attached to the same evidence. The deterministic
 formula result should remain traceable, for example in `derived_metrics`, when
 it differs because the source rounded or displayed the value at a different
 precision.
+
+Late table-label recovery is still fallback authority. When a complete
+period-comparison result already has material, sourced current/prior slots and
+its deterministic percentage is equivalent to the matching source-stated
+display, recovery must preserve those operand slots rather than replace them
+with a lower-precision flattened pair. A materially conflicting source-stated
+display may still trigger the existing evidence-backed repair path. This
+precedence uses the semantic operand contract and numeric equivalence; it must
+not branch on a company, report, metric, or benchmark id.
+
+A `difference` operation does not by itself imply a period change. The semantic
+operand contract determines which of these two execution meanings applies:
+
+- both `current_period` and `prior_period` roles mean `period_delta`;
+- component subtraction through `minuend` and `subtrahend` means
+  `derived_value`.
+
+Fresh `DifferenceAnswerSlots` must record that decision in
+`result_semantics`. A `period_delta` exposes sourced current, prior, and delta
+slots and may carry a deterministic direction. A `derived_value` exposes the
+calculated `primary_value`; it must not synthesize current/prior slots or infer
+rise/fall language from the result sign. The explicit semantic marker takes
+precedence over legacy aggregate aliases such as a retained `delta_value`.
+Older traces without the marker may be inferred only from their structured
+operand roles or legacy current/prior slot shape. A partial legacy period slot
+still counts as period-comparison intent so material-gap validation can request
+the missing counterpart; it does not authorize rendering until all material
+current/prior/delta slots exist. Never infer the meaning from a positive or
+negative number, a shared year, a company, a metric, or a benchmark id.
 
 ### Adaptive Retrieval Stop Gate
 
@@ -7328,9 +7402,85 @@ metric/period/source coherence must govern operand adoption; final answers and
 resolved traces must agree; operation rendering must preserve absolute-versus-
 delta intent; and evaluator missing-answer markers must use semantic/token
 boundaries. No company, benchmark-id, or metric-specific runtime branch is
-permitted. The release gate remains open under
-[Project Status Next Work](../overview/project_status.md#next-work); this did not
-resume Phase 3 refactoring.
+permitted. At that checkpoint the release gate remained open; the later bounded
+ledger, context-order, and answer-surface successors closed it without resuming
+Phase 3 refactoring. Current authority is
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+The 2026-08-26 Samsung closure makes candidate semantics and execution authority
+explicit. A semantic reconciliation model may return one selected candidate id
+or an ambiguous status. Selection is not execution authorization by itself: the
+chosen candidate must still carry a material numeric value and satisfy the
+active period, unit, source, and operand-role contract. Ambiguous selection or
+an invalid selected candidate must stop or use an existing evidence-backed
+fallback; runtime code must not add row-label, company, question-id, or answer-
+value branches. Flattened lookup over multiple material rows and values must
+refuse to guess.
+
+Lookup numeric provenance is one-way:
+
+1. recover the exact structured source row and source-visible unit;
+2. create the canonical answer slot with row id, raw value/unit, normalized
+   value/unit, and source anchor;
+3. render the final answer from that slot.
+
+Final prose is not a source and must not overwrite a lookup slot. Aggregate
+final-answer surface synchronization therefore excludes lookup rows. When a
+source sentence or row supplies an alternate display, preserve that source
+display in evidence/slot metadata before composition; do not reconstruct it by
+parsing the generated answer.
+
+Exact numeric source recovery is validation, not a second semantic selector.
+The deterministic path may search both the visible retrieval window and eligible
+seed documents, but when an active required operand has the same raw value in
+multiple distinct exact source rows it must return ambiguity rather than choose
+the first or rank rows by inferred meaning. The LLM-selected semantic candidate
+must be grounded to one exact row before execution; company, question-id, row-
+label, or answer-value branches are not permitted to resolve the ambiguity.
+
+The same one-way rule applies to fresh component-subtraction results. When a
+`difference` answer-slot contract explicitly declares `result_semantics =
+derived_value`, final-answer arithmetic surface synchronization must not replace
+its deterministic result or primary slot. This gate does not change
+`period_delta`, ratio, growth-rate, sum, or legacy unclassified behavior. The
+distinction is semantic and slot-based, not metric-, company-, or benchmark-
+based.
+
+A preferred complete numeric answer must likewise render an explicit-role
+component difference from its structured `minuend`, `subtrahend`, and
+`primary_value` slots before falling back to a generic `formatted_result`.
+Later numeric-answer refreshes are not a new semantic authority: before such a
+refresh replaces the public numeric surface, it must reapply the shared
+evidence-bound source-visible query-term preservation contract against ordered
+results and evidence items. A query term may be restored only when those
+surfaces support it. Legacy differences without explicit roles retain their
+existing formatted-result behavior; this contract must not infer roles from a
+company, question id, metric name, result sign, or generated prose.
+
+Evaluator context follows the same provenance order. Final claim-scoped runtime
+evidence precedes broad retrieved context in judge inputs, with stable dedupe.
+Deterministic numeric equivalence, grounding, and retrieval support remain
+separate from qualitative narrative judgement, so unrelated broad context or a
+qualitative interpretation cannot reverse a correct numeric execution result.
+Conversely, an LLM grounding override cannot reverse a deterministic grounded-
+rendering failure; only pass or not-applicable rendering may enter that override.
+
+Structural retrieval prefixes are indexing metadata, not document evidence.
+The configured prefix fields may be removed from semantic-model context and
+final evidence quotes, but source headings and body text must remain. Evaluator
+missing/refusal markers likewise operate on complete phrases or token
+boundaries; a short substring inside a longer word is not a refusal signal.
+
+Provider-backed evidence confirmed the semantic-row contract across two focused
+Samsung runs and a first full gate: the answer and extraction fingerprint were
+identical and the canonical tuple remained `28,352,769 / 백만원 / ev_001`.
+That first gate exposed an empty NAVER operand artifact and qualitative surface
+residuals. After the bounded ledger, context-order, and late-surface closures, a
+successor store-fixed gate reproduced the canonical tuple and completed all five
+rows without runtime or integrity error. This is release-integration evidence
+over persisted stores, not fresh-ingest or publishable benchmark evidence.
+Exact current evidence and next work are authoritative in
+[Project Status](../overview/project_status.md#clean-store-fixed-integration-gate-closure-2026-08-26).
 
 The following generic operand-label paragraphs preserve the historical
 characterization checkpoint that preceded `5a40a1b`; they are not active work.

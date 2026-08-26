@@ -7,19 +7,19 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-25
+Last updated: 2026-08-26
 
 ## At A Glance
 
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | Unit/contract CI is green, but release integration is blocked by a non-clean store-fixed benchmark refresh |
+| Is the core path blocked? | No known hard runtime blocker remains in the bounded five-question integration set; the clean provider gate predates final defensive hardening, so PR/CI review and an explicit integration decision remain |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | A provider-backed, store-fixed five-question policy gate ran against source head `672fc7f`; it completed without execution errors but exposed unstable operand/final projection, answer rendering, and evaluator-marker behavior |
-| What passed? | Exact-head GitHub Actions run `32809007035` passed reviewer contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,145/2,145; the benchmark reused four strict-health-checked stores and completed all 5 questions with error rate 0.0% |
-| Was the benchmark refreshed? | **RUN, NOT CLEAN**; the first 5-question pass produced an incorrect NAVER 17.6% answer, an LGE absolute-result rendering defect, and a Samsung trace inconsistency; focused reruns showed nondeterminism and an evaluator false positive |
-| What is next? | Keep PR #86 draft and refactoring paused; close the generic release-gate defects, rerun the focused rows, then repeat the same five-question store-fixed gate before considering a history-preserving merge |
+| What just changed? | Pre-commit review added three fail-closed contracts: duplicate-value exact source rows remain ambiguous, direct ledger operands must cover the complete plan, and an LLM grounding override cannot erase deterministic rendering failure |
+| What passed? | Runtime audit 217 and full local unittest 2,165/2,165 passed after the final hardening; the earlier focused replays and monitored four-company/five-question integration gate remain the latest provider evidence |
+| Was the benchmark refreshed? | **YES, BUT BEFORE FINAL HARDENING**; the store-fixed gate completed 4/4 companies and 5/5 questions with pass count 4, full-eval fail count 0, errors/integrity issues 0, and aggregate quality metrics 1.000. After the defensive changes, only a historical-answer no-call replay was run |
+| What is next? | Keep refactoring paused; release source/tests are recorded in `6d6ca01`, so finalize the documentation commit, update draft PR #86, wait for exact-head CI, then make an explicit history-preserving integration decision |
 
 ## Product Boundary
 
@@ -40,9 +40,19 @@ or an unconfigured `FinancialAgent` invocation.
 - PRs #79 through #84 completed the July portfolio-core simplification; PR #85
   compressed the earlier handoff documents. Latest confirmed upstream merge is
   `main@f0a5145`.
-- The local checkpoint is the current HEAD of
-  `codex/finalize-five-minute-review`; use `git log` for the exact commit. It is
-  not represented here as pushed or merged.
+- The pre-stabilization remote branch checkpoint is
+  `codex/finalize-five-minute-review@1477de5`. Reviewed release source/tests are
+  now recorded locally in `6d6ca01`; this status update is the successor docs
+  commit. Neither commit is merged into `main@f0a5145`.
+- The current release stabilization includes bounded in-place
+  dependency operand-artifact finalization, claim-scoped evaluator context
+  ordering, explicit-role component-difference rendering, and late numeric
+  surface preservation. Pre-commit hardening additionally rejects duplicate-
+  value exact source-row ambiguity, requires complete plan-id coverage from
+  direct ledger operands, and prevents grounding override of deterministic
+  rendering failure. Each remains generic and evidence-bound; missing or
+  incomplete artifacts still fail integrity and unsupported query terms are not
+  added to answers.
 - Canonical numeric output is `resolved_calculation_trace`, explicit
   `structured_result`, and task/artifact projection. Default output does not
   revive top-level `calculation_*` compatibility mirrors.
@@ -739,7 +749,7 @@ For topology rather than normative behavior, use
 | Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
 | Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
 | Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
-| Policy-driven runtime gate | Historical run recorded PASS; 2026-08-25 exact-source refresh completed but is **NOT CLEAN** |
+| Policy-driven runtime gate | **RECORDED PASS** on the 2026-08-26 store-fixed eval-only refresh: 4 / 4 companies, 5 / 5 questions, full-eval fail count 0; the provider run predates final pre-commit hardening |
 | Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
 | Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after later repairs |
 | Reflection promotion gate | READY |
@@ -750,14 +760,15 @@ For topology rather than normative behavior, use
 | Portfolio review surface | PASS on `ab7e9ba`: remote reviewer contracts 32 / 32 and `review_surface_ready`; the gate command's own publication-validation field remains `not_run`, with audit/full tests executed separately by the workflow |
 | Latest focused owner checkpoint | PASS, runtime-trace exact affected methods 101 / 101 and corrected focused coverage 1,176 / 1,176 |
 | Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace resolver public rename |
+| Latest release-fix regression set | PASS, full local discovery 2,165 / 2,165 after source-row ambiguity, direct-operand plan coverage, and deterministic rendering-authority hardening |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
-| Full unittest discovery | PASS, 2,145 / 2,145 on Ubuntu/Python 3.13 at exact PR head `ab7e9ba`; the unchanged FinancialAgent production checkpoint previously passed 2,143 / 2,143 locally |
-| Benchmark refresh for source head `672fc7f` | **HOLD**; 4 companies / 5 questions completed, error rate 0.0%, but answer/trace quality was not stable enough for release |
+| Full unittest discovery | PASS, latest local 2,165 / 2,165 after pre-commit hardening; exact published PR head `ab7e9ba` remains 2,145 / 2,145 on Ubuntu/Python 3.13 |
+| Benchmark refresh after release stabilization | **CLEAN PRE-HARDENING PROVIDER EVIDENCE**; 4 / 4 companies, 5 / 5 questions, pass count 4, error/integrity issue 0, aggregate faithfulness/completeness/context recall/numeric pass rate 1.000; no post-hardening provider rerun |
 | GitHub Actions validation | PASS, run `32809007035`: reviewer job 14 seconds and full-suite job 5 minutes 32 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -772,21 +783,25 @@ The semantic set is `tests.test_financial_graph_helpers`,
 separately at 19 / 19.
 
 Recorded structural and plain-retrieval numbers remain historical evidence.
-The 2026-08-25 policy-gate refresh is current-code execution evidence over the
-older store-fixed input, not fresh ingest evidence and not a publishable quality
-score. Its raw outputs and heartbeat logs are ignored local artifacts. A fresh
-or store-fixed benchmark is still required after a material parser, ingest,
-store-signature, retrieval, or answer-contract change.
+The 2026-08-26 policy-gate refresh was current-agent/current-evaluator execution
+over the persisted store at its recorded source state, not fresh ingest evidence
+or a new publishable quality claim. Its raw outputs and heartbeat logs are
+ignored local artifacts. Within that bounded integration contract it was clean:
+all five rows completed without runtime error or artifact-integrity issue, and
+every company passed. The final defensive changes were subsequently validated by
+unit/contract tests and one no-call historical-answer replay, not another
+provider-backed current-agent run. This supports PR review but does not merge
+PR #86 or resume Phase 3 refactoring automatically.
 
 ## Active Blockers And Remaining Debt
 
 | Area | State |
 | --- | --- |
-| Core correctness | Unit/contract CI is green; benchmark execution exposed runtime answer/trace instability not covered by those tests |
-| Latest benchmark evidence | Five-question store-fixed refresh completed but is not a release pass |
+| Core correctness | Unit/contract tests are green; Samsung semantic row/lookup provenance, LGE derived-value trace/surface preservation, NAVER operand-artifact registration, and evaluator claim-context ordering are closed in focused evidence and reproduced by the clean gate; three post-gate defensive contracts are source-tested but not provider-rerun |
+| Latest benchmark evidence | The latest provider-backed five-question store-fixed eval-only refresh is clean at its recorded pre-hardening source state; it is persisted-store integration evidence, not exact-current-source, fresh-ingest, or publishable benchmark evidence |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | Draft PR #86 is published and remote CI is green; `main` remains unchanged, and merge is blocked until the benchmark defects are closed and the gate is rerun cleanly |
+| Release integration | Draft PR #86 is published and earlier-head remote CI is green; local diff/evidence review is complete and source/tests are committed as `6d6ca01`; `main` remains unchanged, and the next action is docs commit, PR update, exact-head CI, then an explicit history-preserving merge decision |
 
 The durable Phase 3 debt is:
 
@@ -794,7 +809,7 @@ The durable Phase 3 debt is:
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period, desired consolidation-scope, query/task period-focus and single-report-scope policy, structured-cell selection/scoring and candidate selected-cell preparation, candidate report/period-scope policy and period/table coherence scoring, candidate concept-conflict, contextual-aggregate and note-aggregate lookup preference, balance-sheet aggregate-operand and CAPEX-total operand classification, candidate surface-contract/segment binding and scoped surface-affinity scoring, candidate metadata-policy projection, candidate location/entity subject and source-priority scoring, deterministic positional preference and complete operand-candidate scoring, candidate-to-operand matching, direct-match-strength scoring, direct-candidate semantic-priority projection, canonical-statement-winner classification, ratio-component and direct acceptance, and direct-grounding classification, column-candidate and delta-like row-label classification, segment-local/segment-metric row-surface ownership, aggregate-like row and candidate value-role/stage projection, candidate operand-context/structured-sibling projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, reconciliation candidate construction/ranking, broader evidence orchestration, and surrounding sequencing remain graph-owned |
-| Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
+| Broader task/artifact ledger synchronization | Advanced through bounded read-only reconciliation refs and in-place finalization of an attached provisional operand artifact from successful, plan-complete, provenance-bearing task input slots; missing-artifact creation and whole-ledger synchronization remain out of scope |
 | Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, desired consolidation-scope policy, lookup answer-slot/support, read-only retrieval-hint projection, quantitative-impact projection, and retrieval cost-control/trace diagnostics moved; broader evidence, runtime-trace, and orchestration seams remain |
 
 These are debt groups, not a promised count of four implementation slices. Each
@@ -803,33 +818,327 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 **REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
-owner seam. Draft PR #86 contains production milestone `2892d1b`, integration
-fix `ab7e9ba`, and the benchmarked source/docs head `672fc7f`; GitHub Actions run
-`32809007035` passed both reviewer and full-suite jobs. `main` remains at
-`f0a5145`.
+owner seam. Draft PR #86 still points remotely to `1477de5` until push;
+reviewed release source/tests are recorded locally in `6d6ca01`. GitHub Actions
+run `32809007035` passed both reviewer and full-suite jobs on an earlier exact
+head. The accumulated stabilization diff and evidence have completed local
+review. `main` remains at `f0a5145`.
 
-The active work is bounded release-gate stabilization, not Phase 3 refactoring:
+The bounded release-gate stabilization sequence below is complete. Source/tests
+are recorded in `6d6ca01`; the active work is to record this documentation,
+update the draft PR, wait for exact-head CI, and then make an explicit integration
+decision. This is not Phase 3 refactoring:
 
-1. characterize and cover the generic precedence that allowed `NAV_T2_006` to
-   replace correct task-output operands (`2,546,649 / 1,801,079` 백만원,
-   `41.4%`) with a different MDA pair (`9,670.6 / 8,220.1` 억원, `17.6%`);
-2. preserve absolute subtraction-result intent so `LGE_T1_051` does not render
-   the correct value as an amount that "상승했습니다";
-3. keep final-answer numeric surfaces and structured lookup traces coherent;
-   the first `SAM_T2_078` run exposed `28,352,769` versus `28,339,724` 백만원,
-   although the focused rerun converged;
-4. fix the evaluator-only missing-answer marker so the substring `없` inside
-   `끊임없는` cannot produce a false refusal failure, and cover the leaked
-   metadata-style narrative prefix separately;
-5. rerun the affected focused rows, then repeat the same four-company,
-   five-question store-fixed gate with heartbeat logging.
+1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
+   `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
+   1,801,079` 백만원, `41.4%`) with a different MDA pair (`9,670.6 /
+   8,220.1` 억원, `17.6%`) is now covered. Flattened table-label lookup honors
+   the semantic plan's `segment_label`; a matching source-stated percentage no
+   longer replaces complete sourced operands, while a material conflict still
+   reaches the existing repair path. Two provider-backed replays preserved the
+   same segment, current/prior slots, and `41.4%` result. Their selected-trace
+   fingerprints were identical. A second-run LLM rendering judge false negative
+   is also closed at the evaluator-contract level: numeric surfaces are now
+   checked deterministically and qualitative trend judgement is separate.
+2. **FOCUSED CLOSED:** `difference` answer slots now distinguish
+   `period_delta` (`current_period` plus `prior_period`) from component
+   subtraction `derived_value` (`minuend` plus `subtrahend`). Fresh derived-value
+   rows expose a neutral `primary_value` and no direction. A monitored,
+   store-fixed `LGE_T1_051` replay preserved this contract and rendered
+   `1,486,334백만원입니다`, with numeric/faithfulness/completeness/calculation
+   all passing;
+3. **FOCUSED AND FULL-GATE CLOSED:** `SAM_T2_078` now delegates semantic row
+   choice to the LLM but requires the chosen row to satisfy deterministic
+   period/unit/source execution contracts. Focused B/C and the full gate were
+   byte-identical and kept `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`;
+   lookup traces no longer reverse-sync from final prose, metadata prefixes are
+   removed without deleting `[Harman]`, and phrase-aware refusal markers no
+   longer match `없` inside `끊임없는`;
+4. **FOCUSED CLOSED AFTER FULL-GATE FINDING:** a fresh `derived_value`
+   difference is excluded from final-prose numeric reverse synchronization.
+   The LGE successor kept nested result, primary slot, and public top result at
+   `1,486,334백만원` even though the composer again emitted a terse three-number
+   sentence. Numeric/faithfulness/grounded-rendering/calculation passed; the
+   then-observed narrative completeness `0.500` was closed by the later generic
+   answer-surface work in item 6;
+5. **FOCUSED CLOSED:** an attached provisional operand artifact is finalized
+   before integrity projection only from a successful calculation result whose
+   task-owned input slots cover every plan operand id and retain numeric/source
+   provenance. A monitored NAVER successor reproduced initial `operands=0`, kept
+   `41.4%`, changed `operands:task_1:003` to two finalized inputs with `ev_001`,
+   returned integrity `ok`, and avoided recovery replans. Missing artifacts,
+   incomplete plan coverage, and unprovenanced slots still fail closed;
+6. **CLOSED, CLEAN FULL GATE:** exact-artifact diagnosis found two generic
+   surface problems rather than company/question failures. Evaluator prompts
+   could put broad retrieval text ahead of the final claim-scoped runtime
+   evidence, and a later numeric-answer refresh could overwrite an already
+   grounded source-visible term note. Runtime evidence is now prioritized,
+   explicit-role component differences render from structured slots, and the
+   central late refresh reapplies the same evidence-bound term-preservation
+   contract. Focused LGE replay C restored completeness `1.000`; the successor
+    monitored gate completed 4 / 4 companies and 5 / 5 questions with pass count
+    4, full-eval fail count 0, and no runtime or integrity error.
+7. **POST-GATE PRE-COMMIT HARDENED:** exact numeric source recovery now refuses
+   duplicate raw values across distinct source rows under an active required
+   operand instead of making a deterministic semantic choice. Direct artifact
+   operands must cover every required plan id before closing the ledger, and an
+   LLM grounding override cannot erase deterministic grounded-rendering failure.
+   Runtime-domain audit 217 and full unittest 2,165 / 2,165 passed. No provider
+   benchmark was rerun; a no-call replay of the stored Samsung clean-gate answer
+   produced equivalence/retrieval-support/rendering/calculation 1.000 but
+   `numeric_grounding=null`, so its `UNCERTAIN` result is compatibility evidence,
+   not a fresh pass.
 
-Keep PR #86 in draft and do not merge, tag, rewrite history, change branch
-protection, or resume refactoring while this release gate is open. If a later
-clean gate authorizes integration, use a history-preserving merge commit rather
-than squash or rebase because the repository documents cite intermediate commit
-receipts. The parked docs-and-static-analysis-only Phase 3 audit remains the
+The release-gate stabilization sequence and local diff/evidence review are
+complete. Keep PR #86 in draft through logical commit publication and exact-head
+CI. The clean provider gate plus post-gate source tests authorize an integration
+decision, not an automatic merge; whether to buy another focused or full
+provider replay before merge is part of that explicit decision. If approved,
+use a history-preserving merge commit rather than squash or rebase because
+repository documents cite intermediate commit receipts. Do not tag, rewrite
+history, change branch protection, or resume refactoring as part of that
+decision. The parked docs-and-static-analysis-only Phase 3 audit remains the
 first step only if refactoring is explicitly resumed later.
+
+## Clean Store-Fixed Integration Gate Closure (2026-08-26)
+
+The final successor run reused the existing four company stores and executed the
+current agent and evaluator in monitored `--eval-only` mode. It did not perform
+fresh DART fetch, parse, ingest, or document embedding. The local ignored output
+is
+`benchmarks/results/integration_policy_gate_after_late_numeric_surface_preservation_2026-08-26/`.
+
+- 4 / 4 companies and 5 / 5 questions completed in `570.031` seconds;
+- company pass count 4, full-eval fail count 0, error count 0, integrity issues
+  0;
+- aggregate faithfulness, completeness, context recall, and numeric pass rate
+  were each `1.000`;
+- `LGE_T1_051` returned numeric PASS and preserved
+  `2,163,234백만원 - 6,769억원 = 1,486,334백만원`, with the grounded source
+  terms `IRA` and `AMPC` retained after the final numeric refresh;
+- `SAM_T2_078` preserved canonical row/value/unit/source
+  `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`;
+- 52 LLM calls, 290,893 LLM tokens, 46 query embeddings, zero document
+  embeddings, and estimated runtime LLM cost `$0.2595345` were recorded;
+- related evaluator/answer-surface tests passed 498 / 498, runtime-domain audit
+  passed 217 reviewed literals, and full unittest passed 2,163 / 2,163;
+- top-level `results.json` SHA-256 is
+  `2d786dd729b17b374681ad986250b72bca062093f626ebf9547822c366ad72b3`.
+
+`numeric_final_judgement = null` remains N/A rather than failure for the mixed
+or narrative rows whose other grounded-quality signals are healthy. The LGE
+entity-coverage diagnostic remained `0.833` even though the completeness judge
+explicitly found every requested entity; it is retained as a diagnostic
+mismatch, not hidden or reclassified as a gate failure.
+
+## NAV Dependency Operand Artifact Closure (2026-08-26)
+
+The full gate's NAVER answer and deterministic calculation were already correct;
+the error came from checking a provisional empty `operand_set` after dependency
+results had produced authoritative input slots but before those inputs were
+written back to the attached artifact. The closure does not weaken the
+integrity rule or turn final prose into data:
+
+- only a successful calculation result may finalize the operand artifact;
+- the calculation plan must expose required operand ids and the task-owned input
+  slots must cover every id;
+- every finalized input must carry numeric material and source provenance;
+- the existing artifact is replaced in place, preserving id, ledger order, task
+  attachment, and artifact count;
+- missing artifacts, incomplete slot coverage, or missing provenance remain
+  unchanged and continue to emit the existing integrity error.
+
+The monitored store-fixed successor reused the 1,837-document NAVER store and
+again logged `coverage=sufficient operands=0` before the deterministic calculator
+returned `41.4%`. It then completed without `semantic_plan_replan`:
+
+- `task_artifact_integrity_status`: `error -> ok`, issues `1 -> 0`;
+- `operands:task_1:003`: `0 operand(s)` with no refs ->
+  `2 finalized dependency operand(s)` with `ev_001`;
+- question latency: `268.740 -> 129.626` seconds;
+- agent usage: `21 -> 11` calls and `126,829 -> 70,923` tokens;
+- faithfulness/completeness/calculation stayed `1.000`; error rate stayed `0.0%`;
+- eight query embeddings and zero document embeddings were used; no DART
+  fetch, parse, or ingest occurred.
+
+The new local bundle is
+`benchmarks/results/nav_t2_006_operand_artifact_finalization_replay_b_2026-08-26/`.
+It is ignored experiment evidence, not a committed artifact or a successor full
+gate. Runtime audit 217, focused subtask/aggregate tests 381/381, and full local
+unittest 2,160/2,160 passed.
+
+## Samsung Semantic Row And One-Way Provenance Closure (2026-08-26)
+
+`SAM_T2_078` was not a missing-retrieval problem. One table exposed several
+plausible research-and-development rows, and a later final-answer surface sync
+could overwrite the structured lookup with whichever number appeared in prose.
+The generic closure separates responsibilities:
+
+- the LLM may select one reconciliation candidate explicitly or return
+  ambiguous;
+- deterministic code accepts the selected row only when its period, unit,
+  material value, and source evidence satisfy the active operand contract;
+- a multi-row/multi-value flattened lookup refuses to guess;
+- source row -> canonical lookup slot -> final answer is one-way, so lookup
+  traces are never recovered by parsing final prose;
+- configured zero-cost metadata prefixes are removed from LLM context and
+  final evidence quotes, while source headings such as `[Harman]` remain;
+- evaluator missing/refusal detection is phrase-aware and does not match the
+  bare substring `없` inside `끊임없는`.
+
+No company, benchmark id, row label, metric-specific keyword bundle, or answer
+value was added to runtime control flow. The semantic prompt and prefix policy
+are declarative; execution remains deterministic and evidence-backed.
+
+Two monitored, store-fixed focused runs and the later five-question gate reran
+the current agent/evaluator without DART fetch, parse, ingest, or document
+embedding. All three produced a byte-identical 377-character answer and the
+same extraction fingerprint
+`de311d9fa0818ca04bacad873ee16ad8dda94633ee3296287722cd64a7067c08`.
+All kept canonical operand `28,352,769백만원`, normalized
+`28,352,769,000,000 KRW`, source row `ev_001`, anchor
+`II. 사업의 내용 > 6. 주요계약 및 연구개발활동`, and exact quote
+`연구개발비용 총계 | 제55기 | 28,352,769 | 백만원`. The two focused
+runs returned faithfulness/completeness/refusal/grounded rendering/calculation
+`1.000`, error `0.0%`; the full gate repeated those values with context recall
+`0.800`. `numeric_final_judgement=null` is not-applicable for this mixed row,
+not a numeric failure.
+
+Focused B/C recorded 18 LLM calls, 79,841 tokens, 12 query embeddings, zero
+document embeddings, and `$0.0831895` combined estimated runtime LLM cost. Their
+top/company result SHA-256 pairs are
+`99df917f18465517f857596bd7bf3e3641d2166cc802b05fd5857e7df946acaf /`
+`a4249b0297aa492942c9a85d5c3930aa2f52f9cd577b2fe72c59b25e8a9d9d6c`
+and
+`7708ed528548dd0f95aaf8157b92be5193168be7dd84b54ffebf24909bafc435 /`
+`517af35227a68f714e525ee07aaf48c758ac49b19b17f7c0601214fdcf16e07e`.
+
+The monitored full gate then completed all four companies and five questions in
+747.5 seconds with error rate `0.0%`. It recorded 62 LLM calls, 354,014 tokens,
+46 query embeddings, zero document embeddings, and `$0.3427218` estimated
+runtime LLM cost. Its top-level and Samsung company result SHA-256 values are
+`fc23d30421fe521c86c2e5fba896e66afff30967d12de43beb60fbfb48acfe26`
+and `f442b6c9c1bf4c741216427f7403c711f0e86cc9edcb9db465295e667ed4432c`.
+The aggregate was faithfulness `0.9125`, completeness `0.8375`, context recall
+`0.9500`, numeric pass `1.000`, with two full-eval failures. It is therefore
+**not** a release pass:
+
+- NAVER answered the correct `41.4%` but its required operand artifact contained
+  an empty `calculation_operands` payload, leaving integrity `error` and causing
+  two recovery replans (`272.587` question seconds);
+- HYU_T2_010 received faithfulness/completeness `0.300 / 0.700` despite a direct
+  runtime quote supporting the essentially unchanged answer; this is an
+  evaluator-variance candidate, not authorization for a runtime phrase patch;
+- LGE remained numeric PASS and faithfulness `1.000`, but its terse answer scored
+  completeness `0.500`, and the old final-answer surface sync replaced the
+  nested derived result with the component `6,769억원`.
+
+The LGE trace defect was closed immediately afterward by excluding explicit
+`derived_value` differences from final-prose numeric reverse sync. A focused
+successor preserved nested calculation result and primary slot
+`1,486,334백만원`, left the sync marker absent, and returned numeric PASS,
+faithfulness/grounded rendering/calculation `1.000`, error `0.0%`. It recorded
+9 LLM calls, 44,095 tokens, 5 query embeddings, zero document embeddings, and
+`$0.0418109` estimated runtime LLM cost. Narrative completeness remained
+`0.500`; no benchmark wording was added. The successor top/company SHA-256 pair
+is
+`a62d020d9616d772423d0e0917307f106340f903980b6e8fb3225a7711eaf478 /`
+`f8167ce1f212a99cd8358b9c54d05ba047bf83be65c1b4656f7a3c09936bcaae`.
+Because this source change followed the full gate, another full gate is still
+required after the active NAVER ledger fix.
+
+## LGE Absolute Difference Semantics Closure (2026-08-25)
+
+The LGE arithmetic and semantic operands were already correct: operating income
+`2,163,234백만원` minus the `6,769억원` tax credit equals
+`1,486,334백만원`. The defect was a generic answer-slot projection rule that
+treated every `difference` as a current/prior-period delta and therefore turned
+a positive derived amount into "상승했습니다".
+
+The runtime now keeps semantic judgement and deterministic rendering separate:
+
+- `DifferenceAnswerSlots.result_semantics` records `period_delta` or
+  `derived_value` for fresh traces;
+- only a complete `current_period` plus `prior_period` role pair creates period
+  comparison slots and direction;
+- `minuend` plus `subtrahend` creates a derived `primary_value` with no synthetic
+  current/prior slots or direction;
+- explicit semantics wins over legacy aggregate aliases, while old traces are
+  inferred structurally for compatibility;
+- material-gap validation requires only the primary result for a derived
+  difference and retains the stronger current/prior/delta contract for a true
+  period delta.
+
+No company, benchmark id, policy phrase, or financial metric was added to
+runtime control flow. Related regression tests passed `829/829`, runtime-domain
+audit remained `217`, pycompile passed, and full unittest passed `2,153/2,153`
+in `227.030` seconds.
+
+A monitored store-fixed eval-only replay then reused the existing LGE store and
+ran the current agent/evaluator for `LGE_T1_051`; no DART parse, fetch, ingest,
+or historical-answer replay occurred. The result carried
+`result_semantics=derived_value`, component roles `minuend/subtrahend`,
+`direction=null`, and the final sentence
+`이를 제외한 실질 영업이익은 1,486,334백만원입니다.` It scored numeric
+`PASS`, faithfulness/completeness/grounded rendering/calculation
+`1.000 / 1.000 / 1.000 / 1.000`, error rate `0.0%`, and average score
+`0.937761`. `numeric_result_correctness` and
+`trend_interpretation_correctness` were correctly null/not-applicable; the
+calculation and its rendering still passed.
+
+The focused run took `63.605` question seconds and recorded 9 LLM calls, 45,848
+LLM tokens, 5 query-embedding calls, and `$0.0478852` estimated runtime cost;
+embedding cost was not reported. Its ignored local bundle is
+`benchmarks/results/lge_t1_051_difference_semantics_replay_2026-08-25/`; the
+top-level `results.json` SHA-256 is
+`a1c4a4f73c1b059021d5857b22cd7d36bcb4a6875b9d6d15cbd4695280d2e9ba`.
+No remote CI, commit, push, PR update, merge, tag, or artifact publication ran.
+
+## NAV Segment-Bound Period Comparison Stabilization (2026-08-25)
+
+The prior integration artifact showed that the semantic plan had already
+attached `binding_policy.segment_label = "커머스"`, but late flattened
+table-label recovery ignored that decision and selected the unscoped
+`영업수익` row. The fix does not add another LLM call or a company/question
+branch. It makes deterministic execution respect the existing semantic plan:
+
+- segment-bound table-label lookup keeps only segment-scoped lookup surfaces
+  and rejects matched line labels that omit the planned segment;
+- a complete period-comparison result is preserved when its deterministic
+  percentage is numerically equivalent to the matching source-stated display,
+  so lower-precision fallback rows cannot replace sourced task outputs;
+- a materially conflicting source-stated display still exercises the existing
+  evidence-backed repair path, preserving the earlier SKI contract;
+- the duplicate direct read of `binding_policy.segment_label` in precision
+  refinement was deleted; `operand_segment_label(...)` remains the sole owner.
+
+The runtime fix first passed focused precedence tests `5/5`, aggregate
+projection `126/126`, operation contracts `242/242`, graph-helper structural
+contracts `290/290`, runtime domain-language audit `217`, and full unittest
+`2,147/2,147`. Two later provider-backed, store-fixed NAVER replays both kept
+`binding_policy.segment_label = "커머스"`, selected `2,546,649` and `1,801,079`
+백만원 from `ev_001`, calculated `41.395741...%`, rendered `41.4%`, and set
+`final_answer_surface_trace_sync = true`. The selected numeric trace fingerprint
+was identical in both runs. The wrong MDA pair stayed in retrieved context but
+was not promoted into either final trace or answer.
+
+The first replay scored grounded rendering/calculation `1.000 / 1.000`. The
+second had the same correct trace but an LLM judge interpreted the requested
+Poshmark narrative as forbidden non-numeric content and returned `0.000 /
+0.000`. This was an evaluator-definition false negative, not a runtime
+regression. Grounded rendering now compares numeric surfaces deterministically
+against canonical trace operands/results, permitted derivations, and runtime
+evidence. Non-numeric narrative is ignored by that metric; semantic trend
+judgement remains separate from calculation correctness. No-call historical
+replay over the exact two provider artifacts produced grounded rendering and
+calculation correctness `1.000 / 1.000` for both rows. The evaluator/benchmark
+focused suite passed `114/114`, audit remained `217`, and full unittest passed
+`2,151/2,151` in `246.268` seconds.
+
+The two provider runs recorded 26 LLM calls, 152,096 tokens, and `$0.1454758`
+combined runtime cost; embedding cost was not reported. Their result bundles
+and the two no-call replay summaries remain ignored local artifacts. No fresh
+ingest, remote CI, commit, push, PR update, merge, or tag was run.
 
 ## Integration Store-Fixed Benchmark Refresh (2026-08-25)
 
@@ -845,7 +1154,8 @@ reuse historical answers and performed no DART parse, fetch, or ingest.
 | --- | --- |
 | Main run | 4 companies / 5 questions, completed in 670.4 seconds, error rate 0.0% |
 | Hyundai | 2 questions; faithfulness/completeness 1.000 / 1.000 |
-| LGE | numeric final judgement PASS and faithfulness 1.000; completeness 0.500 because the absolute result was rendered as a rise |
+| LGE initial run | numeric final judgement PASS and faithfulness 1.000; completeness 0.500 because the absolute result was rendered as a rise |
+| LGE focused closure | explicit `derived_value`, neutral `1,486,334백만원입니다`; numeric PASS and faithfulness/completeness/calculation 1.000 |
 | NAVER first run | incorrect `17.6%`, faithfulness 0.300, completeness 0.500 despite retrieved evidence containing source-stated `41.4%` |
 | NAVER focused rerun | correct `41.4%`, faithfulness/completeness/calculation correctness 1.000, proving run-to-run instability rather than a stable pass |
 | Samsung first run | final answer `28,352,769백만원` but structured lookup `28,339,724백만원`; calculation correctness 0.000 |

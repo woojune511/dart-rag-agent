@@ -12251,3 +12251,258 @@ are complete. It remains only as an audit record, not an active priority.
   PR #86 stays draft, `main` stays unchanged, and the generic release-gate work
   is authoritative in
   [Project Status Next Work](../overview/project_status.md#next-work).
+
+### Segment-bound period-comparison precedence
+
+- The first integration blocker was classified as an execution-precedence
+  defect, not a missing semantic decision. The LLM-produced operand contract
+  already carried `binding_policy.segment_label`, but flattened table-label
+  recovery could still use an unscoped ontology alias and replace complete
+  task-output operands merely because that row carried a source-stated change.
+- Segment-bound table-label lookup now reuses
+  `candidate_matches_segment_binding(...)` to retain scoped lookup surfaces and
+  require the same binding on matched row labels. No company, benchmark id,
+  report phrase, or metric-specific runtime vocabulary was added.
+- Complete sourced current/prior slots now retain precedence when their traced
+  percentage is numerically equivalent to the matching source-stated display.
+  A material conflict still reaches the existing evidence-backed rebuild, so
+  the source-stated SKI regression remains protected.
+- Precision refinement no longer reads `binding_policy.segment_label`
+  directly after calling `operand_segment_label(...)`; the redundant fallback
+  was deleted and the public surface-contract helper is the single owner.
+- Generic regressions cover a table containing conflicting total and segment
+  rows, preservation of higher-precision complete slots, the no-source-change
+  stop, and the material-conflict repair. Focused tests passed 5/5; aggregate
+  projection 126/126, operation contracts 242/242, graph-helper structural
+  contracts 290/290, runtime domain-language audit 217, and full unittest
+  2,147/2,147 in 257.929 seconds also passed.
+- This is local source/contract evidence only. Provider benchmark, remote CI,
+  push, PR update, merge, and tag were not run. The prior ignored result bundles
+  were not modified or staged; focused NAVER validation remains in the release
+  gate after the remaining source fixes.
+
+### Deterministic numeric-rendering evaluator role split
+
+- Two provider-backed NAVER replays verified that the preceding runtime fix is
+  stable at the focused level: both selected the same segment-bound operands,
+  calculated `41.395741...%`, rendered `41.4%`, and kept answer/trace sync.
+  Their selected numeric trace fingerprints were identical.
+- The second replay nevertheless received grounded-rendering and calculation
+  scores `0.000 / 0.000`. Its LLM judge treated the question-required narrative
+  as forbidden merely because it was not an amount or percentage. The first
+  run accepted equivalent narrative, proving evaluator interpretation variance
+  rather than a calculation regression.
+- `_compute_grounded_rendering_correctness(...)` no longer invokes an LLM. It
+  deterministically extracts answer numeric surfaces and accepts only values
+  equivalent to canonical trace surfaces, permitted operand derivations, or
+  current runtime evidence. Free-form `formatted_result`, answer text, debug
+  traces, and retrieved payloads are not admitted as canonical trace surfaces.
+- `calculation_correctness` now combines numeric-result correctness and the
+  deterministic rendering metric only. LLM-based trend interpretation remains
+  separately visible and cannot change the calculation score.
+- Historical answer replay recomputes grounded rendering under the current
+  contract and exports the saved source score separately. No-call replay of the
+  exact two focused artifacts produced grounded rendering/calculation
+  `1.000 / 1.000` for both while preserving the second source score `0.000` for
+  audit.
+- The obsolete grounded-rendering prompt, invocation, and recording test double
+  were deleted. Generic regressions cover mixed narrative acceptance,
+  unsupported numeric rejection, evidence-backed auxiliary numbers,
+  numeric-only calculation aggregation, and source-score-independent replay.
+- Focused evaluator/benchmark contracts passed `114/114`, runtime-domain audit
+  passed at `217`, and full unittest passed `2,151/2,151` in `246.268` seconds.
+  No provider run followed the evaluator change; remote CI, commit, push, PR
+  update, merge, tag, and experiment artifact publication were not run.
+
+### Difference result-semantics and neutral absolute-result rendering
+
+- The next release blocker was classified as answer-slot/rendering semantics,
+  not arithmetic, retrieval, or evaluator scoring. A `difference` operation was
+  sufficient to create current/prior/delta slots even when the semantic
+  operands were component subtraction, and the renderer inferred a period
+  trend from those aliases.
+- `DifferenceAnswerSlots` now has backward-compatible explicit
+  `result_semantics`: `period_delta` or `derived_value`. Fresh component
+  subtraction returns a primary result with no synthetic current/prior slots or
+  direction; fresh current/prior subtraction retains the period-delta slots.
+- `_period_comparison_requested(...)` now requires both semantic period roles.
+  The answer-slot builder records the resulting meaning, and material-gap
+  validation requires only the primary slot for a derived difference while
+  preserving the stronger period-comparison contract.
+- `difference_slots_are_period_delta(...)` centralizes structural legacy
+  compatibility for rendering and projection. Explicit semantics wins over
+  stale aggregate aliases. Operand roles are the fallback authority for older
+  traces, so result sign, shared year, company, metric, and benchmark id do not
+  decide the wording.
+- Generic regressions cover period delta, component subtraction, misleading
+  legacy comparison aliases, neutral rendering, compositional subtraction, and
+  material-gap behavior. Focused answer-slot/operation tests passed `260/260`,
+  the expanded related suite passed `829/829`, runtime-domain audit remained
+  `217`, pycompile passed, and full unittest passed `2,153/2,153` in `227.030`
+  seconds.
+- A monitored, store-fixed provider replay of `LGE_T1_051` then carried
+  `result_semantics=derived_value`, `minuend/subtrahend`, and `direction=null`;
+  it rendered `1,486,334백만원입니다` and returned numeric PASS with
+  faithfulness/completeness/grounded rendering/calculation all `1.000` and error
+  rate `0.0%`. It performed no DART parse/fetch/ingest and recorded 9 LLM calls,
+  45,848 tokens, 5 query-embedding calls, and `$0.0478852` estimated runtime
+  cost. The result/heartbeat bundle is ignored local output. Remote CI, commit,
+  push, PR update, merge, tag, and artifact publication were not run.
+
+### Samsung semantic row selection and one-way numeric provenance
+
+- `ReconciliationCandidateRerank` now carries explicit `selected_candidate_id`
+  and `selection_status`. The semantic reconciliation prompt may select one
+  candidate or return ambiguous; deterministic execution still validates the
+  selected row's material value, period, unit, and source contract. Lowering a
+  semantic-match flag authorizes an LLM-selected row to enter deterministic
+  validation but never bypasses that validation.
+- Numeric extraction recovers the exact structured source row and lets the
+  source table unit override an unsupported LLM display unit. Evidence is built
+  from that row rather than a flattened multi-row table surface. Coarse flattened
+  lookup now refuses to guess when multiple rows and values remain.
+- Aggregate final-answer surface synchronization no longer admits lookup rows.
+  The canonical lookup slot is written from the selected source row and flows
+  one-way into the final answer; final prose cannot overwrite row, value, unit,
+  normalized value, or source provenance.
+- `INDEX_PREFIX_METADATA_POLICY` is a declarative list of removable zero-cost
+  metadata fields. `strip_index_metadata_prefix(...)` removes those prefixes
+  from semantic-extraction context and final narrative evidence while preserving
+  real source headings such as `[Harman]`.
+- Evaluator missing/refusal markers are phrase-aware. Complete refusal phrases
+  remain recognized, but the bare substring `없` no longer matches inside words
+  such as `끊임없는`.
+- Generic regressions cover explicit semantic selection and ambiguity,
+  deterministic rejection of an invalid selected row, exact row/unit recovery,
+  lookup one-way provenance, prefix cleanup with heading preservation, and
+  refusal-marker boundaries. The runtime-domain audit passed at 217. Before the
+  final derived-value follow-up, full unittest passed 2,158/2,158 in 397.997
+  seconds.
+- Two focused Samsung provider runs and the later full five-question gate all
+  selected `연구개발비용 총계 | 제55기 | 28,352,769 | 백만원`, `ev_001`, and
+  produced a byte-identical answer with numeric-extraction fingerprint
+  `de311d9fa0818ca04bacad873ee16ad8dda94633ee3296287722cd64a7067c08`.
+  Each returned faithfulness/completeness/refusal/grounded rendering/calculation
+  1.000 and error 0.0%; numeric final judgement is correctly N/A for the mixed
+  row.
+
+### Explicit derived-value reverse-sync exclusion
+
+- The post-Samsung full gate exposed a remaining provenance inversion outside
+  lookup: LGE's top deterministic difference stayed `1,486,334백만원`, but a
+  terse final answer caused arithmetic surface synchronization to replace the
+  nested fresh `derived_value` row with component `6,769억원`.
+- `sync_aggregate_arithmetic_subtask_surfaces(...)` now skips final-answer
+  numeric reverse synchronization only when operation family is `difference`
+  and the fresh answer-slot contract explicitly says `result_semantics =
+  derived_value`. Period deltas, ratios, growth rates, sums, and legacy
+  unclassified differences retain their existing behavior.
+- A candidate-order regression proves the derived row returns before sentence,
+  conflict, coverage, numeric, or rendering helpers. Aggregate rank/dedupe
+  passed 93/93, subtask loop 253/253, aggregate-subtask projection 126/126, and
+  runtime-domain audit 217.
+- A monitored store-fixed LGE successor repeated the same terse final answer but
+  preserved nested result and primary slot `1,486,334백만원` with no
+  `projection_surface_synced_from_final_answer` marker. Numeric judgement PASS,
+  faithfulness/grounded rendering/calculation 1.000, error 0.0%; completeness
+  stayed 0.500 and was not benchmark-tuned.
+- Full unittest after this final guard passed 2,158/2,158. No remote CI, commit,
+  push, PR update, merge, tag, or experiment-artifact publication ran.
+
+### Dependency Operand-Artifact Finalization
+
+- The NAVER full-gate failure was a ledger timing defect, not arithmetic or
+  retrieval failure. The task registered an empty `operand_set` before its
+  dependency outputs were available, later calculated the correct result and
+  input answer slots, but checked integrity against the stale artifact snapshot.
+- Added `synchronize_operand_set_artifact(...)` as a bounded task-artifact owner.
+  It updates only the latest attached operand artifact in place and preserves
+  artifact id, task attachment, list order, and cardinality. It does not create
+  missing artifacts.
+- Aggregate integrity preparation now finalizes task-owned operands only after a
+  successful calculation result. Direct operands must already carry numeric
+  material and provenance. Slot-derived finalization additionally requires the
+  calculation plan's complete ordered operand ids and source/evidence refs for
+  every input. Final prose and the calculated primary output are not inputs.
+- Generic regressions cover in-place artifact replacement, the actual
+  already-correct-result/empty-operand timing shape, dependency recalculation,
+  and fail-closed behavior for missing provenance and missing required payloads.
+- Runtime domain-language audit passed 217. `tests.test_subtask_loop` passed
+  254/254, `tests.test_aggregate_subtask_projection` passed 127/127, their
+  combined focused set passed 381/381, and full unittest passed 2,160/2,160 in
+  316.697 seconds. `git diff --check` reported only existing LF/CRLF warnings.
+- A monitored store-fixed NAVER successor reproduced initial `operands=0`, kept
+  deterministic `41.4%`, finalized two operands with `ev_001`, changed integrity
+  from `error` to `ok`, and eliminated the recovery replan. Agent calls/tokens
+  changed from 21/126,829 to 11/70,923; no document embedding or ingest ran.
+- No remote CI, commit, push, PR update, merge, tag, or experiment-artifact
+  publication ran.
+
+### Claim-Scoped Evaluation And Late Numeric Surface Preservation
+
+- Exact HYU/LGE artifact inspection classified the residual as evaluator and
+  public-answer ordering, not arithmetic, retrieval, ontology, or a missing
+  company/question rule. `_prioritize_runtime_evidence_contexts(...)` now puts
+  final claim-scoped runtime evidence before broad retrieved contexts with
+  stable dedupe. Numeric equivalence/grounding remains deterministic and
+  separate from qualitative narrative judgement.
+- Preferred complete numeric-answer selection now renders an explicit-role
+  component `difference` from structured `minuend`, `subtrahend`, and
+  `primary_value` slots before the generic formatted-result fallback. Legacy
+  differences without explicit roles retain their previous surface.
+- The first focused LGE successor proved that the initial preservation point was
+  insufficient: a later call to
+  `_refresh_numeric_answer_preserving_narrative_context(...)` replaced the
+  grounded term note. That central boundary now reapplies
+  `preserve_source_visible_query_terms(...)` against ordered results and
+  evidence items before merging narrative context.
+- Generic regressions directly cover runtime-evidence precedence, explicit-slot
+  difference rendering, and preservation through the late refresh. Related
+  evaluator/answer-surface tests passed 498/498; runtime-domain audit passed 217
+  reviewed literals; full unittest passed 2,163/2,163 in 308.805 seconds.
+- Focused LGE replay C preserved `1,486,334백만원` and the grounded
+  `원문 표기: IRA, AMPC.` note, returning numeric PASS and completeness 1.000.
+- The monitored store-fixed successor gate completed 4/4 companies and 5/5
+  questions in 570.031 seconds with company pass count 4, full-eval fail count
+  0, runtime errors 0, integrity issues 0, and aggregate faithfulness,
+  completeness, context recall, and numeric pass rate 1.000. It made 52 LLM
+  calls, used 290,893 tokens, 46 query embeddings, zero document embeddings,
+  and recorded estimated runtime LLM cost `$0.2595345`. Top result SHA-256 is
+  `2d786dd729b17b374681ad986250b72bca062093f626ebf9547822c366ad72b3`.
+- This is persisted-store eval-only integration evidence, not fresh ingest.
+  Result/heartbeat bundles remain ignored. Remote CI, commit, push, PR update,
+  merge, tag, and artifact publication were not run; PR #86 remains draft and
+  refactoring remains paused.
+
+### Pre-Commit Release Hardening
+
+- Final diff review found that exact source-row recovery still returned the
+  first matching row when the same raw numeric value appeared in multiple
+  distinct structured rows. `_numeric_extraction_source_evidence(...)` now
+  considers visible and seed retrieval candidates, dedupes identical
+  row/source surfaces, and returns an ambiguous status for duplicate exact rows
+  when an active required operand exists. The runtime refuses with
+  `ambiguous_direct_lookup_source_evidence`; it does not add deterministic
+  semantic ranking or company/question-specific vocabulary.
+- `_authoritative_operand_rows_for_ledger(...)` now resolves required plan ids
+  before accepting direct operands. A non-empty direct list must cover every
+  required id through its operand id or bound role, in addition to retaining
+  numeric material and source provenance. Partial direct inputs leave the
+  provisional artifact untouched so integrity remains blocking.
+- Evaluator numeric-grounding correction is now subordinate to deterministic
+  rendering authority. `_should_override_numeric_grounding(...)` rejects every
+  explicit non-pass grounded-rendering result, the override no longer forces
+  rendering to `1.0`, and runtime-evidence grounding correction runs only when
+  deterministic rendering is pass or not applicable.
+- Generic regressions cover duplicate-value source rows, partial direct operand
+  artifacts, and deterministic rendering failure under an otherwise eligible
+  grounding override. Runtime-domain audit passed 217 reviewed literals and
+  full unittest discovery passed 2,165/2,165 in 231.977 seconds.
+- No provider-backed benchmark followed these changes. A no-call replay of the
+  saved Samsung clean-gate answer produced deterministic equivalence, retrieval
+  support, grounded rendering, and calculation correctness `1.000`, but retained
+  `numeric_grounding=null` and therefore `UNCERTAIN`. It is compatibility
+  evidence only; the clean provider gate remains a pre-hardening result.
+- The reviewed source/tests were then recorded in commit `6d6ca01`; documentation
+  is recorded in the successor commit. PR #86 remained draft and `main` was
+  unchanged. Experiment bundles and stores remained ignored.

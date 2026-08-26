@@ -6,7 +6,7 @@
 > [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), 완료된 변경은
 > [implementation_history.md](docs/history/implementation_history.md)를 따른다.
 
-Last updated: 2026-08-25
+Last updated: 2026-08-26
 
 ## 현재 범위
 
@@ -21,13 +21,13 @@ Last updated: 2026-08-25
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | latest FinancialAgent production milestone `2892d1b`, reviewer documentation checkpoint `5750e77`, and cross-platform integration checkpoint `ab7e9ba` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | reviewed release source/tests는 `6d6ca01`; origin branch는 push 전 `1477de5`, `main`은 `f0a5145`이며 이 문서 갱신은 successor docs commit으로 기록 예정 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
 | Phase 3 | OPEN but **REFACTORING PAUSED**; desired consolidation-scope, query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 reconciliation candidate construction/ranking, broader alignment/rebuild와 ledger ownership 전체는 미완료 |
-| Runtime correctness | unit/contract CI는 green이지만 store-fixed benchmark가 answer/trace 비결정성과 rendering 결함을 발견함; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
-| Benchmark | source/docs head `672fc7f`의 4-company/5-question provider-backed store-fixed refresh는 실행 완료됐지만 **NOT CLEAN**; [Project Status](docs/overview/project_status.md#integration-store-fixed-benchmark-refresh-2026-08-25)만 기준으로 사용 |
+| Runtime correctness | Samsung canonical row/value/unit/source와 one-way lookup provenance, LGE fresh `derived_value`와 late numeric surface, NAVER dependency operand artifact, evaluator claim-scoped context ordering이 focused-closed되고 clean full gate에서 함께 재현됨; 이후 pre-commit review가 duplicate-value source-row ambiguity, partial direct-operand ledger closure, deterministic rendering override를 fail-closed로 추가 보강함 |
+| Benchmark | 2026-08-26 store-fixed eval-only gate가 4/4 company, 5/5 question, pass count 4, full-eval fail count 0, error/integrity issue 0으로 **CLEAN**; faithfulness/completeness/context recall/numeric pass rate가 모두 1.000이며 fresh ingest evidence는 아님. 이 provider gate는 아래 defensive hardening 직전 결과이고, 이후에는 historical answer no-call replay만 수행함 |
 
 `2892d1b`는 94-line runtime-trace resolver를 같은 owner와 본문에서 public
 `financial_runtime_trace.resolve_runtime_calculation_trace(...)`로 이름
@@ -44,9 +44,113 @@ binding과 양쪽 줄바꿈 회귀 테스트로 수정했다. Exact-head remote 
 이어 exact-profile store-fixed policy gate가 4개 회사/5문항을 error 0.0%로
 완주했지만 NAVER operand/final projection 비결정성, LGE absolute-result
 rendering, Samsung numeric trace 불일치와 evaluator false positive를 발견했다.
-리팩터링은 명시적으로 중단됐으며 이 release gate를 일반 계약으로 닫고 같은
-focused/full gate를 다시 통과시키는 것이 다음 활성 작업이다. 상세 범위는
-[Next Work](docs/overview/project_status.md#next-work)만 따른다.
+NAVER와 LGE의 첫 generic fix 및 focused replay에 이어 Samsung semantic
+selection/one-way lookup provenance/refusal marker/prefix cleanup을 구현했고, 세 번의
+current-agent 실행이 같은 canonical row와 answer를 유지했다. 2026-08-26 full gate도
+Samsung을 clean하게 재현했지만 NAVER operand artifact payload가 비어 integrity
+error와 복구 재계획을 만들었고, LGE final-answer surface sync가 fresh
+`derived_value` nested trace를 잘못 덮는 후속 결함을 드러냈다. LGE의 명시적
+derived-value 역동기화와 NAVER provisional operand artifact 문제는 각각 focused
+successor에서 차단됐다. 이어 exact-artifact 정성 진단은 broad retrieval context가
+final claim-scoped runtime evidence보다 먼저 보이는 evaluator ordering과 중앙 late
+numeric refresh가 이미 근거화된 source-visible query term을 덮는 공통 surface
+문제로 분류됐다. Context 우선순위, explicit-role difference rendering, late refresh
+term preservation을 일반 계약으로 고친 뒤 focused LGE replay C와 최종 monitored
+4-company/5-question gate가 clean하게 통과했다. 이어 pre-commit review에서
+source-row ambiguity, direct-operand plan coverage, evaluator override 권한을 세 군데
+더 fail-closed로 보강했고 full unittest 2,165/2,165로 검증했다. 리팩터링은 계속
+중단 상태이고, 다음 활성 작업은 reviewed stabilization을 논리적 커밋으로 남겨
+draft PR #86을 갱신하고 CI를 확인한 뒤 명시적 통합 결정을 내리는 것이다.
+상세 범위는 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
+
+### 2026-08-26 Samsung semantic-row and one-way provenance checkpoint
+
+- LLM은 동일 표의 유사 행 가운데 의미상 대상 행을 선택하거나 ambiguous를
+  반환하고, deterministic code는 선택 행의 기간/단위/source 계약만 검증한다.
+- source row가 만든 canonical lookup slot은 final answer prose에서 다시 읽어
+  덮어쓰지 않는다. coarse flattened lookup은 다중 row/value 표를 추측하지 않는다.
+- retrieval zero-cost metadata prefix는 LLM context와 final evidence quote에서
+  제거하되 실제 문서 heading인 `[Harman]`은 보존한다.
+- evaluator missing/refusal marker는 phrase boundary로 판정하므로 `끊임없는`의
+  `없`을 refusal로 보지 않는다.
+- focused B/C와 후속 full gate의 `SAM_T2_078` answer는 byte-identical했고,
+  `numeric_extraction_fingerprint`도
+  `de311d9fa0818ca04bacad873ee16ad8dda94633ee3296287722cd64a7067c08`로 같았다.
+  세 실행 모두 canonical tuple `28,352,769 / 백만원 / ev_001`과 정확한 source
+  row `연구개발비용 총계 | 제55기 | 28,352,769 | 백만원`을 보존했다.
+- full gate는 747.5초, 62 LLM calls, 354,014 LLM tokens, 46 query embeddings,
+  0 document embeddings, estimated runtime LLM cost `$0.3427218`이었다. persisted
+  store를 재사용했으며 fresh DART fetch/parse/ingest는 없었다.
+- fresh LGE successor는 final prose가 세 숫자를 나열해도 explicit
+  `derived_value` nested result와 primary slot을 `1,486,334백만원`으로 유지했다.
+  당시 narrative completeness 0.500은 별도 answer-quality residual이었고, 아래
+  final clean-gate checkpoint에서 generic surface contract로 닫혔다.
+
+### 2026-08-26 NAV dependency operand-artifact checkpoint
+
+- dependency가 끝나기 전에 생성된 빈 `operand_set`은 성공한 계산 결과의
+  plan-complete input slot과 source provenance가 모두 확인될 때만 같은 artifact
+  id/order/cardinality로 확정한다. missing/incomplete/unprovenanced 상태는 기존
+  integrity error를 유지한다.
+- focused successor는 최초 `coverage=sufficient operands=0`을 재현하고도
+  `41.4%`, `current_period/prior_period`, `ev_001`을 보존했다.
+- ledger는 `error / 1 issue / 0 operands`에서
+  `ok / 0 issues / 2 finalized operands`로 닫혔고 recovery replan은 없었다.
+- latency는 `268.740 -> 129.626`초, agent calls/tokens는
+  `21 / 126,829 -> 11 / 70,923`; query embeddings 8, document embeddings 0,
+  fresh fetch/parse/ingest 0이었다.
+- audit 217, focused 381/381, full unittest 2,160/2,160가 통과했다. raw bundle은
+  ignored local artifact이며 full gate를 대체하지 않는다.
+
+### 2026-08-26 final clean-gate checkpoint
+
+- evaluator는 final claim-scoped runtime evidence를 broad retrieved context보다
+  먼저 배치한다. Numeric equivalence/grounding은 deterministic contract가 맡고,
+  정성 설명 평가는 그 결과를 뒤집지 않는다.
+- preferred complete numeric answer는 explicit `minuend/subtrahend` slot으로
+  component difference를 렌더링한다. 중앙 late numeric refresh도 같은
+  evidence-bound `preserve_source_visible_query_terms(...)`를 다시 적용하므로
+  이후 단계가 근거화된 `IRA`/`AMPC` 표기를 지우지 않는다.
+- focused LGE replay C는 numeric PASS, faithfulness/completeness/calculation
+  1.000과 `1,486,334백만원`, `원문 표기: IRA, AMPC.`를 보존했다.
+- 최종 monitored store-fixed eval-only gate는 570.031초에 4/4 company와 5/5
+  question을 완료했다. pass count 4, full-eval fail count 0, error/integrity
+  issue 0, aggregate faithfulness/completeness/context recall/numeric pass rate
+  1.000이다.
+- `SAM_T2_078`은 `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`을 유지했다.
+  52 LLM calls, 290,893 tokens, query embeddings 46, document embeddings 0,
+  estimated runtime LLM cost `$0.2595345`; top result SHA-256은
+  `2d786dd729b17b374681ad986250b72bca062093f626ebf9547822c366ad72b3`다.
+- 관련 498/498, audit 217, full unittest 2,163/2,163가 통과했다. Output과
+  heartbeat는 ignored local artifact이고 fresh ingest evidence가 아니다.
+- PR #86은 여전히 draft이고 `main`은 바뀌지 않았다. 다음 일은 review 후
+  history-preserving merge 여부를 명시적으로 결정하는 것이다.
+
+### 2026-08-26 post-gate pre-commit hardening checkpoint
+
+- active required operand가 있는 numeric lookup에서 같은 raw value가 서로 다른
+  source row에 정확히 나타나면 deterministic recovery는 행 의미를 추측하지 않고
+  `ambiguous_direct_lookup_source_evidence`로 중단한다. 후보 범위는 visible
+  `retrieved_docs`와 evidence-preserving `seed_retrieved_docs`이며, LLM의 semantic
+  선택을 코드의 first/rank/company/question rule로 대체하지 않는다.
+- ledger finalization은 slot-derived input뿐 아니라 이미 존재하는 direct
+  `calculation_operands`에도 `calculation_plan.ordered_operand_ids` 전체 coverage를
+  요구한다. 일부 operand만 material/provenance를 갖는 경우 provisional artifact를
+  그대로 두고 integrity failure를 유지한다.
+- evaluator의 deterministic `grounded_rendering_correctness`가 실패한 경우 LLM
+  numeric-grounding override가 그 결과를 1로 올리거나 grounding 경로를 우회할 수
+  없다. qualitative judgement와 deterministic rendering authority를 분리한다.
+- runtime-domain audit 217과 full unittest 2,165/2,165가 231.977초에 통과했다.
+  이는 최신 source/contract evidence다.
+- 이 하드닝 뒤 provider-backed agent benchmark는 다시 실행하지 않았다. 저장된
+  clean-gate Samsung answer를 현재 replay/evaluator로 no-call 재평가한 결과
+  numeric equivalence/retrieval support/grounded rendering/calculation은 각각
+  1.000이었지만 `numeric_grounding=null`이라 final judgement는 `UNCERTAIN`이었다.
+  이는 historical-answer compatibility 진단이며 fresh/current-agent pass가 아니다.
+- clean gate는 여전히 유효한 직전 provider integration evidence지만 exact current
+  source 실행은 아니다. Source/tests는 `6d6ca01`에 기록됐다. 다음 단계는 이 문서
+  갱신을 별도 commit으로 남겨 draft PR을 갱신하고 CI를 확인하는 것이다. 병합은
+  자동으로 수행하지 않는다.
 
 ## 남은 Phase 3 범위
 
@@ -86,8 +190,10 @@ focused/full gate를 다시 통과시키는 것이 다음 활성 작업이다. �
    query-to-metric/operand match ownership과 complete operand-candidate scoring은 이동했고
    graph-state lookup, reconciliation candidate construction/ranking과 broader evidence orchestration과
    주변 sequencing은 제외
-3. bounded read-only reconciliation artifact-reference projection까지만 진행된 broader
-   task/artifact ledger synchronization; artifact mutation과 whole-ledger sync는 제외
+3. bounded read-only reconciliation refs와 성공·plan-complete·provenance-bearing
+   input slot에서 attached provisional operand artifact를 제자리 확정하는 범위까지
+   진행된 broader task/artifact ledger synchronization; missing-artifact 생성과
+   whole-ledger sync는 제외
 4. public contract 이동과 함께 일부 진행된 private API/test mesh
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
@@ -903,8 +1009,39 @@ composition과 다섯 caller gate는 유지됐고 source/tests/whole `+8/-8`,
   `refusal_accuracy=0`은 `끊임없는` 안의 `없`을 잡은 evaluator false positive다.
   7 question executions의 recorded runtime LLM cost는 `$0.4344568`이고 embedding
   cost는 보고되지 않았다. 두 result/heartbeat bundle은 ignored local-only이며
-  stage하지 않는다. PR #86은 draft, `main`은 그대로다. Release gate와 재개 조건은
-[Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
+  stage하지 않는다. 이어 NAVER의 기존 semantic-plan `segment_label`을 flattened
+  table-label recovery가 강제하도록 하고, complete result와 source-stated 비율이
+  동치이면 task-output operand를 보존하는 일반 precedence 계약을 추가했다. 실제
+  source-stated 충돌의 repair 경로는 유지됐고, 중복 raw binding-policy read는
+  삭제했다. Focused 5/5, aggregate 126/126, operation 242/242, graph-helper 290/290,
+  audit 217, full 2,147/2,147가 통과했다. 이어 store-fixed NAVER focused replay를
+  두 번 실행했고 두 실행 모두 `커머스`, `2,546,649 / 1,801,079백만원`, `41.4%`로
+  같은 numeric trace를 유지했다. 두 번째 실행의 LLM grounded-rendering judge가
+  질문이 요구한 정성 설명을 금지된 내용으로 오독해 calculation score를 0으로
+  낮춘 evaluator false negative를 발견했다. Numeric rendering은 canonical trace,
+  trace-derived value, runtime evidence만 deterministic하게 비교하도록 바꾸고,
+  semantic trend judgement는 calculation score에서 분리했다. Exact artifacts를
+  no-call replay한 결과 양쪽 grounded rendering/calculation이 1.000/1.000으로
+  수렴했다. Evaluator/benchmark focused 114/114, audit 217, full 2,151/2,151가
+  통과했다. 이어 generic `difference` answer slot을 기간 증감 `period_delta`와
+  구성요소 차감 `derived_value`로 구분했다. Fresh derived row는
+  `minuend/subtrahend`, `primary_value`, `direction=null`을 보존하며 current/prior
+  slot을 합성하지 않는다. 관련 regression 829/829, audit 217, pycompile과 full
+  2,153/2,153가 통과했다. Existing store를 재사용한 monitored `LGE_T1_051`
+  eval-only는 `1,486,334백만원입니다`로 중립 렌더링했고 numeric PASS,
+  faithfulness/completeness/grounded rendering/calculation 1.000, error 0.0%를
+  기록했다. 9 LLM calls, 45,848 tokens, `$0.0478852`였고 no DART parse/fetch/
+  ingest였다. Result/heartbeat는 ignored local-only다. PR #86은 draft, `main`은
+  그대로다. Release gate와 재개 조건은
+  [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
+- 이어 evaluator runtime-evidence context ordering, explicit-role component-
+  difference answer rendering, late numeric refresh의 grounded query-term
+  preservation을 일반 계약으로 추가했다. Focused LGE replay C가 completeness
+  1.000을 회복했고, 최종 store-fixed gate는 4/4 company, 5/5 question, pass
+  count 4, full-eval fail count 0, error/integrity issue 0으로 닫혔다. 관련
+  498/498, audit 217, full 2,163/2,163가 통과했다. 이는 persisted-store
+  integration evidence이며 fresh ingest나 새 published quality claim은 아니다.
+  PR #86과 `main` 상태는 그대로다.
 
 ## 구현 원칙
 
