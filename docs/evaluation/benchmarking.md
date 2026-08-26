@@ -189,6 +189,20 @@ Concept-runtime promotion baseline:
 | numeric fast gate | `benchmark_runner --eval-only --question-id <ID> --numeric-fast-gate` | 특정 numeric 문항 agent run + deterministic numeric gate | generic faithfulness/completeness/relevancy judge, LLM numeric grounding when operand grounding is deterministic | numeric canary quick check |
 | historical replay | `replay_full_eval_from_results` | saved answer/runtime evidence/trace의 deterministic numeric 재채점 | agent run, retrieval, all LLM judges | evaluator-only / trace-only 확인 |
 
+### Numeric Evaluator Applicability And Replay Parity
+
+`unit_consistency` compares resolved calculation inputs, so fewer than two
+evaluator-resolved operands is not a failed comparison. In that shape the metric
+is N/A (`null`), including a single-value lookup whose answer and source unit are
+otherwise valid. Gate summaries must not coerce that N/A to zero or treat it as a
+numeric failure.
+
+`replay_full_eval_from_results` must apply the same evaluator operand-resolution
+projection as the production evaluator before unit consistency and numeric
+judgement. Replay-only synthetic verdicts for mixed or lookup rows whose recorded
+source judgement is N/A remain diagnostic; they are not replacements for the
+stored gate verdict or evidence that a provider-backed run passed.
+
 ### Cost-Controlled Debug Loop
 
 Before lowering retrieval query budgets, audit the existing result bundle:

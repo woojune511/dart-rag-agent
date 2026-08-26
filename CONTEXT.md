@@ -64,10 +64,14 @@ blocker는 `d87e030`과 아래 세 행 successor에서 닫혔다. NAVER는 corre
 integrity를 유지하면서도 1회 reflection/replan을 사용하므로 efficiency debt는
 남지만 integration correctness blocker는 아니다. 최신 5-question store-fixed gate도
 runtime correctness와 provenance를 유지했지만 `HYU_T2_010`의 attribution-only LLM
-completeness 변동으로 formal full-eval fail 1을 기록했다. 다음 활성 작업은 PR #86을
-draft로 유지한 채 이 정성 evaluator residual을 명시적으로 수용하고 integration
-review로 갈지, strict all-green이 필요하면 runtime tuning 없이 evaluator-only
-characterization을 먼저 할지 결정하는 것이다.
+completeness 변동으로 formal full-eval fail 1을 기록했다. Integration review는 이
+결과를 runtime regression이 아닌 정성 evaluator residual로 분류하고 진행하는 쪽을
+선택했다. Review에서 runtime/CI blocker는 새로 발견되지 않았지만 `d87e030`의 실제
+semantic source-scope 동작과 normative runtime contract가 어긋나고 PR #86 본문이
+이전 HOLD 결과를 유지한 documentation blocker가 확인됐다. 이 successor는 runtime을
+바꾸지 않고 계약을 동기화한다. 다음 활성 경계는 PR 본문과 새 문서 HEAD CI가
+current인지 확인하는 것이다. 둘이 충족되면 PR을 draft로 유지한 채 명시적 merge
+승인만 기다린다.
 상세 범위는 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ### 2026-08-26 Samsung semantic-row and one-way provenance checkpoint

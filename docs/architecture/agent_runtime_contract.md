@@ -676,15 +676,23 @@ string, normalization, and uppercase evaluation in the set filter and expression
 A blank or `UNKNOWN` target unit, or a target unit outside that known set, is a
 conflict.
 
-The first matching required operand is copied in source order. Aggregate-role
-preference vetoes replacement before target aggregate-like surface access;
-otherwise value role and aggregation stage precede the lazy aggregate-label OR.
-Existing rows then retain unit compatibility, value comparison, cleaned evidence/
-source ids, and lazy table-source, statement-type, and source-anchor order. The
-first differing structured row conflicts only with an aggregate-like target.
-Inputs remain unmodified. The existing `operand_row_values_differ` helper keeps
-its float `TypeError`/`ValueError` catch and raw/value fallback; the predicate adds
-no broader catch, so mapping, matcher, copy, truthiness, string, normalization,
+Before unit collection, any matching existing row with a nonblank
+`semantic_selected_candidate_id` and exact normalized
+`semantic_selection_status = selected` returns conflict. This preserves an
+already validated semantic source choice against later broad fallback. Known-unit
+collection and target-unit compatibility then retain their existing order. The
+first matching required operand is copied in source order, and aggregate-role
+preference vetoes only the later differing-row check after unit compatibility.
+
+For every compatible existing row, value comparison still precedes cleaned
+evidence/source ids and the lazy table-source, statement-type, and source-anchor
+checks. Any materially differing row with one of those structured provenance
+surfaces conflicts; the target no longer needs to expose an aggregate-like value
+role or stage. The predicate does not read target `value_role`,
+`aggregation_stage`, or `aggregate_label` on this path. Inputs remain unmodified.
+The existing `operand_row_values_differ` helper keeps its float
+`TypeError`/`ValueError` catch and raw/value fallback; the predicate adds no
+broader catch, so mapping, matcher, copy, truthiness, string, normalization,
 source-id cleaning, iteration, `RuntimeError`, and other exceptions propagate.
 
 The sole graph call remains after target construction, evidence coercion, target
@@ -1358,6 +1366,64 @@ not establish whole-ledger synchronization, broad performance or total-code
 reduction, a single end-to-end calculation owner, or complete Phase 3. Exact
 change chronology and validation evidence live in
 `docs/history/implementation_history.md`.
+
+### Semantic Numeric Source Scope And Bounded Recovery
+
+A structured numeric extraction is complete only when `raw_value` is nonblank.
+A response with nonblank `final_value` but blank `raw_value` is a schema
+violation, not authority to parse the prose backward. The evidence runtime may
+retry that extraction exactly once with the same numeric query and source
+context plus the dedicated incomplete-output prompt. A retry is eligible for
+grounding only when it supplies a nonblank `raw_value`; otherwise the runtime
+records the attempted retry, retains a blank raw value, sets
+`rejected_reason = incomplete_structured_numeric_extraction`, and returns the
+normal empty-answer surface. Retry exceptions are recorded and follow the same
+fail-closed path. No final-answer text is converted into a missing source value.
+
+Exact-value source recovery still returns a single unique source directly. When
+multiple unique source rows contain the same extracted value and the active task
+has required operands, the runtime may ask the existing semantic candidate
+selector to choose among those rows. Candidate ids are stable hashes of prepared
+chunk identity, source anchor, and normalized row text. The chooser receives the
+first required operand and prepared candidate metadata, but deterministic code
+accepts only exact `selection_status = selected` with an id present in the
+prepared candidate map. Missing selectors, exceptions, ambiguous decisions, and
+unknown ids remain ambiguous and fail closed. An accepted row carries
+`semantic_selected_candidate_id` and `semantic_selection_status = selected`
+through the numeric debug trace and later operand projection; value, unit, row,
+and source membership remain deterministic authorities.
+
+Candidate reconciliation escalates to semantic reranking whenever the first five
+structured candidates expose more than one normalized value/unit tuple for the
+active operand, query years, and period focus, even if the heuristic score gap is
+otherwise decisive. Candidate prompt rows expose row headers, up to eight
+structured cells, and bounded heading/caption/table context. A selected candidate
+id is copied onto the projected operand row so the direct target-metric fallback
+conflict predicate above cannot overwrite it with another structured source.
+
+When `table_row_records_json` parses into at least one labeled structured row,
+row-level calculation context is built only from matching structured records.
+Each usable cell preserves its normalized `column_headers`, source `value_text`,
+and cell-first unit; labels missing from the structured record map are skipped
+rather than reconstructed positionally. The row quote includes label, column
+subject, and value. Only absent, invalid, or empty structured-record metadata
+uses the legacy table-value-label regex and inferred period headers. This keeps
+entity and column subjects visible without introducing report-specific terms.
+
+Aggregate period realignment first runs with the original graph state. Only when
+that call returns the exact ordered-result identity and `calc_subtasks` is
+nonempty may it retry once with a fresh shallow state whose `calc_subtasks` is an
+empty list. The original state and planner rows remain unmodified. A second
+identity no-op returns the original aggregate state; a changed result follows the
+existing preferred-answer, projection rebuild, and evidence-id path.
+
+Aggregate ledger finalization may supersede a matching task whose status is
+`pending`, `in_progress`, `partial`, or `completed` when the final aggregate
+resolved slots prove its target. Adding `in_progress` changes only admission to
+the existing supersession helper: completed-task conflict checks, aggregate
+artifact linkage, replacement payload construction, task/artifact integrity, and
+all unsupported or unprovenanced failure paths remain unchanged. This does not
+authorize missing-artifact creation or whole-ledger synchronization.
 
 ## 9. Aggregate Subtask Projection
 
