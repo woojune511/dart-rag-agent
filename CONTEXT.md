@@ -69,9 +69,13 @@ completeness 변동으로 formal full-eval fail 1을 기록했다. Integration r
 선택했다. Review에서 runtime/CI blocker는 새로 발견되지 않았지만 `d87e030`의 실제
 semantic source-scope 동작과 normative runtime contract가 어긋나고 PR #86 본문이
 이전 HOLD 결과를 유지한 documentation blocker가 확인됐다. 이 successor는 runtime을
-바꾸지 않고 계약을 동기화한다. 다음 활성 경계는 PR 본문과 새 문서 HEAD CI가
-current인지 확인하는 것이다. 둘이 충족되면 PR을 draft로 유지한 채 명시적 merge
-승인만 기다린다.
+바꾸지 않고 계약을 동기화했다. PR 본문은 현재 gate와 history-preserving merge
+요건을 반영했고 exact-head GitHub Actions `33014459130`도 reviewer contracts와 full
+unittest 2,172/2,172를 통과했다. 사용자는 이 근거를 확인한 뒤 PR #86 merge를
+명시적으로 승인했다. 허용된 다음 동작은 merge commit 방식으로 통합한 뒤 그
+commit이 기존 `main`과 승인된 PR head를 부모로 보존하는지, 그리고 `main` push CI가
+green인지 확인하는 것뿐이다. 두 조건이 충족되면 release integration은 완료로
+간주한다. Phase 3 리팩터링은 계속 중단 상태다.
 상세 범위는 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ### 2026-08-26 Samsung semantic-row and one-way provenance checkpoint

@@ -14,12 +14,12 @@ Last updated: 2026-08-27
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | **NO known runtime correctness/provenance blocker in the current five-question gate.** Formal release scoring is amber because one wording-sensitive `HYU_T2_010` LLM completeness judgement returned `0.700`; integration review accepts that residual, while merge still requires explicit authorization |
+| Is the core path blocked? | **NO known runtime correctness/provenance blocker in the current five-question gate.** Formal release scoring is amber because one wording-sensitive `HYU_T2_010` LLM completeness judgement returned `0.700`; integration review accepts that residual and merge authorization has been granted |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | No new runtime code. Integration review selected the qualitative-residual path and this documentation successor synchronizes the normative semantic source-scope and evaluator/replay contracts with `d87e030` |
-| What passed? | All five rows have faithfulness/context recall/grounded rendering/calculation/refusal `1.000`, integrity `ok`, and error `0`; the three repaired rows preserve canonical answer/provenance. Runtime audit 217, full unittest 2,172/2,172, and exact-head GitHub Actions `33012864606` are green. The formal gate still records one qualitative completeness failure |
+| What just changed? | No new runtime code. The normative semantic source-scope and evaluator/replay contracts are synchronized with `d87e030`, the PR body reflects the current gate, and the user explicitly authorized integration |
+| What passed? | All five rows have faithfulness/context recall/grounded rendering/calculation/refusal `1.000`, integrity `ok`, and error `0`; the three repaired rows preserve canonical answer/provenance. Runtime audit 217, full unittest 2,172/2,172, and exact-head GitHub Actions `33014459130` are green. The formal gate still records one qualitative completeness failure |
 | Was the benchmark refreshed? | **YES, BROADER STORE-FIXED SUCCESSOR**: 4 / 4 companies and 5 / 5 questions completed with 59 LLM calls, 324,521 tokens, 45 query and zero document embeddings. This is persisted-store current-agent evidence, not fresh ingest or held-out evidence |
-| What is next? | Keep refactoring paused and PR #86 draft. Ensure the PR body and successor CI reflect this contract closeout; once both are current, await explicit merge authorization |
+| What is next? | The only authorized release sequence is a history-preserving merge commit for PR #86 followed by merge-parent/tree and `main` CI verification. When those predicates are green, integration is complete; refactoring remains paused |
 
 ## Product Boundary
 
@@ -38,12 +38,12 @@ or an unconfigured `FinancialAgent` invocation.
 ## Current Source State
 
 - PRs #79 through #84 completed the July portfolio-core simplification; PR #85
-  compressed the earlier handoff documents. Latest confirmed upstream merge is
-  `main@f0a5145`.
+  compressed the earlier handoff documents. The recorded PR #86 integration
+  base is `main@f0a5145`; the approved merge must preserve it as the first parent.
 - Release source/tests are recorded in `6d6ca01`, evidence documentation in
   `99c4429`, the cross-platform structural-receipt correction in `40ae6a7`, and
-  the semantic source-scope/evaluator successor in `d87e030`. None of these
-  commits is merged into `main@f0a5145`.
+  the semantic source-scope/evaluator successor in `d87e030`. These commits form
+  the approved PR history and must remain reachable through the merge commit.
 - The current release stabilization includes bounded in-place
   dependency operand-artifact finalization, claim-scoped evaluator context
   ordering, explicit-role component-difference rendering, and late numeric
@@ -63,9 +63,9 @@ or an unconfigured `FinancialAgent` invocation.
 - The 2026-08-27 five-question store-fixed successor is the newest integration
   authority. All five answers are evidence/calculation clean, and Samsung,
   NAVER, and LGE retained canonical provenance. The earlier LGE wrong-entity
-  failure is closed. PR #86 remains draft because merge authorization and the
-  attribution-only evaluator residual are explicit review decisions, not because
-  a known runtime correctness blocker remains.
+  failure is closed. PR #86 was kept draft through integration review so the
+  attribution-only evaluator residual and merge policy were explicit decisions;
+  the user has now authorized the merge.
 - An earlier two-seam owner batch moved prepared nested-result replacement and
   arithmetic subtask-surface synchronization. Across `6ed195e..b5d97ee`, the
   former 64 + 124 = 188 graph definition lines became public 63 + 123 = 186
@@ -807,7 +807,7 @@ that integration decision is explicit; Phase 3 refactoring stays paused.
 | Latest benchmark evidence | The broader store-fixed successor completed all five rows with error/integrity issue 0. Formal `full_eval_fail_count=1` is an attribution-only `HYU_T2_010` LLM completeness result; NAVER efficiency and operand-schema residuals remain documented but are not answer/provenance failures |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | **INTEGRATION REVIEW COMPLETE / MERGE AUTHORIZATION PENDING.** Runtime correctness is clean and this successor closes the normative contract gap. The PR body and CI must reflect this closeout; `main` remains unchanged |
+| Release integration | **MERGE AUTHORIZED / FINAL VERIFICATION GATE.** Integration is complete only if PR #86 lands through a two-parent, history-preserving merge commit that retains the approved head tree and the resulting `main` CI is green |
 
 The durable Phase 3 debt is:
 
@@ -824,17 +824,18 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 **REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
-owner seam. Draft PR #86 contains release source/tests `6d6ca01`, evidence docs
-`99c4429`, cross-platform receipt fix `40ae6a7`, and exact-head status docs
-`aaf920a`, plus semantic source-scope/evaluator repair `d87e030`. `main` remains
-at `f0a5145`.
+owner seam. PR #86 contains release source/tests `6d6ca01`, evidence docs
+`99c4429`, cross-platform receipt fix `40ae6a7`, exact-head status docs
+`aaf920a`, and semantic source-scope/evaluator repair `d87e030`. Its recorded
+integration base is `main@f0a5145`.
 
 The exact-current-source canary reopened the release gate, the semantic
 source-scope successor closed its correctness blocker, and the requested broader
 gate has now run. Integration review classifies the remaining attribution-only
 score as evaluator variance and found no new runtime defect. The active work is
 documentation and PR closeout, not another runtime patch or Phase 3 refactor.
-Items 1-11 preserve the prior closure sequence; item 12 is the current authority:
+Items 1-11 preserve the prior closure sequence; items 12-13 define the current
+integration authority:
 
 1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
    `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
@@ -945,11 +946,12 @@ Items 1-11 preserve the prior closure sequence; item 12 is the current authority
     present. The previous semantically equivalent answer scored `1.000`. This is
     evaluator characterization evidence, not authority for a runtime wording
     branch.
-12. **INTEGRATION REVIEW CLEAN / CONTRACT CLOSEOUT REQUIRED:** remote `main`
-    remains the exact merge base, the branch is behind by zero commits, PR #86 is
-    mergeable/clean, and exact-head CI passed reviewer contracts plus 2,172/2,172
-    tests. The 492-commit history is linear, changed dependency files and tracked
-    benchmark artifacts are absent, and ignored result bundles remain local.
+12. **INTEGRATION REVIEW CLEAN / CONTRACT CLOSEOUT COMPLETE:** remote `main`
+    was confirmed as the exact merge base, the branch was behind by zero commits,
+    PR #86 was mergeable/clean, and exact-head CI `33014459130` passed reviewer
+    contracts plus 2,172/2,172 tests. The branch history is linear, changed
+    dependency files and tracked benchmark artifacts are absent, and ignored
+    result bundles remain local.
     Review found no new runtime defect. It did find that the normative direct-
     fallback text still described the pre-`d87e030` aggregate-only rule and that
     the PR body still described the earlier release HOLD. This documentation
@@ -957,18 +959,22 @@ Items 1-11 preserve the prior closure sequence; item 12 is the current authority
     semantic source ids with deterministic validation, material-value reranking,
     structured column-subject preservation, selected-row fallback protection,
     bounded period realignment, in-progress ledger closure, evaluator N/A, and
-    replay parity. Before merge, the PR body must state the current gate and the
-    history-preserving merge requirement.
+    replay parity. The PR body now states the current gate and the history-
+    preserving merge requirement.
+13. **MERGE AUTHORIZED / FINAL OPERATIONS ONLY:** after the exact-head CI and
+    updated PR body were reviewed, the user explicitly authorized PR #86 merge.
+    Mark the PR ready, merge it with a merge commit rather than squash or rebase,
+    verify that the merge parents preserve the recorded `main` base and approved
+    PR head and that the merge tree equals the approved head tree, then require
+    the resulting `main` CI to pass. If all predicates hold, release integration
+    is complete with no active runtime or refactoring follow-up.
 
-Keep PR #86 in draft and do not merge without explicit approval. More company-
-or question-specific tuning is not the next step. The paid broader-gate action is
-complete, and integration review proceeds while explicitly retaining the
-attribution-only qualitative residual. Do not change runtime answer wording to
-force formal all-green. Update the PR body to the current evidence, confirm CI for
-this contract closeout, and then wait for explicit merge authorization. If merge
-is approved, use a history-preserving merge commit rather than squash or rebase
-because repository documents cite intermediate commit receipts. Do not tag,
-rewrite history, change branch protection, or resume refactoring as part of that
+Merge authorization has been granted. More company- or question-specific tuning
+is not the next step. The paid broader-gate action is complete, and integration
+retains the attribution-only qualitative residual. Do not change runtime answer
+wording to force formal all-green. Execute only the history-preserving merge and
+the topology/tree/`main` CI checks in item 13. Do not delete the branch, tag,
+rewrite history, change branch protection, or resume refactoring as part of this
 decision. The parked docs-and-static-analysis-only Phase 3 audit remains the first
 step only if refactoring is explicitly resumed later.
 
