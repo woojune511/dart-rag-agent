@@ -21,7 +21,7 @@ Last updated: 2026-08-26
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | reviewed release source/tests는 `6d6ca01`; origin branch는 push 전 `1477de5`, `main`은 `f0a5145`이며 이 문서 갱신은 successor docs commit으로 기록 예정 |
+| Source checkpoint | release stabilization `6d6ca01`, evidence docs `99c4429`, cross-platform receipt fix `40ae6a7`이 push됐고 CI `32964249893`이 green; 이 상태 갱신은 docs-only successor이며 `main`은 `f0a5145` |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
@@ -148,9 +148,22 @@ draft PR #86을 갱신하고 CI를 확인한 뒤 명시적 통합 결정을 내�
   1.000이었지만 `numeric_grounding=null`이라 final judgement는 `UNCERTAIN`이었다.
   이는 historical-answer compatibility 진단이며 fresh/current-agent pass가 아니다.
 - clean gate는 여전히 유효한 직전 provider integration evidence지만 exact current
-  source 실행은 아니다. Source/tests는 `6d6ca01`에 기록됐다. 다음 단계는 이 문서
-  갱신을 별도 commit으로 남겨 draft PR을 갱신하고 CI를 확인하는 것이다. 병합은
-  자동으로 수행하지 않는다.
+  source 실행은 아니다. Source/tests는 `6d6ca01`, evidence docs는 `99c4429`에
+  기록됐다. 병합은 자동으로 수행하지 않는다.
+
+### 2026-08-26 cross-platform release-validation checkpoint
+
+- 첫 exact-head CI `32963349345`는 reviewer job을 통과했지만 Ubuntu full
+  discovery에서 2,165개 중 structural receipt 1개가 실패했다. Runtime failure가
+  아니라 `Path.glob()` 반환 순서를 그대로 caller list 계약에 사용한 test-only
+  portability 결함이었다.
+- `40ae6a7`은 해당 모듈 목록을 명시적으로 정렬했다. 로컬 focused 1/1과
+  `tests.test_financial_graph_helpers` 290/290가 통과했다.
+- successor CI `32964249893`은 exact code head에서 reviewer 14초와 full unittest
+  2,165/2,165를 통과했다. Full discovery 실행은 294.776초, job은 5분 51초였다.
+- PR #86은 여전히 draft이고 `main`은 바뀌지 않았다. 다음 일은 clean provider
+  gate가 final hardening 직전이라는 한계를 포함해 추가 provider replay 여부와
+  history-preserving merge 여부를 명시적으로 결정하는 것이다.
 
 ## 남은 Phase 3 범위
 

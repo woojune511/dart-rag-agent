@@ -12506,3 +12506,23 @@ are complete. It remains only as an audit record, not an active priority.
 - The reviewed source/tests were then recorded in commit `6d6ca01`; documentation
   is recorded in the successor commit. PR #86 remained draft and `main` was
   unchanged. Experiment bundles and stores remained ignored.
+
+### Cross-Platform Structural Receipt Ordering
+
+- Release source/tests commit `6d6ca01` and evidence-doc commit `99c4429` were
+  pushed to draft PR #86. GitHub Actions run `32963349345` passed the reviewer
+  job but full discovery failed one of 2,165 tests:
+  `test_current_source_candidate_selected_cell_bindings_pin_def_call_dag_imports_and_baseline`.
+- The AST receipt built a module dictionary directly from `Path.glob("*.py")` and
+  compared its collected caller list in insertion order. Windows happened to
+  return the expected helper-before-reconciliation order; Ubuntu returned the
+  same two calls in the opposite order. Runtime definitions, calls, arguments,
+  try depth, and DAG were unchanged.
+- Commit `40ae6a7` applies `sorted(...)` only to that test's module enumeration.
+  Local focused 1/1 and `tests.test_financial_graph_helpers` 290/290 passed.
+- Successor GitHub Actions run `32964249893` passed reviewer contracts in 14
+  seconds and full unittest 2,165/2,165 in 294.776 test seconds; the full job
+  completed in 5 minutes 51 seconds on Ubuntu/Python 3.13.
+- This is a test portability correction and remote source/contract validation,
+  not a runtime behavior, provider benchmark, fresh-ingest, or quality claim.
+  PR #86 remains draft and `main` remains unchanged pending explicit integration.

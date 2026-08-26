@@ -3814,6 +3814,14 @@ Validation after these changes:
 - no provider-backed agent run, fresh ingest, DART fetch/parse, or document
   embedding was performed.
 
+The first remote full-suite run on docs head `99c4429` executed all 2,165 tests
+but failed one structural receipt because an unsorted `Path.glob()` yielded a
+different caller order on Ubuntu. Commit `40ae6a7` sorted that test-only module
+enumeration. Local focused 1 / 1 and the complete structural helper module
+290 / 290 passed; successor GitHub Actions run `32964249893` then passed reviewer
+contracts and Ubuntu/Python 3.13 full discovery 2,165 / 2,165. This portability
+repair did not change runtime or benchmark behavior.
+
 One no-call compatibility replay used the stored clean-gate Samsung answer and
 runtime projection with the current replay/evaluator code. It returned numeric
 equivalence `1.000`, retrieval support `1.000`, grounded rendering `1.000`, and

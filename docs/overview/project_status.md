@@ -14,12 +14,12 @@ Last updated: 2026-08-26
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | No known hard runtime blocker remains in the bounded five-question integration set; the clean provider gate predates final defensive hardening, so PR/CI review and an explicit integration decision remain |
+| Is the core path blocked? | No known hard runtime blocker remains in the bounded five-question integration set; exact code-head CI is green, while the clean provider gate predates final defensive hardening, so an explicit integration decision remains |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
 | What just changed? | Pre-commit review added three fail-closed contracts: duplicate-value exact source rows remain ambiguous, direct ledger operands must cover the complete plan, and an LLM grounding override cannot erase deterministic rendering failure |
-| What passed? | Runtime audit 217 and full local unittest 2,165/2,165 passed after the final hardening; the earlier focused replays and monitored four-company/five-question integration gate remain the latest provider evidence |
+| What passed? | Runtime audit 217, local unittest 2,165/2,165, structural module 290/290, and exact code-head GitHub Actions run `32964249893` all passed; the earlier monitored four-company/five-question gate remains the latest provider evidence |
 | Was the benchmark refreshed? | **YES, BUT BEFORE FINAL HARDENING**; the store-fixed gate completed 4/4 companies and 5/5 questions with pass count 4, full-eval fail count 0, errors/integrity issues 0, and aggregate quality metrics 1.000. After the defensive changes, only a historical-answer no-call replay was run |
-| What is next? | Keep refactoring paused; release source/tests are recorded in `6d6ca01`, so finalize the documentation commit, update draft PR #86, wait for exact-head CI, then make an explicit history-preserving integration decision |
+| What is next? | Keep refactoring paused and PR #86 draft; decide explicitly whether the pre-hardening clean provider gate plus current source/CI evidence is sufficient or another provider replay is required before a history-preserving merge |
 
 ## Product Boundary
 
@@ -40,10 +40,10 @@ or an unconfigured `FinancialAgent` invocation.
 - PRs #79 through #84 completed the July portfolio-core simplification; PR #85
   compressed the earlier handoff documents. Latest confirmed upstream merge is
   `main@f0a5145`.
-- The pre-stabilization remote branch checkpoint is
-  `codex/finalize-five-minute-review@1477de5`. Reviewed release source/tests are
-  now recorded locally in `6d6ca01`; this status update is the successor docs
-  commit. Neither commit is merged into `main@f0a5145`.
+- Release source/tests are recorded in `6d6ca01`, evidence documentation in
+  `99c4429`, and the cross-platform structural-receipt correction in `40ae6a7`.
+  All three were pushed and the code head passed remote CI; this status refresh
+  is a docs-only successor. None is merged into `main@f0a5145`.
 - The current release stabilization includes bounded in-place
   dependency operand-artifact finalization, claim-scoped evaluator context
   ordering, explicit-role component-difference rendering, and late numeric
@@ -767,9 +767,9 @@ For topology rather than normative behavior, use
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
-| Full unittest discovery | PASS, latest local 2,165 / 2,165 after pre-commit hardening; exact published PR head `ab7e9ba` remains 2,145 / 2,145 on Ubuntu/Python 3.13 |
+| Full unittest discovery | PASS, local 2,165 / 2,165 after pre-commit hardening and exact code-head `40ae6a7` 2,165 / 2,165 on Ubuntu/Python 3.13 |
 | Benchmark refresh after release stabilization | **CLEAN PRE-HARDENING PROVIDER EVIDENCE**; 4 / 4 companies, 5 / 5 questions, pass count 4, error/integrity issue 0, aggregate faithfulness/completeness/context recall/numeric pass rate 1.000; no post-hardening provider rerun |
-| GitHub Actions validation | PASS, run `32809007035`: reviewer job 14 seconds and full-suite job 5 minutes 32 seconds |
+| GitHub Actions validation | PASS, run `32964249893` on `40ae6a7`: reviewer job 14 seconds; full discovery 2,165 / 2,165 in 294.776 seconds, full job 5 minutes 51 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
 `tests.test_semantic_numeric_plan`, `tests.test_operation_contracts`,
@@ -801,7 +801,7 @@ PR #86 or resume Phase 3 refactoring automatically.
 | Latest benchmark evidence | The latest provider-backed five-question store-fixed eval-only refresh is clean at its recorded pre-hardening source state; it is persisted-store integration evidence, not exact-current-source, fresh-ingest, or publishable benchmark evidence |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | Draft PR #86 is published and earlier-head remote CI is green; local diff/evidence review is complete and source/tests are committed as `6d6ca01`; `main` remains unchanged, and the next action is docs commit, PR update, exact-head CI, then an explicit history-preserving merge decision |
+| Release integration | Draft PR #86 is published; reviewed source/docs plus portability fix are pushed, exact code-head remote CI is green, and `main` remains unchanged. The next action is an explicit provider-replay/merge decision |
 
 The durable Phase 3 debt is:
 
@@ -818,16 +818,16 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 **REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
-owner seam. Draft PR #86 still points remotely to `1477de5` until push;
-reviewed release source/tests are recorded locally in `6d6ca01`. GitHub Actions
-run `32809007035` passed both reviewer and full-suite jobs on an earlier exact
-head. The accumulated stabilization diff and evidence have completed local
-review. `main` remains at `f0a5145`.
+owner seam. Draft PR #86 contains release source/tests `6d6ca01`, evidence docs
+`99c4429`, and cross-platform receipt fix `40ae6a7`. GitHub Actions run
+`32964249893` passed reviewer and full-suite jobs on that exact code head. The
+accumulated stabilization diff and evidence have completed review. `main`
+remains at `f0a5145`.
 
-The bounded release-gate stabilization sequence below is complete. Source/tests
-are recorded in `6d6ca01`; the active work is to record this documentation,
-update the draft PR, wait for exact-head CI, and then make an explicit integration
-decision. This is not Phase 3 refactoring:
+The bounded release-gate stabilization sequence below is complete and remotely
+validated. The active work is an explicit integration decision, including
+whether exact-current-source provider replay is required. This is not Phase 3
+refactoring:
 
 1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
    `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
@@ -874,8 +874,8 @@ decision. This is not Phase 3 refactoring:
    evidence, and a later numeric-answer refresh could overwrite an already
    grounded source-visible term note. Runtime evidence is now prioritized,
    explicit-role component differences render from structured slots, and the
-   central late refresh reapplies the same evidence-bound term-preservation
-   contract. Focused LGE replay C restored completeness `1.000`; the successor
+    central late refresh reapplies the same evidence-bound term-preservation
+    contract. Focused LGE replay C restored completeness `1.000`; the successor
     monitored gate completed 4 / 4 companies and 5 / 5 questions with pass count
     4, full-eval fail count 0, and no runtime or integrity error.
 7. **POST-GATE PRE-COMMIT HARDENED:** exact numeric source recovery now refuses
@@ -888,12 +888,18 @@ decision. This is not Phase 3 refactoring:
    produced equivalence/retrieval-support/rendering/calculation 1.000 but
    `numeric_grounding=null`, so its `UNCERTAIN` result is compatibility evidence,
    not a fresh pass.
+8. **CROSS-PLATFORM CI CLOSED:** first remote run `32963349345` passed reviewer
+   contracts but exposed one test-only `Path.glob()` ordering dependency in the
+   candidate-selected-cell structural receipt. `40ae6a7` sorts that module list;
+   local focused 1 / 1 and structural module 290 / 290 passed, then successor run
+   `32964249893` passed reviewer plus Ubuntu/Python 3.13 full unittest
+   2,165 / 2,165.
 
-The release-gate stabilization sequence and local diff/evidence review are
-complete. Keep PR #86 in draft through logical commit publication and exact-head
-CI. The clean provider gate plus post-gate source tests authorize an integration
-decision, not an automatic merge; whether to buy another focused or full
-provider replay before merge is part of that explicit decision. If approved,
+The release-gate stabilization sequence, diff/evidence review, publication, and
+exact code-head CI are complete. Keep PR #86 in draft until the explicit
+integration decision. The clean provider gate plus post-gate source tests
+authorize that decision, not an automatic merge; whether to buy another focused
+or full provider replay before merge is part of it. If approved,
 use a history-preserving merge commit rather than squash or rebase because
 repository documents cite intermediate commit receipts. Do not tag, rewrite
 history, change branch protection, or resume refactoring as part of that
