@@ -80,6 +80,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Post-Gate Historical-Answer Compatibility Replay (2026-08-26)](#post-gate-historical-answer-compatibility-replay-2026-08-26) | final defensive hardening 뒤 stored Samsung answer를 현재 evaluator/replay로 no-call 재평가 | deterministic metrics 1.000, but missing numeric grounding keeps `UNCERTAIN`; provider/current-agent pass가 아님 |
 | [Exact-Current-Head Three-Row Canary (2026-08-27)](#exact-current-head-three-row-canary-2026-08-27) | `b422a9b`의 SAM/NAV/LGE store-fixed provider replay | SAM/NAV correctness는 유지됐지만 LGE incomplete structured output 뒤 wrong-entity fallback으로 numeric FAIL; integration HOLD |
 | [Semantic Source-Scope Repair Three-Row Successor (2026-08-27)](#semantic-source-scope-repair-three-row-successor-2026-08-27) | bounded incomplete-output repair, semantic exact-value source selection, deterministic evaluator replay 뒤 SAM/NAV/LGE focused refresh | 세 answer/provenance 모두 clean; LGE blocker closed, Samsung unit comparison N/A, NAV one-replan/schema residual documented |
+| [Current-Head Five-Question Store-Fixed Gate (2026-08-27)](#current-head-five-question-store-fixed-gate-2026-08-27) | semantic source-scope repair 뒤 4-company/5-question current-agent broader replay | runtime/provenance clean, but `HYU_T2_010` attribution-only completeness `0.700` makes formal full-eval fail count 1 |
 
 ## 보는 법
 
@@ -171,6 +172,68 @@ local ignored artifacts and are not fresh-ingest or held-out evidence. PR #86 is
 still draft and `main` unchanged. The next decision is whether to buy one broader
 five-question store-fixed gate or proceed to integration review with the NAV
 efficiency and evaluator-schema residuals explicitly accepted.
+
+## Current-Head Five-Question Store-Fixed Gate (2026-08-27)
+
+### Setup And Admission
+
+- docs/source HEAD: `5cdab83`; runtime contract: `d87e030`;
+- profile: `benchmarks/profiles/curated_policy_driven_runtime_gate.json`;
+- read-only source stores:
+  `benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/`;
+- ignored successor:
+  `benchmarks/results/integration_policy_gate_semantic_source_scope_successor_2026-08-27/`;
+- questions: `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`,
+  `SAM_T2_078`;
+- mode: one sequential monitored `--eval-only`, no fresh DART fetch, parse,
+  ingest, or document embedding.
+
+Before provider execution, current profile fields matched each persisted cache
+signature and all four cache records were `completed`. The four strict vector
+health probes each returned `ok=true`, `result_count=1`. Those probe embeddings
+are outside the benchmark artifact's usage counters.
+
+### Result
+
+| Row | Answer / trace | Evaluation | Interpretation |
+| --- | --- | --- | --- |
+| `NAV_T2_006` | `2,546,649 / 1,801,079백만원 = 41.4%`, grounded Poshmark summary | all key quality/calculation metrics `1.000`, integrity `ok`, error 0 | canonical segment and period operands remain stable; operand `2/3` is the existing dataset-output schema residual |
+| `HYU_T2_010` | `87.0만 대 / 78.1만 대 = 11.5%`, grounded IRA/protectionism response need | faithfulness/context recall/grounded rendering/calculation/refusal `1.000`, completeness `0.700`, integrity `ok` | LLM judge required explicit “사업보고서에서” attribution in the final prose; this is the only formal gate failure |
+| `HYU_T3_072` | Motional `50.00% -> 25.81%`, `1,294,367백만원`, continuing/total comprehensive losses | completeness and key quality/calculation `1.000`, integrity `ok` | first incomplete numeric structured output was rejected; bounded retry recovered the correct lookup. Heterogeneous lookup unit score `0` is unchanged from the prior clean gate |
+| `LGE_T1_051` | `2,163,234백만원 - 6,769억원 = 1,486,334백만원`, `IRA, AMPC` | numeric PASS and all key metrics `1.000`, integrity `ok` | wrong-entity fallback remains closed |
+| `SAM_T2_078` | exact `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`, grounded Harman narrative | all key quality/calculation metrics `1.000`, unit N/A, integrity `ok` | semantic source row remains canonical |
+
+The run completed in 592.607 seconds with company pass count 4, runtime error 0,
+and integrity issue 0. Formal `full_eval_fail_count=1` because the ranking requires
+company completeness exactly `1.0`; Hyundai averaged `0.850`. Official
+company-average completeness is `0.9625`, while the five-question weighted mean
+is `0.940`. A prior semantically equivalent `HYU_T2_010` answer scored `1.000`,
+and the current answer contains the requested calculation and policy-response
+summary. This is recorded as qualitative evaluator variance, not evidence for a
+runtime wording branch or benchmark-specific tuning.
+
+### Usage And Receipts
+
+- 59 LLM calls, 324,521 tokens, 45 query embeddings, zero document embeddings;
+- 498.909 question-seconds and `$0.3059185` estimated runtime LLM cost;
+- compared with the previous clean full gate: calls `52 -> 59`, tokens
+  `290,893 -> 324,521`, wall time `570.031 -> 592.607` seconds, and cost
+  `$0.2595345 -> $0.3059185`; these are provider-run observations, not general
+  performance claims;
+- top result SHA-256:
+  `1d9f7508e758dd85c057dc1be5d7f87cf261495b44833d1a0d9d88a90c5d63c8`;
+- company result SHA-256: NAVER
+  `e69381cbb03428ff77111e664140305e34a477ec499b61067359ad6e80fc73e4`,
+  Hyundai `597bfafa0edb74888df762d27d22e79a8dd51cf58f8662ac78deb5de366f1c42`,
+  LGE `9bf060f86637c5abb664cd01b37edef1c58c4120942d324e9bcfa15d96a788a1`,
+  Samsung `4417f382ad3941fd0598d8c1f0a4dca371c3be9969623fee0b70f9f6ebdeeed1`.
+
+A no-call production-order replay confirmed grounded rendering and calculation
+`1.000` for all five rows. It also produces synthetic numeric verdicts for mixed
+rows whose source verdict is N/A; those replay verdicts are diagnostic and are
+not used as the gate score. Raw result, heartbeat, and replay summaries remain
+local ignored artifacts. No code changed, PR #86 remains draft, and `main`
+remains unchanged.
 
 ## Exact-Current-Head Three-Row Canary (2026-08-27)
 

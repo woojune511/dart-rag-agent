@@ -14,12 +14,12 @@ Last updated: 2026-08-27
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | **NO for the three-row correctness gate**: the LGE incomplete-output/wrong-source blocker is closed and `SAM_T2_078`, `NAV_T2_006`, `LGE_T1_051` are answer/provenance clean. Integration still requires an explicit review decision and optionally a broader paid gate |
+| Is the core path blocked? | **NO known runtime correctness/provenance blocker in the current five-question gate.** Formal release scoring is amber because one wording-sensitive `HYU_T2_010` LLM completeness judgement returned `0.700`; integration still requires an explicit review decision |
 | What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `d87e030` adds bounded retry/fail-closed handling for incomplete numeric structured output, LLM semantic selection among exact-value source rows with deterministic validation, conflict-triggered semantic reconciliation, source-display-preserving period repair, bounded ledger closure, and evaluator N/A handling for single-input unit comparison |
-| What passed? | All three focused rows preserve the intended answer and canonical provenance with faithfulness/completeness/refusal/grounded rendering/calculation `1.000`, integrity `ok`, and error `0`. Runtime audit 217, related 794/794, structural 290/290, dependency projection 75/75, and full unittest 2,172/2,172 pass locally; GitHub Actions `33007869709` is also green |
-| Was the benchmark refreshed? | **YES, FOCUSED SUCCESSOR**: three monitored store-fixed `--eval-only` runs used 40 LLM calls, 200,855 tokens, 30 query and zero document embeddings. This is current runtime/evaluator evidence over persisted stores, not fresh ingest or held-out evidence |
-| What is next? | Keep refactoring paused and PR #86 draft. With `d87e030` CI green, explicitly choose between one broader five-question store-fixed gate and integration review based on the clean three-row correctness evidence. NAVER's remaining one-replan efficiency residual is not a correctness blocker |
+| What just changed? | No new runtime code. The requested current-head five-question store-fixed gate exercised `d87e030`, including successful bounded recovery from an adjacent `HYU_T3_072` incomplete structured response |
+| What passed? | All five rows have faithfulness/context recall/grounded rendering/calculation/refusal `1.000`, integrity `ok`, and error `0`; the three repaired rows preserve canonical answer/provenance. Runtime audit 217, full unittest 2,172/2,172, and GitHub Actions `33008417380` are green. The formal gate still records one qualitative completeness failure |
+| Was the benchmark refreshed? | **YES, BROADER STORE-FIXED SUCCESSOR**: 4 / 4 companies and 5 / 5 questions completed with 59 LLM calls, 324,521 tokens, 45 query and zero document embeddings. This is persisted-store current-agent evidence, not fresh ingest or held-out evidence |
+| What is next? | Keep refactoring paused and PR #86 draft. Decide whether to accept the attribution-only completeness residual for integration review or, if formal all-green is required, characterize the evaluator boundary without tuning runtime wording |
 
 ## Product Boundary
 
@@ -60,11 +60,12 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The 2026-08-27 successor three-row replay is the newest focused integration
-  authority. Samsung, NAVER, and LGE retained correct answers and canonical
-  provenance. The earlier LGE wrong-entity failure is closed. PR #86 remains
-  draft because merge authorization and the optional broader paid gate are
-  separate decisions, not because a known three-row correctness blocker remains.
+- The 2026-08-27 five-question store-fixed successor is the newest integration
+  authority. All five answers are evidence/calculation clean, and Samsung,
+  NAVER, and LGE retained canonical provenance. The earlier LGE wrong-entity
+  failure is closed. PR #86 remains draft because merge authorization and the
+  attribution-only evaluator residual are explicit review decisions, not because
+  a known runtime correctness blocker remains.
 - An earlier two-seam owner batch moved prepared nested-result replacement and
   arithmetic subtask-surface synchronization. Across `6ed195e..b5d97ee`, the
   former 64 + 124 = 188 graph definition lines became public 63 + 123 = 186
@@ -754,7 +755,7 @@ For topology rather than normative behavior, use
 | Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
 | Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
 | Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
-| Policy-driven runtime gate | **HISTORICAL RECORDED PASS** on the 2026-08-26 pre-hardening store-fixed refresh: 4 / 4 companies, 5 / 5 questions, full-eval fail count 0. The current authority is the narrower three-row semantic source-scope successor; a new broader gate has not run |
+| Policy-driven runtime gate | **CURRENT-HEAD CORRECTNESS CLEAN / FORMAL QUALITATIVE RESIDUAL** on the 2026-08-27 store-fixed successor: 4 / 4 companies and 5 / 5 questions completed, company pass count 4, error/integrity issue 0, all faithfulness/context recall/grounded rendering/calculation/refusal `1.000`. `full_eval_fail_count=1` because the `HYU_T2_010` LLM completeness judge required explicit “사업보고서에서” attribution and returned `0.700`; do not treat this as a numeric/provenance regression |
 | Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
 | Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after later repairs |
 | Reflection promotion gate | READY |
@@ -775,6 +776,7 @@ For topology rather than normative behavior, use
 | Full unittest discovery | PASS, local 2,172 / 2,172 in 290.959 seconds after semantic source-scope/evaluator repair; prior exact code-head `40ae6a7` also passed 2,165 / 2,165 on Ubuntu/Python 3.13 |
 | Exact-current-head focused successor | **PASS / 3 HEALTHY** on the runtime recorded in `d87e030`: `SAM_T2_078`, `NAV_T2_006`, and `LGE_T1_051` preserve answer/provenance, calculation `1.000`, integrity `ok`, and error `0`. Samsung's stored single-input unit score was corrected to N/A by deterministic no-call replay |
 | Benchmark refresh after release stabilization | The focused successor used 40 LLM calls, 200,855 tokens, 30 query and zero document embeddings, 361.107 question-seconds, and `$0.2064883`; it reused persisted stores and is not fresh-ingest or publishable held-out evidence |
+| Current-head broader store-fixed successor | Completed in 592.607 seconds with 59 LLM calls, 324,521 tokens, 45 query and zero document embeddings, 498.909 question-seconds, and `$0.3059185`. Official company-average completeness is `0.9625` and question-weighted completeness `0.940`; the only formal failure is the attribution-only `HYU_T2_010` LLM judgement |
 | GitHub Actions validation | PASS, run `33007869709` on `d87e030`: reviewer contracts 32 / 32 and audit 217 passed; Ubuntu/Python 3.13 full discovery 2,172 / 2,172 in 211.605 seconds, full job 4 minutes 26 seconds |
 
 The semantic set is `tests.test_financial_graph_helpers`,
@@ -789,23 +791,23 @@ The semantic set is `tests.test_financial_graph_helpers`,
 separately at 19 / 19.
 
 Recorded structural, plain-retrieval, and 2026-08-26 clean-gate numbers remain
-historical evidence. The 2026-08-27 focused successor is current-agent execution
-over persisted stores, followed by a deterministic evaluator-only replay for the
-single-input unit metric; it is not fresh ingest or a new publishable quality
-claim. Raw outputs and heartbeat logs are ignored local artifacts. All three
-answers and their canonical source rows are now clean. PR #86 stays draft until
-the broader-gate-versus-integration choice is explicit; Phase 3 refactoring stays
-paused.
+historical evidence. The 2026-08-27 focused and five-question successors are
+current-agent execution over persisted stores, followed by deterministic
+evaluator-only replay where stated; they are not fresh ingest or a new
+publishable quality claim. Raw outputs and heartbeat logs are ignored local
+artifacts. Current answers/provenance are clean, while one attribution-sensitive
+completeness judge result is formally below threshold. PR #86 stays draft until
+that integration decision is explicit; Phase 3 refactoring stays paused.
 
 ## Active Blockers And Remaining Debt
 
 | Area | State |
 | --- | --- |
-| Core correctness | **No known blocker in the selected three-row gate.** Incomplete numeric structured output retries once and then fails closed; exact-value source ambiguity is delegated semantically and validated deterministically. LGE, Samsung, and NAVER successor answers/provenance are clean |
-| Latest benchmark evidence | Three focused store-fixed successors are healthy. NAVER still used one reflection/replan and its operand metric is `2/3` because the dataset lists the derived `41.4%` output as an operand; both are documented residuals, not observed answer/provenance failures |
+| Core correctness | **No known blocker in the current five-question gate.** Incomplete numeric structured output retries once and then fails closed; exact-value source ambiguity is delegated semantically and validated deterministically. The adjacent Motional row recovered through the bounded retry, and all five answers/traces are calculation/evidence clean |
+| Latest benchmark evidence | The broader store-fixed successor completed all five rows with error/integrity issue 0. Formal `full_eval_fail_count=1` is an attribution-only `HYU_T2_010` LLM completeness result; NAVER efficiency and operand-schema residuals remain documented but are not answer/provenance failures |
 | Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | **AWAITING EXPLICIT DECISION.** Draft PR #86 remains published and `main` unchanged. The focused correctness blocker is closed; choose whether to buy one broader five-question store-fixed gate or proceed to history-preserving integration review while accepting NAVER efficiency/schema residuals |
+| Release integration | **AWAITING EXPLICIT DECISION.** Draft PR #86 remains published and `main` unchanged. The broader gate is complete and runtime correctness is clean; choose whether to accept the qualitative evaluator residual for history-preserving integration review or characterize that evaluator boundary first |
 
 The durable Phase 3 debt is:
 
@@ -827,11 +829,11 @@ owner seam. Draft PR #86 contains release source/tests `6d6ca01`, evidence docs
 `aaf920a`, plus semantic source-scope/evaluator repair `d87e030`. `main` remains
 at `f0a5145`.
 
-The exact-current-source canary reopened the release gate, and the same day's
-semantic source-scope successor closed its correctness blocker. The active work
-is now an explicit broader-gate-versus-integration decision, not another runtime
-patch or Phase 3 refactor. Items 1-9 preserve the prior closure sequence; item 10
-is the current authority:
+The exact-current-source canary reopened the release gate, the semantic
+source-scope successor closed its correctness blocker, and the requested broader
+gate has now run. The active work is an integration-versus-evaluator-
+characterization decision, not another runtime patch or Phase 3 refactor. Items
+1-10 preserve the prior closure sequence; item 11 is the current authority:
 
 1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
    `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
@@ -927,14 +929,28 @@ is the current authority:
     Samsung's single-input unit comparison is now evaluator N/A, verified by
     no-call replay. NAVER's `2/3` operand score is an expected-output schema
     mismatch, and one reflection/replan remains an efficiency residual. Runtime
-    audit 217 and full unittest 2,172/2,172 pass. Choose one of two bounded next
-    actions: run the broader five-question store-fixed gate, or proceed to
-    integration review while explicitly accepting those residuals.
+    audit 217 and full unittest 2,172/2,172 pass.
+11. **CURRENT-HEAD BROADER GATE EXECUTED / FORMAL QUALITATIVE RESIDUAL:** the
+    monitored five-question store-fixed successor completed 4/4 companies and
+    5/5 questions with error/integrity issue 0. `NAV_T2_006`, `LGE_T1_051`, and
+    `SAM_T2_078` retained their canonical answer/provenance; all five rows have
+    faithfulness/context recall/grounded rendering/calculation/refusal `1.000`.
+    The new incomplete-structured-output retry also activated on adjacent
+    `HYU_T3_072` and recovered the correct Motional lookup. Formal
+    `full_eval_fail_count=1` comes only from `HYU_T2_010` completeness `0.700`:
+    the judge required explicit answer wording that the policy statement came
+    “from the business report,” although the correct `87.0 / 78.1만 대 = 11.5%`
+    calculation, IRA/protectionism response summary, evidence, and integrity are
+    present. The previous semantically equivalent answer scored `1.000`. This is
+    evaluator characterization evidence, not authority for a runtime wording
+    branch.
 
 Keep PR #86 in draft and do not merge without explicit approval. More company-
-or question-specific tuning is not the next step. Decide whether a broader gate
-is worth the additional cost or whether the focused evidence is sufficient for
-review. If integration is later approved, use a history-
+or question-specific tuning is not the next step. The paid broader-gate action is
+complete. Decide whether to proceed to integration review while explicitly
+accepting the attribution-only qualitative residual, or, if formal all-green is
+required, characterize the evaluator boundary without changing runtime answer
+wording. If integration is later approved, use a history-
 preserving merge commit rather than squash or rebase because repository documents
 cite intermediate commit receipts. Do not tag, rewrite history, change branch
 protection, or resume refactoring as part of that decision. The parked docs-and-
@@ -987,8 +1003,54 @@ Runtime-domain audit passed 217 reviewed literals. Related contracts passed
 unittest discovery 2,172/2,172 in 290.959 seconds. The three-row correctness
 HOLD is closed. GitHub Actions `33007869709` also passed reviewer 32/32, audit
 217, and Ubuntu/Python 3.13 full discovery 2,172/2,172 in 211.605 seconds. PR #86
-remains draft and `main` unchanged pending an explicit choice between a broader
-five-question gate and integration review.
+remains draft and `main` unchanged.
+
+## Current-Head Five-Question Store-Fixed Gate (2026-08-27)
+
+The requested broader successor ran once on docs/source HEAD `5cdab83` and
+runtime `d87e030`, using the unchanged policy profile and the four persisted
+stores under `policy_gate_regression_2026-06-03_1138_actual`. Static
+profile/signature/cache admission passed, and strict vector health returned one
+probe result for each store. The monitored `--eval-only` wrote only to ignored
+`integration_policy_gate_semantic_source_scope_successor_2026-08-27` artifacts.
+
+It completed 4/4 companies and 5/5 questions in 592.607 seconds. Company screen
+pass count is 4; runtime errors and task/artifact integrity issues are zero.
+Every question has faithfulness, context recall, grounded rendering,
+calculation, and refusal `1.000`. LGE is the sole numeric-applicable row and is
+PASS; the other mixed/lookup questions correctly keep numeric judgement N/A.
+
+The three repaired rows stayed stable:
+
+- NAVER: `2,546,649 / 1,801,079백만원 = 41.4%`;
+- LGE: `2,163,234백만원 - 6,769억원 = 1,486,334백만원`, with `IRA, AMPC`;
+- Samsung: `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`.
+
+The bounded incomplete-output contract generalized to `HYU_T3_072`: its first
+numeric response had prose but no raw value, was rejected, and the one allowed
+retry recovered the correct Motional ownership, carrying value, and loss
+surfaces. `HYU_T3_072`'s heterogeneous lookup unit score remains `0`, exactly as
+in the previous clean gate; calculation and rendering remain `1.000`, so it is
+not a new regression.
+
+The formal ranking nevertheless reports one full-eval failure. `HYU_T2_010`
+has the correct `87.0만 대 / 78.1만 대 = 11.5%` calculation and a grounded IRA/
+protectionism response summary, but the LLM completeness judge returned `0.700`
+because the final answer did not explicitly say that the policy statement came
+from the business report. That lowers Hyundai company completeness to `0.850`,
+official company-average completeness to `0.9625`, and question-weighted
+completeness to `0.940`. A prior semantically equivalent answer scored `1.000`.
+This wording-sensitive qualitative residual is recorded rather than converted
+into a benchmark-specific runtime rule.
+
+Usage was 59 LLM calls, 324,521 tokens, 45 query embeddings, zero document
+embeddings, 498.909 question-seconds, and `$0.3059185`. Four strict-health query
+embeddings preceded the benchmark and are outside those artifact totals. The
+top `results.json` SHA-256 is
+`1d9f7508e758dd85c057dc1be5d7f87cf261495b44833d1a0d9d88a90c5d63c8`.
+Fresh DART fetch/parse/ingest did not run. A no-call replay reconfirmed grounded
+rendering/calculation `1.000` for all five rows; its synthetic numeric verdicts
+for source-N/A mixed questions are diagnostic only. No runtime code changed.
 
 ## Exact-Current-Head Three-Row Canary (2026-08-27)
 

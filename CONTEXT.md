@@ -27,7 +27,7 @@ Last updated: 2026-08-27
 | Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, desired consolidation-scope와 query/task/operand/report period·single-report-scope·strict-company-scope·report-source receipt·year-token projection 및 candidate period/table coherence policy는 `financial_scope_policies.py`, generic operation-family/numeric-grounding policy는 `financial_operation_policies.py`, structured-cell selection/scoring과 candidate selected-cell preparation은 `financial_structured_cells.py`, candidate concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand와 surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·column-candidate label·delta-like row-label·aggregate-like row 및 candidate value-role/stage·candidate operand-context/structured-sibling·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature·candidate location/entity subject score·deterministic positional preference bonus·candidate source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification과 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, statement/section hint inference와 read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, structured-result subtask-row/answer projection·nested-result evidence collection과 collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result와 preferred complete aggregate-answer selection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
 | Phase 3 | OPEN but **REFACTORING PAUSED**; desired consolidation-scope, query/task/operand period-focus, single-report-scope, candidate period/table coherence와 concept-conflict·contextual-aggregate preference·note-aggregate lookup preference·balance-sheet aggregate-operand·CAPEX total-operand, location/entity subject score, deterministic positional preference bonus·source-priority score·complete operand-candidate scoring·candidate-to-operand matching·candidate direct-match strength·direct candidate semantic priority·canonical-statement winner·ratio-component acceptance·direct-grounding 및 direct-acceptance classification, column-candidate/delta-like row-label classification, structured-cell selection/scoring과 candidate selected-cell preparation, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row와 candidate value-role/stage 및 operand-context/structured-sibling, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 reconciliation candidate construction/ranking, broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | `SAM_T2_078`, `NAV_T2_006`, `LGE_T1_051` successor가 모두 canonical row/value/unit/source와 계산 결과를 보존했다. LGE wrong-entity fallback blocker는 닫혔고, NAVER의 1회 reflection/replan은 correctness가 아닌 efficiency residual이다 |
-| Benchmark | 2026-08-27 store-fixed focused successor 3건은 faithfulness/completeness/refusal/grounded rendering/calculation `1.000`, integrity `ok`, error `0`이다. 합계 40 LLM calls, 200,855 tokens, 30 query embeddings, 0 document embeddings, `$0.2064883`; fresh ingest evidence는 아니다. Samsung single-input unit metric은 no-call replay에서 실패가 아니라 N/A로 정정됐고, NAVER operand `2/3`은 dataset이 derived output까지 operand로 열거한 evaluator-schema residual이다 |
+| Benchmark | 2026-08-27 current-head 5-question store-fixed gate는 4/4 company와 5/5 question을 완주했고 screen pass 4, error/integrity issue 0, faithfulness/context recall/grounded rendering/calculation/refusal `1.000`이다. Formal `full_eval_fail_count=1`은 `HYU_T2_010`의 LLM completeness가 출처 귀속 문구를 요구해 `0.700`을 준 정성 residual이다. Company-average completeness `0.9625`, question-weighted `0.940`; 59 LLM calls, 324,521 tokens, 45 query embeddings, 0 document embeddings, `$0.3059185`; fresh ingest evidence는 아니다 |
 
 `2892d1b`는 94-line runtime-trace resolver를 같은 owner와 본문에서 public
 `financial_runtime_trace.resolve_runtime_calculation_trace(...)`로 이름
@@ -62,9 +62,12 @@ source-row ambiguity, direct-operand plan coverage, evaluator override 권한을
 중단 상태다. 2026-08-27 exact-current-head canary가 드러낸 LGE correctness
 blocker는 `d87e030`과 아래 세 행 successor에서 닫혔다. NAVER는 correct result와
 integrity를 유지하면서도 1회 reflection/replan을 사용하므로 efficiency debt는
-남지만 integration correctness blocker는 아니다. 다음 활성 작업은 PR #86을
-draft로 유지한 채 green CI와 focused evidence만으로 integration review로 갈지,
-5-question store-fixed gate를 한 번 더 살지 명시적으로 결정하는 것이다.
+남지만 integration correctness blocker는 아니다. 최신 5-question store-fixed gate도
+runtime correctness와 provenance를 유지했지만 `HYU_T2_010`의 attribution-only LLM
+completeness 변동으로 formal full-eval fail 1을 기록했다. 다음 활성 작업은 PR #86을
+draft로 유지한 채 이 정성 evaluator residual을 명시적으로 수용하고 integration
+review로 갈지, strict all-green이 필요하면 runtime tuning 없이 evaluator-only
+characterization을 먼저 할지 결정하는 것이다.
 상세 범위는 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ### 2026-08-26 Samsung semantic-row and one-way provenance checkpoint
@@ -233,6 +236,44 @@ draft로 유지한 채 green CI와 focused evidence만으로 integration review�
 - GitHub Actions `33007869709`도 `d87e030`에서 reviewer 32/32, audit 217,
   Ubuntu/Python 3.13 full unittest 2,172/2,172를 통과했다. Full discovery는
   211.605초, job은 4분 26초였다.
+
+### 2026-08-27 current-head five-question store-fixed gate checkpoint
+
+- docs/source HEAD `5cdab83`, runtime `d87e030`에서
+  `curated_policy_driven_runtime_gate.json`의 `NAV_T2_006`, `HYU_T2_010`,
+  `HYU_T3_072`, `LGE_T1_051`, `SAM_T2_078`을 한 번의 monitored `--eval-only`로
+  실행했다. Source bundle은 `policy_gate_regression_2026-06-03_1138_actual`, 새
+  ignored output은 `integration_policy_gate_semantic_source_scope_successor_2026-08-27`이다.
+- 실행 전 profile/store signature와 네 cache의 `completed` 상태를 무호출로
+  확인했고, 네 vector index는 strict health probe에서 각각 `result_count=1`로
+  통과했다. 이 네 preflight query embedding은 아래 benchmark artifact usage 밖이다.
+- 592.607초에 4/4 company, 5/5 question을 완료했다. Screen pass count 4,
+  runtime error 0, task/artifact integrity issue 0이며 모든 문항의 faithfulness,
+  context recall, grounded rendering, calculation, refusal은 `1.000`이다. LGE는 유일한
+  numeric-applicable row로 PASS했고 나머지 mixed/lookup row의 numeric judgement는
+  N/A다.
+- `NAV_T2_006`은 exact `2,546,649 / 1,801,079백만원 = 41.4%`,
+  `LGE_T1_051`은 `2,163,234백만원 - 6,769억원 = 1,486,334백만원`,
+  `SAM_T2_078`은 exact `연구개발비용 총계 / 28,352,769 / 백만원 / ev_001`을
+  유지했다. `HYU_T3_072`에서는 첫 numeric structured response의 빈 `raw_value`를
+  새 bounded retry가 거부하고 다시 받아 Motional의 `50.00% -> 25.81%`,
+  `1,294,367백만원`, 손실 두 값을 정상 보존했다.
+- Formal winner ranking은 company pass 4지만 `full_eval_fail_count=1`이다.
+  `HYU_T2_010` 답은 `87.0만 대 / 78.1만 대 = 11.5%`와 IRA 등 보호무역주의 대응
+  필요성을 모두 담고 faithfulness/context recall/calculation/integrity가 clean이다.
+  LLM completeness만 답 안에 “사업보고서에서”라는 출처 귀속 문구가 없다는 이유로
+  `0.700`을 줘 Hyundai company completeness가 `0.850`이 됐다. 직전 의미상 같은
+  답은 `1.000`이었으므로 runtime correctness regression이나 새 answer rule의 근거로
+  쓰지 않는다.
+- Artifact usage는 59 LLM calls, 324,521 tokens, 45 query embeddings,
+  0 document embeddings, 498.909 question-seconds, estimated runtime LLM cost
+  `$0.3059185`다. Top result SHA-256은
+  `1d9f7508e758dd85c057dc1be5d7f87cf261495b44833d1a0d9d88a90c5d63c8`이다.
+  No-call deterministic replay는 다섯 문항 모두 grounded rendering/calculation
+  `1.000`을 확인했지만 mixed-row synthetic numeric verdict는 gate claim으로 쓰지 않는다.
+- Fresh DART fetch/parse/ingest와 document embedding은 없었다. Raw result,
+  heartbeat, replay summary는 ignored local artifacts이고 stage하지 않는다. PR #86은
+  draft, `main`은 그대로이며 이 checkpoint는 코드 변경을 추가하지 않았다.
 
 ## 남은 Phase 3 범위
 
