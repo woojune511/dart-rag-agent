@@ -15718,7 +15718,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[1]
         agent_root = repo_root / "src" / "agent"
         target_name = "candidate_selected_cell_for_operand"
-        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_paths = {path.stem: path for path in sorted(agent_root.glob("*.py"))}
         module_sources = {
             name: path.read_text(encoding="utf-8-sig")
             for name, path in module_paths.items()
