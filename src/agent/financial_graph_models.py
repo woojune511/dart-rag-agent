@@ -1,26 +1,25 @@
-"""Pydantic structured-output models for the financial agent."""
+"""Structured-output models for narrative evidence and semantic calculation programs."""
 
+import hashlib
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+_SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
+
+
+def _bounded_semantic_coupling_key(value: Any) -> str:
+    text = " ".join(str(value or "").split())
+    if len(text) <= _SEMANTIC_COUPLING_KEY_MAX_CHARS:
+        return text
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+    prefix_length = _SEMANTIC_COUPLING_KEY_MAX_CHARS - len(digest) - 1
+    return f"{text[:prefix_length]}:{digest}"
 
 
 class _DeferredBaseModel(BaseModel):
     model_config = ConfigDict(defer_build=True)
-
-
-class EntityExtraction(_DeferredBaseModel):
-    companies: List[str] = Field(default_factory=list, description="질문에 등장한 기업명 목록")
-    years: List[int] = Field(default_factory=list, description="질문에 등장한 연도 목록")
-    topic: str = Field(description="질문의 핵심 분석 주제")
-    section_filter: Optional[str] = Field(
-        default=None,
-        description=(
-            "관련 섹션 레이블 하나. 예: 리스크, 재무제표, 연결재무제표, 요약재무, 재무주석, "
-            "사업개요, 주요제품, 원재료, 매출현황, 연구개발, 경영진단, 임원현황, 이사회, 주주현황, 계열회사. "
-            "단, 두 개 이상의 서로 다른 섹션 데이터가 모두 필요한 질문(비율·비중·이익률 등 분자/분모가 다른 섹션에 있는 경우)은 None을 반환하세요."
-        ),
-    )
 
 
 class EvidenceItem(_DeferredBaseModel):
@@ -69,141 +68,224 @@ class CompressionOutput(_DeferredBaseModel):
     )
 
 
-class NumericExtraction(_DeferredBaseModel):
-    period_check: str = Field(
-        description="질문이 요구하는 연도/기수(예: 2024년, 당기, 제56기)를 확인하고, 문서(표)에서 해당 기간의 열을 찾았는지 설명"
-    )
-    consolidation_check: str = Field(
-        description="질문이 요구하는 기준(연결/별도)을 확인하고, 문서의 기준과 일치하는지 판단"
-    )
-    unit: str = Field(
-        description="해당 숫자가 있는 표나 문단에 명시된 금액 단위 (예: 원, 천원, 백만원, 억원, %)"
-    )
-    raw_value: str = Field(
-        description="문서에서 찾은 원본 숫자 텍스트 그대로 (예: '300,870,903'). 단위 변환 금지."
-    )
-    final_value: str = Field(
-        description="질문에 대한 최종 답변 문장. raw_value와 unit을 바탕으로 자연스러운 한국어 한 문장으로 작성."
-    )
+class AnswerObligationScope(_DeferredBaseModel):
+    """Semantic scope that every grounded answer obligation must preserve."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    company: str = ""
+    period: str = ""
+    consolidation_scope: Literal["consolidated", "separate", "unknown"] = "unknown"
+    segment: str = ""
+    basis: str = ""
 
 
-class CalculationOperand(_DeferredBaseModel):
-    operand_id: str = Field(description="계산용 고유 피연산자 ID. 예: op_001")
-    evidence_id: str = Field(description="이 숫자가 추출된 evidence_id")
-    source_anchor: str = Field(description="근거 출처 앵커")
-    label: str = Field(description="피연산자의 의미 있는 레이블. 예: DX부문 매출, DS부문 매출, 2024년 영업이익")
-    raw_value: str = Field(description="문서에서 읽은 원본 숫자 문자열. 예: 174조 8,877억원, 16.2, 228")
-    raw_unit: str = Field(description="원본 숫자의 단위. 예: 조원, 억원, 백만원, %, 개")
-    normalized_value: Optional[float] = Field(
-        default=None,
-        description="코드에서 다시 검증 가능한 기본 단위 값. KRW는 원, PERCENT는 퍼센트포인트, COUNT는 절대 개수 기준."
+class EvidenceRequirement(_DeferredBaseModel):
+    """One non-rendered evidence input required to produce an answer obligation."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    requirement_id: str = ""
+    label: str
+    required: bool = True
+    scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    retrieval_hints: List[str] = Field(default_factory=list)
+    concept_hints: List[str] = Field(default_factory=list)
+
+
+class AnswerObligation(_DeferredBaseModel):
+    """One user-visible output requirement, independent of an operation taxonomy."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    obligation_id: str = ""
+    kind: Literal["direct_value", "derived_value", "narrative"]
+    label: str
+    required: bool = True
+    display_unit: str = ""
+    display_format: str = ""
+    scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    retrieval_hints: List[str] = Field(default_factory=list)
+    concept_hints: List[str] = Field(default_factory=list)
+    evidence_mode: Literal["declared_inputs", "source_defined_group"] = Field(
+        default="declared_inputs",
+        description=(
+            "Use source_defined_group only for a narrative summary whose members "
+            "are defined by the source, not named by the query. Leave "
+            "evidence_requirements empty: the runtime creates one source-group "
+            "requirement from this obligation's label, scope, and search hints. "
+            "Use declared_inputs for required raw inputs or query-defined facts "
+            "and relationships."
+        ),
     )
-    normalized_unit: Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"] = Field(
-        default="UNKNOWN",
-        description="정규화된 단위 계열"
-    )
-    period: str = Field(default="", description="이 숫자가 대응하는 기간/기수. 예: 2024년, 2023년, 당기, 전기")
-
-
-class OperandExtraction(_DeferredBaseModel):
-    coverage: Literal["sufficient", "partial", "missing"] = Field(
-        description="질문 계산에 필요한 피연산자를 충분히 찾았는지 여부"
-    )
-    operands: List[CalculationOperand] = Field(default_factory=list)
-
-
-class FormulaVariableBinding(_DeferredBaseModel):
-    variable: str = Field(description="수식에서 사용할 변수명. 예: A, B, C")
-    operand_id: str = Field(description="이 변수에 바인딩할 operand_id")
-
-
-class CalculationPlan(_DeferredBaseModel):
-    status: Literal["ok", "incomplete"] = Field(
-        default="ok",
-        description="계산 계획이 완결되었는지 여부. 부족한 정보가 있으면 incomplete"
-    )
-    mode: Literal["single_value", "time_series", "none"] = Field(
-        description="단일 계산인지, 시계열 계산인지, 계산 불가인지"
-    )
-    operation: str = Field(
+    evidence_requirements: List[EvidenceRequirement] = Field(default_factory=list)
+    depends_on: List[str] = Field(default_factory=list)
+    coupling_key: str = Field(
         default="",
-        description="평가/로그용 연산 힌트. 예: subtract, growth_rate, time_series_trend"
+        max_length=_SEMANTIC_COUPLING_KEY_MAX_CHARS,
+        description=(
+            "Share a key only when outputs require a common semantic basis. "
+            "Leave empty for independently requested outputs; sharing a query, "
+            "company, or report does not establish coupling."
+        ),
     )
-    ordered_operand_ids: List[str] = Field(
+
+    @field_validator("coupling_key", mode="before")
+    @classmethod
+    def _bound_coupling_key(cls, value: Any) -> str:
+        return _bounded_semantic_coupling_key(value)
+
+    @model_validator(mode="after")
+    def _materialize_source_defined_group(self) -> "AnswerObligation":
+        if self.evidence_mode != "source_defined_group":
+            return self
+        if self.kind != "narrative":
+            raise ValueError("A source-defined group must be a narrative obligation")
+        requirement = EvidenceRequirement(
+            label=self.label,
+            scope=self.scope.model_copy(deep=True),
+            retrieval_hints=list(self.retrieval_hints),
+            concept_hints=list(self.concept_hints),
+        )
+        if not self.evidence_requirements:
+            self.evidence_requirements = [requirement]
+        elif (
+            len(self.evidence_requirements) != 1
+            or self.evidence_requirements[0].model_dump(exclude={"requirement_id"})
+            != requirement.model_dump(exclude={"requirement_id"})
+        ):
+            raise ValueError(
+                "A source-defined group must preserve one required source-group "
+                "requirement with its obligation's label, scope, and search hints"
+            )
+        return self
+
+
+class RequirementPlannerOutput(_DeferredBaseModel):
+    """Pre-retrieval semantic requirements without a fixed calculation type."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    companies: List[str] = Field(default_factory=list)
+    years: List[int] = Field(default_factory=list)
+    topic: str = ""
+    section_filter: Optional[str] = None
+    obligations: List[AnswerObligation] = Field(default_factory=list)
+    retrieval_queries: List[str] = Field(default_factory=list)
+    rationale: str = ""
+
+
+class SemanticProgramDirectBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    obligation_id: str
+    candidate_id: str
+    compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
-        description="연산 순서가 중요한 경우를 위해 순서를 보존한 피연산자 목록"
-    )
-    variable_bindings: List[FormulaVariableBinding] = Field(
-        default_factory=list,
-        description="수식에서 사용할 변수와 operand_id의 매핑"
-    )
-    formula: str = Field(
-        default="",
-        description="A, B, C ... 같은 변수만 사용한 안전한 계산식"
-    )
-    pairwise_formula: str = Field(
-        default="",
-        description="time_series 모드에서 PREV와 CURR 두 변수로 인접 시점 변화를 계산하는 식"
-    )
-    result_unit: str = Field(
-        default="",
-        description="최종 답변에 사용할 단위. 예: 억원, 원, %, 개"
-    )
-    operation_text: str = Field(
-        default="",
-        description="연산 순서를 사람이 읽을 수 있게 표현한 짧은 설명. 예: current_year - previous_year"
-    )
-    explanation: str = Field(
-        default="",
-        description="이 연산을 선택한 이유를 한 문장으로 설명"
-    )
-    missing_info: List[str] = Field(
-        default_factory=list,
-        description="계획 수립에 필요한데 현재 컨텍스트에 없는 정보 목록. 예: 2023년 연구개발비용"
+        description=(
+            "Narrative candidate IDs from the same source context that ground "
+            "otherwise unknown direct-value scope metadata or explicitly "
+            "establish compatibility for coupled outputs"
+        ),
     )
 
 
-class ReflectionQueryPlan(_DeferredBaseModel):
-    status: Literal["ready", "skip"] = Field(
-        default="ready",
-        description="재검색 계획을 만들 수 있으면 ready, 그렇지 않으면 skip"
+class SemanticProgramVariableBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    variable: str
+    source_id: str = Field(description="A candidate_id or a previously produced obligation_id")
+    source_requirement_id: str = Field(
+        default="",
+        description=(
+            "The declared evidence requirement satisfied by a candidate source. "
+            "Leave empty when source_id is a previously produced obligation_id."
+        ),
     )
-    retry_objective: Literal[
-        "find_missing_values",
-        "find_direct_row",
-        "resolve_binding",
-        "generic_retry",
+    scope_applicability_fields: List[Literal["segment", "basis"]] = Field(
+        default_factory=list,
+        description=(
+            "Soft scope fields that the compiler judges applicable when a local "
+            "numeric candidate leaves only segment or basis metadata unknown. "
+            "Explicit conflicts, company, period, and consolidation scope cannot "
+            "be bridged."
+        ),
+    )
+
+
+class SemanticProgramConstant(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    value: float
+    origin: Literal["query", "deterministic_cardinality"]
+    source_text: str = ""
+
+
+class SemanticProgramExpression(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    obligation_id: str
+    variable_bindings: List[SemanticProgramVariableBinding] = Field(default_factory=list)
+    formula: str
+    result_unit: str = ""
+    display_unit: str = ""
+    display_format: str = ""
+    source_display_candidate_id: str = ""
+    compatibility_candidate_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Narrative candidate IDs that explicitly ground compatibility when "
+            "the selected numeric sources use different semantic contexts"
+        ),
+    )
+    constants: List[SemanticProgramConstant] = Field(default_factory=list)
+
+
+class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    candidate_id: str
+    source_requirement_id: str
+
+
+class SemanticProgramNarrativeBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    obligation_id: str
+    candidate_ids: List[str] = Field(default_factory=list)
+    evidence_bindings: List[SemanticProgramNarrativeEvidenceBinding] = Field(
+        default_factory=list
+    )
+    scope_applicability_fields: List[
+        Literal["consolidation_scope", "segment", "basis"]
     ] = Field(
-        default="generic_retry",
-        description="이번 retry의 목적. 세부 연산 분류보다 재검색 목적만 나타낸다"
-    )
-    retry_strategy: Literal[
-        "retry_retrieval",
-        "synthesize_from_task_outputs",
-        "stop_insufficient",
-    ] = Field(
-        default="retry_retrieval",
-        description="실패 대응 전략. 재검색을 계속할지, 기존 task output으로 합성할지, 근거 부족으로 중단할지 선택한다.",
-    )
-    missing_info: List[str] = Field(
         default_factory=list,
-        description="현재 컨텍스트에서 부족한 정보 조각"
+        description=(
+            "Soft scope fields that the compiler judges applicable even though "
+            "the selected narrative evidence leaves their metadata unknown. "
+            "Explicit conflicts, company, and period cannot be bridged."
+        ),
     )
-    subqueries: List[str] = Field(
-        default_factory=list,
-        description="retrieval executor가 그대로 사용할 1~3개의 재검색 쿼리"
-    )
-    preferred_sections: List[str] = Field(
-        default_factory=list,
-        description="재검색에서 우선적으로 참고할 섹션 힌트"
-    )
-    explanation: str = Field(
-        default="",
-        description="왜 이 재검색 계획을 세웠는지 한 문장 설명"
-    )
+    text: str
+
+
+class SemanticCalculationProgram(_DeferredBaseModel):
+    """Post-evidence semantic selection plus restricted deterministic expressions."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    status: Literal["ready", "incomplete", "ambiguous"] = "ready"
+    direct_bindings: List[SemanticProgramDirectBinding] = Field(default_factory=list)
+    expressions: List[SemanticProgramExpression] = Field(default_factory=list)
+    narrative_bindings: List[SemanticProgramNarrativeBinding] = Field(default_factory=list)
+    missing_obligation_ids: List[str] = Field(default_factory=list)
+    ambiguous_obligation_ids: List[str] = Field(default_factory=list)
+    rationale: str = ""
 
 
 NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
+
+
 AnswerSlotStatus = Literal["ok", "missing", "derived", "ambiguous"]
 
 
@@ -314,6 +396,7 @@ AnswerSlotsPayload = Annotated[
     Field(discriminator="operation_family"),
 ]
 
+
 _ANSWER_SLOTS_ADAPTER: Any = None
 
 
@@ -329,182 +412,6 @@ def _answer_slots_adapter() -> Any:
 def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     validated = _answer_slots_adapter().validate_python(payload)
     return validated.model_dump()
-
-
-class CalculationResult(_DeferredBaseModel):
-    status: Literal[
-        "ok",
-        "insufficient_operands",
-        "zero_division",
-        "unsupported_operation",
-        "unit_mismatch",
-        "scale_mismatch",
-        "parse_error",
-    ] = Field(
-        description="계산 수행 상태"
-    )
-    result_value: Optional[float] = Field(default=None, description="정규화 단위 기준 계산 결과")
-    result_unit: str = Field(default="", description="최종 답변 단위")
-    rendered_value: str = Field(default="", description="사용자 응답에 들어갈 값 표현")
-    formatted_result: str = Field(default="", description="프레젠테이션 계층에서 바로 사용할 수 있는 렌더링 결과")
-    series: List[Dict[str, Any]] = Field(default_factory=list, description="기간/항목별 계산 입력 시계열 또는 순서 데이터")
-    current_value: Optional[float] = Field(default=None, description="현재 기간 정규화 값")
-    prior_value: Optional[float] = Field(default=None, description="직전 기간 정규화 값")
-    delta_value: Optional[float] = Field(default=None, description="증감 계산 결과 정규화 값")
-    current_period: str = Field(default="", description="현재 기간 라벨")
-    prior_period: str = Field(default="", description="직전 기간 라벨")
-    source_row_ids: List[str] = Field(default_factory=list, description="결과를 만든 evidence row/candidate id")
-    answer_slots: Dict[str, Any] = Field(
-        default_factory=dict,
-        description=(
-            "renderer/synthesizer/evaluator가 공통으로 읽는 answer-friendly structured result slots. "
-            "typed union으로 검증된 payload를 dict로 직렬화해 저장한다. "
-            "예: primary_value, current_value, prior_value, delta_value, components_by_role"
-        ),
-    )
-    derived_metrics: Dict[str, Any] = Field(default_factory=dict, description="계산 과정에서 파생된 보조 지표")
-    explanation: str = Field(default="", description="계산 또는 실패 이유 설명")
-
-
-class CalculationRenderOutput(_DeferredBaseModel):
-    final_answer: str = Field(description="CalculationResult와 operand labels만 사용해 작성한 최종 답변")
-
-
-class CalculationVerificationOutput(_DeferredBaseModel):
-    verdict: Literal["keep", "rewrite", "fallback"] = Field(
-        description="현재 계산 답변을 유지할지, 짧게 고쳐쓸지, deterministic fallback으로 돌릴지"
-    )
-    issues: List[str] = Field(
-        default_factory=list,
-        description="발견한 문제 목록. 예: wrong_unit, wrong_direction, extra_claim"
-    )
-    final_answer: str = Field(
-        description="검증 후 최종 사용자 답변"
-    )
-
-
-class AggregateSynthesisOutput(_DeferredBaseModel):
-    final_answer: str = Field(
-        description="원본 질문과 subtask 결과를 종합해 작성한 최종 답변"
-    )
-    planner_feedback: str = Field(
-        default="",
-        description="현재 재료만으로는 원본 질문을 완전히 충족하지 못할 때 planner가 추가로 모아야 할 재료를 한 문장으로 설명"
-    )
-
-
-class OperandRequirement(_DeferredBaseModel):
-    label: str = Field(description="찾아야 하는 피연산자 대표 라벨")
-    concept: str = Field(default="", description="ontology concept key")
-    aliases: List[str] = Field(default_factory=list, description="허용 가능한 동의어/대체 라벨")
-    keywords: List[str] = Field(default_factory=list, description="추가 검색/정합성 판단용 키워드")
-    role: str = Field(default="", description="numerator, denominator 등 역할")
-    required: bool = Field(default=True, description="반드시 필요한 피연산자인지 여부")
-    period_hint: str = Field(default="", description="특정 연도/기간 힌트가 있으면 기록")
-    preferred_sections: List[str] = Field(default_factory=list, description="concept-level preferred sections")
-    preferred_statement_types: List[str] = Field(default_factory=list, description="concept-level preferred statement types")
-    binding_policy: Dict[str, Any] = Field(default_factory=dict, description="concept-level structured value binding preferences")
-
-
-class TaskConstraints(_DeferredBaseModel):
-    consolidation_scope: str = Field(default="unknown")
-    period_focus: str = Field(default="unknown")
-    entity_scope: str = Field(default="unknown")
-    segment_scope: str = Field(default="none")
-
-
-class TaskInputBinding(_DeferredBaseModel):
-    role: str = Field(default="", description="consumer operand role. 예: current_period, prior_period")
-    concept: str = Field(default="", description="required ontology concept key")
-    period: str = Field(default="", description="required period hint. 예: 2023, 2022")
-    label: str = Field(default="", description="human-friendly input label")
-    preferred_task_id: str = Field(default="", description="이 입력을 우선 채워야 하는 producer task id")
-    source_slot: str = Field(default="primary_value", description="producer answer_slots에서 읽을 slot 이름")
-    source_preference: List[str] = Field(
-        default_factory=lambda: ["retrieval"],
-        description="입력 해석 우선순위. 예: task_output, retrieval",
-    )
-    segment_label: str = Field(default="", description="segment/entity-scoped binding label")
-
-
-class TaskOutputSlot(_DeferredBaseModel):
-    slot: str = Field(default="primary_value", description="producer answer_slots slot name")
-    role: str = Field(default="", description="producer operand role or semantic slot role")
-    concept: str = Field(default="", description="produced ontology concept key")
-    period: str = Field(default="", description="produced period hint. 예: 2023")
-    label: str = Field(default="", description="human-friendly produced label")
-    segment_label: str = Field(default="", description="segment/entity-scoped output label")
-
-
-class RetrievalTask(_DeferredBaseModel):
-    task_id: str
-    metric_family: str
-    metric_label: str
-    query: str
-    operation_family: str = Field(default="", description="ratio, sum, difference, growth_rate 같은 planner-level generic operation")
-    required_operands: List[OperandRequirement] = Field(default_factory=list)
-    depends_on: List[str] = Field(default_factory=list, description="producer task ids that should complete before this task")
-    inputs: List[TaskInputBinding] = Field(default_factory=list, description="typed consumer input bindings")
-    produces: List[TaskOutputSlot] = Field(default_factory=list, description="typed task output slots available to downstream tasks")
-    preferred_statement_types: List[str] = Field(default_factory=list)
-    preferred_sections: List[str] = Field(default_factory=list)
-    retrieval_queries: List[str] = Field(default_factory=list)
-    constraints: TaskConstraints = Field(default_factory=TaskConstraints)
-
-
-class ConceptPlannerOperand(_DeferredBaseModel):
-    concept: str = Field(description="ontology concept key")
-    role: str = Field(default="", description="numerator_1, denominator_1, addend_1, current_period 등")
-
-
-class ConceptPlannerTask(_DeferredBaseModel):
-    metric_label: str = Field(default="", description="사용자에게 보일 계산 라벨")
-    operation_family: Literal["lookup", "sum", "difference", "ratio", "growth_rate", "single_value", "none"] = Field(
-        default="none"
-    )
-    operands: List[ConceptPlannerOperand] = Field(default_factory=list)
-
-
-class ConceptPlannerOutput(_DeferredBaseModel):
-    companies: List[str] = Field(default_factory=list, description="planner가 질문에서 파악한 기업명 목록")
-    years: List[int] = Field(default_factory=list, description="planner가 질문에서 파악한 연도 목록")
-    topic: str = Field(default="", description="planner가 정리한 핵심 주제")
-    section_filter: Optional[str] = Field(default=None, description="planner가 추론한 주요 섹션 힌트")
-    tasks: List[ConceptPlannerTask] = Field(default_factory=list)
-    rationale: str = Field(default="", description="planner가 이렇게 분해한 이유")
-
-
-class SemanticPlan(_DeferredBaseModel):
-    status: Literal[
-        "ok",
-        "needs_clarification",
-        "fallback_general_search",
-        "heuristic_fallback",
-        "concept_fallback",
-    ] = Field(default="ok")
-    fallback_to_general_search: bool = Field(default=False)
-    planned_metric_families: List[str] = Field(
-        default_factory=list,
-        description="실제로 계획된 subtask metric family 목록. multi-metric 질문에서는 이 필드를 source of truth로 본다.",
-    )
-    tasks: List[RetrievalTask] = Field(default_factory=list)
-    planner_notes: List[str] = Field(default_factory=list)
-
-
-class ReconciliationCandidateRerank(_DeferredBaseModel):
-    ordered_candidate_ids: List[str] = Field(
-        default_factory=list,
-        description="질문과 operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬한 목록",
-    )
-    selected_candidate_id: str = Field(
-        default="",
-        description="Candidate selected only when one option is semantically unambiguous; empty otherwise.",
-    )
-    selection_status: Literal["selected", "ambiguous"] = Field(
-        default="ambiguous",
-        description="Whether semantic interpretation resolved exactly one candidate.",
-    )
-    rationale: str = Field(default="", description="선택 이유를 간단히 설명")
 
 
 class ValidationOutput(_DeferredBaseModel):

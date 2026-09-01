@@ -134,6 +134,11 @@ class ReviewTrace(TypedDict, total=False):
     reflection_action: ReflectionAction
     reflection_report: ReflectionReport
     semantic_plan: Dict[str, Any]
+    answer_obligations: List[Dict[str, Any]]
+    semantic_candidate_catalog: List[Dict[str, Any]]
+    semantic_program: Dict[str, Any]
+    semantic_program_validation: Dict[str, Any]
+    semantic_program_retry_count: int
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]
     active_subtask_index: int
@@ -200,6 +205,11 @@ class CalculationState(TypedDict):
     debug_traces: NotRequired[DebugTraceBundle]
     planner_debug_trace: Dict[str, Any]
     semantic_plan: Dict[str, Any]
+    answer_obligations: List[Dict[str, Any]]
+    semantic_candidate_catalog: List[Dict[str, Any]]
+    semantic_program: Dict[str, Any]
+    semantic_program_validation: Dict[str, Any]
+    semantic_program_retry_count: int
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]
     active_subtask_index: int
