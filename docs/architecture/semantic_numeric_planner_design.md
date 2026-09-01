@@ -1,5 +1,13 @@
 # Semantic Numeric Planner Design
 
+> Status (2026-08-27): superseded for numeric/mixed runtime execution by the
+> answer-obligation and semantic calculation program contract in
+> [agent_runtime_contract.md](agent_runtime_contract.md#6-canonical-semantic-calculation-program).
+> The remainder of this file is retained as design history for parser/retrieval
+> context only. Its `operation_family`, `required_operands`, separate
+> reconciliation/operand/formula stages, subtask loop, and aggregate path are not
+> canonical and must not be restored as fallback behavior.
+
 ## Goal
 
 Improve numeric question handling by shifting from:

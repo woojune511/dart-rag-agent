@@ -7,19 +7,19 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-27
+Last updated: 2026-09-01
 
 ## At A Glance
 
 | Question | Current answer |
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Is the core path blocked? | **NO known runtime correctness/provenance blocker in the current five-question gate.** Formal release scoring is amber because one wording-sensitive `HYU_T2_010` LLM completeness judgement returned `0.700`; integration review accepts that residual and merge authorization has been granted |
-| What is the architecture state? | Phase 3 OPEN but refactoring is **PAUSED**; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | No new runtime code. The normative semantic source-scope and evaluator/replay contracts are synchronized with `d87e030`, the PR body reflects the current gate, and the user explicitly authorized integration |
-| What passed? | All five rows have faithfulness/context recall/grounded rendering/calculation/refusal `1.000`, integrity `ok`, and error `0`; the three repaired rows preserve canonical answer/provenance. Runtime audit 217, full unittest 2,172/2,172, and exact-head GitHub Actions `33014459130` are green. The formal gate still records one qualitative completeness failure |
-| Was the benchmark refreshed? | **YES, BROADER STORE-FIXED SUCCESSOR**: 4 / 4 companies and 5 / 5 questions completed with 59 LLM calls, 324,521 tokens, 45 query and zero document embeddings. This is persisted-store current-agent evidence, not fresh ingest or held-out evidence |
-| What is next? | The only authorized release sequence is a history-preserving merge commit for PR #86 followed by merge-parent/tree and `main` CI verification. When those predicates are green, integration is complete; refactoring remains paused |
+| Is the core path blocked? | **YES FOR INTEGRATION, NOT FOR LOCAL CONTRACTS.** The latest approved source-group/display/evaluator successor has one runtime-complete row and one clean focused acceptance out of three. The lossy T3 source-to-operand projection is repaired locally; real variant/key registration and the paid-run compiler failures remain separate blockers |
+| What is the architecture state? | Numeric/mixed questions now use one semantic calculation program; narrative-only flow remains separate. Pre-execution `operation_family`, per-type subtask decomposition, separate operand/formula LLM stages, and their callerless repair mesh were removed |
+| What just changed? | The provider-free source-to-canonical-operand repair is complete. Inline cell units now override inherited table hints, current report year is separate from metric headers, and validated row identity survives as an explicit subject through one shared operand projector. The same six immutable T3 IDs now execute `ok` and atomically match the truthful consolidated proposal |
+| What passed? | Multi-output contract 13/13; focused semantic/scope/evaluator/provenance/slot/ledger/import 261/261; runtime audit 86; import 19/19 and canonical DAG included; full 707/707. The immutable six-ID T3 gate returns `atomic_answer_variant_match` with no projection error. Curated datasets, saved results, stores, and excluded user files are unchanged |
+| Was the benchmark refreshed? | **NO.** The source review and executor/matcher probes were provider-free and read-only. The latest approved 303.767-second run remains acceptance 1/3 and runtime completeness 1/3: 18 LLM calls, 543,641 tokens, 33 per-question query and zero document embeddings, runner LLM estimate `$0.2719901` excluding embedding pricing. That one-run approval is consumed |
+| What is next? | Make a separate dataset-governance decision: register only the source-complete consolidated T3 variant and decide how to correct the mixed-basis canonical key/evidence. T2/T3 compiler repair, paid replay, broader gate, and Phase 3 remain separate |
 
 ## Product Boundary
 
@@ -37,6 +37,16 @@ or an unconfigured `FinancialAgent` invocation.
 
 ## Current Source State
 
+- Current implementation is an uncommitted work tree on `main@a9a2df5`.
+  `src/api/financial_router.py` and
+  `tests/test_financial_router_http_contract.py` are pre-existing user changes
+  and are explicitly outside this change set. No benchmark bundle, store, cache,
+  profile, or heartbeat artifact is intended for staging.
+- The active numeric/mixed graph is `requirement planner -> retrieval/evidence ->
+  semantic program compiler -> validator/executor -> render/verify`. The
+  commit-by-commit owner-move bullets below are retained as historical context;
+  references there to deleted operand, aggregate, reconciliation, structured-cell,
+  or lookup-recovery modules do not describe the current canonical path.
 - PRs #79 through #84 completed the July portfolio-core simplification; PR #85
   compressed the earlier handoff documents. The recorded PR #86 integration
   base is `main@f0a5145`; the approved merge must preserve it as the first parent.
@@ -60,12 +70,265 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The 2026-08-27 five-question store-fixed successor is the newest integration
-  authority. All five answers are evidence/calculation clean, and Samsung,
-  NAVER, and LGE retained canonical provenance. The earlier LGE wrong-entity
-  failure is closed. PR #86 was kept draft through integration review so the
-  attribution-only evaluator residual and merge policy were explicit decisions;
-  the user has now authorized the merge.
+- The earlier 2026-08-27 five-question store-fixed successor remains historical
+  authority for the pre-transition runtime only. It does not validate the new
+  semantic-program graph.
+- The separately authorized 2026-08-30 generic-contract successor is the active
+  broader integration evidence. It completed all four companies and five rows
+  without a runtime or ledger error, but every row missed at least one required
+  obligation; the four company full evaluations therefore failed. This
+  supersedes both the clean pre-transition gate and the first 2026-08-29
+  semantic-program gate for the uncommitted work tree.
+- The successor confirmed that unknown-only narrative scope applicability and
+  registered retry bindings affect production behavior, but exposed three deeper
+  boundaries: semantic expression compatibility across adjacent-period/report or
+  statement/note contexts, obligation-owned numeric/structured-sibling candidate
+  admission, and fail-closed direct subject identity plus deterministic display-
+  unit conversion. No benchmark answer or evaluator evidence may fill those
+  runtime gaps.
+- The evaluator-only dataset contract can now list multiple atomic accepted
+  calculation variants without feeding benchmark answers back into runtime.
+  LGE's curated full dataset and two focused slices contain a precise connected-
+  note variant (`2,163,234 - 676,874 = 1,486,360백만원`) and a rounded management-
+  discussion variant (`2조 1,632억원 - 6,769억원 = 1조 4,863억원`). A no-call
+  replay of the already saved LGE successor selected only the precise trace
+  variant and produced numeric/operand/result/calculation `1.000`; this is not a
+  fresh agent or provider observation.
+- Generic no-call rendering characterization separated the two qualitative
+  residuals. LGE's executed obligations shared company, period, and consolidated
+  scope, but the old semantic renderer discarded that context while joining
+  `label: value` fragments. The renderer now emits only common validated scope
+  once and uses complete numeric sentences. NAVER's selected candidates, runtime
+  evidence, and retrieved previews contain no second acquisition-effect detail;
+  deterministic rendering therefore leaves that upstream coverage gap visible.
+- The resolved-negative KB input audit was followed by a separately authorized
+  store-only build for receipt `20240326000894`. Two no-call preflights produced
+  the same manifest SHA-256 `3017fdb8cfabb65072ae5e4dff22f047f542235e93cfb3b861b791ab519de0d2`.
+  The local store contains 2,093 embeddings at dimension 3,072, one receipt and
+  one `KB금융 / 2023` scope; cache metadata is `completed`, and the monitored run
+  ended at 2,093/2,093 in about 128 seconds.
+- The recorded ingest delta is 33 document-embedding requests, 2,093 texts,
+  670,328 locally estimated tokens, and zero LLM calls. Live output also exposed
+  one pre-ingest semantic-router embedding request over 74 canonical queries.
+  It was not a question or evaluator run, but it exceeded the document-only
+  manifest. The store-only implementation now uses a minimal vector-store facade
+  and tests assert that `FinancialAgent`, dataset loading, smoke, screening, and
+  evaluation factories are not invoked. The successful store was not rebuilt.
+- Four local-only, sequential store-fixed focused observations exercised the new
+  graph for Samsung, NAVER, and LGE. In the last observation NAVER compiled on
+  the first attempt with the correct `2,546.6 / 1,801.1억원` inputs and `41.4%`
+  source display, but rendering appended the table-wide currency unit to that
+  percent. Samsung compiled on the first attempt but selected the post-deduction
+  `연구개발비용 계 / 28,339,724백만원` rather than the requested source total
+  `연구개발비용 총계 / 28,352,769백만원`. LGE retried once and remained partial:
+  it found `2,163,234백만원` and cited the prose `6,769억원`, but no numeric ID
+  represented that prose value. These are observed artifact facts, not inferred
+  evaluator failures.
+- The current no-call successor fixes those mechanisms generically: full
+  transient catalog retention, bounded obligation-stratified prompt admission,
+  source-sentence numeric IDs, relevance-centered excerpts, aggregate-label
+  metadata, and dimension-consistent source display.
+- The separately approved corrected KB pair was executed only after two byte-
+  identical no-call receipts (`d516610e26d6b8352c5901243206708cce368749e3bccd9c7652e30acb635d2d`).
+  Both isolated runs used 30-second heartbeat logs, reused the 2,093-document
+  store, and made zero document-embedding calls. The five-question gate was not
+  authorized or executed.
+- `KBF_T1_017` is a clean provider observation for that head: the compiler saw
+  2,462 catalog / 128 exposed candidates, selected the same NIM row/table/source
+  at `1.83%` and `1.73%`, executed their difference as `0.10%p`, completed 3/3
+  obligations with one task/four artifacts and ledger integrity `ok`, and
+  received numeric PASS with faithfulness/completeness `1.000 / 1.000`.
+- `KBF_T2_018` is not canonical acceptance despite numeric PASS and 4/4 execution.
+  It selected `3,146억원 / 1,848억원` from
+  `IV. 이사의 경영진단 및 분석의견::table:1` (`statement_type = mda`) and rendered
+  `70.24%`. The requested connected income-statement row is
+  `20240326000894:470:1`, `3,146,409백만원 / 1,847,775백만원`, about `70.28%`.
+  Those exact candidate IDs were absent from the 128-ID compiler prompt, so the
+  result is a retrieval/source-scope failure, not an arithmetic failure.
+- The T2 trace shows why: eight selected retrieval queries shared one obligation
+  signature, so the state query-result cache executed only the first search and
+  reused it seven times. Final retrieval contained eight note chunks; the exact
+  connected statement row never entered the catalog/prompt. A generic
+  characterization now requires distinct semantic queries to execute
+  independently; only exact source/query/filter signatures may reuse results.
+- Raw filing line 178561 declares the rounded MDA table as
+  `(단위: 십억원, %, %p)`, while the first stored parser metadata said `억원`. The
+  unit recognizer matched the shorter suffix. Longest-first `십억원` parsing was
+  characterized and fixed; the original store remains immutable historical
+  evidence and a separately authorized successor now validates the new parser.
+- Two store-only no-call rehearsals for the isolated successor produced the same
+  manifest SHA-256
+  `50260722b3c567e56404053fc9f93e1df22a67fd51d33c94bd592bac10b7b600`.
+  The monitored build completed in about 100 seconds with 51 section parents,
+  2,093 chunks/embeddings, 33 document-embedding calls, 2,093 texts, 670,334
+  estimated tokens, and zero question/evaluator LLM calls. The new store records
+  MDA row `20240326000894:1616:1` as `십억원` and connected income-statement row
+  `20240326000894:470:1` as consolidated `백만원`.
+- The focused-pair production-order rehearsal was byte-identical twice at receipt
+  `4615185a56da5060df7b1ed6c7f98e025556cb134287b201a7d82c099a2fdb97`.
+  After the first eval-only open changed the Chroma SQLite bytes, the T1-only
+  rehearsal was repeated twice against the new snapshot at receipt
+  `09b11b482266a06a133b721073002d471fadae036a733ccb92bad6508982c21b`.
+  Both focused runs performed zero document embeddings; the five-question gate
+  remained outside authority and did not run.
+- Fresh-store `KBF_T2_018` executed all eight distinct planned searches, proving
+  the earlier objective-cache collapse is closed. However, runtime appended the
+  same long risk-term and preferred-section suffix to every base query. All eight
+  selected documents came from connected-statement notes; the exact statement
+  candidates `cand_e1d8aa527b06dfafde43` and
+  `cand_ac08297806e6475c8ecd` never entered the compiler prompt. The result was
+  0/2 semantic obligations, one retry, final refusal, evaluator `UNCERTAIN`, and
+  completeness `0.0`.
+- Fresh-store `KBF_T1_017` exposed the correct same-row candidates
+  `cand_fa953151cf02e5921f0b` (`1.83%`) and
+  `cand_4de1f1e0c09dfb8d30d1` (`1.73%`). The first program failed period-scope
+  validation; retry then referenced undeclared `ob_003` instead of binding the
+  second candidate. Validation correctly failed closed. Numeric evaluation PASS
+  does not override the resulting 1/2-obligation semantic partial.
+- Eval-only Chroma initialization changed the raw SQLite SHA after each focused
+  run while preserving 2,093 embeddings, last embedding timestamp, and logical
+  embedding/metadata fingerprint
+  `9396c8d30e13e76c9eddc30362acb6197544242525cac376e5f7e7716bc54a76`.
+  This was an operational immutability issue, not evidence that document vectors
+  were regenerated.
+- The no-call successor closes the three mechanisms generically. Each base query
+  now derives its own semantic hint and preferred sections while company/report/
+  consolidation filters remain shared hard scope; no assertion requires distinct
+  retrieved documents. `derived_value` outputs declare non-rendered
+  `evidence_requirements`, and each candidate variable binds a requirement ID so
+  2022 input evidence can satisfy a 2023 result without weakening company,
+  consolidation, segment, basis, unit, context, or provenance validation.
+  Compiler retry feedback enumerates allowed candidate, obligation, and
+  requirement IDs; undeclared IDs remain validator errors.
+- Eval-only now fingerprints every source-store path and byte, copies the store
+  to a disposable directory, verifies equality, opens only that working copy,
+  closes Chroma, verifies the source again, and deletes the copy. Focused
+  semantic/retrieval/runner tests passed 101/101, runtime-domain audit passed with
+  86 reviewed literals, and full unittest passed 618/618. No provider, benchmark,
+  report fetch, ingest, query embedding, or LLM call was made for this successor.
+- The separately authorized residual replay then ran only `KBF_T2_018` followed
+  by `KBF_T1_017`. Both eval-only runs reused the 2,093-document store with zero
+  document embeddings. Its complete path-and-byte fingerprint remained
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`
+  before and after both runs. The five-question gate remained outside authority.
+- T2 failed closed: 3,918 catalog / 128 prompt candidates, one compiler retry,
+  zero selected candidate IDs, 0/2 obligations, numeric FAIL, faithfulness 1.0,
+  completeness 0.0. All eight distinct searches ran, but numeric base queries
+  inherited narrative risk and note-section enrichment from the mixed task. The
+  final eight chunks were notes, and connected income-statement row
+  `20240326000894:470:1` never entered the catalog.
+- T1 is source/program canonical on this head. Its first compiler response bound
+  `cand_fa953151cf02e5921f0b` (`1.83%`, 2023) and
+  `cand_4de1f1e0c09dfb8d30d1` (`1.73%`, 2022) from the same NIM row/table/source
+  to `ob_002:req_001` and `ob_002:req_002`, executed
+  `nim_2023 - nim_2022 = 0.10%p`, returned two outputs with no missing
+  obligations, and received numeric PASS. Qualitative completeness `0.700`
+  reflects the answer's omitted direction word; it does not invalidate the
+  arithmetic or provenance trace.
+- The post-replay successor made no provider call. Query semantics are now
+  resolved against planner-declared obligation and evidence-requirement
+  surfaces; numeric-owned queries suppress narrative-only policy enrichment.
+  Required numeric groups scan the full stored chunk, tolerate spacing-only
+  label variants, prefer ordered compatible statement types and structured
+  tables, and retain one best source per group in `seed_retrieved_docs`. A
+  provider-free probe against the saved KB store now selects
+  `20240326000894:470:1` first. Focused tests pass 109/109, runtime-domain audit
+  86, full unittest 626/626, and `git diff --check` passes. Integration remains
+  HOLD until a separately authorized T2-only replay establishes canonical
+  acceptance; the broader gate still requires separate authorization.
+- A separately authorized T2-only replay then ran after two byte-identical
+  production-order rehearsals at receipt
+  `4c062416c1c8ed12a0004be688e156632b7e2b61081c4ce872e246a93bef8c5c`.
+  It reused the 2,093-document store with zero document embeddings; the complete
+  source fingerprint remained
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`.
+  The five-question gate remained outside authority.
+- The paid observation still failed closed. The requested row
+  `20240326000894:470:1` entered final retrieval at rank 6, but the compiler's
+  4,447 catalog / 128 prompt projection exposed neither canonical numeric cell.
+  Four agent calls consumed 182,857 tokens; three judge calls consumed 7,541;
+  query embeddings were 9 and document embeddings 0. After one compiler retry,
+  selected candidates and outputs were both zero, semantic coverage was 0/2,
+  numeric judgement was `UNCERTAIN`, completeness `0.000`, refusal accuracy
+  `1.000`, and the run itself had no error.
+- The artifact isolated three generic candidate-readiness defects. Parser
+  metadata retained a true period header followed by a data-row preview, but
+  line flattening used the preview values as periods. Spacing-only label variants
+  did not receive exact relevance credit. Numeric and narrative obligations
+  competed through one prompt group, while the targeted seed path preserved only
+  numeric evidence.
+- The no-call successor preserves header lines and rejects numeric data previews,
+  uses whitespace-equivalent candidate ranking, assigns separate numeric and
+  narrative prompt groups, and treats required narrative evidence as a bounded
+  set of explanatory candidates rather than a deterministic one-best answer.
+  Period-only hints remain scope filters instead of semantic ranking evidence.
+- A read-only probe over the saved structure graph now exposes
+  `cand_e1d8aa527b06dfafde43 = (3,146,409), 2023`,
+  `cand_ac08297806e6475c8ecd = (1,847,775), 2022`, and cause candidate
+  `cand_eca9ff59eee4097a3e74` from `20240326000894:493:16` in the compiler prompt.
+  A fixed catalog-ID-only program validates `ready`, executes `ok`, completes
+  2/2 obligations, and renders `70.28%`. Focused tests pass 115/115, audit 86,
+  and full unittest 632/632. No provider call followed the repair, so integration
+  remains HOLD pending a newly authorized T2-only acceptance replay.
+- That T2-only acceptance replay then ran under a new byte-identical no-call
+  receipt `e172d03e065ba0ae641c08cbb563e2a3a681d35acb8aa220e4f99f5a0b8084e0`.
+  The compiler needed no retry, selected five candidates from a 4,196-candidate
+  catalog, and executed both obligations. It bound the same connected statement
+  row at `(3,146,409)백만원 / (1,847,775)백만원`, calculated `70.28%`, preserved
+  ledger integrity, and received numeric PASS. Agent usage was three calls / 92,720
+  tokens; judge usage was three calls / 12,901 tokens; query embeddings were 11
+  and document embeddings 0. The source-store fingerprint remained
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`.
+- Full mixed-answer acceptance still failed. The narrative binding treated a
+  paragraph about loan and investment-asset growth as a direct cause of the
+  provision increase, although that paragraph did not make the causal link.
+  Qualitative completeness was `0.700`; the evaluator's raw grounding response
+  also identified the unsupported causal relation. The deterministic numeric
+  override correctly kept calculation assessment separate, but it does not
+  certify narrative semantics.
+- The no-call successor makes factual narrative relations planner-owned
+  `evidence_requirements`, preserves their targeted evidence rather than broad
+  obligation context, records them in the task required-evidence surface, and
+  requires compiler `evidence_bindings` from candidate IDs to requirement IDs.
+  Missing, unknown, cross-obligation, unselected, or scope-incompatible bindings
+  fail closed. The compiler prompt also forbids turning co-occurrence, another
+  metric's movement, or general risk procedures into a direct cause. Focused
+  tests pass 118/118, audit 86, and full unittest 635/635. No provider call
+  followed this successor, so integration remains HOLD and the broader gate is
+  still outside authority.
+- The next separately authorized T2-only replay used two byte-identical receipts
+  `3b10ce5c6537df882fef87de2eb2205051bf662cebf265679af52f930301ebb6`.
+  From 4,305 catalog candidates the compiler selected five without retry,
+  executed 2/2, retained `70.28%`, and grounded its narrative in the selected
+  worse/crisis-scenario, risk-management, and forward-looking-method evidence.
+  Numeric judgement and qualitative completeness were both `1.000`; ledger
+  integrity was `ok`, document embeddings were zero, and the source fingerprint
+  remained `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`.
+- The stored final faithfulness `1.000` is not acceptance evidence. Raw
+  faithfulness was `0.500`; the evaluator both truncated the last two selected
+  narrative contexts after duplicating claim/quote metadata and allowed numeric
+  PASS to overwrite the whole mixed answer's qualitative score. The generic
+  no-call successor removes colon-bearing indexed metadata, deduplicates equal
+  evidence payloads, fits all four selected contexts in 3,008 characters, and
+  disables numeric faithfulness promotion/fast-gating for mixed runtime format
+  or whenever a result contains narrative output. A missing narrative output
+  therefore also fails closed. Evaluator/runner focused tests pass 118/118 and full unittest
+  passes 637/637. No provider call followed this evaluator repair, so integration
+  remains HOLD pending one corrected-evaluator T2-only acceptance replay.
+- The corrected-evaluator T2-only replay was then separately authorized and
+  executed exactly once after two byte-identical production-order receipts
+  `b8f05c7848ed8d1cc9efd8595ab57ff439f2cb96db2e895086cd4c9ffe302905`.
+  The compiler selected three candidates from 3,741 without retry and executed
+  both obligations from the same connected income-statement row, rendering
+  `70.28%` plus the directly grounded worse/crisis-scenario explanation. Raw and
+  final faithfulness were `1.000 / 1.000` with no override; raw/final numeric
+  judgement was `PASS`, completeness/calculation/grounded rendering were
+  `1.000`, and task/artifact integrity was `ok` at 1/4. Total usage was six LLM
+  calls / 102,577 tokens, 11 query and zero document embeddings, with a recorded
+  runtime estimate of `$0.0605193`. The source fingerprint remained
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`.
+  This closes focused mixed-answer acceptance; it does not authorize or replace
+  the current-head five-question gate.
 - An earlier two-seam owner batch moved prepared nested-result replacement and
   arithmetic subtask-surface synchronization. Across `6ed195e..b5d97ee`, the
   former 64 + 124 = 188 graph definition lines became public 63 + 123 = 186
@@ -755,7 +1018,7 @@ For topology rather than normative behavior, use
 | Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
 | Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
 | Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
-| Policy-driven runtime gate | **CURRENT-HEAD CORRECTNESS CLEAN / FORMAL QUALITATIVE RESIDUAL** on the 2026-08-27 store-fixed successor: 4 / 4 companies and 5 / 5 questions completed, company pass count 4, error/integrity issue 0, all faithfulness/context recall/grounded rendering/calculation/refusal `1.000`. `full_eval_fail_count=1` because the `HYU_T2_010` LLM completeness judge required explicit “사업보고서에서” attribution and returned `0.700`; do not treat this as a numeric/provenance regression |
+| Policy-driven runtime gate | **GENERIC-CONTRACT SUCCESSOR FAILED / INTEGRATION HOLD** on 2026-08-30. All 4 companies and 5 questions completed with error 0 and ledger integrity `ok`, but all five rows were partial and `full_eval_fail_count=4`. The screen pass count 4 is not an integration pass |
 | Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
 | Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after later repairs |
 | Reflection promotion gate | READY |
@@ -765,49 +1028,61 @@ For topology rather than normative behavior, use
 | Demo fixture contract | PASS on `ab7e9ba`: schema v2 normalized-LF manifest verified on Ubuntu, `fixture_contract_ready`, 13 / 13, integrity `ok`, critic `accepted`; live replay false |
 | Portfolio review surface | PASS on `ab7e9ba`: remote reviewer contracts 32 / 32 and `review_surface_ready`; the gate command's own publication-validation field remains `not_run`, with audit/full tests executed separately by the workflow |
 | Latest focused owner checkpoint | PASS, runtime-trace exact affected methods 101 / 101 and corrected focused coverage 1,176 / 1,176 |
-| Latest semantic regression set | PASS, full discovery 2,143 / 2,143 after runtime-trace resolver public rename |
-| Latest release-fix regression set | PASS, full local discovery 2,172 / 2,172 after semantic source-scope repair and evaluator role separation |
+| Latest semantic regression set | PASS, multi-output answer-variant production contract 13 / 13, scope-qualified disclosure/characterization 17 / 17, and semantic-program 96 / 96; focused semantic/scope/evaluator/provenance/slot/ledger/import 261 / 261. Explicit subject provenance remains fail-closed while legacy scalar variants match the canonical metric label or validated subject. All are included in full discovery 707 / 707 |
+| Historical release-fix regression set | PASS, full local discovery 2,172 / 2,172 before the canonical semantic-program deletion/convergence work |
+| Semantic-program corrected-evaluator focused acceptance | **PASS** for the separately approved `KBF_T2_018` replay: canonical same-row inputs, `70.28%`, 2/2 outputs, raw faithfulness `1.000` without override, completeness `1.000`, numeric PASS, integrity `ok`, zero document embeddings, unchanged source-store fingerprint |
 | Reflection-promotion caller module | PASS, 15 / 15 |
 | Reflection-capability caller module | PASS, 24 / 24 |
 | Reconciliation-plan regression set | PASS, 51 / 51 |
-| Import-side-effect regression set | PASS, 19 / 19 |
-| Runtime domain-term audit | PASS, 217 reviewed records |
+| Import-side-effect and canonical graph/DAG set | PASS, import side effects 19 / 19 plus canonical DAG 1 / 1 (also included in semantic-program tests) |
+| Runtime domain-term audit | PASS, current canonical working tree 86 reviewed records |
 | Runtime-trace static gates | PASS, pycompile 18 / 18, fresh identity 11 / 11, private mesh 82 / 29 / 30, DAG 48 / 203 |
-| Full unittest discovery | PASS, local 2,172 / 2,172 in 290.959 seconds after semantic source-scope/evaluator repair; prior exact code-head `40ae6a7` also passed 2,165 / 2,165 on Ubuntu/Python 3.13 |
+| Candidate-stage focused replay | **EXECUTED ONCE / ACCEPTANCE FAILED.** `HYU_T2_010`, `HYU_T3_072`, and `SAM_T2_078` completed with error 0 and ledger `ok`, but each remained partial. Usage was 18 LLM calls, 573,899 tokens, 33 query and zero document embeddings, runner-estimated `$0.3156427`; no retry occurred |
+| Candidate-stage generic-repairs focused successor | **EXECUTED ONCE / ACCEPTANCE 1 OF 3.** `SAM_T2_078` is `ok` at 2/2 obligations; `HYU_T2_010` is `partial` at 1/2 and `HYU_T3_072` is `incomplete` at 0/5. All rows have error 0 and ledger `ok`. Usage was 18 LLM calls, 556,699 tokens, 33 query and zero document embeddings, runner-estimated `$0.2662671`; no automatic run retry occurred |
+| Full unittest discovery | PASS, current canonical working tree 707 / 707; prior pre-transition exact code-head `40ae6a7` passed 2,165 / 2,165 on Ubuntu/Python 3.13 |
 | Exact-current-head focused successor | **PASS / 3 HEALTHY** on the runtime recorded in `d87e030`: `SAM_T2_078`, `NAV_T2_006`, and `LGE_T1_051` preserve answer/provenance, calculation `1.000`, integrity `ok`, and error `0`. Samsung's stored single-input unit score was corrected to N/A by deterministic no-call replay |
 | Benchmark refresh after release stabilization | The focused successor used 40 LLM calls, 200,855 tokens, 30 query and zero document embeddings, 361.107 question-seconds, and `$0.2064883`; it reused persisted stores and is not fresh-ingest or publishable held-out evidence |
-| Current-head broader store-fixed successor | Completed in 592.607 seconds with 59 LLM calls, 324,521 tokens, 45 query and zero document embeddings, 498.909 question-seconds, and `$0.3059185`. Official company-average completeness is `0.9625` and question-weighted completeness `0.940`; the only formal failure is the attribution-only `HYU_T2_010` LLM judgement |
+| Latest broader store-fixed successor | The 2026-08-30 generic-contract gate completed in 508.3 seconds with 31 LLM calls, 927,550 tokens, 55 query and zero document embeddings, 383.176 summed question-seconds, and runner-estimated `$0.4644884` under the `$0.60` ceiling. Company-average faithfulness/completeness/context recall were `0.800 / 0.3875 / 0.953125`; LGE was the only numeric-applicable row and failed numeric evaluation |
+| Generic-repairs focused observation (historical) | The 2026-08-31 successor completed in 283.0 seconds. Hyundai faithfulness/completeness/context recall were `0.75 / 0.25 / 0.8125`; Samsung was `1.0 / 1.0 / 1.0`. Samsung passed, Hyundai T2/T3 failed closed, and all three retained error 0 and ledger `ok`; top result SHA-256 is `e0ea65581895a23f77f79d38b3c078b2677aa509e1b9e20e3f3b919c3a03cdd8` |
+| Latest focused provider observation | The 2026-09-01 source-group/display/evaluator run completed in 303.767 seconds: clean acceptance 1/3, runtime complete 1/3, error 0 and all ledgers `ok`. Samsung 2/2 accepted, T2 1/2 partial, T3 2/3 partial. No faithfulness override. Top result SHA-256 is `6725d3248c4002c6f2f835786a59dc4180e7f09dd1a9e972aa594df606e93e5a` |
+| Source-display and qualitative-score no-call boundary | PASS, generic fixed fixtures and graph→ledger→evaluator projection. Saved T2 program with its five selected candidates retains `11.4%` calculated and `11.5%` source-stated, explicitly not equivalent. Raw/final qualitative scores remain independent of coverage in fixed judge tests; old result bytes and acceptance are unchanged |
+| Selected-source basis disclosure | PASS, 17 synthetic fixed-output tests and saved T3 six-candidate projection. Known direct source basis is rendered once when shared and per-output when different; unknown remains unlabeled and English/Korean labels are policy-owned. T3 adds only `연결기준`; selection/errors/partial status stay unchanged |
+| Multi-output basis-qualified evaluation | IMPLEMENTED / REAL DATASET UNREGISTERED, 13 / 13 synthetic production-contract cases. Strict typed loading and a candidate-bound distinct-output matcher require explicit validated subject provenance and reject label fallback, cross-basis, missing/extra, unknown-basis, wrong-subject/source/scope, unbound, invalid, and ambiguous traces. The immutable T3 six-ID proposal now matches atomically in memory; no curated field was written |
+| Source-group/display/evaluator focused admission | APPROVED AND CONSUMED, manifest `70db0fb1...e91a`, unchanged 127-file runtime `20fefb32...f9c7`. Immediate no-call recheck matched both `e0be3cfa...8ed6` receipts (5,490 bytes); the subsequent authorized `$0.40` one-run replay finished without retry. Source/runtime/predecessor invariants hold and disposable stores are removed |
+| Four-contract no-call predecessor | **PASS before provider replay:** semantic-program characterization/regression 58 / 58, adjacent numeric/provenance/evaluator 131 / 131, runtime-domain audit 86, import/DAG 20 / 20, pycompile, full discovery 641 / 641, legacy calculation-planner symbols 0 in `src`, and `git diff --check`. The later successor showed those fixtures did not cover the three deeper contracts now recorded |
 | GitHub Actions validation | PASS, run `33007869709` on `d87e030`: reviewer contracts 32 / 32 and audit 217 passed; Ubuntu/Python 3.13 full discovery 2,172 / 2,172 in 211.605 seconds, full job 4 minutes 26 seconds |
 
-The semantic set is `tests.test_financial_graph_helpers`,
-`tests.test_semantic_numeric_plan`, `tests.test_operation_contracts`,
-`tests.test_subtask_loop`, `tests.test_aggregate_subtask_projection`,
-`tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_financial_dependency_projection`,
-`tests.test_financial_calculation_execution`,
-`tests.test_lookup_recovery_policy`,
-`tests.test_financial_reconciliation_candidates`, and
-`tests.test_concept_runtime_contracts`. `tests.test_import_side_effects` passed
-separately at 19 / 19.
+The current semantic-program set is
+`tests.test_semantic_calculation_program` at 96 / 96, with separate
+`tests.test_scope_qualified_direct_answers` disclosure/characterization at 17 / 17
+and `tests.test_evaluator_multi_output_answer_variants` production contract at
+13 / 13. The ten-module focused set passes 261 / 261. Full discovery at
+707 / 707 also
+covers numeric provenance, answer slots, task/artifact ledgers, agent/benchmark
+runtime projection, evaluator projection, retrieval scope, and retrieval hints.
+Import side effects pass 19 / 19; the canonical graph/DAG test is included in
+the semantic-program set.
 
-Recorded structural, plain-retrieval, and 2026-08-26 clean-gate numbers remain
-historical evidence. The 2026-08-27 focused and five-question successors are
-current-agent execution over persisted stores, followed by deterministic
-evaluator-only replay where stated; they are not fresh ingest or a new
-publishable quality claim. Raw outputs and heartbeat logs are ignored local
-artifacts. Current answers/provenance are clean, while one attribution-sensitive
-completeness judge result is formally below threshold. PR #86 stays draft until
-that integration decision is explicit; Phase 3 refactoring stays paused.
+Recorded structural, plain-retrieval, and earlier clean-gate numbers remain
+historical evidence. The 2026-09-01 focused successor is current-agent execution
+over persisted stores, not fresh ingest or a publishable quality claim. Raw
+outputs and heartbeat logs are ignored local artifacts. T3's source-defined
+summary and independent raw/final qualitative scores were observed, but neither
+Hyundai row is complete. T2 has no numeric output in this run, so the dual
+formula/source display still has only no-call evidence. T3's carrying amount is
+a real consolidated value, not simply an incorrect version of the separate
+answer-key amount. Integration and Phase 3 remain on HOLD.
 
 ## Active Blockers And Remaining Debt
 
 | Area | State |
 | --- | --- |
-| Core correctness | **No known blocker in the current five-question gate.** Incomplete numeric structured output retries once and then fails closed; exact-value source ambiguity is delegated semantically and validated deterministically. The adjacent Motional row recovered through the bounded retry, and all five answers/traces are calculation/evidence clean |
-| Latest benchmark evidence | The broader store-fixed successor completed all five rows with error/integrity issue 0. Formal `full_eval_fail_count=1` is an attribution-only `HYU_T2_010` LLM completeness result; NAVER efficiency and operand-schema residuals remain documented but are not answer/provenance failures |
-| Phase 3 | Open; owner moves do not establish an end-to-end calculation or ledger owner |
+| Core correctness | **The wrong-row fail-open remains closed.** T3's selected `53%` China-row ID is rejected even though compiler rationale says Motional `26%`. Its source-defined summary is recovered, but share output is missing. T2 selects market-wide rather than company sales despite exact company candidates in the prompt and fails basis validation |
+| Latest benchmark evidence | The latest focused run accepted 1/3 rows. Samsung is `ok` 2/2; Hyundai T2 is `partial` 1/2 and T3 is `partial` 2/3. Raw/final faithfulness stays `1.0/1.0`, `0.7/0.7`, `1.0/1.0` without overrides. This is persisted-store evidence, not fresh ingest or a broad quality claim |
+| Basis-qualified answer/evaluation | Rendering, canonical operand projection, and the multi-output evaluator contract are implemented. T3's distinct consolidated/separate values are not interchangeable: every direct output retains candidate-bound value/unit/validated subject/period/basis/source inside one unique variant. The source-complete consolidated proposal passes the pure matcher, but no real answer variant or canonical-key correction is registered |
+| Phase 3 | The canonical transition remains the intended architecture, but broader acceptance and integration packaging are blocked. Historical owner-move debt is not the cause and deleted calculation paths must not be restored |
 | Optional MAS/cache serving | Intentionally disabled or experimental, not a product blocker |
-| Release integration | **MERGE AUTHORIZED / FINAL VERIFICATION GATE.** Integration is complete only if PR #86 lands through a two-parent, history-preserving merge commit that retains the approved head tree and the resulting `main` CI is green |
+| Release integration | **NOT READY FOR THIS WORK TREE.** Basis disclosure, operand projection, and evaluator integration are complete, but the real T3 variant/key decision is unregistered, two paid-run required-output sets remain incomplete, and no paid result was rerun. The one-run approval is consumed; no paid retry or Phase 3 restart |
 
 The durable Phase 3 debt is:
 
@@ -823,19 +1098,486 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-**REFACTORING PAUSED.** Do not run the parked Phase 3 audit or select another
-owner seam. PR #86 contains release source/tests `6d6ca01`, evidence docs
-`99c4429`, cross-platform receipt fix `40ae6a7`, exact-head status docs
-`aaf920a`, and semantic source-scope/evaluator repair `d87e030`. Its recorded
-integration base is `main@f0a5145`.
+The provider-free production evaluator integration is complete.
+`accepted_answer_variants` now has strict typed variant/output owners. The pure
+matcher reads only canonical direct outputs and their candidate-bound pre-
+supplementation operands, requires the exact required-output ID set, distinct
+assignment, and exactly one complete trace variant, then requires the answer's
+numeric claims to resolve to that same variant. Invalid, partial, mixed, unbound,
+extra, or ambiguous traces fail closed. Only an atomic match supplies the
+source-qualified completeness `answer_key`; no field or no match preserves the
+canonical key. Scalar calculation provenance, accepted-answer keys, public result
+schema, and qualitative score ownership remain unchanged.
 
-The exact-current-source canary reopened the release gate, the semantic
-source-scope successor closed its correctness blocker, and the requested broader
-gate has now run. Integration review classifies the remaining attribution-only
-score as evaluator variance and found no new runtime defect. The active work is
-documentation and PR closeout, not another runtime patch or Phase 3 refactor.
-Items 1-11 preserve the prior closure sequence; items 12-13 define the current
-integration authority:
+The provider-free, read-only `HYU_T3_072` source review is complete and recorded
+in [hyu_t3_072_answer_variant_source_review.md](../evaluation/hyu_t3_072_answer_variant_source_review.md).
+One complete, non-mixed consolidated tuple is source-supported: `26%`,
+`700,691백만원`, and the four Motional summary measures all resolve to current-
+period consolidated-note anchors. The separate notes support `25.81%` and
+`1,294,367백만원`, but the reviewed immutable store contains no complete
+separate-scope summary tuple; `791,627백만원` appears only in the consolidated
+summary. The current canonical key combines the separate direct pair with that
+consolidated summary. No dataset field, key, tolerance, score, or saved result
+was changed.
+
+The generic source-to-canonical-operand repair and its no-call gate are complete.
+A recognized unit embedded in a cell now overrides an inherited table hint while
+both surfaces remain traceable. Metric headers remain source metadata rather
+than periods; a current single-report table projects the report year separately.
+Row-local subject validation strips only parser footnotes, retains the resolved
+source identity and row IDs, and one shared projector supplies both compile and
+execution artifacts. The evaluator requires this explicit subject/provenance;
+metric `label` and `row_label` cannot substitute for it.
+
+The immutable Hyundai store reconstructed the same six IDs. They now project
+`26% / %`, `Motional AD LLC`, and `2023`, execute all three obligations with
+validation `ready`, and match the in-memory
+`hyu_t3_072_consolidated_current` proposal with
+`atomic_answer_variant_match` and no projection errors. SQLite,
+`table_payloads.json`, curated datasets, saved result bundles, and excluded user
+files remain byte-identical. This is a provider-free contract gate, not a new
+benchmark result or acceptance.
+
+The next priority is therefore a separate dataset-governance decision. Only the
+complete consolidated proposal is currently registerable; the reviewed separate
+direct pair still lacks a complete same-basis summary, and the canonical key
+still mixes separate direct values with consolidated summary values. Registering
+the consolidated variant, correcting the canonical key/evidence, and deciding
+whether both changes should land together require explicit scope. None of those
+changes can fill the paid run's missing T3 share or correct T2's company-versus-
+market selection; those remain separate compiler failures. No paid replay,
+broader gate, fresh ingest, or Phase 3 restart is authorized.
+
+The user approved and consumed canonical manifest
+`70db0fb131b648e69b5fc096f4bdfdd3191502ffa90caab7df8538d376b4e91a`.
+It bound runtime build
+`20fefb3212af7c2391fc7e358b53cf1c6c445b1dfd30a8326462808bd95ef9c7`
+(127 files), unchanged profile
+`f0d5d625d1b0a898e8ff59d66e7020bdac500bbce450964924532be6edbd0fb4`,
+and unchanged dataset
+`19bb121507275a7c15406dddbda22b392bb870d6bf0fdb9a400d599de8eb1aba`.
+Immediately before the one paid dispatch, the unchanged production-order
+rehearsal matched the two prior 5,490-byte canonical receipts at
+`e0be3cfaa0506d81e49fc49fde890458dc591929102c88fa9010717965568ed6`.
+Local-only manifest, receipts, and no-call-only `rehearse.py` remain under
+`benchmarks/results/source_display_qualitative_focused_admission_2026-09-01`.
+The now-populated successor is
+`benchmarks/results/source_display_qualitative_focused_successor_2026-09-01`.
+No automatic rerun, five-question gate, KB replay, fresh ingest, or Phase 3 work
+is authorized. Any later paid execution needs new exact admission and approval.
+
+### Completed canonical operand projection repair (2026-09-01)
+
+The generic fixture uses an invented current-period table whose percentage cell
+contains `%`, whose table hint is `백만원`, and whose entity is preserved in a
+numbered row-header footnote while the leaf row label is only a region. Candidate
+IDs remain stable across the repair. The catalog now records effective and
+inherited unit surfaces separately, separates a metric header from canonical
+period/year, and the validator carries the resolved row identity and provenance
+into the canonical operand.
+
+`financial_calculation_execution.py` is the single operand projector for both
+compile artifacts and executed traces. Direct outputs repeat the explicit
+validated subject. The multi-output evaluator rejects a missing subject,
+label-as-subject substitution, or subject provenance outside the bound operand;
+the older scalar variant contract may compare its strict label with either the
+metric label or this explicit validated subject, preserving its existing source-
+qualified controls.
+
+The production-contract module passes 13/13, the ten-module focused set 261/261,
+full discovery 707/707, runtime-domain audit 86, import side effects 19/19, and
+the canonical DAG test. A read-only SQLite/payload reconstruction retained all
+six documented T3 candidate IDs and produced `ready`/`ok`, subjects
+`Motional AD LLC`, effective units `%` and `백만원`, period/value year `2023`,
+and `atomic_answer_variant_match` for the in-memory consolidated proposal. No
+provider, embedding, benchmark, evaluator judge, ingest, curated-data, saved-
+result, or store mutation occurred.
+
+### Completed scope-qualified direct-answer characterization (pre-repair, 2026-09-01)
+
+The new `scope_qualified_direct_answers.json` fixture invents its issuer,
+subject, source IDs, and values: consolidated `40% / 120백만원` versus separate
+`35% / 220백만원`. It is not a copied filing, a provider response, or an acceptance
+oracle. Fifteen tests call the real executor, fixed structured compiler,
+graph/trace/slot/ledger projection, scalar variant matcher, and `evaluate_one`.
+
+- At characterization time, unknown query scope allowed either source-grounded
+  basis while the obligation-only renderer omitted the selected basis. Explicit
+  scope rendered and conflicts remained rejected. The successor below repairs
+  only that disclosure boundary.
+- Independent direct outputs can retain different source bases under empty
+  coupling keys; runtime completion is not proof of one coherent answer variant.
+  A common coupling key still rejects conflicting contexts.
+- Scalar variants distinguish the two source-qualified amount traces and reject
+  wrong source, period, or basis even when the numeric value matches. Their
+  numeric answer matching does not validate missing or falsely worded basis.
+  A valid two-direct-output tuple cannot satisfy the existing one-result schema
+  without violating its all-operands-bound-to-result contract.
+- Completeness still sees only `canonical_answer_key`, not the matched variant
+  or canonical source scope. Fixed raw/final faithfulness `0.7/0.7` and fixed
+  completeness `0.5` stay untouched; these scores are test inputs, not new LLM
+  judgements or an explanation of the saved T3 raw score.
+- Wrong-subject IDs, including equal-valued wrong rows, remain rejected even if
+  table-wide text/rationale names the target. Missing output and unknown-unit
+  direct output remain incomplete/partial; graph ledgers can still be valid.
+
+Read-only execution of the saved T3 program using its six proposed/selected
+candidates reproduces the exact recorded answer, `partial` with `ob_001` missing,
+the consolidated amount slot, and `candidate_subject_mismatch`. No provider,
+retrieval, new parsing/ingest, or judge was invoked by that projection. Runtime
+build `20fefb32...f9c7`, dataset/profile, admission/receipts, stored results,
+source-store/SQLite hashes, and excluded user files remain unchanged. Gates are
+new 15/15, focused 235/235, audit 86, import 19/19 plus DAG, and full 691/691.
+
+### Completed selected-source basis disclosure repair (2026-09-01)
+
+The existing executor/renderer now treats a validated direct answer slot's known
+consolidation scope as render-only metadata when its obligation leaves that scope
+unknown. If every rendered numeric output shares the basis, it is emitted once;
+if independent outputs differ, each is qualified; unknown remains unlabelled.
+Only the selected primary direct slot can supply this basis. Unselected
+candidates, compiler rationale, benchmark keys, and narrative compatibility
+witnesses cannot. Explicit query scope, candidate choice, validator results,
+source display, canonical trace, output status, and ledger state are unchanged.
+Korean and English labels are reviewed render-policy data.
+
+The expanded synthetic fixture passes 17/17, including English display and an
+unknown-selected-basis anti-leakage control. The eight-module focused set passes
+237/237 and full discovery passes 693/693 in 15.904 seconds; audit 86, import
+19/19, and canonical DAG pass. A network-blocked repeat records zero socket
+attempts. Runtime remains 127 files at
+`e9a127d0cd0e0a17d780efa6ee3926f9ebb14198b6c83a684fbe9962d4aa3035`.
+
+The saved T3 program, obligations, allowlist, and same six candidate IDs were run
+through the pure executor. The answer adds only `연결기준` to the selected
+carrying amount. It remains `partial` 2/3 with the same missing `ob_001`,
+`candidate_subject_mismatch`, selected IDs, and consolidated answer slot. Saved
+results, source-store/SQLite bytes, profile/dataset, admission receipts, and the
+excluded user files are unchanged. There was no provider, benchmark, retrieval,
+parse/ingest, or evaluator call, and paid acceptance remains 1/3.
+
+### Completed multi-output answer-variant evaluator integration (2026-09-01)
+
+The previously synthetic `accepted_answer_variants` contract now has production
+evaluator owners. Loader models reject unknown/missing fields, duplicate IDs,
+incomplete output coverage, unsupported output kinds, invalid values, and known
+raw/normalized unit conflicts. The pure matcher reads canonical direct outputs
+only, joins each to exactly one pre-supplementation operand through immutable
+candidate/evidence IDs, and validates output ID, label, subject, raw/normalized
+value and unit, period, consolidation scope, and source. Required direct-output
+IDs must match exactly and expected outputs use distinct assignment.
+
+Exactly one complete trace variant is required. The answer's full numeric claims
+must resolve to that same variant before its source-qualified `answer_key` is
+passed as the completeness reference. No field, invalid/partial/mixed/unbound/
+extra trace, answer mismatch, or multiple complete trace variants preserves the
+canonical reference. The matcher itself does not alter faithfulness,
+completeness, grounding, numeric judgement, or result fields. Scalar
+`accepted_calculation_variants` and `accepted_answer_keys` remain unchanged.
+
+The synthetic production-contract module passes 12/12; the nine-module focused
+set passes 249/249, full discovery 705/705, audit 86, import 19/19, canonical DAG,
+and a socket-blocked repeat passes 12/12 with zero attempts. Evaluator SHA-256 is
+`eca349961c682876a3b57dcb5b34b2286db18242511ddd09aa0e742408e197af` and the
+127-file source build is
+`da825d0a1fe800ea4c4262a851625105a71c30aee7acd2293eeb1d1213657b26`.
+The three curated datasets, latest result, source stores, and excluded user files
+remain byte-identical. No provider, embedding, benchmark, retrieval, ingest,
+judge, or result-artifact action occurred; latest paid acceptance remains 1/3.
+
+### Completed no-call contract repairs
+
+The bounded source-defined-summary repair is complete at its contract owners.
+`AnswerObligation.evidence_mode=source_defined_group` is narrative-only and
+materializes one required input from the parent label, scope, and search hints.
+Planning preserves that input under an owned stable ID. Model parsing and the
+pure validator reject invented members, optionalized groups, differing scope or
+hints, and invalid modes. The default `declared_inputs` path remains unchanged;
+runtime does not infer open-ended intent from labels or erase explicit inputs.
+
+Generic controls also showed that independent direct outputs already work across
+different tables with empty coupling keys. Only the declaration/schema guidance
+was clarified: share a key when a common semantic basis is actually required.
+Coupled outputs still need common context or an explicit valid compatibility
+witness; per-output scope, source, unit, and rendering guards are unchanged.
+
+The subsequent display/evaluator repair is also complete in place. A selected
+source display retains its ID, normalized/raw display, and provenance regardless
+of whether the unchanged precision check permits primary-display substitution.
+On a mismatch the calculated primary is retained and both values are labelled.
+Scope/context, numeric dimension, and source-renderability checks remain strict.
+Hybrid and structured-summary coverage promotions were both removed: numeric
+success or retrieval/completeness coverage cannot certify qualitative entailment.
+Pure numeric gating and abstention handling remain unchanged.
+
+The pre-replay no-call gates were semantic-program 95/95, evaluator projection 69/69,
+adjacent 151/151 (including that evaluator and import 19/19), runtime-domain audit
+86, canonical graph DAG, affected pycompile 5/5, and full discovery 676/676.
+Twelve new test methods replace eight obsolete promotion-helper tests. Generic
+synthetic values cover divergent/equal/absent source displays, scope/unit failures,
+graph/trace/ledger projection, and fixed qualitative scores including numeric-fast
+controls. These are not live LLM/evidence-selection or semantic acceptance tests.
+
+A separate read-only projection reused the recorded T2 program and exactly five
+selected candidates. It retains the same `11.395646606914212%` formula result,
+renders `계산값 11.4% (원문 기재: 11.5%)`, and records comparison false without
+substituting the source value. No provider was constructed or called, and the
+top/Hyundai result hashes stayed identical. This does not prove the filing's
+discrepancy came from rounding, explain the saved raw judge score, or reclassify
+the prior 1/3 acceptance. The latest provider run below never executes T2's
+numeric output, so it does not extend this particular display proof.
+
+### Latest provider-backed evidence (2026-09-01)
+
+The exact approved run completed in 303.767 seconds with error 0 and all
+task/artifact ledgers `ok`. There were 18 LLM calls, 543,641 LLM tokens,
+33 per-question query embeddings, and zero document embeddings. The LLM estimate
+was `$0.2719901` under the `$0.40` authorization boundary; embedding pricing is
+excluded and the ceiling is not an in-flight hard stop. Each row used one internal
+compiler retry; each question and the benchmark itself ran only once.
+
+| Row | Program result | Acceptance boundary |
+| --- | --- | --- |
+| `SAM_T2_078` | `ok`, 2/2 | Accepted: canonical `28,352,769백만원`, compatible consolidated-scope note, and Harman sources; raw/final faithfulness, completeness, calculation, grounded rendering `1.000` |
+| `HYU_T2_010` | `partial`, 1/2 | Exact company-volume IDs are in the 128-row prompt, but the compiler binds market-wide `1,560.8만 대 / 1,389.9만 대` and fails required-input basis validation. Only the policy narrative executes; faithfulness `1.000`, completeness `0.500` |
+| `HYU_T3_072` | `partial`, 2/3 | One source-defined group preserves all four actual summary measures. Share ID incorrectly points to a China-row `53%` and is rejected. Consolidated `700,691백만원` executes; the separate answer-key amount is a different source basis. Faithfulness `0.700`, completeness `0.500` |
+
+There are no faithfulness overrides. The formal runner reports one company-level
+full-eval failure; the three null numeric judgements are non-applicable. Runtime
+completeness and clean focused acceptance are both 1/3. The carrying-value issue
+does not retroactively accept T3: its required share is still missing, its final
+sentence omits the basis, and scope-specific evaluation is not yet characterized.
+One run does not establish causality for the changed semantic choices.
+
+The top result hash is
+`6725d3248c4002c6f2f835786a59dc4180e7f09dd1a9e972aa594df606e93e5a`.
+Both source-store/SQLite/result hashes, runtime/profile/dataset, predecessor
+artifacts, and excluded user files stayed unchanged; disposable stores were
+removed. Detailed candidate IDs, raw HTML basis evidence, cost limitations,
+and per-company hashes are recorded in
+[the provider replay history](../history/experiment_history.md#source-group-display-evaluator-focused-provider-replay-2026-09-01).
+
+### Predecessor provider-backed evidence (2026-08-31; unchanged)
+
+The user approved schema-v3 manifest
+`4e3e1d8df40cd25d8fa850eb9f571ec76dadbfc13b7154b22e67d9d96acfe3e4`.
+Immediately before dispatch, the current runtime, profile, dataset, source
+snapshots, and 5,189-byte no-call receipt matched the reviewed admission exactly.
+The monitored store-fixed successor then ran exactly once, in the authorized
+`HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078` order. It completed both companies and
+all three questions in 289.6 seconds, with runtime error 0 and task/artifact
+integrity `ok` for every row. No automatic run retry, ingest, report fetch,
+additional question/company, or KB replay ran.
+
+Per-question accounting records 17 LLM calls, 467,828 LLM tokens, 33 query
+embeddings, and zero document embeddings. The runner LLM estimate is
+`$0.2437528`, leaving `$0.1562472` below the approved `$0.40` boundary; embedding
+pricing is absent and is not included. Logs also show the two authorized
+74-query router-initialization embedding batches outside per-question usage.
+The internal compiler retry counts are 1, 1, and 0 respectively, not run retries.
+
+Runtime completeness is 2 / 3, but clean focused acceptance remains 1 / 3:
+
+| Row | Result | Observed acceptance boundary |
+| --- | --- | --- |
+| `SAM_T2_078` | Accepted, `ok`, 2/2, no compiler retry | The canonical `연구개발비용 총계 / 28,352,769 / 백만원 / 20240312000736:80:2`, scope note `:81:3`, and Harman sources `:101:16` and `:99:14` are selected. Raw/final faithfulness, completeness, calculation, and grounded rendering are all `1.000` without an override |
+| `HYU_T2_010` | Arithmetic recovered, `ok`, 2/2; acceptance held | Exact `87.0만 대` and `78.1만 대` candidates produce `11.395646606914212%`, rendered `11.4%`, with grounded policy narrative. The selected source-stated `11.5%` disappears from executed display metadata. Raw faithfulness `0.700` is promoted to `1.000` by a hybrid-coverage override, so the final score is not independent qualitative acceptance |
+| `HYU_T3_072` | Rejected, `partial`, 1/3 | Three output obligations are preserved, but the summary still invents required revenue/operating-income/net-income inputs. The explicit-unit notes source `20240313001451:183:93` reaches selection. Its continuing-loss value is reused as net income, and selected total comprehensive loss is omitted. Initial direct bindings fail `coupled_context_mismatch`; the retry withdraws both. Raw/final faithfulness and completeness are `0.300` |
+
+The T2 formula binds `cand_7d5294a9fe110c3e987f` and
+`cand_2edd04c9130daab86745`, with source receipts/years preserved. One retry adds
+an explicit compatibility witness for the different source contexts. This
+planner left segment and basis empty, so the replay does not exercise the new
+unknown-only variable-applicability allowance; that remains fixture-proved.
+The source-display predicate was reproduced without a provider call: its
+`0.05` output-precision tolerance rejects the `0.10435339308578762` gap to the
+selected `11.5%`. Arithmetic is correct; source-display preservation is separate.
+The raw faithfulness judge's reason is not persisted, so this observation does
+not establish why that judge assigned `0.700`.
+
+This replay motivated the provider-free source-group and coupling-declaration
+successor above. That successor does not retrospectively accept these outputs.
+T2 source-display preservation and coverage-based faithfulness promotion were
+subsequently repaired under no-call tests above; this historical result and its
+acceptance boundary remain unchanged.
+
+The new artifact is
+`benchmarks/results/post_successor_hyundai_residuals_focused_successor_2026-08-31`.
+Its top SHA-256 is
+`6e2165cf0c6f966e509d59e556f9fc76f5e0bee30d249ce246b7679511942b16`;
+Hyundai/Samsung result hashes are
+`bf4b05972d5c8aa3ca4894bc4538692a6f0c6d97090768e820d16f6e4ac6749b`
+and `fc80a6a6fc7d203a9d3e345e9fe1c1369fa81f9c67e8f0bcdcb46bc2377e13db`.
+Source store fingerprints remain
+`ebdbe7021f3eb34ad75007ee1736033f3428d50745921558fbae85498ba2ae81`
+and `862a01380754fd64e2395ecf506f9e4daa6ed404385b623b862623c425ddba3e`;
+raw SQLite hashes remain
+`73b65b54dfdd6d63390a219f67b4d8a8e61b7169be481a3fc1f6c586db31db37`
+and `f492d72be2753ac7a1c3012a36176d8c9ccf0d84fff1cc422c00e47fd5609ed0`.
+At replay completion no `dart_eval_store_*` directory remained. Runtime build
+`9fabb94a8106befedd43db769bffb9af3131240b807f504a668385cdf83eb1c9`,
+profile/dataset hashes, and both excluded user files matched admission. The prior
+662/662 full test gate belongs to that historical build; the later source-group
+successor passed 672/672, and the display/evaluator successor now passes 676/676.
+Both change the admitted runtime. The consumed
+one-run approval does not authorize the changed build. Formal full-eval fail count
+was one company, not a count of semantic failures or runtime errors.
+
+### Predecessor evidence and admission history
+
+The first provider-free seam is now closed at its proved owner. A generic
+fixture first reproduced a later decimal value losing its subject-bearing
+sentence prefix (`5% to 870.0 items.`). Numeric context extraction now ignores
+periods between digits when finding sentence boundaries. Required evidence
+inputs also own bounded pre-budget relevance groups; each positive group
+reserves a local cohort from its highest-ranked source before broader output
+groups consume the prompt budget. Optional inputs and the parent derived-output
+surface do not satisfy that reservation.
+
+A deterministic reconstruction opened the Hyundai source SQLite only through
+`mode=ro&immutable=1`. With the unchanged 96 numeric plus 32 narrative prompt
+budget, both exact quantity candidates, `cand_7d5294a9fe110c3e987f` (`87.0만 대`)
+and `cand_2edd04c9130daab86745` (`78.1만 대`), are now exposed with their full
+local subject/period sentences. The SQLite remained byte-identical at
+`73b65b54dfdd6d63390a219f67b4d8a8e61b7169be481a3fc1f6c586db31db37`.
+This is provider-free owner validation, not a retroactive pass for the earlier
+partial artifact.
+
+The second provider-free seam is also closed at its proved planner-normalization
+owner. A generic fixture characterized three cases: no explicit query scope,
+one explicit scope conflicting with the LLM proposal, and an explicit
+consolidated-versus-separate comparison. Hard scope is now accepted only from
+the policy-declared query surfaces. With none, obligation, required-input, and
+task scopes normalize to `unknown`; with one, the query wins; with both, only
+the two query-declared obligation values survive and the shared task remains
+`unknown`. Report metadata is source context, not proof of user intent.
+
+The stored `HYU_T3_072` question and recorded planner obligations were projected
+through this boundary with a fixed local structured output and no provider
+dispatch. Their prior `consolidated / consolidated / separate` obligation
+scopes became `unknown / unknown / unknown`, and the task constraint was also
+`unknown`. This does not rerun the compiler, select candidates, or convert the
+earlier partial artifact into a pass.
+
+The third provider-free seam is now closed at the targeted seed-supplement owner.
+A generic fixture separates a preferred-statement table that matches only a
+generic total, a scope-only context note that repeats the request without a
+value, and a local row/value source with a more specific declared surface. The
+old ordering reserves the generic preferred-statement source; the new ordering
+reserves the local atomic row.
+
+Numeric supplementation recognizes atomicity only from a parser-projected local
+header/value row or a full source pipe row containing both a numeric surface and
+a declared obligation/input surface. It strips index metadata and excludes
+section text, `table_context`, flattened `table_value_labels_text`, and arbitrary
+prose from that authority. Surface specificity precedes compatible statement
+type and table structure. This preserves a source document in the seed window;
+it does not parse a value, create a binding, or choose an answer in code.
+
+The Samsung source SQLite was opened only through `mode=ro&immutable=1`. A
+deterministic projection reused the saved eight retrieved documents and full
+local BM25 corpus. The visible retrieved window remains eight without
+`20240312000736:80:2`, while the projected seed window now includes that exact
+source. Its SHA-256 remains
+`f492d72be2753ac7a1c3012a36176d8c9ccf0d84fff1cc422c00e47fd5609ed0`.
+Provider, embedding, evaluator, Chroma, and benchmark calls were all zero. The
+earlier partial artifact therefore remains failed evidence.
+
+Current no-call verification is semantic-program 73/73, adjacent contracts
+169/169, runtime-domain audit 86, import/DAG 32/32, and full discovery 657/657.
+
+All three proved candidate-stage owners have provider-free repairs, and the
+operational admission is complete. The schema-v3 manifest binds exactly
+`HYU_T2_010`, `HYU_T3_072`, and `SAM_T2_078`, Hyundai then Samsung, to the same
+immutable source bundle and absent successor target. Its SHA-256 is
+`e9839d111f9bd76a674ee7dd7c4c0d59f75e0836f74cd3e364b2f39b4803435e`.
+
+The manifest enumerates Google store-query/routing embeddings, default/compiler
+and evidence-extraction LLM routes, Google evaluator judges, and OpenAI evaluator
+answer-relevancy embeddings. It permits one execution, no automatic run retry,
+and a `$0.40` authorization ceiling. The latest same-scope estimate was
+`$0.3156427`, leaving `$0.0843573` of headroom; embedding pricing is not declared
+in the profile and the ceiling is not a provider-side mid-request kill switch.
+
+Two production-order no-call rehearsals entered the real eval-only runner and
+stopped before first vector-store/provider construction. Their 5,302 canonical
+bytes are identical at receipt
+`fdfbf90f3adb195e9ffe7134177ac68bc856c8fdfe9e40719c09d04ae66459af`.
+Provider/network/output counts were zero; Hyundai/Samsung path-and-byte store
+fingerprints, raw SQLite hashes, absent target, and temporary-store set remained
+unchanged.
+
+That exact replay was later authorized and executed as recorded at the top of
+this section. No additional provider replay is authorized. The active next work
+is the provider-free Hyundai characterization above; Phase 3 remains paused.
+
+The detailed numbered sequences below preserve earlier evidence and stop lines
+rather than authorizing their old next steps:
+
+1. retain the LGE receipt as 553 catalog / 128 exposed candidates, one targeted
+   retry, two same-context direct bindings, one deterministic expression, 3/3
+   obligations, and ledger integrity `ok`;
+2. accept `676,874백만원` and the rounded `6,769억원` representation only through
+   their respective complete dataset variants. Never mix their operands/results
+   or force either representation in runtime code;
+3. retain the generic rendering fixture boundary: common non-unknown scope may
+   be projected once from all rendered obligations, while unselected narrative
+   evidence may never be imported into the answer. LGE satisfies the former;
+   NAVER's selected/runtime/retrieved evidence does not contain the omitted
+   second mechanism, so no renderer wording patch is authorized;
+4. treat the KB input gap as closed by isolated immutable artifacts: receipt
+   `20240326000894`, canonical 2500/320 structural ingest, 2,093 embeddings,
+   completed cache, and a single company/year/receipt scope. The fresh successor
+   additionally proves the MDA `십억원` and statement `백만원` metadata;
+5. retain the new operational stop line. Store-only requires one company and
+   one canonical experiment, local primary input, deterministic preflight, no
+   autofetch, and a minimal ingest facade. The historical successful run included
+   one extra semantic-router embedding request before that facade fix; do not
+   misreport it as document-only perfect isolation;
+6. retain the first KB diagnostic pair as history: T2 bypassed the program and T1
+   was 2/3 partial before the generic mixed-entry/`%p`/coupling-key fixes;
+7. accept the earlier corrected `KBF_T1_017` artifact only for its observed head:
+   same-row
+   `1.83% / 1.73%`, deterministic `0.10%p`, 3/3 obligations, one task/four
+   artifacts, ledger integrity `ok`, and bounded coupling keys. It is historical
+   evidence, not fresh-head acceptance;
+8. reject corrected `KBF_T2_018` as canonical acceptance despite evaluator PASS
+   and 4/4 structural completeness. Its selected fingerprint is the rounded MDA
+   table `3,146억원 / 1,848억원 / 70.24%`, not the explicitly requested connected
+   income-statement row `3,146,409백만원 / 1,847,775백만원 / 약 70.28%`;
+9. mark the objective-cache defect closed at the observed runtime boundary. The
+   fresh T2 replay executed eight distinct searches with zero exact-cache reuse;
+   obligation identity is no longer treated as retrieval-result equivalence;
+10. mark the longest-first parser defect closed at the store boundary. The raw
+    MDA table and successor metadata both say `십억원`; the canonical connected
+    income-statement row remains consolidated `백만원`;
+11. retain the fresh `KBF_T2_018` rejection as history. Its uniform global
+    enrichment produced 0/2 obligations and evaluator `UNCERTAIN`. The generic
+    repair is now complete: hard source scope remains shared, but semantic hints
+    and preferred sections are derived and traced per base query. Tests require
+    query-local meaning, not artificially different result documents;
+12. retain the fresh `KBF_T1_017` rejection despite numeric PASS. The generic
+    repair is now complete: derived outputs declare non-rendered evidence inputs,
+    candidates bind those requirement IDs, and period validation uses input scope
+    while all other scope/context/provenance guards remain. Retry receives exact
+    allowed ID sets and undeclared `ob_003`-style sources still fail closed;
+13. mark the eval-only source-store mutation mechanism closed in code. The runner
+    byte-fingerprints the source, evaluates only a verified disposable copy,
+    closes Chroma, verifies the source again, and removes the copy. Logical
+    fingerprints remain provenance metadata, not an exception to byte
+    immutability;
+14. no-call acceptance is 101/101 focused, audit 86, and full unittest 618/618.
+    Review this generic diff, then obtain fresh cost authorization before replaying
+    only `KBF_T2_018` followed by `KBF_T1_017`. Do not run the five-question gate
+    unless both rows are canonically accepted and the broader gate receives
+    separate authorization. Evaluator PASS alone never authorizes broader
+    execution;
+15. keep every benchmark output local. Historical and fresh artifacts remain
+    immutable; do not rewrite diagnostic, corrected, or successor output to look
+    like a different run.
+
+Items 1-13 below preserve the pre-transition release sequence as history. Items
+14-16 record the semantic-program cutover and current focused checkpoint:
 
 1. **FOCUSED RUNTIME STABLE, EVALUATOR CONTRACT CLOSED:** the generic precedence that allowed
    `NAV_T2_006` to replace correct task-output operands (`2,546,649 /
@@ -968,15 +1710,45 @@ integration authority:
     PR head and that the merge tree equals the approved head tree, then require
     the resulting `main` CI to pass. If all predicates hold, release integration
     is complete with no active runtime or refactoring follow-up.
+14. **SEMANTIC PROGRAM CANONICAL / NO-CALL GATE GREEN:** numeric and mixed
+    questions now retain all direct, derived, and narrative obligations in one
+    program. Retrieved evidence is flattened into immutable candidate IDs; the
+    LLM may select IDs and restricted expressions but cannot invent values or
+    evidence IDs. Deterministic validation covers required outputs, references,
+    cycles, AST/function allowlists, constant origin, unit dimensions,
+    company/period/consolidation/segment/basis/source context, coupled-output
+    coherence, and grounded compatibility evidence. One targeted retry can fill
+    only missing or ambiguous obligations. Semantic focused 27/27, audit 86,
+    full unittest 574/574, and compileall passed at the initial canonical cutover.
+    No provider call accompanied that checkpoint, so no accuracy or cost claim is
+    attached to item 14.
+15. **APPROVED CORE REPLAY PARTIAL / MIXED-CHUNK SUCCESSOR NO-CALL GREEN:** the
+    approved monitored replay confirmed Samsung's exact aggregate source and
+    NAVER's four-output same-row program. LGE correctly failed closed at 1/3
+    obligations because its `6,769억원` source remained narrative-only. The
+    source is an explicitly non-table paragraph carrying adjacent table metadata;
+    the generic successor now retains its immutable prose value. Real-store
+    no-call projection exposes that ID in the bounded prompt. Focused 48/48,
+    audit 86, full 590/590, compileall, legacy caller zero, and diff check pass.
+    At that checkpoint the latest LGE repair still needed the separately approved
+    provider replay recorded in item 16.
+16. **LGE PROVIDER ACCEPTANCE / THREE CORE ROWS CLOSED:** the separately approved
+    store-fixed successor compiled after one targeted retry and executed all 3/3
+    obligations. It selected `영업이익(손실) 2,163,234백만원` and the same connected
+    note's `기타영업손익 676,874백만원`; adjacent source text explicitly identifies
+    that amount as IRA advanced-manufacturing credit revenue. The deterministic
+    result is `1,486,360백만원`, integrity is `ok`, and numeric judgement is PASS.
+    The precise structured candidate is a valid semantic refinement of the
+    rounded prose `6,769억원`, which remains in the catalog. Completeness `0.700`
+    reflects terse final rendering, not an incomplete program or provenance gap.
 
-Merge authorization has been granted. More company- or question-specific tuning
-is not the next step. The paid broader-gate action is complete, and integration
-retains the attribution-only qualitative residual. Do not change runtime answer
-wording to force formal all-green. Execute only the history-preserving merge and
-the topology/tree/`main` CI checks in item 13. Do not delete the branch, tag,
-rewrite history, change branch protection, or resume refactoring as part of this
-decision. The parked docs-and-static-analysis-only Phase 3 audit remains the first
-step only if refactoring is explicitly resumed later.
+The older merge authorization and provider results remain historical. They do
+not authorize treating the old five-question score as current evidence. The
+generic rendering, KB-input, narrative-binding, and corrected-evaluator focused
+acceptance steps are now closed. The separately authorized current-head
+successor has also run and failed all four company full evaluations. Current next
+work is the provider-free three-contract characterization listed at the top of
+this section; company/question-specific tuning remains out of scope.
 
 ## Semantic Source-Scope Repair Successor (2026-08-27)
 

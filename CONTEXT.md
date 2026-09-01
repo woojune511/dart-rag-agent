@@ -6,7 +6,7 @@
 > [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), 완료된 변경은
 > [implementation_history.md](docs/history/implementation_history.md)를 따른다.
 
-Last updated: 2026-08-27
+Last updated: 2026-09-01
 
 ## 현재 범위
 
@@ -18,6 +18,628 @@ Last updated: 2026-08-27
 - 범용 agent, broad web workflow, productivity-tool 확장은 현재 범위가 아니다.
 
 ## 현재 checkpoint
+
+- Source: `main@a9a2df5` 위의 미커밋 작업 트리다. 사용자가 이미 수정한
+  `src/api/financial_router.py`와 untracked
+  `tests/test_financial_router_http_contract.py`는 이번 의미 계산 프로그램 변경과
+  분리되어 있으며 보존한다.
+- 사용자가 manifest
+  `70db0fb131b648e69b5fc096f4bdfdd3191502ffa90caab7df8538d376b4e91a`와
+  `$0.40` 한도를 승인했다. 실행 직전 동일 no-call receipt를 재확인한 뒤
+  `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`을 Hyundai-then-Samsung 순서로
+  정확히 한 번 실행했다. 30초 heartbeat로 303.767초에 완료됐으며 automatic run
+  retry는 없었다. 세 문항 모두 runtime error 0, ledger `ok`지만 runtime complete와
+  clean focused acceptance는 각각 1/3이다. 이 one-run 승인은 소진됐다.
+- 삼성은 canonical 연구개발비용 `28,352,769백만원`, 연결 기준 근거, Harman 설명으로
+  2/2를 유지했다. T2는 정확한 `87.0만 대`와 `78.1만 대`가 prompt에 있었지만
+  compiler가 미국 시장 전체 판매량을 선택했고, basis 검증에서 차단되어 1/2다.
+  T3는 하나의 source-defined 요약 근거로 실제 손익 네 항목을 보존해 2/3가 됐지만,
+  지분율은 다른 회사의 `53%` candidate ID를 골라 subject 검증에서 차단됐다.
+- T3의 `700,691백만원`은 원문 연결 주석의 실제 당기 값이다. 정답표의
+  `1,294,367백만원`은 별도 주석 값이며 질문은 연결/별도를 지정하지 않는다.
+  이를 단순 계산 오답이나 서로 동치인 숫자로 처리하면 안 된다. 기준별 표시·평가
+  계약의 재검토 항목으로 남겼고 answer key, 수치 허용 오차와 검증기는 바꾸지 않았다.
+  지분율 누락 때문에 T3 문항 전체 acceptance는 여전히 실패다.
+- Raw/final faithfulness는 T2 `1.000/1.000`, T3 `0.700/0.700`, 삼성
+  `1.000/1.000`으로 coverage 기반 상향이 없다. T3 요약 항목 보존은 실제로 관찰됐다.
+  반면 T2 계산 출력 자체가 빠져 이번 run은 `11.4%` 계산/`11.5%` 원문 표시의
+  병존을 provider-backed로 확인하지 못했다. 그 경계는 이전 no-call 검증만 유지한다.
+- 이번 사용량은 18 LLM calls, 543,641 tokens, 문항별 query embedding 33회,
+  document embedding 0회다. 세 문항의 내부 compiler retry는 각각 1회다.
+  Runner LLM 추정 `$0.2719901`은 승인 한도 아래지만 embedding 가격은 제외되어
+  전체 청구액이 아니다. Router 초기화의 74-query embedding batch 2회도 승인 범위로
+  실행됐으며 문항별 usage 밖에 기록된다. 추가 ingest/report fetch/KB/full gate는 없다.
+- 실행된 127-file runtime build
+  `20fefb3212af7c2391fc7e358b53cf1c6c445b1dfd30a8326462808bd95ef9c7`과
+  profile/dataset/source fingerprint는 실행 후에도 동일하다. 실행 직전 5,490-byte
+  canonical receipt는 기존 두 rehearsal과 같은
+  `e0be3cfaa0506d81e49fc49fde890458dc591929102c88fa9010717965568ed6`로
+  일치했다. 원본 store/SQLite, 이전 결과와 제외된 사용자 파일은 불변이고 임시
+  store도 남지 않았다. Runtime 소스는 이번 실행에서 수정하지 않았다.
+- Local-only admission은
+  `benchmarks/results/source_display_qualitative_focused_admission_2026-09-01`에
+  그대로 보존했다. 새 결과는
+  `benchmarks/results/source_display_qualitative_focused_successor_2026-09-01`이며,
+  top SHA-256은 `6725d3248c4002c6f2f835786a59dc4180e7f09dd1a9e972aa594df606e93e5a`다.
+- 후속 provider-free selected-source 기준 표시 수정을 완료했다. 합성 fixture는
+  17/17, 의미 계산/evaluator/provenance/ledger/import focused 237/237, 전체
+  693/693(15.904초), runtime-domain audit 86을 통과했다. runtime build는 127 files,
+  `e9a127d0cd0e0a17d780efa6ee3926f9ebb14198b6c83a684fbe9962d4aa3035`다.
+- 질문 hard scope는 그대로 두고, 검증된 direct answer slot의 연결/별도 metadata를
+  render-only scope로 사용한다. 모든 numeric 출력이 같은 알려진 기준이면 첫 출력에
+  한 번만 표시하고, 독립 출력의 기준이 다르면 각각 표시한다. 선택 근거가 unknown이면
+  unselected candidate로 채우지 않는다. 한국어/영어 표기는 reviewed config가 소유한다.
+  candidate 선택·상태·source display·scope/unit/subject/coupling 검증은 바뀌지 않았다.
+- 저장 T3 프로그램과 proposed/selected 후보 6개를 순수 실행기에 다시 넣었을 때
+  selected IDs, `candidate_subject_mismatch`, `ob_001` 누락과 `partial` 2/3는 그대로다.
+  답변에는 `2023년 연결기준 Motional 투자장부금액`만 추가됐다. socket 0, 저장 결과
+  bytes와 source store/SQLite는 불변이며 새 provider 결과나 채점은 없다. 최신 유료
+  acceptance는 여전히 1/3이다.
+- 후속 provider-free multi-output answer-variant production evaluator 통합도 완료했다.
+  `accepted_answer_variants`는 typed loader가 strict하게 읽고, canonical direct output을
+  candidate-bound operand와 결합해 value/unit/subject/period/basis/source를 검증한다.
+  서로 다른 actual output을 배정한 정확히 하나의 완전한 variant와 답변 숫자가 같은
+  variant를 가리킬 때만 completeness reference를 그 source-qualified `answer_key`로
+  바꾼다. no-field/no-match/partial/mixed/invalid/ambiguous는 canonical key로 fail closed한다.
+- 합성 production-contract module 12/12, focused 249/249, 전체 705/705, audit 86과
+  network-blocked 12/12(socket 0)을 통과했다. 기존 scalar result-binding과
+  `accepted_answer_keys`, raw qualitative score, result schema는 바뀌지 않았다. Curated
+  dataset·saved result·최신 유료 acceptance 1/3은 불변이며 provider/benchmark 호출은
+  없었다.
+- 후속 `HYU_T3_072` 실제 공시 근거의 provider-free read-only review도 완료했다.
+  연결 주석의 동일 Motional 행은 `26% / 700,691백만원`, 연결 요약 표는 영업수익
+  `1,775`, 계속영업손실 `803,742`, 기타포괄손익 `12,115`, 총포괄손실
+  `791,627백만원`을 제공하므로 한 개의 완전한 연결기준 variant를 이룬다. 여섯
+  immutable candidate를 순수 실행기에 넣은 결과는 validation error 없이 `ok`다.
+- 별도 주석의 `25.81% / 1,294,367백만원`도 실제 direct pair지만, 같은 별도 기준의
+  완전한 요약손익은 reviewed store에서 확인되지 않았다. `791,627`은 연결 요약에만
+  있다. 현재 canonical key는 별도 direct pair와 연결 summary를 결합하고 있으므로
+  source-basis atomicity 기준의 완전한 별도 variant로 등록할 수 없다. Dataset/key,
+  tolerance, score, saved result는 수정하지 않았다.
+- 후속 generic canonical-operand projection repair도 완료했다. `%`처럼 셀 값에 내장된
+  단위가 table hint보다 우선하며 둘의 provenance는 분리되고, metric column header와
+  current report year도 별도 필드로 남는다. Row-local subject validator는 parser footnote만
+  제거한 실제 header identity와 source row IDs를 binding에 보존하며 compile/execute가 한
+  public projector를 사용한다. Evaluator는 explicit subject/provenance를 요구하고 label
+  fallback을 허용하지 않는다.
+- 동일 immutable Hyundai store에서 기존 여섯 candidate ID가 모두 유지됐고, direct
+  operand는 `26% / %`, `Motional AD LLC`, `2023`으로 투영됐다. 세 obligation 실행은
+  validation `ready`, result `ok`; 메모리 안의
+  `hyu_t3_072_consolidated_current` proposal은 projection error 없이
+  `atomic_answer_variant_match`다. 합성 contract 13/13, focused 261/261, 전체 707/707,
+  audit 86, import 19/19와 canonical DAG가 통과했다. SQLite/payload/dataset/result와 제외
+  사용자 파일은 byte-stable이고 provider/benchmark/ingest 호출은 없었다.
+- 실제 variant 등록은 여전히 보류다. 다음 우선순위는 source-complete consolidated
+  variant 등록과 mixed-basis canonical key/evidence 정정을 어떻게 묶을지 정하는 별도
+  dataset-governance 결정이다. 등록/정답 수정, T2/T3 compiler repair, paid replay와
+  Phase 3는 각각 별도 명시적 결정이다.
+- 숫자형·혼합형 canonical flow는 `requirement plan -> retrieval/evidence ->
+  immutable candidate catalog -> semantic program compiler -> validate/execute ->
+  render/verify`다. 서술형 전용 경로는 유지한다.
+- pre-evidence 계획은 `answer_obligations`만 만들며 계산 타입을 결정하지 않는다.
+  `operation_family`는 검증·실행된 AST에서 사후 파생하는 호환 필드다.
+- 후보 ID, 원문 값/단위, 기간, 회사·연결/별도·부문·기준, 표/행/셀 위치와
+  source anchor는 코드가 만든 catalog가 소유한다. LLM은 ID만 선택한다.
+
+## 완료된 의미 계산 전환과 후속 이력 (historical)
+
+아래 검증 수치와 no-call/승인 기록은 각 구현 시점의 이력이다. 최신 실행 결과와
+다음 우선순위는 위 checkpoint 및 `project_status.md`의 Next Work를 따른다.
+
+- 첫 candidate-stage 후속은 provider 없이 prompt admission owner를 수정했다.
+  required `evidence_requirement`마다 출력 obligation과 분리된 bounded local
+  cohort를 먼저 예약하고, 숫자 사이의 소수점은 문장 경계로 보지 않아 함께
+  기재된 비율·수량의 주체와 기간 문맥을 보존한다. 불변 Hyundai store의 재구성
+  probe에서는 기존 128개 총 prompt budget 안에 `87.0만 대`와 `78.1만 대`의
+  정확한 candidate ID가 모두 포함됐다. 이는 no-call owner 검증이며 새 benchmark
+  acceptance가 아니다.
+- 두 번째 candidate-stage 후속도 provider 없이 hard-scope provenance owner를
+  수정했다. `consolidated/separate`는 policy가 인식하는 query 표면이 명시한
+  경우에만 obligation·required input·task hard scope가 될 수 있다. 명시가 없으면
+  LLM 출력과 report metadata가 hard scope를 제안해도 `unknown`으로 내리고, 하나가
+  명시되면 query가 우선하며, 둘 다 명시된 비교만 obligation별 두 값을 허용한다.
+  저장된 `HYU_T3_072` planner payload의 `consolidated / consolidated / separate`도
+  no-call projection에서 모두 `unknown`이 됐다. 이는 새 compiler/provider 결과가
+  아니다.
+- 세 번째 candidate-stage 후속은 obligation-owned seed preservation owner를
+  수정했다. 필수 숫자 그룹은 선호 statement type이나 context-only generic hint보다
+  실제 local header/value 또는 full pipe row와 더 구체적인 declared surface를 먼저
+  보존한다. Section/table context, index prefix와 flattened summary는 atomic witness나
+  binding 권위가 아니다. 불변 Samsung SQLite의 no-call projection에서 기존 retrieved
+  8개는 그대로이고 canonical source `20240312000736:80:2`가 seed window에 추가됐다.
+  원본 SHA-256은
+  `f492d72be2753ac7a1c3012a36176d8c9ccf0d84fff1cc422c00e47fd5609ed0`로
+  동일하다. 이는 이전 partial artifact를 pass로 바꾸는 provider acceptance가 아니다.
+- `financial_calculation_execution.py`는 참조, AST, 상수, 단위, scope/context,
+  coupling, 순환 의존성, 0 나눗셈과 required-obligation 완전성을 fail-closed로
+  검증한다. 불완전하면 최대 한 번 누락/모호 obligation만 재컴파일하며,
+  valid output을 다시 바인딩하지 않는다.
+- 현재 코드 기준 no-call 검증은 semantic-program 95/95, evaluator projection 69/69,
+  adjacent 151/151(해당 evaluator와 import 19/19 포함), runtime-domain audit
+  86 reviewed literals, canonical graph DAG, affected pycompile 5개, 전체 unittest
+  676/676을 통과했다. 이번 신규 12개 테스트와 기존 override 전용 8개 테스트 삭제는
+  표시·단위·scope·provenance, 실제 graph→ledger→evaluator projection, 정성 점수
+  독립성을 고정한다. 고정 structured output·mock catalog·mock judge를 사용했으며
+  실제 retrieval/provider end-to-end acceptance를 뜻하지 않는다.
+- 세 owner repair의 최소 integration admission도 provider 없이 완료했다. 정확히
+  `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`, Hyundai-then-Samsung, 한 번 실행,
+  automatic run retry 없음, `$0.40` ceiling으로 고정한 manifest SHA-256은
+  `e9839d111f9bd76a674ee7dd7c4c0d59f75e0836f74cd3e364b2f39b4803435e`다.
+  Google query/routing embedding과 두 agent LLM route, evaluator LLM, OpenAI
+  evaluator answer-relevancy embedding을 모두 열거했다. Production `eval-only`
+  진입에서 첫 vector-store/provider construction 직전에 차단한 두 회의 5,302-byte
+  canonical receipt는
+  `fdfbf90f3adb195e9ffe7134177ac68bc856c8fdfe9e40719c09d04ae66459af`로
+  byte-identical이다. Provider/network/output은 0이고 source fingerprint, absent
+  target, temporary-store set은 불변이었다.
+- 이전 generic-repairs 단계에서 사용자가 그 exact manifest를 승인해 replay를 한 번
+  실행했다. 2/2 company와 3/3 question이 283.0초에 runtime error 0, ledger
+  integrity `ok`로 끝났고 automatic run retry는 없었다. 18 LLM calls,
+  556,699 tokens, query embedding 33회, document embedding 0회, runner-estimated
+  `$0.2662671`로 `$0.40` ceiling 아래 `$0.1337329`를 남겼다. Embedding 가격은
+  profile에 없어 이 추정에 포함되지 않는다. 실행 뒤 Hyundai/Samsung whole-store
+  fingerprint와 raw SQLite SHA-256은 admission 때와 동일하고 임시
+  `dart_eval_store_*`도 남지 않았다.
+- 그 이전 run의 semantic acceptance는 1/3이었다. `SAM_T2_078`은 canonical
+  `연구개발비용 총계 / 28,352,769 / 백만원 / 20240312000736:80:2`와 scope note,
+  Harman 근거를 결합해 2/2 obligation, calculation/grounded rendering `1.000`으로
+  닫혔다. `HYU_T2_010`은 2023 exact candidate는 prompt에 들어왔지만 2022 exact
+  candidate는 빠졌고, compiler가 제안한 대체 후보의 segment/basis provenance가
+  requirement와 맞지 않아 1/2 `partial`로 fail-closed 됐다. `HYU_T3_072`는 query에
+  없던 연결/별도 hard scope가 모두 `unknown`으로 정규화되어 이전 planner 결함은
+  닫혔지만, 같은 Motional 행에서 고른 지분율·장부금액·당기순이익 후보의 unit/display
+  metadata가 비어 `empty_direct_rendering`으로 거절되어 0/5 `incomplete`다.
+- 두 Hyundai 잔여의 provider-free 특성화와 일반 수정은 끝났다. Semantic query
+  budget은 composite query를 보존하면서 각 required obligation/input group의
+  specific query를 하나씩 먼저 예약한다. 저장 T2 계획의 기초·기말·서술 그룹과,
+  source-defined summary로 고친 T3 계획의 지분율·장부금액·손익 그룹이 모두 기존
+  총 budget 안에서 예약됐다. Formula variable은 candidate metadata가 unknown인
+  `segment`/`basis`만 LLM-declared applicability로 보완할 수 있고 explicit conflict,
+  company, period, consolidation scope는 계속 거절한다.
+- T3 상세표의 24개 peer chunk에는 unit hint가 없으므로 unitless leaf value를
+  복원하지 않았다. 연결 주석 source `20240313001451:183:93`은 `백만원`과 실제
+  source schema인 영업수익·계속영업손익·기타포괄손익·총포괄손익을 보존한다.
+  Planner는 사용자가 구성 항목을 열거하지 않은 `요약 손익`을 관행적인 여러 direct
+  metric으로 발명하지 않고 하나의 narrative obligation으로 남긴다. 저장 BM25에서
+  손익 specific query는 이 explicit-unit source를 6위에 올렸다. 이는 retrieval
+  admission 검증이지 새 compiler/provider acceptance가 아니다.
+- Hyundai SQLite와 structure graph SHA-256은 각각
+  `73b65b54dfdd6d63390a219f67b4d8a8e61b7169be481a3fc1f6c586db31db37`,
+  `110e7063e78f5a75a92fb602c552761304937d3e26329500cf87cd33a374740a`로
+  불변이고 임시 `dart_eval_store_*`도 없다. 이번 후속의 provider, embedding,
+  evaluator, Chroma-client, benchmark 호출은 모두 0이다.
+- 새 no-call admission도 완료했다. Schema-v3 manifest
+  `4e3e1d8df40cd25d8fa850eb9f571ec76dadbfc13b7154b22e67d9d96acfe3e4`는
+  127-file runtime build
+  `9fabb94a8106befedd43db769bffb9af3131240b807f504a668385cdf83eb1c9`,
+  기존 profile/dataset과 정확히 `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`,
+  Hyundai-then-Samsung, one eval-only execution, automatic run retry 없음,
+  `$0.40` ceiling을 묶는다. 최신 same-scope runner estimate는 `$0.2662671`이며
+  embedding 가격은 포함되지 않고 ceiling은 진행 중 request를 중단할 수 없다.
+- Production-order rehearsal 두 회는 첫 vector-store/provider construction 전에
+  차단됐고 5,189 canonical bytes가 receipt
+  `7f2068120e3c5d6f35b3cb20d810fdae6c0f70587571d13009ccbb71f45b3e91`로
+  byte-identical이다. Source fingerprint, absent target, temp-store set은 불변이고
+  이 rehearsal의 provider constructor/network/benchmark output은 모두 0이었다.
+  이후 사용자가 exact manifest를 승인했고, 실행 직전 동일 receipt와 input hash를
+  다시 확인한 뒤 최신 3문항 successor를 한 번 실행했다.
+- 최신 run의 기록은 17 LLM calls, 467,828 tokens, 문항별 query embedding 33회,
+  document embedding 0회, runner-estimated `$0.2437528`이다. `$0.40` 한도 아래
+  `$0.1562472`를 남겼지만 embedding 가격은 포함되지 않는다. 별도로 승인된
+  router 초기화의 74-query embedding batch 2회는 문항별 usage 밖의 로그에 남는다.
+  내부 compiler retry는 순서대로 1/1/0회였고 automatic run retry는 없었다.
+  실행 뒤 source whole-store/SQLite, runtime/profile/dataset hash와 사용자 파일은
+  불변이며 임시 store는 모두 정리됐다. 결과 top SHA-256은
+  `6e2165cf0c6f966e509d59e556f9fc76f5e0bee30d249ce246b7679511942b16`이다.
+  세부 acceptance와 다음 범위는 `project_status.md`의 Next Work를 따른다.
+- 승인된 provider-backed store-fixed 재검증은 `SAM_T2_078`, `NAV_T2_006`,
+  `LGE_T1_051`을 순차 실행했고, 별도 승인된 LGE-only successor가 마지막 경계를
+  확인했다. Samsung은 `연구개발비용 총계 / 28,352,769 / 백만원`과 Harman 설명을
+  2/2 obligation으로, NAVER는 같은 커머스 행의 `2,546.6 / 1,801.1억원`,
+  계산·원문 표시 `41.4%`, Poshmark 설명을 4/4 obligation으로 보존했다.
+- LGE-only successor는 한 번의 targeted retry 뒤 553개 catalog / 128개 prompt
+  후보에서 같은 연결 주석의 `영업이익(손실) 2,163,234백만원`과
+  `기타영업손익 676,874백만원`을 선택했다. 같은 표 문맥의 설명이 후자를 IRA
+  첨단제조 생산세액공제 수익으로 직접 연결하므로, 이는 prose의 반올림 표시
+  `6,769억원`보다 정밀한 compatible source다. 계산은
+  `2,163,234 - 676,874 = 1,486,360백만원`, execution 3/3, ledger integrity `ok`,
+  numeric PASS다. 혼합 비표 문단의 `6,769억원` `sentence_value`도 catalog/prompt에
+  계속 남아 있으며, 후보 보존을 특정 표시의 강제 선택으로 바꾸지 않는다.
+- curated evaluator에는 이 두 정당한 표현을 별도 atomic variant로 등록했다.
+  `connected_note_precise`는 `2,163,234 - 676,874 = 1,486,360백만원`과 연결
+  주석 provenance를, `management_discussion_rounded`는
+  `2조 1,632억원 - 6,769억원 = 1조 4,863억원`과 해당 문단 provenance를 한
+  묶음으로 요구한다. 서로 다른 variant의 operand/result 교차 조합은 실패한다.
+  기존 저장 LGE artifact의 no-call evaluator replay는 precise variant를 선택해
+  numeric/operand/result/calculation `1.000`을 기록했다. 새 provider 실행은 아니다.
+- 두 `0.700`은 no-call로 서로 다른 경계임을 확인했다. LGE의 세 obligation은
+  회사·2023년·연결 범위를 공통으로 갖지만 기존 renderer가 이를 버리고
+  `항목: 값`만 이어 붙였다. 이제 모든 rendered obligation에 같은 non-unknown
+  scope만 첫 숫자 문장에 한 번 투영하고 나머지도 완전문장으로 렌더링한다.
+  저장 LGE 프로그램을 순수 executor로 재실행했을 때 3/3 값과 candidate/source
+  trace는 그대로였고 missing obligation은 없었다. 새 evaluator/provider 점수는
+  만들지 않았다.
+- NAVER의 선택 후보 4개, runtime evidence 4개, retrieved preview 8개에는 judge가
+  요구한 두 번째 인수 효과가 하나도 없다. 따라서 renderer가 이를 보완하면
+  근거 없는 생성이 된다. 이 residual은 evidence/planner/compiler coverage 관찰로
+  남기며 문항별 문구는 추가하지 않는다.
+- 별도 승인 아래 KB receipt `20240326000894`의 isolated canonical store를
+  구축했다. 두 번의 provider-free preflight manifest는 SHA-256
+  `3017fdb8cfabb65072ae5e4dff22f047f542235e93cfb3b861b791ab519de0d2`로
+  같았다. 실제 store는 51개 section parent, 2,093개 chunk/embedding,
+  OpenAI `text-embedding-3-large` 3,072차원이며 Chroma metadata는 오직
+  `KB금융 / 2023 / 20240326000894`만 담는다. cache status는 `completed`이고
+  heartbeat는 2,093/2,093, 약 128초에 종료했다.
+- 실제 실행의 ingest delta는 document-embedding 33회, 2,093 texts,
+  670,328 estimated tokens, LLM 0회였다. 다만 ingest 전에 전체
+  `FinancialAgent` 생성이 semantic-router canonical query 74개를 embedding하는
+  추가 endpoint 호출 1회를 만들었다. 질문/evaluator 호출은 아니지만 승인
+  manifest보다 넓은 초기화였으므로, 이후 store-only 경로를 routing/evaluator를
+  생성할 수 없는 최소 ingest facade로 바꾸고 테스트로 고정했다. 완성된 store를
+  중복 유료 재구축하지는 않았다.
+- 별도 승인된 corrected `KBF_T2_018`, `KBF_T1_017` focused store-fixed 재실행도
+  끝났다. 두 번의 no-call preflight receipt는
+  `d516610e26d6b8352c5901243206708cce368749e3bccd9c7652e30acb635d2d`로 같았고,
+  두 실행 모두 기존 2,093-document store를 재사용해 document embedding은 0회였다.
+  5문항 gate는 승인·실행하지 않았다.
+- T1은 provider-backed canonical acceptance다. 2,462 catalog / 128 prompt 후보에서
+  같은 NIM 행·표·source의 `1.83% / 1.73%`를 선택하고 `0.10%p`를 실행해 3/3
+  obligation, task 1/artifact 4, ledger integrity `ok`, numeric PASS와
+  faithfulness/completeness `1.000 / 1.000`을 기록했다.
+- T2는 numeric PASS와 4/4 execution이어도 canonical acceptance가 아니다.
+  선택 fingerprint는 MDA 표의 `3,146억원 / 1,848억원 / 70.24%`였고, 질문이
+  명시한 연결 포괄손익계산서의 canonical 행은 `20240326000894:470:1`,
+  `3,146,409백만원 / 1,847,775백만원 / 약 70.28%`다. evaluator 점수와 ledger
+  무결성은 잘못된 source row를 정당화하지 않는다.
+- 원인은 두 층이다. retrieval query 8개가 같은 obligation objective라는 이유로
+  첫 검색 결과를 7회 재사용해 exact statement candidate가 catalog/prompt에
+  들어오지 못했다. 이제 query-result cache는 exact source/query/filter만 재사용하고
+  서로 다른 semantic query는 독립 실행한다. 또 원문 MDA 단위는 `십억원`인데
+  parser가 suffix `억원`으로 잘랐다. unit token을 longest-first로 인식하도록 고쳤다.
+- no-call 검증은 retrieval 22/22, parser 31/31, semantic-program 46/46,
+  runtime-domain audit 86, 전체 unittest 614/614다. 이 수치는 cache/parser
+  no-call successor의 기존 검증 기록이며 이번 fresh replay 뒤 다시 실행한 수치가
+  아니다.
+- 별도 승인 아래 parser signature가 반영된 isolated KB successor store를 새로
+  구축했다. 두 번의 store-only preflight manifest는
+  `50260722b3c567e56404053fc9f93e1df22a67fd51d33c94bd592bac10b7b600`으로
+  같았다. 약 100초 동안 51 section parent와 2,093 chunk/embedding을 만들었고,
+  document embedding은 33회/2,093 texts/670,334 estimated tokens였다. 질문·평가
+  LLM 호출은 없었다. MDA `20240326000894:1616:1`은 이제 `십억원`, canonical
+  income-statement `20240326000894:470:1`은 `백만원`으로 저장되어 parser 수정은
+  실제 store에서 확인됐다.
+- focused pair의 production-order preflight도 두 번 동일한 receipt
+  `4615185a56da5060df7b1ed6c7f98e025556cb134287b201a7d82c099a2fdb97`를
+  만들었다. T2 실행 뒤 Chroma SQLite raw byte가 바뀌어 T1 전에는 새 store
+  snapshot에 대해 다시 두 번 rehearsal했고 receipt는
+  `09b11b482266a06a133b721073002d471fadae036a733ccb92bad6508982c21b`였다.
+  두 focused run 모두 document embedding은 0회였고 5문항 gate는 승인·실행하지
+  않았다.
+- fresh-store `KBF_T2_018`은 8개의 서로 다른 query를 실제로 8회 실행해 이전
+  objective-cache collapse가 사라졌지만, 모든 query에 같은 긴 risk/section suffix가
+  붙어 최종 evidence 8개가 전부 연결재무제표 주석으로 수렴했다. canonical
+  statement 후보 `cand_e1d8aa527b06dfafde43`와
+  `cand_ac08297806e6475c8ecd`는 prompt에 들어가지 못했고 compiler는 0/2
+  obligation, evaluator `UNCERTAIN`, completeness `0.0`으로 종료했다. 이는 계산
+  문제가 아니라 generic query-enrichment/evidence-coverage 문제다.
+- fresh-store `KBF_T1_017`은 prompt에 같은 NIM 행의 `1.83%`와 `1.73%`가 모두
+  있었다. 첫 compiler program은 period-scope 검증에서 거절됐고, 한 번의 retry는
+  두 번째 operand를 candidate ID로 직접 bind하지 않고 존재하지 않는 `ob_003`을
+  만들었다. validator는 이를 fail-closed로 거절했다. evaluator numeric PASS와
+  무관하게 semantic result는 1/2 obligation partial이므로 canonical acceptance가
+  아니다.
+- eval-only Chroma open이 logical fingerprint와 2,093 embedding을 보존하면서
+  source SQLite raw SHA를 바꾼 관찰은 generic no-call 계약으로 닫았다. hard report
+  scope와 query별 semantic enrichment를 분리했고, derived output과 비표시
+  `evidence_requirements`의 scope를 분리했으며, candidate 변수는 해당 requirement
+  ID를 명시적으로 bind한다. retry에는 허용된 candidate/obligation/requirement ID만
+  제공하고 validator는 미등록 ID를 계속 거절한다.
+- eval-only는 source store 전체 바이트를 fingerprint한 뒤 동일한 disposable copy만
+  열고, Chroma client 종료 후 source fingerprint를 재검증하고 copy를 삭제한다.
+  이 no-call successor 자체는 provider/benchmark/report fetch/ingest/query
+  embedding/LLM 호출이 없었다.
+- 이후 별도 승인된 `KBF_T2_018 -> KBF_T1_017` store-fixed replay를 실행했다.
+  두 실행 모두 document embedding 0회였고 source-store fingerprint는 실행 전후
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`로
+  같았다. 5문항 gate는 승인·실행하지 않았다.
+- T2는 3,918개 catalog / 128개 prompt 후보와 한 번의 compiler retry 뒤에도
+  선택 후보 0개, 0/2 obligation, numeric FAIL로 종료했다. 8개 검색은 서로
+  독립 실행됐지만 숫자 query도 서술 obligation의 risk/주석 prior를 공유해 최종
+  8개 evidence가 전부 연결재무제표 주석으로 수렴했고 canonical
+  `20240326000894:470:1`은 catalog에 들어오지 못했다.
+- T1은 1,650개 catalog / 128개 prompt 후보에서 첫 시도에 같은 NIM 행·표·source의
+  `cand_fa953151cf02e5921f0b = 1.83%`와
+  `cand_4de1f1e0c09dfb8d30d1 = 1.73%`를 각각
+  `ob_002:req_001`과 `ob_002:req_002`에 bind했다. `nim_2023 - nim_2022 =
+  0.10%p`, 2/2 output, missing 0, numeric PASS이므로 source/program 계산은
+  canonical로 인정한다. completeness `0.700`은 답변이 방향어를 생략한 별도
+  정성 평가 신호이며 계산 trace를 뒤집지 않는다.
+- paid replay 뒤 추가 provider 호출 없이 검색 소유권을 planner가 선언한
+  obligation/evidence-requirement 단위로 좁혔다. 숫자 query에는 서술 policy를
+  섞지 않고, required numeric input은 전체 chunk와 공백 변형을 검사하며,
+  ordered statement type과 구조화 표를 우선해 각 requirement의 best source를
+  `seed_retrieved_docs`에 보존한다. 실제 저장 store의 no-call probe는
+  `20240326000894:470:1`을 1순위로 선택했다.
+- 2026-08-29 별도 승인 범위로 `KBF_T2_018`만 다시 store-fixed replay했다. 두
+  production-order no-call receipt는
+  `4c062416c1c8ed12a0004be688e156632b7e2b61081c4ce872e246a93bef8c5c`로
+  같았고, document embedding은 0회였다. canonical row `470:1`은 최종 retrieval
+  rank 6까지 들어왔지만 compiler의 4,447 catalog / 128 prompt 후보에는 정확한
+  숫자 cell이 없었다. 한 번의 retry 뒤 selected candidate/output은 0, obligation은
+  0/2였고 evaluator는 `UNCERTAIN`, completeness `0.000`, refusal accuracy `1.000`을
+  기록했다. 5문항 gate는 승인·실행하지 않았다.
+- 실패는 세 일반 계약으로 좁혀졌다. 여러 줄 `table_header_context`를 한 줄로
+  평탄화해 첫 data preview 값을 기간으로 오인했고, 공백만 다른 label이 prompt
+  relevance에서 탈락했으며, mixed question의 required narrative obligation은
+  numeric-only seed group과 공용 prompt relevance에 가려졌다.
+- no-call successor는 header line을 보존하고 숫자형 data preview를 배제하며,
+  공백 동치 relevance와 numeric/narrative별 prompt group을 사용한다. required
+  evidence supplement는 숫자 입력에는 compatible table best를, narrative에는
+  period-only hint를 제외한 여러 설명형 후보를 bounded policy로 보존해 최종 의미
+  선택을 compiler에 남긴다.
+- 저장 store probe에서 `470:1`의
+  `cand_e1d8aa527b06dfafde43 = (3,146,409), 2023`과
+  `cand_ac08297806e6475c8ecd = (1,847,775), 2022`, 그리고 원인 문단
+  `493:16`의 `cand_eca9ff59eee4097a3e74`가 모두 prompt에 들어갔다. 고정 program은
+  validator `ready`, execution `ok`, 2/2 output과 `70.28%`를 만들었다. 이는
+  provider acceptance가 아니다. source-store fingerprint는 계속
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`다.
+- 이어 별도 승인된 `KBF_T2_018` 단독 acceptance replay를 현재 head에서 실행했다.
+  두 production-order no-call receipt는
+  `e172d03e065ba0ae641c08cbb563e2a3a681d35acb8aa220e4f99f5a0b8084e0`로
+  같았다. compiler는 retry 없이 4,196개 catalog 후보 중 5개를 선택하고 2/2
+  obligation을 실행했다. 동일 연결 손익계산서 행 `470:1`의
+  `(3,146,409)백만원 / (1,847,775)백만원`을 `abs` 증가율로 계산해 `70.28%`를
+  반환했고 numeric PASS, calculation/grounded rendering `1.000`, ledger integrity
+  `ok`였다. document embedding은 0회이고 source-store fingerprint는 계속
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`다.
+- 숫자 source/program은 canonical이지만 mixed 답변 전체는 아직 acceptance가
+  아니다. compiler가 일반 자산·대출 증가 문단을 충당금 증가의 직접 원인처럼
+  서술했다. qualitative completeness는 `0.700`이었고 evaluator의 원문 numeric
+  grounding 응답도 이 인과 비약을 지적했지만, 숫자 역할의 deterministic operand
+  override가 계산 판정만 `PASS`로 유지했다. 이는 의도한 역할 분리이며 서술
+  obligation의 의미 완전성을 대신하지 않는다.
+- 추가 provider 호출 없이 narrative 원인·관계도 planner가 별도
+  `evidence_requirements`로 선언하고 task/retrieval이 그 요구를 소유하도록 했다.
+  compiler는 `evidence_bindings`로 candidate ID와 requirement ID를 연결해야 하며,
+  일반 배경·다른 지표의 동시 변화·위험관리 절차를 직접 인과 근거로 승격하지
+  못한다. required binding 누락·unknown·cross-obligation·scope mismatch는
+  fail-closed다. focused 118/118, runtime-domain audit 86, full unittest 635/635가
+  통과했다.
+- 이어 사용자가 승인한 `KBF_T2_018` 단독 replay를 새 output successor에서 한 번
+  실행했다. 두 no-call receipt는
+  `3b10ce5c6537df882fef87de2eb2205051bf662cebf265679af52f930301ebb6`로 같았다.
+  compiler는 4,305개 catalog에서 5개를 retry 없이 선택했고, 동일 `470:1` 행의
+  두 값을 계산해 `70.28%`, 2/2 output, ledger `ok`, numeric PASS를 유지했다.
+  이번 서술은 `worse/crisis` 시나리오, Expected Loss/Economic Capital,
+  Total Exposure, 미래전망정보 방법론을 선택 근거에 맞춰 기술했으며 qualitative
+  completeness는 `1.000`이었다. agent/judge는 각 3회, 전체 104,248 tokens,
+  query embedding 11회, document embedding 0회였다.
+- 이 결과의 저장 `faithfulness=1.000`은 acceptance 근거로 쓰지 않는다. 원시
+  faithfulness는 `0.500`이었고, numeric PASS가 혼합형 서술 점수 전체를 덮었다.
+  evaluator judge context도 같은 runtime evidence의 `claim`/`quote_span`과 index
+  metadata를 중복 넣어 4,000자 예산에서 뒤쪽 두 서술 근거를 잘랐다. 일반 후속은
+  colon-bearing index metadata를 제거하고 중복 payload를 합쳐 이번 네 근거를
+  3,008자로 모두 보존하며, narrative output이 있으면 numeric faithfulness override와
+  numeric-fast gate를 금지한다. `format_preference=mixed`도 독립 차단하므로 서술
+  output 자체가 누락된 경우에도 fail-closed다. 관련 evaluator/runner 118/118과 전체 unittest
+  637/637가 통과했고 source-store fingerprint는 계속 `484899d...4dd4`다.
+- 이어 별도 승인된 corrected-evaluator `KBF_T2_018` 단독 replay를 두 번의
+  byte-identical production-order no-call receipt
+  `b8f05c7848ed8d1cc9efd8595ab57ff439f2cb96db2e895086cd4c9ffe302905` 뒤
+  정확히 한 번 실행했다. compiler는 3,741개 catalog 후보에서 3개를 retry 없이
+  선택했고, 동일 연결 손익계산서 행 `470:1`의
+  `(3,146,409)백만원 / (1,847,775)백만원`을 계산해 `70.28%`와 직접 근거화된
+  worse/crisis 시나리오 설명을 2/2 output으로 반환했다.
+- 수정 evaluator의 원시 판정은 `raw_faithfulness=1.000`이고 override reason은
+  `null`이었다. numeric raw/final judgement 모두 `PASS`, completeness `1.000`,
+  calculation/grounded rendering `1.000`, task 1/artifact 4, ledger integrity `ok`,
+  error 0으로 corrected-evaluator focused acceptance가 닫혔다. agent/judge는 각
+  3회, 전체 102,577 tokens, query embedding 11회, document embedding 0회였고
+  runner 추정 비용은 `$0.0605193`이었다.
+- source-store fingerprint는 실행 전후
+  `484899d27e2b5469c79b1865d287945e634566af7c805898d37714e589404dd4`로
+  같았고 단독 T2 acceptance HOLD는 해소됐다.
+- 이어 사용자가 정확히 승인한 current-head 5문항 store-fixed gate를 두 번의
+  byte-identical no-call rehearsal receipt
+  `c714bdc02c891aa802eb801b57e2056a6060412cea03031ab846e3f02a2ad08e` 뒤 한 번
+  실행했다. 대상은 `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`,
+  `SAM_T2_078`뿐이며 source bundle은
+  `policy_gate_regression_2026-06-03_1138_actual`이다.
+- 실행은 520.3초에 4/4 company와 5/5 question을 오류 없이 완주했고 모든
+  task/artifact ledger integrity는 `ok`였다. 그러나 다섯 문항 모두 필수
+  obligation을 빠뜨려 `partial` 또는 `incomplete`였고, formal
+  `full_eval_fail_count=4`로 **통합 gate는 실패했다**. screen pass count 4는
+  저장 bundle 재사용 screening 신호일 뿐 semantic-program acceptance가 아니다.
+- NAVER는 계산과 원문 `41.4%`는 맞지만 segment metadata가 없는 Poshmark 설명을
+  strict scope가 거절해 1/2였다. 현대차 두 문항은 source text 속 숫자가 atomic
+  candidate가 아니거나 상세표/MDA의 `unknown` consolidation scope가 planner의
+  `consolidated` 요구와 충돌해 각각 0/2, 1/4였다. `HYU_T3_072`의 유일한 direct
+  output은 unit이 `UNKNOWN`인데도 `ok`가 되어 빈 값으로 렌더링됐으므로 별도
+  validator/render fail-open 결함이다.
+- LGE의 정밀 `676,874백만원` 후보는 128개 compiler prompt에 있었지만 LLM이
+  반올림 prose를 선택하고 선언하지 않은 formula 변수와 불완전 evidence binding을
+  retry에서도 반복해 1/2였다. Samsung의 이전 수용 정밀 후보
+  `28,352,769백만원`은 이번 prompt 128개에 들어오지 않았고 rounded prose 선택이
+  scope/numeric 검증에서 거절돼 1/2였다.
+- 공통 blocker는 특정 문항 표현이 아니라 (1) evidence surface별 scope 적용 가능성,
+  (2) source-visible 수치의 atomic candidate화와 obligation별 prompt 보존,
+  (3) retry의 formula/evidence binding 폐쇄성, (4) render 불가능 direct output의
+  fail-closed 검증이다. 이를 generic no-call fixture로 특성화·수정한 뒤에만 새
+  provider replay를 검토한다. Phase 3 리팩터링과 통합은 계속 HOLD다.
+- gate는 agent/judge 합계 31 LLM calls / 939,313 tokens, query embedding 55회,
+  document embedding 0회, 추정 `$0.4732093`를 사용했다. 네 source-store logical
+  fingerprint는 실행 전후 같았고 결과/store/cache/heartbeat는 local-only다.
+  Preflight의 provider 열거에는 Google 경로만 적혔지만 실제 evaluator는 승인된
+  `five_question_evaluators` 안에서 OpenAI query embedding도 문항당 2회 사용했다.
+  실행 범위를 넘긴 것은 아니나 admission manifest의 provider 완전성 residual로
+  기록하며, 이번 결과를 완전한 admission 증거라고 부르지 않는다.
+- 후속 provider 호출 없이 네 blocker를 generic fixture로 먼저 재현한 뒤 수정했다.
+  Narrative compiler는 metadata가 비어 있는 `consolidation_scope`, `segment`,
+  `basis`에만 `scope_applicability_fields`를 선언할 수 있고 explicit conflict,
+  company, period는 계속 fail-closed다. Required evidence scope에도 같은 제한을
+  적용한다.
+- `financial_numeric_surface.py`는 policy의 한국어 count unit과 scale을 사용해
+  `1,560만 대`, `87.0만 대`를 `COUNT`로 정규화한다. Chunk에 table metadata가
+  붙어도 explicit-inline-unit 값은 atomic candidate로 남기되, 같은 source의
+  structured value와 normalized value/unit이 같으면 중복만 제거한다.
+- Prompt admission은 source diversity가 전체 group budget을 독점하지 않게 충분히
+  큰 group의 1/4을 relevant alternate row에 남기고 `aggregate_label`을 semantic
+  relevance surface로 사용한다. 이는 candidate visibility만 바꾸며 answer를 코드가
+  선택하지 않는다.
+- Targeted retry에는 obligation별 required requirement ID, validation error,
+  formula AST variable과 variable binding의 exact-set invariant를 전달한다. Direct
+  binding은 requested unit과 dimension이 맞고 source-grounded display가 비어 있지
+  않을 때만 `ok`가 된다. Semantic 58/58, 인접 131/131, audit 86, import/DAG
+  20/20, pycompile, legacy symbol 0, full 641/641, diff check가 통과했다.
+- 이 결과는 no-call contract close일 뿐 provider acceptance가 아니다. 실패한
+  5문항 gate가 최신 integration evidence이며, 다음 store-fixed replay는 provider
+  경로와 exact cost ceiling을 새 manifest에 묶고 별도 승인을 받은 뒤에만 한다.
+  Phase 3 리팩터링은 계속 중단한다.
+- 사용자는 이어 네 generic contract 수정 head를 검증하는 동일 5문항 store-fixed
+  gate를 정확히 한 번 승인했다. production-order preflight receipt는
+  `c48b007fdeeb457fe3fdb977a044b1816d4043c3857de65acba4af9df55640e3`,
+  runtime build SHA-256은
+  `e4daebab644cf978f21942f73fac49f03788b03c1abe6638ce9e406e1ad5e794`다.
+  Google agent/evaluator/query-embedding 경로와 OpenAI evaluator answer-relevancy
+  embedding을 모두 명시했고, fresh ingest, document embedding, KB row, 다른
+  question ID와 자동 full-run retry는 허용하지 않았다.
+- successor는 508.3초에 4/4 company와 5/5 question을 오류 없이 완주했다. 31 LLM
+  calls / 927,550 tokens, query embedding 55회, document embedding 0회였고 runner
+  추정 비용은 `$0.4644884`로 승인 상한 `$0.60` 이하였다. top-level result SHA-256은
+  `e5a13e15a25ac295157ff469b53cd0bf055050edf6060ee89910d31351c9269c`다.
+- 그러나 **integration gate는 다시 실패했다**. 다섯 row 모두 `partial`, 모든
+  task/artifact ledger는 integrity `ok`, error rate는 0, formal
+  `full_eval_fail_count=4`다. company-average faithfulness/completeness/context
+  recall은 `0.800 / 0.3875 / 0.953125`이고, 유일하게 numeric judgement가 적용된
+  LGE는 FAIL이다. screen pass 4는 여전히 저장 bundle screening일 뿐 acceptance가
+  아니다.
+- NAVER는 올바른 `2,546,649 / 1,801,079백만원`과 원문 `41.4%`를 골랐지만, 첫
+  상대기간 candidate는 period scope에서, 명시적 2022 candidate는 서로 다른 report
+  context fingerprint에서 거절돼 계산 obligation이 빠졌다. LGE도 retry가 올바른
+  `2,163,234 / 676,874백만원`과 정확한 차감식을 만들었지만 연결 손익계산서와 연결
+  주석의 fingerprint가 다르다는 이유만으로 derived output이 거절됐다.
+- `HYU_T2_010`의 narrative는 새 `scope_applicability_fields`를 통해 통과했지만
+  `87.0만 대 / 78.1만 대` atomic input은 compiler prompt에 없었다. Samsung의
+  `28,352,769백만원` canonical aggregate도 runtime catalog/program에 들어오지
+  않았다. 두 값은 결과 artifact의 benchmark answer/evidence 쪽에만 있으므로
+  runtime retrieval 성공으로 간주하지 않는다.
+- `HYU_T3_072`는 Motional이 아니라 `중국` 행의 `53%`를 선택했는데 segment/subject
+  metadata가 비어 있어 direct validator가 이를 허용했다. 같은 retry의 Motional
+  장부금액과 손익 후보는 보였지만, planner가 `direct_value`로 선언한 값을 원 단위로
+  바꾸기 위해 LLM이 `* 1000000` expression을 붙여 validator가 올바르게 거절했다.
+  상세표 원문에 함께 보이는 sibling cell도 각각 bind 가능한 candidate ID로 충분히
+  확장되지 않았다.
+- 따라서 다음 provider-free 작업은 세 일반 계약을 먼저 특성화하는 것이다:
+  (1) 동일 metric/범위의 인접기간과 명시적으로 연결된 statement-note operand를
+  exact fingerprint equality 대신 검증 가능한 semantic compatibility로 다루기,
+  (2) obligation-owned atomic numeric/structured-row sibling admission으로 source-
+  visible count와 aggregate cell을 prompt에 보존하기, (3) direct binding의 subject/
+  row identity를 fail-closed로 검증하고 단위 변환을 계산식이 아닌 deterministic
+  display normalization으로 처리하기. 재실행이나 Phase 3 owner move는 아직
+  승인되지 않았다.
+- 네 source-store fingerprint는 전후 동일했고 disposable Chroma copy는 모두
+  제거됐다. successor 결과/store/cache/heartbeat는 local-only이며 자동 retry는
+  실행하지 않았다. 이 successor가 최신 integration evidence다.
+- 후속 provider 호출이나 runtime 수정 없이 세 잔여를
+  `tests/fixtures/semantic_program_contract_residuals.json`의 generic
+  `known_failure_characterization`으로 고정했다. 특정 회사명·benchmark ID·answer
+  key·provider output은 fixture에 없다. 기존 semantic-program baseline 58/58 뒤
+  3개 characterization을 추가한 focused suite는 61/61이다.
+- 동일 metric·scope의 인접 report-period case와 동일 회사/기간/연결/basis의
+  statement-note 차감 case는 다른 검증 오류 없이 오직
+  `expression_context_mismatch: context_fingerprint`로 거절된다. 이는 scope나 단위
+  문제가 아니라 exact context identity policy의 현재 경계임을 분리한다.
+- 표 metadata의 `table_value_labels_text`에는 requested share/carrying/net-result,
+  aggregate, current/prior count 여섯 값이 모두 보이지만 bindable catalog에는 현재
+  선택 행의 `53`만 생긴다. source visibility와 immutable candidate availability가
+  별개임을 고정했다.
+- 첫 구현 seam에서 direct subject/row identity fail-open을 닫았다. Candidate catalog는
+  structured `row_headers`를 보존하고, row-backed numeric direct binding은 명시적
+  `segment` 또는 candidate-local row label/header만 주체 근거로 사용한다. 표 전체
+  `source_text`에 요청 문자열이 있어도 로컬 행이 모순되면
+  `candidate_subject_mismatch`로 거절한다.
+- 로컬 행 정체성이 아예 없을 때만 같은 source의 narrative witness가 요청 주체를
+  실제로 match하면 compatibility bridge를 허용한다. Witness는 명시적으로 다른
+  로컬 행을 덮어쓸 수 없다. Wrong-row negative, structured same-row positive,
+  compatibility positive/negative가 모두 통과한다.
+- Candidate-catalog completeness 감사는 historical Samsung/Hyundai SQLite를
+  `mode=ro&immutable=1`로만 열었다. 전후 file length/SHA-256은 Samsung
+  `40,361,984 / f492d72be2753ac7a1c3012a36176d8c9ccf0d84fff1cc422c00e47fd5609ed0`,
+  Hyundai `69,447,680 / 73b65b54dfdd6d63390a219f67b4d8a8e61b7169be481a3fc1f6c586db31db37`로
+  동일하다. Provider, benchmark, ingest, embedding, evaluator는 실행하지 않았다.
+- 최신 parser의 structured row/value records는 full header chain과 local row/value/unit/
+  source를 stable ID로 보존한다. 오래된 store도 full pipe row는 남아 있었지만 fallback이
+  마지막 physical header line만 골라 반복 leaf header의 parent group을 잃고 있었다.
+  이제 valid header row를 column별 ordered chain으로 병합하여 opening `25.92`와 closing
+  `25.81`, 각 carrying value와 latest result를 구별한다. Flattened
+  `table_value_labels_text`는 계속 candidate 권위가 아니며 cross-row pairing은 금지된다.
+- Generic structured/legacy/flattened/sibling-admission 계약 뒤 provider-free 검증은
+  semantic-program 67/67, import/DAG 19/19, runtime-domain audit 86, full discovery
+  650/650이다. Direct display는 여전히 요청 result unit과 source-visible `700백만원`을
+  함께 보존하는 별도 characterization이다.
+- Saved successor에서 Motional target-row leaf candidates는 이미 prompt에 있었으므로 그
+  wrong-source 선택은 catalog miss가 아니다. 반면 reconstructed Samsung total과 두
+  Hyundai sales-count stable ID는 saved prompt에 없지만, 당시 trace에는 seed/catalog source
+  identity가 없어 source-window absence와 prompt-budget drop을 구분할 수 없다. 다음 작업은
+  compact candidate-stage provenance observability와 admission characterization이다. Compiler
+  retry/selection, expression compatibility, display-unit semantics, Phase 3, provider replay는
+  별도 seam/HOLD다.
+- Candidate-stage observability 구현은 retrieval trace에 retrieved/seed window의 ordered
+  stable source ID와 unidentified count를 남긴다. Canonical calculation plan의
+  `semantic_candidate_stage_diagnostics_v1`은 source별 source/catalog/prompt candidate count,
+  kind count, sorted opaque-ID fingerprint, prompt-drop count만 보존하며 raw value, label,
+  full catalog는 복제하지 않는다.
+- Generic fixture는 source 자체 부재, source는 있으나 필요한 local-cell projection 부재,
+  catalog에는 있으나 prompt admission에서 제거된 상태를 구분한다. 이 batch에서는 provider,
+  persisted-store retrieval, embedding, ingest, store mutation, evaluator를 실행하지 않았다.
+  Synthetic unit test만 trace path를 실행했고 retrieval selection, calculation/ledger, dataset
+  semantics는 바꾸지 않았다. 따라서 saved successor를 사후 분류하거나 정책을 추측해서
+  수정하지 않는다.
+- 최소 affected store-fixed admission은 `HYU_T2_010`, `HYU_T3_072`,
+  `SAM_T2_078`과 Hyundai/Samsung 두 company run으로 고정했다. Runtime build
+  `4f84b59ea1926c5a2306bc2e602e29fee68b3526bd9997dbed4ee8eff53155e0`에서
+  production-order no-call rehearsal 두 회가 byte-identical receipt
+  `0c229555c3cd9d9216358c7393a26f0aa6b4931eaa404a007197a3facf2d9da4`를 만들었고,
+  사용자가 승인한 정확히 한 번의 provider-backed replay를 같은 manifest로 실행했다.
+- Monitored eval-only run은 373.4초에 2/2 company와 3/3 question을 error 0,
+  task/artifact integrity `ok`로 완료했다. 그러나 세 row 모두 `partial`이다.
+  `HYU_T2_010`은 1/2 obligation, `HYU_T3_072`는 1/3 obligation,
+  `SAM_T2_078`은 1/2 obligation만 충족했으므로 acceptance는 실패했다.
+- 새 trace는 손실 owner를 구분했다. `SAM_T2_078`의 canonical total source
+  `20240312000736:80:2`는 retrieved/seed window 모두에 없어 source-window/retrieval
+  absence다. `HYU_T2_010`의 `87.0만 대`와 `78.1만 대` source는 seed에 있고
+  runtime catalog fingerprint도 offline reconstruction과 일치하지만 해당 candidate는
+  128개 prompt에서 탈락했다. `HYU_T3_072`의 target-row `25.81`, `1,294,367`,
+  `-803,742` candidate는 prompt에 모두 있었으나, 질문에 명시되지 않은
+  `consolidated`/`separate` scope를 requirement planner가 hard constraint로 만들고
+  compiler가 direct obligation에 expression을 제안해 validator가 fail-closed했다.
+- 실행은 18 LLM calls / 573,899 tokens / query embedding 33회 / document embedding
+  0회 / runner 추정 `$0.3156427`로 `$0.40` 상한보다 `$0.0843573` 낮았다. Embedding
+  가격은 runner 추정에 포함되지 않는다. 자동 retry, fresh ingest, 다른 row 실행은 없었다.
+  결과 top SHA-256은
+  `49351e06df72722a63ae4209e358cb84c9dc73a3403912c385576a84bdd4c6a7`이다.
+- 실행 후 admission file-manifest store fingerprint는 Hyundai/Samsung 각각
+  `e2e0d391449d1e87efe43b722dc6ca6fc60271894cd2669575d46f138ed6026a`,
+  `b39280122c6e4d6989e3050dcd727545b1b90e1c7dab60bd16c33ac1fa5d79b7`로 사전 값과
+  같았다. Raw SQLite SHA-256도
+  `73b65b54dfdd6d63390a219f67b4d8a8e61b7169be481a3fc1f6c586db31db37`,
+  `f492d72be2753ac7a1c3012a36176d8c9ccf0d84fff1cc422c00e47fd5609ed0`로 유지됐고
+  남은 `dart_eval_store_*`는 0개다.
+- 세 owner의 provider-free characterization과 in-place repair는 모두 끝났다. 마지막
+  generic fixture는 preferred-statement generic total, scope-only context note, local
+  row/value source를 분리했고 기존 우선순위가 첫 후보를 잘못 예약하는 실패를 고정했다.
+  수정 후 source-visible atomic row가 seed 예약을 소유한다. 저장 Samsung source는
+  `mode=ro&immutable=1`로만 읽었고 Chroma/provider/embedding/evaluator는 호출하지 않았다.
+- 다음 안전한 작업은 같은 3문항 store-fixed successor의 production-order no-call
+  manifest와 두 번의 byte-identical rehearsal을 준비하는 것이다. 실제 provider replay는
+  새로운 정확한 비용·범위 승인이 있기 전까지 금지한다. 회사명·문항 ID·정답 값 runtime
+  분기와 Phase 3은 계속 HOLD다.
+
+## 이전 release checkpoint (historical)
+
+아래 표와 세부 checkpoint는 semantic calculation program 전환 전의 release
+증거다. 새 canonical 경로의 현재 성능이나 provider replay 결과로 해석하지 않는다.
 
 | 항목 | 현재 상태 |
 | --- | --- |
@@ -283,11 +905,11 @@ green인지 확인하는 것뿐이다. 두 조건이 충족되면 release integr
   heartbeat, replay summary는 ignored local artifacts이고 stage하지 않는다. PR #86은
   draft, `main`은 그대로이며 이 checkpoint는 코드 변경을 추가하지 않았다.
 
-## 남은 Phase 3 범위
+## 이전 Phase 3 owner-move 기록 (historical)
 
-리팩터링은 중단 상태다. 재개 권한과 세부 우선순위는
+이 절은 semantic calculation program 전환 전의 owner-move 부채 기록이다.
+현재 우선순위와 activation 조건은
 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
-현재 durable debt는 다음 네 범주다.
 
 1. 일부 진행된 aggregate repair/precedence decision; period/material/source/
    coherence/rank/dedupe, narrative-validation policy, row-focus, growth display/material,

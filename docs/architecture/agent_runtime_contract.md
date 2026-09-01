@@ -35,6 +35,29 @@ Changing embedding provider, model, or dimension invalidates vector-store
 compatibility. Treat a provider/model/dimension mismatch as a cache miss and
 reindex rather than reusing an old Chroma store.
 
+## 1.2 Canonical Store-Only Build Boundary
+
+An approved fresh store build is not authority to run questions or evaluators.
+`benchmark_runner --store-only` must fail closed unless exactly one
+`company_run`, one canonical experiment, one existing local primary report, and
+the canonical ingest/embedding tuple are resolved. It rejects eval-only,
+question, judge, retrieval-budget, and LLM-route options; disables report
+autofetch; and excludes evaluation-dataset source reports from the ingest
+inventory.
+
+`--preflight-only` must stop before vector-store or provider construction and
+write a deterministic manifest containing the report/config hashes, target
+metadata, store path, canonical tuple, allowed external operation, and forbidden
+operations. Repeating the same preflight must produce an identical manifest;
+an existing different manifest is an error.
+
+Store-only ingest must use a minimal object that exposes only the vector-store
+manager. It must not construct `FinancialAgent`, semantic routing, smoke-query,
+screening, question-execution, or evaluator services. A monitored run records
+heartbeat progress through parse/store completion and keeps its store, context
+cache, results, and heartbeat bundle local unless publication is separately
+authorized.
+
 다른 ingest 방식은 experimental profile로만 사용한다. 품질 비교가 필요하면 profile 이름과 결과 디렉터리로 격리하고, runtime default를 조용히 바꾸지 않는다.
 
 ## 2. Retrieval Trace
@@ -66,6 +89,13 @@ retrieval 단계는 최소한 `retrieval_debug_trace`를 남긴다.
 4. full benchmark
 
 full benchmark는 store/cache/input 조건이 확인됐을 때만 실행한다. 5분 이상 결과 파일이 생성되지 않으면 `results.json` 존재 여부만 보지 말고 실행 heartbeat를 확인한다. 로그 출력, store/cache 파일 갱신, 프로세스 CPU/IO가 계속 움직이면 fresh store 구축 또는 장기 ingest로 분류하고 monitored run으로 전환한다. 가능하면 `benchmark_runner --progress-heartbeat-sec <seconds> --heartbeat-log <path>`로 runner-native heartbeat를 켜서 phase/progress/store mtime을 직접 남긴다. 결과 파일도 없고 heartbeat도 없으면 중단하고, 코드 실패인지 실행 환경 문제인지 분리해서 기록한다.
+
+Store-fixed `eval-only` successor artifacts must record their effective mode and
+scope rather than inheriting the source bundle's labels. The target records
+`execution_mode = eval_only` and the actual focused question set, while distinct
+`source_execution_mode` and `source_full_evaluation` fields preserve where the
+store bundle came from. A focused multi-company projection includes only the
+selected company runs when deriving completed/pending status.
 
 ## 4. Task Ledger And Artifact Store
 
@@ -274,6 +304,23 @@ but numeric rendering validation is deterministic. Every amount, count, ratio,
 or percentage rendered in an answer must be equivalent to a canonical
 calculation-trace surface, a derivation of trace operands, or current runtime
 evidence; non-numeric narrative is outside that metric and must not fail it.
+
+The inverse boundary is equally strict. A numeric PASS may promote generic
+faithfulness only when the runtime format is not mixed and the calculation
+result has no narrative output. Mixed format or a narrative obligation blocks
+numeric promotion even when the narrative output is missing, so numeric PASS
+and numeric-fast gating cannot certify or bypass qualitative faithfulness.
+Retrieval/citation/entity coverage, completeness, structured numeric success, and
+the presence of direct evidence do not establish qualitative entailment. They
+must not promote a mixed or summary answer's raw faithfulness to 1.0. The former
+hybrid and structured-summary coverage overrides are removed; the independent
+raw score remains observable, and the existing full-abstention demotion remains.
+Pure numeric promotion retains the non-mixed/no-narrative gate above.
+Faithfulness judge
+contexts must project the final claim-scoped runtime evidence before broad
+retrieval context, remove colon-bearing indexed metadata, and deduplicate equal
+claim/quote/context payloads before applying the global prompt budget. Simple
+source-visible bracket headings remain evidence, not metadata to strip.
 `calculation_correctness` combines numeric-result correctness with this
 deterministic rendering check only. Semantic trend judgement remains a separate
 metric and cannot raise or lower calculation correctness. Historical replay
@@ -429,7 +476,451 @@ local-index entry is structurally admissible for a future schema-backed consumer
 or must fall back to normal retrieval. Even an admissible result reports
 `enabled = false`, `serving_enabled = false`, and `mode = trace_only`.
 
-## 6. Concept Planner Candidate Validation
+## 6. Canonical Semantic Calculation Program
+
+This section is the normative numeric/mixed-question contract as of
+2026-08-29. It supersedes the historical concept-planner, operand-extractor,
+formula-planner, reconciliation, per-operation subtask, and aggregate-repair
+contracts retained later in this document.
+
+### 6.1 Flow and ownership
+
+Numeric and mixed questions execute this single path:
+
+```text
+requirement plan
+  -> retrieval and evidence selection
+  -> immutable candidate catalog
+  -> semantic program compiler
+  -> deterministic validation and execution
+  -> render and verify
+```
+
+Narrative-only questions retain their narrative evidence/compression/validation
+path. A mixed question must preserve its numeric and narrative outputs as
+separate obligations in one program; it must not be decomposed into independent
+operation-family tasks.
+
+`format_preference = mixed` is itself sufficient to enter this path even when a
+coarse semantic router labels the question `risk`, `qa`, or another narrative
+intent. The coarse route may guide retrieval, but it must not bypass numeric
+obligation planning for a mixed answer.
+
+The requirement planner emits stable `answer_obligations`. Each obligation has
+`direct_value`, `derived_value`, or `narrative` kind, requiredness, display
+contract, semantic scope, an evidence mode, optional dependencies, and an optional
+coupling key.
+Ontology concepts, aliases, sections, binding hints, and source hints may guide
+retrieval. They must not prescribe a formula or operation type.
+
+A hard `consolidated` or `separate` obligation scope must be owned by an
+explicit query surface declared in consolidation-scope policy. An LLM proposal,
+report metadata, source-document convention, or common financial default cannot
+create that user constraint. With no explicit query scope, obligation, required
+input, and task constraints normalize to `unknown`. With exactly one explicit
+scope, that query scope overrides a conflicting or missing planner value. When
+the query explicitly asks for both scopes, each obligation may retain only one
+of those query-declared values and the shared task constraint remains `unknown`.
+This gate removes an unsupported hard filter; it does not reinterpret candidate
+evidence or weaken later scope validation when the user did request the scope.
+
+A narrative obligation that asks for a factual relationship, including a cause,
+reason, or effect, declares that relationship as one or more stable
+`evidence_requirements`. Its requirement label and hints identify both the target
+outcome and the requested relation. A broad contextual topic, another metric's
+movement, or a general procedure is not an interchangeable substitute for the
+declared relationship.
+
+When the question asks for a source-defined group such as a summary, composition,
+or major items without naming its members, the requirement planner must not invent
+conventional member metrics before seeing evidence. It preserves one narrative
+obligation with `evidence_mode=source_defined_group` and leaves its
+`evidence_requirements` empty. The obligation model materializes exactly one
+required source-group input, copying the obligation's label, scope, retrieval
+hints, and concept hints without inferring members. Existing planning normalization
+assigns that input its owned stable ID, such as `ob_003:req_001`, and preserves it
+through required-evidence retrieval projection and the compiler prompt.
+
+A serialized source-defined group may retain that one canonical input, including
+its normalized ID, but may not replace it with inferred members, make it optional,
+or change its scope or hints independently of the parent. Both structured-model
+validation and the pure program validator enforce the shape. This mode is valid
+only for narrative obligations. The default `declared_inputs` mode retains raw
+calculation inputs and query-defined facts or relationships; runtime must not
+reinterpret those requirements based on words in their labels. Separately named
+numeric values remain their own direct or derived obligations.
+
+The post-evidence compiler grounds the group in actual exposed source headers and
+values, preserving their distinct meanings rather than substituting conventional
+member labels. Choosing the correct evidence mode and interpreting source labels
+remain LLM responsibilities; a valid group shape alone does not prove semantic
+faithfulness or completeness of that interpretation.
+
+An optional `coupling_key` declares a required common semantic basis between
+outputs, not merely membership in the same question, company, report, or answer.
+Independently requested outputs leave it empty and may use different tables.
+Truly coupled outputs retain the key and must satisfy the existing source-context
+or explicit compatibility-evidence checks. Runtime must not erase a declared key
+to make an otherwise incompatible program executable.
+
+### 6.2 Candidate authority
+
+Runtime code assigns every selected row, cell, and narrative source an immutable
+`candidate_id`. A candidate preserves its raw and normalized value/unit, period,
+entity, consolidation scope, segment, basis, table/row/cell coordinates, source
+row, evidence ID, source anchor, and context fingerprint when available.
+
+The transient catalog is source-complete for the retrieved and preserved seed
+window; it is not truncated to the model prompt budget. Numeric surfaces stated
+inside a source sentence receive their own `sentence_value` candidate with the
+verbatim display, normalized value/unit, source span, enclosing context, and the
+same provenance envelope as the sentence. This lets the compiler bind a value
+that is explicit in prose without converting the narrative candidate itself
+into an operand or substituting a nearby accounting row.
+Sentence context extraction treats a period between two digits as part of the
+numeric surface, not as a sentence boundary. A co-stated rate and quantity must
+therefore retain the same enclosing subject, period, and local relation instead
+of leaving the later value with a suffix-only excerpt.
+An explicitly non-table paragraph must retain those sentence candidates even
+when the parser attaches adjacent table records or structured-cell metadata to
+the chunk. A chunk whose table/non-table classification is absent must also
+retain every source-visible value that carries an explicit inline unit, even
+when structured material is attached. Unitless table-preview numbers are not
+promoted on that path, and a sentence value with the same normalized value and
+unit as an already projected structured candidate from the same source is
+deduplicated. Attached structure is additional provenance; it does not make a
+distinct source-stated number ineligible.
+Configured structural aggregate markers may populate `aggregate_label` and
+`aggregation_stage`, but code must preserve distinct source labels rather than
+equating their financial meaning. The compiler remains responsible for choosing
+which source meaning satisfies the obligation.
+
+Table candidate authority is local, never table-wide. Parser-owned
+`table_row_records_json`, `table_value_records_json`, or `table_object_json` may
+produce bindable candidates only while row identity, column/header identity,
+raw value, unit/period hints, table/source identity, and a stable derived
+`candidate_id` remain associated. A legacy stored chunk that lacks those JSON
+fields may use its full pipe-table row as equivalent local structure: each value
+must remain paired with that row label and the complete ordered header chain for
+its column. When several structurally valid physical header rows survive, runtime
+must merge their nonduplicate cells by column; selecting only the last leaf row
+is insufficient because repeated leaf labels may represent different parent
+groups. The flattened diagnostic surface `table_value_labels_text` is not a
+row/cell schema
+and must never be parsed to invent a binding or to pair a label from one row with
+a value from another. If neither structured records nor full local row text
+survives, the value is unavailable and the repair belongs to parser/evidence
+preservation upstream.
+
+Source display metadata and semantic metadata remain separate inside each
+numeric candidate. If a value cell embeds a recognized unit, that inline unit
+is the candidate's effective `raw_unit` and takes precedence over an inherited
+cell/table hint; the inherited surface remains `source_unit_hint`, with
+`raw_unit_source` recording the decision. Likewise, a metric column header is
+retained as `source_period_surface` but is not itself a reporting period. An
+explicit temporal header remains authoritative; otherwise a current-period
+table with one report year and no competing temporal columns projects that year
+as `period`/`value_year` and records `period_source=report_current`. The stable
+candidate ID continues to hash the immutable source surfaces, so enriching this
+canonical projection does not churn existing source IDs.
+
+Preserving a source-stated prose value does not require choosing its rounded
+display over a more precise structured value. The compiler may choose the
+structured candidate when the same source context explicitly binds that row to
+the requested meaning and scope; the catalog must still retain both candidates
+and their distinct displays so that the choice remains reviewable rather than a
+deterministic precision rule.
+
+Parser-owned unit recognition must prefer the longest supported token. A source
+label such as `십억원` may not be shortened to the suffix `억원`; every projected
+row/cell candidate must inherit the full source unit. A store created under a
+different parser-unit contract is stale for exact-current-head acceptance and
+must be rebuilt rather than silently mutating its provenance metadata.
+
+Parser-owned table-header context may contain multiple physical lines, including
+the true column header followed by a retained first-row preview. Candidate
+projection must preserve those line boundaries, select a structurally valid
+non-data header line, and reject a line whose value columns are predominantly
+numeric data surfaces. Calendar-year headers remain valid. Flattening all lines
+and taking trailing data values as period labels is forbidden.
+
+Only the prompt projection is bounded. Before broader output-obligation ranking,
+each required `evidence_requirement` owns a bounded admission group derived from
+its label, hints, and explicit input scope. A positive group reserves a local
+cohort from its highest-ranked source, subject to the unchanged global prompt
+limit; the parent derived-output surface and optional inputs do not count as
+required-input coverage. The remaining budget retains per-obligation,
+candidate-kind, and source-group coverage and reserves a bounded share of each
+sufficiently large group for additional highly relevant rows from already
+admitted sources. Source diversity may not consume the whole group budget when
+one relevant table/source contains multiple semantically distinct rows.
+`aggregate_label` is a first-class semantic admission label, not only diagnostic
+metadata. The projection centers bounded excerpts on visible
+obligation/candidate relevance and records the exposed candidate IDs plus its
+projection/excerpt strategy in the calculation plan.
+Numeric obligations may rank numeric candidates only; narrative obligations may
+rank narrative candidates only. Spacing-only variants of the same sufficiently
+long row label receive equivalent admission relevance. The validator must reject
+even a real catalog ID when it was not exposed to that compiler invocation.
+Candidate admission affects what the model can inspect; it is not deterministic
+answer selection.
+
+The compiler may reference only catalog IDs or previously produced obligation
+IDs. It cannot supply a numeric value, unit, row ID, or evidence ID. Any unknown
+reference, nonnumeric numeric source, non-finite value, or manipulated payload
+fails closed.
+
+### 6.3 Program and retry
+
+One post-evidence structured-output call produces direct bindings, restricted
+expressions, narrative bindings, display rules, and missing/ambiguous obligation
+IDs. Expressions may use variables, arithmetic, and only
+`min/max/abs/round/log/exp`. Arbitrary Python, attribute access, indexing,
+comprehensions, and unregistered calls are forbidden.
+
+When a narrative obligation has required evidence inputs, its binding must map
+each selected `candidate_id` to the owned `source_requirement_id` through
+`evidence_bindings`. The validator rejects a missing required mapping, an
+unknown requirement, cross-obligation ownership, a candidate that was not
+selected or exposed, and requirement-scope mismatch. A source-defined summary
+binds its actual source candidates to the one normalized source-group requirement;
+the compiler must not add, rename, or replace requirement IDs with inferred
+member requirements. Missing group evidence leaves the obligation incomplete,
+even when other numeric outputs succeed. A causal sentence is
+eligible only when the selected evidence directly connects the target result or
+change to the stated factor. Co-occurrence, another metric's simultaneous
+movement, general background, and a risk-management procedure do not establish
+that causal relation. Without direct relation evidence the compiler must mark
+the obligation missing or ambiguous rather than synthesize causality.
+
+When selected narrative evidence is semantically applicable but leaves only
+`consolidation_scope`, `segment`, or `basis` metadata unknown, the compiler may
+declare those exact fields in `scope_applicability_fields`. This declaration
+bridges absence only. It cannot override an explicit conflicting value and it
+cannot bridge `company` or `period`. Without the declaration, unknown metadata
+continues to fail an explicitly scoped narrative obligation or requirement.
+
+The same absence-only contract applies independently to each numeric formula
+variable, but only for `segment` and `basis`. A variable binding may declare those
+fields in `scope_applicability_fields` when the candidate's local source is
+semantically applicable to the owned evidence requirement and the corresponding
+metadata is unknown. Explicit conflicts remain invalid; `company`, `period`, and
+`consolidation_scope` can never be bridged by this declaration. Spacing-only
+variants of a sufficiently long explicit scope surface are equivalent, but this
+normalization does not make different words or meanings compatible.
+
+Constants `0`, `1`, and `100` are neutral. Every other constant must be declared
+as query-derived or deterministic cardinality and must be verified against the
+query or binding count. When validation reports missing or ambiguous required
+obligations, one retry may receive only those obligation IDs. The merge must
+retain every valid first response output byte-for-byte and may accept retry
+outputs only for the targeted IDs. There is no permanent legacy fallback.
+Retry feedback must enumerate target-owned required evidence IDs and validation
+errors. Before returning, the compiler must ensure that the set of formula AST
+variable names is exactly the set of `variable_bindings.variable` values and
+that every required evidence input is bound exactly once to an ID owned by the
+same target obligation.
+
+Free-form coordination fields are bounded structured data, not prompt-sized
+text surfaces. A coupling key must be a short stable identifier; the prompt asks
+for at most 64 characters and runtime normalizes any oversized value to at most
+128 characters with a deterministic digest suffix before it can enter graph
+state or a later compiler prompt.
+
+### 6.4 Validation and execution
+
+`financial_calculation_execution.py` owns the state-free validator/executor. It
+must verify obligation kind, required coverage, reference validity, acyclic
+dependency order, AST/function allowlists, constant origin, unit dimensions,
+result units, period/entity/consolidation/segment/basis scope, source context,
+and coupled-output coherence before calling `safe_eval_formula`.
+
+An unknown evidence mode or malformed normalized source-defined group blocks that
+obligation's output even when a caller bypasses structured-model parsing. Other
+valid outputs may remain partial; a malformed group cannot silently count as
+complete.
+
+A direct binding is executable only when its normalized dimension is compatible
+with the requested display unit and the source-grounded renderer can produce a
+nonempty display. A finite numeric payload with `normalized_unit=UNKNOWN` does
+not satisfy a unit-bearing direct obligation, and an empty rendered value can
+never be emitted with output status `ok`. Leaving the requested display unit
+blank does not authorize runtime unit inference or make a unitless legacy value
+renderable; an available source with an explicit unit must be selected instead.
+
+For a row-backed numeric direct binding with an explicit segment/subject scope,
+subject identity is row-local. The preserved `row_label` and structured
+`row_headers`, after parser-only footnote annotation removal, establish the
+subject before broader candidate metadata; table-wide or inherited context
+cannot override a contradictory local row. A validated binding retains the
+resolved source surface as `resolved_subject` together with `subject_source` and
+its source-row IDs. If local identity is absent, an explicit candidate segment
+or catalog-backed same-source narrative witness may bridge the gap, but neither
+may override a nonempty contradictory row identity. Ambiguous local matches and
+unproven identity fail as `candidate_subject_mismatch`, independently of
+structural ledger integrity.
+
+Candidate-to-operand projection has one deterministic owner. Compilation
+artifacts and execution traces both use the same projector for metric `label`,
+validated `subject`, row/header provenance, effective/source unit metadata, and
+canonical/source period metadata. An output label is never a substitute for a
+source subject, and a second graph-local operand reconstruction is forbidden.
+
+Formula inputs with conflicting company, consolidation, segment, basis, or
+source-context values are rejected unless the program cites catalog-backed
+narrative candidates that explicitly ground compatibility. Outputs sharing a
+coupling key require nonempty, identical numeric-source context fingerprints unless
+validated, explicitly cited narrative compatibility witnesses ground the common
+basis. For direct bindings, those witnesses must satisfy the existing same-source
+and scope checks; a missing, empty, hidden, or unrelated witness is not authority.
+Narrative outputs are not themselves required to share a numeric table context.
+Empty coupling keys do not relax any per-output scope, provenance, unit, or display
+checks. A selected source-stated display and the deterministic formula result are
+separate facts. Source preservation is not conditional on numeric equivalence:
+retain the source candidate ID, rendered and normalized source values, row IDs,
+anchors, and executed evidence/operand projection even when the values differ.
+`formula_result_value` and `formula_rendered_value` retain the calculation;
+`source_display_candidate_id`, `source_display_value`, and
+`source_display_normalized_value` retain the source. The nullable
+`source_display_matches_formula` records the existing precision comparison, not
+an assertion about why a difference occurred.
+
+Only a source value passing that unchanged comparison may replace the primary
+display (`source_stated_result_used=true`). Otherwise the calculated primary
+slot/value stays intact and the answer labels the calculated and source-stated
+values separately using declarative templates. Do not widen tolerances, change
+answer keys, or assume a discrepancy is rounding to make them equivalent.
+Execution `ok` reports validated execution and obligation coverage, not equality
+of the two values. The display candidate must still be exposed, numeric, finite,
+scope/context-compatible, dimension-compatible, and source-renderable. These
+dimension checks apply to non-ratio expressions too; an empty source rendering
+is a validation failure, not authority to synthesize a source display.
+When a raw value already contains its source-visible unit marker, rendering
+must preserve that display and must not append an incompatible table-wide unit
+hint. Normalized dimension remains the authority for deciding whether an
+embedded display marker is compatible.
+
+Percentage-point notation is a display distinction, not a second arithmetic
+dimension. Subtracting two `PERCENT` operands therefore remains a `PERCENT`
+result and may render as `%p`; a direct percentage may render as `%`. Both
+display markers must come from the declarative render policy and pass the same
+scope and provenance validation.
+
+The semantic-program renderer may project company, period, consolidation,
+segment, or basis context only when the same non-unknown value belongs to every
+rendered obligation. Shared context is emitted once on the first numeric
+sentence; later output sentences retain their validated labels and displays.
+The renderer may consume only executed outputs and validated narrative-binding
+text. It must not copy query hints, benchmark answers, or unselected catalog
+text into the answer. A narrative detail absent from the selected candidates is
+an evidence/planner/compiler coverage boundary, not authority for deterministic
+answer completion.
+
+All required obligations must be grounded and rendered for execution status
+`ok`. Valid partial outputs may be returned with status `partial`; they never
+upgrade semantic completeness. Ledger structure/integrity and semantic
+completeness remain separate signals.
+
+`operation_family` is not a planning or routing input. After successful
+validation/execution, runtime may derive `lookup`, `sum`, `difference`, `ratio`,
+`growth_rate`, or `formula` from the direct binding or AST solely for renderer
+and evaluator compatibility. `answer_slots`, `structured_result`,
+`resolved_calculation_trace`, task/artifact ledger entries, and one-way
+row/value/unit/source provenance remain public contracts.
+
+### 6.5 Call and evidence limits
+
+The first attempt uses one requirement-planner call and one program-compiler
+call. Only incomplete or ambiguous required obligations permit one additional
+compiler call. Retrieval metadata is not generation authority, seed evidence
+may remain eligible when expansion pushes it out of the visible window, and no
+final-answer prose may be parsed back into a conflicting canonical numeric slot.
+
+The planner's retrieval query bundle is an evidence-diversity contract. The
+state-local query-result cache may serve only an exact normalized
+source/query/filter signature with sufficient `k`. A shared obligation,
+objective, or answer intent is not proof that differently worded queries have
+the same retrieval result. Distinct selected queries must execute independently,
+and `retrieval_debug_trace.query_result_cache.scope` records the exact-only
+policy.
+
+### 6.6 Selected-source basis disclosure and residual evaluator boundary
+
+Query-owned hard scope and the basis established by a selected source are
+separate contracts. An explicit obligation scope remains the validation and
+rendering authority. When an obligation leaves consolidation scope unknown, a
+validated `direct_value` output may use its primary answer slot's known
+`consolidation_scope` as render-only metadata. This must not rewrite the
+obligation, relax a conflict, or change candidate selection, output status,
+canonical trace, answer slots, or ledger state. Derived and narrative outputs do
+not acquire a scope through this rule.
+
+For numeric outputs, rendering follows these rules:
+
+- if every rendered numeric output has the same known scope, disclose that scope
+  once on the first numeric output;
+- if rendered numeric outputs have different known scopes, qualify each output
+  with its own known scope;
+- if a selected output's scope is unknown, leave it unqualified rather than
+  borrowing a scope from another output or candidate.
+
+Only the validated primary direct answer slot may supply the render-only scope.
+Unselected candidates, compiler rationale, table-wide prose, benchmark keys, and
+narrative compatibility witnesses are not scope authority. Korean and English
+display labels belong to reviewed render policy/config, not runtime vocabulary
+branches. Empty coupling keys may still permit independently grounded outputs;
+the disclosure rule neither certifies a common basis nor authorizes arbitrary
+combinations as one accepted answer variant.
+
+The evaluator boundary remains distinct. Scalar calculation variants match
+source-qualified operands and one result; they do not validate final-answer
+basis wording or a multi-output direct-answer tuple. Multi-output direct answers
+use the separate evaluator-only contract below. Numeric equivalence must not be
+cited as proof of qualitative scope correctness, and neither contract changes
+runtime candidate selection or rendering authority.
+
+### 6.7 Multi-output answer variants (active evaluator contract)
+
+The production evaluator accepts the optional evaluator-only field
+`accepted_answer_variants`. `EvalExample` owns typed variant/output models and
+the loader rejects unknown or missing fields, duplicate IDs, incomplete output
+coverage, unsupported non-direct kinds, invalid values, and inconsistent units.
+Each variant contains a stable ID, a source-qualified completeness reference,
+and `expected_outputs` that cover the same required semantic output IDs. Every
+output declares its kind, label, subject, value, raw/normalized unit, period,
+consolidation scope, and source-anchor constraint.
+
+Matching reads only canonical `calculation_result.outputs` and the pre-
+supplementation `calculation_operands` bound to each direct output by immutable
+candidate/evidence IDs. The required direct-output ID set must be exact; every
+output must be `ok`, bind to exactly one complete operand, and agree with it on
+value, unit, period, scope, source, and explicit validated subject. The operand's
+subject must carry source-row provenance, and the output must repeat the same
+subject and subject-source class; `label` or `row_label` fallback is forbidden.
+Distinct actual outputs are assigned to the expected outputs. Cross-variant
+mixing, missing/extra outputs, unknown scope, missing or wrong subject,
+unproven subject provenance, equal-valued wrong source/scope, invalid contracts,
+unbound or ambiguous bindings, and more than one complete trace variant fail
+closed.
+
+The answer's complete numeric claims must resolve to that same unique trace
+variant before completeness receives its source-qualified `answer_key`. Without
+the field or on any failed match, completeness receives
+`canonical_answer_key`. This selection does not set or promote faithfulness,
+completeness, grounding, or numeric scores, and it adds no public result field.
+Scalar `accepted_calculation_variants` keeps its all-operands-bound-to-one-result
+guard and its accepted-answer-key path unchanged. Its legacy strict operand
+label may match either the canonical metric label or the explicit validated
+subject; it may not fall back to an unvalidated row/table-wide surface. The
+synthetic fixture defines contract behavior, not production tolerance or source-
+review policy. Curated variant registration, source review, compiler selection,
+and provider replay remain separate decisions.
+
+## Historical Contract: Concept Planner Candidate Validation (superseded)
+
+The following sections preserve the pre-transition design record only. They are
+not authority for adding a planner, extractor, operation-family task, aggregate
+repair, or fallback to the canonical graph.
 
 LLM concept planner는 의미 해석을 보조할 수 있지만, ontology concept를
 무근거로 선택해서 runtime task를 열면 안 된다.
@@ -488,7 +979,7 @@ operation and explanatory/narrative requirements should still create a numeric
 child task plus a `narrative_summary` child task in the task ledger, rather than
 falling back to a single general-search answer.
 
-## 7. Ontology-Driven Prose Lookup Slots
+## Historical Contract: Ontology-Driven Prose Lookup Slots (superseded)
 
 When a concept lookup obtains the required numeric value from prose rather than
 from a structured table row, the runtime contract is:
@@ -506,7 +997,7 @@ This keeps domain vocabulary in ontology/config while allowing deterministic
 dependency binding and evaluator-visible grounding. Runtime code should not add
 company-specific or benchmark-specific branches for these cases.
 
-## 8. Retrieved Evidence Preservation For Calculation
+## Historical Contract: Retrieved Evidence Preservation For Calculation (superseded)
 
 Reconciliation is a candidate matcher, not the final authority on whether a
 calculation can proceed. If reconciliation reports insufficient operands but the
@@ -1425,7 +1916,7 @@ artifact linkage, replacement payload construction, task/artifact integrity, and
 all unsupported or unprovenanced failure paths remain unchanged. This does not
 authorize missing-artifact creation or whole-ledger synchronization.
 
-## 9. Aggregate Subtask Projection
+## Historical Contract: Aggregate Subtask Projection (superseded)
 
 Canonical answer-slot material detection is the plain public
 `financial_answer_slots.answer_slot_has_material(slot)` predicate. A non-dictionary
@@ -7932,3 +8423,177 @@ well: empty `resolved_calculation_trace` must not resurrect legacy top-level
 `calculation_*` fields. A stale aggregate is replaced only by canonical active
 task/artifact ledger material. Downstream readers must use
 `resolved_calculation_trace`.
+
+## Evaluator-only accepted calculation variants
+
+The runtime does not read benchmark answer variants and must not change candidate
+selection, calculation, or rendering to satisfy them. A curated numeric example
+may expose `accepted_calculation_variants` only to the evaluator. Each variant is
+an atomic contract containing its answer representation, expected operands,
+operation, result, and source/scope constraints.
+
+Evaluation must match one complete variant. Answer numbers and canonical trace
+operands/results must resolve to the same variant ID; values, periods, scopes, or
+provenance cannot be cherry-picked across variants. The result must be found in
+the executed semantic-program outputs and must retain candidate bindings to all
+matched operands. Missing IDs, malformed contracts, wrong source context, or
+incomplete numeric claims fail closed. Examples without this optional field keep
+the legacy single-`answer_key` behavior.
+
+Historical no-call replay follows the same rule. It may use legacy top-level
+trace fields only under its existing compatibility policy, but variant matching
+must prefer the canonical pre-projection calculation operands so a single
+`primary_value` display cannot erase the program's other direct inputs. The
+reported `accepted_calculation_variant_match` is separate from qualitative
+faithfulness/completeness and from runtime provenance integrity.
+
+## Query-local retrieval, evidence inputs, and eval-only store isolation
+
+Semantic retrieval may share hard report scope across a query bundle: company,
+report type, consolidation scope, receipt filters, and other source constraints.
+Semantic enrichment is different. Each base query must derive and budget its own
+ontology/query hint and preferred sections. A multi-query semantic program must
+not append one task-wide union of semantic section hints to every query. The
+retrieval trace records enrichment per base query. This contract requires
+independent query meaning, not distinct result documents; different valid
+queries may still retrieve the same evidence.
+
+Per-query enrichment must also respect obligation ownership. Runtime resolves a
+base query only against planner-declared obligation and evidence-requirement
+labels, retrieval hints, and concept hints. A numeric-owned query must not inherit
+narrative-only policy terms or sections from a sibling obligation. A narrative-
+owned query may use those narrative policies, and a genuinely composite query may
+retain both owners. The trace records the resolved owner IDs, owner kinds, and
+required evidence-group IDs so cross-obligation enrichment is reviewable.
+
+When a positive primary-query budget truncates a semantic program's query bundle,
+runtime preserves the first composite query and reserves one most-specific
+available base query for each required obligation or evidence-input group before
+filling the remaining slots with the ordinary period-balanced policy. One early
+obligation's aliases therefore cannot consume all query slots while later required
+groups disappear. This reservation changes query admission only: it does not
+guarantee a document, promote a search result, bind a candidate, or increase the
+configured total query budget. The trace records every reserved query and any
+required group that could not be reserved.
+
+Required numeric and narrative evidence have a targeted preservation path in
+addition to ordinary dense/BM25 ranking. A supplemental document is eligible
+only when it matches a declared input/obligation label or hint and compatible
+explicit company and consolidation scope; sharing a preferred section alone is
+insufficient. Matching must inspect the complete stored chunk rather than an
+arbitrary preview prefix. Whitespace-only variants of a sufficiently long
+textual label may be treated as the same surface, but numeric-only or short-token
+coincidence is not evidence. A hint that contains only the declared period is a
+scope signal, not semantic relevance. The declared required evidence group is
+sufficient to activate this scan; it must not depend on an ontology section or
+statement-type prior being available.
+
+Preferred statement types are ordered source-context hints for this targeted
+selection, but they are not stronger than source-visible numeric binding. For a
+required numeric group, a parser-projected local header/value row or a full raw
+pipe row that contains both a numeric surface and a declared obligation/input
+surface precedes a context-only match. Among such atomic witnesses, the more
+specific declared surface precedes a generic short hint; compatible statement
+type and table structure break later ties. Section text, `table_context`, index
+metadata, and flattened `table_value_labels_text` may not establish atomicity.
+They can preserve search context, but they cannot displace a local row merely
+because they carry a preferred statement type or a generic word such as a total.
+
+A numeric group retains its best structured source under that ordering. A
+narrative group retains its best explanatory source plus a small policy-bounded,
+source-deduplicated set of other compatible explanatory candidates so semantic
+choice remains with the compiler. When at least one matching prose source exists,
+table-shaped candidates do not consume that alternative budget. When no prose
+source matches an open-ended source-schema obligation, a bounded set of tables
+whose local header, row labels, or source body actually matches the declared
+surface may remain as alternatives; a generic section/index keyword alone is
+insufficient. Runtime preserves these candidates in
+`seed_retrieved_docs` even when a global rerank window is already full. These
+rules preserve inspectable documents only. They do not parse flattened summary
+values, bind a candidate, execute a formula, or authorize an LLM to reference an
+unexposed candidate ID.
+
+Retrieval observability must preserve the boundary between the visible
+`retrieved_docs` window and the broader `seed_retrieved_docs` window. The
+retrieval trace publishes `source_window` with ordered, deduplicated stable
+source IDs and an unidentified-source count for each window. It does not invent
+an ID for a document whose metadata has none, and it does not copy document text
+or values into this compact projection.
+
+The semantic compiler records
+`semantic_candidate_stage_diagnostics_v1` inside the canonical calculation
+plan. The diagnostic contains total source-candidate, catalog-candidate, and
+prompt-candidate counts plus fingerprints over sorted candidate IDs. Its
+per-source rows record window membership, stage counts, numeric/narrative/other
+kind counts, fingerprints, and the number of catalog IDs omitted from the
+prompt. It must not serialize raw values, labels, or the full catalog. Prompt
+stage attribution is computed by joining exposed opaque candidate IDs back to
+the code-owned catalog; prompt text does not become provenance authority. The
+compiler reuses the retrieval trace's exact `source_window` and records that
+origin. Direct/test invocations that lack a retrieval trace may reconstruct the
+window from state documents only under an explicit fallback origin.
+
+These fingerprints are diagnostic evidence, not answer bindings. An offline
+probe may reconstruct a known source/candidate set and compare its fingerprint
+to distinguish: the source never entered either window, the source entered but
+local projection omitted the required cell, or the catalog contained the cell
+and prompt admission dropped it. Runtime must not change retrieval preservation,
+catalog projection, prompt budgets, or compiler retry from counts alone; first
+identify the responsible stage with a generic fixture or a newly recorded trace.
+
+When a narrative obligation declares evidence requirements, those narrower
+requirement labels and hints own targeted supplementation and task
+required-evidence projection. Runtime must not silently replace them with the
+broader obligation label or contextual hints. Narrative requirements with no
+matching direct relation evidence remain unsatisfied; retaining several bounded
+context candidates does not itself satisfy the requirement.
+
+`AnswerObligation` represents only a user-visible output. A `derived_value`
+obligation declares non-rendered raw inputs as `evidence_requirements`; a
+`narrative` obligation may use the same contract for required factual or
+relational evidence. Every requirement has a stable ID, label, required flag,
+retrieval/concept hints, and its own company, period, consolidation, segment,
+and basis scope. Its period may intentionally differ from the output period,
+while its other explicit scope cannot contradict the output scope.
+
+Every expression variable bound directly to a candidate must also provide the
+owned `source_requirement_id`. Validation compares that candidate with the
+input requirement, not with the derived output's period. All required evidence
+requirements must be bound. Missing, duplicate, unknown, cross-obligation, or
+scope-incompatible requirement bindings fail closed. A variable sourced from a
+previously produced output obligation does not carry a source requirement. A
+compiler retry receives the exact allowed candidate IDs, declared obligation
+IDs, and declared evidence-requirement IDs; these lists improve repair guidance
+but never replace deterministic validation.
+
+Narrative bindings apply the same requirement ownership through their explicit
+`evidence_bindings`; they do not use expression variables or participate in
+formula unit inference. Candidate-ID integrity and scope checks remain
+deterministic, while whether the evidence semantically entails the requested
+relationship remains the compiler's constrained semantic responsibility.
+
+Eval-only treats the existing result bundle and vector store as immutable source
+artifacts. Because the installed persistent Chroma client has no read-only open
+mode and may mutate SQLite housekeeping rows, the benchmark runner fingerprints
+all source-store paths and bytes, copies the store to a disposable working
+directory, verifies copy equality, evaluates only the working copy, closes the
+local Chroma client, verifies the source fingerprint again, and deletes the
+working directory. A stable logical embedding fingerprint remains useful for
+provenance, but it is not permission to mutate the source bundle.
+
+Before a paid store-fixed eval-only successor, admission must bind the exact
+source bundle, runtime/profile/dataset hashes, experiment, ordered company and
+question scope, target, execution count, cost ceiling, and every provider
+operation. Provider enumeration includes source-store query/routing embeddings,
+all agent LLM routes, evaluator LLM judges, and evaluator embeddings; document
+embedding, ingest, unlisted rows, in-place output, source mutation, and automatic
+run retry remain forbidden unless separately authorized. The cost ceiling is an
+authorization and reporting boundary, not a provider-side mid-request kill
+switch.
+
+The same canonical manifest must be rehearsed twice through the production
+eval-only entry order while failing closed before first vector-store/provider
+construction. Both receipts must be byte-identical and prove source fingerprints,
+target absence, disposable-temp cleanup, provider/network count zero, and output
+count zero. A successful rehearsal is admission evidence only and does not grant
+authority for the provider-backed run.

@@ -106,7 +106,9 @@ class ImportSideEffectTests(unittest.TestCase):
             staged = [
                 line.strip().rstrip(" \\")
                 for line in command_block.splitlines()
-                if line.strip().startswith(("README", "docs/", "main.py", "src/", "tests/"))
+                if line.strip().startswith(
+                    ("README", "CONTEXT.md", "docs/", "main.py", "src/", "tests/")
+                )
             ]
             bucket_entries[title] = (files, staged)
         return bucket_entries
@@ -118,8 +120,10 @@ class ImportSideEffectTests(unittest.TestCase):
         self.assertEqual(sorted(staging_paths), module_paths)
         self.assertEqual(sorted(review_paths), module_paths)
         self.assertNotIn("src/routing/types.py", staging_paths)
-        self.assertIn("src/agent/financial_aggregate_projection.py", staging_paths)
-        self.assertIn("src/agent/financial_aggregate_state.py", staging_paths)
+        self.assertNotIn("src/agent/financial_aggregate_projection.py", staging_paths)
+        self.assertNotIn("src/agent/financial_aggregate_state.py", staging_paths)
+        self.assertIn("src/agent/financial_calculation_execution.py", staging_paths)
+        self.assertIn("src/agent/financial_reconciliation_candidates.py", staging_paths)
 
     def test_runtime_cleanup_manifest_owner_foundation_import_gate_is_lightweight(self) -> None:
         modules, _, _ = self._manifest_owner_foundation_entries()
@@ -144,7 +148,7 @@ class ImportSideEffectTests(unittest.TestCase):
 
         payload = self._run_python_json(script, ",".join(modules))
 
-        self.assertEqual(payload["count"], 23)
+        self.assertEqual(payload["count"], 10)
         self.assertEqual(payload["heavy_modules"], [])
 
     def test_runtime_cleanup_manifest_bucket_staging_commands_match_file_lists(self) -> None:
@@ -225,8 +229,6 @@ class ImportSideEffectTests(unittest.TestCase):
             "src.storage.embedding_config",
             "src.ingestion.dart_fetcher",
             "src.ops.check_routing_confusions",
-            "src.ops.retrospective_math_architecture_eval",
-            "src.ops.retrospective_ontology_retrieval_eval",
         ]
         script = """
             import importlib
@@ -293,15 +295,12 @@ class ImportSideEffectTests(unittest.TestCase):
     def test_import_boundary_modules_do_not_load_heavy_dependencies(self) -> None:
         module_expectations = {
             "src.agent.financial_graph": {"pydantic", "langchain_core"},
-            "src.agent.financial_aggregate_projection": {"pydantic", "langchain_core"},
-            "src.agent.financial_aggregate_state": {"pydantic", "langchain_core"},
             "src.agent.financial_answer_slots": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_calculation": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_evidence": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_model_loaders": {"pydantic", "langchain_core"},
             "src.agent.financial_langchain_loaders": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_planning": {"pydantic", "langchain_core"},
-            "src.agent.financial_graph_reconciliation": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_state": {"pydantic", "langchain_core"},
             "src.agent.financial_runtime_trace": {"pydantic", "langchain_core"},
             "src.agent.financial_task_artifacts": {"pydantic", "langchain_core"},
@@ -316,7 +315,6 @@ class ImportSideEffectTests(unittest.TestCase):
             "src.ops.replay_full_eval_from_results": {"pydantic", "langchain_core", "numpy"},
             "src.ops.retrospective_operand_grounding_eval": {"pydantic", "langchain_core", "numpy"},
             "src.ops.retrospective_evaluator_ablation_eval": {"pydantic", "langchain_core", "numpy"},
-            "src.ops.retrospective_math_architecture_eval": {"pydantic", "langchain_core", "numpy"},
             "src.ops.evaluator": {"pydantic", "langchain_core", "numpy"},
             "src.ops.generate_grounded_answer_drafts": {"pydantic", "rank_bm25", "requests"},
             "src.ops.benchmark_runner": {"pydantic", "langchain_core"},
