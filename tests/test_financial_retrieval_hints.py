@@ -332,236 +332,6 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "guidance policy copy failed"):
                 financial_retrieval_hints.compression_guidance("trend", "query", "complete")
 
-    def test_current_source_retrieval_hint_static_binding_dag_and_baseline(self) -> None:
-        graph_path = PROJECT_ROOT / "src" / "agent" / "financial_graph_evidence.py"
-        owner_path = PROJECT_ROOT / "src" / "agent" / "financial_retrieval_hints.py"
-        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8-sig"))
-        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
-        graph_class = next(
-            node
-            for node in graph_tree.body
-            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgentEvidenceMixin"
-        )
-        public_targets = [
-            "evidence_extraction_focus_terms",
-            "preferred_section_evidence_subset",
-            "compression_guidance",
-        ]
-        retired_targets = [f"_{name}" for name in public_targets]
-        graph_defs = {
-            node.name: node
-            for node in graph_class.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in retired_targets
-        }
-        self.assertEqual(graph_defs, {})
-
-        owner_defs = {
-            node.name: node
-            for node in owner_tree.body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in public_targets
-        }
-        self.assertEqual(list(owner_defs), public_targets)
-        self.assertEqual(
-            [owner_defs[name].end_lineno - owner_defs[name].lineno + 1 for name in public_targets],
-            [40, 58, 18],
-        )
-        self.assertEqual(
-            [[argument.arg for argument in owner_defs[name].args.args] for name in public_targets],
-            [["query"], ["evidence_items", "state"], ["query_type", "query", "coverage"]],
-        )
-        owner_public = []
-        owner_private = []
-        for node in owner_tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                (owner_private if node.name.startswith("_") else owner_public).append(node.name)
-        self.assertEqual((len(owner_public), len(owner_private)), (11, 3))
-
-        class BindingVisitor(ast.NodeVisitor):
-            def __init__(self, relative_path):
-                self.relative_path = relative_path
-                self.stack = []
-                self.try_depth = 0
-                self.calls = []
-
-            def visit_FunctionDef(self, node):
-                self.stack.append(node.name)
-                self.generic_visit(node)
-                self.stack.pop()
-
-            def visit_AsyncFunctionDef(self, node):
-                self.visit_FunctionDef(node)
-
-            def visit_Try(self, node):
-                self.try_depth += 1
-                self.generic_visit(node)
-                self.try_depth -= 1
-
-            def visit_Call(self, node):
-                name = node.func.attr if isinstance(node.func, ast.Attribute) else (
-                    node.func.id if isinstance(node.func, ast.Name) else ""
-                )
-                if name in public_targets:
-                    receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "Name"
-                    self.calls.append(
-                        (
-                            self.relative_path,
-                            self.stack[-1],
-                            name,
-                            receiver,
-                            len(node.args),
-                            tuple(keyword.arg for keyword in node.keywords),
-                            self.try_depth,
-                        )
-                    )
-                self.generic_visit(node)
-
-        calls = []
-        for path in sorted((PROJECT_ROOT / "src").rglob("*.py")):
-            visitor = BindingVisitor(path.relative_to(PROJECT_ROOT).as_posix())
-            visitor.visit(ast.parse(path.read_text(encoding="utf-8-sig")))
-            calls.extend(visitor.calls)
-        self.assertEqual(
-            calls,
-            [
-                (
-                    "src/agent/financial_graph_evidence.py",
-                    "_select_evidence_for_compression",
-                    "preferred_section_evidence_subset",
-                    "Name",
-                    2,
-                    (),
-                    0,
-                ),
-                (
-                    "src/agent/financial_graph_evidence.py",
-                    "_extract_evidence",
-                    "evidence_extraction_focus_terms",
-                    "Name",
-                    1,
-                    (),
-                    0,
-                ),
-                (
-                    "src/agent/financial_graph_evidence.py",
-                    "_compress_answer",
-                    "compression_guidance",
-                    "Name",
-                    3,
-                    (),
-                    0,
-                ),
-            ],
-        )
-
-        retired_refs = []
-        for path in sorted((PROJECT_ROOT / "src").rglob("*.py")):
-            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Attribute) and node.attr in retired_targets:
-                    retired_refs.append((path, node.lineno, node.attr))
-                elif isinstance(node, ast.Name) and node.id in retired_targets:
-                    retired_refs.append((path, node.lineno, node.id))
-        self.assertEqual(retired_refs, [])
-
-        selected_nodes = set()
-        for node in owner_defs.values():
-            selected_nodes.update(ast.walk(node))
-        active_section_loads = [
-            node
-            for node in ast.walk(owner_tree)
-            if isinstance(node, ast.Name)
-            and isinstance(node.ctx, ast.Load)
-            and node.id == "_active_preferred_sections"
-        ]
-        self.assertEqual(sum(node in selected_nodes for node in active_section_loads), 1)
-        self.assertEqual(sum(node not in selected_nodes for node in active_section_loads), 0)
-
-        graph_imports = {
-            alias.name
-            for node in graph_tree.body
-            if isinstance(node, ast.ImportFrom)
-            for alias in node.names
-        }
-        owner_imports = {
-            alias.name
-            for node in ast.walk(owner_tree)
-            if isinstance(node, ast.ImportFrom)
-            for alias in node.names
-        }
-        self.assertTrue(set(public_targets).issubset(graph_imports))
-        self.assertNotIn("_active_preferred_sections", graph_imports)
-        self.assertTrue(
-            {
-                "FinancialAgentState",
-                "query_requests_narrative_context",
-                "EVIDENCE_EXTRACTION_POLICY",
-                "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
-            }.issubset(owner_imports)
-        )
-        for name in (
-            "re",
-            "_normalise_spaces",
-            "EVIDENCE_EXTRACTION_POLICY",
-            "EVIDENCE_COMPRESSION_GUIDANCE_POLICY",
-            "query_requests_narrative_context",
-        ):
-            outside = [
-                node
-                for node in ast.walk(graph_tree)
-                if isinstance(node, ast.Name)
-                and isinstance(node.ctx, ast.Load)
-                and node.id == name
-            ]
-            self.assertTrue(outside, name)
-
-        modules = {path.stem: path for path in (PROJECT_ROOT / "src" / "agent").glob("*.py")}
-        edges = {name: set() for name in modules}
-        for module_name, path in modules.items():
-            module_tree = ast.parse(path.read_text(encoding="utf-8-sig"))
-            for node in ast.walk(module_tree):
-                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
-                    dependency = node.module.rsplit(".", 1)[-1]
-                    if dependency in modules:
-                        edges[module_name].add(dependency)
-                elif isinstance(node, ast.Import):
-                    for alias in node.names:
-                        if alias.name.startswith("src.agent."):
-                            dependency = alias.name.rsplit(".", 1)[-1]
-                            if dependency in modules:
-                                edges[module_name].add(dependency)
-
-        def reaches(start, destination):
-            pending = list(edges.get(start, ()))
-            seen = set()
-            while pending:
-                current = pending.pop()
-                if current == destination:
-                    return True
-                if current not in seen:
-                    seen.add(current)
-                    pending.extend(edges.get(current, ()))
-            return False
-
-        for dependency in ("financial_graph_state", "financial_operation_policies"):
-            self.assertFalse(reaches(dependency, "financial_retrieval_hints"), dependency)
-        self.assertFalse(reaches("financial_retrieval_hints", "financial_graph_evidence"))
-
-        from src.ops.audit_runtime_domain_terms import (
-            collect_runtime_domain_term_occurrences,
-            collect_runtime_domain_terms,
-        )
-
-        records = collect_runtime_domain_terms(PROJECT_ROOT)
-        occurrences = collect_runtime_domain_term_occurrences(PROJECT_ROOT)
-        selected_ranges = [(node.lineno, node.end_lineno) for node in owner_defs.values()]
-        selected_hits = [
-            row
-            for row in occurrences
-            if row["path"] == "src/agent/financial_retrieval_hints.py"
-            and any(start <= row["line"] <= end for start, end in selected_ranges)
-        ]
-        self.assertEqual(len(records), 217)
-        self.assertEqual(selected_hits, [])
 
     def test_current_source_retrieval_hint_callers_pin_args_adoption_and_exception_stop(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -631,7 +401,8 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             "query": "  extraction query  ",
             "query_type": "qa",
             "retrieved_docs": [doc_one, doc_two],
-            "active_subtask": {"operation_family": "lookup"},
+            "active_subtask": {},
+            "semantic_plan": {"program_required": False},
             "nested": nested,
         }
         extraction_frozen = deepcopy(extraction_state)
@@ -657,7 +428,6 @@ class FinancialRetrievalHintTests(unittest.TestCase):
             raise RuntimeError("context projection stopped")
 
         with (
-            patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
             patch.object(financial_graph_evidence, "evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(
@@ -677,7 +447,6 @@ class FinancialRetrievalHintTests(unittest.TestCase):
 
         context_after_owner = Mock(side_effect=AssertionError("owner failure must stop context construction"))
         with (
-            patch.object(financial_graph_evidence, "requires_direct_numeric_grounding", return_value=False),
             patch.object(financial_graph_evidence, "evidence_extraction_model", return_value="model"),
             patch.object(agent, "_llm_for_phase", return_value=ExtractionLlm()),
             patch.object(

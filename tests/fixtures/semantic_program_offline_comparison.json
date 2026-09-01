@@ -1,0 +1,201 @@
+{
+  "provenance": "Curated generic no-call characterization fixture; not a fresh benchmark result.",
+  "cases": [
+    {
+      "case_id": "same_context_growth",
+      "query": "Calculate the percentage change from opening to closing.",
+      "legacy_projection": {
+        "status": "ok",
+        "selected_values": [343.0, 380.0],
+        "result_value": 10.787172011661808
+      },
+      "obligations": [
+        {
+          "obligation_id": "ob_growth",
+          "kind": "derived_value",
+          "label": "percentage change",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "",
+            "period": "opening-to-closing",
+            "consolidation_scope": "unknown",
+            "segment": "",
+            "basis": "same row"
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "ob_growth:req_closing",
+              "label": "closing quantity",
+              "required": true,
+              "scope": {
+                "company": "",
+                "period": "closing",
+                "consolidation_scope": "unknown",
+                "segment": "",
+                "basis": "same row"
+              }
+            },
+            {
+              "requirement_id": "ob_growth:req_opening",
+              "label": "opening quantity",
+              "required": true,
+              "scope": {
+                "company": "",
+                "period": "opening",
+                "consolidation_scope": "unknown",
+                "segment": "",
+                "basis": "same row"
+              }
+            }
+          ]
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand_opening",
+          "kind": "numeric",
+          "source_candidate_id": "source_opening",
+          "evidence_id": "evidence_opening",
+          "source_anchor": "[sample | movement table]",
+          "source_row_id": "row_quantity",
+          "table_source_id": "table_movement",
+          "row_label": "quantity",
+          "statement_type": "",
+          "company": "",
+          "year": null,
+          "consolidation_scope": "unknown",
+          "segment": "",
+          "basis": "same row",
+          "context_fingerprint": "table_movement|row_quantity",
+          "source_text": "quantity opening 343 items",
+          "candidate_kind": "structured_value",
+          "raw_value": "343",
+          "raw_unit": "items",
+          "normalized_value": 343.0,
+          "normalized_unit": "COUNT",
+          "period": "opening",
+          "column_headers": ["opening"]
+        },
+        {
+          "candidate_id": "cand_closing",
+          "kind": "numeric",
+          "source_candidate_id": "source_closing",
+          "evidence_id": "evidence_closing",
+          "source_anchor": "[sample | movement table]",
+          "source_row_id": "row_quantity",
+          "table_source_id": "table_movement",
+          "row_label": "quantity",
+          "statement_type": "",
+          "company": "",
+          "year": null,
+          "consolidation_scope": "unknown",
+          "segment": "",
+          "basis": "same row",
+          "context_fingerprint": "table_movement|row_quantity",
+          "source_text": "quantity closing 380 items",
+          "candidate_kind": "structured_value",
+          "raw_value": "380",
+          "raw_unit": "items",
+          "normalized_value": 380.0,
+          "normalized_unit": "COUNT",
+          "period": "closing",
+          "column_headers": ["closing"]
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "expressions": [
+          {
+            "obligation_id": "ob_growth",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand_closing",
+                "source_requirement_id": "ob_growth:req_closing"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand_opening",
+                "source_requirement_id": "ob_growth:req_opening"
+              }
+            ],
+            "formula": "((CURRENT - PRIOR) / PRIOR) * 100",
+            "result_unit": "%"
+          }
+        ]
+      },
+      "expected": {"status": "ok", "operation_family": "growth_rate"}
+    },
+    {
+      "case_id": "cross_context_composition",
+      "query": "Return the total and its share on one common basis.",
+      "legacy_projection": {
+        "status": "ok",
+        "selected_candidate_ids": ["cand_total_a", "cand_share_b"]
+      },
+      "obligations": [
+        {
+          "obligation_id": "ob_total",
+          "kind": "direct_value",
+          "label": "total",
+          "required": true,
+          "coupling_key": "common_basis"
+        },
+        {
+          "obligation_id": "ob_share",
+          "kind": "direct_value",
+          "label": "share",
+          "required": true,
+          "coupling_key": "common_basis"
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand_total_a",
+          "kind": "numeric",
+          "source_candidate_id": "source_total_a",
+          "evidence_id": "evidence_total_a",
+          "source_anchor": "[sample | basis A]",
+          "source_row_id": "row_total_a",
+          "table_source_id": "table_a",
+          "row_label": "total",
+          "consolidation_scope": "consolidated",
+          "context_fingerprint": "table_a|basis_a",
+          "source_text": "total 4395 won",
+          "raw_value": "4395",
+          "raw_unit": "원",
+          "normalized_value": 4395.0,
+          "normalized_unit": "KRW",
+          "period": "current"
+        },
+        {
+          "candidate_id": "cand_share_b",
+          "kind": "numeric",
+          "source_candidate_id": "source_share_b",
+          "evidence_id": "evidence_share_b",
+          "source_anchor": "[sample | basis B]",
+          "source_row_id": "row_share_b",
+          "table_source_id": "table_b",
+          "row_label": "share",
+          "consolidation_scope": "consolidated",
+          "context_fingerprint": "table_b|basis_b",
+          "source_text": "share 40 percent",
+          "raw_value": "40",
+          "raw_unit": "%",
+          "normalized_value": 40.0,
+          "normalized_unit": "PERCENT",
+          "period": "current"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {"obligation_id": "ob_total", "candidate_id": "cand_total_a"},
+          {"obligation_id": "ob_share", "candidate_id": "cand_share_b"}
+        ]
+      },
+      "expected": {"status": "invalid", "error_code": "coupled_context_mismatch"}
+    }
+  ]
+}

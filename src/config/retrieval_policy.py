@@ -3,17 +3,12 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 
-KOREAN_PERIOD_PREFIX_RE_FRAGMENT = r"(?:20\d{2}년|당기|전기|전년)"
 KOREAN_PERIOD_COMPARISON_RE_FRAGMENT = r"(?:전년|전기|직전\s*연도)\s*대비"
-KOREAN_PERIOD_RATE_METRIC_SUFFIX_RE_FRAGMENT = r"(?:증감률|증가율|감소율|성장률|변화율)"
 KOREAN_COUNT_UNITS = ("개", "명", "건", "곳", "사", "대")
 KOREAN_COUNT_SCALE_PREFIXES = (("천", 1_000.0), ("만", 10_000.0), ("백만", 1_000_000.0))
 KOREAN_COUNT_UNIT_RE_FRAGMENT = (
     r"(?:(?:백만|만|천)?\s*(?:개|명|건|곳|사|대))"
 )
-KOREAN_TABLE_CHANGE_HEADER_LABEL = "증감"
-KOREAN_TABLE_LABEL_ALPHA_RE_FRAGMENT = r"[A-Za-z가-힣]"
-KOREAN_TABLE_LABEL_LEFT_BOUNDARY_RE_FRAGMENT = r"(?<![A-Za-z0-9가-힣])"
 KOREAN_PERCENT_METRIC_HINT_TERMS = (
     "비율",
     "비중",
@@ -164,24 +159,6 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "percent_units": ("%", "퍼센트"),
 }
 
-GENERIC_METRIC_ALIAS_SUBSTITUTIONS: Tuple[Dict[str, Any], ...] = (
-    {"source": "순이익", "target": "순손익"},
-    {"source": "순손익", "target": "순이익"},
-    {"source": "손익", "target": "이익"},
-    {"source": "이익", "target": "손익", "blocked_if_present": ("손익",)},
-)
-
-OPERATION_FAMILY_QUERY_POLICIES: Tuple[Dict[str, Any], ...] = (
-    {"operation_family": "growth_rate", "markers": ("증감률", "증가율", "감소율", "성장률", "변화율")},
-    {"operation_family": "ratio", "markers": ("영업이익률을 얼마나 낮추", "이익률을 얼마나 낮추", "이익률에 미친 영향")},
-    {"operation_family": "difference", "markers": ("차이", "얼마나 더", "보다 얼마나", "더 큰가", "더 높은가", "더 많은가")},
-)
-
-PERCENT_POINT_DIFFERENCE_POLICY: Dict[str, Any] = {
-    "direct_markers": ("%p",),
-    "ratio_metric_markers": ("비율", "비중", "이익률"),
-    "comparison_markers": ("차이", "격차", "비교", "증감", "변화", "변동", "몇 %p", "몇%p"),
-}
 
 STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "metric_terms": ("매출액", "매출", "영업수익", "수익"),
@@ -197,12 +174,6 @@ STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     },
 }
 
-STRUCTURED_CELL_PERIOD_SCORING_POLICY: Dict[str, Any] = {
-    "current_positive_markers": ("당기", "현재"),
-    "current_negative_markers": ("전기", "이전"),
-    "prior_positive_markers": ("전기", "이전"),
-    "prior_negative_markers": ("당기", "현재"),
-}
 
 METRIC_TOPIC_EXTRACTION_TERMS = (
     "영업이익",
@@ -217,48 +188,6 @@ METRIC_TOPIC_EXTRACTION_TERMS = (
     "수익",
 )
 
-RATIO_PERCENT_QUERY_POLICY: Dict[str, Any] = {
-    "markers": ("비율", "비중", "%", "%p", "이익률", "차지"),
-}
-
-GENERIC_OPERAND_LABEL_POLICY: Dict[str, Any] = {
-    "compound_label_expansions": (
-        {"markers": ("유·무형자산", "유/무형자산"), "labels": ("유형자산", "무형자산")},
-    ),
-    "derived_labels_to_drop": ("총 영업비용", "영업비용률", "순효과"),
-    "cleanup_boundaries": ("에서", "기준", "관련"),
-    "cleanup_suffix_pattern": r"(?:금액|수치|총액|규모|비중|비율|증감액|증감폭|순효과)\s*$",
-    "leading_year_pattern": r"^[0-9]{4}년\s*",
-}
-
-GENERIC_UNIT_FAMILY_POLICY: Dict[str, Any] = {
-    "count_markers": ("대수", "수량", "건수", "인원수", "직원수", "회원수", "판매량"),
-}
-
-CONCEPT_METRIC_LABEL_POLICY: Dict[str, Any] = {
-    "label_joiner": " + ",
-    "operation_templates": {
-        "ratio": "{labels_joined} 비율",
-        "sum": "{labels_joined} 합계",
-        "difference_two": "{first_label}과 {second_label} 차이",
-        "difference_one": "{label} 차이",
-        "growth_rate": "{label} 증가율",
-    },
-    "fallback_label": "개념 기반 수치",
-}
-
-GENERIC_PERIOD_OPERAND_POLICY: Dict[str, Any] = {
-    "current_period_hint": "당기",
-    "prior_period_hint": "전기",
-    "current_period_hints": ("current", "당기", "현재"),
-    "prior_period_hints": ("prior", "전기", "전년", "직전 연도", "이전 연도", "이전"),
-    "current_label_template": "{period_hint} {label}",
-    "prior_label_template": "{period_hint} {label}",
-    "year_label_template": "{year}년 {label}",
-    "year_suffix_template": "{year}년",
-    "comparison_markers": ("전년 대비", "전기 대비", "증감액", "증감폭", "%p", "추이"),
-    "fallback_metric_label": "수치 계산",
-}
 
 CONCEPT_RATIO_RESULT_UNIT_POLICY: Dict[str, Any] = {
     "multiplier_markers": ("배율",),
@@ -267,28 +196,6 @@ CONCEPT_RATIO_RESULT_UNIT_POLICY: Dict[str, Any] = {
     "percent_unit": "%",
 }
 
-METRIC_TASK_QUERY_POLICY: Dict[str, Any] = {
-    "operand_joiner": "/",
-    "operand_hint_template": "({labels} )",
-    "canonical_query_template": "{year_text}{consolidation_text}{metric_label}{operand_hint}을 계산해 줘.",
-}
-
-TASK_CONSTRAINT_POLICY: Dict[str, Any] = {
-    "segment_markers": ("부문",),
-}
-
-PERIOD_FOCUS_POLICY: Dict[str, Any] = {
-    "prior_markers": ("전기", "전년", "이전 연도", "직전 연도"),
-    "current_markers": ("당기", "금년", "현재 연도", "이번 연도"),
-    "explicit_year_pattern": r"20\d{2}",
-    "period_presence_pattern": r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기",
-}
-
-EXPLICIT_RATIO_DEFINITION_POLICY: Dict[str, Any] = {
-    "definition_marker": "대비",
-    "ratio_markers": ("비율", "비중", "퍼센트", "%"),
-    "metric_label_template": "{denominator_label} 대비 {numerator_label} 비율",
-}
 
 CANDIDATE_CONCEPT_CONFLICT_EXCLUSIVE_MARKER = "부채"
 CAPEX_TOTAL_CONCEPT_KEY = "capital_expenditure_total"
@@ -334,76 +241,6 @@ KOREAN_WON_COMPACT_FORMAT_POLICY: Dict[str, Any] = {
     "zero_hundred_million_label": "0억원",
 }
 
-KOREAN_SEGMENT_LABEL_REPORT_TERMS = (
-    "사업보고서",
-    "반기보고서",
-    "분기보고서",
-)
-
-KOREAN_SEGMENT_LABEL_SCOPE_TOKENS = (
-    "연결",
-    "별도",
-)
-
-KOREAN_SEGMENT_LABEL_MARKERS = (
-    "부문",
-    "세그먼트",
-    "segment",
-)
-
-KOREAN_SEGMENT_LABEL_ANCHORS = (
-    "부문의",
-    "부문",
-    "세그먼트의",
-    "세그먼트",
-    "segment",
-)
-
-KOREAN_SEGMENT_LABEL_BOUNDARIES = (
-    "에서",
-    "중",
-    "내",
-    ":",
-)
-
-KOREAN_SEGMENT_LABEL_BLOCKED_TOKENS = (
-    "매출",
-    "부문",
-    "세그먼트",
-    "segment",
-)
-
-KOREAN_SEGMENT_LABEL_BLOCKED_EXACT_LABELS = (
-    "대비",
-    "전년",
-    "전기",
-    "당기",
-    "증가율",
-    "감소율",
-    "성장률",
-    "변화율",
-    "결제액",
-    "영업수익",
-    "매출액",
-    "매출",
-    "이것",
-    "이것이",
-    "그것",
-    "그것이",
-    "해당",
-    "해당 금액",
-)
-
-KOREAN_SEGMENT_LABEL_PERIOD_PREFIX_RE_FRAGMENT = r"^20\d{2}년\s*"
-KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT = r"\b(?:전년|전기|당기)\s*$"
-KOREAN_SEGMENT_LABEL_PERIOD_RE_FRAGMENT = r"20\d{2}(?:년)?"
-KOREAN_SEGMENT_LABEL_PAREN_RE_FRAGMENT = r"(?:부문|세그먼트|segment)\s*\(([^)]{1,30})\)"
-KOREAN_SEGMENT_LABEL_SPLIT_RE_FRAGMENT = r"\s*(?:와|과|및|,|/|·|\+)\s*"
-KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS = (
-    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*부문",
-    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*세그먼트",
-    r"([A-Za-z0-9가-힣&/\-]{1,20})\s*매출",
-)
 
 NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
     {
@@ -442,47 +279,6 @@ NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
         "statement_types": ("mda", "summary_financials"),
     },
 )
-
-NUMERIC_IMPAIRMENT_LOOKUP_POLICY: Dict[str, Any] = {
-    "trigger_terms": ("손상", "환입"),
-    "confirmation_terms": ("발생 여부", "손상차손", "손상 여부", "환입"),
-    "total_row_labels": ("기말금액", "당기말", "당기말금액", "기말 장부금액", "기말장부금액"),
-    "adjustment_row_labels": ("손상 및 환입", "손상차손", "손상", "손상손실", "손상차손 및 환입"),
-    "default_unit": "천원",
-    "default_adjustment_label": "손상 및 환입",
-    "answer_template": (
-        "{report_year_label}연결재무제표 주석 기준 {metric_label} 총액은 {total_value}{total_unit}입니다. "
-        "또한 {adjustment_label} 금액이 {adjustment_value}{adjustment_unit}으로 표시되어 있어 "
-        "당기에 {metric_label} 손상차손이 발생한 것으로 확인됩니다."
-    ),
-}
-
-REQUIRED_OPERAND_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "aggregation_stage_labels": {
-        "subtotal": ("소계",),
-        "final": ("합계", "총계", "계"),
-    },
-    "inline_unit_pattern": r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|백만원|천원|원)",
-    "fallback_unit_rules": (
-        {"surface_terms": ("조", "억"), "unit": "원", "source": "raw_value"},
-        {"surface_terms": ("백만원",), "unit": "백만원", "source": "context"},
-        {"surface_terms": ("천원",), "unit": "천원", "source": "context"},
-    ),
-    "default_unit": "원",
-    "stated_change_default_unit": "%",
-    "lookup_surface_token_split_pattern": r"[\s/|,()]+",
-    "lookup_surface_blocked_tokens": ("부문", "부", "기준", "연결", "별도", "당기", "전기"),
-    "ratio_percent_pattern": r"[\d,.]+%",
-    "ratio_year_pattern": r"(20\d{2}년)",
-    "ratio_label": "비율",
-    "ratio_unit": "%",
-    "ratio_component_value_pattern": r"[\d,]+(?:\s*조\s*[\d,]+\s*억(?:원)?)?|[\d,]+",
-    "ratio_row_fallback_patterns": (r"비율", r"비중", r"이익률"),
-    "ratio_period_pattern": r"(20\d{2}년|제\d+기|당기|전기)",
-    "ratio_component_percent_value_allowed_concepts": ("revenue",),
-    "location_context_pattern": r"(?:에서|에서는)",
-    "subject_after_context_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
-}
 
 
 NARRATIVE_RERANK_POLICY: Dict[str, Any] = {
@@ -595,6 +391,10 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
 
 CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "scope_labels": {"consolidated": "연결기준", "separate": "별도기준"},
+    "scope_labels_en": {
+        "consolidated": "consolidated basis",
+        "separate": "separate basis",
+    },
     "difference_default_labels": {
         "minuend": "기준값",
         "subtrahend": "차감값",
@@ -689,44 +489,6 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "insufficient_evidence_fallback": "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다.",
     "low_api_generation_skipped_fallback": "질문에 필요한 수치를 계산했지만 자연어 답변 생성을 생략했습니다.",
     "render_generation_failed_fallback": "질문에 필요한 수치를 계산했지만 자연어 답변을 생성하지 못했습니다.",
-    "renderer_prompt_template": (
-        "당신은 한국 기업 공시(DART) 계산 결과를 사용자 친화적인 한국어로 렌더링하는 분석가입니다.\n\n"
-        "[렌더링 규칙]\n"
-        "- CalculationResult의 rendered_value를 그대로 사용하세요. 숫자를 다시 계산하거나 형식을 바꾸지 마세요.\n"
-        "- CalculationResult의 answer_slots가 있으면 rendered_value/series보다 먼저 참고해 현재값, 전기값, 증감값, 주된 결과값을 파악하세요.\n"
-        "- components_by_role에 subtrahend가 있고 그 rendered_value가 음수처럼 보여도, 서술에서는 절댓값을 차감하는 표현을 우선 사용하세요. \"-X를 차감\"처럼 이중 음수 표현을 만들지 마세요.\n"
-        "- operand label에 포함된 연도·기간 정보(예: '2024년', '2023년', '1분기')는 반드시 그대로 유지하세요. '2024년 영업이익'을 '영업이익'으로 줄이지 마세요.\n"
-        "- direction_hint가 제공된 경우, 그 단어를 그대로 사용하세요. 임의로 '변동', '차이' 등 중립적 표현으로 바꾸지 마세요.\n"
-        "- time_series 해석(상승·하락·반등 등)은 series 또는 derived_metrics의 수치 변화를 근거로 표현하세요.\n"
-        "- 데이터에 없는 새로운 연도, 금액, 비율을 만들지 마세요.\n"
-        "- 질문에 직접 답하는 1~2문장만 작성하세요.\n\n"
-        "질문:\n{query}\n\n"
-        "Direction Hint (방향 판단 결과, 비어 있으면 무시):\n{direction_hint}\n\n"
-        "CalculationPlan:\n{plan_json}\n\n"
-        "CalculationResult:\n{result_json}\n\n"
-        "Operands:\n{operands_json}\n\n"
-        "반드시 final_answer만 채우세요.\n"
-    ),
-    "verification_prompt_template": (
-        "당신은 재무 계산 답변 검증기입니다.\n"
-        "사용자에게 내보내기 직전의 계산 답변이 질문, 계산 결과, 피연산자와 모순이 없는지 검토하세요.\n\n"
-        "규칙:\n"
-        "- 새로운 숫자, 연도, 단위, 근거를 추가하지 마세요.\n"
-        "- 계산 결과와 질문 의도에 맞는다면 verdict=keep.\n"
-        "- 숫자, 단위, 방향, 비교 관계가 어긋나면 verdict=rewrite 로 두고 1~2문장으로 바로잡으세요.\n"
-        "- 답변이 계산 결과와 크게 모순되거나 불필요한 내용을 덧붙였으면 verdict=fallback 으로 두고 deterministic fallback과 같은 뜻으로 작성하세요.\n"
-        "- CalculationResult.answer_slots가 있으면 그 슬롯을 기준으로 답변이 질문 요구사항을 충족하는지 판단하세요.\n"
-        "- final_answer는 rendered_value와 direction_hint를 벗어나지 마세요.\n"
-        "- %p 질문이면 %p를 유지하세요.\n"
-        "- 단일 값 조회 질문이면 계산 과정 설명을 길게 덧붙이지 마세요.\n\n"
-        "질문:\n{query}\n\n"
-        "현재 답변:\n{answer}\n\n"
-        "Deterministic Fallback:\n{fallback}\n\n"
-        "Direction Hint:\n{direction_hint}\n\n"
-        "CalculationPlan:\n{plan_json}\n\n"
-        "CalculationResult:\n{result_json}\n\n"
-        "Operands:\n{operands_json}\n"
-    ),
 }
 
 
@@ -757,155 +519,68 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
-    "operand_extraction_prompt_template": (
-        "당신은 재무 계산을 위한 피연산자 추출기입니다.\n"
-        "질문을 풀기 위해 필요한 숫자만 single-shot으로 한 번에 추출하세요.\n\n"
-        "규칙:\n"
-        "- 여러 번 나눠 찾지 말고, 필요한 피연산자를 한 번의 호출로 모두 찾으세요.\n"
-        "- operand_id는 비워도 됩니다. 코드는 이후에 고유 ID를 부여합니다.\n"
-        "- 각 operand는 반드시 evidence_id와 source_anchor를 포함하세요.\n"
-        "- raw_value는 문서에 있는 숫자 표현 그대로 적으세요. '111조 659억원'처럼 조+억 복합 표기는 절대 억원이나 조원으로 변환하지 말고 원문 그대로 적으세요. 변환하면 반올림 오차가 발생합니다.\n"
-        "- raw_unit은 숫자 바로 옆 단위를 적으세요. 복합 표기('111조 659억원')는 raw_unit을 '억원'으로 적지 말고, raw_value에 원문 전체를 넣고 raw_unit은 '원'으로 적으세요.\n"
-        "- normalized_value와 normalized_unit은 추정해서 채워도 되지만, 이후 코드가 다시 검증합니다.\n"
-        "- 비교/추세 질문은 질문 해결에 꼭 필요한 숫자만 추출하세요.\n"
-        "- source_context와 raw_row_text가 있으면, 해당 표의 헤더와 행을 함께 읽어 period와 숫자 매핑을 복원하세요.\n"
-        "- raw_row_text에 같은 metric의 여러 연도/기간 값이 함께 있으면, 각 연도/기간별 숫자를 별도 operand로 나누어 추출하세요.\n"
-        "- 질문이 단일 비율/비중/이익률 조회라면 피연산자 1개만 추출할 수 있습니다.\n"
-        "- 질문이 두 기간/두 부문/두 비율의 차이·비교·대비·%p 차이를 묻는다면, 절대 단일 비율 피연산자 1개로 축약하지 말고 비교 대상별 피연산자를 각각 추출하세요.\n"
-        "- 질문에 `%p`, `차이`, `비교`, `대비`가 있고 evidence에 동일 metric의 여러 기간/부문 percent 값이 보이면, 해당 percent 값들을 period별/대상별로 각각 별도 operand로 추출하세요.\n"
-        "- 추이(trend) 질문이고 evidence에 3개 이상의 연도/기간 수치가 보이면, 가능한 한 3개 이상 기간의 피연산자를 빠짐없이 추출하세요.\n"
-        "- 문서 메타데이터의 보고서 연도와 표 안에 적힌 비교 기간(예: 2024년, 2023년, 2022년)을 혼동하지 말고, period 필드에는 표에서 읽은 실제 기간을 그대로 적으세요.\n"
-        "- 수치가 없는 descriptive evidence는 operand로 만들지 마세요.\n\n"
-        "질문: {query}\n\n"
-        "Structured Evidence:\n{evidence}\n"
-    ),
-    "formula_plan_prompt_template": (
-        "당신은 재무 계산 계획기입니다.\n"
-        "질문과 피연산자 목록을 보고 변수 바인딩과 계산식을 작성하세요.\n\n"
-        "규칙:\n"
-        "- variable_bindings에는 반드시 아래 피연산자 목록의 operand_id만 넣으세요.\n"
-        "- 각 binding의 variable은 A, B, C, D, E, F 중 하나만 사용하세요.\n"
-        "- ordered_operand_ids는 variable_bindings와 같은 순서로 넣으세요.\n"
-        "- operation은 로그/평가용 힌트입니다. subtract, add, ratio, growth_rate, max, min, time_series_trend, none 중 가장 가까운 값을 넣으세요.\n"
-        "- 실제 계산은 formula와 pairwise_formula로 표현합니다.\n"
-        "- formula에는 숫자 상수와 변수(A, B, C...) 그리고 +, -, *, /, **, min(), max(), abs(), round(), log(), exp()만 사용할 수 있습니다.\n"
-        "- mode=single_value 이면 formula로 단일 결과를 계산하세요.\n"
-        "- mode=time_series 이면 variable_bindings를 시계열 순서로 배치하고, formula에는 전체 흐름을 대표하는 계산식(예: ((C - A) / A) * 100)을, pairwise_formula에는 인접 시점 계산식(예: ((CURR - PREV) / PREV) * 100)을 적으세요.\n"
-        "- 최근 3년/연도별/추이 질문처럼 3개 이상 기간 데이터가 있을 때는 mode=time_series 와 operation=time_series_trend 를 우선 사용하세요.\n"
-        "- 이미 계산된 단일 비율/비중/이익률 하나만 답하면 되는 질문이라면 mode=single_value, formula=A 를 사용하세요.\n"
-        "- 질문이 단일 비율/비중/이익률 조회이고 피연산자가 퍼센트 1개뿐이라면 반드시 mode=single_value, formula=A 를 사용하세요.\n"
-        "- 질문이 단일 비율/비중/이익률 조회이고 분자/분모 역할의 금액 피연산자 2개가 있다면 formula는 (A / B) * 100 형태로 작성하세요.\n"
-        "- 두 비율/비중의 차이(%p 차이 포함)를 묻는 질문이라면 mode=single_value 로 두고 formula는 A - B 또는 질문 순서에 맞는 차이식으로 작성하세요. 단일 operand 하나로 끝내지 마세요.\n"
-        "- 증가율/감소율/변화율은 가능한 한 질문에서 기준이 되는 이전 값이 분모가 되도록 식을 작성하세요.\n"
-        "- 현재 피연산자만으로 질문을 풀 수 없으면 억지로 수식을 만들지 말고 status=incomplete, mode=none, operation=none 으로 두고 missing_info에 부족한 정보를 적으세요.\n"
-        "- result_unit은 최종 답변 단위를 적으세요. 예: 억원, 원, %, 개\n"
-        "- ontology_context는 이 질문에 대해 추정된 metric family prior 입니다. 실제 피연산자와 모순되면 ontology_context보다 피연산자를 우선하세요.\n"
-        "- ontology_context에 formula_template과 components가 있으면, 단일 비율 조회는 A 또는 (A / B) * 100, %p 차이는 A - B 같은 계획을 세울 때 참고하세요.\n\n"
-        "질문: {query}\n\n"
-        "Ontology Context:\n{ontology_context}\n\n"
-        "사용 가능한 피연산자:\n{operands}\n"
-    ),
-    "aggregate_synthesis_prompt_template": (
-        "당신은 DART 재무 질의용 최종 synthesizer입니다.\n"
-        "원본 질문과 내부 subtask 결과를 읽고, 사용자에게 보여줄 최종 답변을 작성하세요.\n\n"
-        "입력 데이터:\n"
-        "1. 원본 질문\n"
-        "2. subtask 결과 목록\n"
-        "3. deterministic structured material check\n"
-        "4. narrative context evidence\n\n"
-        "규칙:\n"
-        "- 최종 답변은 원본 질문이 명시적으로 요구한 값과 계산 결과를 빠짐없이 포함하도록 노력하세요.\n"
-        "- subtask 결과의 answer, calculation_result.rendered_value, calculation_result.series, calculation_operands를 근거로 사용하세요.\n"
-        "- subtask 결과의 calculation_result.answer_slots가 있으면 그것을 가장 우선적인 structured result contract로 사용하세요.\n"
-        "- narrative context evidence가 있고 원본 질문이 업황/배경/영향 같은 맥락을 요구하면, 최종 답변에 그 맥락을 짧게 반영하세요.\n"
-        "- 새로운 숫자, 연도, 단위를 만들지 마세요.\n"
-        "- deterministic structured material check가 비어 있으면, 현재 재료만으로 원본 질문을 완전히 충족한다고 보고 planner_feedback은 비워 두세요.\n"
-        "- deterministic structured material check가 비어 있지 않으면, 그 누락 재료를 planner_feedback에 반영하세요.\n"
-        "- 현재 재료만으로는 원본 질문의 요구사항 일부를 충족할 수 없다면, planner_feedback에 planner가 추가로 모아야 할 재료를 한 문장으로 적으세요.\n"
-        "- planner_feedback은 내부 시스템용이므로 간결하게, 누락된 값/기간/개념 중심으로 쓰세요.\n"
-        "- final_answer는 사용자용 한국어 답변만 작성하세요.\n\n"
-        "원본 질문:\n{query}\n\n"
-        "Fallback Answer:\n{fallback_answer}\n\n"
-        "Deterministic Structured Material Check:\n{deterministic_feedback}\n\n"
-        "Narrative Context Evidence:\n{narrative_context}\n\n"
-        "Subtask Results JSON:\n{subtask_results_json}\n"
-    ),
+    'semantic_program_prompt_template': "당신은 검색된 재무 근거를 실행 가능한 의미 프로그램으로 컴파일합니다.\n"
+            "질문을 lookup, ratio, growth_rate 같은 고정 타입으로 먼저 분류하지 마세요.\n"
+            "각 answer obligation을 충족할 실제 candidate를 고르고, 파생값만 제한 수식으로 표현하세요.\n\n"
+            "필수 규칙:\n"
+            "- candidate catalog에 있는 candidate_id만 참조하세요. 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
+            "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
+            "- candidate_kind가 sentence_value이면 source_text 문장에 그 숫자가 직접 기재된 후보입니다. 질문의 의미를 문장이 직접 설명하면 인접한 회계 행을 대용하지 말고 이 후보를 우선 검토하세요.\n"
+            "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
+            "- direct candidate의 범위 metadata가 unknown이지만 같은 원문·표의 narrative candidate가 그 범위를 명시하면 direct binding의 compatibility_candidate_ids에 넣으세요. 명시적으로 반대인 범위는 이렇게 덮어쓸 수 없습니다.\n"
+            "- 계산에 필요한 원시 입력은 derived_value obligation의 evidence_requirements에 미리 선언되어 있어야 합니다. candidate_id 변수에는 그 입력의 source_requirement_id도 함께 바인딩하고, 앞서 생성된 obligation_id를 참조할 때는 비워 두세요.\n"
+            "- 계산 변수 candidate의 segment 또는 basis metadata만 unknown이고 그 candidate의 로컬 원문이 해당 input requirement에 적용된다고 판단하면 variable binding의 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period, consolidation_scope는 이 선언으로 보완할 수 없습니다.\n"
+            "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
+            "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
+            "- 0, 1, 100 이외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다.\n"
+            "- 원문이 반올림된 파생 표시를 직접 제공하면 source_display_candidate_id로 지정하되 deterministic formula도 유지합니다.\n"
+            "- 서로 다른 회사·연결기준·부문·기준·source context를 섞어야 한다면 이를 명시적으로 뒷받침하는 narrative candidate ID를 compatibility_candidate_ids에 넣으세요.\n"
+            "- narrative obligation은 근거 candidate_ids와 그 근거만으로 작성한 짧은 text를 함께 반환합니다. 숫자는 선택한 원문에 보이는 표기 그대로만 쓰고, 질문에 필수적이지 않은 숫자는 생략하세요.\n"
+            "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
+            "- narrative obligation에 required evidence_requirements가 있으면 선택한 candidate_ids가 그 사실과 관계 요구를 모두 충족해야 하며, evidence_bindings에 각 candidate_id와 source_requirement_id를 연결하세요. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
+            "- evidence_mode가 source_defined_group이면 런타임이 만든 하나의 원문 그룹 requirement를 사용합니다. 실제 원문에 기재된 항목 이름과 값을 보존해 요약하고, 그 항목과 값을 뒷받침하는 candidate들을 해당 source_requirement_id에 바인딩하세요. 관행적인 예상 항목으로 원문 항목을 대체하거나 새로운 필수 항목을 만들지 마세요.\n"
+            "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
+            "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
+            "- 재시도에서는 repair_contract를 먼저 따르세요. formula AST의 변수 이름 집합과 variable_bindings의 variable 집합을 정확히 같게 만들고, 대상 obligation에 선언된 required evidence requirement를 빠짐없이 한 번씩 바인딩한 뒤 자체 점검하세요.\n"
+            "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
+            "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
+            "원본 질문:\n{query}\n\n"
+            "Answer obligations:\n{obligations}\n\n"
+            "Candidate catalog:\n{candidate_catalog}\n\n"
+            "재시도 피드백(없으면 -):\n{retry_feedback}\n"
+,
+    'semantic_program_render_templates': {
+            "item": "{label}: {value}",
+            "item_sentence_ko": "{subject}{topic_particle} {value}입니다.",
+            "source_display_comparison": "calculated {calculated} (source-stated {source})",
+            "source_display_comparison_ko": "계산값 {calculated} (원문 기재: {source})",
+            "narrative": "{text}",
+            "missing": "필요한 근거를 충분히 확인하지 못했습니다: {labels}",
+            "korean_text_pattern": "[가-힣]",
+            "period_year_pattern": "(?:19|20)\\d{2}",
+            "period_year_suffix": "년",
+            "company_possessive_suffix": "의",
+        }
+,
+    'semantic_program_prompt_limits': {
+            "numeric_candidates": 96,
+            "narrative_candidates": 32,
+            "required_input_candidates_per_group": 4,
+            "numeric_source_chars": 420,
+            "narrative_source_chars": 600,
+        }
+,
 }
 
 
-RECONCILIATION_POLICY: Dict[str, Any] = {
-    "lookup_surface_period_prefix_pattern": r"^(?:20\d{2}\s*년?)\s+",
-    "period_presence_pattern": r"20\d{2}|당기|전기|현재|이전|제\s*\d+\s*기",
-    "percent_unit": "%",
-    "ambiguous_krw_units": ("", "원", "KRW"),
-    "note_statement_type": "notes",
-    "candidate_rerank_prompt_template": (
-        "당신은 재무 계산 후보의 의미를 판별하는 선택기입니다.\n"
-        "질문과 target operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬하세요.\n"
-        "질문의 총액/부분값/조정값 같은 의미와 각 row label의 의미를 우선 비교하세요.\n"
-        "후보에 적힌 숫자와 단위는 비교 자료일 뿐이며 수정하거나 새로 만들지 마세요.\n"
-        "질문이 후보 하나를 명확히 지목하면 selection_status=selected와 selected_candidate_id를 기록하고, "
-        "문서 표현만으로 구분할 수 없으면 selection_status=ambiguous와 빈 selected_candidate_id를 기록하세요.\n\n"
-        "우선순위:\n"
-        "1. 질문이 요구한 값의 의미와 row label의 의미가 정확히 일치하는 후보\n"
-        "2. 표의 row_headers, column headers, table_context가 가리키는 값의 주체와 질문 주체가 일치하는 후보\n"
-        "3. 직접 숫자 값이 있는 표 row\n"
-        "4. 질문의 연결/별도, 기간, statement_type에 맞는 근거\n"
-        "5. narrative paragraph보다 table row / structured row\n"
-        "6. '범위', '하위범위', '상위범위' 같은 설명 row는 피하세요.\n\n"
-        "질문:\n{query}\n\n"
-        "target operand:\n{operand_label}\n\n"
-        "candidate options:\n{options}\n"
-    ),
-    "supplemental_section_bonus_terms": ("연구개발 활동", "연구개발활동"),
-    "missing_info_year_template": "{year}년 {label}",
-    "missing_info_suffix_cleanup_pattern": r"(비교|차이|대비|합계)\s*$",
-    "missing_info_token_pattern": r"[가-힣A-Za-z0-9]+",
-    "reflection_sum_query_markers": ("합계", "합산", "합친", "합한"),
-    "reflection_binding_query_pattern": r"\bvs\b|와|과",
-    "reflection_prompt_template": (
-        "당신은 재무 RAG 에이전트의 reflection planner 입니다.\n"
-        "현재 검색/계산이 실패했을 때, 무엇이 부족한지 진단하고 retrieval-friendly 재검색 쿼리를 1~3개 설계하세요.\n\n"
-        "목표:\n"
-        "- 사용자 질문의 의도를 유지한 채\n"
-        "- 현재 파이프라인이 다시 검색했을 때 누락된 피연산자나 비율 행을 찾기 쉬운 쿼리로 재정의하세요.\n\n"
-        "규칙:\n"
-        "- status는 재검색이 의미 있으면 ready, 아니면 skip.\n"
-        "- retry_strategy는 아래 셋 중 하나만 고르세요.\n"
-        "  - retry_retrieval: 재검색을 더 시도한다\n"
-        "  - synthesize_from_task_outputs: 이미 확보한 sibling task output만으로 계산을 시도하고, broad retrieval fallback은 피한다\n"
-        "  - stop_insufficient: 현재 근거로는 더 진행해도 의미가 낮다\n"
-        "- retry_objective는 이번 재검색의 목적만 고르세요.\n"
-        "  - find_missing_values: 필요한 값 일부가 빠졌음\n"
-        "  - find_direct_row: 질문이 요구하는 직접적인 row/요약값을 찾고 싶음\n"
-        "  - resolve_binding: 기간/대상/레이블 연결을 더 명확히 하고 싶음\n"
-        "  - generic_retry: 위 셋으로 충분히 설명되지 않음\n"
-        "- missing_info에는 현재 컨텍스트에 부족한 정보만 적으세요.\n"
-        "- subqueries는 1~3개만 만드세요.\n"
-        "- 각 subquery는 자연어 장문이 아니라 retrieval-friendly keyword query여야 합니다.\n"
-        "- subquery에는 가능한 한 회사명, 연도, 부족한 metric/entity, 짧은 섹션 힌트를 포함하세요.\n"
-        "- 질문이 %p 차이나 두 비율 비교라면, 먼저 같은 metric의 기간별/대상별 비율 row를 찾는 쿼리를 우선하세요.\n"
-        "- 질문이 비율/이익률 계산인데 비율 row가 없으면, 분자/분모 component를 각각 찾는 쿼리를 만드세요.\n"
-        "- 질문이 합계라면, 합쳐야 하는 구성 항목별 수치를 따로 찾는 쿼리를 만드세요.\n"
-        "- preferred_sections는 재검색에서 특히 유력한 섹션 힌트만 짧게 넣으세요.\n"
-        "- 기존 seed sections에 이미 충분히 있는 정보를 그대로 반복하지 말고, 부족한 부분을 겨냥하세요.\n"
-        "- 하드 필터는 코드가 따로 처리하므로, 기업/연도는 query text에 포함하되 너무 장황하게 쓰지 마세요.\n"
-        "- derived task가 sibling lookup output에 의존하는 상황이면 retry_retrieval보다 synthesize_from_task_outputs를 우선 검토하세요.\n\n"
-        "질문: {query}\n"
-        "의도: {intent}\n"
-        "주제: {topic}\n"
-        "기업: {companies}\n"
-        "연도: {years}\n\n"
-        "현재 실패 추정:\n"
-        "- fallback_retry_objective={retry_objective}\n"
-        "- missing_info(heuristic)={missing_info}\n\n"
-        "Ontology Context:\n{ontology_context}\n\n"
-        "현재 확보한 피연산자:\n{operands}\n\n"
-        "현재 계산 계획:\n{plan_text}\n\n"
-        "현재 계산 결과:\n{calc_result_text}\n\n"
-        "현재 seed sections:\n{seed_sections}\n\n"
-        "참고용 heuristic retry plan:\n{heuristic_plan}\n"
-    ),
+SEMANTIC_REQUIRED_EVIDENCE_POLICY: Dict[str, int] = {
+    "max_seed_candidates": 8,
+    "max_narrative_candidates_per_group": 6,
+}
+
+
+SEMANTIC_CANDIDATE_POLICY: Dict[str, Any] = {
+    "fiscal_period_ordinal_pattern": r"제\s*(\d+)\s*기",
 }
 
 
@@ -928,135 +603,39 @@ INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
 
 
 PLANNING_POLICY: Dict[str, Any] = {
-    "money_surface_pattern": (
-        r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
-        r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|십억원|억원|백만원|천원|원|%)"
-    ),
-    "year_token_pattern": r"20\d{2}",
-    "year_label_token_pattern": r"20\d{2}\s*년?",
-    "money_surface_compound_unit_prefix": "조",
-    "hybrid_narrative_metric_label": "질문 관련 배경/영향 설명",
-    "segment_default_metric_name": "매출액",
-    "non_numeric_operation_intent_override": {
-        "enabled": True,
-        "source_intents": ("qa", "risk", "business_overview"),
-        "target_intent": "numeric_fact",
-        "operation_families": ("lookup", "single_value", "sum", "difference", "ratio", "growth_rate"),
-        "unit_families": ("KRW", "USD", "COUNT", "PERCENT"),
-        "query_markers": (
-            "금액",
-            "수치",
-            "규모",
-            "값",
-            "찾",
-            "알려",
-            "제시",
-            "보여",
-            "추출",
-            "계산",
-            "비율",
-            "증가율",
-            "성장률",
-            "전년 대비",
-        ),
-        "minimum_concepts": 1,
-        "allow_generic_numeric_plan": True,
-        "planner_note": "non_numeric_operation_promoted_by_ontology",
-    },
-    "concept_planner_replan_rules": (
-        "- 현재는 replan mode입니다. planner_feedback를 읽고, 기존 task는 유지한 채 누락된 재료를 찾기 위한 추가 task만 만드세요.\n"
-        "- 기존 task와 실질적으로 같은 task를 다시 만들지 마세요.\n"
-        "- planner_feedback가 이미 확보된 기존 task로 해결된다면 tasks를 비워 둘 수 있습니다."
-    ),
-    "concept_planner_initial_rule": "- 현재는 initial mode입니다. 원본 질문을 풀기 위한 전체 재료 수집 계획을 세우세요.",
-    "concept_planner_prompt_template": (
-        "당신은 DART 재무 질문 planner입니다.\n"
-        "질문을 직접 답하지 말고, 아래 ontology concept만 사용해서 계산 계획으로 바꾸세요.\n\n"
-        "허용 operation_family:\n{allowed_operations}\n\n"
-        "role 규칙:\n"
-        "- ratio: numerator_1, numerator_2, ... / denominator_1, denominator_2, ...\n"
-        "- sum: addend_1, addend_2, ...\n"
-        "- difference: minuend, subtrahend 또는 current_period, prior_period\n"
-        "- growth_rate: current_period, prior_period\n"
-        "- lookup/single_value: role은 비워도 됨\n\n"
-        "planner_guidance.intent_cues:\n{intent_cues}\n\n"
-        "available concepts:\n{concept_catalog}\n\n"
-        "현재 planning mode:\n{planning_mode}\n\n"
-        "현재 planner_feedback:\n{planner_feedback}\n\n"
-        "기존 task 요약:\n{existing_tasks}\n\n"
-        "중요 규칙:\n"
-        "- ontology에 [group]으로 표시된 concept는 축약 표현입니다. planner는 group을 그대로 쓰거나, 그 group이 expands_to로 가리키는 atomic concept 전부를 써도 됩니다.\n"
-        "- 다만 최종 task는 질문에 필요한 모든 atomic 의미를 빠뜨리지 않아야 합니다. 예를 들어 \"유·무형자산\"이면 유형자산과 무형자산이 모두 포함되어야 합니다.\n"
-        "- 질문이 여러 지표를 \"각각\" 계산하라고 하면 tasks를 여러 개로 나누세요.\n"
-        "- planner의 목적은 최종 문장을 줄이는 것이 아니라, 질문에 답하는 데 필요한 재료(raw value, period pair, derived metric)를 빠짐없이 확보하는 것입니다.\n"
-        "- 사용자가 특정 연도/기간의 값을 \"추출\", \"제시\", \"보여\", \"알려\" 달라고 했으면 그 raw value를 위한 lookup task를 만드세요.\n"
-        "- 사용자가 raw value와 파생 계산(증감액, 증가율, 비율 등)을 함께 요구하면, lookup task와 calculation task를 모두 만들어도 됩니다.\n"
-        "- difference 또는 growth_rate task는 계산 재료를 모으는 역할이지, 그 task 하나가 최종 답변의 모든 노출 요구를 대신한다고 가정하지 마세요.\n"
-        "- lookup은 단일 값 조회나, 다른 계산 task와 별도로 원문 질문이 직접 요구한 raw 값을 확보할 때 사용하세요.\n"
-        "- benchmark 전용 metric family 이름에 의존하지 말고, operation과 concept 조합으로 task를 만드세요.\n"
-        "- 사업/부문/제품/브랜드(SDC, Harman 등)는 company로 보지 말고 report_scope의 company 안에서 분석할 segment로 다루세요.\n"
-        "- 여러 concept를 각각 더해야 하는 질문이면 먼저 필요한 lookup task를 만들고, 이후 sum task에서 concept addend 역할(addend_1, addend_2, ...)로 묶으세요.\n"
-        "- concept는 available concepts 안의 key만 써야 합니다.\n"
-        "- 질문에 명시되지 않은 company/year는 report_scope 기본값을 따른다고 가정하세요.\n"
-        "{mode_specific_rules}\n\n"
-        "few-shot 예시 1:\n"
-        "질문: 2023년 연결기준 부채비율을 계산해 줘.\n"
-        "출력:\n"
-        "tasks = [\n"
-        "  {{ metric_label: \"부채비율\", operation_family: \"ratio\", operands: [\n"
-        "    {{ concept: \"total_liabilities\", role: \"numerator_1\" }},\n"
-        "    {{ concept: \"total_equity\", role: \"denominator_1\" }}\n"
-        "  ]}}\n"
-        "]\n\n"
-        "few-shot 예시 2:\n"
-        "질문: 2023년 연결기준 부채비율과 유동비율을 각각 계산해 줘.\n"
-        "출력:\n"
-        "tasks = [\n"
-        "  {{ metric_label: \"부채비율\", operation_family: \"ratio\", operands: [\n"
-        "    {{ concept: \"total_liabilities\", role: \"numerator_1\" }},\n"
-        "    {{ concept: \"total_equity\", role: \"denominator_1\" }}\n"
-        "  ]}},\n"
-        "  {{ metric_label: \"유동비율\", operation_family: \"ratio\", operands: [\n"
-        "    {{ concept: \"current_assets\", role: \"numerator_1\" }},\n"
-        "    {{ concept: \"current_liabilities\", role: \"denominator_1\" }}\n"
-        "  ]}}\n"
-        "]\n\n"
-        "few-shot 예시 3:\n"
-        "질문: 2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금의 비중을 계산해 줘.\n"
-        "출력:\n"
-        "tasks = [\n"
-        "  {{ metric_label: \"유·무형자산 대비 차입금 비중\", operation_family: \"ratio\", operands: [\n"
-        "    {{ concept: \"short_term_borrowings\", role: \"numerator_1\" }},\n"
-        "    {{ concept: \"long_term_borrowings\", role: \"numerator_2\" }},\n"
-        "    {{ concept: \"bonds_payable\", role: \"numerator_3\" }},\n"
-        "    {{ concept: \"property_plant_equipment\", role: \"denominator_1\" }},\n"
-        "    {{ concept: \"intangible_assets\", role: \"denominator_2\" }}\n"
-        "  ]}}\n"
-        "]\n\n"
-        "few-shot 예시 4:\n"
-        "질문: 2023년 연결 손익계산서에서 법인세비용차감전순이익을 추출하고, 전년 대비 증감액을 계산해 줘.\n"
-        "출력:\n"
-        "tasks = [\n"
-        "  {{ metric_label: \"2023년 법인세비용차감전순이익\", operation_family: \"lookup\", operands: [\n"
-        "    {{ concept: \"income_before_income_taxes\", role: \"current_period\" }}\n"
-        "  ]}},\n"
-        "  {{ metric_label: \"법인세비용차감전순이익 증감액\", operation_family: \"difference\", operands: [\n"
-        "    {{ concept: \"income_before_income_taxes\", role: \"current_period\" }},\n"
-        "    {{ concept: \"income_before_income_taxes\", role: \"prior_period\" }}\n"
-        "  ]}}\n"
-        "]\n"
-        "설명:\n"
-        "- 원문 질문이 2023년 raw value와 전년 대비 증감액을 모두 요구하므로, raw value lookup과 difference 계산 재료를 모두 확보합니다.\n\n"
-        "질문:\n{query}\n\n"
-        "topic:\n{topic}\n\n"
-        "intent:\n{intent}\n\n"
-        "report_scope:\n{report_scope}\n\n"
-        "Also return:\n"
-        "- companies: normalized company list for this question\n"
-        "- years: normalized relevant years\n"
-        "- topic: a concise topic string for retrieval/ranking\n"
-        "- section_filter: a single best section hint when one section is strongly dominant, otherwise null\n"
-    ),
+    'requirement_planner_prompt_template': "당신은 DART 재무 질문의 검색 전 의미 요구사항을 정리합니다.\n"
+            "계산 종류를 lookup, ratio, growth_rate 같은 고정 operation으로 분류하지 마세요.\n"
+            "사용자가 최종 답변에서 확인해야 할 출력 각각을 answer obligation으로 표현하세요.\n\n"
+            "규칙:\n"
+            "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
+            "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
+            "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
+            "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"
+            "- obligation_id는 짧고 고유하게 작성합니다. 런타임이 이후 안정 ID로 정규화합니다.\n"
+            "- company, period, consolidation_scope, segment, basis처럼 의미가 다른 범위를 scope에 명시합니다.\n"
+            "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
+            "- evidence_mode의 기본값은 declared_inputs입니다. 원시 계산 입력과 질문에 명시된 사실·관계에는 이 모드를 유지하세요. 이 모드의 narrative obligation은 답변에 필요한 각 사실과 관계, 특히 인과 설명을 evidence_requirements에 선언합니다. 대상 변화와 설명 요인을 함께 식별할 수 있는 label과 retrieval_hints를 사용하고, 다른 지표의 변화나 일반적 배경을 대상 변화의 직접 원인 근거로 대용하지 마세요.\n"
+            "- 총액과 구성비처럼 공통 기준으로 결합되어야 하는 출력만 같은 coupling_key를 사용합니다. 같은 질문·회사·보고서에 속한다는 이유만으로 묶지 마세요. 독립적으로 요청된 출력은 coupling_key를 비워 두며 서로 다른 표를 근거로 사용할 수 있습니다. coupling_key는 반복 없는 64자 이하의 짧고 안정적인 식별자로 작성하세요.\n"
+            "- ontology hints는 검색용 참고일 뿐이며, 질문에 맞는 표현이 없다고 obligation을 삭제하지 마세요.\n"
+            "- retrieval_hints와 retrieval_queries는 질문의 표현과 선택 가능한 ontology hint를 이용하되 계산식을 넣지 마세요.\n"
+            "- 질문에 없는 회사·기간·범위를 만들지 말고 report_scope 기본값만 사용할 수 있습니다.\n"
+            "- consolidation_scope의 consolidated 또는 separate는 질문이 그 범위를 명시한 경우에만 사용하고, report_scope의 문서 metadata나 관행으로 사용자 의도를 추정하지 마세요. 명시가 없으면 unknown으로 두세요.\n"
+            "- scope 필드에는 실제 값만 쓰고 report_scope, unknown 같은 placeholder를 값으로 복사하지 마세요.\n\n"
+            "질문:\n{query}\n\n"
+            "topic:\n{topic}\n\n"
+            "intent:\n{intent}\n\n"
+            "report_scope:\n{report_scope}\n\n"
+            "선택 가능한 ontology retrieval hints:\n{ontology_hints}\n"
+,
+    'money_surface_pattern': r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
+            r"(?P<unit>조\s*\d[\d,]*(?:\.\d+)?\s*억원|조원|십억원|억원|백만원|천원|원|%)"
+,
+    'year_token_pattern': r"20\d{2}"
+,
+    'year_label_token_pattern': r"20\d{2}\s*년?"
+,
+    'money_surface_compound_unit_prefix': "조"
+,
 }
 
 
@@ -1275,44 +854,6 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
     "나. 영업실적",
 )
 
-QUANTITATIVE_IMPACT_QUERY_TERMS = ("영향", "분석", "비중", "대비", "차지")
-
-QUANTITATIVE_IMPACT_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "focus_stopwords": (
-        "2023년",
-        "재무제표",
-        "주석",
-        "주석에서",
-        "규모를",
-        "찾고",
-        "이것이",
-        "미친",
-        "영향",
-        "영향을",
-        "분석해",
-    ),
-    "primary_denominator_markers": ("매출원가", "매출액", "영업수익", "영업비용", "총계", "합계"),
-    "denominator_markers": ("자산", "부채", "자본"),
-    "label_drop_terms": ("등",),
-    "cost_denominator_markers": ("원가", "비용"),
-    "loss_markers": ("손실", "손상차손"),
-    "relation_markers": ("포함", "반영", "인식", "영향"),
-    "cost_relation_context_markers": ("원가", "비용", "손익"),
-    "relation_query_template": "{focus_terms} {relation_terms} {context_terms}",
-    "relation_seed_bonus": 1.0,
-    "caveat_trigger_terms": ("등", "환입"),
-    "caveat_exception_terms": ("세부",),
-    "consolidated_scope_prefix": "연결 기준 ",
-    "default_impact_sentence": "해당 기준 금액에 반영된 항목으로 해석할 수 있습니다.",
-    "scale_only_impact_template": "{denominator_label} 대비 규모로 확인됩니다.",
-    "cost_loss_impact_template": "{denominator_label}에 포함되어 비용을 증가시키고 매출총이익을 압박하는 요인입니다.",
-    "cost_impact_template": "{denominator_label}에 포함되어 해당 비용에 영향을 주는 항목입니다.",
-    "caveat_sentence": " 항목명상 손실, 환입 등의 세부 구성은 이 근거만으로는 분해하지 않습니다.",
-    "answer_template": (
-        "{scope_prefix}{numerator_label}은 {numerator_raw}{unit_suffix}입니다. "
-        "{impact_sentence} {denominator_label} {denominator_raw}{unit_suffix} 대비 약 {ratio:.2f}% 규모입니다.{caveat}"
-    ),
-}
 
 ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY: Dict[str, Any] = {
     "consolidated_query_terms": ("연결",),
@@ -1419,7 +960,7 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
             "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
         ),
     },
-    "extra_rules_by_operation_family": {
+    "extra_rules_by_answer_mode": {
         "narrative_summary": (
             "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
             "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
@@ -1589,14 +1130,6 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "label_template": "query_focus_{index}",
 }
 
-PERIOD_COMPARISON_COUNT_POLICY: Dict[str, Any] = {
-    "sentence_split_pattern": r"(?<=[.!?。])\s+|(?<=[가-힣])\.(?=(?:20\d{2}|[가-힣]))",
-    "year_pattern": r"(20\d{2})년?",
-    "stated_change_pattern": (
-        rf"(?:{KOREAN_PERIOD_COMPARISON_RE_FRAGMENT}|대비)\s*"
-        r"(?P<value>[\-+]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>%|퍼센트)"
-    ),
-}
 
 DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
     "amount_patterns": (
