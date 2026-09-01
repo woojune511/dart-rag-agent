@@ -523,7 +523,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "질문을 lookup, ratio, growth_rate 같은 고정 타입으로 먼저 분류하지 마세요.\n"
             "각 answer obligation을 충족할 실제 candidate를 고르고, 파생값만 제한 수식으로 표현하세요.\n\n"
             "필수 규칙:\n"
-            "- candidate catalog에 있는 candidate_id만 참조하세요. 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
+            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
+            "- 같은 candidate가 보여도 다른 owner cohort의 ID를 가져다 쓰지 마세요. row_headers, local_entity_surfaces, physical provenance, applicability_by_owner를 함께 확인하세요.\n"
             "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
             "- candidate_kind가 sentence_value이면 source_text 문장에 그 숫자가 직접 기재된 후보입니다. 질문의 의미를 문장이 직접 설명하면 인접한 회계 행을 대용하지 말고 이 후보를 우선 검토하세요.\n"
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
@@ -546,7 +547,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
             "원본 질문:\n{query}\n\n"
             "Answer obligations:\n{obligations}\n\n"
-            "Candidate catalog:\n{candidate_catalog}\n\n"
+            "Candidate cohorts and candidates_by_id:\n{candidate_catalog}\n\n"
             "재시도 피드백(없으면 -):\n{retry_feedback}\n"
 ,
     'semantic_program_render_templates': {
@@ -566,6 +567,9 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "numeric_candidates": 96,
             "narrative_candidates": 32,
             "required_input_candidates_per_group": 4,
+            "numeric_candidates_per_owner": 4,
+            "narrative_candidates_per_owner": 6,
+            "compatibility_narrative_candidates_per_numeric_obligation": 2,
             "numeric_source_chars": 420,
             "narrative_source_chars": 600,
         }
@@ -581,6 +585,14 @@ SEMANTIC_REQUIRED_EVIDENCE_POLICY: Dict[str, int] = {
 
 SEMANTIC_CANDIDATE_POLICY: Dict[str, Any] = {
     "fiscal_period_ordinal_pattern": r"제\s*(\d+)\s*기",
+    "local_subject_clause_pattern": (
+        r"([가-힣A-Za-z0-9][^,;:!?|]{0,70}?)"
+        r"(?:은|는|이|가|의|에서|에는)(?=\s|$)"
+    ),
+    "local_subject_latin_entity_pattern": (
+        r"\b([A-Z][A-Za-z0-9&.\-]*(?:\s+[A-Z][A-Za-z0-9&.\-]*){0,4})"
+        r"(?:['’]s)?\b"
+    ),
 }
 
 

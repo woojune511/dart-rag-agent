@@ -9,6 +9,7 @@ from unittest.mock import patch
 from src.agent.financial_calculation_execution import (
     derive_operation_family_from_formula,
     execute_semantic_calculation_program,
+    semantic_candidate_applicability,
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph_models import (
@@ -18,6 +19,9 @@ from src.agent.financial_graph_models import (
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import (
+    _merge_targeted_program_retry,
+    _retry_candidate_exclusions,
+    _semantic_candidate_cohorts,
     _semantic_obligation_relevance_groups,
     _semantic_required_evidence_relevance_groups,
 )
@@ -30,7 +34,11 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
 )
-from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY, PLANNING_POLICY
+from src.config.retrieval_policy import (
+    CALCULATION_PROMPT_POLICY,
+    CONSOLIDATION_SCOPE_POLICY,
+    PLANNING_POLICY,
+)
 
 
 def _scope(**overrides):
@@ -982,6 +990,28 @@ class SemanticCalculationProgramTests(unittest.TestCase):
         )
 
         self.assertEqual(groups, [["change explanation", "risk context"]])
+
+    def test_prompt_relevance_removes_embedded_declared_scope_markers(self) -> None:
+        consolidation_marker = str(
+            CONSOLIDATION_SCOPE_POLICY["query_markers"]["consolidated"][0]
+        )
+        groups = _semantic_obligation_relevance_groups(
+            [
+                _obligation(
+                    "ob_metric",
+                    "direct_value",
+                    f"2024 {consolidation_marker} target metric",
+                    scope=_scope(
+                        period="2024",
+                        consolidation_scope="consolidated",
+                    ),
+                    retrieval_hints=[consolidation_marker, "target metric"],
+                )
+            ],
+            owner_kind="numeric",
+        )
+
+        self.assertEqual(groups, [["target metric"]])
 
     def test_required_evidence_relevance_excludes_output_and_optional_inputs(self) -> None:
         required = _requirement("ob_value:req_required", "required quantity")
@@ -2050,12 +2080,487 @@ class SemanticCalculationProgramTests(unittest.TestCase):
                 )
                 self.assertTrue(
                     all(
-                        str(item.get("source_candidate_id") or "").startswith(
-                            "sample:table:1::"
-                        )
+                        str(item.get("source_candidate_id") or "").startswith("table_")
+                        and "::row_" in str(item.get("source_candidate_id") or "")
                         for item in numeric
                     )
                 )
+
+    def test_repeated_table_bundle_uses_one_candidate_per_physical_cell(self) -> None:
+        table_source_id = "sample section::table:7"
+        row_records = [
+            {
+                "row_id": "2:0",
+                "row_label": "target entity",
+                "row_headers": ["region", "target entity"],
+                "cells": [
+                    {
+                        "cell_id": "2:0:2",
+                        "column_index": 2,
+                        "column_headers": ["current period", "ownership share"],
+                        "value_text": "26",
+                        "unit_hint": "%",
+                    }
+                ],
+            },
+            {
+                "row_id": "2:1",
+                "row_label": "other entity",
+                "row_headers": ["region", "other entity"],
+                "cells": [
+                    {
+                        "cell_id": "2:1:2",
+                        "column_index": 2,
+                        "column_headers": ["current period", "ownership share"],
+                        "value_text": "53",
+                        "unit_hint": "%",
+                    }
+                ],
+            },
+        ]
+        value_records = [
+            {
+                "value_id": f"{table_source_id}:v:{row_index}:2",
+                "row_index": row_index,
+                "column_index": 2,
+                "semantic_label": row["row_label"],
+                "row_label": row["row_label"],
+                "row_headers": row["row_headers"],
+                "column_headers": ["current period", "ownership share"],
+                "period_text": "current period",
+                "value_text": row["cells"][0]["value_text"],
+                "unit_hint": "%",
+                "value_role": "detail",
+                "aggregation_stage": "none",
+            }
+            for row_index, row in enumerate(row_records)
+        ]
+
+        def build(order):
+            docs = []
+            for chunk_uid in order:
+                docs.append(
+                    (
+                        SimpleNamespace(
+                            page_content=(
+                                "PARENT TABLE BODY target entity 26% other entity 53% "
+                                "unrelated material must not be copied into every row."
+                            ),
+                            metadata={
+                                "chunk_uid": chunk_uid,
+                                "company": "document company",
+                                "year": 2024,
+                                "is_table": True,
+                                "block_type": "table",
+                                "table_source_id": table_source_id,
+                                "table_header_context": "entity | current period ownership share",
+                                "table_row_records_json": json.dumps(row_records),
+                                "table_value_records_json": json.dumps(value_records),
+                            },
+                        ),
+                        0.0,
+                    )
+                )
+            source_state = {"retrieved_docs": docs}
+            sources = build_semantic_source_candidates(
+                source_state,
+                source_anchor_builder=lambda item: f"[{item.get('chunk_uid')}]",
+            )
+            return source_state, sources, build_semantic_candidate_catalog(sources)
+
+        first_state, first_sources, first_catalog = build(["chunk-b", "chunk-a"])
+        _second_state, second_sources, second_catalog = build(["chunk-a", "chunk-b"])
+        first_numeric = [
+            item
+            for item in first_catalog
+            if item.get("kind") == "numeric"
+            and item.get("candidate_kind") == "structured_row"
+        ]
+        second_numeric = [
+            item
+            for item in second_catalog
+            if item.get("kind") == "numeric"
+            and item.get("candidate_kind") == "structured_row"
+        ]
+
+        self.assertEqual(
+            len(
+                [
+                    item
+                    for item in first_sources
+                    if item.get("candidate_kind") == "structured_row"
+                ]
+            ),
+            2,
+        )
+        self.assertEqual(len(first_numeric), 2)
+        self.assertEqual(
+            {item["candidate_id"] for item in first_numeric},
+            {item["candidate_id"] for item in second_numeric},
+        )
+        self.assertEqual(
+            semantic_candidate_catalog_fingerprint(first_catalog),
+            semantic_candidate_catalog_fingerprint(second_catalog),
+        )
+        target = next(item for item in first_numeric if item["raw_value"] == "26")
+        self.assertEqual(target["physical_table_id"], table_source_id)
+        self.assertEqual(target["physical_row_id"], "2:0")
+        self.assertEqual(target["physical_cell_id"], "2:0:2")
+        self.assertEqual(
+            target["physical_value_id"],
+            f"{table_source_id}:v:0:2",
+        )
+        self.assertEqual(target["row_headers"], ["region", "target entity"])
+        self.assertEqual(
+            target["local_entity_surfaces"],
+            ["target entity", "region"],
+        )
+        self.assertNotIn("other entity 53", target["source_text"])
+        self.assertNotIn("unrelated material", target["source_text"])
+        diagnostics = semantic_candidate_stage_diagnostics(
+            state=first_state,
+            source_candidates=first_sources,
+            catalog=first_catalog,
+            prompt_catalog=first_catalog,
+        )
+        self.assertEqual(
+            diagnostics["physical_deduplication"],
+            {
+                "structured_table_attachment_count": 2,
+                "attached_physical_cell_projection_count": 4,
+                "unique_physical_cell_candidate_count": 2,
+                "duplicate_physical_cell_projection_count": 2,
+            },
+        )
+
+    def test_owner_cohort_prefers_local_match_and_excludes_conflicting_row(self) -> None:
+        obligation = _obligation(
+            "ob_share",
+            "direct_value",
+            "ownership share",
+            scope=_scope(
+                company="document company",
+                segment="target entity",
+            ),
+        )
+        target = {
+            **_candidate("target", 26, raw_unit="%", normalized_unit="PERCENT"),
+            "candidate_kind": "structured_row",
+            "company": "document company",
+            "document_company": "document company",
+            "row_label": "ownership share",
+            "row_headers": ["region", "target entity"],
+            "local_entity_surfaces": ["ownership share", "region", "target entity"],
+            "physical_table_id": "table-1",
+            "physical_row_id": "row-target",
+            "physical_cell_id": "cell-target",
+        }
+        conflicting = {
+            **target,
+            "candidate_id": "other",
+            "row_headers": ["region", "other entity"],
+            "local_entity_surfaces": ["ownership share", "region", "other entity"],
+            "physical_row_id": "row-other",
+            "physical_cell_id": "cell-other",
+            "raw_value": "53",
+            "normalized_value": 53.0,
+        }
+        unknown = {
+            **_candidate("unknown", 25, raw_unit="%", normalized_unit="PERCENT"),
+            "candidate_kind": "sentence_value",
+            "company": "document company",
+            "document_company": "document company",
+            "row_label": "reported share",
+            "row_headers": [],
+            "local_entity_surfaces": [],
+            "source_text": "A reported share of 25% appears in the note.",
+        }
+
+        self.assertEqual(
+            semantic_candidate_applicability(target, obligation)["state"],
+            "compatible",
+        )
+        self.assertEqual(
+            semantic_candidate_applicability(conflicting, obligation)["state"],
+            "explicit_conflict",
+        )
+        self.assertEqual(
+            semantic_candidate_applicability(unknown, obligation)["state"],
+            "unknown_only",
+        )
+
+        cohort_plan = _semantic_candidate_cohorts(
+            [unknown, conflicting, target],
+            [obligation],
+        )
+        output_cohort = next(
+            item
+            for item in cohort_plan["cohorts"]
+            if item["cohort_id"] == "ob_share:output"
+        )
+        self.assertEqual(output_cohort["candidate_ids"], ["target", "unknown"])
+        self.assertEqual(
+            output_cohort["applicability_counts"],
+            {"compatible": 1, "unknown_only": 1, "explicit_conflict": 1},
+        )
+        payload = FinancialAgent._semantic_program_prompt_payload(
+            [unknown, conflicting, target],
+            cohort_plan,
+        )
+        self.assertNotIn("other", payload["candidates_by_id"])
+        target_row = payload["candidates_by_id"]["target"]
+        self.assertEqual(target_row["document_company"], "document company")
+        self.assertEqual(target_row["row_headers"], ["region", "target entity"])
+        self.assertEqual(target_row["physical_row_id"], "row-target")
+        self.assertEqual(
+            target_row["applicability_by_owner"]["ob_share"]["state"],
+            "compatible",
+        )
+
+    def test_owner_cohort_scores_full_row_axis_before_other_target_cells(self) -> None:
+        obligation = _obligation(
+            "ob_share",
+            "direct_value",
+            "target entity ownership share",
+            scope=_scope(
+                company="document company",
+                segment="target entity",
+            ),
+        )
+        common = {
+            "candidate_kind": "structured_row",
+            "company": "document company",
+            "document_company": "document company",
+            "row_headers": ["all entities", "target entity", "region"],
+            "local_entity_surfaces": ["all entities", "target entity", "region"],
+            "physical_table_id": "table-1",
+            "physical_row_id": "row-target",
+        }
+        distractors = [
+            {
+                **_candidate(f"other-{index}", index + 1),
+                **common,
+                "row_label": "target entity",
+                "column_headers": [column_header],
+                "physical_cell_id": f"cell-{index}",
+            }
+            for index, column_header in enumerate(
+                ("cash", "current liabilities", "non-current liabilities", "assets")
+            )
+        ]
+        target = {
+            **_candidate("target-share", 26, raw_unit="%", normalized_unit="PERCENT"),
+            **common,
+            "row_label": "region",
+            "column_headers": ["ownership share"],
+            "physical_cell_id": "cell-share",
+        }
+
+        cohort_plan = _semantic_candidate_cohorts(
+            [*distractors, target],
+            [obligation],
+        )
+        output_cohort = next(
+            item
+            for item in cohort_plan["cohorts"]
+            if item["cohort_id"] == "ob_share:output"
+        )
+        self.assertEqual(output_cohort["candidate_ids"][0], "target-share")
+        self.assertIn("target-share", output_cohort["candidate_ids"])
+        self.assertEqual(len(output_cohort["candidate_ids"]), 4)
+
+    def test_owner_cohort_admits_relevant_unknown_before_scope_only_noise(self) -> None:
+        obligation = _obligation(
+            "ob_metric",
+            "direct_value",
+            "2024 target metric total",
+            scope=_scope(
+                company="document company",
+                period="2024",
+                consolidation_scope="consolidated",
+            ),
+            retrieval_hints=["target metric"],
+        )
+        target = {
+            **_candidate(
+                "target-unknown",
+                42,
+                period="2024",
+                row_label="target metric total",
+            ),
+            "company": "document company",
+            "document_company": "document company",
+        }
+        noise = [
+            {
+                **_candidate(
+                    f"scope-only-{index}",
+                    index + 1,
+                    period="2024",
+                    row_label=f"unrelated field {index}",
+                ),
+                "company": "document company",
+                "document_company": "document company",
+                "consolidation_scope": "consolidated",
+            }
+            for index in range(4)
+        ]
+
+        cohort_plan = _semantic_candidate_cohorts(
+            [*noise, target],
+            [obligation],
+        )
+        output_cohort = next(
+            item
+            for item in cohort_plan["cohorts"]
+            if item["cohort_id"] == "ob_metric:output"
+        )
+        self.assertIn("target-unknown", output_cohort["candidate_ids"])
+        self.assertEqual(output_cohort["candidate_ids"][-1], "target-unknown")
+        self.assertEqual(len(output_cohort["candidate_ids"]), 4)
+        self.assertEqual(
+            output_cohort["applicability_counts"],
+            {"compatible": 4, "unknown_only": 1, "explicit_conflict": 0},
+        )
+
+    def test_validator_rejects_cross_owner_candidate_visibility(self) -> None:
+        target = _candidate("target-visible", 26, raw_unit="%", normalized_unit="PERCENT")
+        other = _candidate("other-visible", 53, raw_unit="%", normalized_unit="PERCENT")
+        obligations = [
+            _obligation("ob_target", "direct_value", "target share", display_unit="%"),
+            _obligation("ob_other", "direct_value", "other share", display_unit="%"),
+        ]
+        validation = validate_semantic_calculation_program(
+            program={
+                "status": "incomplete",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_target",
+                        "candidate_id": "other-visible",
+                    }
+                ],
+                "missing_obligation_ids": ["ob_other"],
+            },
+            obligations=obligations,
+            candidate_catalog=[target, other],
+            query="Return both shares.",
+            selectable_candidate_ids_by_owner={
+                "ob_target": ["target-visible"],
+                "ob_other": ["other-visible"],
+            },
+        )
+        self.assertIn(
+            {
+                "code": "candidate_not_exposed_to_compiler",
+                "obligation_id": "ob_target",
+                "detail": "other-visible",
+            },
+            validation["errors"],
+        )
+
+        derived = _obligation(
+            "ob_derived",
+            "derived_value",
+            "difference",
+            evidence_requirements=[
+                _requirement("ob_derived:req_a", "first input"),
+                _requirement("ob_derived:req_b", "second input"),
+            ],
+        )
+        requirement_validation = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "expressions": [
+                    {
+                        "obligation_id": "ob_derived",
+                        "variable_bindings": [
+                            _binding("A", "other-visible", "ob_derived:req_a"),
+                            _binding("B", "target-visible", "ob_derived:req_b"),
+                        ],
+                        "formula": "A - B",
+                    }
+                ],
+            },
+            obligations=[derived],
+            candidate_catalog=[target, other],
+            query="Subtract the second input from the first input.",
+            selectable_candidate_ids_by_owner={
+                "ob_derived": ["target-visible", "other-visible"],
+                "ob_derived:req_a": ["target-visible"],
+                "ob_derived:req_b": ["other-visible"],
+            },
+        )
+        self.assertGreaterEqual(
+            sum(
+                item["code"] == "candidate_not_exposed_to_compiler"
+                for item in requirement_validation["errors"]
+            ),
+            2,
+        )
+
+    def test_candidate_cohort_reservation_overflow_fails_closed(self) -> None:
+        obligations = [
+            _obligation(
+                f"ob_{index}",
+                "derived_value",
+                f"derived output {index}",
+                evidence_requirements=[
+                    _requirement(
+                        f"ob_{index}:req_{requirement_index}",
+                        f"input {requirement_index}",
+                    )
+                    for requirement_index in range(3)
+                ],
+            )
+            for index in range(9)
+        ]
+        cohort_plan = _semantic_candidate_cohorts([], obligations)
+        self.assertEqual(cohort_plan["status"], "capacity_exceeded")
+        self.assertGreater(
+            cohort_plan["reservation"]["numeric"],
+            cohort_plan["reservation"]["numeric_limit"],
+        )
+        self.assertEqual(cohort_plan["cohorts"], [])
+
+    def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:
+        preserved = {
+            "obligation_id": "ob_valid",
+            "candidate_id": "cand-valid",
+            "compatibility_candidate_ids": [],
+            "resolved_subject": "target",
+            "subject_source": "candidate_row_identity",
+            "subject_source_row_ids": ["row-valid"],
+        }
+        before = json.dumps(
+            preserved,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        merged = _merge_targeted_program_retry(
+            previous_validation={
+                "valid_direct_bindings": [preserved],
+                "valid_expressions": [],
+                "valid_narrative_bindings": [],
+            },
+            retry_program={
+                "status": "ready",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_retry",
+                        "candidate_id": "cand-promoted",
+                    }
+                ],
+            },
+            target_obligation_ids=["ob_retry"],
+        )
+        after = json.dumps(
+            merged["direct_bindings"][0],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(after, before)
 
     def test_canonical_operand_projection_resolves_local_unit_and_current_period(self) -> None:
         fixture = _contract_residual_fixture()["canonical_operand_projection"]
@@ -4717,12 +5222,12 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["program_mode"], "semantic_program")
         self.assertEqual(
             trace["calculation_plan"]["prompt_candidate_strategy"],
-            "required_input_local_cohort_relevance_v3",
+            "obligation_owner_cohorts_v1",
         )
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v1",
+            "semantic_candidate_stage_diagnostics_v2",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)
@@ -4758,6 +5263,198 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         self.assertIn("operand_set", artifact_kinds)
         self.assertIn("calculation_plan", artifact_kinds)
         self.assertIn("calculation_result", artifact_kinds)
+
+    def test_retry_replaces_rejected_candidate_and_omits_valid_output(self) -> None:
+        valid = {
+            **_candidate(
+                "cand-valid",
+                10,
+                raw_unit="%",
+                normalized_unit="PERCENT",
+            ),
+            "candidate_kind": "structured_row",
+            "row_headers": ["valid output"],
+        }
+        bad_candidates = [
+            {
+                **_candidate(
+                    f"cand-bad-{index}",
+                    20 + index,
+                    raw_unit="%",
+                    normalized_unit="PERCENT",
+                ),
+                "candidate_kind": "sentence_value",
+                "row_label": "reported share",
+                "row_headers": [],
+                "local_entity_surfaces": [],
+                "source_text": f"A generic note reports {20 + index}%.",
+            }
+            for index in range(1, 5)
+        ]
+        promoted = {
+            **_candidate(
+                "cand-promoted",
+                26,
+                raw_unit="%",
+                normalized_unit="PERCENT",
+            ),
+            "candidate_kind": "structured_row",
+            "row_label": "ownership share",
+            "row_headers": ["target entity"],
+            "local_entity_surfaces": ["ownership share", "target entity"],
+        }
+        catalog = [valid, *bad_candidates, promoted]
+        obligations = [
+            _obligation(
+                "ob_valid",
+                "direct_value",
+                "valid output",
+                display_unit="%",
+            ),
+            _obligation(
+                "ob_retry",
+                "direct_value",
+                "target ownership share",
+                display_unit="%",
+                scope=_scope(segment="target entity"),
+            ),
+        ]
+        first_program = {
+            "status": "ready",
+            "direct_bindings": [
+                {"obligation_id": "ob_valid", "candidate_id": "cand-valid"},
+                {"obligation_id": "ob_retry", "candidate_id": "cand-bad-1"},
+            ],
+        }
+        retry_program = {
+            "status": "ready",
+            "direct_bindings": [
+                {
+                    "obligation_id": "ob_retry",
+                    "candidate_id": "cand-promoted",
+                }
+            ],
+        }
+        first_model = SemanticCalculationProgram.model_validate(first_program)
+        llm = _StructuredQueueLLM(
+            first_model,
+            SemanticCalculationProgram.model_validate(retry_program),
+        )
+        agent = self._agent(llm)
+        state = {
+            "query": "Return the valid output and the target entity ownership share.",
+            "query_type": "multi_metric",
+            "intent": "multi_metric",
+            "topic": "ownership share",
+            "report_scope": {},
+            "answer_obligations": obligations,
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "semantic_program",
+                "metric_label": "two outputs",
+                "query": "Return both outputs.",
+            },
+            "tasks": [],
+            "artifacts": [],
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "planner_debug_trace": {},
+            "resolved_calculation_trace": {},
+        }
+        initial_cohorts = _semantic_candidate_cohorts(catalog, obligations)
+        first_validation = validate_semantic_calculation_program(
+            program=first_model.model_dump(),
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query=state["query"],
+            selectable_candidate_ids_by_owner=initial_cohorts[
+                "candidate_ids_by_owner"
+            ],
+        )
+        preserved_before = json.dumps(
+            first_validation["valid_direct_bindings"][0],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=catalog,
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        self.assertEqual(compiled["semantic_program_retry_count"], 1)
+        self.assertEqual(len(llm.prompts), 2)
+        first_prompt = str(llm.prompts[0])
+        retry_prompt = str(llm.prompts[1])
+        self.assertNotIn("cand-bad-4", first_prompt)
+        self.assertIn("cand-bad-4", retry_prompt)
+        self.assertNotIn("cand-bad-1", retry_prompt)
+        self.assertNotIn('"obligation_id": "ob_valid"', retry_prompt)
+        final_valid = next(
+            item
+            for item in compiled["semantic_program"]["direct_bindings"]
+            if item["obligation_id"] == "ob_valid"
+        )
+        preserved_after = json.dumps(
+            final_valid,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(preserved_after, preserved_before)
+        attempts = compiled["resolved_calculation_trace"]["calculation_plan"][
+            "candidate_stage_diagnostics"
+        ]["attempts"]
+        self.assertEqual(len(attempts), 2)
+        self.assertLess(
+            attempts[1]["serialized_candidate_bytes"],
+            attempts[0]["serialized_candidate_bytes"],
+        )
+
+    def test_retry_excludes_only_the_candidate_role_that_failed(self) -> None:
+        program = {
+            "direct_bindings": [
+                {
+                    "obligation_id": "ob_direct",
+                    "candidate_id": "cand-primary",
+                    "compatibility_candidate_ids": ["cand-witness"],
+                }
+            ]
+        }
+
+        primary_exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "candidate_scope_mismatch",
+                    "obligation_id": "ob_direct",
+                    "detail": "period",
+                }
+            ],
+            target_obligation_ids=["ob_direct"],
+        )
+        witness_exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "compatibility_scope_mismatch",
+                    "obligation_id": "ob_direct",
+                    "detail": "consolidation_scope",
+                }
+            ],
+            target_obligation_ids=["ob_direct"],
+        )
+
+        self.assertEqual(primary_exclusions, {"ob_direct": ["cand-primary"]})
+        self.assertEqual(witness_exclusions, {"ob_direct": ["cand-witness"]})
 
     def test_source_and_formula_displays_survive_graph_trace_ledger_and_numeric_evaluation(self) -> None:
         from src.agent.financial_task_artifacts import project_task_artifact_trace

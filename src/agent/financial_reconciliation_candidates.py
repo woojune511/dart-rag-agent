@@ -30,16 +30,23 @@ def _semantic_candidate_id(payload: Mapping[str, Any]) -> str:
 def semantic_candidate_catalog_fingerprint(catalog: Sequence[Mapping[str, Any]]) -> str:
     """Return a stable digest for a catalog without exposing it as an authority."""
 
-    payload = [
-        {
-            "candidate_id": str(item.get("candidate_id") or ""),
-            "source_candidate_id": str(item.get("source_candidate_id") or ""),
-            "raw_value": str(item.get("raw_value") or ""),
-            "raw_unit": str(item.get("raw_unit") or ""),
-            "source_row_id": str(item.get("source_row_id") or ""),
-        }
-        for item in catalog
-    ]
+    payload = sorted(
+        [
+            {
+                "candidate_id": str(item.get("candidate_id") or ""),
+                "source_candidate_id": str(item.get("source_candidate_id") or ""),
+                "raw_value": str(item.get("raw_value") or ""),
+                "raw_unit": str(item.get("raw_unit") or ""),
+                "source_row_id": str(item.get("source_row_id") or ""),
+            }
+            for item in catalog
+        ],
+        key=lambda item: (
+            item["candidate_id"],
+            item["source_candidate_id"],
+            item["source_row_id"],
+        ),
+    )
     serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
@@ -192,6 +199,8 @@ def semantic_candidate_stage_diagnostics(
     source_candidates: Sequence[Mapping[str, Any]],
     catalog: Sequence[Mapping[str, Any]],
     prompt_catalog: Sequence[Mapping[str, Any]],
+    cohorts: Sequence[Mapping[str, Any]] = (),
+    attempts: Sequence[Mapping[str, Any]] = (),
 ) -> Dict[str, Any]:
     """Summarize source-to-prompt projection without copying candidate values.
 
@@ -289,8 +298,66 @@ def semantic_candidate_stage_diagnostics(
         for item in prompt_catalog
         if str(item.get("candidate_id") or "").strip()
     ]
+    def numeric_projection_count(
+        cells: Sequence[Mapping[str, Any]],
+        metadata: Mapping[str, Any],
+    ) -> int:
+        count = 0
+        for cell in cells:
+            raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
+            if not raw_value or not re.search(r"\d", raw_value):
+                continue
+            source_unit_hint = _normalise_spaces(
+                str(cell.get("unit_hint") or metadata.get("unit_hint") or "")
+            )
+            raw_unit, _raw_unit_source = resolve_source_numeric_unit(
+                raw_value,
+                source_unit_hint,
+            )
+            normalized_value, _normalized_unit = _normalise_operand_value(
+                raw_value,
+                raw_unit,
+            )
+            if normalized_value is not None:
+                count += 1
+        return count
+
+    attached_physical_cell_count = 0
+    structured_table_attachment_count = 0
+    for entry in [
+        *list(state.get("retrieved_docs") or []),
+        *list(state.get("seed_retrieved_docs") or []),
+    ]:
+        doc = entry[0] if isinstance(entry, (tuple, list)) and entry else entry
+        metadata = dict(getattr(doc, "metadata", {}) or {})
+        _table_object, row_records, value_records = _table_record_bundle(metadata)
+        if row_records:
+            structured_table_attachment_count += 1
+            attached_physical_cell_count += sum(
+                numeric_projection_count(
+                    [
+                        cell
+                        for cell in (row.get("cells") or [])
+                        if isinstance(cell, Mapping)
+                    ],
+                    metadata,
+                )
+                for row in row_records
+            )
+        elif value_records:
+            structured_table_attachment_count += 1
+            attached_physical_cell_count += numeric_projection_count(
+                value_records,
+                metadata,
+            )
+    physical_cell_keys = {
+        str(item.get("physical_cell_key") or "").strip()
+        for item in catalog
+        if str(item.get("kind") or "") == "numeric"
+        and str(item.get("physical_cell_key") or "").strip()
+    }
     return {
-        "schema": "semantic_candidate_stage_diagnostics_v1",
+        "schema": "semantic_candidate_stage_diagnostics_v2",
         "source_window_origin": source_window_origin,
         "source_window": source_window,
         "source_candidate_count": len(source_candidate_ids),
@@ -308,6 +375,39 @@ def semantic_candidate_stage_diagnostics(
             prompt_candidate_ids
         ),
         "unresolved_prompt_candidate_count": unresolved_prompt_candidate_count,
+        "physical_deduplication": {
+            "structured_table_attachment_count": (
+                structured_table_attachment_count
+            ),
+            "attached_physical_cell_projection_count": (
+                attached_physical_cell_count
+            ),
+            "unique_physical_cell_candidate_count": len(physical_cell_keys),
+            "duplicate_physical_cell_projection_count": max(
+                0,
+                attached_physical_cell_count - len(physical_cell_keys),
+            ),
+        },
+        "cohorts": [
+            {
+                "cohort_id": str(item.get("cohort_id") or ""),
+                "owner_id": str(item.get("owner_id") or ""),
+                "parent_obligation_id": str(
+                    item.get("parent_obligation_id") or ""
+                ),
+                "owner_type": str(item.get("owner_type") or ""),
+                "candidate_kind": str(item.get("candidate_kind") or ""),
+                "candidate_count": len(item.get("candidate_ids") or []),
+                "candidate_id_fingerprint": str(
+                    item.get("candidate_id_fingerprint") or ""
+                ),
+                "applicability_counts": dict(
+                    item.get("applicability_counts") or {}
+                ),
+            }
+            for item in cohorts
+        ],
+        "attempts": [dict(item) for item in attempts],
         "by_source": by_source,
     }
 
@@ -631,14 +731,20 @@ def _catalog_relevance_score(
     aggregate_label = _normalise_spaces(
         str(row.get("aggregate_label") or "")
     ).lower()
+    row_headers = [
+        _normalise_spaces(str(item or "")).lower()
+        for item in (row.get("row_headers") or [])
+        if _normalise_spaces(str(item or ""))
+    ]
     semantic_labels = [
-        label for label in (row_label, aggregate_label) if label
+        label for label in (row_label, aggregate_label, *row_headers) if label
     ]
     primary_surface = _normalise_spaces(
         " ".join(
             [
                 row_label,
                 aggregate_label,
+                *row_headers,
                 *[str(item) for item in (row.get("column_headers") or [])],
                 str(row.get("segment") or ""),
                 str(row.get("basis") or ""),
@@ -982,16 +1088,23 @@ def _semantic_source_candidate(
     text: str,
     metadata: Mapping[str, Any],
     candidate_kind: str,
+    evidence_id: str = "",
+    origin_source_id: str = "",
 ) -> Dict[str, Any]:
     """Build the generic source envelope consumed by the candidate catalog."""
 
-    return {
+    envelope = {
         "candidate_id": str(candidate_id or "").strip(),
         "source_anchor": _normalise_spaces(source_anchor),
         "text": _normalise_spaces(text),
         "metadata": dict(metadata or {}),
         "candidate_kind": str(candidate_kind or "chunk"),
     }
+    if str(evidence_id or "").strip():
+        envelope["evidence_id"] = str(evidence_id).strip()
+    if str(origin_source_id or "").strip():
+        envelope["origin_source_id"] = str(origin_source_id).strip()
+    return envelope
 
 
 def _json_list(raw_value: Any) -> List[Dict[str, Any]]:
@@ -1005,6 +1118,248 @@ def _json_list(raw_value: Any) -> List[Dict[str, Any]]:
     except (TypeError, json.JSONDecodeError):
         return []
     return [dict(item) for item in value if isinstance(item, Mapping)] if isinstance(value, list) else []
+
+
+def _json_mapping(raw_value: Any) -> Dict[str, Any]:
+    if isinstance(raw_value, Mapping):
+        return dict(raw_value)
+    raw_text = str(raw_value or "").strip()
+    if not raw_text:
+        return {}
+    try:
+        value = json.loads(raw_text)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _normalized_string_list(raw_values: Any) -> List[str]:
+    if isinstance(raw_values, (str, bytes)):
+        raw_values = [raw_values]
+    elif not isinstance(raw_values, Sequence):
+        raw_values = []
+    values: List[str] = []
+    for raw_value in raw_values:
+        value = _normalise_spaces(str(raw_value or ""))
+        if value and value not in values:
+            values.append(value)
+    return values
+
+
+def _stable_material_digest(payload: Any, *, length: int = 20) -> str:
+    serialized = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:length]
+
+
+def _table_record_bundle(
+    metadata: Mapping[str, Any],
+) -> tuple[Dict[str, Any], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    table_object = _json_mapping(metadata.get("table_object_json"))
+    rows = _json_list(metadata.get("table_row_records_json"))
+    values = _json_list(metadata.get("table_value_records_json"))
+    if not rows:
+        rows = [
+            dict(item)
+            for item in (table_object.get("rows") or [])
+            if isinstance(item, Mapping)
+        ]
+    if not values:
+        values = [
+            dict(item)
+            for item in (table_object.get("values") or [])
+            if isinstance(item, Mapping)
+        ]
+    return table_object, rows, values
+
+
+def _legacy_table_material(
+    rows: Sequence[Mapping[str, Any]],
+    values: Sequence[Mapping[str, Any]],
+) -> List[Dict[str, Any]]:
+    material: List[Dict[str, Any]] = []
+    if rows:
+        for row in rows:
+            cells = [
+                {
+                    "column_index": cell.get("column_index"),
+                    "column_headers": _normalized_string_list(
+                        cell.get("column_headers")
+                    ),
+                    "value_text": _normalise_spaces(
+                        str(cell.get("value_text") or "")
+                    ),
+                    "unit_hint": _normalise_spaces(
+                        str(cell.get("unit_hint") or "")
+                    ),
+                }
+                for cell in (row.get("cells") or [])
+                if isinstance(cell, Mapping)
+            ]
+            material.append(
+                {
+                    "row_label": _normalise_spaces(str(row.get("row_label") or "")),
+                    "row_headers": _normalized_string_list(row.get("row_headers")),
+                    "cells": cells,
+                }
+            )
+        return material
+    for record in values:
+        material.append(
+            {
+                "row_index": record.get("row_index"),
+                "row_label": _normalise_spaces(str(record.get("row_label") or "")),
+                "row_headers": _normalized_string_list(record.get("row_headers")),
+                "column_index": record.get("column_index"),
+                "column_headers": _normalized_string_list(
+                    record.get("column_headers") or record.get("period_labels")
+                ),
+                "value_text": _normalise_spaces(str(record.get("value_text") or "")),
+                "unit_hint": _normalise_spaces(str(record.get("unit_hint") or "")),
+            }
+        )
+    return material
+
+
+def _physical_table_id(
+    metadata: Mapping[str, Any],
+    table_object: Mapping[str, Any],
+    rows: Sequence[Mapping[str, Any]],
+    values: Sequence[Mapping[str, Any]],
+) -> str:
+    explicit = _normalise_spaces(
+        str(
+            metadata.get("table_source_id")
+            or metadata.get("source_table_id")
+            or metadata.get("table_id")
+            or table_object.get("table_id")
+            or ""
+        )
+    )
+    if explicit:
+        return explicit
+    return f"legacy_table_{_stable_material_digest(_legacy_table_material(rows, values))}"
+
+
+def _physical_row_identity(
+    *,
+    table_id: str,
+    row: Mapping[str, Any],
+    row_index: Any,
+    row_label: str,
+    row_headers: Sequence[str],
+    cells: Sequence[Mapping[str, Any]],
+) -> tuple[str, str]:
+    row_id = _normalise_spaces(str(row.get("row_id") or ""))
+    if row_id:
+        return row_id, f"{table_id}::row:{row_id}"
+    fallback = {
+        "row_index": row_index,
+        "row_label": row_label,
+        "row_headers": list(row_headers),
+        "cells": [
+            {
+                "column_index": cell.get("column_index"),
+                "column_headers": _normalized_string_list(
+                    cell.get("column_headers")
+                ),
+                "value_text": _normalise_spaces(
+                    str(cell.get("value_text") or "")
+                ),
+                "unit_hint": _normalise_spaces(
+                    str(cell.get("unit_hint") or "")
+                ),
+            }
+            for cell in cells
+        ],
+    }
+    row_id = f"legacy_row_{_stable_material_digest(fallback)}"
+    return row_id, f"{table_id}::row:{row_id}"
+
+
+def _physical_cell_identity(
+    *,
+    table_id: str,
+    row_key: str,
+    cell: Mapping[str, Any],
+) -> tuple[str, str]:
+    cell_id = _normalise_spaces(str(cell.get("cell_id") or ""))
+    value_id = _normalise_spaces(str(cell.get("value_id") or ""))
+    explicit_id = value_id or cell_id
+    if explicit_id:
+        return cell_id or value_id, f"{table_id}::{row_key}::cell:{explicit_id}"
+    fallback = {
+        "row_key": row_key,
+        "column_index": cell.get("column_index"),
+        "column_headers": _normalized_string_list(cell.get("column_headers")),
+        "value_text": _normalise_spaces(str(cell.get("value_text") or "")),
+        "unit_hint": _normalise_spaces(str(cell.get("unit_hint") or "")),
+    }
+    fallback_id = f"legacy_cell_{_stable_material_digest(fallback)}"
+    return fallback_id, f"{table_id}::{row_key}::cell:{fallback_id}"
+
+
+def _table_context_text(
+    metadata: Mapping[str, Any], table_object: Mapping[str, Any]
+) -> str:
+    parts: List[str] = []
+    for raw_value in (
+        table_object.get("caption"),
+        metadata.get("caption"),
+        metadata.get("table_caption"),
+        metadata.get("local_heading"),
+    ):
+        value = _normalise_spaces(str(raw_value or ""))
+        if value and value not in parts:
+            parts.append(value)
+    return _normalise_spaces(" ".join(parts))
+
+
+def _local_entity_surfaces(
+    source_text: str,
+    *,
+    row_label: str = "",
+    row_headers: Sequence[Any] = (),
+    span: Sequence[int] = (),
+) -> List[str]:
+    """Preserve row axes or generic sentence-local subject surfaces."""
+
+    surfaces = _normalized_string_list([row_label, *list(row_headers or [])])
+    if surfaces:
+        return surfaces
+
+    text = str(source_text or "")
+    try:
+        value_start = max(0, min(len(text), int(span[0])))
+    except (IndexError, TypeError, ValueError):
+        value_start = len(text)
+    prefix = text[:value_start]
+    prefix = re.split(r"[\n!?。]|(?<!\d)\.|\.(?!\d)", prefix)[-1]
+    prefix = prefix[-180:]
+
+    for match in re.finditer(
+        str(SEMANTIC_CANDIDATE_POLICY.get("local_subject_clause_pattern") or ""),
+        prefix,
+    ):
+        surface = _normalise_spaces(match.group(1))
+        if surface and surface not in surfaces:
+            surfaces.append(surface)
+    for match in re.finditer(
+        str(
+            SEMANTIC_CANDIDATE_POLICY.get("local_subject_latin_entity_pattern")
+            or ""
+        ),
+        prefix,
+    ):
+        surface = _normalise_spaces(match.group(1))
+        if surface and surface not in surfaces:
+            surfaces.append(surface)
+    return surfaces[:8]
 
 
 def _numeric_context_excerpt(
@@ -1119,6 +1474,10 @@ def _narrative_numeric_rows(
             continue
         span = list(surface.get("span") or [])
         context = _numeric_context_excerpt(source_text, span)
+        local_entity_surfaces = _local_entity_surfaces(
+            source_text,
+            span=span,
+        )
         fingerprint = (
             source_candidate_id,
             tuple(span),
@@ -1159,6 +1518,7 @@ def _narrative_numeric_rows(
                 "aggregation_stage": "",
                 "aggregate_label": "",
                 "source_span": span,
+                "local_entity_surfaces": local_entity_surfaces,
             }
         )
     return rows
@@ -1171,158 +1531,385 @@ def _structured_source_candidates(
     text: str,
     metadata: Mapping[str, Any],
 ) -> List[Dict[str, Any]]:
-    """Project parser-owned table records without applying domain semantics."""
+    """Project one source candidate per physical table row.
+
+    Parser-owned row and value records describe the same physical cells. They
+    are merged here so repeated chunk attachments and the two record views do
+    not multiply the compiler-visible catalog.
+    """
 
     base_metadata = dict(metadata or {})
-    rows = _json_list(base_metadata.get("table_row_records_json"))
-    if not rows:
-        raw_object = str(base_metadata.get("table_object_json") or "").strip()
-        if raw_object:
-            try:
-                table_object = json.loads(raw_object)
-            except json.JSONDecodeError:
-                table_object = {}
-            if isinstance(table_object, Mapping):
-                rows = [
-                    dict(item)
-                    for item in (table_object.get("rows") or [])
-                    if isinstance(item, Mapping)
-                ]
+    table_object, rows, value_records = _table_record_bundle(base_metadata)
+    table_id = _physical_table_id(base_metadata, table_object, rows, value_records)
+    origin_source_id = str(candidate_id_prefix or "").split("::", 1)[0].strip()
+    projection_metadata = {
+        key: value
+        for key, value in base_metadata.items()
+        if key
+        not in {
+            "table_row_records_json",
+            "table_value_records_json",
+            "table_object_json",
+        }
+    }
+    projection_metadata.update(
+        {
+            "table_source_id": table_id,
+            "physical_table_id": table_id,
+            "origin_source_id": origin_source_id,
+        }
+    )
+
+    def axis_key(row_index: Any, column_index: Any) -> tuple[str, str]:
+        return str(row_index if row_index is not None else ""), str(
+            column_index if column_index is not None else ""
+        )
+
+    def column_sort_key(item: Mapping[str, Any]) -> tuple[int, str]:
+        raw_index = item.get("column_index")
+        try:
+            return int(raw_index), ""
+        except (TypeError, ValueError):
+            return 10**9, str(raw_index or "")
+
+    value_by_axis: Dict[tuple[str, str], Dict[str, Any]] = {}
+    for record in value_records:
+        key = axis_key(record.get("row_index"), record.get("column_index"))
+        value_by_axis.setdefault(key, dict(record))
 
     projected: List[Dict[str, Any]] = []
-    seen: set[tuple[Any, ...]] = set()
-    for index, row in enumerate(rows):
-        row_headers = [
-            _normalise_spaces(str(item))
-            for item in (row.get("row_headers") or [])
-            if _normalise_spaces(str(item))
-        ]
+    seen_source_ids: set[str] = set()
+    for row_index, row in enumerate(rows):
+        row_headers = _normalized_string_list(row.get("row_headers"))
         row_label = _normalise_spaces(str(row.get("row_label") or ""))
         if not row_label and row_headers:
             row_label = row_headers[0]
-        cells = [dict(item) for item in (row.get("cells") or []) if isinstance(item, Mapping)]
+        raw_cells = [
+            dict(item)
+            for item in (row.get("cells") or [])
+            if isinstance(item, Mapping)
+        ]
+        cells: List[Dict[str, Any]] = []
+        for cell_index, raw_cell in enumerate(raw_cells):
+            cell = dict(raw_cell)
+            column_index = cell.get("column_index")
+            if column_index is None:
+                column_index = cell_index
+                cell["column_index"] = column_index
+            value_record = value_by_axis.get(axis_key(row_index, column_index), {})
+            for field in (
+                "semantic_label",
+                "semantic_aliases",
+                "label_source",
+                "period_text",
+                "period_labels",
+                "value_role",
+                "aggregation_stage",
+                "aggregate_label",
+                "aggregate_role",
+            ):
+                if value_record.get(field) not in (None, "", []):
+                    cell[field] = value_record.get(field)
+            if value_record.get("column_headers"):
+                cell["column_headers"] = list(value_record["column_headers"])
+            if value_record.get("unit_hint") and not cell.get("unit_hint"):
+                cell["unit_hint"] = value_record["unit_hint"]
+            if value_record.get("value_id"):
+                cell["value_id"] = value_record["value_id"]
+            cell_id, physical_cell_key = _physical_cell_identity(
+                table_id=table_id,
+                row_key=_normalise_spaces(str(row.get("row_id") or row_index)),
+                cell=cell,
+            )
+            cell["physical_cell_id"] = cell_id
+            cell["physical_value_id"] = _normalise_spaces(
+                str(value_record.get("value_id") or "")
+            )
+            cell["physical_cell_key"] = physical_cell_key
+            cells.append(cell)
         if not row_label or not cells:
             continue
-        fingerprint = (row_label, json.dumps(cells, ensure_ascii=False, sort_keys=True, default=str))
-        if fingerprint in seen:
+
+        physical_row_id, physical_row_key = _physical_row_identity(
+            table_id=table_id,
+            row=row,
+            row_index=row_index,
+            row_label=row_label,
+            row_headers=row_headers,
+            cells=cells,
+        )
+        for cell in cells:
+            _cell_id, physical_cell_key = _physical_cell_identity(
+                table_id=table_id,
+                row_key=physical_row_id,
+                cell=cell,
+            )
+            cell["physical_cell_key"] = physical_cell_key
+
+        source_candidate_id = (
+            f"table_{_stable_material_digest(table_id)}::"
+            f"row_{_stable_material_digest(physical_row_key)}"
+        )
+        if source_candidate_id in seen_source_ids:
             continue
-        seen.add(fingerprint)
+        seen_source_ids.add(source_candidate_id)
+        row_text = _normalise_spaces(
+            " | ".join(
+                [
+                    *(_normalized_string_list([row_label, *row_headers])),
+                    *[
+                        " / ".join(
+                            [
+                                *_normalized_string_list(cell.get("column_headers")),
+                                _normalise_spaces(str(cell.get("value_text") or "")),
+                                _normalise_spaces(
+                                    str(
+                                        cell.get("unit_hint")
+                                        or base_metadata.get("unit_hint")
+                                        or ""
+                                    )
+                                ),
+                            ]
+                        )
+                        for cell in cells
+                    ],
+                ]
+            )
+        )
+        context_text = _table_context_text(base_metadata, table_object)
         row_metadata = {
-            **base_metadata,
+            **projection_metadata,
+            "row_id": physical_row_id,
+            "source_row_id": physical_row_key,
+            "physical_row_id": physical_row_id,
+            "physical_row_key": physical_row_key,
             "row_label": row_label,
             "semantic_label": row_label,
             "row_headers": row_headers,
+            "local_entity_surfaces": _local_entity_surfaces(
+                row_text,
+                row_label=row_label,
+                row_headers=row_headers,
+            ),
             "structured_cells": cells,
-            "row_text": _normalise_spaces(
+            "row_text": row_text,
+        }
+        projected.append(
+            _semantic_source_candidate(
+                candidate_id=source_candidate_id,
+                source_anchor=source_anchor,
+                text=_normalise_spaces(" ".join((context_text, row_text))),
+                metadata=row_metadata,
+                candidate_kind="structured_row",
+                evidence_id=table_id,
+                origin_source_id=origin_source_id,
+            )
+        )
+
+    if not rows:
+        value_groups: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
+        for record in value_records:
+            label = _normalise_spaces(
+                str(record.get("semantic_label") or record.get("row_label") or "")
+            )
+            if label:
+                group_key = (str(record.get("row_index") or ""), label)
+                value_groups.setdefault(group_key, []).append(dict(record))
+        for (raw_row_index, row_label), records in sorted(value_groups.items()):
+            records = sorted(records, key=column_sort_key)
+            row_headers = _normalized_string_list(
+                next((record.get("row_headers") for record in records if record.get("row_headers")), [])
+            )
+            cells: List[Dict[str, Any]] = []
+            for record in records:
+                value_text = _normalise_spaces(str(record.get("value_text") or ""))
+                if not value_text:
+                    continue
+                period_text = _normalise_spaces(str(record.get("period_text") or ""))
+                headers = _normalized_string_list(
+                    record.get("column_headers") or record.get("period_labels")
+                )
+                if not headers and period_text:
+                    headers = [period_text]
+                cell = {
+                    "cell_id": "",
+                    "value_id": _normalise_spaces(str(record.get("value_id") or "")),
+                    "column_index": record.get("column_index"),
+                    "column_headers": headers,
+                    "period_text": period_text,
+                    "period_labels": _normalized_string_list(record.get("period_labels")),
+                    "value_text": value_text,
+                    "unit_hint": _normalise_spaces(
+                        str(record.get("unit_hint") or base_metadata.get("unit_hint") or "")
+                    ),
+                    "value_role": _normalise_spaces(str(record.get("value_role") or "")),
+                    "aggregation_stage": _normalise_spaces(
+                        str(record.get("aggregation_stage") or "")
+                    ),
+                    "aggregate_label": _normalise_spaces(
+                        str(record.get("aggregate_label") or "")
+                    ),
+                }
+                cell_id, physical_cell_key = _physical_cell_identity(
+                    table_id=table_id,
+                    row_key=raw_row_index,
+                    cell=cell,
+                )
+                cell["physical_cell_id"] = cell_id
+                cell["physical_value_id"] = cell["value_id"]
+                cell["physical_cell_key"] = physical_cell_key
+                cells.append(cell)
+            if not cells:
+                continue
+            fallback_row = {
+                "row_label": row_label,
+                "row_headers": row_headers,
+                "cells": cells,
+            }
+            physical_row_id, physical_row_key = _physical_row_identity(
+                table_id=table_id,
+                row=fallback_row,
+                row_index=raw_row_index,
+                row_label=row_label,
+                row_headers=row_headers,
+                cells=cells,
+            )
+            for cell in cells:
+                _cell_id, physical_cell_key = _physical_cell_identity(
+                    table_id=table_id,
+                    row_key=physical_row_id,
+                    cell=cell,
+                )
+                cell["physical_cell_key"] = physical_cell_key
+            source_candidate_id = (
+                f"table_{_stable_material_digest(table_id)}::"
+                f"row_{_stable_material_digest(physical_row_key)}"
+            )
+            if source_candidate_id in seen_source_ids:
+                continue
+            seen_source_ids.add(source_candidate_id)
+            row_text = _normalise_spaces(
                 " | ".join(
                     [
-                        row_label,
+                        *(_normalized_string_list([row_label, *row_headers])),
                         *[
                             " / ".join(
                                 [
-                                    *[
-                                        _normalise_spaces(str(header))
-                                        for header in (cell.get("column_headers") or [])
-                                        if _normalise_spaces(str(header))
-                                    ],
+                                    *_normalized_string_list(cell.get("column_headers")),
                                     _normalise_spaces(str(cell.get("value_text") or "")),
-                                    _normalise_spaces(str(cell.get("unit_hint") or base_metadata.get("unit_hint") or "")),
+                                    _normalise_spaces(str(cell.get("unit_hint") or "")),
                                 ]
                             )
                             for cell in cells
                         ],
                     ]
                 )
-            ),
-        }
-        projected.append(
-            _semantic_source_candidate(
-                candidate_id=f"{candidate_id_prefix}::rowrec:{index}",
-                source_anchor=source_anchor,
-                text=" ".join((row_metadata["row_text"], text)),
-                metadata=row_metadata,
-                candidate_kind="structured_row",
             )
-        )
+            value_metadata = {
+                **projection_metadata,
+                "row_id": physical_row_id,
+                "source_row_id": physical_row_key,
+                "physical_row_id": physical_row_id,
+                "physical_row_key": physical_row_key,
+                "row_label": row_label,
+                "semantic_label": row_label,
+                "row_headers": row_headers,
+                "local_entity_surfaces": _local_entity_surfaces(
+                    row_text,
+                    row_label=row_label,
+                    row_headers=row_headers,
+                ),
+                "structured_cells": cells,
+                "row_text": row_text,
+            }
+            projected.append(
+                _semantic_source_candidate(
+                    candidate_id=source_candidate_id,
+                    source_anchor=source_anchor,
+                    text=_normalise_spaces(
+                        " ".join(
+                            (
+                                _table_context_text(base_metadata, table_object),
+                                row_text,
+                            )
+                        )
+                    ),
+                    metadata=value_metadata,
+                    candidate_kind="structured_value",
+                    evidence_id=table_id,
+                    origin_source_id=origin_source_id,
+                )
+            )
 
-    value_records = _json_list(base_metadata.get("table_value_records_json"))
-    value_groups: Dict[tuple[Any, str], List[Dict[str, Any]]] = {}
-    for record in value_records:
-        label = _normalise_spaces(str(record.get("semantic_label") or record.get("row_label") or ""))
-        if label:
-            value_groups.setdefault((record.get("row_index"), label), []).append(record)
-    for index, ((_row_index, row_label), records) in enumerate(value_groups.items()):
-        cells: List[Dict[str, Any]] = []
-        for record in sorted(records, key=lambda item: int(item.get("column_index") or 0)):
-            value_text = _normalise_spaces(str(record.get("value_text") or ""))
-            if not value_text:
-                continue
-            period_text = _normalise_spaces(str(record.get("period_text") or ""))
-            headers = [period_text] if period_text else [
-                _normalise_spaces(str(item))
-                for item in (record.get("column_headers") or record.get("period_labels") or [])
-                if _normalise_spaces(str(item))
-            ]
-            cells.append(
-                {
-                    "column_headers": headers,
-                    "period_text": period_text,
-                    "value_text": value_text,
-                    "unit_hint": str(record.get("unit_hint") or base_metadata.get("unit_hint") or "").strip(),
-                    "value_role": _normalise_spaces(str(record.get("value_role") or "")),
-                    "aggregation_stage": _normalise_spaces(str(record.get("aggregation_stage") or "")),
-                    "aggregate_label": _normalise_spaces(str(record.get("aggregate_label") or "")),
-                }
-            )
-        if not cells:
-            continue
-        fingerprint = (row_label, json.dumps(cells, ensure_ascii=False, sort_keys=True, default=str))
-        if fingerprint in seen:
-            continue
-        seen.add(fingerprint)
-        value_metadata = {
-            **base_metadata,
-            "row_label": row_label,
-            "semantic_label": row_label,
-            "structured_cells": cells,
-            "row_text": _normalise_spaces(
-                " | ".join([row_label, *[str(cell.get("value_text") or "") for cell in cells]])
-            ),
-        }
-        projected.append(
-            _semantic_source_candidate(
-                candidate_id=f"{candidate_id_prefix}::value:{index}",
-                source_anchor=source_anchor,
-                text=" ".join((value_metadata["row_text"], text)),
-                metadata=value_metadata,
-                candidate_kind="structured_value",
-            )
-        )
+    if rows or value_records:
+        return projected
 
-    known_row_texts = {
-        _normalise_spaces(str((item.get("metadata") or {}).get("row_text") or ""))
-        for item in projected
-    }
-    for index, row_text in enumerate(
-        _normalise_spaces(line) for line in str(text or "").splitlines()
-    ):
-        if not row_text or "|" not in row_text or row_text in known_row_texts:
-            continue
+    pipe_rows = [
+        _normalise_spaces(line)
+        for line in str(text or "").splitlines()
+        if _normalise_spaces(line) and "|" in line
+    ]
+    if not (
+        base_metadata.get("table_source_id")
+        or base_metadata.get("source_table_id")
+        or base_metadata.get("table_id")
+    ) and pipe_rows:
+        table_id = f"legacy_table_{_stable_material_digest(pipe_rows)}"
+        projection_metadata["table_source_id"] = table_id
+        projection_metadata["physical_table_id"] = table_id
+    for index, row_text in enumerate(pipe_rows):
         row_label = _normalise_spaces(row_text.split("|", 1)[0])
+        cells = parse_unstructured_table_row_cells(row_text, base_metadata)
+        if not row_label or not cells:
+            continue
+        row_headers = [row_label]
+        physical_row_id, physical_row_key = _physical_row_identity(
+            table_id=table_id,
+            row={},
+            row_index=index,
+            row_label=row_label,
+            row_headers=row_headers,
+            cells=cells,
+        )
+        for cell_index, cell in enumerate(cells):
+            cell.setdefault("column_index", cell_index)
+            cell_id, physical_cell_key = _physical_cell_identity(
+                table_id=table_id,
+                row_key=physical_row_id,
+                cell=cell,
+            )
+            cell["physical_cell_id"] = cell_id
+            cell["physical_value_id"] = ""
+            cell["physical_cell_key"] = physical_cell_key
+        source_candidate_id = (
+            f"table_{_stable_material_digest(table_id)}::"
+            f"row_{_stable_material_digest(physical_row_key)}"
+        )
+        if source_candidate_id in seen_source_ids:
+            continue
+        seen_source_ids.add(source_candidate_id)
         row_metadata = {
-            **base_metadata,
+            **projection_metadata,
+            "row_id": physical_row_id,
+            "source_row_id": physical_row_key,
+            "physical_row_id": physical_row_id,
+            "physical_row_key": physical_row_key,
             "row_label": row_label,
             "semantic_label": row_label,
+            "row_headers": row_headers,
+            "local_entity_surfaces": [row_label],
             "row_text": row_text,
-            "structured_cells": parse_unstructured_table_row_cells(row_text, base_metadata),
+            "structured_cells": cells,
         }
         projected.append(
             _semantic_source_candidate(
-                candidate_id=f"{candidate_id_prefix}::row:{index}",
+                candidate_id=source_candidate_id,
                 source_anchor=source_anchor,
                 text=row_text,
                 metadata=row_metadata,
                 candidate_kind="table_row",
+                evidence_id=table_id,
+                origin_source_id=origin_source_id,
             )
         )
     return projected
@@ -1412,21 +1999,65 @@ def build_semantic_source_candidates(
         seen.add(candidate_id)
         anchor = _normalise_spaces(str(source_anchor_builder(metadata) or ""))
         text = str(getattr(doc, "page_content", "") or "")
-        candidates.append(
-            _semantic_source_candidate(
-                candidate_id=candidate_id,
-                source_anchor=anchor,
-                text=text,
-                metadata=metadata,
-                candidate_kind="chunk",
-            )
-        )
-        for projected in _structured_source_candidates(
+        projected_candidates = _structured_source_candidates(
             candidate_id_prefix=candidate_id,
             source_anchor=anchor,
             text=text,
             metadata=metadata,
-        ):
+        )
+        if projected_candidates:
+            table_object, rows, value_records = _table_record_bundle(metadata)
+            table_id = _physical_table_id(
+                metadata,
+                table_object,
+                rows,
+                value_records,
+            )
+            context_text = _table_context_text(metadata, table_object)
+            context_id = (
+                f"table_{_stable_material_digest(table_id)}::context"
+            )
+            if context_text and context_id not in seen:
+                seen.add(context_id)
+                context_metadata = {
+                    key: value
+                    for key, value in metadata.items()
+                    if key
+                    not in {
+                        "table_row_records_json",
+                        "table_value_records_json",
+                        "table_object_json",
+                    }
+                }
+                context_metadata.update(
+                    {
+                        "table_source_id": table_id,
+                        "physical_table_id": table_id,
+                        "origin_source_id": candidate_id,
+                    }
+                )
+                candidates.append(
+                    _semantic_source_candidate(
+                        candidate_id=context_id,
+                        source_anchor=anchor,
+                        text=context_text,
+                        metadata=context_metadata,
+                        candidate_kind="table_context",
+                        evidence_id=table_id,
+                        origin_source_id=candidate_id,
+                    )
+                )
+        else:
+            candidates.append(
+                _semantic_source_candidate(
+                    candidate_id=candidate_id,
+                    source_anchor=anchor,
+                    text=text,
+                    metadata=metadata,
+                    candidate_kind="chunk",
+                )
+            )
+        for projected in projected_candidates:
             projected_id = str(projected.get("candidate_id") or "")
             if not projected_id or projected_id in seen:
                 continue
@@ -1465,24 +2096,29 @@ def build_semantic_candidate_catalog(
         source_candidate_id = str(current.get("candidate_id") or "").strip()
         if not source_candidate_id:
             continue
-        evidence_id = source_candidate_id.split("::", 1)[0]
+        evidence_id = str(current.get("evidence_id") or "").strip()
+        if not evidence_id:
+            evidence_id = source_candidate_id.split("::", 1)[0]
         evidence_item = dict(evidence_by_id.get(evidence_id) or {})
         source_anchor = _normalise_spaces(
             str(current.get("source_anchor") or evidence_item.get("source_anchor") or "")
         )
-        source_text = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    metadata.get("row_text"),
-                    current.get("text"),
-                    evidence_item.get("raw_row_text"),
-                    evidence_item.get("quote_span"),
-                    evidence_item.get("claim"),
-                )
-                if str(value or "").strip()
-            )
-        )
+        candidate_kind = str(current.get("candidate_kind") or "")
+        if candidate_kind in {"structured_row", "structured_value", "table_row"}:
+            source_text = _normalise_spaces(str(current.get("text") or ""))
+        else:
+            source_parts: List[str] = []
+            for raw_value in (
+                metadata.get("row_text"),
+                current.get("text"),
+                evidence_item.get("raw_row_text"),
+                evidence_item.get("quote_span"),
+                evidence_item.get("claim"),
+            ):
+                value = _normalise_spaces(str(raw_value or ""))
+                if value and value not in source_parts:
+                    source_parts.append(value)
+            source_text = _normalise_spaces(" ".join(source_parts))
         row_label = _normalise_spaces(
             str(
                 metadata.get("semantic_label")
@@ -1512,6 +2148,31 @@ def build_semantic_candidate_catalog(
             metadata,
             source_text,
         )
+        row_headers = [
+            _normalise_spaces(str(item))
+            for item in raw_row_headers
+            if _normalise_spaces(str(item))
+        ]
+        raw_local_entity_surfaces = metadata.get("local_entity_surfaces") or []
+        local_entity_surfaces = _normalized_string_list(raw_local_entity_surfaces)
+        if not local_entity_surfaces and candidate_kind in {
+            "structured_row",
+            "structured_value",
+            "table_row",
+        }:
+            local_entity_surfaces = _local_entity_surfaces(
+                source_text,
+                row_label=row_label,
+                row_headers=row_headers,
+            )
+        document_company = _normalise_spaces(
+            str(
+                metadata.get("company")
+                or metadata.get("entity")
+                or metadata.get("corp_name")
+                or ""
+            )
+        )
         base_record: Dict[str, Any] = {
             "source_candidate_id": source_candidate_id,
             "evidence_id": evidence_id,
@@ -1519,22 +2180,25 @@ def build_semantic_candidate_catalog(
             "source_row_id": source_row_id,
             "table_source_id": _normalise_spaces(
                 str(
-                    metadata.get("table_source_id")
+                    metadata.get("physical_table_id")
+                    or metadata.get("table_source_id")
                     or metadata.get("source_table_id")
                     or metadata.get("table_id")
                     or ""
                 )
             ),
-            "row_label": row_label,
-            "row_headers": [
-                _normalise_spaces(str(item))
-                for item in raw_row_headers
-                if _normalise_spaces(str(item))
-            ],
-            "statement_type": _candidate_statement_type(current, metadata),
-            "company": _normalise_spaces(
-                str(metadata.get("company") or metadata.get("entity") or metadata.get("corp_name") or "")
+            "physical_table_id": _normalise_spaces(
+                str(metadata.get("physical_table_id") or "")
             ),
+            "physical_row_id": _normalise_spaces(
+                str(metadata.get("physical_row_id") or metadata.get("row_id") or "")
+            ),
+            "row_label": row_label,
+            "row_headers": row_headers,
+            "local_entity_surfaces": local_entity_surfaces,
+            "statement_type": _candidate_statement_type(current, metadata),
+            "document_company": document_company,
+            "company": document_company,
             "year": metadata.get("year"),
             "consolidation_scope": consolidation_scope,
             "consolidation_scope_source": consolidation_scope_source,
@@ -1546,7 +2210,7 @@ def build_semantic_candidate_catalog(
             ),
             "context_fingerprint": context_fingerprint,
             "source_text": source_text[:1200],
-            "candidate_kind": str(current.get("candidate_kind") or ""),
+            "candidate_kind": candidate_kind,
         }
 
         cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
@@ -1588,30 +2252,60 @@ def build_semantic_candidate_catalog(
                 for item in (cell.get("column_headers") or [])
                 if _normalise_spaces(str(item))
             ]
+            physical_cell_id = _normalise_spaces(
+                str(cell.get("physical_cell_id") or cell.get("cell_id") or "")
+            )
+            physical_value_id = _normalise_spaces(
+                str(cell.get("physical_value_id") or cell.get("value_id") or "")
+            )
+            physical_cell_key = _normalise_spaces(
+                str(cell.get("physical_cell_key") or "")
+            )
             fingerprint = (
-                source_row_id,
-                row_label,
-                tuple(column_headers),
-                raw_value,
-                source_unit_hint,
-                source_period_surface,
-                context_fingerprint,
+                ("physical_cell", physical_cell_key)
+                if physical_cell_key
+                else (
+                    "legacy_cell",
+                    source_row_id,
+                    row_label,
+                    tuple(column_headers),
+                    raw_value,
+                    source_unit_hint,
+                    source_period_surface,
+                    context_fingerprint,
+                )
             )
             if fingerprint in seen_fingerprints:
                 continue
             seen_fingerprints.add(fingerprint)
-            id_payload = {
-                "kind": "numeric",
-                "source_candidate_id": source_candidate_id,
-                "cell_index": cell_index,
-                "source_row_id": source_row_id,
-                "row_label": row_label,
-                "column_headers": column_headers,
-                "raw_value": raw_value,
-                "raw_unit": source_unit_hint,
-                "period": source_period_surface,
-                "context_fingerprint": context_fingerprint,
-            }
+            if physical_cell_key:
+                id_payload = {
+                    "kind": "numeric",
+                    "physical_table_id": base_record.get("physical_table_id"),
+                    "physical_row_id": base_record.get("physical_row_id"),
+                    "physical_cell_id": physical_cell_id,
+                    "physical_value_id": physical_value_id,
+                    "physical_cell_key": physical_cell_key,
+                    "row_label": row_label,
+                    "column_headers": column_headers,
+                    "raw_value": raw_value,
+                    "raw_unit": source_unit_hint,
+                    "period": source_period_surface,
+                    "context_fingerprint": context_fingerprint,
+                }
+            else:
+                id_payload = {
+                    "kind": "numeric",
+                    "source_candidate_id": source_candidate_id,
+                    "cell_index": cell_index,
+                    "source_row_id": source_row_id,
+                    "row_label": row_label,
+                    "column_headers": column_headers,
+                    "raw_value": raw_value,
+                    "raw_unit": source_unit_hint,
+                    "period": source_period_surface,
+                    "context_fingerprint": context_fingerprint,
+                }
             aggregation_stage, aggregate_label = _candidate_aggregate_metadata(
                 cell,
                 metadata,
@@ -1622,6 +2316,9 @@ def build_semantic_candidate_catalog(
                     **base_record,
                     "candidate_id": _semantic_candidate_id(id_payload),
                     "kind": "numeric",
+                    "physical_cell_id": physical_cell_id,
+                    "physical_value_id": physical_value_id,
+                    "physical_cell_key": physical_cell_key,
                     "raw_value": raw_value,
                     "raw_unit": raw_unit,
                     "source_unit_hint": source_unit_hint,
@@ -1654,7 +2351,7 @@ def build_semantic_candidate_catalog(
             or _normalise_spaces(str(metadata.get("block_type") or "")).lower()
             not in {"", "table", "table_row"}
         )
-        if str(current.get("candidate_kind") or "") in {"chunk", "evidence"}:
+        if candidate_kind in {"chunk", "evidence"}:
             narrative_numeric_source = _normalise_spaces(
                 str(current.get("text") or evidence_item.get("quote_span") or "")
             )
@@ -1671,9 +2368,10 @@ def build_semantic_candidate_catalog(
                 )
             )
 
-        if source_text and str(current.get("candidate_kind") or "") in {
+        if source_text and candidate_kind in {
             "chunk",
             "evidence",
+            "table_context",
         }:
             narrative_payload = {
                 "kind": "narrative",

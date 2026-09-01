@@ -609,6 +609,140 @@ def _scope_match_state(
     return "match" if _scope_matches(wanted, actual, candidate) else "unknown"
 
 
+def semantic_candidate_applicability(
+    candidate: Mapping[str, Any],
+    owner: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Classify one candidate against an obligation or evidence requirement.
+
+    ``compatible`` means every declared scope dimension is supported,
+    ``unknown_only`` means no declared dimension conflicts but at least one is
+    unavailable, and ``explicit_conflict`` means a source-owned dimension or a
+    physical row subject contradicts the owner.
+    """
+
+    candidate_row = dict(candidate or {})
+    owner_row = dict(owner or {})
+    scope = dict(owner_row.get("scope") or {})
+    field_states: Dict[str, str] = {}
+    subject_resolution: Dict[str, Any] = {
+        "state": "match",
+        "subject": "",
+        "source": "not_required",
+        "source_row_ids": [],
+    }
+    local_surfaces = _normalized_subject_surfaces(
+        candidate_row.get("local_entity_surfaces")
+    )
+    expected_company = _normalise_spaces(str(scope.get("company") or ""))
+    expected_segment = _normalise_spaces(str(scope.get("segment") or ""))
+    local_subject_state = "unknown"
+    if expected_company and any(
+        _identity_surface_matches(expected_company, surface)
+        for surface in local_surfaces
+    ):
+        local_subject_state = "company_match"
+    elif expected_segment and any(
+        _identity_surface_matches(expected_segment, surface)
+        for surface in local_surfaces
+    ):
+        local_subject_state = "segment_match"
+
+    for field in ("company", "period", "consolidation_scope", "segment", "basis"):
+        expected = _normalise_spaces(str(scope.get(field) or ""))
+        if not expected or expected.lower() == "unknown":
+            continue
+        state = _scope_match_state(field, expected, candidate_row)
+        explicit_candidate_segment = _normalise_spaces(
+            str(candidate_row.get("segment") or "")
+        ).lower()
+        use_row_subject = (
+            str(owner_row.get("kind") or "") == "direct_value"
+            or explicit_candidate_segment in {"", "unknown"}
+        )
+        if (
+            field == "segment"
+            and str(candidate_row.get("kind") or "") == "numeric"
+            and use_row_subject
+        ):
+            subject_resolution = _direct_subject_resolution(
+                candidate_row,
+                {"scope": scope},
+            )
+            subject_state = str(subject_resolution.get("state") or "unknown")
+            if subject_state in {"match", "conflict"}:
+                state = subject_state
+            elif subject_state == "unknown":
+                if any(
+                    _scope_surface_matches(expected.lower(), surface.lower())
+                    for surface in local_surfaces
+                ):
+                    state = "match"
+        field_states[field] = state
+
+    if "conflict" in field_states.values():
+        state = "explicit_conflict"
+    elif "unknown" in field_states.values():
+        state = "unknown_only"
+    else:
+        state = "compatible"
+    return {
+        "state": state,
+        "field_states": field_states,
+        "subject_state": str(subject_resolution.get("state") or "unknown"),
+        "subject_source": str(subject_resolution.get("source") or ""),
+        "local_subject_state": local_subject_state,
+    }
+
+
+def _normalized_subject_surfaces(raw_values: Any) -> List[str]:
+    values = (
+        [raw_values]
+        if isinstance(raw_values, (str, bytes))
+        else list(raw_values or [])
+        if isinstance(raw_values, Sequence)
+        else []
+    )
+    normalized: List[str] = []
+    for raw_value in values:
+        value = strip_financial_label_annotations(str(raw_value or ""))
+        if value and value.lower() != "unknown" and value not in normalized:
+            normalized.append(value)
+    return normalized
+
+
+def _identity_surface_matches(expected: str, observed: str) -> bool:
+    def compact(value: str) -> str:
+        return "".join(
+            character.casefold()
+            for character in _normalise_spaces(str(value or ""))
+            if character.isalnum()
+        )
+
+    left = compact(expected)
+    right = compact(observed)
+    if not left or not right:
+        return False
+    if left == right or (
+        min(len(left), len(right)) >= 4
+        and (left in right or right in left)
+    ):
+        return True
+    shorter, longer = (left, right) if len(left) <= len(right) else (right, left)
+    if (
+        len(shorter) < 3
+        or len(shorter) / len(longer) < 0.5
+        or shorter[:2] != longer[:2]
+        or shorter[-1] != longer[-1]
+    ):
+        return False
+    iterator = iter(longer)
+    return all(
+        any(character == current for current in iterator)
+        for character in shorter
+    )
+
+
 def _collective_narrative_scope_errors(
     candidates: Sequence[Mapping[str, Any]],
     obligation: Mapping[str, Any],
@@ -695,6 +829,9 @@ def validate_semantic_calculation_program(
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
     selectable_candidate_ids: Optional[Sequence[str]] = None,
+    selectable_candidate_ids_by_owner: Optional[
+        Mapping[str, Sequence[str]]
+    ] = None,
 ) -> Dict[str, Any]:
     """Validate model-selected IDs and expressions without executing them."""
 
@@ -719,12 +856,30 @@ def validate_semantic_calculation_program(
             if str(item or "").strip()
         }
     )
+    selectable_ids_by_owner = (
+        None
+        if selectable_candidate_ids_by_owner is None
+        else {
+            str(owner_id).strip(): {
+                str(item or "").strip()
+                for item in candidate_ids
+                if str(item or "").strip()
+            }
+            for owner_id, candidate_ids in selectable_candidate_ids_by_owner.items()
+            if str(owner_id or "").strip()
+        }
+    )
     errors: List[Dict[str, str]] = []
 
     def error(code: str, obligation_id: str = "", detail: str = "") -> None:
         errors.append(
             {"code": code, "obligation_id": obligation_id, "detail": str(detail or "")}
         )
+
+    def candidate_is_exposed(candidate_id: str, owner_id: str) -> bool:
+        if selectable_ids_by_owner is not None:
+            return candidate_id in selectable_ids_by_owner.get(owner_id, set())
+        return selectable_ids is None or candidate_id in selectable_ids
 
     if len(obligation_by_id) != len(obligation_rows):
         error("duplicate_or_missing_obligation_id")
@@ -845,7 +1000,7 @@ def validate_semantic_calculation_program(
         ):
             error("unknown_or_nonnumeric_candidate", obligation_id, candidate_id)
             invalid = True
-        if selectable_ids is not None and candidate_id not in selectable_ids:
+        if not candidate_is_exposed(candidate_id, obligation_id):
             error("candidate_not_exposed_to_compiler", obligation_id, candidate_id)
             invalid = True
         if obligation and str(obligation.get("kind") or "") != "direct_value":
@@ -886,7 +1041,7 @@ def validate_semantic_calculation_program(
             (
                 item
                 for item in compatibility_ids
-                if selectable_ids is not None and item not in selectable_ids
+                if not candidate_is_exposed(item, obligation_id)
             ),
             "",
         )
@@ -1067,8 +1222,7 @@ def validate_semantic_calculation_program(
                     source_id
                     for source_id in source_ids
                     if source_id in candidate_by_id
-                    and selectable_ids is not None
-                    and source_id not in selectable_ids
+                    and not candidate_is_exposed(source_id, obligation_id)
                 ),
                 "",
             )
@@ -1193,6 +1347,16 @@ def validate_semantic_calculation_program(
                             )
                             invalid = True
                         else:
+                            if not candidate_is_exposed(
+                                source_id,
+                                source_requirement_id,
+                            ):
+                                error(
+                                    "candidate_not_exposed_to_compiler",
+                                    obligation_id,
+                                    source_id,
+                                )
+                                invalid = True
                             bound_requirement_ids.add(source_requirement_id)
                             for detail in _scope_errors(
                                 candidate,
@@ -1251,7 +1415,7 @@ def validate_semantic_calculation_program(
                 continue
             display_id = str(expression.get("source_display_candidate_id") or "").strip()
             if display_id:
-                if selectable_ids is not None and display_id not in selectable_ids:
+                if not candidate_is_exposed(display_id, obligation_id):
                     error(
                         "candidate_not_exposed_to_compiler",
                         obligation_id,
@@ -1328,8 +1492,7 @@ def validate_semantic_calculation_program(
                 (
                     candidate_id
                     for candidate_id in compatibility_ids
-                    if selectable_ids is not None
-                    and candidate_id not in selectable_ids
+                    if not candidate_is_exposed(candidate_id, obligation_id)
                 ),
                 "",
             )
@@ -1420,7 +1583,7 @@ def validate_semantic_calculation_program(
             (
                 candidate_id
                 for candidate_id in candidate_ids
-                if selectable_ids is not None and candidate_id not in selectable_ids
+                if not candidate_is_exposed(candidate_id, obligation_id)
             ),
             "",
         )
@@ -1491,6 +1654,14 @@ def validate_semantic_calculation_program(
                         "narrative_requirement_owner_mismatch",
                         obligation_id,
                         requirement_id,
+                    )
+                    invalid = True
+                    continue
+                if not candidate_is_exposed(candidate_id, requirement_id):
+                    error(
+                        "candidate_not_exposed_to_compiler",
+                        obligation_id,
+                        candidate_id,
                     )
                     invalid = True
                     continue
@@ -1986,6 +2157,9 @@ def execute_semantic_calculation_program(
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
     selectable_candidate_ids: Optional[Sequence[str]] = None,
+    selectable_candidate_ids_by_owner: Optional[
+        Mapping[str, Sequence[str]]
+    ] = None,
 ) -> Dict[str, Any]:
     """Execute only the validated subset and report completeness separately."""
 
@@ -1995,6 +2169,7 @@ def execute_semantic_calculation_program(
         candidate_catalog=candidate_catalog,
         query=query,
         selectable_candidate_ids=selectable_candidate_ids,
+        selectable_candidate_ids_by_owner=selectable_candidate_ids_by_owner,
     )
     obligation_rows = [dict(item) for item in obligations if isinstance(item, Mapping)]
     obligation_by_id = {

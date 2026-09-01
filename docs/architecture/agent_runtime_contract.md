@@ -479,7 +479,7 @@ or must fall back to normal retrieval. Even an admissible result reports
 ## 6. Canonical Semantic Calculation Program
 
 This section is the normative numeric/mixed-question contract as of
-2026-08-29. It supersedes the historical concept-planner, operand-extractor,
+2026-09-01. It supersedes the historical concept-planner, operand-extractor,
 formula-planner, reconciliation, per-operation subtask, and aggregate-repair
 contracts retained later in this document.
 
@@ -612,6 +612,23 @@ a value from another. If neither structured records nor full local row text
 survives, the value is unavailable and the repair belongs to parser/evidence
 preservation upstream.
 
+`RowRecord` and `ValueRecord` are two views of the same physical table, not two
+candidate sources. Runtime merges them by stable table, row, cell, and value
+identity and emits at most one numeric candidate per physical cell even when
+the identical table bundle is attached to several retrieved or seed chunks.
+Chunk order must not change the resulting candidate IDs or catalog fingerprint.
+Only ID-less legacy material may derive an identity from the complete row axis,
+column axis, value, and unit surfaces. The projected `source_text` is bounded to
+the physical row plus caption/local heading and cell column headers; it must not
+repeat the parent chunk's complete table body or a neighboring data-row preview.
+
+The filing company is document provenance, not automatic value ownership.
+Candidates retain it separately as `document_company`. Structured values retain
+the complete ordered `row_headers` as their local subject surfaces, while prose
+values retain generic entity/subject surfaces from the enclosing sentence. A
+row-local explicit subject may establish a match or conflict; absent local
+identity remains unknown and cannot be replaced by document-company metadata.
+
 Source display metadata and semantic metadata remain separate inside each
 numeric candidate. If a value cell embeds a recognized unit, that inline unit
 is the candidate's effective `raw_unit` and takes precedence over an inherited
@@ -644,26 +661,32 @@ non-data header line, and reject a line whose value columns are predominantly
 numeric data surfaces. Calendar-year headers remain valid. Flattening all lines
 and taking trailing data values as period labels is forbidden.
 
-Only the prompt projection is bounded. Before broader output-obligation ranking,
-each required `evidence_requirement` owns a bounded admission group derived from
-its label, hints, and explicit input scope. A positive group reserves a local
-cohort from its highest-ranked source, subject to the unchanged global prompt
-limit; the parent derived-output surface and optional inputs do not count as
-required-input coverage. The remaining budget retains per-obligation,
-candidate-kind, and source-group coverage and reserves a bounded share of each
-sufficiently large group for additional highly relevant rows from already
-admitted sources. Source diversity may not consume the whole group budget when
-one relevant table/source contains multiple semantically distinct rows.
-`aggregate_label` is a first-class semantic admission label, not only diagnostic
-metadata. The projection centers bounded excerpts on visible
-obligation/candidate relevance and records the exposed candidate IDs plus its
-projection/excerpt strategy in the calculation plan.
-Numeric obligations may rank numeric candidates only; narrative obligations may
-rank narrative candidates only. Spacing-only variants of the same sufficiently
-long row label receive equivalent admission relevance. The validator must reject
-even a real catalog ID when it was not exposed to that compiler invocation.
-Candidate admission affects what the model can inspect; it is not deterministic
-answer selection.
+Only the prompt projection is bounded. Each direct output and each required
+`evidence_requirement` owns a separate cohort derived from its label, hints,
+local subject, and explicit input scope. Numeric owners expose at most four
+numeric candidates, narrative owners at most six narrative candidates, and each
+numeric output may expose at most two additional narrative compatibility
+witnesses. Admission first removes explicit conflicts and scope-only relevance
+markers, then bounds candidates by owner relevance and local subject. Within the
+admitted set, `compatible` candidates fill before `unknown_only` candidates;
+`explicit_conflict` candidates are never visible. Declared reservations that
+would exceed the global 96 numeric or 32 narrative limit fail closed rather than
+silently omitting an owner.
+
+The compiler receives `cohorts` plus one ID-keyed candidate dictionary, not a
+flat repeated catalog. Each visible row includes full `row_headers`, local
+entity surfaces, physical table/row/cell/value provenance, and its owner-specific
+applicability result. `aggregate_label` remains a first-class admission label.
+Numeric owners rank numeric candidates only and narrative owners rank narrative
+candidates only. The validator receives the selectable IDs for each exact output
+or requirement owner and rejects cross-owner reuse, hidden real IDs, and invented
+IDs. Candidate admission affects what the model can inspect; it is not
+deterministic answer selection.
+
+`semantic_candidate_stage_diagnostics_v2` records table-attachment projections
+before and after physical deduplication, cohort applicability counts, and each
+compiler attempt's visible ID set, fingerprint, and serialized candidate bytes.
+Diagnostics expose boundaries and payload size; they do not authorize a value.
 
 The compiler may reference only catalog IDs or previously produced obligation
 IDs. It cannot supply a numeric value, unit, row ID, or evidence ID. Any unknown
@@ -720,6 +743,13 @@ errors. Before returning, the compiler must ensure that the set of formula AST
 variable names is exactly the set of `variable_bindings.variable` values and
 that every required evidence input is bound exactly once to an ID owned by the
 same target obligation.
+
+The single internal retry receives only the failed obligation cohorts. A
+candidate-specific validation failure removes the rejected ID from its owned
+cohort so the next ranked candidate can be promoted; AST, binding-shape, and
+other structural failures keep the same cohort. Valid outputs from other
+obligations are neither repeated in the retry prompt nor reconstructed: the
+targeted merge preserves their serialized rows byte-for-byte.
 
 Free-form coordination fields are bounded structured data, not prompt-sized
 text surfaces. A coupling key must be a short stable identifier; the prompt asks
