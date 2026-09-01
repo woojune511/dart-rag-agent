@@ -113,7 +113,14 @@ def supplement_section_terms_for_query(query: str, topic: str, intent: str) -> L
     return list(dict.fromkeys(sections))
 
 
-def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
+def _active_preferred_sections(
+    state: Dict[str, Any],
+    query: str,
+    topic: str,
+    intent: str,
+    *,
+    include_narrative_policies: bool = True,
+) -> List[str]:
     """Resolve section hints for the active task or top-level query."""
     _statement_types, query_sections = infer_statement_and_section_hints(query)
     active_sections = [
@@ -146,7 +153,7 @@ def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, in
     sections.extend(active_sections)
     if not active_sections:
         sections.extend(preferred_calc_sections(query, topic, intent))
-    if narrative_policies:
+    if narrative_policies and include_narrative_policies:
         sections.extend(narrative_policy_preferred_sections(narrative_policies))
     return list(dict.fromkeys(sections))
 
@@ -161,10 +168,16 @@ def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: 
     return list(dict.fromkeys(types))
 
 
-def retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
+def retrieval_hint_from_topic(
+    query: str,
+    topic: str,
+    intent: str,
+    *,
+    include_narrative_policies: bool = True,
+) -> str:
     hints: List[str] = []
     narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
-    if narrative_policies:
+    if narrative_policies and include_narrative_policies:
         hints.extend(narrative_policy_terms(narrative_policies, "retrieval_query_suffixes"))
         hints.extend(narrative_policy_terms(narrative_policies, "focus_terms"))
     if intent in {"comparison", "trend"}:
@@ -222,18 +235,21 @@ def preferred_section_evidence_subset(
     if not evidence_items:
         return []
     active_subtask = dict(state.get("active_subtask") or {})
-    operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
     query_type = str(state.get("query_type") or "").strip().lower()
     format_preference = str(
         active_subtask.get("format_preference_override")
         or state.get("format_preference")
         or ""
     ).strip().lower()
-    narrative_like = operation_family == "narrative_summary" or query_type in {
+    semantic_plan = dict(state.get("semantic_plan") or {})
+    narrative_like = (
+        semantic_plan.get("program_required") is False
+        or query_type in {
         "qa",
         "business_overview",
         "risk",
-    }
+        }
+    )
     if not narrative_like or format_preference == "table":
         return []
     query = str(state.get("query") or "")

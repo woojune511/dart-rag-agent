@@ -74,23 +74,46 @@ def _extract_composite_krw(text: str) -> Optional[float]:
     return None
 
 
+def _inline_numeric_unit_match(raw_value: str) -> Optional[re.Match[str]]:
+    unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+    pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
+    if not pattern:
+        return None
+    return re.fullmatch(pattern, _normalise_spaces(raw_value))
+
+
+def resolve_source_numeric_unit(raw_value: str, source_unit_hint: str) -> tuple[str, str]:
+    """Resolve the source display unit, preferring a unit inside the value cell."""
+
+    inline_unit_match = _inline_numeric_unit_match(raw_value)
+    if inline_unit_match:
+        inline_unit = re.sub(r"\s+", "", inline_unit_match.group("unit"))
+        inline_unit = str(
+            dict(
+                NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_unit_aliases") or {}
+            ).get(inline_unit)
+            or inline_unit
+        )
+        return inline_unit, "inline_value"
+
+    hinted_unit = _normalise_spaces(source_unit_hint)
+    if hinted_unit:
+        return hinted_unit, "cell_or_table_hint"
+    return "", "unknown"
+
+
 def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[float], str]:
     """Normalize display-level values into comparison-friendly numeric units."""
-    unit = _normalise_spaces(raw_unit).lower()
+    resolved_unit, _unit_source = resolve_source_numeric_unit(raw_value, raw_unit)
+    unit = resolved_unit.lower()
     composite_krw = _extract_composite_krw(raw_value)
     if composite_krw is not None:
         return composite_krw, "KRW"
 
     unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
-    inline_unit_match = re.fullmatch(
-        str(unit_policy.get("inline_value_unit_pattern") or ""),
-        _normalise_spaces(raw_value),
-    )
+    inline_unit_match = _inline_numeric_unit_match(raw_value)
     if inline_unit_match:
         raw_value = inline_unit_match.group("value")
-        inline_unit = re.sub(r"\s+", "", inline_unit_match.group("unit"))
-        inline_unit = str(dict(unit_policy.get("inline_unit_aliases") or {}).get(inline_unit) or inline_unit)
-        unit = inline_unit.lower()
 
     value = _parse_number_text(raw_value)
     percent_units = tuple(str(item) for item in (unit_policy.get("percent_units") or ()) if str(item))

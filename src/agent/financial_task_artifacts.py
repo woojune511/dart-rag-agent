@@ -616,7 +616,12 @@ def calculation_result_artifact_update(
 
     task_id = str(task_id or "calc")
     result = dict(calculation_result or {})
-    task_status = TaskStatus.COMPLETED if str(result.get("status") or "") == "ok" else TaskStatus.FAILED
+    ledger_integrity_status = str(result.get("ledger_integrity_status") or "").strip().lower()
+    task_status = (
+        TaskStatus.COMPLETED
+        if str(result.get("status") or "") == "ok" or ledger_integrity_status == "ok"
+        else TaskStatus.FAILED
+    )
     return _calculation_task_artifact_update(
         tasks=tasks,
         artifacts=artifacts,
@@ -626,7 +631,7 @@ def calculation_result_artifact_update(
         metric_family=metric_family,
         artifact_prefix="result",
         artifact_kind=ArtifactKind.CALCULATION_RESULT,
-        artifact_status=str(result.get("status") or "ok"),
+        artifact_status=str(result.get("semantic_status") or result.get("status") or "ok"),
         task_status=task_status,
         summary=str(result.get("rendered_value") or result.get("formatted_result") or ""),
         payload={"calculation_result": result},
@@ -1204,6 +1209,46 @@ def _append_duplicate_id_issues(
 
 def _task_requires_evidence_ref(task_kind: str, attached_artifacts: Sequence[Mapping[str, Any]]) -> bool:
     requires_evidence_ref = task_kind == TaskKind.CALCULATION.value
+    if task_kind == TaskKind.CALCULATION.value:
+        latest_result: Mapping[str, Any] = {}
+        for artifact in attached_artifacts:
+            if str(artifact.get("kind") or "").strip() != ArtifactKind.CALCULATION_RESULT.value:
+                continue
+            payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+            result = payload.get("calculation_result") if isinstance(payload, Mapping) else {}
+            if isinstance(result, Mapping):
+                latest_result = result
+        status = str(
+            latest_result.get("semantic_status")
+            or latest_result.get("status")
+            or ""
+        ).strip().lower()
+        derived_metrics = (
+            latest_result.get("derived_metrics")
+            if isinstance(latest_result.get("derived_metrics"), Mapping)
+            else {}
+        )
+        has_grounded_output = any(
+            (
+                (
+                    isinstance(latest_result.get("answer_slots"), Mapping)
+                    and bool(latest_result.get("answer_slots"))
+                ),
+                isinstance(derived_metrics.get("semantic_outputs"), list)
+                and bool(derived_metrics.get("semantic_outputs")),
+                isinstance(latest_result.get("source_row_ids"), list)
+                and bool(latest_result.get("source_row_ids")),
+                isinstance(latest_result.get("source_evidence_ids"), list)
+                and bool(latest_result.get("source_evidence_ids")),
+            )
+        )
+        if status in {
+            "incomplete",
+            "invalid",
+            "missing",
+            "insufficient_operands",
+        } and not has_grounded_output:
+            requires_evidence_ref = False
     if task_kind == TaskKind.RECONCILIATION.value:
         requires_evidence_ref = reconciliation_result_status(attached_artifacts) in {"ok", "ready"}
     elif task_kind == TaskKind.REFLECTION.value:

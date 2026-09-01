@@ -1,1074 +1,2378 @@
-"""Deterministic calculation execution and payload helpers."""
+"""Validate and execute grounded semantic calculation programs."""
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
+from __future__ import annotations
 
-from src.agent.financial_answer_slots import build_answer_slots, build_calculated_value_slot
-from src.agent.financial_formula_eval import safe_eval_formula
-from src.agent.financial_operand_resolution import (
-    missing_required_operands,
-    operand_row_matches_requirement,
-    ratio_operand_rows_collapse_to_same_slot,
+import ast
+import math
+import re
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from src.agent.financial_answer_slots import (
+    build_calculated_value_slot,
+    build_operand_value_slot,
 )
-from src.agent.financial_operation_policies import should_coerce_percent_point_unit
+from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_graph_calculation_rendering import (
+    render_grounded_operand_display,
+)
+from src.agent.financial_row_surfaces import strip_financial_label_annotations
+from src.agent.financial_text_surface import topic_particle
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
     _normalise_spaces,
 )
-from src.agent.financial_runtime_trace import runtime_trace_state_update
-from src.agent.financial_scope_policies import extract_period_sort_key
-from src.agent.financial_task_artifacts import calculation_result_artifact_update as _calculation_result_artifact_update
-from src.config import get_financial_ontology
+from src.config.retrieval_policy import (
+    CALCULATION_PROMPT_POLICY,
+    CALCULATION_RENDER_POLICY,
+)
 
 
-CalculationExecutionStatus = Literal[
-    "ok",
-    "insufficient_operands",
-    "zero_division",
-    "unit_mismatch",
-    "parse_error",
-]
-
-StaleCalculationValueAssessmentReason = Literal[
-    "stale",
-    "current",
-    "expected_value_unavailable",
-    "current_value_unavailable",
-]
-
-DeterministicOperationPlanDecisionStatus = Literal[
-    "not_applicable",
-    "guarded",
-    "ready",
-]
+_ALLOWED_FUNCTIONS = {"min", "max", "abs", "round", "log", "exp"}
+_NEUTRAL_CONSTANTS = {0.0, 1.0, 100.0}
+_NARRATIVE_SCOPE_APPLICABILITY_FIELDS = {
+    "consolidation_scope",
+    "segment",
+    "basis",
+}
+_VARIABLE_SCOPE_APPLICABILITY_FIELDS = {
+    "segment",
+    "basis",
+}
+_ROW_LOCAL_NUMERIC_CANDIDATE_KINDS = {
+    "structured_row",
+    "structured_value",
+    "table_row",
+    "evidence_row",
+}
 
 
-@dataclass(frozen=True)
-class CalculationExecutionOutcome:
-    """Explicit boundary between prepared operands and result projection."""
-
-    status: CalculationExecutionStatus
-    reason: str
-    result_value: Optional[float]
-    normalized_unit: str
-    source_normalized_unit: str
-    ordered_operands: Tuple[Dict[str, Any], ...]
-    selected_evidence_ids: Tuple[str, ...]
-    yoy_growth_rates: Tuple[Any, ...] = ()
+def _formula_body(expression: str) -> ast.AST:
+    return ast.parse(str(expression or ""), mode="eval").body
 
 
-@dataclass(frozen=True)
-class StaleCalculationValueAssessment:
-    """State-free comparison between a canonical value and a projected result."""
-
-    is_stale: bool
-    reason: StaleCalculationValueAssessmentReason
-    expected_value: Optional[float] = None
-    current_value: Optional[float] = None
-    tolerance: Optional[float] = None
-
-
-@dataclass(frozen=True)
-class DeterministicOperationPlanDecision:
-    """State-free validation outcome for a deterministic operation plan."""
-
-    status: DeterministicOperationPlanDecisionStatus
-    raw_plan: Dict[str, Any]
-    selected_plan: Dict[str, Any]
+def _signed_numeric_constant(node: ast.AST) -> Optional[float]:
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return float(node.value)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        value = _signed_numeric_constant(node.operand)
+        if value is None:
+            return None
+        return value if isinstance(node.op, ast.UAdd) else -value
+    return None
 
 
-def assess_stale_calculation_value(
-    *,
-    expected_value: Any,
-    calculation_result: Mapping[str, Any],
-) -> StaleCalculationValueAssessment:
-    """Assess whether a projected scalar result disagrees with a canonical value."""
+def _formula_constants(node: ast.AST) -> List[float]:
+    values: List[float] = []
+
+    def visit(current: ast.AST, *, signed_child: bool = False) -> None:
+        signed = _signed_numeric_constant(current)
+        if signed is not None:
+            if not signed_child:
+                values.append(signed)
+            return
+        for child in ast.iter_child_nodes(current):
+            visit(child, signed_child=isinstance(current, ast.UnaryOp))
+
+    visit(node)
+    return values
+
+
+def _formula_names(node: ast.AST) -> set[str]:
+    function_names = {
+        current.func.id
+        for current in ast.walk(node)
+        if isinstance(current, ast.Call) and isinstance(current.func, ast.Name)
+    }
+    return {
+        current.id
+        for current in ast.walk(node)
+        if isinstance(current, ast.Name) and current.id not in function_names
+    }
+
+
+def _formula_ast_allowed(node: ast.AST) -> bool:
+    allowed = (
+        ast.Expression,
+        ast.Constant,
+        ast.Name,
+        ast.Load,
+        ast.UnaryOp,
+        ast.UAdd,
+        ast.USub,
+        ast.BinOp,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.Pow,
+        ast.Call,
+    )
+    for current in ast.walk(node):
+        if not isinstance(current, allowed):
+            return False
+        if isinstance(current, ast.Constant) and not isinstance(
+            current.value, (int, float)
+        ):
+            return False
+        if isinstance(current, ast.Call):
+            if not isinstance(current.func, ast.Name):
+                return False
+            if current.func.id not in _ALLOWED_FUNCTIONS or current.keywords:
+                return False
+    return True
+
+
+def _strip_percent_scale(node: ast.AST) -> ast.AST:
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mult):
+        if _signed_numeric_constant(node.left) == 100.0:
+            return node.right
+        if _signed_numeric_constant(node.right) == 100.0:
+            return node.left
+    return node
+
+
+def derive_operation_family_from_formula(expression: str) -> str:
+    """Derive a legacy compatibility label only after a formula exists."""
 
     try:
-        canonical_value = float(expected_value)
-    except Exception:
-        return StaleCalculationValueAssessment(
-            is_stale=False,
-            reason="expected_value_unavailable",
-        )
-
-    derived_metrics = calculation_result.get("derived_metrics")
-    formula_result_value = (
-        derived_metrics.get("formula_result_value")
-        if (
-            isinstance(derived_metrics, dict)
-            and derived_metrics.get("source_stated_result_used") is True
-        )
-        else None
-    )
-    try:
-        current_value = float(formula_result_value)
-    except Exception:
-        try:
-            current_value = float(calculation_result.get("result_value"))
-        except Exception:
-            return StaleCalculationValueAssessment(
-                is_stale=False,
-                reason="current_value_unavailable",
-                expected_value=canonical_value,
-            )
-
-    tolerance = max(1e-6, abs(canonical_value) * 1e-9)
-    is_stale = not (abs(canonical_value - current_value) <= tolerance)
-    return StaleCalculationValueAssessment(
-        is_stale=is_stale,
-        reason="stale" if is_stale else "current",
-        expected_value=canonical_value,
-        current_value=current_value,
-        tolerance=tolerance,
-    )
-
-
-def guard_operation_plan(
-    *,
-    plan: Dict[str, Any],
-    operands: List[Dict[str, Any]],
-    required_operands: List[Dict[str, Any]],
-    operation_family: str,
-) -> Optional[Dict[str, Any]]:
-    """Reject executable plans that do not bind distinct required roles."""
-
-    family = str(operation_family or plan.get("operation") or "").strip().lower()
-    if family not in {"ratio", "difference", "growth_rate"}:
-        return None
-
-    operand_by_id = {
-        str(row.get("operand_id") or "").strip(): row
-        for row in operands
-        if str(row.get("operand_id") or "").strip()
-    }
-    ordered_ids = [
-        str(operand_id or "").strip()
-        for operand_id in (plan.get("ordered_operand_ids") or [])
-        if str(operand_id or "").strip() in operand_by_id
-    ]
-    if not ordered_ids:
-        ordered_ids = [
-            str(binding.get("operand_id") or "").strip()
-            for binding in (plan.get("variable_bindings") or [])
-            if str(binding.get("operand_id") or "").strip() in operand_by_id
-        ]
-    unique_ids = list(dict.fromkeys(ordered_ids))
-    missing_info: List[str] = []
-
-    if len(unique_ids) < 2:
-        missing_info.append("distinct_operands")
-
-    selected_rows = [operand_by_id[operand_id] for operand_id in unique_ids]
-    if family == "ratio" and required_operands:
-        missing_required = missing_required_operands(required_operands, selected_rows)
-        missing_info.extend(
-            _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
-            for item in missing_required
-        )
-
-    if family == "ratio":
-        numerator_ids: set[str] = set()
-        denominator_ids: set[str] = set()
-        ratio_requirements = [
-            dict(item)
-            for item in required_operands
-            if str(item.get("role") or "").strip().startswith(("numerator", "denominator"))
-        ]
-        for row in selected_rows:
-            operand_id = str(row.get("operand_id") or "").strip()
-            row_role = str(row.get("matched_operand_role") or "").strip()
-            if row_role.startswith("numerator"):
-                numerator_ids.add(operand_id)
-            elif row_role.startswith("denominator"):
-                denominator_ids.add(operand_id)
-            elif ratio_requirements:
-                for requirement in ratio_requirements:
-                    role = str(requirement.get("role") or "").strip()
-                    if operand_row_matches_requirement(row, requirement):
-                        if role.startswith("numerator"):
-                            numerator_ids.add(operand_id)
-                        elif role.startswith("denominator"):
-                            denominator_ids.add(operand_id)
-
-        if not numerator_ids:
-            missing_info.append("numerator")
-        if not denominator_ids:
-            missing_info.append("denominator")
-        if numerator_ids and denominator_ids and not (numerator_ids - denominator_ids or denominator_ids - numerator_ids):
-            missing_info.append("distinct_ratio_roles")
-        if ratio_operand_rows_collapse_to_same_slot(selected_rows):
-            missing_info.append("distinct_ratio_roles")
-
-    if not missing_info:
-        return None
-
-    missing_info = list(dict.fromkeys(item for item in missing_info if item))
-    return {
-        "status": "incomplete",
-        "mode": "none",
-        "operation": "none",
-        "ordered_operand_ids": [],
-        "variable_bindings": [],
-        "formula": "",
-        "pairwise_formula": "",
-        "result_unit": "",
-        "operation_text": "",
-        "explanation": "operation plan does not satisfy required operand bindings",
-        "missing_info": missing_info,
-    }
-
-
-def build_deterministic_operation_plan(
-    *,
-    operation_family: str,
-    required_operands: Sequence[Mapping[str, Any]],
-    operands: Sequence[Mapping[str, Any]],
-    metric_label: str,
-    difference_result_unit: str,
-) -> Optional[Dict[str, Any]]:
-    """Build a deterministic difference or growth plan without graph state."""
-
-    family = str(operation_family or "").strip().lower()
-    if family not in {"difference", "growth_rate"}:
-        return None
-
-    required_rows = [
-        dict(item)
-        for item in required_operands
-        if bool(item.get("required", True))
-    ]
-    if not required_rows:
-        return None
-
-    operand_rows = [dict(row) for row in operands]
-    matched_rows: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
-    for operand in required_rows:
-        matched_row = next(
-            (row for row in operand_rows if operand_row_matches_requirement(row, operand)),
-            None,
-        )
-        if matched_row is None:
-            return None
-        matched_rows.append((operand, matched_row))
-
-    def _first_pair(role: str) -> Optional[Tuple[Dict[str, Any], Dict[str, Any]]]:
-        for operand, row in matched_rows:
-            if str(operand.get("role") or "").strip() == role:
-                return operand, row
-        return None
-
-    ordered_pairs: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
-    if family == "difference":
-        left_pair = _first_pair("current_period") or _first_pair("minuend") or _first_pair("numerator")
-        right_pair = _first_pair("prior_period") or _first_pair("subtrahend") or _first_pair("denominator")
-        if left_pair and right_pair:
-            ordered_pairs = [left_pair, right_pair]
-        elif len(matched_rows) == 2:
-            ordered_pairs = matched_rows
-    else:
-        current_pair = _first_pair("current_period")
-        prior_pair = _first_pair("prior_period")
-        if current_pair and prior_pair:
-            ordered_pairs = [current_pair, prior_pair]
-
-    if len(ordered_pairs) != 2:
-        return None
-
-    variable_bindings: List[Dict[str, str]] = []
-    ordered_operand_ids: List[str] = []
-    ordered_labels: List[str] = []
-    for index, (operand, row) in enumerate(ordered_pairs):
-        operand_id = str(row.get("operand_id") or "").strip()
-        if not operand_id:
-            return None
-        variable_bindings.append(
-            {"variable": chr(ord("A") + index), "operand_id": operand_id}
-        )
-        ordered_operand_ids.append(operand_id)
-        ordered_labels.append(
-            str(operand.get("label") or row.get("label") or "").strip()
-        )
-
-    metric_display = str(metric_label or "").strip()
-    if family == "difference":
-        right_role = str(ordered_pairs[1][0].get("role") or "").strip()
-        right_value = ordered_pairs[1][1].get("normalized_value")
-        formula = "A - B"
-        operation_text = f"{ordered_labels[0]} - {ordered_labels[1]}"
-        explanation = f"{metric_display or 'difference'} is computed as A - B."
-        if right_role in {"subtrahend", "denominator"} and right_value is not None and float(right_value) < 0:
-            formula = "A + B"
-            operation_text = f"{ordered_labels[0]} + {ordered_labels[1]}"
-            explanation = (
-                f"{metric_display or 'difference'} uses sign-aware subtraction "
-                "because B is already negative."
-            )
-        return {
-            "status": "ok",
-            "mode": "single_value",
-            "operation": "subtract",
-            "ordered_operand_ids": ordered_operand_ids,
-            "variable_bindings": variable_bindings,
-            "formula": formula,
-            "pairwise_formula": "",
-            "result_unit": str(difference_result_unit or "").strip(),
-            "operation_text": operation_text,
-            "explanation": explanation,
-            "missing_info": [],
-        }
-
-    return {
-        "status": "ok",
-        "mode": "single_value",
-        "operation": "growth_rate",
-        "ordered_operand_ids": ordered_operand_ids,
-        "variable_bindings": variable_bindings,
-        "formula": "((A - B) / B) * 100",
-        "pairwise_formula": "",
-        "result_unit": "%",
-        "operation_text": f"({ordered_labels[0]} - {ordered_labels[1]}) / {ordered_labels[1]} * 100",
-        "explanation": f"{metric_display or 'growth rate'} is computed as ((A - B) / B) * 100.",
-        "missing_info": [],
-    }
-
-
-def build_runtime_deterministic_operation_plan(
-    state: Mapping[str, Any],
-    operands: List[Dict[str, Any]],
-    *,
-    active_subtask: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
-    resolved_active_subtask = dict(
-        active_subtask
-        if active_subtask is not None
-        else state.get("active_subtask") or {}
-    )
-    operation_family = str(resolved_active_subtask.get("operation_family") or "").strip().lower()
-    required_operands = [
-        dict(item)
-        for item in (resolved_active_subtask.get("required_operands") or [])
-        if bool(item.get("required", True))
-    ]
-    metric_label = str(
-        resolved_active_subtask.get("metric_label")
-        or resolved_active_subtask.get("task_id")
-        or ""
-    ).strip()
-    plan = build_deterministic_operation_plan(
-        operation_family=operation_family,
-        required_operands=required_operands,
-        operands=operands,
-        metric_label=metric_label,
-        difference_result_unit="",
-    )
-    if operation_family == "difference" and plan and should_coerce_percent_point_unit(
-        str(resolved_active_subtask.get("query") or state["query"]),
-        operands,
-        plan,
-    ):
-        plan = {**plan, "result_unit": "%p"}
-    return plan
-
-
-def build_deterministic_ontology_plan(
-    active_subtask: Dict[str, Any], operands: List[Dict[str, Any]], *, metric_key: str
-) -> Optional[Dict[str, Any]]:
-    ontology = get_financial_ontology()
-    metric_info = ontology.metric_family(metric_key) or {}
-    formula_family = str(metric_info.get("formula_family") or "").strip().lower()
-    if not formula_family:
-        formula_family = str(active_subtask.get("operation_family") or "").strip().lower()
-    if formula_family not in {"ratio", "sum"}:
-        return None
-
-    required_operands = [
-        dict(item)
-        for item in (active_subtask.get("required_operands") or [])
-        if bool(item.get("required", True))
-    ]
-    if not required_operands:
-        return None
-
-    matched_rows: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
-    missing_labels: List[str] = []
-
-    def _operand_row_preference_score(row: Dict[str, Any], operand: Dict[str, Any]) -> tuple[int, int, int, int, int]:
-        required_role = _normalise_spaces(str(operand.get("role") or "")).lower()
-        matched_role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
-        role_score = 0
-        if required_role and matched_role:
-            if matched_role == required_role:
-                role_score = 3
-            elif required_role.startswith(("numerator", "denominator")) and matched_role.startswith(
-                "numerator" if required_role.startswith("numerator") else "denominator"
+        body = _strip_percent_scale(_formula_body(expression))
+    except (SyntaxError, ValueError):
+        return "formula"
+    if isinstance(body, ast.Name):
+        return "lookup"
+    if isinstance(body, ast.BinOp) and isinstance(body.op, ast.Sub):
+        return "difference"
+    if isinstance(body, ast.BinOp) and isinstance(body.op, ast.Div):
+        numerator = body.left
+        if isinstance(numerator, ast.BinOp) and isinstance(numerator.op, ast.Sub):
+            if ast.dump(numerator.right, include_attributes=False) == ast.dump(
+                body.right, include_attributes=False
             ):
-                role_score = 2
-        required_scope = _normalise_spaces(str(operand.get("consolidation_scope") or "")).lower()
-        row_scope = _normalise_spaces(str(row.get("consolidation_scope") or "")).lower()
-        scope_score = 0
-        if required_scope and row_scope == required_scope:
-            scope_score = 2
-        elif row_scope == "consolidated":
-            scope_score = 1
-        statement_type = _normalise_spaces(str(row.get("statement_type") or "")).lower()
-        statement_score = 2 if statement_type == "income_statement" else 0
-        stage = _normalise_spaces(str(row.get("aggregation_stage") or "")).lower()
-        value_role = _normalise_spaces(str(row.get("value_role") or "")).lower()
-        aggregate_score = int(value_role == "aggregate") + int(stage in {"direct", "final", "subtotal"})
-        source_score = len(_clean_source_row_ids([row.get("source_row_id"), row.get("source_row_ids")]))
-        return role_score, scope_score, statement_score, aggregate_score, source_score
+                return "growth_rate"
+        return "ratio"
 
-    for operand in required_operands:
-        candidate_rows = [row for row in operands if operand_row_matches_requirement(row, operand)]
-        required_role = str(operand.get("role") or "").strip()
-        role_matched_rows = [
-            row
-            for row in candidate_rows
-            if required_role
-            and str(row.get("matched_operand_role") or "").strip()
-            and (
-                str(row.get("matched_operand_role") or "").strip() == required_role
-                or (
-                    required_role.startswith(("numerator", "denominator"))
-                    and str(row.get("matched_operand_role") or "").strip().startswith(
-                        "numerator" if required_role.startswith("numerator") else "denominator"
-                    )
-                )
-            )
-        ]
-        candidate_pool = role_matched_rows or candidate_rows
-        matched_row = max(
-            candidate_pool,
-            key=lambda row: _operand_row_preference_score(row, operand),
-            default=None,
+    def add_only(current: ast.AST) -> bool:
+        return isinstance(current, ast.Name) or (
+            isinstance(current, ast.BinOp)
+            and isinstance(current.op, ast.Add)
+            and add_only(current.left)
+            and add_only(current.right)
         )
-        if matched_row is None:
-            missing_labels.append(str(operand.get("label") or "").strip() or "required_operand")
+
+    if isinstance(body, ast.BinOp) and add_only(body):
+        return "sum"
+    return "formula"
+
+
+def _query_constants(query: str) -> List[float]:
+    values: List[float] = []
+    for token in re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", str(query or "")):
+        try:
+            values.append(float(token.replace(",", "")))
+        except ValueError:
             continue
-        matched_rows.append((operand, matched_row))
+    return values
 
-    if missing_labels:
-        return None
 
-    if formula_family == "ratio":
-        numerator_pairs = [
-            (operand, row)
-            for operand, row in matched_rows
-            if str(operand.get("role") or "").strip().startswith("numerator")
-        ]
-        denominator_pairs = [
-            (operand, row)
-            for operand, row in matched_rows
-            if str(operand.get("role") or "").strip().startswith("denominator")
-        ]
-        if not numerator_pairs or not denominator_pairs:
-            return None
-        ordered_pairs = numerator_pairs + denominator_pairs
-    else:
-        numerator_pairs = []
-        denominator_pairs = []
-        ordered_pairs = matched_rows
+def _constant_allowed(
+    value: float,
+    declarations: Sequence[Mapping[str, Any]],
+    *,
+    query_values: Sequence[float],
+    binding_count: int,
+) -> bool:
+    if float(value) in _NEUTRAL_CONSTANTS:
+        return True
+    for declaration in declarations:
+        try:
+            declared = float(declaration.get("value"))
+        except (TypeError, ValueError):
+            continue
+        if abs(declared - float(value)) > 1e-12:
+            continue
+        origin = str(declaration.get("origin") or "").strip().lower()
+        if origin == "query" and any(
+            abs(candidate - value) <= 1e-12 for candidate in query_values
+        ):
+            return True
+        if (
+            origin == "deterministic_cardinality"
+            and float(value).is_integer()
+            and int(value) == int(binding_count)
+        ):
+            return True
+    return False
 
-    variable_bindings: List[Dict[str, str]] = []
-    ordered_operand_ids: List[str] = []
-    numerator_vars: List[str] = []
-    denominator_vars: List[str] = []
-    additive_vars: List[str] = []
 
-    for index, (operand, row) in enumerate(ordered_pairs):
-        variable = chr(ord("A") + index)
-        operand_id = str(row.get("operand_id") or "").strip()
-        if not operand_id:
-            return None
-        variable_bindings.append({"variable": variable, "operand_id": operand_id})
-        ordered_operand_ids.append(operand_id)
-        role = str(operand.get("role") or "").strip()
-        if formula_family == "ratio":
-            if role.startswith("numerator"):
-                numerator_vars.append(variable)
-            elif role.startswith("denominator"):
-                denominator_vars.append(variable)
-        elif formula_family == "sum":
-            additive_vars.append(variable)
+def _candidate_dimension(candidate: Mapping[str, Any]) -> str:
+    unit = str(candidate.get("normalized_unit") or "UNKNOWN").strip().upper()
+    return unit if unit in {"KRW", "USD", "COUNT", "PERCENT"} else "UNKNOWN"
 
-    metric_display = (
-        str(metric_info.get("display_name") or "").strip()
-        or str(active_subtask.get("metric_label") or "").strip()
-        or metric_key
+
+def _candidate_has_finite_numeric_value(candidate: Mapping[str, Any]) -> bool:
+    try:
+        return math.isfinite(float(candidate.get("normalized_value")))
+    except (TypeError, ValueError):
+        return False
+
+
+def _additive_dimension(left: str, right: str) -> str:
+    if left == right:
+        return left
+    if {left, right} == {"RATIO", "SCALAR"}:
+        return "RATIO"
+    if "UNKNOWN" in {left, right}:
+        raise ValueError("unknown additive unit")
+    raise ValueError(f"additive unit mismatch: {left} vs {right}")
+
+
+def _formula_dimension(node: ast.AST, units: Mapping[str, str]) -> str:
+    if isinstance(node, ast.Constant):
+        return "SCALAR"
+    if isinstance(node, ast.Name):
+        if node.id not in units:
+            raise ValueError(f"unknown variable unit: {node.id}")
+        return str(units[node.id])
+    if isinstance(node, ast.UnaryOp):
+        return _formula_dimension(node.operand, units)
+    if isinstance(node, ast.BinOp):
+        left = _formula_dimension(node.left, units)
+        right = _formula_dimension(node.right, units)
+        if isinstance(node.op, (ast.Add, ast.Sub)):
+            return _additive_dimension(left, right)
+        if isinstance(node.op, ast.Mult):
+            if left == "SCALAR":
+                return right
+            if right == "SCALAR":
+                return left
+            raise ValueError(f"unsupported compound multiplication: {left} * {right}")
+        if isinstance(node.op, ast.Div):
+            if right == "SCALAR":
+                return left
+            if left == right and left != "UNKNOWN":
+                return "RATIO"
+            raise ValueError(f"unsupported compound division: {left} / {right}")
+        if isinstance(node.op, ast.Pow):
+            if right != "SCALAR":
+                raise ValueError("formula exponent must be dimensionless")
+            exponent = _signed_numeric_constant(node.right)
+            if exponent == 1.0:
+                return left
+            if left in {"SCALAR", "RATIO"}:
+                return left
+            raise ValueError(f"unsupported dimensional exponent: {left}")
+        raise ValueError("unsupported formula operator")
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _ALLOWED_FUNCTIONS:
+            raise ValueError("unsupported formula function")
+        dimensions = [_formula_dimension(argument, units) for argument in node.args]
+        if node.func.id in {"min", "max"}:
+            if not dimensions:
+                raise ValueError(f"{node.func.id} requires arguments")
+            result = dimensions[0]
+            for dimension in dimensions[1:]:
+                result = _additive_dimension(result, dimension)
+            return result
+        if node.func.id == "abs":
+            if len(dimensions) != 1:
+                raise ValueError("abs requires one argument")
+            return dimensions[0]
+        if node.func.id == "round":
+            if not dimensions or len(dimensions) > 2:
+                raise ValueError("round requires one or two arguments")
+            if len(dimensions) == 2 and dimensions[1] != "SCALAR":
+                raise ValueError("round precision must be dimensionless")
+            return dimensions[0]
+        if node.func.id in {"log", "exp"}:
+            if len(dimensions) != 1 or dimensions[0] not in {"SCALAR", "RATIO"}:
+                raise ValueError(f"{node.func.id} requires a dimensionless argument")
+            return "SCALAR"
+    raise ValueError(f"unsupported formula node: {type(node).__name__}")
+
+
+def _result_unit_valid(result_unit: str, dimension: str) -> bool:
+    cleaned = _normalise_spaces(str(result_unit or ""))
+    if not cleaned:
+        return dimension in {"SCALAR", "RATIO", "UNKNOWN"}
+    _value, normalized = _normalise_operand_value("1", cleaned)
+    normalized = str(normalized or "UNKNOWN").upper()
+    percent_display_units = {
+        str(item)
+        for item in (CALCULATION_RENDER_POLICY.get("percent_display_units") or ())
+        if str(item)
+    }
+    if dimension == "RATIO":
+        return normalized == "PERCENT" or cleaned in percent_display_units
+    if dimension == "PERCENT" and cleaned in percent_display_units:
+        return True
+    if dimension == "SCALAR":
+        return normalized in {"COUNT", "UNKNOWN"}
+    if dimension == "UNKNOWN":
+        return normalized == "UNKNOWN"
+    return normalized == dimension
+
+
+def _scope_surface_matches(expected: str, actual: str) -> bool:
+    wanted = _normalise_spaces(str(expected or "")).lower()
+    observed = _normalise_spaces(str(actual or "")).lower()
+    if not wanted or not observed:
+        return False
+    if wanted in observed or observed in wanted:
+        return True
+    compact_wanted = re.sub(r"\s+", "", wanted)
+    compact_observed = re.sub(r"\s+", "", observed)
+    return bool(
+        min(len(compact_wanted), len(compact_observed)) >= 4
+        and (
+            compact_wanted in compact_observed
+            or compact_observed in compact_wanted
+        )
     )
 
-    if formula_family == "ratio":
-        if not numerator_vars or not denominator_vars:
-            return None
-        numerator_expr = " + ".join(numerator_vars)
-        denominator_expr = " + ".join(denominator_vars)
-        denominator_operation_text = " + ".join(
-            str(operand.get("label") or "").strip()
-            for operand, _row in denominator_pairs
+
+def _scope_matches(expected: str, actual: str, candidate: Mapping[str, Any]) -> bool:
+    wanted = _normalise_spaces(str(expected or "")).lower()
+    if not wanted or wanted == "unknown":
+        return True
+    observed = _normalise_spaces(str(actual or "")).lower()
+    if observed and observed != "unknown":
+        return _scope_surface_matches(wanted, observed)
+    surface = _normalise_spaces(
+        " ".join(
+            str(candidate.get(key) or "")
+            for key in ("source_anchor", "source_text", "row_label", "period")
         )
-        denominator_aggregation = _normalise_spaces(
-            str(
-                active_subtask.get("denominator_aggregation")
-                or metric_info.get("denominator_aggregation")
-                or ""
-            )
-        ).lower()
-        if denominator_aggregation == "average" and len(denominator_vars) > 1:
-            denominator_expr = f"(({denominator_expr}) / {len(denominator_vars)})"
-            denominator_operation_text = f"average({denominator_operation_text})"
-        result_unit = str(active_subtask.get("result_unit") or metric_info.get("result_unit") or "").strip()
-        if not result_unit:
-            result_unit = "%"
-        if result_unit.upper() == "PERCENT":
-            result_unit = "%"
-        elif result_unit.upper() == "PERCENT_POINT":
-            result_unit = "%p"
-        percent_result = result_unit in {"%", "퍼센트"} or result_unit.upper() == "PERCENT"
-        if result_unit == "%p":
-            percent_result = True
-        formula = f"(({numerator_expr}) / ({denominator_expr}))"
-        operation_suffix = ""
-        if percent_result:
-            formula = f"{formula} * 100"
-            operation_suffix = " * 100"
+    ).lower()
+    return _scope_surface_matches(wanted, surface)
 
-        numerator_labels = [str(operand.get("label") or "").strip() for operand, _row in numerator_pairs]
 
+def _direct_subject_resolution(
+    candidate: Mapping[str, Any], obligation: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Resolve a direct value's subject only from validation-owned evidence."""
+
+    wanted_surface = _normalise_spaces(
+        str((obligation.get("scope") or {}).get("segment") or "")
+    )
+    wanted = wanted_surface.lower()
+    if not wanted or wanted == "unknown":
         return {
-            "status": "ok",
-            "mode": "single_value",
-            "operation": "ratio",
-            "ordered_operand_ids": ordered_operand_ids,
-            "variable_bindings": variable_bindings,
-            "formula": formula,
-            "pairwise_formula": "",
-            "result_unit": result_unit,
-            "operation_text": f"({' + '.join(numerator_labels)}) / ({denominator_operation_text}){operation_suffix}",
-            "explanation": f"{metric_display}의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
-            "missing_info": [],
+            "state": "match",
+            "subject": "",
+            "source": "not_required",
+            "source_row_ids": [],
         }
 
-    if not additive_vars:
-        return None
-    additive_labels = [str(operand.get("label") or "").strip() for operand, _row in ordered_pairs]
-    result_unit = str(metric_info.get("result_unit") or "").strip()
-    return {
-        "status": "ok",
-        "mode": "single_value",
-        "operation": "add",
-        "ordered_operand_ids": ordered_operand_ids,
-        "variable_bindings": variable_bindings,
-        "formula": " + ".join(additive_vars),
-        "pairwise_formula": "",
-        "result_unit": result_unit,
-        "operation_text": " + ".join(additive_labels),
-        "explanation": f"{metric_display}에 필요한 concept operand를 합산합니다.",
-        "missing_info": [],
-    }
-
-
-def resolve_deterministic_operation_plan(
-    *,
-    plan: Mapping[str, Any],
-    operands: Sequence[Mapping[str, Any]],
-    required_operands: Sequence[Mapping[str, Any]],
-    operation_family: str,
-) -> DeterministicOperationPlanDecision:
-    """Select a raw deterministic plan or its binding guard without graph projection."""
-
-    raw_plan = dict(plan or {})
-    if not raw_plan:
-        return DeterministicOperationPlanDecision(
-            status="not_applicable",
-            raw_plan={},
-            selected_plan={},
-        )
-    guarded_plan = guard_operation_plan(
-        plan=raw_plan,
-        operands=[dict(row) for row in operands],
-        required_operands=[dict(item) for item in required_operands],
-        operation_family=operation_family,
-    )
-    return DeterministicOperationPlanDecision(
-        status="guarded" if guarded_plan else "ready",
-        raw_plan=raw_plan,
-        selected_plan=dict(guarded_plan or raw_plan),
-    )
-
-
-def execute_prepared_calculation_plan(
-    *,
-    mode: str,
-    operation: str,
-    formula: str,
-    pairwise_formula: str,
-    result_unit: str,
-    operands_by_id: Mapping[str, Dict[str, Any]],
-    ordered_operand_ids: Sequence[str],
-    variable_bindings: Sequence[Dict[str, Any]],
-) -> CalculationExecutionOutcome:
-    """Execute a prepared calculation plan without reading or mutating graph state."""
-
-    operands = {str(operand_id): dict(row) for operand_id, row in operands_by_id.items()}
-    ordered_ids = [
-        str(operand_id).strip()
-        for operand_id in ordered_operand_ids
-        if str(operand_id).strip()
-    ]
-    binding_rows = [dict(binding) for binding in variable_bindings]
-    binding_ids = [
-        str(binding.get("operand_id") or "").strip()
-        for binding in binding_rows
-        if str(binding.get("operand_id") or "").strip()
-    ]
-    execution_ids = ordered_ids or list(dict.fromkeys(binding_ids))
-    ordered_operands = [
-        dict(operands[operand_id])
-        for operand_id in execution_ids
-        if operand_id in operands
-    ]
-    selected_evidence_ids = tuple(
-        dict.fromkeys(
-            str(row.get("evidence_id"))
-            for row in ordered_operands
-            if row.get("evidence_id")
-        )
-    )
-
-    def _outcome(
-        *,
-        status: CalculationExecutionStatus,
-        reason: str = "",
-        result_value: Optional[float] = None,
-        normalized_unit: str = "",
-        source_normalized_unit: str = "",
-        result_operands: Optional[Sequence[Dict[str, Any]]] = None,
-        result_evidence_ids: Optional[Sequence[str]] = None,
-        yoy_growth_rates: Optional[Sequence[Any]] = None,
-    ) -> CalculationExecutionOutcome:
-        return CalculationExecutionOutcome(
-            status=status,
-            reason=reason,
-            result_value=result_value,
-            normalized_unit=normalized_unit,
-            source_normalized_unit=source_normalized_unit,
-            ordered_operands=tuple(
-                dict(row)
-                for row in (ordered_operands if result_operands is None else result_operands)
-            ),
-            selected_evidence_ids=tuple(
-                selected_evidence_ids if result_evidence_ids is None else result_evidence_ids
-            ),
-            yoy_growth_rates=tuple(() if yoy_growth_rates is None else yoy_growth_rates),
-        )
-
-    missing_ordered_ids = [operand_id for operand_id in execution_ids if operand_id not in operands]
-    if missing_ordered_ids:
-        return _outcome(
-            status="parse_error",
-            reason=f"unknown ordered operand ids: {list(dict.fromkeys(missing_ordered_ids))}",
-        )
-
-    invalid_bindings = [
-        binding
-        for binding in binding_rows
-        if not str(binding.get("variable") or "").strip()
-        or not str(binding.get("operand_id") or "").strip()
-        or str(binding.get("operand_id") or "").strip() not in operands
-    ]
-    if invalid_bindings:
-        return _outcome(
-            status="parse_error",
-            reason=f"invalid variable binding: {invalid_bindings[0]}",
-        )
-
-    if not binding_ids:
-        return _outcome(
-            status="insufficient_operands",
-            reason="calculation plan has no variable bindings",
-        )
-
-    if ordered_ids and set(ordered_ids) != set(binding_ids):
-        return _outcome(
-            status="parse_error",
-            reason="ordered operands and variable bindings disagree",
-        )
-
-    units = {row.get("normalized_unit") for row in ordered_operands}
-    if len(units) != 1:
-        return _outcome(
-            status="unit_mismatch",
-            reason=f"unit families differ: {sorted(str(unit) for unit in units)}",
-        )
-    source_normalized_unit = str(next(iter(units)))
-    values = [row.get("normalized_value") for row in ordered_operands]
-    if any(value is None for value in values):
-        return _outcome(
-            status="parse_error",
-            reason="one or more operands could not be normalized",
-            source_normalized_unit=source_normalized_unit,
-        )
-
-    try:
-        env: Dict[str, float] = {}
-        for binding in binding_rows:
-            variable = str(binding.get("variable") or "").strip()
-            operand_id = str(binding.get("operand_id") or "").strip()
-            operand = operands.get(operand_id)
-            if not variable or operand is None or operand.get("normalized_value") is None:
-                return _outcome(
-                    status="parse_error",
-                    reason=f"invalid variable binding: {binding}",
-                    source_normalized_unit=source_normalized_unit,
-                )
-            env[variable] = float(operand.get("normalized_value"))
-
-        outcome_operands = ordered_operands
-        outcome_evidence_ids = selected_evidence_ids
-        growth_rates: Sequence[Any] = ()
-        if mode == "time_series":
-            if len(binding_rows) < 2:
-                return _outcome(
-                    status="insufficient_operands",
-                    reason="time_series needs at least 2 operands",
-                    source_normalized_unit=source_normalized_unit,
-                )
-            outcome_operands = sorted(
-                [operands[str(binding.get("operand_id"))] for binding in binding_rows],
-                key=lambda row: extract_period_sort_key(str(row.get("period") or "")),
-            )
-            outcome_evidence_ids = tuple(
-                dict.fromkeys(
-                    str(row.get("evidence_id"))
-                    for row in outcome_operands
-                    if row.get("evidence_id")
-                )
-            )
-            growth_rates = time_series_yoy_growth_rates(
-                ordered_operands=outcome_operands,
-                pairwise_formula=pairwise_formula,
-            )
-            if not formula:
-                return _outcome(
-                    status="parse_error",
-                    reason="missing trend formula",
-                    source_normalized_unit=source_normalized_unit,
-                    result_operands=outcome_operands,
-                    result_evidence_ids=outcome_evidence_ids,
-                    yoy_growth_rates=growth_rates,
-                )
-        elif not formula:
-            return _outcome(
-                status="parse_error",
-                reason="missing scalar formula",
-                source_normalized_unit=source_normalized_unit,
-            )
-
-        result_value = float(safe_eval_formula(formula, env))
-    except ZeroDivisionError as exc:
-        return _outcome(
-            status="zero_division",
-            reason=str(exc),
-            source_normalized_unit=source_normalized_unit,
-        )
-    except Exception as exc:
-        return _outcome(
-            status="parse_error",
-            reason=str(exc),
-            source_normalized_unit=source_normalized_unit,
-        )
-
-    normalized_unit = source_normalized_unit
-    if result_unit in {"%", "%p"}:
-        normalized_unit = "PERCENT"
-    elif operation == "ratio":
-        normalized_unit = "COUNT"
-    return _outcome(
-        status="ok",
-        result_value=result_value,
-        normalized_unit=normalized_unit,
-        source_normalized_unit=source_normalized_unit,
-        result_operands=outcome_operands,
-        result_evidence_ids=outcome_evidence_ids,
-        yoy_growth_rates=growth_rates,
-    )
-
-
-def build_failed_calculation_result(
-    *,
-    active_subtask: Dict[str, Any],
-    operation_family: str,
-    runtime_operands: List[Dict[str, Any]],
-    result_unit: str,
-    source_normalized_unit: str,
-    status: str,
-    reason: str,
-) -> Dict[str, Any]:
-    failure_slots = build_answer_slots(
-        active_subtask=active_subtask,
-        operation_family=operation_family or "single_value",
-        ordered_operands=list(runtime_operands),
-        result_value=None,
-        result_unit=result_unit,
-        normalized_unit="UNKNOWN",
-        source_normalized_unit=source_normalized_unit or "UNKNOWN",
-        current_value=None,
-        prior_value=None,
-        delta_value=None,
-        current_period="",
-        prior_period="",
-        source_row_ids=[],
-        current_row=None,
-        prior_row=None,
-    )
-    return {
-        "status": status,
-        "result_value": None,
-        "result_unit": result_unit,
-        "rendered_value": "",
-        "formatted_result": "",
-        "series": [],
-        "answer_slots": failure_slots,
-        "derived_metrics": {},
-        "explanation": reason,
-    }
-
-
-def build_success_calculation_state_payload(
-    *,
-    state: Dict[str, Any],
-    calc_result: Dict[str, Any],
-    selected_evidence_ids: List[str],
-    runtime_operands: List[Dict[str, Any]],
-    calculation_plan: Dict[str, Any],
-    query: str,
-    metric_family: str,
-) -> Dict[str, Any]:
-    result_payload: Dict[str, Any] = {
-        "answer": "",
-        "compressed_answer": "",
-        "selected_claim_ids": list(selected_evidence_ids),
-        "draft_points": [],
-        "kept_claim_ids": list(selected_evidence_ids),
-        "dropped_claim_ids": [],
-        "unsupported_sentences": [],
-        "sentence_checks": [],
-    }
-    active_subtask = dict(state.get("active_subtask") or {})
-    task_id = str(active_subtask.get("task_id") or "calc")
-    ledger_update = _calculation_result_artifact_update(
-        tasks=list(state.get("tasks") or []),
-        artifacts=list(state.get("artifacts") or []),
-        task_id=task_id,
-        task_label=str(active_subtask.get("metric_label") or task_id),
-        query=query,
-        metric_family=metric_family,
-        calculation_result=calc_result,
-        evidence_refs=selected_evidence_ids,
-    )
-    result_payload["tasks"] = list(ledger_update["tasks"])
-    result_payload["artifacts"] = list(ledger_update["artifacts"])
-    result_payload.update(
-        runtime_trace_state_update(
-            state,
-            calculation_operands=list(runtime_operands),
-            calculation_plan=dict(calculation_plan),
-            calculation_result=dict(calc_result),
-        )
-    )
-    return result_payload
-
-
-def build_scalar_calculation_state(
-    *,
-    operation_family: str,
-    ordered_operands: List[Dict[str, Any]],
-    result_value: float,
-    normalized_unit: str,
-    result_unit: str,
-    rendered_with_unit: str,
-) -> Dict[str, Any]:
-    current_value = None
-    prior_value = None
-    delta_value = None
-    current_period = ""
-    prior_period = ""
-    current_row = None
-    prior_row = None
-    source_stated_result_used = False
     source_row_ids = _clean_source_row_ids(
         [
-            [
-                row.get("evidence_id"),
-                row.get("source_row_id"),
-                row.get("source_row_ids"),
-            ]
-            for row in ordered_operands
+            candidate.get("candidate_id"),
+            candidate.get("source_row_id"),
+            candidate.get("evidence_id"),
+            candidate.get("source_candidate_id"),
         ]
     )
-    if operation_family in {"lookup", "single_value"} and ordered_operands:
-        current_value = float(ordered_operands[0].get("normalized_value"))
-        current_period = str(ordered_operands[0].get("period") or "")
-    elif operation_family in {"difference", "growth_rate"}:
-        current_row = next(
-            (
-                row
-                for row in ordered_operands
-                if str(row.get("matched_operand_role") or "").strip() == "current_period"
-            ),
-            None,
+
+    candidate_kind = str(candidate.get("candidate_kind") or "").strip().lower()
+    if candidate_kind in _ROW_LOCAL_NUMERIC_CANDIDATE_KINDS:
+        raw_row_headers = candidate.get("row_headers") or []
+        if isinstance(raw_row_headers, (str, bytes)):
+            raw_row_headers = [raw_row_headers]
+        elif not isinstance(raw_row_headers, Sequence):
+            raw_row_headers = []
+        local_surfaces: List[str] = []
+        for value in (candidate.get("row_label"), *raw_row_headers):
+            cleaned = strip_financial_label_annotations(str(value or ""))
+            if cleaned and cleaned.lower() != "unknown" and cleaned not in local_surfaces:
+                local_surfaces.append(cleaned)
+
+        exact = [surface for surface in local_surfaces if surface.lower() == wanted]
+        compatible = [
+            surface
+            for surface in local_surfaces
+            if _scope_surface_matches(wanted, surface)
+        ]
+        resolved = exact[0] if len(exact) == 1 else (
+            compatible[0] if not exact and len(compatible) == 1 else ""
         )
-        prior_row = next(
-            (
-                row
-                for row in ordered_operands
-                if str(row.get("matched_operand_role") or "").strip() == "prior_period"
-            ),
-            None,
+        if resolved:
+            return {
+                "state": "match",
+                "subject": resolved,
+                "source": "candidate_row_identity",
+                "source_row_ids": source_row_ids,
+            }
+        if local_surfaces:
+            return {
+                "state": "conflict",
+                "subject": "",
+                "source": "candidate_row_identity",
+                "source_row_ids": source_row_ids,
+            }
+
+    explicit_segment_surface = _normalise_spaces(str(candidate.get("segment") or ""))
+    explicit_segment = explicit_segment_surface.lower()
+    if explicit_segment and explicit_segment != "unknown":
+        matches = _scope_surface_matches(wanted, explicit_segment)
+        return {
+            "state": "match" if matches else "conflict",
+            "subject": explicit_segment_surface if matches else "",
+            "source": "candidate_segment_metadata",
+            "source_row_ids": source_row_ids,
+        }
+
+    state = _scope_match_state("segment", wanted, candidate)
+    return {
+        "state": state,
+        "subject": wanted_surface if state == "match" else "",
+        "source": "validated_candidate_context" if state == "match" else "unknown",
+        "source_row_ids": source_row_ids if state == "match" else [],
+    }
+
+
+def _period_scope_matches(expected: str, candidate: Mapping[str, Any]) -> bool:
+    wanted = _normalise_spaces(str(expected or "")).lower()
+    if not wanted or wanted == "unknown":
+        return True
+
+    observed = _normalise_spaces(str(candidate.get("period") or "")).lower()
+    if observed and _scope_surface_matches(wanted, observed):
+        return True
+
+    expected_years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", wanted))
+    if not expected_years:
+        return _scope_matches(wanted, observed, candidate)
+
+    explicit_surfaces = [
+        observed,
+        *[
+            _normalise_spaces(str(item)).lower()
+            for item in (candidate.get("column_headers") or [])
+            if _normalise_spaces(str(item))
+        ],
+    ]
+    explicit_years = {
+        year
+        for surface in explicit_surfaces
+        for year in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", surface)
+    }
+    if explicit_years:
+        return bool(expected_years & explicit_years)
+
+    value_year = _normalise_spaces(str(candidate.get("value_year") or ""))
+    if value_year:
+        return value_year in expected_years
+
+    value_role = _normalise_spaces(str(candidate.get("value_role") or "")).lower()
+    prior_role = any(
+        marker in value_role
+        for marker in ("prior", "previous", "opening", "begin")
+    )
+    if prior_role:
+        return False
+
+    has_opaque_numeric_period = any(
+        re.search(r"\d", surface) for surface in explicit_surfaces if surface
+    )
+    current_role = any(
+        marker in value_role
+        for marker in ("current", "closing", "ending", "end")
+    )
+    if has_opaque_numeric_period and not current_role:
+        return False
+
+    context_surface = _normalise_spaces(
+        " ".join(
+            str(candidate.get(key) or "")
+            for key in ("year", "source_anchor")
         )
-        if current_row is None and len(ordered_operands) >= 1:
-            current_row = ordered_operands[0]
-        if prior_row is None and len(ordered_operands) >= 2:
-            prior_row = ordered_operands[1]
-        if current_row and current_row.get("normalized_value") is not None:
-            current_value = float(current_row.get("normalized_value"))
-            current_period = str(current_row.get("period") or "")
-        if prior_row and prior_row.get("normalized_value") is not None:
-            prior_value = float(prior_row.get("normalized_value"))
-            prior_period = str(prior_row.get("period") or "")
-        if operation_family == "difference":
-            delta_value = float(result_value)
-        elif operation_family == "growth_rate" and current_row:
-            stated_change_raw_value = _normalise_spaces(str(current_row.get("stated_change_raw_value") or ""))
-            stated_change_raw_unit = _normalise_spaces(str(current_row.get("stated_change_raw_unit") or "%"))
-            if stated_change_raw_value:
-                stated_value, stated_unit = _normalise_operand_value(
-                    stated_change_raw_value,
-                    stated_change_raw_unit or "%",
-                )
-                if stated_value is not None and str(stated_unit or "").strip().upper() == "PERCENT":
-                    result_value = stated_value
-                    normalized_unit = "PERCENT"
-                    result_unit = "%"
-                    rendered_with_unit = f"{stated_change_raw_value}%"
-                    source_stated_result_used = True
-    return {
-        "result_value": result_value,
-        "normalized_unit": normalized_unit,
-        "result_unit": result_unit,
-        "rendered_with_unit": rendered_with_unit,
-        "source_stated_result_used": source_stated_result_used,
-        "current_value": current_value,
-        "prior_value": prior_value,
-        "delta_value": delta_value,
-        "current_period": current_period,
-        "prior_period": prior_period,
-        "current_row": current_row,
-        "prior_row": prior_row,
-        "source_row_ids": source_row_ids,
+    ).lower()
+    return any(year in context_surface for year in expected_years)
+
+
+def _scope_errors(
+    candidate: Mapping[str, Any],
+    obligation: Mapping[str, Any],
+    *,
+    include_basis: bool = True,
+    applicable_unknown_fields: Sequence[str] = (),
+) -> List[str]:
+    scope = dict(obligation.get("scope") or {})
+    applicable = {
+        str(field).strip()
+        for field in applicable_unknown_fields
+        if str(field).strip() in _NARRATIVE_SCOPE_APPLICABILITY_FIELDS
+    }
+    checks = ["company", "consolidation_scope", "segment"]
+    if include_basis:
+        checks.append("basis")
+    errors: List[str] = []
+    for field in checks:
+        state = _scope_match_state(field, scope.get(field), candidate)
+        if state == "match" or (state == "unknown" and field in applicable):
+            continue
+        errors.append(f"scope mismatch: {field}")
+    period_state = _scope_match_state("period", scope.get("period"), candidate)
+    if period_state != "match":
+        errors.append("scope mismatch: period")
+    return errors
+
+
+def _evidence_requirement_scope_conflicts(
+    obligation: Mapping[str, Any],
+    requirement: Mapping[str, Any],
+) -> List[str]:
+    """Return non-period scope fields where an input contradicts its output."""
+
+    output_scope = dict(obligation.get("scope") or {})
+    input_scope = dict(requirement.get("scope") or {})
+    conflicts: List[str] = []
+    for field in ("company", "consolidation_scope", "segment", "basis"):
+        output_value = _normalise_spaces(str(output_scope.get(field) or "")).lower()
+        input_value = _normalise_spaces(str(input_scope.get(field) or "")).lower()
+        if output_value in {"", "unknown"} or input_value in {"", "unknown"}:
+            continue
+        if output_value not in input_value and input_value not in output_value:
+            conflicts.append(field)
+    return conflicts
+
+
+def _same_source_context(
+    candidate: Mapping[str, Any], witness: Mapping[str, Any]
+) -> bool:
+    for field in ("evidence_id", "table_source_id", "context_fingerprint"):
+        left = _normalise_spaces(str(candidate.get(field) or ""))
+        right = _normalise_spaces(str(witness.get(field) or ""))
+        if left and right and left == right:
+            return True
+    left_anchor = _normalise_spaces(str(candidate.get("source_anchor") or ""))
+    right_anchor = _normalise_spaces(str(witness.get("source_anchor") or ""))
+    return bool(left_anchor and left_anchor == right_anchor)
+
+
+def _direct_scope_gap_is_bridgeable(
+    candidate: Mapping[str, Any], detail: str
+) -> bool:
+    field = str(detail or "").rsplit(":", 1)[-1].strip()
+    if field == "period":
+        explicit_surfaces = [
+            _normalise_spaces(str(candidate.get("period") or "")),
+            *[
+                _normalise_spaces(str(item))
+                for item in (candidate.get("column_headers") or [])
+                if _normalise_spaces(str(item))
+            ],
+        ]
+        explicit_years = {
+            year
+            for surface in explicit_surfaces
+            for year in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", surface)
+        }
+        return not explicit_years and not candidate.get("value_year")
+    actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
+    return actual in {"", "unknown"} and field in {
+        "consolidation_scope",
+        "segment",
+        "basis",
     }
 
 
-def build_scalar_calculation_result(
-    *,
-    result_value: float,
-    result_unit: str,
-    rendered_with_unit: str,
-    result_series: List[Dict[str, Any]],
-    scalar_state: Dict[str, Any],
-    answer_slots: Dict[str, Any],
-    operand_labels: List[str],
-    formula: str,
-    operation_family: str,
-    operation: str,
-    formula_result_value: float,
-    explanation: str,
-) -> Dict[str, Any]:
-    return {
-        "status": "ok",
-        "result_value": result_value,
-        "result_unit": result_unit,
-        "rendered_value": rendered_with_unit,
-        "formatted_result": "",
-        "series": list(result_series),
-        "current_value": scalar_state.get("current_value"),
-        "prior_value": scalar_state.get("prior_value"),
-        "delta_value": scalar_state.get("delta_value"),
-        "current_period": scalar_state.get("current_period") or "",
-        "prior_period": scalar_state.get("prior_period") or "",
-        "source_row_ids": list(scalar_state.get("source_row_ids") or []),
-        "answer_slots": dict(answer_slots),
-        "derived_metrics": {
-            "operand_labels": list(operand_labels),
-            "formula": formula,
-            "operation_family": operation_family or operation,
-            "formula_result_value": formula_result_value,
-            "source_stated_result_used": bool(scalar_state.get("source_stated_result_used")),
-        },
-        "explanation": explanation,
-    }
-
-
-def build_time_series_calculation_result(
-    *,
-    result_value: float,
-    result_unit: str,
-    rendered_value: str,
-    result_series: List[Dict[str, Any]],
-    operation_family: str,
-    operation: str,
-    metric_name: str,
-    normalized_unit: str,
-    yoy_growth_rates: List[Any],
-    formula: str,
-    pairwise_formula: str,
-    explanation: str,
-) -> Dict[str, Any]:
-    return {
-        "status": "ok",
-        "result_value": result_value,
-        "result_unit": result_unit,
-        "rendered_value": rendered_value,
-        "formatted_result": "",
-        "series": list(result_series),
-        "answer_slots": {
-            "operation_family": operation_family or operation,
-            "metric_label": metric_name,
-            "primary_value": build_calculated_value_slot(
-                label=metric_name,
-                normalized_value=result_value,
-                normalized_unit=normalized_unit,
-                display_unit=result_unit,
-                role="primary_value",
-            ),
-        },
-        "derived_metrics": {
-            "metric_name": metric_name,
-            "yoy_growth_rates": list(yoy_growth_rates),
-            "formula": formula,
-            "pairwise_formula": pairwise_formula,
-        },
-        "explanation": explanation,
-    }
-
-
-def time_series_yoy_growth_rates(
-    *,
-    ordered_operands: List[Dict[str, Any]],
-    pairwise_formula: str,
-) -> List[Any]:
-    yoy_growth_rates: List[Any] = [None]
-    if not pairwise_formula:
-        return yoy_growth_rates
-    for previous_row, current_row in zip(ordered_operands, ordered_operands[1:]):
-        prev_value = float(previous_row.get("normalized_value"))
-        curr_value = float(current_row.get("normalized_value"))
-        try:
-            yoy_growth_rates.append(
-                safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value})
+def _scope_match_state(
+    field: str,
+    expected: Any,
+    candidate: Mapping[str, Any],
+) -> str:
+    wanted = _normalise_spaces(str(expected or "")).lower()
+    if not wanted or wanted == "unknown":
+        return "match"
+    if field == "period":
+        if _period_scope_matches(wanted, candidate):
+            return "match"
+        explicit_year = candidate.get("value_year") or candidate.get("year")
+        period_surface = _normalise_spaces(
+            " ".join(
+                [
+                    str(candidate.get("period") or ""),
+                    *[str(item) for item in (candidate.get("column_headers") or [])],
+                ]
             )
-        except ZeroDivisionError:
-            yoy_growth_rates.append(None)
-    return yoy_growth_rates
+        )
+        if explicit_year not in (None, "") or re.search(
+            r"(?<!\d)(?:19|20)\d{2}(?!\d)", period_surface
+        ):
+            return "conflict"
+        return "unknown"
+
+    actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
+    if actual and actual != "unknown":
+        return "match" if _scope_surface_matches(wanted, actual) else "conflict"
+    return "match" if _scope_matches(wanted, actual, candidate) else "unknown"
+
+
+def _collective_narrative_scope_errors(
+    candidates: Sequence[Mapping[str, Any]],
+    obligation: Mapping[str, Any],
+    *,
+    applicable_unknown_fields: Sequence[str] = (),
+) -> List[str]:
+    scope = dict(obligation.get("scope") or {})
+    applicable = {
+        str(field).strip()
+        for field in applicable_unknown_fields
+        if str(field).strip() in _NARRATIVE_SCOPE_APPLICABILITY_FIELDS
+    }
+    errors: List[str] = []
+    for field in ("company", "consolidation_scope", "segment", "basis", "period"):
+        expected = scope.get(field)
+        wanted = _normalise_spaces(str(expected or "")).lower()
+        if not wanted or wanted == "unknown":
+            continue
+        states = [_scope_match_state(field, expected, candidate) for candidate in candidates]
+        if "conflict" in states or (
+            "match" not in states and field not in applicable
+        ):
+            errors.append(f"scope mismatch: {field}")
+    return errors
+
+
+def _expression_context_conflicts(
+    candidates: Sequence[Mapping[str, Any]],
+) -> List[str]:
+    """Return semantic context fields that disagree across formula inputs."""
+
+    conflicts: List[str] = []
+    for field in (
+        "company",
+        "consolidation_scope",
+        "segment",
+        "basis",
+        "context_fingerprint",
+    ):
+        values = {
+            _normalise_spaces(str(candidate.get(field) or "")).lower()
+            for candidate in candidates
+            if _normalise_spaces(str(candidate.get(field) or "")).lower()
+            not in {"", "unknown"}
+        }
+        if len(values) > 1:
+            conflicts.append(field)
+    return conflicts
+
+
+def _ungrounded_narrative_numbers(
+    text: str, candidates: Sequence[Mapping[str, Any]]
+) -> List[str]:
+    tokens = re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", str(text or ""))
+    if not tokens:
+        return []
+    surface = " ".join(
+        str(value or "")
+        for candidate in candidates
+        for value in (
+            candidate.get("source_text"),
+            candidate.get("raw_value"),
+            candidate.get("period"),
+            candidate.get("year"),
+        )
+    )
+    source_tokens = {
+        token.replace(",", "")
+        for token in re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", surface)
+    }
+    return list(
+        dict.fromkeys(
+            token
+            for token in tokens
+            if token.replace(",", "") not in source_tokens
+        )
+    )
+
+
+def validate_semantic_calculation_program(
+    *,
+    program: Mapping[str, Any],
+    obligations: Sequence[Mapping[str, Any]],
+    candidate_catalog: Sequence[Mapping[str, Any]],
+    query: str,
+    selectable_candidate_ids: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Validate model-selected IDs and expressions without executing them."""
+
+    obligation_rows = [dict(item) for item in obligations if isinstance(item, Mapping)]
+    candidate_rows = [dict(item) for item in candidate_catalog if isinstance(item, Mapping)]
+    obligation_by_id = {
+        str(item.get("obligation_id") or "").strip(): item
+        for item in obligation_rows
+        if str(item.get("obligation_id") or "").strip()
+    }
+    candidate_by_id = {
+        str(item.get("candidate_id") or "").strip(): item
+        for item in candidate_rows
+        if str(item.get("candidate_id") or "").strip()
+    }
+    selectable_ids = (
+        None
+        if selectable_candidate_ids is None
+        else {
+            str(item or "").strip()
+            for item in selectable_candidate_ids
+            if str(item or "").strip()
+        }
+    )
+    errors: List[Dict[str, str]] = []
+
+    def error(code: str, obligation_id: str = "", detail: str = "") -> None:
+        errors.append(
+            {"code": code, "obligation_id": obligation_id, "detail": str(detail or "")}
+        )
+
+    if len(obligation_by_id) != len(obligation_rows):
+        error("duplicate_or_missing_obligation_id")
+    if not obligation_rows:
+        error("missing_answer_obligations")
+    if len(candidate_by_id) != len(candidate_rows):
+        error("duplicate_or_missing_candidate_id")
+
+    requirement_by_id: Dict[str, Dict[str, Any]] = {}
+    requirement_owner_by_id: Dict[str, str] = {}
+    requirement_count = 0
+    invalid_evidence_obligation_ids: set[str] = set()
+    for obligation_id, obligation in obligation_by_id.items():
+        raw_requirements = list(obligation.get("evidence_requirements") or [])
+        requirements = [
+            dict(item)
+            for item in raw_requirements
+            if isinstance(item, Mapping)
+        ]
+        if len(requirements) != len(raw_requirements):
+            error("malformed_evidence_requirement", obligation_id)
+        evidence_mode = obligation.get("evidence_mode", "declared_inputs")
+        if evidence_mode not in ("declared_inputs", "source_defined_group"):
+            error("invalid_evidence_mode", obligation_id)
+            invalid_evidence_obligation_ids.add(obligation_id)
+        elif evidence_mode == "source_defined_group":
+            group = requirements[0] if len(requirements) == 1 else {}
+            if (
+                obligation.get("kind") != "narrative"
+                or len(raw_requirements) != 1
+                or group.get("required") is not True
+                or any(
+                    group.get(field, default) != obligation.get(field, default)
+                    for field, default in (
+                        ("label", ""),
+                        ("scope", {}),
+                        ("retrieval_hints", []),
+                        ("concept_hints", []),
+                    )
+                )
+            ):
+                error("invalid_source_defined_group", obligation_id)
+                invalid_evidence_obligation_ids.add(obligation_id)
+        requirement_count += len(requirements)
+        if requirements and str(obligation.get("kind") or "") not in {
+            "derived_value",
+            "narrative",
+        }:
+            error("evidence_requirement_on_unsupported_obligation", obligation_id)
+        for requirement in requirements:
+            requirement_id = str(requirement.get("requirement_id") or "").strip()
+            if not requirement_id or requirement_id in requirement_by_id:
+                error("duplicate_or_missing_evidence_requirement_id", obligation_id)
+                continue
+            requirement_by_id[requirement_id] = requirement
+            requirement_owner_by_id[requirement_id] = obligation_id
+            for field in _evidence_requirement_scope_conflicts(obligation, requirement):
+                error(
+                    "evidence_requirement_scope_conflict",
+                    obligation_id,
+                    f"{requirement_id}: {field}",
+                )
+    if len(requirement_by_id) != requirement_count:
+        error("invalid_evidence_requirement_catalog")
+
+    declared_missing = {
+        str(item).strip()
+        for item in (program.get("missing_obligation_ids") or [])
+        if str(item).strip()
+    }
+    declared_ambiguous = {
+        str(item).strip()
+        for item in (program.get("ambiguous_obligation_ids") or [])
+        if str(item).strip()
+    }
+    for obligation_id in sorted(declared_missing | declared_ambiguous):
+        if obligation_id not in obligation_by_id:
+            error("unknown_program_obligation_id", obligation_id)
+    blocked = declared_missing | declared_ambiguous | invalid_evidence_obligation_ids
+    produced: set[str] = set()
+    valid_direct: List[Dict[str, Any]] = []
+    valid_expressions: List[Dict[str, Any]] = []
+    valid_narrative: List[Dict[str, Any]] = []
+    sources_by_output: Dict[str, List[str]] = {}
+    compatibility_sources_by_output: Dict[str, List[str]] = {}
+    output_units: Dict[str, str] = {}
+
+    def already_produced(obligation_id: str) -> bool:
+        if obligation_id in produced:
+            error("duplicate_obligation_output", obligation_id)
+            return True
+        return False
+
+    for raw in program.get("direct_bindings") or []:
+        binding = dict(raw or {})
+        obligation_id = str(binding.get("obligation_id") or "").strip()
+        candidate_id = str(binding.get("candidate_id") or "").strip()
+        compatibility_ids = list(
+            dict.fromkeys(
+                str(item).strip()
+                for item in (binding.get("compatibility_candidate_ids") or [])
+                if str(item).strip()
+            )
+        )
+        obligation = obligation_by_id.get(obligation_id)
+        candidate = candidate_by_id.get(candidate_id)
+        invalid = False
+        if not obligation:
+            error("unknown_direct_obligation", obligation_id)
+            invalid = True
+        if obligation_id in blocked:
+            error("blocked_obligation_has_output", obligation_id)
+            invalid = True
+        if (
+            not candidate
+            or str((candidate or {}).get("kind") or "") != "numeric"
+            or not _candidate_has_finite_numeric_value(candidate or {})
+        ):
+            error("unknown_or_nonnumeric_candidate", obligation_id, candidate_id)
+            invalid = True
+        if selectable_ids is not None and candidate_id not in selectable_ids:
+            error("candidate_not_exposed_to_compiler", obligation_id, candidate_id)
+            invalid = True
+        if obligation and str(obligation.get("kind") or "") != "direct_value":
+            error("non_direct_obligation_has_direct_binding", obligation_id)
+            invalid = True
+        compatibility_candidates = [
+            candidate_by_id[item]
+            for item in compatibility_ids
+            if item in candidate_by_id
+        ]
+        invalid_compatibility_id = next(
+            (
+                item
+                for item in compatibility_ids
+                if item not in candidate_by_id
+                or str(candidate_by_id[item].get("kind") or "") != "narrative"
+                or not _normalise_spaces(
+                    str(candidate_by_id[item].get("source_text") or "")
+                )
+            ),
+            "",
+        )
+        compatibility_ready = bool(compatibility_ids) and not invalid_compatibility_id
+        subject_resolution: Dict[str, Any] = {
+            "state": "match",
+            "subject": "",
+            "source": "not_required",
+            "source_row_ids": [],
+        }
+        if invalid_compatibility_id:
+            error(
+                "invalid_compatibility_candidate",
+                obligation_id,
+                invalid_compatibility_id,
+            )
+            invalid = True
+        hidden_compatibility_id = next(
+            (
+                item
+                for item in compatibility_ids
+                if selectable_ids is not None and item not in selectable_ids
+            ),
+            "",
+        )
+        if hidden_compatibility_id:
+            error(
+                "candidate_not_exposed_to_compiler",
+                obligation_id,
+                hidden_compatibility_id,
+            )
+            invalid = True
+        if compatibility_ready and candidate and not any(
+            _same_source_context(candidate, witness)
+            for witness in compatibility_candidates
+        ):
+            error("direct_compatibility_context_mismatch", obligation_id)
+            invalid = True
+            compatibility_ready = False
+        if compatibility_ready and obligation:
+            for witness in compatibility_candidates:
+                hard_errors = [
+                    detail
+                    for detail in _scope_errors(witness, obligation, include_basis=False)
+                    if detail.endswith(("company", "period"))
+                ]
+                if hard_errors:
+                    for detail in hard_errors:
+                        error("compatibility_scope_mismatch", obligation_id, detail)
+                    invalid = True
+                    compatibility_ready = False
+                    break
+        if obligation and candidate:
+            subject_checked = (
+                str(obligation.get("kind") or "") == "direct_value"
+                and str(candidate.get("kind") or "") == "numeric"
+                and _candidate_has_finite_numeric_value(candidate)
+            )
+            if subject_checked:
+                subject_resolution = _direct_subject_resolution(candidate, obligation)
+            subject_state = str(subject_resolution.get("state") or "unknown")
+            subject_bridge_ready = (
+                compatibility_ready
+                and subject_state == "unknown"
+                and any(
+                    _scope_match_state(
+                        "segment",
+                        (obligation.get("scope") or {}).get("segment"),
+                        witness,
+                    )
+                    == "match"
+                    for witness in compatibility_candidates
+                )
+            )
+            if subject_bridge_ready:
+                subject_resolution = {
+                    "state": "match",
+                    "subject": _normalise_spaces(
+                        str((obligation.get("scope") or {}).get("segment") or "")
+                    ),
+                    "source": "compatibility_evidence",
+                    "source_row_ids": _clean_source_row_ids(
+                        [
+                            value
+                            for witness in compatibility_candidates
+                            for value in (
+                                witness.get("candidate_id"),
+                                witness.get("source_row_id"),
+                                witness.get("evidence_id"),
+                                witness.get("source_candidate_id"),
+                            )
+                        ]
+                    ),
+                }
+            if subject_checked and subject_state != "match" and not subject_bridge_ready:
+                error("candidate_subject_mismatch", obligation_id, "segment")
+                invalid = True
+            scope_details = _scope_errors(candidate, obligation)
+            if subject_checked and subject_state == "match":
+                scope_details = [
+                    detail
+                    for detail in scope_details
+                    if not detail.endswith("segment")
+                ]
+            if compatibility_ready:
+                scope_details = [
+                    detail
+                    for detail in scope_details
+                    if not _direct_scope_gap_is_bridgeable(candidate, detail)
+                ]
+            for detail in scope_details:
+                error("candidate_scope_mismatch", obligation_id, detail)
+                invalid = True
+        if (
+            obligation
+            and candidate
+            and str(obligation.get("kind") or "") == "direct_value"
+            and str(candidate.get("kind") or "") == "numeric"
+            and _candidate_has_finite_numeric_value(candidate)
+        ):
+            display_unit = _normalise_spaces(
+                str(obligation.get("display_unit") or "")
+            )
+            if display_unit and not _result_unit_valid(
+                display_unit,
+                _candidate_dimension(candidate),
+            ):
+                error(
+                    "direct_result_unit_mismatch",
+                    obligation_id,
+                    display_unit,
+                )
+                invalid = True
+            preview_operand = project_semantic_program_operand(
+                candidate,
+                obligation_id=obligation_id,
+                obligation=obligation,
+                validated_binding={
+                    **binding,
+                    "resolved_subject": str(subject_resolution.get("subject") or ""),
+                    "subject_source": str(subject_resolution.get("source") or ""),
+                    "subject_source_row_ids": list(
+                        subject_resolution.get("source_row_ids") or []
+                    ),
+                },
+            )
+            if not render_grounded_operand_display(preview_operand):
+                error("empty_direct_rendering", obligation_id, candidate_id)
+                invalid = True
+        if already_produced(obligation_id):
+            invalid = True
+        if invalid:
+            continue
+        produced.add(obligation_id)
+        valid_direct.append(
+            {
+                **binding,
+                "resolved_subject": str(subject_resolution.get("subject") or ""),
+                "subject_source": str(subject_resolution.get("source") or ""),
+                "subject_source_row_ids": list(
+                    subject_resolution.get("source_row_ids") or []
+                ),
+            }
+        )
+        sources_by_output[obligation_id] = [candidate_id, *compatibility_ids]
+        compatibility_sources_by_output[obligation_id] = compatibility_ids
+        output_units[obligation_id] = _candidate_dimension(candidate)
+
+    pending = [dict(item or {}) for item in (program.get("expressions") or [])]
+    seen_expression_ids: set[str] = set()
+    for expression in pending:
+        obligation_id = str(expression.get("obligation_id") or "").strip()
+        if obligation_id in seen_expression_ids:
+            error("duplicate_expression_output", obligation_id)
+        seen_expression_ids.add(obligation_id)
+
+    query_values = _query_constants(query)
+    unresolved = list(pending)
+    while unresolved:
+        progressed = False
+        deferred: List[Dict[str, Any]] = []
+        for expression in unresolved:
+            obligation_id = str(expression.get("obligation_id") or "").strip()
+            obligation = obligation_by_id.get(obligation_id)
+            bindings = [dict(item or {}) for item in expression.get("variable_bindings") or []]
+            source_ids = [str(item.get("source_id") or "").strip() for item in bindings]
+            unknown = next(
+                (
+                    source_id
+                    for source_id in source_ids
+                    if source_id not in candidate_by_id and source_id not in obligation_by_id
+                ),
+                "",
+            )
+            if unknown:
+                error("unknown_expression_source", obligation_id, unknown)
+                continue
+            hidden_source = next(
+                (
+                    source_id
+                    for source_id in source_ids
+                    if source_id in candidate_by_id
+                    and selectable_ids is not None
+                    and source_id not in selectable_ids
+                ),
+                "",
+            )
+            if hidden_source:
+                error(
+                    "candidate_not_exposed_to_compiler",
+                    obligation_id,
+                    hidden_source,
+                )
+                continue
+            dependencies = [item for item in source_ids if item in obligation_by_id]
+            if any(item not in output_units for item in dependencies):
+                deferred.append(expression)
+                continue
+
+            invalid = False
+            if not obligation:
+                error("unknown_expression_obligation", obligation_id)
+                invalid = True
+            elif str(obligation.get("kind") or "") != "derived_value":
+                error("non_derived_obligation_has_expression", obligation_id)
+                invalid = True
+            if obligation_id in blocked:
+                error("blocked_obligation_has_output", obligation_id)
+                invalid = True
+            variables = [str(item.get("variable") or "").strip() for item in bindings]
+            if not bindings or any(not item or not item.isidentifier() for item in variables):
+                error("invalid_variable_binding", obligation_id)
+                invalid = True
+            if len(set(variables)) != len(variables):
+                error("duplicate_variable_binding", obligation_id)
+                invalid = True
+            formula = str(expression.get("formula") or "").strip()
+            try:
+                body = _formula_body(formula)
+            except (SyntaxError, ValueError) as exc:
+                error("invalid_formula_syntax", obligation_id, str(exc))
+                invalid = True
+                body = ast.Constant(value=0)
+            if not invalid and not _formula_ast_allowed(body):
+                error("unsupported_formula_ast", obligation_id)
+                invalid = True
+            if not invalid and _formula_names(body) != set(variables):
+                error("formula_binding_mismatch", obligation_id)
+                invalid = True
+            declarations = [dict(item or {}) for item in expression.get("constants") or []]
+            if not invalid:
+                for value in _formula_constants(body):
+                    if not _constant_allowed(
+                        value,
+                        declarations,
+                        query_values=query_values,
+                        binding_count=len(bindings),
+                    ):
+                        error("undeclared_formula_constant", obligation_id, repr(value))
+                        invalid = True
+                        break
+
+            variable_units: Dict[str, str] = {}
+            source_candidates: List[str] = []
+            bound_requirement_ids: set[str] = set()
+            if not invalid:
+                for binding in bindings:
+                    variable = str(binding.get("variable") or "").strip()
+                    source_id = str(binding.get("source_id") or "").strip()
+                    source_requirement_id = str(
+                        binding.get("source_requirement_id") or ""
+                    ).strip()
+                    raw_scope_applicability_fields = [
+                        str(item).strip()
+                        for item in (binding.get("scope_applicability_fields") or [])
+                        if str(item).strip()
+                    ]
+                    invalid_scope_applicability_fields = [
+                        field
+                        for field in raw_scope_applicability_fields
+                        if field not in _VARIABLE_SCOPE_APPLICABILITY_FIELDS
+                    ]
+                    scope_applicability_fields = list(
+                        dict.fromkeys(
+                            field
+                            for field in raw_scope_applicability_fields
+                            if field in _VARIABLE_SCOPE_APPLICABILITY_FIELDS
+                        )
+                    )
+                    for field in invalid_scope_applicability_fields:
+                        error(
+                            "invalid_variable_scope_applicability_field",
+                            obligation_id,
+                            field,
+                        )
+                        invalid = True
+                    if source_id in candidate_by_id:
+                        candidate = candidate_by_id[source_id]
+                        if (
+                            str(candidate.get("kind") or "") != "numeric"
+                            or not _candidate_has_finite_numeric_value(candidate)
+                        ):
+                            error("nonnumeric_expression_source", obligation_id, source_id)
+                            invalid = True
+                            break
+                        requirement = requirement_by_id.get(source_requirement_id)
+                        if not source_requirement_id:
+                            error(
+                                "missing_source_requirement_id",
+                                obligation_id,
+                                source_id,
+                            )
+                            invalid = True
+                        elif not requirement:
+                            error(
+                                "unknown_expression_requirement",
+                                obligation_id,
+                                source_requirement_id,
+                            )
+                            invalid = True
+                        elif requirement_owner_by_id.get(source_requirement_id) != obligation_id:
+                            error(
+                                "expression_requirement_owner_mismatch",
+                                obligation_id,
+                                source_requirement_id,
+                            )
+                            invalid = True
+                        else:
+                            bound_requirement_ids.add(source_requirement_id)
+                            for detail in _scope_errors(
+                                candidate,
+                                {"scope": dict(requirement.get("scope") or {})},
+                                applicable_unknown_fields=scope_applicability_fields,
+                            ):
+                                error(
+                                    "candidate_requirement_scope_mismatch",
+                                    obligation_id,
+                                    f"{source_requirement_id}: {detail}",
+                                )
+                                invalid = True
+                        variable_units[variable] = _candidate_dimension(candidate)
+                        source_candidates.append(source_id)
+                    else:
+                        if source_requirement_id:
+                            error(
+                                "unexpected_source_requirement_id",
+                                obligation_id,
+                                source_requirement_id,
+                            )
+                            invalid = True
+                        variable_units[variable] = output_units[source_id]
+                        source_candidates.extend(sources_by_output.get(source_id, []))
+            if obligation:
+                required_requirement_ids = {
+                    str(item.get("requirement_id") or "").strip()
+                    for item in (obligation.get("evidence_requirements") or [])
+                    if bool(item.get("required", True))
+                    and str(item.get("requirement_id") or "").strip()
+                }
+                for missing_requirement_id in sorted(
+                    required_requirement_ids - bound_requirement_ids
+                ):
+                    error(
+                        "missing_required_evidence_binding",
+                        obligation_id,
+                        missing_requirement_id,
+                    )
+                    invalid = True
+            if invalid:
+                continue
+            try:
+                dimension = _formula_dimension(body, variable_units)
+            except ValueError as exc:
+                error("formula_unit_mismatch", obligation_id, str(exc))
+                continue
+            result_unit = str(
+                expression.get("display_unit")
+                or expression.get("result_unit")
+                or (obligation or {}).get("display_unit")
+                or ""
+            )
+            if not _result_unit_valid(result_unit, dimension):
+                error("result_unit_mismatch", obligation_id, f"{dimension} -> {result_unit}")
+                continue
+            display_id = str(expression.get("source_display_candidate_id") or "").strip()
+            if display_id:
+                if selectable_ids is not None and display_id not in selectable_ids:
+                    error(
+                        "candidate_not_exposed_to_compiler",
+                        obligation_id,
+                        display_id,
+                    )
+                    continue
+                display_candidate = candidate_by_id.get(display_id)
+                if (
+                    not display_candidate
+                    or str(display_candidate.get("kind") or "") != "numeric"
+                    or not _candidate_has_finite_numeric_value(display_candidate)
+                ):
+                    error("invalid_source_display_candidate", obligation_id, display_id)
+                    continue
+                display_scope_errors = _scope_errors(
+                    display_candidate,
+                    obligation or {},
+                    include_basis=False,
+                )
+                if display_scope_errors:
+                    for detail in display_scope_errors:
+                        error("source_display_scope_mismatch", obligation_id, detail)
+                    continue
+                display_dimension = _candidate_dimension(display_candidate)
+                compatible_display_dimensions = (
+                    {"PERCENT"} if dimension == "RATIO" else
+                    {"COUNT", "UNKNOWN"} if dimension == "SCALAR" else
+                    {dimension}
+                )
+                if display_dimension not in compatible_display_dimensions:
+                    error(
+                        "source_display_unit_mismatch",
+                        obligation_id,
+                        f"{display_dimension} cannot display {dimension}",
+                    )
+                    continue
+                if not render_grounded_operand_display(
+                    project_semantic_program_operand(
+                        display_candidate,
+                        obligation_id=obligation_id,
+                    )
+                ):
+                    error("empty_source_display_rendering", obligation_id, display_id)
+                    continue
+                source_candidates.append(display_id)
+            compatibility_ids = list(
+                dict.fromkeys(
+                    str(item).strip()
+                    for item in (expression.get("compatibility_candidate_ids") or [])
+                    if str(item).strip()
+                )
+            )
+            invalid_compatibility_id = next(
+                (
+                    candidate_id
+                    for candidate_id in compatibility_ids
+                    if candidate_id not in candidate_by_id
+                    or str(candidate_by_id[candidate_id].get("kind") or "")
+                    != "narrative"
+                    or not _normalise_spaces(
+                        str(candidate_by_id[candidate_id].get("source_text") or "")
+                    )
+                ),
+                "",
+            )
+            if invalid_compatibility_id:
+                error(
+                    "invalid_compatibility_candidate",
+                    obligation_id,
+                    invalid_compatibility_id,
+                )
+                continue
+            hidden_compatibility_id = next(
+                (
+                    candidate_id
+                    for candidate_id in compatibility_ids
+                    if selectable_ids is not None
+                    and candidate_id not in selectable_ids
+                ),
+                "",
+            )
+            if hidden_compatibility_id:
+                error(
+                    "candidate_not_exposed_to_compiler",
+                    obligation_id,
+                    hidden_compatibility_id,
+                )
+                continue
+            numeric_context_candidates = [
+                candidate_by_id[candidate_id]
+                for candidate_id in source_candidates
+                if candidate_id in candidate_by_id
+                and str(candidate_by_id[candidate_id].get("kind") or "") == "numeric"
+            ]
+            context_conflicts = _expression_context_conflicts(
+                numeric_context_candidates
+            )
+            if context_conflicts and not compatibility_ids:
+                error(
+                    "expression_context_mismatch",
+                    obligation_id,
+                    ",".join(context_conflicts),
+                )
+                continue
+            source_candidates.extend(compatibility_ids)
+            if already_produced(obligation_id):
+                continue
+            produced.add(obligation_id)
+            valid_expressions.append(expression)
+            output_units[obligation_id] = dimension
+            sources_by_output[obligation_id] = list(dict.fromkeys(source_candidates))
+            compatibility_sources_by_output[obligation_id] = compatibility_ids
+            progressed = True
+        if not deferred:
+            break
+        if not progressed:
+            for expression in deferred:
+                error(
+                    "cyclic_or_unresolved_expression_dependency",
+                    str(expression.get("obligation_id") or "").strip(),
+                )
+            break
+        unresolved = deferred
+
+    for raw in program.get("narrative_bindings") or []:
+        binding = dict(raw or {})
+        obligation_id = str(binding.get("obligation_id") or "").strip()
+        obligation = obligation_by_id.get(obligation_id)
+        candidate_ids = [
+            str(item).strip()
+            for item in (binding.get("candidate_ids") or [])
+            if str(item).strip()
+        ]
+        selected = [candidate_by_id[item] for item in candidate_ids if item in candidate_by_id]
+        raw_scope_applicability_fields = [
+            str(item).strip()
+            for item in (binding.get("scope_applicability_fields") or [])
+            if str(item).strip()
+        ]
+        invalid_scope_applicability_fields = [
+            field
+            for field in raw_scope_applicability_fields
+            if field not in _NARRATIVE_SCOPE_APPLICABILITY_FIELDS
+        ]
+        scope_applicability_fields = list(
+            dict.fromkeys(
+                field
+                for field in raw_scope_applicability_fields
+                if field in _NARRATIVE_SCOPE_APPLICABILITY_FIELDS
+            )
+        )
+        invalid = False
+        if not obligation or str(obligation.get("kind") or "") != "narrative":
+            error("invalid_narrative_obligation", obligation_id)
+            invalid = True
+        if obligation_id in blocked:
+            error("blocked_obligation_has_output", obligation_id)
+            invalid = True
+        if not candidate_ids or len(selected) != len(candidate_ids):
+            error("unknown_narrative_candidate", obligation_id)
+            invalid = True
+        for field in invalid_scope_applicability_fields:
+            error("invalid_scope_applicability_field", obligation_id, field)
+            invalid = True
+        hidden_candidate_id = next(
+            (
+                candidate_id
+                for candidate_id in candidate_ids
+                if selectable_ids is not None and candidate_id not in selectable_ids
+            ),
+            "",
+        )
+        if hidden_candidate_id:
+            error(
+                "candidate_not_exposed_to_compiler",
+                obligation_id,
+                hidden_candidate_id,
+            )
+            invalid = True
+        text = _normalise_spaces(str(binding.get("text") or ""))
+        if not text:
+            error("empty_narrative_output", obligation_id)
+            invalid = True
+        ungrounded_numbers = (
+            _ungrounded_narrative_numbers(text, selected) if text and selected else []
+        )
+        if ungrounded_numbers:
+            error(
+                "ungrounded_narrative_number",
+                obligation_id,
+                ", ".join(ungrounded_numbers),
+            )
+            invalid = True
+        if obligation:
+            for detail in _collective_narrative_scope_errors(
+                selected,
+                obligation,
+                applicable_unknown_fields=scope_applicability_fields,
+            ):
+                error("candidate_scope_mismatch", obligation_id, detail)
+                invalid = True
+            required_requirement_ids = {
+                str(item.get("requirement_id") or "").strip()
+                for item in (obligation.get("evidence_requirements") or [])
+                if isinstance(item, Mapping)
+                and bool(item.get("required", True))
+                and str(item.get("requirement_id") or "").strip()
+            }
+            bound_requirement_ids: set[str] = set()
+            for raw_evidence_binding in binding.get("evidence_bindings") or []:
+                evidence_binding = dict(raw_evidence_binding or {})
+                candidate_id = str(
+                    evidence_binding.get("candidate_id") or ""
+                ).strip()
+                requirement_id = str(
+                    evidence_binding.get("source_requirement_id") or ""
+                ).strip()
+                if candidate_id not in candidate_ids:
+                    error(
+                        "narrative_requirement_candidate_not_selected",
+                        obligation_id,
+                        candidate_id,
+                    )
+                    invalid = True
+                    continue
+                requirement = requirement_by_id.get(requirement_id)
+                if not requirement:
+                    error(
+                        "unknown_narrative_requirement",
+                        obligation_id,
+                        requirement_id,
+                    )
+                    invalid = True
+                    continue
+                if requirement_owner_by_id.get(requirement_id) != obligation_id:
+                    error(
+                        "narrative_requirement_owner_mismatch",
+                        obligation_id,
+                        requirement_id,
+                    )
+                    invalid = True
+                    continue
+                candidate = candidate_by_id.get(candidate_id)
+                if not candidate:
+                    error(
+                        "unknown_narrative_candidate",
+                        obligation_id,
+                        candidate_id,
+                    )
+                    invalid = True
+                    continue
+                bound_requirement_ids.add(requirement_id)
+                for detail in _scope_errors(
+                    candidate,
+                    {"scope": dict(requirement.get("scope") or {})},
+                    applicable_unknown_fields=scope_applicability_fields,
+                ):
+                    error(
+                        "candidate_requirement_scope_mismatch",
+                        obligation_id,
+                        f"{requirement_id}: {detail}",
+                    )
+                    invalid = True
+            for missing_requirement_id in sorted(
+                required_requirement_ids - bound_requirement_ids
+            ):
+                error(
+                    "missing_required_evidence_binding",
+                    obligation_id,
+                    missing_requirement_id,
+                )
+                invalid = True
+        if already_produced(obligation_id):
+            invalid = True
+        if invalid:
+            continue
+        produced.add(obligation_id)
+        valid_narrative.append(
+            {
+                **binding,
+                "text": text,
+                "candidate_ids": candidate_ids,
+                "scope_applicability_fields": scope_applicability_fields,
+            }
+        )
+        sources_by_output[obligation_id] = candidate_ids
+
+    coupling_groups: Dict[str, List[str]] = {}
+    for obligation_id, obligation in obligation_by_id.items():
+        coupling_key = _normalise_spaces(str(obligation.get("coupling_key") or ""))
+        if (
+            coupling_key
+            and obligation_id in produced
+            and str(obligation.get("kind") or "") != "narrative"
+        ):
+            coupling_groups.setdefault(coupling_key, []).append(obligation_id)
+    invalid_coupled: set[str] = set()
+    for coupling_key, obligation_ids in coupling_groups.items():
+        source_candidate_ids = [
+            candidate_id
+            for obligation_id in obligation_ids
+            for candidate_id in sources_by_output.get(obligation_id, [])
+            if candidate_id in candidate_by_id
+            and candidate_id
+            not in set(compatibility_sources_by_output.get(obligation_id, []))
+        ]
+        contexts = {
+            _normalise_spaces(str(candidate_by_id[candidate_id].get("context_fingerprint") or ""))
+            for candidate_id in source_candidate_ids
+            if _normalise_spaces(
+                str(candidate_by_id[candidate_id].get("context_fingerprint") or "")
+            )
+        }
+        missing_context = any(
+            not _normalise_spaces(
+                str(candidate_by_id[candidate_id].get("context_fingerprint") or "")
+            )
+            for candidate_id in source_candidate_ids
+        )
+        compatibility_witnesses = {
+            candidate_id
+            for obligation_id in obligation_ids
+            for candidate_id in compatibility_sources_by_output.get(obligation_id, [])
+            if candidate_id in candidate_by_id
+        }
+        if (
+            len(obligation_ids) > 1
+            and missing_context
+            and not compatibility_witnesses
+        ):
+            for obligation_id in obligation_ids:
+                error("coupled_context_missing", obligation_id, coupling_key)
+                invalid_coupled.add(obligation_id)
+        elif len(contexts) > 1 and not compatibility_witnesses:
+            for obligation_id in obligation_ids:
+                error("coupled_context_mismatch", obligation_id, coupling_key)
+                invalid_coupled.add(obligation_id)
+    if invalid_coupled:
+        valid_direct = [
+            item for item in valid_direct if str(item.get("obligation_id") or "") not in invalid_coupled
+        ]
+        valid_expressions = [
+            item for item in valid_expressions if str(item.get("obligation_id") or "") not in invalid_coupled
+        ]
+        valid_narrative = [
+            item for item in valid_narrative if str(item.get("obligation_id") or "") not in invalid_coupled
+        ]
+        produced.difference_update(invalid_coupled)
+
+    required = {
+        obligation_id
+        for obligation_id, obligation in obligation_by_id.items()
+        if bool(obligation.get("required", True))
+    }
+    missing = sorted((required - produced) | (declared_missing & required))
+    ambiguous = sorted(declared_ambiguous & required)
+    selected_candidate_ids = list(
+        dict.fromkeys(
+            candidate_id
+            for obligation_id in produced
+            for candidate_id in sources_by_output.get(obligation_id, [])
+        )
+    )
+    material_errors = [
+        item
+        for item in errors
+        if not item.get("obligation_id") or item.get("obligation_id") in required
+    ]
+    if not missing and not ambiguous and not material_errors:
+        status = "ready"
+    elif produced:
+        status = "partial"
+    else:
+        status = "invalid"
+    return {
+        "status": status,
+        "errors": errors,
+        "valid_direct_bindings": valid_direct,
+        "valid_expressions": valid_expressions,
+        "valid_narrative_bindings": valid_narrative,
+        "missing_obligation_ids": missing,
+        "ambiguous_obligation_ids": ambiguous,
+        "selected_candidate_ids": selected_candidate_ids,
+        "source_candidate_ids_by_obligation": sources_by_output,
+        "inferred_units": output_units,
+    }
+
+
+def project_semantic_program_operand(
+    candidate: Mapping[str, Any],
+    obligation_id: str = "",
+    *,
+    obligation: Optional[Mapping[str, Any]] = None,
+    validated_binding: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Project one source candidate into the canonical calculation operand."""
+
+    candidate_id = str(candidate.get("candidate_id") or "")
+    binding = dict(validated_binding or {})
+    obligation_row = dict(obligation or {})
+    raw_row_headers = candidate.get("row_headers") or []
+    if isinstance(raw_row_headers, (str, bytes)):
+        raw_row_headers = [raw_row_headers]
+    elif not isinstance(raw_row_headers, Sequence):
+        raw_row_headers = []
+    return {
+        "operand_id": candidate_id,
+        "candidate_id": candidate_id,
+        "evidence_id": candidate_id,
+        "source_evidence_id": str(candidate.get("evidence_id") or ""),
+        "source_anchor": str(candidate.get("source_anchor") or ""),
+        "source_row_id": str(candidate.get("source_row_id") or ""),
+        "source_row_ids": _clean_source_row_ids(
+            [
+                candidate_id,
+                candidate.get("source_row_id"),
+                candidate.get("evidence_id"),
+                candidate.get("source_candidate_id"),
+            ]
+        ),
+        "label": str(
+            obligation_row.get("label")
+            or candidate.get("row_label")
+            or obligation_id
+        ),
+        "subject": str(binding.get("resolved_subject") or ""),
+        "subject_source": str(binding.get("subject_source") or ""),
+        "subject_source_row_ids": _clean_source_row_ids(
+            binding.get("subject_source_row_ids") or []
+        ),
+        "row_label": str(candidate.get("row_label") or ""),
+        "row_headers": [
+            _normalise_spaces(str(item or ""))
+            for item in raw_row_headers
+            if _normalise_spaces(str(item or ""))
+        ],
+        "raw_value": str(candidate.get("raw_value") or ""),
+        "raw_unit": str(candidate.get("raw_unit") or ""),
+        "source_unit_hint": str(candidate.get("source_unit_hint") or ""),
+        "raw_unit_source": str(candidate.get("raw_unit_source") or ""),
+        "normalized_value": candidate.get("normalized_value"),
+        "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+        "period": str(candidate.get("period") or ""),
+        "source_period_surface": str(
+            candidate.get("source_period_surface") or ""
+        ),
+        "period_source": str(candidate.get("period_source") or ""),
+        "value_year": candidate.get("value_year"),
+        "table_source_id": str(candidate.get("table_source_id") or ""),
+        "statement_type": str(candidate.get("statement_type") or ""),
+        "consolidation_scope": str(candidate.get("consolidation_scope") or ""),
+        "consolidation_scope_source": str(
+            candidate.get("consolidation_scope_source") or ""
+        ),
+        "value_role": str(candidate.get("value_role") or ""),
+        "aggregation_stage": str(candidate.get("aggregation_stage") or ""),
+        "aggregate_label": str(candidate.get("aggregate_label") or ""),
+        "matched_operand_role": obligation_id,
+    }
+
+
+def _source_display_matches(candidate: Mapping[str, Any], formula_value: float) -> bool:
+    try:
+        source_value = float(candidate.get("normalized_value"))
+    except (TypeError, ValueError):
+        return False
+    raw_value = str(candidate.get("raw_value") or "")
+    decimals = re.search(r"\.([0-9]+)", raw_value.replace(",", ""))
+    display_tolerance = 0.5 * (10 ** -len(decimals.group(1))) if decimals else 0.5
+    tolerance = max(1e-9, abs(float(formula_value)) * 1e-9, display_tolerance)
+    return abs(source_value - float(formula_value)) <= tolerance
+
+
+def _common_rendered_obligation_scope(
+    obligations: Sequence[Mapping[str, Any]],
+    outputs: Mapping[str, Mapping[str, Any]],
+) -> Dict[str, str]:
+    """Return only scope values shared by every rendered obligation."""
+
+    rendered_scopes = [
+        dict(obligation.get("scope") or {})
+        for obligation in obligations
+        if str(obligation.get("obligation_id") or "") in outputs
+    ]
+    if not rendered_scopes:
+        return {}
+
+    common: Dict[str, str] = {}
+    empty_values = {"", "unknown", "unspecified", "none", "null"}
+    for field in ("company", "period", "consolidation_scope", "segment", "basis"):
+        values = [_normalise_spaces(str(scope.get(field) or "")) for scope in rendered_scopes]
+        canonical = [value.casefold() for value in values]
+        if (
+            all(value not in empty_values for value in canonical)
+            and len(set(canonical)) == 1
+        ):
+            common[field] = values[0]
+    return common
+
+
+def _known_rendered_consolidation_scope(value: Any) -> str:
+    """Return a canonical consolidation scope only when render policy knows it."""
+
+    canonical = _normalise_spaces(str(value or "")).casefold()
+    known_scopes = {
+        str(scope).casefold(): str(scope)
+        for scope in dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {})
+    }
+    return known_scopes.get(canonical, "")
+
+
+def _rendered_output_consolidation_scope(
+    obligation: Mapping[str, Any],
+    output: Mapping[str, Any],
+) -> str:
+    """Resolve render-only scope without rewriting the obligation constraint."""
+
+    obligation_scope = _known_rendered_consolidation_scope(
+        dict(obligation.get("scope") or {}).get("consolidation_scope")
+    )
+    if obligation_scope:
+        return obligation_scope
+    if str(output.get("kind") or "") != "direct_value":
+        return ""
+    return _known_rendered_consolidation_scope(
+        dict(output.get("answer_slot") or {}).get("consolidation_scope")
+    )
+
+
+def _rendered_numeric_consolidation_scopes(
+    obligations: Sequence[Mapping[str, Any]],
+    outputs: Mapping[str, Mapping[str, Any]],
+) -> Tuple[Dict[str, str], str]:
+    """Return per-output scopes and a shared scope only when every numeric output agrees."""
+
+    scopes_by_id: Dict[str, str] = {}
+    numeric_ids: List[str] = []
+    for obligation in obligations:
+        obligation_id = str(obligation.get("obligation_id") or "")
+        output = outputs.get(obligation_id)
+        if not output or str(output.get("kind") or "") == "narrative":
+            continue
+        numeric_ids.append(obligation_id)
+        scope = _rendered_output_consolidation_scope(obligation, output)
+        if scope:
+            scopes_by_id[obligation_id] = scope
+    unique_scopes = set(scopes_by_id.values())
+    shared_scope = (
+        next(iter(unique_scopes))
+        if numeric_ids
+        and len(scopes_by_id) == len(numeric_ids)
+        and len(unique_scopes) == 1
+        else ""
+    )
+    return scopes_by_id, shared_scope
+
+
+def _rendered_consolidation_scope_label(value: Any, *, korean: bool) -> str:
+    scope = _known_rendered_consolidation_scope(value)
+    labels_key = "scope_labels" if korean else "scope_labels_en"
+    return _normalise_spaces(
+        str(dict(CALCULATION_RENDER_POLICY.get(labels_key) or {}).get(scope, ""))
+    )
+
+
+def _korean_semantic_output_subject(
+    *,
+    label: str,
+    common_scope: Mapping[str, str],
+    render_policy: Mapping[str, Any],
+) -> str:
+    """Project validated common scope into the first Korean numeric sentence."""
+
+    clean_label = _normalise_spaces(label)
+    label_folded = clean_label.casefold()
+    tokens: List[str] = []
+
+    company = _normalise_spaces(str(common_scope.get("company") or ""))
+    if company and company.casefold() not in label_folded:
+        tokens.append(
+            f"{company}{str(render_policy.get('company_possessive_suffix') or '')}"
+        )
+
+    period = _normalise_spaces(str(common_scope.get("period") or ""))
+    if period and period.casefold() not in label_folded:
+        period_pattern = str(
+            render_policy.get("period_year_pattern") or r"(?:19|20)\d{2}"
+        )
+        if re.fullmatch(period_pattern, period):
+            period = f"{period}{str(render_policy.get('period_year_suffix') or '')}"
+        tokens.append(period)
+
+    consolidation_scope = _normalise_spaces(
+        str(common_scope.get("consolidation_scope") or "")
+    )
+    scope_label = _rendered_consolidation_scope_label(
+        consolidation_scope,
+        korean=True,
+    )
+    if scope_label and scope_label.casefold() not in label_folded:
+        tokens.append(scope_label)
+
+    for field in ("segment", "basis"):
+        value = _normalise_spaces(str(common_scope.get(field) or ""))
+        if value and value.casefold() not in label_folded:
+            tokens.append(value)
+
+    return _normalise_spaces(" ".join([*tokens, clean_label]))
+
+
+def _render_semantic_program_answer(
+    *,
+    query: str,
+    obligations: Sequence[Mapping[str, Any]],
+    outputs: Mapping[str, Mapping[str, Any]],
+    missing_ids: Sequence[str],
+) -> str:
+    """Render validated outputs without importing unselected evidence text."""
+
+    render_policy = dict(
+        CALCULATION_PROMPT_POLICY.get("semantic_program_render_templates") or {}
+    )
+    item_template = str(render_policy.get("item") or "{label}: {value}")
+    korean_item_template = str(
+        render_policy.get("item_sentence_ko")
+        or item_template
+    )
+    narrative_template = str(render_policy.get("narrative") or "{text}")
+    missing_template = str(
+        render_policy.get("missing") or "Missing required evidence: {labels}"
+    )
+    common_scope = _common_rendered_obligation_scope(obligations, outputs)
+    numeric_scopes_by_id, shared_numeric_scope = (
+        _rendered_numeric_consolidation_scopes(obligations, outputs)
+    )
+    korean_surface = bool(
+        re.search(
+            str(render_policy.get("korean_text_pattern") or r"$^"),
+            str(query or ""),
+        )
+    )
+    answer_parts: List[str] = []
+    contextual_numeric_rendered = False
+    obligation_by_id = {
+        str(item.get("obligation_id") or ""): item for item in obligations
+    }
+
+    for obligation in obligations:
+        obligation_id = str(obligation.get("obligation_id") or "")
+        output = outputs.get(obligation_id)
+        if not output:
+            continue
+        if output.get("kind") == "narrative":
+            text = _normalise_spaces(
+                narrative_template.format(text=output.get("text") or "")
+            )
+            if text and not re.search(r"[.!?。]$", text):
+                text = f"{text}."
+            answer_parts.append(text)
+            continue
+
+        label = str(output.get("label") or obligation_id)
+        value = str(output.get("rendered_value") or "")
+        source_display = str(output.get("source_display_value") or "")
+        if source_display and output.get("source_display_matches_formula") is False:
+            comparison_template = str(
+                render_policy.get(
+                    "source_display_comparison_ko" if korean_surface
+                    else "source_display_comparison"
+                )
+                or "{calculated} ({source})"
+            )
+            value = comparison_template.format(
+                calculated=output.get("formula_rendered_value") or value,
+                source=source_display,
+            )
+        if korean_surface:
+            output_scope = numeric_scopes_by_id.get(obligation_id, "")
+            subject_scope = dict(common_scope) if not contextual_numeric_rendered else {}
+            if shared_numeric_scope and not contextual_numeric_rendered:
+                subject_scope["consolidation_scope"] = shared_numeric_scope
+            elif output_scope and not shared_numeric_scope:
+                subject_scope["consolidation_scope"] = output_scope
+            subject = _korean_semantic_output_subject(
+                label=label,
+                common_scope=subject_scope,
+                render_policy=render_policy,
+            )
+            particle_subject = re.sub(r"\s*\([^()]*\)\s*$", "", subject)
+            answer_parts.append(
+                korean_item_template.format(
+                    subject=subject,
+                    topic_particle=topic_particle(particle_subject),
+                    label=label,
+                    value=value,
+                )
+            )
+            contextual_numeric_rendered = True
+        else:
+            output_scope = numeric_scopes_by_id.get(obligation_id, "")
+            displayed_scope = (
+                shared_numeric_scope if not contextual_numeric_rendered else ""
+            )
+            if not shared_numeric_scope:
+                displayed_scope = output_scope
+            scope_label = _rendered_consolidation_scope_label(
+                displayed_scope,
+                korean=False,
+            )
+            scoped_label = _normalise_spaces(label)
+            if scope_label and scope_label.casefold() not in scoped_label.casefold():
+                scoped_label = _normalise_spaces(f"{scope_label} {scoped_label}")
+            answer_parts.append(
+                item_template.format(label=scoped_label or label, value=value)
+            )
+            contextual_numeric_rendered = True
+
+    if missing_ids:
+        labels = [
+            str(obligation_by_id[item].get("label") or item)
+            for item in missing_ids
+            if item in obligation_by_id
+        ]
+        answer_parts.append(missing_template.format(labels=", ".join(labels)))
+    return _normalise_spaces(" ".join(str(item) for item in answer_parts if item))
+
+
+def execute_semantic_calculation_program(
+    *,
+    program: Mapping[str, Any],
+    obligations: Sequence[Mapping[str, Any]],
+    candidate_catalog: Sequence[Mapping[str, Any]],
+    query: str,
+    selectable_candidate_ids: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    """Execute only the validated subset and report completeness separately."""
+
+    validation = validate_semantic_calculation_program(
+        program=program,
+        obligations=obligations,
+        candidate_catalog=candidate_catalog,
+        query=query,
+        selectable_candidate_ids=selectable_candidate_ids,
+    )
+    obligation_rows = [dict(item) for item in obligations if isinstance(item, Mapping)]
+    obligation_by_id = {
+        str(item.get("obligation_id") or ""): item for item in obligation_rows
+    }
+    candidate_by_id = {
+        str(item.get("candidate_id") or ""): dict(item)
+        for item in candidate_catalog
+        if isinstance(item, Mapping) and str(item.get("candidate_id") or "")
+    }
+    outputs: Dict[str, Dict[str, Any]] = {}
+    execution_errors: List[Dict[str, str]] = []
+
+    for binding in validation["valid_direct_bindings"]:
+        obligation_id = str(binding.get("obligation_id") or "")
+        candidate_id = str(binding.get("candidate_id") or "")
+        compatibility_ids = [
+            str(item).strip()
+            for item in (binding.get("compatibility_candidate_ids") or [])
+            if str(item).strip() in candidate_by_id
+        ]
+        candidate = candidate_by_id[candidate_id]
+        obligation = obligation_by_id[obligation_id]
+        operand = project_semantic_program_operand(
+            candidate,
+            obligation_id=obligation_id,
+            obligation=obligation,
+            validated_binding=binding,
+        )
+        slot = build_operand_value_slot(
+            operand, default_role="primary_value", preserve_source_display=True
+        )
+        compatibility_candidates = [candidate_by_id[item] for item in compatibility_ids]
+        source_row_ids = _clean_source_row_ids(
+            [
+                *list(operand.get("source_row_ids") or []),
+                *[
+                    value
+                    for witness in compatibility_candidates
+                    for value in (
+                        witness.get("candidate_id"),
+                        witness.get("source_row_id"),
+                        witness.get("evidence_id"),
+                        witness.get("source_candidate_id"),
+                    )
+                ],
+            ]
+        )
+        outputs[obligation_id] = {
+            "obligation_id": obligation_id,
+            "kind": str(obligation.get("kind") or "direct_value"),
+            "label": str(obligation.get("label") or obligation_id),
+            "subject": str(operand.get("subject") or ""),
+            "subject_source": str(operand.get("subject_source") or ""),
+            "subject_source_row_ids": list(
+                operand.get("subject_source_row_ids") or []
+            ),
+            "status": "ok",
+            "value": candidate.get("normalized_value"),
+            "normalized_value": candidate.get("normalized_value"),
+            "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+            "result_unit": str(
+                obligation.get("display_unit") or candidate.get("raw_unit") or ""
+            ),
+            "rendered_value": render_grounded_operand_display(operand),
+            "candidate_ids": [candidate_id, *compatibility_ids],
+            "compatibility_candidate_ids": compatibility_ids,
+            "source_row_ids": source_row_ids,
+            "source_anchors": list(
+                dict.fromkeys(
+                    str(item.get("source_anchor") or "")
+                    for item in [candidate, *compatibility_candidates]
+                    if str(item.get("source_anchor") or "")
+                )
+            ),
+            "answer_slot": slot,
+            "operation_family": "lookup",
+        }
+
+    for expression in validation["valid_expressions"]:
+        obligation_id = str(expression.get("obligation_id") or "")
+        obligation = obligation_by_id[obligation_id]
+        env: Dict[str, float] = {}
+        candidate_ids: List[str] = []
+        source_row_ids: List[str] = []
+        source_anchors: List[str] = []
+        input_rows: List[Dict[str, Any]] = []
+        unavailable = ""
+        for binding in expression.get("variable_bindings") or []:
+            variable = str(binding.get("variable") or "")
+            source_id = str(binding.get("source_id") or "")
+            if source_id in candidate_by_id:
+                candidate = candidate_by_id[source_id]
+                try:
+                    env[variable] = float(candidate.get("normalized_value"))
+                except (TypeError, ValueError):
+                    unavailable = source_id
+                    break
+                operand = project_semantic_program_operand(
+                    candidate,
+                    obligation_id=obligation_id,
+                )
+                input_rows.append(operand)
+                candidate_ids.append(source_id)
+                source_row_ids.extend(operand.get("source_row_ids") or [])
+                source_anchors.append(str(candidate.get("source_anchor") or ""))
+            elif source_id in outputs and outputs[source_id].get("normalized_value") is not None:
+                env[variable] = float(outputs[source_id]["normalized_value"])
+                candidate_ids.extend(outputs[source_id].get("candidate_ids") or [])
+                source_row_ids.extend(outputs[source_id].get("source_row_ids") or [])
+                source_anchors.extend(outputs[source_id].get("source_anchors") or [])
+            else:
+                unavailable = source_id
+                break
+        if unavailable:
+            execution_errors.append(
+                {
+                    "code": "unavailable_expression_source",
+                    "obligation_id": obligation_id,
+                    "detail": unavailable,
+                }
+            )
+            continue
+        for compatibility_id in expression.get("compatibility_candidate_ids") or []:
+            compatibility_id = str(compatibility_id or "").strip()
+            if compatibility_id not in candidate_by_id:
+                continue
+            compatibility_candidate = candidate_by_id[compatibility_id]
+            candidate_ids.append(compatibility_id)
+            source_row_ids.extend(
+                [
+                    compatibility_id,
+                    compatibility_candidate.get("source_row_id"),
+                    compatibility_candidate.get("evidence_id"),
+                    compatibility_candidate.get("source_candidate_id"),
+                ]
+            )
+            source_anchors.append(
+                str(compatibility_candidate.get("source_anchor") or "")
+            )
+        formula = str(expression.get("formula") or "")
+        try:
+            value = float(safe_eval_formula(formula, env))
+        except ZeroDivisionError as exc:
+            execution_errors.append(
+                {"code": "zero_division", "obligation_id": obligation_id, "detail": str(exc)}
+            )
+            continue
+        except Exception as exc:
+            execution_errors.append(
+                {
+                    "code": "formula_execution_error",
+                    "obligation_id": obligation_id,
+                    "detail": str(exc),
+                }
+            )
+            continue
+
+        dimension = str(validation.get("inferred_units", {}).get(obligation_id) or "UNKNOWN")
+        normalized_unit = "PERCENT" if dimension == "RATIO" else (
+            "UNKNOWN" if dimension == "SCALAR" else dimension
+        )
+        display_unit = str(
+            expression.get("display_unit")
+            or expression.get("result_unit")
+            or obligation.get("display_unit")
+            or ""
+        )
+        slot = build_calculated_value_slot(
+            label=str(obligation.get("label") or obligation_id),
+            normalized_value=value,
+            normalized_unit=normalized_unit,
+            display_unit=display_unit,
+            source_row_ids=_clean_source_row_ids(source_row_ids),
+            role="primary_value",
+            source_anchor=next((item for item in source_anchors if item), ""),
+        )
+        rendered_value = str(slot.get("rendered_value") or "")
+        formula_rendered_value = rendered_value
+        display_id = str(expression.get("source_display_candidate_id") or "").strip()
+        source_display_used = False
+        source_display_value = ""
+        source_display_normalized_value = None
+        source_display_matches_formula = None
+        if display_id in candidate_by_id:
+            display_candidate = candidate_by_id[display_id]
+            display_operand = project_semantic_program_operand(
+                display_candidate,
+                obligation_id=obligation_id,
+            )
+            source_display_value = render_grounded_operand_display(display_operand)
+            source_display_normalized_value = float(display_candidate["normalized_value"])
+            source_display_matches_formula = _source_display_matches(display_candidate, value)
+            # Preserve selected source facts even when they cannot replace the calculated value.
+            candidate_ids.append(display_id)
+            source_row_ids.extend(display_operand.get("source_row_ids") or [])
+            source_anchors.append(str(display_candidate.get("source_anchor") or ""))
+            if source_display_value and source_display_matches_formula:
+                rendered_value = source_display_value
+                slot = build_operand_value_slot(
+                    {
+                        **display_operand,
+                        "label": str(obligation.get("label") or obligation_id),
+                    },
+                    default_role="primary_value",
+                    preserve_source_display=True,
+                )
+                source_display_used = True
+        operation_family = derive_operation_family_from_formula(formula)
+        outputs[obligation_id] = {
+            "obligation_id": obligation_id,
+            "kind": "derived_value",
+            "label": str(obligation.get("label") or obligation_id),
+            "status": "ok",
+            "value": value,
+            "normalized_value": value,
+            "normalized_unit": normalized_unit,
+            "result_unit": display_unit,
+            "rendered_value": rendered_value,
+            "candidate_ids": list(dict.fromkeys(candidate_ids)),
+            "source_row_ids": _clean_source_row_ids(source_row_ids),
+            "source_anchors": list(dict.fromkeys(item for item in source_anchors if item)),
+            "answer_slot": slot,
+            "operation_family": operation_family,
+            "formula": formula,
+            "formula_result_value": value,
+            "formula_rendered_value": formula_rendered_value,
+            "source_stated_result_used": source_display_used,
+            "source_display_candidate_id": display_id,
+            "source_display_value": source_display_value,
+            "source_display_normalized_value": source_display_normalized_value,
+            "source_display_matches_formula": source_display_matches_formula,
+            "input_rows": input_rows,
+        }
+
+    for binding in validation["valid_narrative_bindings"]:
+        obligation_id = str(binding.get("obligation_id") or "")
+        obligation = obligation_by_id[obligation_id]
+        candidate_ids = [str(item) for item in binding.get("candidate_ids") or []]
+        outputs[obligation_id] = {
+            "obligation_id": obligation_id,
+            "kind": "narrative",
+            "label": str(obligation.get("label") or obligation_id),
+            "status": "ok",
+            "text": _normalise_spaces(str(binding.get("text") or "")),
+            "candidate_ids": candidate_ids,
+            "source_row_ids": _clean_source_row_ids(
+                [
+                    [
+                        candidate_by_id[item].get("candidate_id"),
+                        candidate_by_id[item].get("source_row_id"),
+                        candidate_by_id[item].get("evidence_id"),
+                    ]
+                    for item in candidate_ids
+                    if item in candidate_by_id
+                ]
+            ),
+            "source_anchors": list(
+                dict.fromkeys(
+                    str(candidate_by_id[item].get("source_anchor") or "")
+                    for item in candidate_ids
+                    if item in candidate_by_id
+                    and str(candidate_by_id[item].get("source_anchor") or "")
+                )
+            ),
+            "operation_family": "narrative",
+        }
+
+    required_ids = [
+        str(item.get("obligation_id") or "")
+        for item in obligation_rows
+        if bool(item.get("required", True)) and str(item.get("obligation_id") or "")
+    ]
+    missing_ids = [item for item in required_ids if item not in outputs]
+    if (
+        not missing_ids
+        and not execution_errors
+        and validation.get("status") == "ready"
+    ):
+        status = "ok"
+    elif outputs:
+        status = "partial"
+    else:
+        status = "incomplete"
+
+    answer = _render_semantic_program_answer(
+        query=query,
+        obligations=obligation_rows,
+        outputs=outputs,
+        missing_ids=missing_ids,
+    )
+
+    numeric_outputs = [
+        outputs[str(obligation.get("obligation_id") or "")]
+        for obligation in obligation_rows
+        if str(obligation.get("obligation_id") or "") in outputs
+        and outputs[str(obligation.get("obligation_id") or "")].get("kind")
+        != "narrative"
+    ]
+    primary = numeric_outputs[0] if numeric_outputs else {}
+    selected_candidate_ids = list(
+        dict.fromkeys(
+            candidate_id
+            for output in outputs.values()
+            for candidate_id in output.get("candidate_ids") or []
+        )
+    )
+    direct_binding_by_candidate_id: Dict[str, Dict[str, Any]] = {}
+    for binding in validation.get("valid_direct_bindings") or []:
+        candidate_id = str(binding.get("candidate_id") or "")
+        if candidate_id and candidate_id not in direct_binding_by_candidate_id:
+            direct_binding_by_candidate_id[candidate_id] = dict(binding)
+    operands: List[Dict[str, Any]] = []
+    for candidate_id in selected_candidate_ids:
+        candidate = candidate_by_id.get(candidate_id)
+        if not candidate or candidate.get("kind") != "numeric":
+            continue
+        binding = direct_binding_by_candidate_id.get(candidate_id)
+        obligation_id = str((binding or {}).get("obligation_id") or "")
+        operands.append(
+            project_semantic_program_operand(
+                candidate,
+                obligation_id=obligation_id,
+                obligation=obligation_by_id.get(obligation_id),
+                validated_binding=binding,
+            )
+        )
+    primary_operation = str(primary.get("operation_family") or "formula")
+    primary_slot = dict(primary.get("answer_slot") or {})
+    calculation_result = {
+        "status": "ok" if status == "ok" else "insufficient_operands",
+        "semantic_status": status,
+        "ledger_integrity_status": "ok",
+        "result_value": primary.get("normalized_value"),
+        "result_unit": str(primary.get("result_unit") or ""),
+        "rendered_value": str(primary.get("rendered_value") or ""),
+        "formatted_result": answer,
+        "series": [],
+        "answer_slots": (
+            {
+                "operation_family": (
+                    "lookup" if primary_operation == "lookup" else "single_value"
+                ),
+                "metric_label": str(primary.get("label") or ""),
+                "primary_value": primary_slot,
+                "components_by_role": {},
+                "components_by_group": {},
+                "source_row_ids": _clean_source_row_ids(
+                    primary.get("source_row_ids") or []
+                ),
+            }
+            if primary
+            else {}
+        ),
+        "derived_metrics": {
+            "operation_family": primary_operation,
+            "semantic_outputs": list(outputs.values()),
+            "required_obligation_ids": required_ids,
+            "missing_obligation_ids": missing_ids,
+        },
+        "source_row_ids": _clean_source_row_ids(
+            [output.get("source_row_ids") for output in outputs.values()]
+        ),
+        "source_evidence_ids": selected_candidate_ids,
+        "explanation": str(program.get("rationale") or ""),
+        "outputs": list(outputs.values()),
+        "validation": validation,
+        "execution_errors": execution_errors,
+    }
+    return {
+        "status": status,
+        "answer": answer,
+        "outputs": list(outputs.values()),
+        "outputs_by_obligation": outputs,
+        "missing_obligation_ids": missing_ids,
+        "selected_candidate_ids": selected_candidate_ids,
+        "calculation_operands": operands,
+        "calculation_result": calculation_result,
+        "validation": validation,
+        "execution_errors": execution_errors,
+    }

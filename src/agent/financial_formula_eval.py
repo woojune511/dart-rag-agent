@@ -63,6 +63,10 @@ def safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
             if node.keywords:
                 raise ValueError("keyword args are not allowed")
             args = [_eval(arg) for arg in node.args]
+            if node.func.id == "round" and len(args) == 2:
+                if not float(args[1]).is_integer():
+                    raise ValueError("round precision must be an integer")
+                return float(round(args[0], int(args[1])))
             return float(fn(*args))
         raise ValueError(f"unsupported AST node: {type(node).__name__}")
 
