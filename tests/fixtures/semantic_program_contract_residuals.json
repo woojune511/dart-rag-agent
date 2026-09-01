@@ -5,6 +5,7 @@
     "direct_binding.subject_identity",
     "candidate_admission.required_input_prompt_coverage",
     "scope_provenance.explicit_query_ownership",
+    "expression_compatibility.declared_cross_period_inputs",
     "canonical_operand_projection.inline_unit_precedence",
     "canonical_operand_projection.row_subject",
     "canonical_operand_projection.current_report_period"
@@ -219,9 +220,7 @@
           "ambiguous_obligation_ids": []
         },
         "expected_current": {
-          "status": "invalid",
-          "error_code": "expression_context_mismatch",
-          "detail": "context_fingerprint"
+          "status": "ready"
         }
       },
       {

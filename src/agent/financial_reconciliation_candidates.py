@@ -1055,6 +1055,40 @@ def select_semantic_prompt_candidates(
     ]
 
 
+def select_semantic_prompt_evidence_candidates(
+    catalog: Sequence[Mapping[str, Any]],
+    *,
+    relevance_groups: Sequence[Sequence[str]] = (),
+    max_candidates: int = 6,
+) -> List[Dict[str, Any]]:
+    """Bound one source-defined evidence cohort across numeric and prose rows."""
+
+    groups = [
+        list(group)
+        for group in relevance_groups
+        if any(_normalise_spaces(str(item or "")) for item in group)
+    ]
+    relevance_texts = list(
+        dict.fromkeys(
+            _normalise_spaces(str(item or ""))
+            for group in groups
+            for item in group
+            if _normalise_spaces(str(item or ""))
+        )
+    )
+    evidence_rows = [
+        dict(item)
+        for item in catalog
+        if str(item.get("kind") or "") in {"numeric", "narrative"}
+    ]
+    return _rank_and_bound_catalog_rows(
+        evidence_rows,
+        relevance_texts=relevance_texts,
+        relevance_groups=groups,
+        limit=max_candidates,
+    )
+
+
 def _semantic_catalog_context_fingerprint(
     candidate: Mapping[str, Any],
     metadata: Mapping[str, Any],

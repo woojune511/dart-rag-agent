@@ -1935,7 +1935,7 @@ class SemanticCalculationProgramTests(unittest.TestCase):
         self.assertEqual(accepted["status"], "ok")
         self.assertIn("cand-compatibility", accepted["selected_candidate_ids"])
 
-    def test_characterizes_context_identity_as_the_only_compatible_expression_blocker(self) -> None:
+    def test_declared_cross_period_inputs_are_distinct_from_same_period_context_mix(self) -> None:
         fixture = _contract_residual_fixture()["expression_compatibility"]
 
         for case in fixture["cases"]:
@@ -1948,6 +1948,10 @@ class SemanticCalculationProgramTests(unittest.TestCase):
                 )
                 expected = case["expected_current"]
                 self.assertEqual(validation["status"], expected["status"])
+                if expected["status"] == "ready":
+                    self.assertEqual(validation["errors"], [])
+                    self.assertEqual(len(validation["valid_expressions"]), 1)
+                    continue
                 matching_errors = [
                     item
                     for item in validation["errors"]
@@ -1959,6 +1963,38 @@ class SemanticCalculationProgramTests(unittest.TestCase):
                     {item["code"] for item in validation["errors"]},
                     {"expression_context_mismatch"},
                 )
+
+    def test_declared_cross_period_source_display_stays_with_output_period_context(self) -> None:
+        fixture = _source_display_program_fixture()
+        opening, closing, stated = fixture["candidate_catalog"]
+        opening.update(
+            context_fingerprint="report-2023",
+            table_source_id="report-2023",
+        )
+        closing.update(
+            context_fingerprint="report-2024",
+            table_source_id="report-2024",
+        )
+        stated.update(
+            context_fingerprint="report-2024",
+            table_source_id="report-2024",
+        )
+
+        validation = validate_semantic_calculation_program(**fixture)
+
+        self.assertEqual(validation["status"], "ready")
+        self.assertEqual(validation["errors"], [])
+
+        stated.update(
+            context_fingerprint="unrelated-2024-context",
+            table_source_id="unrelated-2024-context",
+        )
+        rejected = validate_semantic_calculation_program(**fixture)
+        self.assertEqual(rejected["status"], "invalid")
+        self.assertIn(
+            "expression_context_mismatch",
+            {item["code"] for item in rejected["errors"]},
+        )
 
     def test_structured_table_records_preserve_local_sibling_provenance(self) -> None:
         row_records = [
@@ -2316,6 +2352,145 @@ class SemanticCalculationProgramTests(unittest.TestCase):
             target_row["applicability_by_owner"]["ob_share"]["state"],
             "compatible",
         )
+
+    def test_source_defined_group_cohort_admits_structured_items_with_shared_cap(self) -> None:
+        scope = _scope(
+            company="document company",
+            period="2024",
+            segment="target entity",
+        )
+        label = "target entity source-defined result summary"
+        requirement_id = "ob_summary:req_001"
+        obligation = _obligation(
+            "ob_summary",
+            "narrative",
+            label,
+            scope=scope,
+            evidence_mode="source_defined_group",
+            retrieval_hints=[label],
+            evidence_requirements=[
+                {
+                    **_requirement(
+                        requirement_id,
+                        label,
+                        period="2024",
+                        company="document company",
+                        segment="target entity",
+                    ),
+                    "retrieval_hints": [label],
+                }
+            ],
+        )
+
+        def structured(candidate_id, value, row_label, entity="target entity"):
+            return {
+                **_candidate(
+                    candidate_id,
+                    value,
+                    raw_unit="items",
+                    period="2024",
+                    row_label=row_label,
+                ),
+                "candidate_kind": "structured_row",
+                "company": "document company",
+                "document_company": "document company",
+                "row_headers": [entity, row_label],
+                "local_entity_surfaces": [entity, row_label],
+                "source_text": f"{entity} {row_label} 2024 {value} items",
+            }
+
+        revenue = structured("target-revenue", 100, "revenue")
+        result = structured("target-result", -20, "net result")
+        conflicting = structured("other-result", 53, "net result", "other entity")
+        narrative = {
+            **_candidate("target-context", 0, period="2024"),
+            "kind": "narrative",
+            "candidate_kind": "narrative",
+            "normalized_value": None,
+            "raw_value": "",
+            "company": "document company",
+            "document_company": "document company",
+            "row_headers": ["target entity"],
+            "local_entity_surfaces": ["target entity"],
+            "source_text": "The target entity disclosure presents its source-defined results.",
+        }
+        catalog = [conflicting, narrative, revenue, result]
+
+        cohort_plan = _semantic_candidate_cohorts(catalog, [obligation])
+
+        self.assertEqual(cohort_plan["status"], "ok")
+        self.assertEqual(cohort_plan["reservation"]["numeric"], 12)
+        self.assertEqual(cohort_plan["reservation"]["narrative"], 12)
+        for cohort in cohort_plan["cohorts"]:
+            self.assertEqual(cohort["candidate_kind"], "evidence")
+            self.assertLessEqual(len(cohort["candidate_ids"]), 6)
+            self.assertIn("target-revenue", cohort["candidate_ids"])
+            self.assertIn("target-result", cohort["candidate_ids"])
+            self.assertIn("target-context", cohort["candidate_ids"])
+            self.assertNotIn("other-result", cohort["candidate_ids"])
+
+        bounded_plan = _semantic_candidate_cohorts(
+            [
+                *catalog,
+                *[
+                    structured(
+                        f"target-noise-{index}",
+                        index,
+                        f"unrelated source item {index}",
+                    )
+                    for index in range(1, 6)
+                ],
+            ],
+            [obligation],
+        )
+        for cohort in bounded_plan["cohorts"]:
+            self.assertEqual(len(cohort["candidate_ids"]), 6)
+            self.assertNotIn("other-result", cohort["candidate_ids"])
+
+        ordinary_narrative = _obligation(
+            "ob_context",
+            "narrative",
+            "target entity context",
+            scope=scope,
+        )
+        ordinary_plan = _semantic_candidate_cohorts(
+            [narrative, revenue],
+            [ordinary_narrative],
+        )
+        ordinary_cohort = ordinary_plan["cohorts"][0]
+        self.assertEqual(ordinary_cohort["candidate_kind"], "narrative")
+        self.assertEqual(ordinary_cohort["candidate_ids"], ["target-context"])
+
+        validation = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "narrative_bindings": [
+                    {
+                        "obligation_id": "ob_summary",
+                        "candidate_ids": ["target-revenue", "target-result"],
+                        "evidence_bindings": [
+                            {
+                                "candidate_id": candidate_id,
+                                "source_requirement_id": requirement_id,
+                            }
+                            for candidate_id in ("target-revenue", "target-result")
+                        ],
+                        "text": (
+                            "The target entity reports revenue of 100 items "
+                            "and net result of -20 items."
+                        ),
+                    }
+                ],
+            },
+            obligations=[obligation],
+            candidate_catalog=catalog,
+            query="Summarize the target entity's source-defined results.",
+            selectable_candidate_ids_by_owner=cohort_plan[
+                "candidate_ids_by_owner"
+            ],
+        )
+        self.assertEqual(validation["status"], "ready")
+        self.assertEqual(validation["errors"], [])
 
     def test_owner_cohort_scores_full_row_axis_before_other_target_cells(self) -> None:
         obligation = _obligation(
@@ -3247,6 +3422,7 @@ class SemanticCalculationProgramTests(unittest.TestCase):
         self.assertIn("evidence_requirements는 비워", planner)
         self.assertIn("같은 질문·회사·보고서에 속한다는 이유만으로 묶지", planner)
         self.assertIn("evidence_mode가 source_defined_group", compiler)
+        self.assertIn("구조화된 표의 숫자 셀", compiler)
         self.assertIn("원문에 기재된 항목 이름과 값을 보존", compiler)
         self.assertIn("호환성을 명시하는 narrative candidate ID", compiler)
 
@@ -5455,6 +5631,141 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
 
         self.assertEqual(primary_exclusions, {"ob_direct": ["cand-primary"]})
         self.assertEqual(witness_exclusions, {"ob_direct": ["cand-witness"]})
+
+    def test_retry_keeps_same_cohort_for_context_field_mismatch(self) -> None:
+        program = {
+            "expressions": [
+                {
+                    "obligation_id": "ob_mix",
+                    "variable_bindings": [
+                        _binding("A", "cand-a", "ob_mix:req_a"),
+                        _binding("B", "cand-b", "ob_mix:req_b"),
+                    ],
+                }
+            ]
+        }
+
+        exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "expression_context_mismatch",
+                    "obligation_id": "ob_mix",
+                    "detail": "context_fingerprint",
+                }
+            ],
+            target_obligation_ids=["ob_mix"],
+        )
+
+        self.assertEqual(exclusions, {})
+
+    def test_structural_context_retry_reuses_identical_candidate_payload(self) -> None:
+        obligations = [
+            _obligation(
+                "ob_mix",
+                "derived_value",
+                "same-period difference",
+                display_unit="개",
+                scope=_scope(period="2024"),
+                evidence_requirements=[
+                    _requirement("ob_mix:req_a", "first amount", period="2024"),
+                    _requirement("ob_mix:req_b", "second amount", period="2024"),
+                ],
+            )
+        ]
+        catalog = [
+            _candidate(
+                "cand-a",
+                30,
+                raw_unit="개",
+                period="2024",
+                context="statement-context",
+                row_label="first amount",
+            ),
+            _candidate(
+                "cand-b",
+                20,
+                raw_unit="개",
+                period="2024",
+                context="note-context",
+                row_label="second amount",
+            ),
+        ]
+        first_program = SemanticCalculationProgram.model_validate(
+            {
+                "status": "ready",
+                "expressions": [
+                    {
+                        "obligation_id": "ob_mix",
+                        "variable_bindings": [
+                            _binding("A", "cand-a", "ob_mix:req_a"),
+                            _binding("B", "cand-b", "ob_mix:req_b"),
+                        ],
+                        "formula": "A - B",
+                        "result_unit": "개",
+                    }
+                ],
+            }
+        )
+        retry_program = SemanticCalculationProgram.model_validate(
+            {
+                "status": "ambiguous",
+                "ambiguous_obligation_ids": ["ob_mix"],
+                "rationale": "The disclosed contexts are not explicitly compatible.",
+            }
+        )
+        llm = _StructuredQueueLLM(first_program, retry_program)
+        agent = self._agent(llm)
+        state = {
+            "query": "Subtract the second amount from the first amount.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "topic": "same-period difference",
+            "report_scope": {},
+            "answer_obligations": obligations,
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "semantic_program",
+                "metric_label": "same-period difference",
+                "query": "Subtract the second amount from the first amount.",
+            },
+            "tasks": [],
+            "artifacts": [],
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "planner_debug_trace": {},
+            "resolved_calculation_trace": {},
+        }
+
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=catalog,
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        attempts = compiled["resolved_calculation_trace"]["calculation_plan"][
+            "candidate_stage_diagnostics"
+        ]["attempts"]
+        self.assertEqual(compiled["semantic_program_retry_count"], 1)
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(
+            attempts[0]["visible_candidate_ids"],
+            attempts[1]["visible_candidate_ids"],
+        )
+        self.assertEqual(
+            attempts[0]["visible_candidate_id_fingerprint"],
+            attempts[1]["visible_candidate_id_fingerprint"],
+        )
+        self.assertEqual(
+            attempts[0]["serialized_candidate_bytes"],
+            attempts[1]["serialized_candidate_bytes"],
+        )
 
     def test_source_and_formula_displays_survive_graph_trace_ledger_and_numeric_evaluation(self) -> None:
         from src.agent.financial_task_artifacts import project_task_artifact_trace

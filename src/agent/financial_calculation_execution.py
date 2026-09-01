@@ -793,6 +793,120 @@ def _expression_context_conflicts(
     return conflicts
 
 
+def _declared_cross_period_context_is_compatible(
+    *,
+    candidate_requirement_bindings: Sequence[
+        Tuple[Mapping[str, Any], Mapping[str, Any]]
+    ],
+    numeric_context_candidates: Sequence[Mapping[str, Any]],
+    obligation: Mapping[str, Any],
+    source_display_candidate: Optional[Mapping[str, Any]] = None,
+) -> bool:
+    """Allow context identity to vary only across declared period inputs.
+
+    A comparison across periods is not a semantic-context mix when every
+    physical input is bound to its own explicitly scoped requirement and the
+    candidates remain context-consistent inside each period partition. Other
+    scope dimensions and undeclared/dependency sources remain fail-closed.
+    """
+
+    bindings = [
+        (dict(candidate), dict(requirement))
+        for candidate, requirement in candidate_requirement_bindings
+        if isinstance(candidate, Mapping) and isinstance(requirement, Mapping)
+    ]
+    if len(bindings) < 2:
+        return False
+
+    contexts_by_period: Dict[str, List[Dict[str, Any]]] = {}
+    bound_candidate_ids: set[str] = set()
+    for candidate, requirement in bindings:
+        requirement_scope = dict(requirement.get("scope") or {})
+        period = _normalise_spaces(
+            str(requirement_scope.get("period") or "")
+        ).lower()
+        if period in {"", "unknown"}:
+            return False
+        if _scope_match_state("period", period, candidate) != "match":
+            return False
+        candidate_id = str(candidate.get("candidate_id") or "").strip()
+        if not candidate_id:
+            return False
+        bound_candidate_ids.add(candidate_id)
+        contexts_by_period.setdefault(period, []).append(candidate)
+
+    if len(contexts_by_period) < 2:
+        return False
+
+    for field in ("company", "consolidation_scope", "segment", "basis"):
+        declared_values = {
+            _normalise_spaces(
+                str(dict(requirement.get("scope") or {}).get(field) or "")
+            ).lower()
+            for _candidate, requirement in bindings
+            if _normalise_spaces(
+                str(dict(requirement.get("scope") or {}).get(field) or "")
+            ).lower()
+            not in {"", "unknown"}
+        }
+        if len(declared_values) > 1:
+            return False
+
+    for candidates in contexts_by_period.values():
+        fingerprints = {
+            _normalise_spaces(str(candidate.get("context_fingerprint") or "")).lower()
+            for candidate in candidates
+            if _normalise_spaces(
+                str(candidate.get("context_fingerprint") or "")
+            ).lower()
+            not in {"", "unknown"}
+        }
+        if len(fingerprints) > 1:
+            return False
+
+    display_id = ""
+    if source_display_candidate is not None:
+        display_id = str(
+            source_display_candidate.get("candidate_id") or ""
+        ).strip()
+    allowed_candidate_ids = set(bound_candidate_ids)
+    if display_id:
+        allowed_candidate_ids.add(display_id)
+    context_candidate_ids = {
+        str(candidate.get("candidate_id") or "").strip()
+        for candidate in numeric_context_candidates
+        if str(candidate.get("candidate_id") or "").strip()
+    }
+    if not context_candidate_ids or not context_candidate_ids.issubset(
+        allowed_candidate_ids
+    ):
+        return False
+
+    if source_display_candidate is not None:
+        output_period = _normalise_spaces(
+            str(dict(obligation.get("scope") or {}).get("period") or "")
+        ).lower()
+        if output_period in {"", "unknown"}:
+            return False
+        if (
+            _scope_match_state(
+                "period",
+                output_period,
+                source_display_candidate,
+            )
+            != "match"
+        ):
+            return False
+        same_period_inputs = contexts_by_period.get(output_period, [])
+        if not same_period_inputs or not any(
+            _same_source_context(source_display_candidate, candidate)
+            for candidate in same_period_inputs
+        ):
+            return False
+
+    return True
+
+
 def _ungrounded_narrative_numbers(
     text: str, candidates: Sequence[Mapping[str, Any]]
 ) -> List[str]:
@@ -1284,6 +1398,9 @@ def validate_semantic_calculation_program(
             variable_units: Dict[str, str] = {}
             source_candidates: List[str] = []
             bound_requirement_ids: set[str] = set()
+            candidate_requirement_bindings: List[
+                Tuple[Mapping[str, Any], Mapping[str, Any]]
+            ] = []
             if not invalid:
                 for binding in bindings:
                     variable = str(binding.get("variable") or "").strip()
@@ -1358,6 +1475,9 @@ def validate_semantic_calculation_program(
                                 )
                                 invalid = True
                             bound_requirement_ids.add(source_requirement_id)
+                            candidate_requirement_bindings.append(
+                                (candidate, requirement)
+                            )
                             for detail in _scope_errors(
                                 candidate,
                                 {"scope": dict(requirement.get("scope") or {})},
@@ -1413,6 +1533,7 @@ def validate_semantic_calculation_program(
             if not _result_unit_valid(result_unit, dimension):
                 error("result_unit_mismatch", obligation_id, f"{dimension} -> {result_unit}")
                 continue
+            display_candidate: Optional[Mapping[str, Any]] = None
             display_id = str(expression.get("source_display_candidate_id") or "").strip()
             if display_id:
                 if not candidate_is_exposed(display_id, obligation_id):
@@ -1512,6 +1633,17 @@ def validate_semantic_calculation_program(
             context_conflicts = _expression_context_conflicts(
                 numeric_context_candidates
             )
+            if (
+                context_conflicts == ["context_fingerprint"]
+                and obligation
+                and _declared_cross_period_context_is_compatible(
+                    candidate_requirement_bindings=candidate_requirement_bindings,
+                    numeric_context_candidates=numeric_context_candidates,
+                    obligation=obligation,
+                    source_display_candidate=display_candidate,
+                )
+            ):
+                context_conflicts = []
             if context_conflicts and not compatibility_ids:
                 error(
                     "expression_context_mismatch",

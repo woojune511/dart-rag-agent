@@ -664,9 +664,11 @@ and taking trailing data values as period labels is forbidden.
 Only the prompt projection is bounded. Each direct output and each required
 `evidence_requirement` owns a separate cohort derived from its label, hints,
 local subject, and explicit input scope. Numeric owners expose at most four
-numeric candidates, narrative owners at most six narrative candidates, and each
-numeric output may expose at most two additional narrative compatibility
-witnesses. Admission first removes explicit conflicts and scope-only relevance
+numeric candidates, ordinary narrative owners at most six narrative candidates,
+and a `source_defined_group` narrative owner exposes at most six total evidence
+candidates across structured numeric cells and prose. Each numeric output may
+expose at most two additional narrative compatibility witnesses. Admission first
+removes explicit conflicts and scope-only relevance
 markers, then bounds candidates by owner relevance and local subject. Within the
 admitted set, `compatible` candidates fill before `unknown_only` candidates;
 `explicit_conflict` candidates are never visible. Declared reservations that
@@ -677,8 +679,11 @@ The compiler receives `cohorts` plus one ID-keyed candidate dictionary, not a
 flat repeated catalog. Each visible row includes full `row_headers`, local
 entity surfaces, physical table/row/cell/value provenance, and its owner-specific
 applicability result. `aggregate_label` remains a first-class admission label.
-Numeric owners rank numeric candidates only and narrative owners rank narrative
-candidates only. The validator receives the selectable IDs for each exact output
+Numeric owners rank numeric candidates only and ordinary narrative owners rank
+narrative candidates only. A source-defined group ranks both source-visible kinds
+inside its shared six-candidate cap because its members are intentionally chosen
+from the evidence rather than declared by the planner. The validator receives the
+selectable IDs for each exact output
 or requirement owner and rejects cross-owner reuse, hidden real IDs, and invented
 IDs. Candidate admission affects what the model can inspect; it is not
 deterministic answer selection.
@@ -743,6 +748,13 @@ errors. Before returning, the compiler must ensure that the set of formula AST
 variable names is exactly the set of `variable_bindings.variable` values and
 that every required evidence input is bound exactly once to an ID owned by the
 same target obligation.
+
+Formula inputs bound to distinct requirements with explicit, different periods
+may carry different context fingerprints without a compatibility witness. This
+exception applies only when every physical input matches its owned period scope,
+non-period scope values do not conflict, and each period partition is internally
+context-consistent. Same-period cross-source mixes, dependency-derived sources,
+and undeclared period differences retain the compatibility-evidence requirement.
 
 The single internal retry receives only the failed obligation cohorts. A
 candidate-specific validation failure removes the rejected ID from its owned

@@ -19,6 +19,7 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
+    select_semantic_prompt_evidence_candidates,
     select_semantic_prompt_candidates,
     semantic_candidate_id_fingerprint,
     semantic_candidate_catalog_fingerprint,
@@ -235,9 +236,15 @@ def _rank_applicable_owner_candidates(
     }
     eligible_rows: List[Dict[str, Any]] = []
     applicability_by_id: Dict[str, Dict[str, Any]] = {}
+    allowed_kinds = (
+        {"numeric", "narrative"}
+        if candidate_kind == "evidence"
+        else {candidate_kind}
+    )
     for raw_candidate in catalog:
         candidate = dict(raw_candidate or {})
-        if str(candidate.get("kind") or "") != candidate_kind:
+        kind = str(candidate.get("kind") or "")
+        if kind not in allowed_kinds:
             continue
         candidate_id = str(candidate.get("candidate_id") or "").strip()
         if not candidate_id or candidate_id in excluded:
@@ -252,6 +259,12 @@ def _rank_applicable_owner_candidates(
             eligible_rows.append(candidate)
 
     def ranked(rows: Sequence[Mapping[str, Any]], bounded_limit: int) -> List[Dict[str, Any]]:
+        if candidate_kind == "evidence":
+            return select_semantic_prompt_evidence_candidates(
+                rows,
+                relevance_groups=[list(relevance_group)],
+                max_candidates=bounded_limit,
+            )
         if candidate_kind == "numeric":
             return select_semantic_prompt_candidates(
                 rows,
@@ -378,13 +391,23 @@ def _semantic_candidate_cohorts(
     for obligation in obligation_rows:
         obligation_id = str(obligation.get("obligation_id") or "").strip()
         is_narrative = str(obligation.get("kind") or "") == "narrative"
+        is_source_defined_group = (
+            is_narrative
+            and str(obligation.get("evidence_mode") or "declared_inputs")
+            == "source_defined_group"
+        )
+        narrative_candidate_kind = (
+            "evidence" if is_source_defined_group else "narrative"
+        )
         specifications.append(
             {
                 "cohort_id": f"{obligation_id}:output",
                 "owner_id": obligation_id,
                 "parent_obligation_id": obligation_id,
                 "owner_type": "obligation",
-                "candidate_kind": "narrative" if is_narrative else "numeric",
+                "candidate_kind": (
+                    narrative_candidate_kind if is_narrative else "numeric"
+                ),
                 "limit": narrative_owner_limit if is_narrative else numeric_owner_limit,
                 "owner": obligation,
                 "relevance_group": _semantic_owner_relevance_group(obligation),
@@ -424,7 +447,9 @@ def _semantic_candidate_cohorts(
                     "owner_id": requirement_id,
                     "parent_obligation_id": obligation_id,
                     "owner_type": "requirement",
-                    "candidate_kind": "narrative" if is_narrative else "numeric",
+                    "candidate_kind": (
+                        narrative_candidate_kind if is_narrative else "numeric"
+                    ),
                     "limit": narrative_owner_limit if is_narrative else numeric_owner_limit,
                     "owner": effective_requirement,
                     "relevance_group": _semantic_owner_relevance_group(
@@ -436,12 +461,12 @@ def _semantic_candidate_cohorts(
     numeric_reservation = sum(
         int(item["limit"])
         for item in specifications
-        if item["candidate_kind"] == "numeric"
+        if item["candidate_kind"] in {"numeric", "evidence"}
     )
     narrative_reservation = sum(
         int(item["limit"])
         for item in specifications
-        if item["candidate_kind"] == "narrative"
+        if item["candidate_kind"] in {"narrative", "evidence"}
     )
     reservation = {
         "numeric": numeric_reservation,
@@ -671,7 +696,6 @@ _CANDIDATE_REJECTION_ERROR_CODES = {
     "empty_source_display_rendering",
     "invalid_source_display_candidate",
     "nonnumeric_expression_source",
-    "expression_context_mismatch",
     "invalid_compatibility_candidate",
     "compatibility_scope_mismatch",
     "direct_compatibility_context_mismatch",
@@ -794,11 +818,6 @@ def _retry_candidate_exclusions(
         "invalid_compatibility_candidate": ("compatibility",),
         "compatibility_scope_mismatch": ("compatibility",),
         "direct_compatibility_context_mismatch": ("compatibility",),
-        "expression_context_mismatch": (
-            "expression_input",
-            "source_display",
-            "compatibility",
-        ),
         "unknown_narrative_candidate": ("narrative",),
     }
     exclusions: Dict[str, List[str]] = {}
