@@ -24,9 +24,13 @@ def strip_financial_label_annotations(text: str) -> str:
     normalized = _normalise_spaces(text or "")
     if not normalized:
         return ""
-    # Strip footnote-style parentheticals such as "(주25)" or "(*)", but keep
-    # other semantic qualifiers intact.
-    normalized = re.sub(r"\((?:주\s*\d+[^\)]*|\*)\)", "", normalized)
+    # Strip parser-level footnote parentheticals such as "(주25)", "(*)", or
+    # "(*1,5)", but keep other semantic qualifiers intact.
+    normalized = re.sub(
+        r"\((?:주\s*\d+[^\)]*|\*(?:\s*\d+(?:\s*,\s*\d+)*)?)\)",
+        "",
+        normalized,
+    )
     normalized = re.sub(r"\s+", " ", normalized).strip()
     return normalized
 
@@ -252,6 +256,60 @@ def extract_table_row_label(row_text: str) -> str:
     return normalized
 
 
+def _looks_like_table_data_preview(values: List[str]) -> bool:
+    """Return whether a header-context line is structurally a data row.
+
+    Parser metadata may retain a real header followed by the first table row.
+    Calendar years remain valid headers; otherwise a majority of value-shaped
+    cells means the line must not provide column labels.
+    """
+
+    cleaned = [_normalise_spaces(str(value or "")) for value in values]
+    cleaned = [value for value in cleaned if value]
+    if not cleaned:
+        return False
+    if all(re.fullmatch(r"(?:19|20)\d{2}", value) for value in cleaned):
+        return False
+    numeric_cells = sum(
+        1
+        for value in cleaned
+        if re.fullmatch(
+            r"[\(\[]?\s*[+\-]?\s*\d[\d,]*(?:\.\d+)?\s*%?\s*[\)\]]?",
+            value,
+        )
+    )
+    return numeric_cells * 2 >= len(cleaned)
+
+
+def _table_header_candidates(header_context: str, value_count: int) -> List[List[str]]:
+    header_rows: List[List[str]] = []
+    for raw_line in re.split(r"[\r\n]+", str(header_context or "")):
+        normalized_line = _normalise_spaces(raw_line)
+        if "|" not in normalized_line:
+            continue
+        parts = [part.strip() for part in normalized_line.split("|")]
+        parts = [part for part in parts if part]
+        if len(parts) < value_count:
+            continue
+        current = parts[-value_count:]
+        if _looks_like_table_data_preview(current):
+            continue
+        header_rows.append(current)
+
+    if not header_rows:
+        return []
+
+    candidates: List[List[str]] = []
+    for column_index in range(value_count):
+        header_chain: List[str] = []
+        for row in header_rows:
+            header = _normalise_spaces(str(row[column_index] or ""))
+            if header and (not header_chain or header_chain[-1] != header):
+                header_chain.append(header)
+        candidates.append(header_chain)
+    return candidates
+
+
 def parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
     normalized_row = _normalise_spaces(str(row_text or ""))
     if "|" not in normalized_row:
@@ -261,23 +319,30 @@ def parse_unstructured_table_row_cells(row_text: str, metadata: Dict[str, Any]) 
     if len(row_parts) <= 1:
         return []
 
-    header_text = _normalise_spaces(str(metadata.get("table_header_context") or ""))
-    header_parts = [part.strip() for part in header_text.split("|") if part.strip()] if "|" in header_text else []
     period_labels = [str(item).strip() for item in (metadata.get("period_labels") or []) if str(item).strip()]
 
     value_parts = row_parts[1:]
-    header_candidates = header_parts[-len(value_parts):] if len(header_parts) >= len(value_parts) else []
+    header_candidates = _table_header_candidates(
+        str(metadata.get("table_header_context") or ""),
+        len(value_parts),
+    )
     if not header_candidates and len(period_labels) >= len(value_parts):
-        header_candidates = period_labels[-len(value_parts):]
+        header_candidates = [[item] for item in period_labels[-len(value_parts):]]
     if not header_candidates:
-        header_candidates = [f"col_{index}" for index in range(1, len(value_parts) + 1)]
+        header_candidates = [
+            [f"col_{index}"] for index in range(1, len(value_parts) + 1)
+        ]
 
     cells: List[Dict[str, Any]] = []
-    for header, value in zip(header_candidates, value_parts):
+    for headers, value in zip(header_candidates, value_parts):
         raw_value = str(value).strip()
         if not raw_value or not re.search(r"[0-9]", raw_value):
             continue
-        value_headers = [str(header).strip()] if str(header).strip() else []
+        value_headers = [
+            _normalise_spaces(str(header))
+            for header in headers
+            if _normalise_spaces(str(header))
+        ]
         unit_hint = str(metadata.get("unit_hint") or "").strip()
         labeled_value_match = re.match(
             r"^(?P<label>.*?)(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*"

@@ -350,16 +350,26 @@ def render_grounded_operand_display(row: Dict[str, Any]) -> str:
     coerced_display = _normalise_spaces(str(row.get("rendered_value") or ""))
     if row.get("value_coercion") and coerced_display:
         return coerced_display
+    if raw_value and normalized_unit in count_or_percent_units:
+        embedded_non_currency_markers = tuple(
+            marker for marker in embedded_unit_markers if marker not in krw_display_units
+        )
+        if any(marker in raw_value for marker in embedded_non_currency_markers):
+            return raw_value
     if normalized_unit in count_or_percent_units and raw_value:
         if raw_unit and raw_unit in raw_value:
             return raw_value
         return f"{raw_value}{raw_unit}" if raw_unit else raw_value
+    if (
+        normalized_unit == krw_normalized_unit
+        and raw_value
+        and any(token in raw_value for token in embedded_unit_markers)
+    ):
+        return raw_value
     if normalized_unit != krw_normalized_unit or not raw_value or not raw_unit:
         return ""
     if raw_unit not in krw_display_units:
         return ""
-    if any(token in raw_value for token in embedded_unit_markers):
-        return raw_value
     return f"{raw_value}{raw_unit}"
 
 

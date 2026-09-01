@@ -1,0 +1,251 @@
+{
+  "shared_scope_numeric_outputs": {
+    "query": "2024년 연결기준 기준값과 조정값을 확인하고 차이를 계산해 줘.",
+    "obligations": [
+      {
+        "obligation_id": "ob_base",
+        "kind": "direct_value",
+        "label": "기준값",
+        "required": true,
+        "display_unit": "개",
+        "display_format": "",
+        "scope": {
+          "company": "예시회사",
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "depends_on": [],
+        "coupling_key": "shared"
+      },
+      {
+        "obligation_id": "ob_adjustment",
+        "kind": "direct_value",
+        "label": "조정값",
+        "required": true,
+        "display_unit": "개",
+        "display_format": "",
+        "scope": {
+          "company": "예시회사",
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "depends_on": [],
+        "coupling_key": "shared"
+      },
+      {
+        "obligation_id": "ob_result",
+        "kind": "derived_value",
+        "label": "계산 결과",
+        "required": true,
+        "display_unit": "개",
+        "display_format": "",
+        "scope": {
+          "company": "예시회사",
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "depends_on": ["ob_base", "ob_adjustment"],
+        "coupling_key": "shared"
+      }
+    ],
+    "candidate_catalog": [
+      {
+        "candidate_id": "cand_base",
+        "kind": "numeric",
+        "source_candidate_id": "source_base",
+        "evidence_id": "evidence_base",
+        "source_anchor": "[예시회사 | 2024 | 예시 섹션]",
+        "source_row_id": "row_base",
+        "table_source_id": "table_shared",
+        "row_label": "기준값",
+        "statement_type": "example",
+        "company": "예시회사",
+        "year": 2024,
+        "consolidation_scope": "consolidated",
+        "segment": "",
+        "basis": "",
+        "context_fingerprint": "table_shared|consolidated||",
+        "source_text": "2024년 연결기준 기준값 30개",
+        "candidate_kind": "structured_value",
+        "raw_value": "30",
+        "raw_unit": "개",
+        "normalized_value": 30.0,
+        "normalized_unit": "COUNT",
+        "period": "2024",
+        "column_headers": ["2024"],
+        "value_role": "",
+        "aggregation_stage": "",
+        "aggregate_label": ""
+      },
+      {
+        "candidate_id": "cand_adjustment",
+        "kind": "numeric",
+        "source_candidate_id": "source_adjustment",
+        "evidence_id": "evidence_adjustment",
+        "source_anchor": "[예시회사 | 2024 | 예시 섹션]",
+        "source_row_id": "row_adjustment",
+        "table_source_id": "table_shared",
+        "row_label": "조정값",
+        "statement_type": "example",
+        "company": "예시회사",
+        "year": 2024,
+        "consolidation_scope": "consolidated",
+        "segment": "",
+        "basis": "",
+        "context_fingerprint": "table_shared|consolidated||",
+        "source_text": "2024년 연결기준 조정값 5개",
+        "candidate_kind": "structured_value",
+        "raw_value": "5",
+        "raw_unit": "개",
+        "normalized_value": 5.0,
+        "normalized_unit": "COUNT",
+        "period": "2024",
+        "column_headers": ["2024"],
+        "value_role": "",
+        "aggregation_stage": "",
+        "aggregate_label": ""
+      }
+    ],
+    "program": {
+      "status": "ready",
+      "direct_bindings": [
+        {"obligation_id": "ob_base", "candidate_id": "cand_base"},
+        {"obligation_id": "ob_adjustment", "candidate_id": "cand_adjustment"}
+      ],
+      "expressions": [
+        {
+          "obligation_id": "ob_result",
+          "variable_bindings": [
+            {"variable": "BASE", "source_id": "ob_base"},
+            {"variable": "ADJUSTMENT", "source_id": "ob_adjustment"}
+          ],
+          "formula": "BASE - ADJUSTMENT",
+          "result_unit": "COUNT",
+          "display_unit": "개",
+          "display_format": "0,0",
+          "source_display_candidate_id": "",
+          "compatibility_candidate_ids": [],
+          "constants": []
+        }
+      ],
+      "narrative_bindings": [],
+      "missing_obligation_ids": [],
+      "ambiguous_obligation_ids": []
+    },
+    "expected_answer_contains": [
+      "예시회사의 2024년 연결기준 기준값은 30개입니다.",
+      "조정값은 5개입니다.",
+      "계산 결과는 25개입니다."
+    ]
+  },
+  "selected_narrative_boundary": {
+    "query": "인수가 운영 결과에 미친 영향을 요약해 줘.",
+    "obligations": [
+      {
+        "obligation_id": "ob_narrative",
+        "kind": "narrative",
+        "label": "인수 영향 요약",
+        "required": true,
+        "display_unit": "",
+        "display_format": "",
+        "scope": {
+          "company": "예시회사",
+          "period": "2024",
+          "consolidation_scope": "unknown",
+          "segment": "",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "depends_on": [],
+        "coupling_key": ""
+      }
+    ],
+    "candidate_catalog": [
+      {
+        "candidate_id": "cand_selected",
+        "kind": "narrative",
+        "source_candidate_id": "source_selected",
+        "evidence_id": "evidence_selected",
+        "source_anchor": "[예시회사 | 2024 | 예시 섹션]",
+        "source_row_id": "row_selected",
+        "table_source_id": "",
+        "row_label": "",
+        "statement_type": "example",
+        "company": "예시회사",
+        "year": 2024,
+        "consolidation_scope": "unknown",
+        "segment": "",
+        "basis": "",
+        "context_fingerprint": "paragraph_selected",
+        "source_text": "첫 번째 운영 효과가 확인되었습니다.",
+        "candidate_kind": "chunk",
+        "raw_value": "",
+        "raw_unit": "",
+        "normalized_value": null,
+        "normalized_unit": "UNKNOWN",
+        "period": "",
+        "column_headers": [],
+        "value_role": "",
+        "aggregation_stage": "",
+        "aggregate_label": ""
+      },
+      {
+        "candidate_id": "cand_unselected",
+        "kind": "narrative",
+        "source_candidate_id": "source_unselected",
+        "evidence_id": "evidence_unselected",
+        "source_anchor": "[예시회사 | 2024 | 다른 섹션]",
+        "source_row_id": "row_unselected",
+        "table_source_id": "",
+        "row_label": "",
+        "statement_type": "example",
+        "company": "예시회사",
+        "year": 2024,
+        "consolidation_scope": "unknown",
+        "segment": "",
+        "basis": "",
+        "context_fingerprint": "paragraph_unselected",
+        "source_text": "두 번째 운영 효과가 확인되었습니다.",
+        "candidate_kind": "chunk",
+        "raw_value": "",
+        "raw_unit": "",
+        "normalized_value": null,
+        "normalized_unit": "UNKNOWN",
+        "period": "",
+        "column_headers": [],
+        "value_role": "",
+        "aggregation_stage": "",
+        "aggregate_label": ""
+      }
+    ],
+    "program": {
+      "status": "ready",
+      "direct_bindings": [],
+      "expressions": [],
+      "narrative_bindings": [
+        {
+          "obligation_id": "ob_narrative",
+          "candidate_ids": ["cand_selected"],
+          "text": "첫 번째 운영 효과가 확인되었습니다."
+        }
+      ],
+      "missing_obligation_ids": [],
+      "ambiguous_obligation_ids": []
+    },
+    "expected_selected_text": "첫 번째 운영 효과가 확인되었습니다.",
+    "unselected_text": "두 번째 운영 효과가 확인되었습니다."
+  }
+}

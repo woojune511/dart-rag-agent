@@ -79,7 +79,7 @@ ARTIFACT_PROVENANCE_KEYS = {
 def payload_missing_contract(artifact_kind: str, payload: Mapping[str, Any]) -> str:
     if artifact_kind == ArtifactKind.OPERAND_SET.value:
         operands = payload.get("calculation_operands")
-        if not isinstance(operands, list) or not operands:
+        if not isinstance(operands, list):
             return "calculation_operands"
     elif artifact_kind == ArtifactKind.CALCULATION_PLAN.value:
         plan = payload.get("calculation_plan")

@@ -65,6 +65,41 @@ Then land caller rewrites/removals only after the semantic contract and graph
 gates pass. The commands below are review aids; this worktree is not staged by
 this document.
 
+## Dependency Closure Addendum
+
+The clean-worktree checkpoint at `9a5a2e6` showed that the owner-foundation
+bucket was not dependency-closed. Included runtime owners import four changed
+support owners, and the included semantic-program test reads two untracked
+fixtures directly. These paths are part of the semantic transition checkpoint,
+not of the later candidate-boundary repair:
+
+- `src/agent/financial_artifact_contracts.py`
+- `src/agent/financial_graph_calculation_rendering.py`
+- `src/agent/financial_numeric_surface.py`
+- `src/agent/financial_row_surfaces.py`
+- `tests/fixtures/semantic_program_contract_residuals.json`
+- `tests/fixtures/semantic_program_rendering_residuals.json`
+
+The fixture SHA-256 values captured before staging are respectively
+`e27f165c2586e61200557980b882f12e13193ef6e669ec5cf3f8896478a22149`
+and `b4dfd1439a0e790d26c47093db54c4e42bd12151e1f85f287fd76f191f34075a`.
+`src/processing/financial_parser.py` and every other path outside the original
+manifest remain excluded because they were not required by this checkpoint's
+observed failures.
+
+Minimum closure gate:
+
+```bash
+python -m unittest \
+  tests.test_semantic_calculation_program \
+  tests.test_financial_agent_run_projection \
+  tests.test_financial_answer_slots \
+  tests.test_financial_task_artifacts \
+  tests.test_financial_retrieval_hints \
+  tests.test_financial_text_surface \
+  tests.test_retrieval_scope
+```
+
 ## 1. Runtime Projection
 
 Files:
