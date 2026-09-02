@@ -44,6 +44,24 @@ def _compute_numeric_equivalence(*args: Any, **kwargs: Any) -> Any:
     return impl(*args, **kwargs)
 
 
+def _compute_example_numeric_equivalence(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_example_numeric_equivalence as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_accepted_calculation_variant_match(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_accepted_calculation_variant_match as impl
+
+    return impl(*args, **kwargs)
+
+
+def _resolve_atomic_calculation_variant_evaluation(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_atomic_calculation_variant_evaluation as impl
+
+    return impl(*args, **kwargs)
+
+
 def _compute_numeric_result_correctness(*args: Any, **kwargs: Any) -> Any:
     from src.ops.evaluator import _compute_numeric_result_correctness as impl
 
@@ -70,6 +88,12 @@ def _compute_unit_consistency_pass(*args: Any, **kwargs: Any) -> Any:
 
 def _resolve_evaluator_operands(*args: Any, **kwargs: Any) -> Any:
     from src.ops.evaluator import _resolve_evaluator_operands as impl
+
+    return impl(*args, **kwargs)
+
+
+def _supplement_resolved_operands_from_runtime_evidence(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _supplement_resolved_operands_from_runtime_evidence as impl
 
     return impl(*args, **kwargs)
 
@@ -120,6 +144,9 @@ def _aggregate_replayed(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             else None
         ),
         "numeric_equivalence": avg("numeric_equivalence"),
+        "accepted_calculation_variant_match": avg(
+            "accepted_calculation_variant_match"
+        ),
         "numeric_grounding": avg("numeric_grounding"),
         "numeric_retrieval_support": avg("numeric_retrieval_support"),
         "operand_selection_correctness": avg("operand_selection_correctness"),
@@ -164,6 +191,9 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         allow_legacy_top_level=True,
     )
     calculation_operands = list(resolved_trace.get("calculation_operands") or [])
+    calculation_variant_operands = [
+        dict(row) for row in calculation_operands if isinstance(row, dict)
+    ]
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_result = dict(resolved_trace.get("calculation_result") or {})
     calculation_operands = _resolve_evaluator_operands(
@@ -171,6 +201,11 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         calculation_result=calculation_result,
     )
     runtime_evidence = list(row.get("runtime_evidence") or [])
+    calculation_operands = _supplement_resolved_operands_from_runtime_evidence(
+        example=example,
+        runtime_evidence=runtime_evidence,
+        calculation_operands=calculation_operands,
+    )
     contexts = []
     for evidence in runtime_evidence:
         if isinstance(evidence, dict):
@@ -181,10 +216,26 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
                 )
             )
 
-    numeric_equivalence, equivalence_debug = _compute_numeric_equivalence(
+    numeric_equivalence, equivalence_debug = _compute_example_numeric_equivalence(
+        example=example,
         answer=str(row.get("answer") or ""),
-        answer_key=example.canonical_answer_key,
-        canonical_evidence=list(example.evidence or []),
+        support_texts=contexts,
+    )
+    variant_match, variant_id, variant_debug = _compute_accepted_calculation_variant_match(
+        example=example,
+        calculation_operands=calculation_variant_operands or calculation_operands,
+        calculation_plan=calculation_plan,
+        calculation_result=calculation_result,
+    )
+    numeric_equivalence, equivalence_debug, variant_match, variant_id, variant_debug = (
+        _resolve_atomic_calculation_variant_evaluation(
+            example=example,
+            equivalence=numeric_equivalence,
+            equivalence_debug=equivalence_debug,
+            trace_match=variant_match,
+            trace_variant_id=variant_id,
+            trace_debug=variant_debug,
+        )
     )
     operand_grounding, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=runtime_evidence,
@@ -207,6 +258,9 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         example=example,
         calculation_operands=calculation_operands,
     )
+    if variant_match is not None:
+        numeric_result_correctness = variant_match
+        operand_selection_correctness = variant_match
     unit_consistency_pass = _compute_unit_consistency_pass(
         calculation_operands=calculation_operands,
         calculation_plan=calculation_plan,
@@ -229,6 +283,8 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         "numeric_final_judgement": final_judgement,
         "numeric_confidence": confidence,
         "numeric_equivalence": numeric_equivalence,
+        "accepted_calculation_variant_match": variant_match,
+        "accepted_calculation_variant_id": variant_id,
         "numeric_grounding": source_grounding,
         "numeric_retrieval_support": retrieval_support,
         "operand_selection_correctness": operand_selection_correctness,
@@ -240,6 +296,7 @@ def _score_row(row: Dict[str, Any], example_by_id: Dict[str, Any]) -> Dict[str, 
         "source_warnings": _source_row_warnings(row),
         "debug": {
             "numeric_equivalence": equivalence_debug,
+            "accepted_calculation_variant": variant_debug,
             "operand_grounding": operand_grounding_debug,
             "grounded_rendering_reason": grounded_rendering_reason,
             "source_numeric_debug": row.get("numeric_debug") or {},
@@ -266,6 +323,8 @@ def _write_outputs(output_dir: Path, rows: List[Dict[str, Any]], source_results:
                 "source_numeric_final_judgement",
                 "numeric_final_judgement",
                 "numeric_equivalence",
+                "accepted_calculation_variant_match",
+                "accepted_calculation_variant_id",
                 "numeric_grounding",
                 "numeric_retrieval_support",
                 "operand_selection_correctness",

@@ -1,0 +1,59 @@
+{
+  "provenance": {
+    "kind": "synthetic_fixed_output_characterization",
+    "purpose": "Separate selected-source scope, answer disclosure, scalar variant matching, and qualitative comparison boundaries.",
+    "limits": "Invented issuer, subject, values, IDs, and sources. No filing, benchmark row, provider response, or live acceptance oracle is embedded. Assertions separate the implemented rendering contract from remaining evaluator gaps; they are not an acceptance policy."
+  },
+  "company": "Sample issuer",
+  "period": "2024",
+  "subject": "Unit Alpha",
+  "query": "Sample issuer의 2024년 Unit Alpha의 배분율과 보고 금액을 정리해 줘.",
+  "single_query": "Sample issuer의 2024년 Unit Alpha의 보고 금액을 알려 줘.",
+  "english_query": "Summarize Unit Alpha's allocation share and reported amount for Sample issuer in 2024.",
+  "outputs": [
+    {"obligation_id": "ob_share", "label": "배분율", "raw_unit": "%", "normalized_unit": "PERCENT", "scale": 1},
+    {"obligation_id": "ob_amount", "label": "보고 금액", "raw_unit": "백만원", "normalized_unit": "KRW", "scale": 1000000}
+  ],
+  "bases": [
+    {"scope": "consolidated", "display_label": "연결기준", "source": "group-note", "values": {"ob_share": 40, "ob_amount": 120}},
+    {"scope": "separate", "display_label": "별도기준", "source": "standalone-note", "values": {"ob_share": 35, "ob_amount": 220}}
+  ],
+  "programs": {
+    "consolidated": {
+      "status": "ready",
+      "direct_bindings": [
+        {"obligation_id": "ob_share", "candidate_id": "cand-group-note-ob_share"},
+        {"obligation_id": "ob_amount", "candidate_id": "cand-group-note-ob_amount"}
+      ]
+    },
+    "separate": {
+      "status": "ready",
+      "direct_bindings": [
+        {"obligation_id": "ob_share", "candidate_id": "cand-standalone-note-ob_share"},
+        {"obligation_id": "ob_amount", "candidate_id": "cand-standalone-note-ob_amount"}
+      ]
+    },
+    "cross_basis": {
+      "status": "ready",
+      "direct_bindings": [
+        {"obligation_id": "ob_share", "candidate_id": "cand-group-note-ob_share"},
+        {"obligation_id": "ob_amount", "candidate_id": "cand-standalone-note-ob_amount"}
+      ]
+    },
+    "wrong_subject": {
+      "status": "ready",
+      "rationale": "Use Unit Alpha's 40% share and 120백만원 reported amount from the group note.",
+      "direct_bindings": [
+        {"obligation_id": "ob_share", "candidate_id": "cand-other-subject"},
+        {"obligation_id": "ob_amount", "candidate_id": "cand-group-note-ob_amount"}
+      ]
+    },
+    "missing_share": {
+      "status": "incomplete",
+      "missing_obligation_ids": ["ob_share"],
+      "direct_bindings": [
+        {"obligation_id": "ob_amount", "candidate_id": "cand-group-note-ob_amount"}
+      ]
+    }
+  }
+}

@@ -64,6 +64,11 @@
   - `draft`, `verified`, `needs_review`
 - `notes`
   - annotator 메모
+- `accepted_calculation_variants`
+  - 같은 질문에 둘 이상의 source-backed 계산 표현이 정당할 때 쓰는 atomic variant 목록
+  - 각 항목은 `id`, `answer_key`, `expected_operands`, `expected_operation`,
+    `expected_calculation_result`를 함께 가져야 한다
+  - evaluator는 서로 다른 항목의 operand/result를 섞어 채점하지 않는다
 
 ## category 값
 
@@ -100,6 +105,73 @@
   - 허용 오차율 또는 절대 오차
 - `allow_unit_conversion`
   - `300조 8,709억원`과 `300,870,903 백만원`처럼 단위 변환을 허용할지 여부
+
+## accepted_calculation_variants 예시
+
+```json
+[
+  {
+    "id": "note_precise",
+    "answer_key": "기초 343백만원, 기말 380백만원, 차이 37백만원",
+    "expected_operands": [
+      {
+        "label": "기말",
+        "raw_value": "380",
+        "raw_unit": "백만원",
+        "source_anchor_contains": "재무제표 주석",
+        "consolidation_scope": "consolidated"
+      },
+      {
+        "label": "기초",
+        "raw_value": "343",
+        "raw_unit": "백만원",
+        "source_anchor_contains": "재무제표 주석",
+        "consolidation_scope": "consolidated"
+      }
+    ],
+    "expected_operation": "difference",
+    "expected_calculation_result": {
+      "label": "차이",
+      "raw_value": "37",
+      "raw_unit": "백만원",
+      "operation_family": "difference",
+      "source_anchor_contains": "재무제표 주석"
+    }
+  }
+]
+```
+
+`source_anchor_contains`는 문자열 또는 허용 가능한 source 표현 목록이다. 필요하면
+operand에 `strict_label`, `statement_type`, `consolidation_scope`,
+`table_source_id_contains`, `source_row_id`를 추가할 수 있다. 이 필드는 runtime
+라우팅 입력이 아니라 evaluator-only 정답 계약이다.
+
+## accepted_answer_variants 계약 (active, evaluator-only)
+
+여러 direct output이 하나의 답을 이루고 연결/별도 같은 source basis별 완전한
+묶음이 각각 정당할 수 있을 때를 위한 필드다. Production loader와 evaluator가
+strict하게 소비하지만 runtime agent의 routing/retrieval/selection 입력은 아니다.
+현재 curated dataset에는 아직 등록하지 않았고,
+`tests/fixtures/multi_output_answer_variants.json`은 합성 contract fixture만 제공한다.
+
+각 variant는 다음을 가져야 한다.
+
+- 고유한 `id`
+- 해당 source basis를 명시한 completeness용 `answer_key`
+- 모든 required semantic output ID를 정확히 한 번 포함하는 `expected_outputs`
+- 각 output의 `output_id`, `kind`, `label`, `subject`, `raw_value`, `raw_unit`,
+  `normalized_unit`, `period`, `consolidation_scope`, `source_anchor_contains`
+
+Variant matcher는 서로 다른 actual output을 각 expected output에 배정하고 하나의
+variant 전체가 완전할 때만 성공한다. Canonical direct output은 immutable ID로
+정확히 하나의 pre-supplementation operand에 결합되어야 하며 required output ID
+집합도 정확히 같아야 한다. 다른 variant의 값/출처/기준 혼합, 누락/추가 output,
+unknown scope, 동일값 wrong-row, invalid/ambiguous binding은 실패한다. 답변 숫자와
+trace가 같은 유일 variant를 가리킬 때만 completeness reference가 해당
+`answer_key`로 바뀌고, 그 외에는 canonical key를 쓴다. 이 계약은 기존 scalar
+`accepted_calculation_variants`를 대체하거나 그 result-binding 규칙을 약화하지
+않으며 score를 직접 승격하지 않는다. 실제 dataset variant는 별도 source review와
+명시적 결정 뒤에만 추가할 수 있다.
 
 ## 전체 스키마 예시
 

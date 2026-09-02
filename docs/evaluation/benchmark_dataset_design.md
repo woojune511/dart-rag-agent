@@ -131,6 +131,23 @@
 - `comparison_002`
   - repeated concept under different business entities
 
+### 2.1 Multiple accepted calculation representations
+
+하나의 질문에 서로 다른 source-backed 정밀도나 표시 단위가 모두 정당한 경우,
+`answer_key` 문자열을 느슨한 허용오차로 확장하지 않는다. 숫자형 계산 문항은 선택적으로
+`accepted_calculation_variants`를 두며, 각 variant는 다음을 한 묶음으로 보존한다.
+
+- 안정적인 `id`와 사람이 읽는 `answer_key`
+- `expected_operands`의 값·기간·단위·source/scope 제약
+- `expected_operation`
+- `expected_calculation_result`의 값·단위·operation·source 제약
+
+evaluator는 한 variant 안에서 답변의 모든 숫자, distinct operand 선택, 실행 output,
+operation과 provenance가 함께 맞을 때만 통과시킨다. 서로 다른 variant의 operand와
+result를 섞거나, 같은 숫자를 다른 source context에서 가져오거나, 일부 숫자만 맞힌
+답은 허용하지 않는다. 기존 `answer_key`는 qualitative judge와 legacy dataset 호환을
+위한 primary 표현으로 유지한다.
+
 ### 3. Minimal but representative gates
 
 gate는 크게 만들지 않는다.  

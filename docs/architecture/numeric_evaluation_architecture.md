@@ -4,6 +4,15 @@
 
 ## Executive Summary
 
+현재 canonical 역할 경계는
+[agent_runtime_contract.md](agent_runtime_contract.md)를 따른다.
+계산 결과·숫자 표현의 정확성과 정성 faithfulness는 별도 지표다. Mixed/summary
+답변은 계산·retrieval·citation·completeness가 좋아도 raw faithfulness를 올리지
+않는다. 기존 hybrid/structured-summary coverage override는 삭제했고, 순수 숫자형의
+non-mixed/no-narrative PASS gate만 유지한다. 원문 표시와 계산 표시가 다르면 두 값을
+명시적으로 구분하며, 둘 다 grounded라는 사실은 두 값이 동치라는 판정이 아니다.
+이하 초기 구현 단계와 당시 결과는 역사적 설계 기록이며 현재 next-work 권위가 아니다.
+
 | 문제 | 현재 해석 |
 | --- | --- |
 | `300조 8,709억원` vs `300,870,903 백만원`처럼 표현은 다르지만 값은 같은 답 | 단일 faithfulness judge는 표현 차이에 과민할 수 있음 |
@@ -77,6 +86,44 @@
 | 출력 | `true / false / uncertain` |
 | 장점 | 숫자 자체의 맞고 틀림을 deterministic하게 볼 수 있음 |
 
+계산 문항에 `accepted_calculation_variants`가 있으면 문자열 숫자 동치만으로는
+PASS를 만들지 않는다. evaluator는 같은 variant ID 아래에서 다음을 원자적으로
+확인한다.
+
+1. variant가 요구한 모든 숫자가 그 variant의 표시 정밀도로 답변에 존재한다.
+2. distinct canonical trace operand가 값·기간·단위·source/scope 제약을 만족한다.
+3. semantic program의 direct top result가 아니라 해당 derived output까지 탐색한다.
+4. output의 사후 `operation_family`가 기대 operation과 맞는다.
+5. output provenance가 선택된 모든 candidate ID에 연결된다.
+
+정밀 주석값과 반올림 경영진단값을 각각 허용할 수는 있지만, 두 표현의 operand와
+result를 교차 조합할 수는 없다. 이 계약이 없는 기존 문항은 종전 단일
+`answer_key` 동치 경로를 그대로 사용한다.
+
+#### Multi-output direct answers: active evaluator-only path
+
+`accepted_calculation_variants`를 여러 독립 direct output에 재사용하면 안 된다.
+그 계약의 result는 선택된 모든 operand에 연결되어야 하므로, 여러 direct 값을
+억지로 한 scalar result에 묶는 것은 provenance 규칙을 약화한다.
+
+Production evaluator는 별도 evaluator-only 필드
+`accepted_answer_variants`를 strict typed contract로 읽는다. 각 variant의
+`expected_outputs`는 동일한
+required output ID 집합을 완전히 덮고, 각 출력의 label/subject/value/unit/period/
+consolidation scope/source를 보존한다. 하나의 완전한 variant만 원자적으로
+매칭해야 하며 다른 variant의 출력 혼합, 누락, unknown basis, 동일값 오출처/
+오기준은 실패한다. Variant의 `answer_key`는 매칭 후 completeness에 제공할
+source-qualified reference이지 numeric 성공으로 정성 점수를 올리는 신호가 아니다.
+
+Matcher는 canonical `calculation_result.outputs`의 direct output만 같은 ID의 required
+set으로 투영하고, 각 output을 immutable ID로 정확히 하나의 pre-supplementation
+`calculation_operands`에 결합한다. Output/operand의 value, raw/normalized unit,
+period, scope, source가 일치해야 하며 distinct assignment 뒤 정확히 하나의 complete
+trace variant만 허용한다. 답변 숫자도 같은 variant와 완전히 일치할 때만 completeness
+reference를 바꾸고, no-field/no-match/invalid/partial/mixed/ambiguous이면 canonical
+key를 유지한다. 기존 scalar path와 score promotion 정책은 그대로다. 합성 fixture는
+계약 검증용이며 실제 dataset 등록과 tolerance/source review는 아직 결정하지 않았다.
+
 ### 3. Grounding Judge
 
 | 항목 | 내용 |
@@ -128,6 +175,8 @@ question
 | `numeric_retrieval_support` | retrieval / text support 여부 |
 | `numeric_final_judgement` | `PASS / FAIL / UNCERTAIN` 최종 판정 |
 | `numeric_confidence` | resolver confidence |
+| `accepted_calculation_variant_match` | 한 source-qualified 계산 variant 전체의 원자적 일치 여부; 해당 계약이 없으면 N/A |
+| `accepted_calculation_variant_id` | 실제로 일치한 variant의 안정적인 ID |
 
 ## Relationship to Generic Metrics
 
