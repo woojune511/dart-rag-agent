@@ -87,8 +87,8 @@ DEFAULT_CHUNK_SIZE = 2500
 DEFAULT_CHUNK_OVERLAP = 320
 DEFAULT_SECTION_PARSE_WARN_SEC = float(os.getenv("DART_PARSER_SECTION_WARN_SEC", "0.5"))
 DEFAULT_SECTION_PARSE_BUDGET_SEC = float(os.getenv("DART_PARSER_SECTION_BUDGET_SEC", "2.0"))
-_UNIT_HINT_RE = re.compile(r"(천원|백만원|억원|%)")
-_UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(천원|백만원|억원|원|%)")
+_UNIT_HINT_RE = re.compile(r"(십억원|천원|백만원|억원|%)")
+_UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(십억원|천원|백만원|억원|원|%)")
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
     ("연결재무제표", ["연결재무제표"]),
