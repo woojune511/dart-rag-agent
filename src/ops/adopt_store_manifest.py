@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, Optional
 
 from src.config.runtime_contract import CANONICAL_INGEST_PROFILE_ID
@@ -49,14 +50,24 @@ def _inspect_chroma(
     persist_directory: Path,
     collection_name: str,
 ) -> tuple[str, Optional[int]]:
-    import chromadb
+    database_path = persist_directory / "chroma.sqlite3"
+    if not database_path.is_file():
+        raise FileNotFoundError(f"Chroma metadata database is missing: {database_path}")
 
-    client = chromadb.PersistentClient(path=str(persist_directory))
-    collection = client.get_collection(name=collection_name)
-    payload = collection.peek(limit=1)
-    embeddings = list(payload.get("embeddings") or [])
-    dimension = len(embeddings[0]) if embeddings else None
-    return str(collection.name), dimension
+    database_uri = f"{database_path.resolve().as_uri()}?mode=ro&immutable=1"
+    connection = sqlite3.connect(database_uri, uri=True)
+    try:
+        row = connection.execute(
+            "SELECT name, dimension FROM collections WHERE name = ? ORDER BY id LIMIT 1",
+            (str(collection_name),),
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if row is None:
+        raise ValueError(f"Chroma collection is missing: {collection_name}")
+    dimension = int(row[1]) if row[1] is not None else None
+    return str(row[0]), dimension
 
 
 def main() -> None:
