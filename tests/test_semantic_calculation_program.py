@@ -17,7 +17,10 @@ from src.agent.financial_graph_models import (
     RequirementPlannerOutput,
     SemanticCalculationProgram,
 )
-from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph import (
+    FINANCIAL_GRAPH_PHASE_WRITERS,
+    FinancialAgent,
+)
 from src.agent.financial_graph_calculation import (
     _merge_targeted_program_retry,
     _retry_candidate_exclusions,
@@ -6020,6 +6023,12 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             agent._route_after_expand({"semantic_plan": {"program_required": False}}),
             "evidence",
         )
+        self.assertEqual(
+            agent._route_after_retrieval_v2(
+                {"requirements": {"semantic_plan": {"program_required": True}}}
+            ),
+            "build_candidates",
+        )
 
     def test_graph_dag_contains_only_canonical_numeric_program_nodes(self) -> None:
         agent = self._agent(_StructuredQueueLLM())
@@ -6027,15 +6036,15 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         nodes = set(graph.nodes)
         self.assertTrue(
             {
-                "requirement_planner",
-                "retrieve",
-                "expand",
-                "program_compiler",
-                "program_executor",
-                "evidence",
-                "compress",
-                "validate",
-                "cite",
+                "route_request",
+                "plan_requirements",
+                "retrieve_evidence",
+                "build_candidates",
+                "compile_program",
+                "execute_numeric",
+                "build_narrative",
+                "assemble_ledger",
+                "assemble_final",
             }.issubset(nodes)
         )
         self.assertTrue(
@@ -6047,6 +6056,27 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
                 "reflection",
                 "reconcile",
             }.isdisjoint(nodes)
+        )
+
+    def test_graph_phase_keys_have_exactly_one_declared_writer(self) -> None:
+        self.assertEqual(
+            set(FINANCIAL_GRAPH_PHASE_WRITERS),
+            {
+                "request",
+                "routing",
+                "requirements",
+                "retrieval",
+                "candidates",
+                "compilation",
+                "numeric_result",
+                "narrative_result",
+                "ledger",
+                "final_result",
+            },
+        )
+        self.assertEqual(
+            len(set(FINANCIAL_GRAPH_PHASE_WRITERS.values())),
+            len(FINANCIAL_GRAPH_PHASE_WRITERS),
         )
 
 

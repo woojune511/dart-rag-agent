@@ -11,6 +11,11 @@ from src.agent.financial_calculation_execution import (
 from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
 )
+from src.agent.financial_graph import (
+    FINANCIAL_GRAPH_PHASE_WRITERS,
+    FinancialAgent,
+    project_financial_phase_state,
+)
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
     CompilationEnvelopeV1,
@@ -241,6 +246,77 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             visibility.candidate_ids_by_owner(),
             {"ob_value": ["cand-visible"]},
         )
+
+    def test_phase_projection_and_single_writer_ledger_are_deterministic(self) -> None:
+        state = {
+            "request": {"query": "return value", "report_scope": {}},
+            "requirements": {
+                "semantic_plan": {
+                    "status": "ok",
+                    "program_required": True,
+                    "tasks": [
+                        {
+                            "task_id": "task_1",
+                            "metric_family": "semantic_program",
+                            "metric_label": "value",
+                            "query": "return value",
+                            "constraints": {},
+                        }
+                    ],
+                },
+                "retrieval_queries": ["return value"],
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "metric_family": "semantic_program",
+                    "metric_label": "value",
+                    "query": "return value",
+                },
+                "planner_feedback": "",
+            },
+            "numeric_result": {
+                "answer": "value: 10 items",
+                "selected_claim_ids": ["cand-visible"],
+                "kept_claim_ids": ["cand-visible"],
+                "structured_result": {
+                    "status": "ok",
+                    "answer": "value: 10 items",
+                },
+                "resolved_calculation_trace": {
+                    "calculation_operands": [
+                        {
+                            "operand_id": "cand-visible",
+                            "candidate_id": "cand-visible",
+                            "evidence_id": "cand-visible",
+                        }
+                    ],
+                    "calculation_plan": {
+                        "status": "ok",
+                        "mode": "semantic_program",
+                        "operation": "semantic_program",
+                    },
+                    "calculation_result": {
+                        "status": "ok",
+                        "semantic_status": "ok",
+                        "formatted_result": "value: 10 items",
+                        "source_evidence_ids": ["cand-visible"],
+                    },
+                },
+            },
+        }
+        agent = object.__new__(FinancialAgent)
+
+        first = agent._assemble_ledger_phase(state)
+        second = agent._assemble_ledger_phase(state)
+
+        self.assertEqual(set(first), {"ledger"})
+        self.assertEqual(first, second)
+        self.assertEqual(
+            first["ledger"]["task_artifact_trace"]["integrity_status"],
+            "ok",
+        )
+        self.assertNotIn("tasks", state)
+        self.assertEqual(project_financial_phase_state(state)["tasks"], [])
+        self.assertEqual(len(set(FINANCIAL_GRAPH_PHASE_WRITERS.values())), 10)
 
 
 if __name__ == "__main__":

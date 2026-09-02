@@ -242,6 +242,32 @@ class LedgerState(TypedDict):
     artifacts: List[Dict[str, Any]]
 
 
+class RequestPhase(TypedDict):
+    query: str
+    report_scope: Dict[str, Any]
+
+
+class LedgerSnapshot(TypedDict, total=False):
+    tasks: List[Dict[str, Any]]
+    artifacts: List[Dict[str, Any]]
+    task_artifact_trace: Dict[str, Any]
+
+
+class FinancialAgentStateV2(TypedDict, total=False):
+    """Graph state with one top-level writer for every runtime phase."""
+
+    request: RequestPhase
+    routing: Dict[str, Any]
+    requirements: Dict[str, Any]
+    retrieval: Dict[str, Any]
+    candidates: Dict[str, Any]
+    compilation: Dict[str, Any]
+    numeric_result: Dict[str, Any]
+    narrative_result: Dict[str, Any]
+    ledger: LedgerSnapshot
+    final_result: Dict[str, Any]
+
+
 class FinancialAgentState(
     RoutingState,
     RetrievalState,

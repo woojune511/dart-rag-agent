@@ -1220,10 +1220,29 @@ class FinancialAgentCalculationMixin:
             if isinstance(item, dict)
         ]
         query = str(state.get("query") or "")
-        source_candidates = self._semantic_source_candidates_for_state(state)
-        catalog = self._semantic_candidate_catalog_for_state(
-            state,
-            source_candidates=source_candidates,
+        catalog_prebuilt = bool(
+            state.get("semantic_candidate_catalog_prebuilt")
+        )
+        source_candidates = (
+            [
+                dict(item)
+                for item in (state.get("semantic_source_candidates") or [])
+                if isinstance(item, Mapping)
+            ]
+            if catalog_prebuilt
+            else self._semantic_source_candidates_for_state(state)
+        )
+        catalog = (
+            [
+                dict(item)
+                for item in (state.get("semantic_candidate_catalog") or [])
+                if isinstance(item, Mapping)
+            ]
+            if catalog_prebuilt
+            else self._semantic_candidate_catalog_for_state(
+                state,
+                source_candidates=source_candidates,
+            )
         )
         cohort_plan = _semantic_candidate_cohorts(catalog, obligations)
         prompt_payload = self._semantic_program_prompt_payload(catalog, cohort_plan)

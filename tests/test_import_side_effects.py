@@ -398,8 +398,17 @@ class ImportSideEffectTests(unittest.TestCase):
                 def invoke(self, initial):
                     return {
                         **dict(initial),
-                        "answer": "insufficient evidence",
-                        "citations": [],
+                        "routing": {
+                            "query_type": "qa",
+                            "intent": "qa",
+                            "companies": [],
+                            "years": [],
+                        },
+                        "ledger": {"tasks": [], "artifacts": []},
+                        "final_result": {
+                            "answer": "insufficient evidence",
+                            "citations": [],
+                        },
                     }
 
             class FakeVectorStore:
