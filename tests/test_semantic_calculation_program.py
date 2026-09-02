@@ -27,6 +27,7 @@ from src.agent.financial_graph_calculation import (
     _semantic_candidate_cohorts,
     _semantic_obligation_relevance_groups,
     _semantic_required_evidence_relevance_groups,
+    build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_reconciliation_candidates import (
@@ -4794,28 +4795,46 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             }
         )
         summary_text = "The target unit reports active items 41 and total items 57."
-        compiler_response = SemanticCalculationProgram.model_validate(
-            {
-                "direct_bindings": [
-                    {"obligation_id": "ob_001", "candidate_id": "cand-capacity"},
-                    {"obligation_id": "ob_002", "candidate_id": "cand-share"},
-                ],
-                "narrative_bindings": [
-                    {
-                        "obligation_id": "ob_003",
-                        "candidate_ids": ["cand-summary"],
-                        "evidence_bindings": [
-                            {
-                                "candidate_id": "cand-summary",
-                                "source_requirement_id": "ob_003:req_001",
-                            }
-                        ],
-                        "text": summary_text,
-                    }
-                ],
-            }
-        )
-        llm = _StructuredQueueLLM(planner_response, compiler_response)
+        compiler_responses = [
+            SemanticCalculationProgram.model_validate(
+                {
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_001",
+                            "candidate_id": "cand-capacity",
+                        }
+                    ]
+                }
+            ),
+            SemanticCalculationProgram.model_validate(
+                {
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_002",
+                            "candidate_id": "cand-share",
+                        }
+                    ]
+                }
+            ),
+            SemanticCalculationProgram.model_validate(
+                {
+                    "narrative_bindings": [
+                        {
+                            "obligation_id": "ob_003",
+                            "candidate_ids": ["cand-summary"],
+                            "evidence_bindings": [
+                                {
+                                    "candidate_id": "cand-summary",
+                                    "source_requirement_id": "ob_003:req_001",
+                                }
+                            ],
+                            "text": summary_text,
+                        }
+                    ]
+                }
+            ),
+        ]
+        llm = _StructuredQueueLLM(planner_response, *compiler_responses)
         agent = self._agent(llm)
         initial_state = {
             "query": "Return the target unit's capacity, allocation share, and source-defined activity summary.",
@@ -4872,10 +4891,13 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=catalog):
             compiled = agent._compile_semantic_calculation_program(state)
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
-        self.assertEqual(len(llm.prompts), 2)
-        self.assertIn('"evidence_mode": "source_defined_group"', str(llm.prompts[1]))
-        self.assertIn('"requirement_id": "ob_003:req_001"', str(llm.prompts[1]))
+        self.assertEqual(
+            llm.models,
+            ["RequirementPlannerOutput", *["SemanticCalculationProgram"] * 3],
+        )
+        self.assertEqual(len(llm.prompts), 4)
+        self.assertIn('"evidence_mode": "source_defined_group"', str(llm.prompts[3]))
+        self.assertIn('"requirement_id": "ob_003:req_001"', str(llm.prompts[3]))
         compile_validation_bytes = json.dumps(
             compiled["semantic_program_validation"],
             ensure_ascii=False,
@@ -5417,12 +5439,12 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["program_mode"], "semantic_program")
         self.assertEqual(
             trace["calculation_plan"]["prompt_candidate_strategy"],
-            "obligation_owner_cohorts_v1",
+            "compilation_islands_v1",
         )
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v2",
+            "semantic_candidate_stage_diagnostics_v3",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)
@@ -5531,8 +5553,30 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             ],
         }
         first_model = SemanticCalculationProgram.model_validate(first_program)
+        accepted_first_island = SemanticCalculationProgram.model_validate(
+            {
+                "status": "ready",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_valid",
+                        "candidate_id": "cand-valid",
+                    }
+                ],
+            }
+        )
         llm = _StructuredQueueLLM(
-            first_model,
+            accepted_first_island,
+            SemanticCalculationProgram.model_validate(
+                {
+                    "status": "ready",
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_retry",
+                            "candidate_id": "cand-bad-1",
+                        }
+                    ],
+                }
+            ),
             SemanticCalculationProgram.model_validate(retry_program),
         )
         agent = self._agent(llm)
@@ -5572,7 +5616,7 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             ],
         )
         preserved_before = json.dumps(
-            first_validation["valid_direct_bindings"][0],
+            accepted_first_island.model_dump()["direct_bindings"][0],
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
@@ -5586,9 +5630,9 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             compiled = agent._compile_semantic_calculation_program(state)
 
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
-        self.assertEqual(len(llm.prompts), 2)
-        first_prompt = str(llm.prompts[0])
-        retry_prompt = str(llm.prompts[1])
+        self.assertEqual(len(llm.prompts), 3)
+        first_prompt = str(llm.prompts[1])
+        retry_prompt = str(llm.prompts[2])
         self.assertNotIn("cand-bad-4", first_prompt)
         self.assertIn("cand-bad-4", retry_prompt)
         self.assertNotIn("cand-bad-1", retry_prompt)
@@ -5608,10 +5652,13 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         attempts = compiled["resolved_calculation_trace"]["calculation_plan"][
             "candidate_stage_diagnostics"
         ]["attempts"]
+        attempts = [
+            item for item in attempts if item["island_id"] == "island_002"
+        ]
         self.assertEqual(len(attempts), 2)
-        self.assertLess(
-            attempts[1]["serialized_candidate_bytes"],
-            attempts[0]["serialized_candidate_bytes"],
+        self.assertNotEqual(
+            attempts[1]["visible_candidate_id_fingerprint"],
+            attempts[0]["visible_candidate_id_fingerprint"],
         )
 
     def test_retry_excludes_only_the_candidate_role_that_failed(self) -> None:
@@ -5928,7 +5975,7 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             1,
         )
 
-    def test_program_retry_cannot_rebind_an_already_valid_obligation(self) -> None:
+    def test_independent_island_cannot_rebind_an_accepted_obligation(self) -> None:
         catalog = [
             _candidate("cand-first", 10),
             _candidate("cand-missing", 20),
@@ -6004,10 +6051,227 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
             bindings,
             {"ob_001": "cand-first", "ob_002": "cand-missing"},
         )
-        self.assertEqual(compiled["semantic_program_retry_count"], 1)
-        retry_prompt = str(llm.prompts[1])
-        self.assertIn("ob_002", retry_prompt)
-        self.assertNotIn('"obligation_id": "ob_001"', retry_prompt.split("Candidate catalog:", 1)[0])
+        self.assertEqual(compiled["semantic_program_retry_count"], 0)
+        self.assertEqual(len(llm.prompts), 2)
+        second_island_prompt = str(llm.prompts[1])
+        self.assertIn("ob_002", second_island_prompt)
+        self.assertNotIn(
+            '"obligation_id": "ob_001"',
+            second_island_prompt.split("Candidate catalog:", 1)[0],
+        )
+
+    def test_compilation_islands_follow_only_dependency_and_coupling_edges(self) -> None:
+        obligations = [
+            _obligation("ob_a", "direct_value", "a"),
+            _obligation(
+                "ob_b",
+                "direct_value",
+                "b",
+                depends_on=["ob_a"],
+            ),
+            _obligation(
+                "ob_c",
+                "direct_value",
+                "c",
+                coupling_key="shared",
+            ),
+            _obligation(
+                "ob_d",
+                "direct_value",
+                "d",
+                coupling_key="shared",
+            ),
+            _obligation("ob_e", "direct_value", "e"),
+        ]
+
+        plan = build_semantic_compilation_islands(obligations)
+
+        self.assertEqual(plan["status"], "ok")
+        self.assertEqual(
+            [item["obligation_ids"] for item in plan["islands"]],
+            [["ob_a", "ob_b"], ["ob_c", "ob_d"], ["ob_e"]],
+        )
+
+    def test_invalid_dependency_islands_fail_before_any_compiler_call(self) -> None:
+        obligations = [
+            _obligation(
+                "ob_a",
+                "direct_value",
+                "a",
+                depends_on=["missing"],
+            ),
+            _obligation(
+                "ob_b",
+                "direct_value",
+                "b",
+                depends_on=["ob_b"],
+            ),
+            _obligation(
+                "ob_c",
+                "direct_value",
+                "c",
+                depends_on=["ob_d"],
+            ),
+            _obligation(
+                "ob_d",
+                "direct_value",
+                "d",
+                depends_on=["ob_c"],
+            ),
+        ]
+        agent = self._agent(_StructuredQueueLLM())
+        state = {
+            "query": "Return the declared values.",
+            "answer_obligations": obligations,
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "active_subtask": {"task_id": "task_1"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+        }
+
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=[],
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        self.assertEqual(agent.llm.prompts, [])
+        diagnostics = compiled["resolved_calculation_trace"][
+            "calculation_plan"
+        ]["candidate_stage_diagnostics"]
+        self.assertEqual(diagnostics["compiler_call_count"], 0)
+        self.assertEqual(
+            {
+                error["code"]
+                for island in diagnostics["islands"]
+                for error in island["preflight_errors"]
+            },
+            {"unknown_dependency", "self_dependency", "dependency_cycle"},
+        )
+
+    def test_island_and_global_reservation_limits_fail_before_calls(self) -> None:
+        scenarios = {
+            "island_limit": [
+                _obligation(f"ob_{index}", "direct_value", f"value {index}")
+                for index in range(9)
+            ],
+            "candidate_reservation": [
+                _obligation(
+                    f"ob_{index}",
+                    "derived_value",
+                    f"value {index}",
+                    coupling_key="shared",
+                    evidence_requirements=[
+                        _requirement(
+                            f"ob_{index}:req_{requirement}",
+                            f"input {requirement}",
+                        )
+                        for requirement in range(3)
+                    ],
+                )
+                for index in range(7)
+            ],
+        }
+        for scenario, obligations in scenarios.items():
+            with self.subTest(scenario=scenario):
+                agent = self._agent(_StructuredQueueLLM())
+                state = {
+                    "query": "Return all declared values.",
+                    "answer_obligations": obligations,
+                    "semantic_plan": {
+                        "program_required": True,
+                        "answer_obligations": obligations,
+                    },
+                    "active_subtask": {"task_id": "task_1"},
+                    "tasks": [],
+                    "artifacts": [],
+                    "resolved_calculation_trace": {},
+                }
+                with patch.object(
+                    agent,
+                    "_semantic_candidate_catalog_for_state",
+                    return_value=[],
+                ):
+                    compiled = agent._compile_semantic_calculation_program(
+                        state
+                    )
+                diagnostics = compiled["resolved_calculation_trace"][
+                    "calculation_plan"
+                ]["candidate_stage_diagnostics"]
+                self.assertEqual(agent.llm.prompts, [])
+                self.assertEqual(diagnostics["compiler_call_count"], 0)
+                self.assertEqual(
+                    compiled["semantic_program_validation"]["status"],
+                    "invalid",
+                )
+
+    def test_independent_island_prompts_have_separate_candidate_authority(self) -> None:
+        obligations = [
+            _obligation(
+                "ob_a",
+                "direct_value",
+                "alpha value",
+                scope=_scope(segment="alpha"),
+            ),
+            _obligation(
+                "ob_b",
+                "direct_value",
+                "beta value",
+                scope=_scope(segment="beta"),
+            ),
+        ]
+        catalog = [
+            {**_candidate("cand-a", 10, row_label="alpha value"), "segment": "alpha"},
+            {**_candidate("cand-b", 20, row_label="beta value"), "segment": "beta"},
+        ]
+        llm = _StructuredQueueLLM(
+            SemanticCalculationProgram.model_validate(
+                {
+                    "direct_bindings": [
+                        {"obligation_id": "ob_a", "candidate_id": "cand-a"}
+                    ]
+                }
+            ),
+            SemanticCalculationProgram.model_validate(
+                {
+                    "direct_bindings": [
+                        {"obligation_id": "ob_b", "candidate_id": "cand-b"}
+                    ]
+                }
+            ),
+        )
+        agent = self._agent(llm)
+        state = {
+            "query": "Return alpha and beta values.",
+            "answer_obligations": obligations,
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "active_subtask": {"task_id": "task_1"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+        }
+
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=catalog,
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        self.assertEqual(len(llm.prompts), 2)
+        self.assertIn("cand-a", str(llm.prompts[0]))
+        self.assertNotIn("cand-b", str(llm.prompts[0]))
+        self.assertIn("cand-b", str(llm.prompts[1]))
+        self.assertNotIn("cand-a", str(llm.prompts[1]))
+        self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
 
     def test_graph_routes_program_path_without_operation_family_branching(self) -> None:
         agent = self._agent(_StructuredQueueLLM())

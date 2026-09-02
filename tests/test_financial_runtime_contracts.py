@@ -90,7 +90,7 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             candidate_ids_by_owner={"ob_value": owner_ids},
         )
 
-    def test_owner_visibility_cannot_be_expanded_by_legacy_global_ids(self) -> None:
+    def test_owner_visibility_is_preserved_by_executor(self) -> None:
         obligations = [_obligation("ob_value")]
         catalog = [_candidate("cand-visible", 10), _candidate("cand-hidden", 20)]
         program = {
@@ -119,7 +119,6 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             candidate_catalog=catalog,
             query="Return the reported value.",
             compilation_envelope=envelope,
-            selectable_candidate_ids=["cand-visible", "cand-hidden"],
         )
 
         self.assertEqual(execution["status"], "incomplete")

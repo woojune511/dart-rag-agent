@@ -45,6 +45,154 @@ from src.config.retrieval_policy import (
 
 logger = logging.getLogger(__name__)
 
+MAX_SEMANTIC_COMPILATION_ISLANDS = 8
+
+
+def build_semantic_compilation_islands(
+    obligations: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Build deterministic dependency/coupling connected components."""
+
+    rows = [
+        dict(item)
+        for item in obligations
+        if isinstance(item, Mapping)
+        and str(item.get("obligation_id") or "").strip()
+    ]
+    order = {
+        str(item.get("obligation_id") or "").strip(): index
+        for index, item in enumerate(rows)
+    }
+    obligation_by_id = {
+        str(item.get("obligation_id") or "").strip(): item
+        for item in rows
+    }
+    adjacency = {obligation_id: set() for obligation_id in order}
+    errors_by_id: Dict[str, List[Dict[str, str]]] = {
+        obligation_id: [] for obligation_id in order
+    }
+    dependency_edges: List[tuple[str, str]] = []
+    for obligation_id, obligation in obligation_by_id.items():
+        for raw_dependency in obligation.get("depends_on") or []:
+            dependency_id = str(raw_dependency or "").strip()
+            if not dependency_id:
+                continue
+            if dependency_id == obligation_id:
+                errors_by_id[obligation_id].append(
+                    {
+                        "code": "self_dependency",
+                        "obligation_id": obligation_id,
+                        "detail": dependency_id,
+                    }
+                )
+                continue
+            if dependency_id not in obligation_by_id:
+                errors_by_id[obligation_id].append(
+                    {
+                        "code": "unknown_dependency",
+                        "obligation_id": obligation_id,
+                        "detail": dependency_id,
+                    }
+                )
+                continue
+            dependency_edges.append((obligation_id, dependency_id))
+            adjacency[obligation_id].add(dependency_id)
+            adjacency[dependency_id].add(obligation_id)
+
+    coupling_groups: Dict[str, List[str]] = {}
+    for obligation_id, obligation in obligation_by_id.items():
+        coupling_key = _normalise_spaces(
+            str(obligation.get("coupling_key") or "")
+        )
+        if coupling_key:
+            coupling_groups.setdefault(coupling_key, []).append(obligation_id)
+    for obligation_ids in coupling_groups.values():
+        for left, right in zip(obligation_ids, obligation_ids[1:]):
+            adjacency[left].add(right)
+            adjacency[right].add(left)
+
+    components: List[List[str]] = []
+    seen: set[str] = set()
+    for obligation_id in order:
+        if obligation_id in seen:
+            continue
+        pending = [obligation_id]
+        component: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in component:
+                continue
+            component.add(current)
+            pending.extend(adjacency[current] - component)
+        seen.update(component)
+        components.append(sorted(component, key=order.__getitem__))
+
+    islands: List[Dict[str, Any]] = []
+    for island_index, component in enumerate(components, start=1):
+        component_set = set(component)
+        local_edges = [
+            edge
+            for edge in dependency_edges
+            if edge[0] in component_set and edge[1] in component_set
+        ]
+        indegree = {obligation_id: 0 for obligation_id in component}
+        dependents = {obligation_id: [] for obligation_id in component}
+        for dependent_id, dependency_id in local_edges:
+            indegree[dependent_id] += 1
+            dependents[dependency_id].append(dependent_id)
+        ready = [
+            obligation_id
+            for obligation_id in component
+            if indegree[obligation_id] == 0
+        ]
+        visited: List[str] = []
+        while ready:
+            current = ready.pop(0)
+            visited.append(current)
+            for dependent_id in sorted(
+                dependents[current],
+                key=order.__getitem__,
+            ):
+                indegree[dependent_id] -= 1
+                if indegree[dependent_id] == 0:
+                    ready.append(dependent_id)
+        island_errors = [
+            dict(error)
+            for obligation_id in component
+            for error in errors_by_id[obligation_id]
+        ]
+        if len(visited) != len(component):
+            island_errors.append(
+                {
+                    "code": "dependency_cycle",
+                    "obligation_id": component[0],
+                    "detail": ",".join(component),
+                }
+            )
+        island_coupling_keys = [
+            coupling_key
+            for coupling_key, obligation_ids in coupling_groups.items()
+            if len(set(obligation_ids) & component_set) >= 2
+        ]
+        islands.append(
+            {
+                "island_id": f"island_{island_index:03d}",
+                "obligation_ids": component,
+                "dependency_edges": [list(edge) for edge in local_edges],
+                "coupling_keys": island_coupling_keys,
+                "errors": island_errors,
+            }
+        )
+    return {
+        "schema": "semantic_compilation_islands_v1",
+        "status": (
+            "invalid"
+            if any(island["errors"] for island in islands)
+            else "ok"
+        ),
+        "islands": islands,
+    }
+
 
 def _semantic_candidate_visibility(
     catalog: Sequence[Mapping[str, Any]],
@@ -1204,11 +1352,11 @@ class FinancialAgentCalculationMixin:
             )
         return rows
 
-    def _compile_semantic_calculation_program(
+    def _compile_semantic_calculation_island(
         self,
         state: FinancialAgentState,
     ) -> Dict[str, Any]:
-        """Select catalog IDs and compile all obligations in one model call."""
+        """Compile one preflighted dependency/coupling island."""
 
         obligations = [
             dict(item)
@@ -1749,6 +1897,604 @@ class FinancialAgentCalculationMixin:
                 "program_validation_errors": list(validation.get("errors") or []),
                 "program_validation_history": validation_history,
                 "program_invocation_errors": invocation_errors,
+            },
+            "tasks": list(plan_update["tasks"]),
+            "artifacts": list(plan_update["artifacts"]),
+        }
+
+    def _compile_semantic_calculation_program(
+        self,
+        state: FinancialAgentState,
+    ) -> Dict[str, Any]:
+        """Preflight and compile deterministic obligation islands in order."""
+
+        obligations = [
+            dict(item)
+            for item in (
+                state.get("answer_obligations")
+                or dict(state.get("semantic_plan") or {}).get(
+                    "answer_obligations"
+                )
+                or []
+            )
+            if isinstance(item, Mapping)
+            and str(item.get("obligation_id") or "").strip()
+        ]
+        query = str(state.get("query") or "")
+        catalog_prebuilt = bool(
+            state.get("semantic_candidate_catalog_prebuilt")
+        )
+        source_candidates = (
+            [
+                dict(item)
+                for item in (state.get("semantic_source_candidates") or [])
+                if isinstance(item, Mapping)
+            ]
+            if catalog_prebuilt
+            else self._semantic_source_candidates_for_state(state)
+        )
+        catalog = (
+            [
+                dict(item)
+                for item in (state.get("semantic_candidate_catalog") or [])
+                if isinstance(item, Mapping)
+            ]
+            if catalog_prebuilt
+            else self._semantic_candidate_catalog_for_state(
+                state,
+                source_candidates=source_candidates,
+            )
+        )
+        candidate_by_id = {
+            str(item.get("candidate_id") or ""): dict(item)
+            for item in catalog
+            if str(item.get("candidate_id") or "")
+        }
+        island_plan = build_semantic_compilation_islands(obligations)
+        islands = [dict(item) for item in island_plan.get("islands") or []]
+        global_cohort_plan = _semantic_candidate_cohorts(catalog, obligations)
+        global_block_reason = ""
+        if len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
+            global_block_reason = "semantic compilation island limit exceeded"
+        elif global_cohort_plan.get("status") == "capacity_exceeded":
+            global_block_reason = "semantic candidate cohort capacity exceeded"
+
+        obligation_by_id = {
+            str(item.get("obligation_id") or ""): item
+            for item in obligations
+        }
+        island_results: List[Dict[str, Any]] = []
+        total_retry_count = 0
+        total_call_count = 0
+        invocation_errors: List[str] = []
+        for island in islands:
+            island_ids = [
+                str(item)
+                for item in (island.get("obligation_ids") or [])
+                if str(item)
+            ]
+            island_obligations = [
+                obligation_by_id[obligation_id]
+                for obligation_id in island_ids
+                if obligation_id in obligation_by_id
+            ]
+            blocked_reason = global_block_reason
+            if not blocked_reason and island.get("errors"):
+                blocked_reason = "invalid semantic compilation island"
+            if blocked_reason:
+                island_cohorts = _semantic_candidate_cohorts(
+                    catalog,
+                    island_obligations,
+                )
+                visibility = _semantic_candidate_visibility(
+                    catalog,
+                    visible_candidate_ids=list(
+                        island_cohorts.get("visible_candidate_ids") or []
+                    ),
+                    candidate_ids_by_owner=dict(
+                        island_cohorts.get("candidate_ids_by_owner") or {}
+                    ),
+                )
+                program = {
+                    "status": "incomplete",
+                    "direct_bindings": [],
+                    "expressions": [],
+                    "narrative_bindings": [],
+                    "missing_obligation_ids": island_ids,
+                    "ambiguous_obligation_ids": [],
+                    "rationale": blocked_reason,
+                }
+                validation = validate_semantic_calculation_program(
+                    program=program,
+                    obligations=island_obligations,
+                    candidate_catalog=catalog,
+                    query=query,
+                    candidate_visibility=visibility,
+                )
+                envelope = CompilationEnvelopeV1.create(
+                    visibility=visibility,
+                    program=program,
+                    validation=validation,
+                )
+                island_results.append(
+                    {
+                        "island": island,
+                        "program": program,
+                        "validation": validation,
+                        "envelope": envelope,
+                        "retry_count": 0,
+                        "call_count": 0,
+                        "prompt_bytes": 0,
+                        "attempts": [],
+                        "validation_history": [],
+                        "blocked_reason": blocked_reason,
+                    }
+                )
+                continue
+
+            compiled = self._compile_semantic_calculation_island(
+                {
+                    **dict(state),
+                    "answer_obligations": island_obligations,
+                    "semantic_candidate_catalog": catalog,
+                    "semantic_source_candidates": source_candidates,
+                    "semantic_candidate_catalog_prebuilt": True,
+                    "tasks": [],
+                    "artifacts": [],
+                }
+            )
+            runtime_trace = resolve_runtime_calculation_trace(
+                compiled,
+                allow_legacy_top_level=False,
+            )
+            island_calculation_plan = dict(
+                runtime_trace.get("calculation_plan") or {}
+            )
+            retry_count = int(
+                compiled.get("semantic_program_retry_count") or 0
+            )
+            raw_program = dict(compiled.get("semantic_program") or {})
+            island_validation = dict(
+                compiled.get("semantic_program_validation") or {}
+            )
+            valid_ids_by_program_key = {
+                "direct_bindings": {
+                    str(item.get("obligation_id") or "")
+                    for item in (
+                        island_validation.get("valid_direct_bindings") or []
+                    )
+                },
+                "expressions": {
+                    str(item.get("obligation_id") or "")
+                    for item in (
+                        island_validation.get("valid_expressions") or []
+                    )
+                },
+                "narrative_bindings": {
+                    str(item.get("obligation_id") or "")
+                    for item in (
+                        island_validation.get("valid_narrative_bindings")
+                        or []
+                    )
+                },
+            }
+            accepted_program = {
+                **raw_program,
+                **{
+                    program_key: [
+                        dict(item)
+                        for item in (raw_program.get(program_key) or [])
+                        if isinstance(item, Mapping)
+                        and str(item.get("obligation_id") or "")
+                        in valid_obligation_ids
+                    ]
+                    for program_key, valid_obligation_ids in (
+                        valid_ids_by_program_key.items()
+                    )
+                },
+                "missing_obligation_ids": list(
+                    island_validation.get("missing_obligation_ids") or []
+                ),
+                "ambiguous_obligation_ids": list(
+                    island_validation.get("ambiguous_obligation_ids") or []
+                ),
+            }
+            call_count = 1 + retry_count if island_obligations else 0
+            total_retry_count += retry_count
+            total_call_count += call_count
+            island_invocation_errors = list(
+                dict(compiled.get("planner_debug_trace") or {}).get(
+                    "program_invocation_errors"
+                )
+                or []
+            )
+            invocation_errors.extend(str(item) for item in island_invocation_errors)
+            island_attempts = list(
+                dict(
+                    island_calculation_plan.get(
+                        "candidate_stage_diagnostics"
+                    )
+                    or {}
+                ).get("attempts")
+                or []
+            )
+            island_results.append(
+                {
+                    "island": island,
+                    "program": accepted_program,
+                    "validation": island_validation,
+                    "envelope": compiled.get(
+                        "semantic_compilation_envelope"
+                    ),
+                    "retry_count": retry_count,
+                    "call_count": call_count,
+                    "prompt_bytes": sum(
+                        int(attempt.get("serialized_candidate_bytes") or 0)
+                        for attempt in island_attempts
+                        if isinstance(attempt, Mapping)
+                    ),
+                    "attempts": island_attempts,
+                    "validation_history": list(
+                        island_calculation_plan.get(
+                            "program_validation_history"
+                        )
+                        or []
+                    ),
+                    "blocked_reason": "",
+                }
+            )
+
+        order = {
+            str(item.get("obligation_id") or ""): index
+            for index, item in enumerate(obligations)
+        }
+
+        def merged_program_rows(key: str) -> List[Dict[str, Any]]:
+            rows = [
+                dict(row)
+                for result in island_results
+                for row in (dict(result.get("program") or {}).get(key) or [])
+                if isinstance(row, Mapping)
+            ]
+            return sorted(
+                rows,
+                key=lambda row: order.get(
+                    str(row.get("obligation_id") or ""),
+                    len(order),
+                ),
+            )
+
+        missing_ids = list(
+            dict.fromkeys(
+                str(obligation_id)
+                for result in island_results
+                for obligation_id in (
+                    dict(result.get("program") or {}).get(
+                        "missing_obligation_ids"
+                    )
+                    or []
+                )
+                if str(obligation_id)
+            )
+        )
+        ambiguous_ids = list(
+            dict.fromkeys(
+                str(obligation_id)
+                for result in island_results
+                for obligation_id in (
+                    dict(result.get("program") or {}).get(
+                        "ambiguous_obligation_ids"
+                    )
+                    or []
+                )
+                if str(obligation_id)
+            )
+        )
+        missing_ids.sort(key=lambda item: order.get(item, len(order)))
+        ambiguous_ids.sort(key=lambda item: order.get(item, len(order)))
+        merged_program: Dict[str, Any] = {
+            "status": (
+                "ready"
+                if obligations and not missing_ids and not ambiguous_ids
+                else "incomplete"
+            ),
+            "direct_bindings": merged_program_rows("direct_bindings"),
+            "expressions": merged_program_rows("expressions"),
+            "narrative_bindings": merged_program_rows(
+                "narrative_bindings"
+            ),
+            "missing_obligation_ids": missing_ids,
+            "ambiguous_obligation_ids": ambiguous_ids,
+            "rationale": " | ".join(
+                str(dict(result.get("program") or {}).get("rationale") or "")
+                for result in island_results
+                if str(
+                    dict(result.get("program") or {}).get("rationale") or ""
+                )
+            ),
+        }
+
+        selectable_by_owner: Dict[str, List[str]] = {}
+        for result in island_results:
+            envelope = result.get("envelope")
+            if not isinstance(envelope, CompilationEnvelopeV1):
+                continue
+            for owner_id, candidate_ids in (
+                envelope.visibility.candidate_ids_by_owner().items()
+            ):
+                selectable_by_owner.setdefault(owner_id, [])
+                selectable_by_owner[owner_id].extend(
+                    candidate_id
+                    for candidate_id in candidate_ids
+                    if candidate_id not in selectable_by_owner[owner_id]
+                )
+        merged_visibility = _semantic_candidate_visibility(
+            catalog,
+            visible_candidate_ids=[
+                candidate_id
+                for candidate_ids in selectable_by_owner.values()
+                for candidate_id in candidate_ids
+            ],
+            candidate_ids_by_owner=selectable_by_owner,
+        )
+        validation = validate_semantic_calculation_program(
+            program=merged_program,
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query=query,
+            candidate_visibility=merged_visibility,
+        )
+        compilation_envelope = CompilationEnvelopeV1.create(
+            visibility=merged_visibility,
+            program=merged_program,
+            validation=validation,
+        )
+
+        selected_candidate_ids = list(
+            validation.get("selected_candidate_ids") or []
+        )
+        selected_candidates = [
+            candidate_by_id[candidate_id]
+            for candidate_id in selected_candidate_ids
+            if candidate_id in candidate_by_id
+        ]
+        proposed_candidate_ids = [
+            candidate_id
+            for candidate_id in _semantic_program_candidate_ids(merged_program)
+            if candidate_id in candidate_by_id
+        ]
+        proposed_candidates = [
+            candidate_by_id[candidate_id]
+            for candidate_id in proposed_candidate_ids
+        ]
+        direct_binding_by_candidate_id = {
+            str(binding.get("candidate_id") or ""): dict(binding)
+            for binding in (validation.get("valid_direct_bindings") or [])
+            if str(binding.get("candidate_id") or "")
+        }
+        operand_rows: List[Dict[str, Any]] = []
+        for candidate in selected_candidates:
+            if str(candidate.get("kind") or "") != "numeric":
+                continue
+            candidate_id = str(candidate.get("candidate_id") or "")
+            binding = direct_binding_by_candidate_id.get(candidate_id)
+            obligation_id = str((binding or {}).get("obligation_id") or "")
+            operand_rows.append(
+                project_semantic_program_operand(
+                    candidate,
+                    obligation_id=obligation_id,
+                    obligation=obligation_by_id.get(obligation_id),
+                    validated_binding=binding,
+                )
+            )
+
+        prompt_visible_ids = list(merged_visibility.visible_candidate_ids)
+        prompt_catalog_rows = [
+            candidate_by_id[candidate_id]
+            for candidate_id in prompt_visible_ids
+            if candidate_id in candidate_by_id
+        ]
+        base_candidate_diagnostics = semantic_candidate_stage_diagnostics(
+            state=state,
+            source_candidates=source_candidates,
+            catalog=catalog,
+            prompt_catalog=prompt_catalog_rows,
+            cohorts=list(global_cohort_plan.get("cohorts") or []),
+            attempts=[],
+        )
+        island_diagnostics = []
+        for result in island_results:
+            island = dict(result.get("island") or {})
+            envelope = result.get("envelope")
+            program_bytes = json.dumps(
+                dict(result.get("program") or {}),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            island_diagnostics.append(
+                {
+                    "island_id": str(island.get("island_id") or ""),
+                    "obligation_ids": list(
+                        island.get("obligation_ids") or []
+                    ),
+                    "dependency_edges": list(
+                        island.get("dependency_edges") or []
+                    ),
+                    "coupling_keys": list(island.get("coupling_keys") or []),
+                    "preflight_errors": list(island.get("errors") or []),
+                    "blocked_reason": str(result.get("blocked_reason") or ""),
+                    "call_count": int(result.get("call_count") or 0),
+                    "retry_count": int(result.get("retry_count") or 0),
+                    "visibility_fingerprint": (
+                        envelope.visibility.cohort_fingerprint
+                        if isinstance(envelope, CompilationEnvelopeV1)
+                        else ""
+                    ),
+                    "prompt_bytes": int(result.get("prompt_bytes") or 0),
+                    "accepted_program_bytes": len(program_bytes),
+                    "accepted_program_fingerprint": (
+                        envelope.program_fingerprint
+                        if isinstance(envelope, CompilationEnvelopeV1)
+                        else ""
+                    ),
+                }
+            )
+        candidate_stage_diagnostics = {
+            **base_candidate_diagnostics,
+            "schema": "semantic_candidate_stage_diagnostics_v3",
+            "island_count": len(islands),
+            "compiler_call_count": total_call_count,
+            "compiler_retry_count": total_retry_count,
+            "attempts": [
+                {
+                    **dict(attempt),
+                    "island_id": str(
+                        dict(result.get("island") or {}).get("island_id")
+                        or ""
+                    ),
+                }
+                for result in island_results
+                for attempt in (result.get("attempts") or [])
+                if isinstance(attempt, Mapping)
+            ],
+            "islands": island_diagnostics,
+        }
+
+        calculation_plan = {
+            "status": (
+                "ok" if validation.get("status") == "ready" else "incomplete"
+            ),
+            "mode": "semantic_program",
+            "operation": "semantic_program",
+            "ordered_operand_ids": [
+                str(item.get("operand_id") or "") for item in operand_rows
+            ],
+            "program_mode": "semantic_program",
+            "answer_obligations": obligations,
+            "semantic_program": merged_program,
+            "program_validation": validation,
+            "program_validation_history": [
+                {
+                    **dict(history),
+                    "island_id": str(
+                        dict(result.get("island") or {}).get("island_id")
+                        or ""
+                    ),
+                }
+                for result in island_results
+                for history in (result.get("validation_history") or [])
+                if isinstance(history, Mapping)
+            ],
+            "program_retry_count": total_retry_count,
+            "candidate_catalog_fingerprint": (
+                semantic_candidate_catalog_fingerprint(catalog)
+            ),
+            "candidate_visibility": merged_visibility.to_projection(),
+            "compile_validation_fingerprint": (
+                compilation_envelope.validation_fingerprint
+            ),
+            "candidate_count": len(catalog),
+            "prompt_candidate_count": len(prompt_visible_ids),
+            "prompt_candidate_ids": prompt_visible_ids,
+            "prompt_candidate_strategy": "compilation_islands_v1",
+            "prompt_candidate_payload_bytes": sum(
+                int(result.get("prompt_bytes") or 0)
+                for result in island_results
+            ),
+            "candidate_cohort_status": str(
+                global_cohort_plan.get("status") or ""
+            ),
+            "candidate_cohort_reservation": dict(
+                global_cohort_plan.get("reservation") or {}
+            ),
+            "candidate_cohorts": list(
+                global_cohort_plan.get("cohorts") or []
+            ),
+            "compilation_islands": islands,
+            "candidate_stage_diagnostics": candidate_stage_diagnostics,
+            "proposed_candidates": proposed_candidates,
+            "selected_candidates": selected_candidates,
+            "explanation": str(merged_program.get("rationale") or ""),
+            "missing_info": list(
+                validation.get("missing_obligation_ids") or []
+            ),
+        }
+        active_subtask = dict(state.get("active_subtask") or {})
+        operand_update = self._operand_set_artifact_update(
+            state,
+            active_subtask,
+            operand_rows,
+            status=(
+                "sufficient"
+                if validation.get("status") == "ready"
+                else "partial"
+            ),
+            summary=f"{len(operand_rows)} grounded semantic-program operand(s)",
+            payload={
+                "calculation_operands": operand_rows,
+                "candidate_catalog_fingerprint": calculation_plan[
+                    "candidate_catalog_fingerprint"
+                ],
+                "candidate_stage_diagnostics": candidate_stage_diagnostics,
+                "selected_candidate_ids": selected_candidate_ids,
+                "semantic_status": str(validation.get("status") or ""),
+            },
+            evidence_refs=selected_candidate_ids,
+        )
+        plan_update = self._calculation_plan_artifact_update(
+            {**dict(state), **operand_update},
+            calculation_plan,
+        )
+        trace_update = runtime_trace_state_update(
+            state,
+            calculation_operands=operand_rows,
+            calculation_plan=calculation_plan,
+            calculation_result={},
+        )
+        logger.info(
+            "[semantic_program] compile islands=%s calls=%s retries=%s status=%s",
+            len(islands),
+            total_call_count,
+            total_retry_count,
+            validation.get("status"),
+        )
+        return {
+            **trace_update,
+            "answer_obligations": obligations,
+            "semantic_candidate_catalog": catalog,
+            "semantic_program": merged_program,
+            "semantic_program_validation": validation,
+            "semantic_compilation_envelope": compilation_envelope,
+            "semantic_program_retry_count": total_retry_count,
+            "missing_info": list(
+                validation.get("missing_obligation_ids") or []
+            ),
+            "planner_debug_trace": {
+                **dict(state.get("planner_debug_trace") or {}),
+                "program_compiler_invoked": bool(total_call_count),
+                "program_compiler_call_count": total_call_count,
+                "program_compiler_retry_count": total_retry_count,
+                "candidate_count": len(catalog),
+                "prompt_candidate_count": len(prompt_visible_ids),
+                "candidate_cohort_status": str(
+                    global_cohort_plan.get("status") or ""
+                ),
+                "prompt_candidate_payload_bytes": calculation_plan[
+                    "prompt_candidate_payload_bytes"
+                ],
+                "candidate_stage_diagnostics_schema": (
+                    "semantic_candidate_stage_diagnostics_v3"
+                ),
+                "selected_candidate_count": len(selected_candidate_ids),
+                "program_validation_status": str(
+                    validation.get("status") or ""
+                ),
+                "program_validation_errors": list(
+                    validation.get("errors") or []
+                ),
+                "program_invocation_errors": invocation_errors,
+                "compilation_islands": island_diagnostics,
             },
             "tasks": list(plan_update["tasks"]),
             "artifacts": list(plan_update["artifacts"]),

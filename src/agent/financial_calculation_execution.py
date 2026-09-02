@@ -2360,30 +2360,18 @@ def execute_semantic_calculation_program(
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
     compilation_envelope: Optional[CompilationEnvelopeV1] = None,
-    candidate_visibility: Optional[CandidateVisibilityV1] = None,
     require_compilation_envelope: bool = False,
-    selectable_candidate_ids: Optional[Sequence[str]] = None,
-    selectable_candidate_ids_by_owner: Optional[
-        Mapping[str, Sequence[str]]
-    ] = None,
 ) -> Dict[str, Any]:
     """Execute only the validated subset and report completeness separately."""
 
     authority_error: Optional[Tuple[str, str]] = None
+    candidate_visibility: Optional[CandidateVisibilityV1] = None
     if require_compilation_envelope and compilation_envelope is None:
         authority_error = (
             "visibility_mismatch",
             "compile-time visibility envelope is missing",
         )
     if compilation_envelope is not None:
-        if (
-            candidate_visibility is not None
-            and candidate_visibility is not compilation_envelope.visibility
-        ):
-            authority_error = (
-                "visibility_mismatch",
-                "executor visibility is not the compile-time visibility object",
-            )
         candidate_visibility = compilation_envelope.visibility
         actual_catalog_fingerprint = semantic_candidate_catalog_fingerprint(
             candidate_catalog
@@ -2408,8 +2396,6 @@ def execute_semantic_calculation_program(
         candidate_catalog=candidate_catalog,
         query=query,
         candidate_visibility=candidate_visibility,
-        selectable_candidate_ids=selectable_candidate_ids,
-        selectable_candidate_ids_by_owner=selectable_candidate_ids_by_owner,
     )
     if (
         compilation_envelope is not None
