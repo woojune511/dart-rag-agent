@@ -80,6 +80,28 @@ class AnswerObligationScope(_DeferredBaseModel):
     basis: str = ""
 
 
+class SemanticTargetV1(_DeferredBaseModel):
+    """Typed semantic identity used to admit evidence for one owner."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    local_subjects: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Entities whose local row or sentence is requested. These are distinct "
+            "from the filing company in scope.company."
+        ),
+    )
+    concept_keys: List[str] = Field(
+        default_factory=list,
+        description="Ontology concept keys that describe the requested metric.",
+    )
+    metric_surfaces: List[str] = Field(
+        default_factory=list,
+        description="Query-visible metric phrases preserved when no ontology key is exact.",
+    )
+
+
 class EvidenceRequirement(_DeferredBaseModel):
     """One non-rendered evidence input required to produce an answer obligation."""
 
@@ -91,6 +113,7 @@ class EvidenceRequirement(_DeferredBaseModel):
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
+    semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
 
 
 class AnswerObligation(_DeferredBaseModel):
@@ -107,6 +130,7 @@ class AnswerObligation(_DeferredBaseModel):
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
+    semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
     evidence_mode: Literal["declared_inputs", "source_defined_group"] = Field(
         default="declared_inputs",
         description=(
@@ -146,6 +170,7 @@ class AnswerObligation(_DeferredBaseModel):
             scope=self.scope.model_copy(deep=True),
             retrieval_hints=list(self.retrieval_hints),
             concept_hints=list(self.concept_hints),
+            semantic_target=self.semantic_target.model_copy(deep=True),
         )
         if not self.evidence_requirements:
             self.evidence_requirements = [requirement]

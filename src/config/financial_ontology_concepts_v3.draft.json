@@ -1637,6 +1637,88 @@
         "요약재무정보"
       ]
     },
+    "sales_volume": {
+      "display_name": "판매대수",
+      "aliases": [
+        "판매 대수",
+        "판매량",
+        "판매실적",
+        "sales volume",
+        "units sold"
+      ],
+      "keywords": [
+        "판매대수",
+        "판매 대수",
+        "판매량",
+        "판매실적",
+        "sales volume"
+      ],
+      "unit_family": "COUNT",
+      "preferred_statement_types": [
+        "mda",
+        "notes"
+      ],
+      "preferred_sections": [
+        "매출 및 수주상황",
+        "영업의 개황",
+        "사업의 내용"
+      ]
+    },
+    "ownership_interest": {
+      "display_name": "소유지분율",
+      "aliases": [
+        "지분율",
+        "소유 지분율",
+        "ownership interest",
+        "ownership share"
+      ],
+      "keywords": [
+        "소유지분율",
+        "지분율",
+        "ownership interest",
+        "ownership share"
+      ],
+      "unit_family": "PERCENT",
+      "preferred_statement_types": [
+        "notes"
+      ],
+      "preferred_sections": [
+        "타법인출자 현황",
+        "관계기업 및 공동기업 투자",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
+    "investment_carrying_amount": {
+      "display_name": "투자장부금액",
+      "aliases": [
+        "투자 장부금액",
+        "장부금액",
+        "투자자산",
+        "investment carrying amount",
+        "carrying amount",
+        "carrying value",
+        "book value"
+      ],
+      "keywords": [
+        "투자장부금액",
+        "투자 장부금액",
+        "장부금액",
+        "투자자산",
+        "carrying amount",
+        "carrying value"
+      ],
+      "unit_family": "KRW",
+      "preferred_statement_types": [
+        "notes"
+      ],
+      "preferred_sections": [
+        "타법인출자 현황",
+        "관계기업 및 공동기업 투자",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ]
+    },
     "bad_debt_expense": {
       "display_name": "대손상각비",
       "aliases": [

@@ -5,9 +5,10 @@ Last updated: 2026-09-03
 ## Checkout
 
 - Integration worktree: `C:\Users\geonj\Desktop\dart-rag-agent-runtime-integration`
-- Branch: `codex/runtime-contract-integration`
+- Branch: `codex/typed-candidate-ranking`
 - Immutable base: `a278c1a`
 - Clean redesign predecessor: `8790f92`
+- Candidate-ranking predecessor: `729e0fb`
 - The original dirty checkout's 23 tracked/untracked predecessor paths remain
   byte-identical and unstaged. The separately approved ignored store manifest
   was added under its `data/chroma_dart` directory.
@@ -26,6 +27,10 @@ The boundary redesign is implemented as ordered commits:
 6. Documentation follow-up: authority-first navigation, a bounded fast
    development loop, and explicit historical labels for retired work queues and
    gate logs.
+7. Current source change: typed per-owner semantic targets and deterministic
+   fact matching replace the additive keyword selector. The full catalog stays
+   immutable; only owner cohorts are bounded, structured prompts are cell-local,
+   and the validator rechecks declared targets with the same matcher.
 
 The separate dirty predecessor was then integrated explicitly:
 
@@ -64,12 +69,23 @@ topology is in [runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and
 historical evidence remains in [implementation_history.md](docs/history/implementation_history.md)
 and [experiment_history.md](docs/history/experiment_history.md).
 
-The completed integration source gate is 751 unittest cases, 124 focused
+The preceding integration source gate is 751 unittest cases, 124 focused
 evaluator/provenance cases, 30 benchmark-runner cases, 50 focused
 authority/import/topology/service cases, 86 reviewed runtime-domain literals,
 pycompile, and `git diff --check`. The clean redesign predecessor's read-only,
 network-blocked reprojection of the three stored source windows preserved source
 hashes and confirmed the expected T2, T3, and Samsung candidate boundaries.
+
+The candidate-ranking change has provider-free contract coverage for typed
+targets, catalog-order determinism, compatibility-tier precedence, legacy
+catalog grounding, cell-local prompt projection, validator revalidation, and
+the added ontology concepts. Its source gate passes 752 total unittest cases,
+146 focused semantic/import/topology/documentation cases, the 86-literal runtime
+domain audit, pycompile, JSON validation, and `git diff --check`. Read-only
+reconstruction of stored source windows
+places Hyundai T2's two period values and T3's Motional carrying amount in their
+intended owner cohorts while excluding the conflicting market/BHAF rows. This is
+local source evidence only, not a new provider acceptance result.
 
 The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 `98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
@@ -113,5 +129,6 @@ cost of USD `0.1575934`, below the approved USD `0.40` ceiling. It recorded 33
 query-embedding calls, zero document-embedding calls, and no embedding price.
 Both source-store directory fingerprints, SQLite hashes, and predecessor result
 hashes remain unchanged; the disposable stores were removed. Per the admission,
-no paid retry was made. The next seam is provider-free characterization and a
-generic owner-cohort ranking repair before any new manifest or approval.
+no paid retry was made. The generic owner-cohort ranking repair is now implemented
+and remains provider-unverified. Any replay requires a new manifest, cost bound,
+no-call rehearsal, and separate approval.

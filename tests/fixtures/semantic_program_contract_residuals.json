@@ -373,14 +373,6 @@
     ]
   },
   "candidate_admission": {
-    "relevance_texts": [
-      "target venture share",
-      "target venture carrying value",
-      "target venture net result",
-      "requested aggregate",
-      "current sales",
-      "prior sales"
-    ],
     "source_candidates": [
       {
         "candidate_id": "source_selected_row",
@@ -413,41 +405,13 @@
       "missing_raw_values": ["25.81", "1,294,367", "-803,742", "28,352,769", "870,000", "781,000"]
     },
     "required_input_prompt_coverage": {
-      "output_relevance_group": ["change rate"],
       "decimal_pair_context": {
         "source_id": "paired-decimal-source",
         "text": "Baseline group increased 12.3% to 1,560.8 items. Target venture series increased 11.5% to 870.0 items.",
         "required_surface": "Target venture series",
         "target_value": "870.0",
         "expected_context": "Target venture series increased 11.5% to 870.0 items."
-      },
-      "required_input_groups": [
-        {
-          "surface": "current quantity",
-          "source_id": "current-source",
-          "candidates": [
-            {"candidate_id": "current-context-rate", "unit": "PERCENT"},
-            {"candidate_id": "current-context-quantity", "unit": "COUNT"},
-            {"candidate_id": "current-target-rate", "unit": "PERCENT"},
-            {"candidate_id": "current-target-quantity", "unit": "COUNT"}
-          ]
-        },
-        {
-          "surface": "prior quantity",
-          "source_id": "prior-source",
-          "candidates": [
-            {"candidate_id": "prior-context-rate", "unit": "PERCENT"},
-            {"candidate_id": "prior-context-quantity", "unit": "COUNT"},
-            {"candidate_id": "prior-target-rate", "unit": "PERCENT"},
-            {"candidate_id": "prior-target-quantity", "unit": "COUNT"}
-          ]
-        }
-      ],
-      "max_numeric_candidates": 8,
-      "expected_required_candidate_ids": [
-        "current-target-quantity",
-        "prior-target-quantity"
-      ]
+      }
     }
   },
   "canonical_operand_projection": {

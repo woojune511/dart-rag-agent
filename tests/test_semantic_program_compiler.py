@@ -99,7 +99,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         )
         self.assertEqual(program.expressions[0].formula, "((CURR - PREV) / PREV) * 100")
 
-    def test_program_prompt_excerpt_centers_late_relevant_context(self) -> None:
+    def test_program_prompt_excludes_parent_row_context_for_structured_cell(self) -> None:
         candidate = {
             **_candidate("late-context", 10),
             "source_text": (
@@ -108,11 +108,10 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                 + "unrelated suffix " * 40
             ),
         }
-        row = FinancialAgent._semantic_program_prompt_rows(
-            [candidate],
-            relevance_groups=[["requested semantic context"]],
-        )[0]
-        self.assertIn("requested semantic context", row["source_text"])
+        row = FinancialAgent._semantic_program_prompt_rows([candidate])[0]
+        self.assertNotIn("requested semantic context", row["source_text"])
+        self.assertIn("quantity", row["source_text"])
+        self.assertIn("10", row["source_text"])
         self.assertLessEqual(len(row["source_text"]), 420)
 
     def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:

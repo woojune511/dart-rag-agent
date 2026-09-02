@@ -369,6 +369,42 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(scope["segment"], "")
         self.assertEqual(scope["basis"], "")
 
+    def test_requirement_planner_preserves_typed_local_target_and_known_concepts(self) -> None:
+        response = RequirementPlannerOutput.model_validate(
+            {
+                "obligations": [
+                    {
+                        "obligation_id": "amount",
+                        "kind": "direct_value",
+                        "label": "Motional investment carrying amount",
+                        "semantic_target": {
+                            "local_subjects": ["Motional", "Motional"],
+                            "concept_keys": [
+                                "investment_carrying_amount",
+                                "invented_concept",
+                            ],
+                            "metric_surfaces": ["investment carrying amount"],
+                        },
+                    }
+                ]
+            }
+        )
+        result = self._agent(_StructuredQueueLLM(response))._build_llm_requirement_plan(
+            query="Return Motional's investment carrying amount.",
+            topic="investment carrying amount",
+            intent="numeric_fact",
+            report_scope={"company": "Filing Company", "year": 2024},
+        )
+
+        target = result["answer_obligations"][0]["semantic_target"]
+        self.assertEqual(target["local_subjects"], ["Motional"])
+        self.assertEqual(target["concept_keys"], ["investment_carrying_amount"])
+        self.assertEqual(target["metric_surfaces"], ["investment carrying amount"])
+        self.assertIn(
+            "unknown_semantic_target_concept:invented_concept",
+            result["planner_notes"],
+        )
+
     def test_requirement_planner_uses_source_report_company_for_candidate_identity(self) -> None:
         response = RequirementPlannerOutput.model_validate(
             {
@@ -533,7 +569,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             multiple["expected_task_scope"],
         )
 
-    def test_program_prompt_projection_is_bounded_by_candidate_kind(self) -> None:
+    def test_program_prompt_projection_does_not_apply_a_second_candidate_rank(self) -> None:
         agent = self._agent(_StructuredQueueLLM())
         numeric = [
             {**_candidate(f"numeric-{index}", index + 1), "source_text": "n" * 1000}
@@ -551,7 +587,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         rows = agent._semantic_program_prompt_rows([*numeric, *narrative])
         self.assertEqual(
             [sum(item["kind"] == kind for item in rows) for kind in ("numeric", "narrative")],
-            [96, 32],
+            [110, 40],
         )
         self.assertTrue(
             all(
@@ -683,7 +719,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v3",
+            "semantic_candidate_stage_diagnostics_v4",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)

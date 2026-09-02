@@ -7,6 +7,7 @@ import math
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from src.agent.financial_candidate_matching import build_candidate_matches
 from src.agent.financial_answer_slots import (
     build_calculated_value_slot,
     build_operand_value_slot,
@@ -1045,6 +1046,7 @@ def validate_semantic_calculation_program(
                         ("scope", {}),
                         ("retrieval_hints", []),
                         ("concept_hints", []),
+                        ("semantic_target", {}),
                     )
                 )
             ):
@@ -1071,6 +1073,47 @@ def validate_semantic_calculation_program(
                 )
     if len(requirement_by_id) != requirement_count:
         error("invalid_evidence_requirement_catalog")
+
+    match_cache: Dict[str, Dict[str, Any]] = {}
+
+    def candidate_has_semantic_conflict(
+        candidate_id: str,
+        owner_id: str,
+    ) -> bool:
+        owner = obligation_by_id.get(owner_id)
+        parent_owner: Optional[Mapping[str, Any]] = None
+        if owner is None:
+            requirement = requirement_by_id.get(owner_id)
+            parent_id = requirement_owner_by_id.get(owner_id, "")
+            parent_owner = obligation_by_id.get(parent_id)
+            if requirement is None:
+                return False
+            owner = {
+                **dict(requirement),
+                "scope": {
+                    **dict((parent_owner or {}).get("scope") or {}),
+                    **dict(requirement.get("scope") or {}),
+                },
+            }
+        declared_target = dict(owner.get("semantic_target") or {})
+        if not any(
+            declared_target.get(field)
+            for field in ("local_subjects", "concept_keys", "metric_surfaces")
+        ):
+            return False
+        if owner_id not in match_cache:
+            base_applicability = {
+                row_id: semantic_candidate_applicability(candidate, owner)
+                for row_id, candidate in candidate_by_id.items()
+            }
+            match_cache[owner_id] = build_candidate_matches(
+                candidate_rows,
+                owner=owner,
+                parent_owner=parent_owner,
+                base_applicability_by_id=base_applicability,
+            )
+        match = match_cache[owner_id].get(candidate_id)
+        return bool(match and match.state == "explicit_conflict")
 
     declared_missing = {
         str(item).strip()
@@ -1129,6 +1172,12 @@ def validate_semantic_calculation_program(
             invalid = True
         if not candidate_is_exposed(candidate_id, obligation_id):
             error("candidate_not_exposed_to_compiler", obligation_id, candidate_id)
+            invalid = True
+        if candidate and obligation and candidate_has_semantic_conflict(
+            candidate_id,
+            obligation_id,
+        ):
+            error("candidate_semantic_target_mismatch", obligation_id, candidate_id)
             invalid = True
         if obligation and str(obligation.get("kind") or "") != "direct_value":
             error("non_direct_obligation_has_direct_binding", obligation_id)
@@ -1487,6 +1536,16 @@ def validate_semantic_calculation_program(
                                     source_id,
                                 )
                                 invalid = True
+                            if candidate_has_semantic_conflict(
+                                source_id,
+                                source_requirement_id,
+                            ):
+                                error(
+                                    "candidate_semantic_target_mismatch",
+                                    obligation_id,
+                                    f"{source_requirement_id}: {source_id}",
+                                )
+                                invalid = True
                             bound_requirement_ids.add(source_requirement_id)
                             candidate_requirement_bindings.append(
                                 (candidate, requirement)
@@ -1739,6 +1798,22 @@ def validate_semantic_calculation_program(
                 hidden_candidate_id,
             )
             invalid = True
+        semantic_conflict_id = next(
+            (
+                candidate_id
+                for candidate_id in candidate_ids
+                if obligation
+                and candidate_has_semantic_conflict(candidate_id, obligation_id)
+            ),
+            "",
+        )
+        if semantic_conflict_id:
+            error(
+                "candidate_semantic_target_mismatch",
+                obligation_id,
+                semantic_conflict_id,
+            )
+            invalid = True
         text = _normalise_spaces(str(binding.get("text") or ""))
         if not text:
             error("empty_narrative_output", obligation_id)
@@ -1816,6 +1891,14 @@ def validate_semantic_calculation_program(
                         "unknown_narrative_candidate",
                         obligation_id,
                         candidate_id,
+                    )
+                    invalid = True
+                    continue
+                if candidate_has_semantic_conflict(candidate_id, requirement_id):
+                    error(
+                        "candidate_semantic_target_mismatch",
+                        obligation_id,
+                        f"{requirement_id}: {candidate_id}",
                     )
                     invalid = True
                     continue

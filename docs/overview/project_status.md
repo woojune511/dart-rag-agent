@@ -7,8 +7,8 @@ Last updated: 2026-09-03
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/runtime-contract-integration` from clean redesign `8790f92` |
-| Runtime state | Boundary redesign and the preserved predecessor changes are integrated in a clean worktree |
+| Active branch | `codex/typed-candidate-ranking` from integration predecessor `729e0fb` |
+| Runtime state | Typed owner targets and deterministic fact matching replace additive candidate keyword scoring |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
 | Provider evidence | Exact admission `cb188492...683a8` was consumed once in a store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
@@ -20,6 +20,13 @@ Last updated: 2026-09-03
   nodes do not mutate the task/artifact ledger or final answer.
 - Compiler, validator, and executor share one immutable visibility envelope.
   Catalog or validation drift fails before execution.
+- Each obligation or evidence requirement may carry a typed semantic target.
+  Candidate admission compares scope, local subject, owner kind, unit, metric,
+  and physical locality as separate factors; explicit conflicts are excluded
+  and compatible candidates precede unknown-only candidates.
+- The candidate catalog remains complete and stable. Cohort prompts contain
+  cell-local structured text and one factor projection; they do not perform a
+  second keyword ranking pass.
 - Numeric compilation is isolated by declared dependency and non-empty coupling
   key. Unknown dependency, self-dependency, cycle, island overflow, or candidate
   reservation overflow fails before compiler calls.
@@ -38,11 +45,24 @@ Last updated: 2026-09-03
 ## Evidence and remaining gate
 
 The source-change gate is focused tests, runtime-domain audit, import/topology
-checks, full unittest discovery, pycompile, and `git diff --check`. It currently
-passes: 751 total unittest cases, 124 focused evaluator/provenance cases, 30
-benchmark-runner cases, 50 focused authority/import/topology/service cases, and
-86 reviewed domain literals. Historical benchmark scores and bundles are not
-evidence for this integrated runtime build.
+checks, full unittest discovery, pycompile, and `git diff --check`. The preceding
+integration gate passed 751 total unittest cases, 124 focused
+evaluator/provenance cases, 30 benchmark-runner cases, 50 focused
+authority/import/topology/service cases, and 86 reviewed domain literals.
+Historical benchmark scores and bundles are not evidence for this candidate
+ranking build.
+
+The new provider-free matcher contract covers typed targets, deterministic
+catalog-order independence, compatible-before-unknown ordering, catalog-grounded
+legacy fallback, cell-local prompt projection, validator rejection of a visible
+semantic conflict, and ontology unit families. The current source gate passes
+752 total unittest cases, 146 focused semantic/import/topology/documentation
+cases, the 86-literal runtime-domain audit, pycompile, JSON validation, and
+`git diff --check`. Stored-source reconstruction
+places the Motional carrying-amount cell in the intended owner cohort and keeps
+the BHAF row out; it also prioritizes the two Hyundai T2 period values over
+market totals and preserves Samsung's accepted evidence visibility. It does not
+claim a new LLM/compiler outcome.
 
 The clean redesign predecessor's read-only reprojection rebuilt candidates from
 the three stored source windows with network access blocked. It retained both
@@ -104,14 +124,13 @@ unchanged, and no disposable store remains.
 
 ## Next work
 
-1. Reconstruct and characterize the T3 `ob_002` ranking provider-free: explain
-   why the same-row investment-asset cell loses the four-slot owner cohort while
-   the percentage cell and unrelated candidates rank ahead.
-2. Repair only the generic policy/ontology/cohort-ranking seam, keeping physical
-   provenance, owner visibility, fail-closed validation, and the BHAF exclusion
-   intact. Add a company/question-free contract test and rerun local gates.
-3. Do not merge or rerun the paid gate yet. Any provider replay requires a new
+1. Finish the local source gate and review this branch without changing stores,
+   datasets, evaluator tolerances, or historical artifacts.
+2. Do not rerun the paid gate automatically. Any provider replay requires a new
    immutable manifest, cost estimate, no-call receipts, and separate approval.
+3. Treat a local semantic reranker, deterministic unique-match auto-bind, and a
+   persisted typed fact index as deferred designs. They need their own measured
+   benefit and migration contract rather than being bundled into this repair.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the

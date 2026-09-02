@@ -89,9 +89,9 @@ Internal callers must use these attributes; flat dict fallback은 없다.
 | --- | --- |
 | 503 before query | `StoreReadiness` and `store_manifest.json` |
 | wrong scope/search window | `retrieval_debug_trace` |
-| candidate missing or wrong row | candidate catalog and cohort diagnostics |
+| candidate missing or wrong row | `SemanticTargetV1`, factor matches, and cohort diagnostics |
 | hidden/cross-owner ID | `CandidateVisibilityV1` and compile validation |
-| compile retry | `semantic_candidate_stage_diagnostics_v3` island attempts |
+| compile retry | `semantic_candidate_stage_diagnostics_v4` island attempts |
 | execution refusal | `visibility_mismatch`, `validation_drift`, or semantic validation errors |
 | answer/evidence mismatch | `AgentAnswer`, `ReviewTrace.evidence_items`, ledger integrity |
 

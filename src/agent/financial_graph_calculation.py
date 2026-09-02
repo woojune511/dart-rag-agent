@@ -7,6 +7,12 @@ import logging
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from src.agent.financial_candidate_matching import (
+    build_candidate_matches,
+    candidate_cell_local_source_text,
+    project_candidate_match,
+    rank_candidate_matches,
+)
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
     project_semantic_program_operand,
@@ -19,9 +25,6 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
-    select_semantic_prompt_evidence_candidates,
-    select_semantic_prompt_candidates,
-    semantic_candidate_relevance_score,
     semantic_candidate_id_fingerprint,
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
@@ -32,16 +35,12 @@ from src.agent.financial_runtime_contracts import (
     CompilationEnvelopeV1,
 )
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
-from src.agent.financial_scope_policies import is_scope_only_period_surface
 from src.agent.financial_task_artifacts import (
     calculation_plan_artifact_update,
     calculation_result_artifact_update,
     operand_set_artifact_update,
 )
-from src.config.retrieval_policy import (
-    CALCULATION_PROMPT_POLICY,
-    CONSOLIDATION_SCOPE_POLICY,
-)
+from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 
 
 logger = logging.getLogger(__name__)
@@ -234,349 +233,79 @@ def _semantic_candidate_visibility(
     )
 
 
-def _semantic_scope_free_relevance_surface(
-    value: Any,
-    scope: Mapping[str, Any],
-) -> str:
-    """Remove already-declared scope markers from semantic relevance text."""
-
-    normalized = _normalise_spaces(str(value or ""))
-    if not normalized or is_scope_only_period_surface(normalized, dict(scope)):
-        return ""
-    period_tokens = list(
-        dict.fromkeys(
-            re.findall(r"[^\W_]+", str(scope.get("period") or ""), flags=re.UNICODE)
-        )
-    )
-    consolidation_scope = str(scope.get("consolidation_scope") or "").strip()
-    consolidation_markers = [
-        _normalise_spaces(str(item or ""))
-        for key in ("query_markers", "context_markers")
-        for item in dict(CONSOLIDATION_SCOPE_POLICY.get(key) or {}).get(
-            consolidation_scope,
-            (),
-        )
-        if _normalise_spaces(str(item or ""))
-    ]
-    cleaned = normalized
-    for marker in sorted(
-        [*period_tokens, *consolidation_markers],
-        key=len,
-        reverse=True,
-    ):
-        cleaned = re.sub(re.escape(marker), " ", cleaned, flags=re.IGNORECASE)
-    return _normalise_spaces(cleaned)
-
-
-def _semantic_obligation_relevance_groups(
-    obligations: List[Dict[str, Any]],
-    *,
-    owner_kind: Optional[str] = None,
-) -> List[List[str]]:
-    groups: List[List[str]] = []
-    for obligation in obligations:
-        obligation_owner = (
-            "narrative"
-            if str(obligation.get("kind") or "") == "narrative"
-            else "numeric"
-        )
-        if owner_kind and obligation_owner != owner_kind:
-            continue
-        scope = dict(obligation.get("scope") or {})
-        values = [
-            str(obligation.get("label") or ""),
-            *[str(item) for item in (obligation.get("retrieval_hints") or [])],
-            *[str(item) for item in (obligation.get("concept_hints") or [])],
-            str(scope.get("segment") or ""),
-            str(scope.get("basis") or ""),
-        ]
-        group = list(
-            dict.fromkeys(
-                surface
-                for item in values
-                for surface in [_semantic_scope_free_relevance_surface(item, scope)]
-                if surface
-            )
-        )
-        if group:
-            groups.append(group)
-        for requirement in obligation.get("evidence_requirements") or []:
-            requirement_scope = dict(requirement.get("scope") or {})
-            effective_requirement_scope = {**scope, **requirement_scope}
-            requirement_values = [
-                str(requirement.get("label") or ""),
-                *[str(item) for item in (requirement.get("retrieval_hints") or [])],
-                *[str(item) for item in (requirement.get("concept_hints") or [])],
-                str(requirement_scope.get("period") or ""),
-                str(requirement_scope.get("segment") or ""),
-                str(requirement_scope.get("basis") or ""),
-            ]
-            requirement_group = list(
-                dict.fromkeys(
-                    surface
-                    for item in requirement_values
-                    for surface in [
-                        _semantic_scope_free_relevance_surface(
-                            item,
-                            effective_requirement_scope,
-                        )
-                    ]
-                    if surface
-                )
-            )
-            if requirement_group:
-                groups.append(requirement_group)
-    return groups
-
-
-def _semantic_required_evidence_relevance_groups(
-    obligations: List[Dict[str, Any]],
-    *,
-    owner_kind: Optional[str] = None,
-) -> List[List[str]]:
-    """Return only required input groups, without their parent output surface."""
-
-    groups: List[List[str]] = []
-    for obligation in obligations:
-        obligation_owner = (
-            "narrative"
-            if str(obligation.get("kind") or "") == "narrative"
-            else "numeric"
-        )
-        if owner_kind and obligation_owner != owner_kind:
-            continue
-        obligation_scope = dict(obligation.get("scope") or {})
-        for requirement in obligation.get("evidence_requirements") or []:
-            if not bool(requirement.get("required", True)):
-                continue
-            requirement_scope = dict(requirement.get("scope") or {})
-            effective_requirement_scope = {
-                **obligation_scope,
-                **requirement_scope,
-            }
-            values = [
-                str(requirement.get("label") or ""),
-                *[str(item) for item in (requirement.get("retrieval_hints") or [])],
-                *[str(item) for item in (requirement.get("concept_hints") or [])],
-                str(requirement_scope.get("period") or ""),
-                str(requirement_scope.get("segment") or ""),
-                str(requirement_scope.get("basis") or ""),
-            ]
-            group = list(
-                dict.fromkeys(
-                    surface
-                    for item in values
-                    for surface in [
-                        _semantic_scope_free_relevance_surface(
-                            item,
-                            effective_requirement_scope,
-                        )
-                    ]
-                    if surface
-                )
-            )
-            if group:
-                groups.append(group)
-    return groups
-
-
-def _semantic_owner_relevance_group(
-    owner: Mapping[str, Any],
-    *,
-    inherited_scope: Optional[Mapping[str, Any]] = None,
-) -> List[str]:
-    scope = {
-        **dict(inherited_scope or {}),
-        **dict(owner.get("scope") or {}),
-    }
-    values = [
-        str(owner.get("label") or ""),
-        *[str(item) for item in (owner.get("retrieval_hints") or [])],
-        *[str(item) for item in (owner.get("concept_hints") or [])],
-        str(scope.get("period") or ""),
-        str(scope.get("segment") or ""),
-        str(scope.get("basis") or ""),
-    ]
-    return list(
-        dict.fromkeys(
-            surface
-            for value in values
-            for surface in [_semantic_scope_free_relevance_surface(value, scope)]
-            if surface
-        )
-    )
-
-
 def _rank_applicable_owner_candidates(
     catalog: Sequence[Mapping[str, Any]],
     *,
     owner: Mapping[str, Any],
-    relevance_group: Sequence[str],
     candidate_kind: str,
     limit: int,
+    parent_owner: Optional[Mapping[str, Any]] = None,
     excluded_candidate_ids: Sequence[str] = (),
 ) -> tuple[List[Dict[str, Any]], Dict[str, int], Dict[str, Dict[str, Any]]]:
-    excluded = {
-        str(candidate_id).strip()
-        for candidate_id in excluded_candidate_ids
-        if str(candidate_id or "").strip()
-    }
-    rows_by_state: Dict[str, List[Dict[str, Any]]] = {
-        "compatible": [],
-        "unknown_only": [],
-        "explicit_conflict": [],
-    }
-    eligible_rows: List[Dict[str, Any]] = []
-    applicability_by_id: Dict[str, Dict[str, Any]] = {}
     allowed_kinds = (
         {"numeric", "narrative"}
         if candidate_kind == "evidence"
         else {candidate_kind}
     )
+    base_applicability_by_id: Dict[str, Dict[str, Any]] = {}
     for raw_candidate in catalog:
         candidate = dict(raw_candidate or {})
-        kind = str(candidate.get("kind") or "")
-        if kind not in allowed_kinds:
-            continue
         candidate_id = str(candidate.get("candidate_id") or "").strip()
-        if not candidate_id or candidate_id in excluded:
+        if not candidate_id:
             continue
-        applicability = semantic_candidate_applicability(candidate, owner)
-        state = str(applicability.get("state") or "unknown_only")
-        if state not in rows_by_state:
-            state = "unknown_only"
-        rows_by_state[state].append(candidate)
-        applicability_by_id[candidate_id] = applicability
-        if state != "explicit_conflict":
-            eligible_rows.append(candidate)
-
-    def ranked(rows: Sequence[Mapping[str, Any]], bounded_limit: int) -> List[Dict[str, Any]]:
-        if candidate_kind == "evidence":
-            return select_semantic_prompt_evidence_candidates(
-                rows,
-                relevance_groups=[list(relevance_group)],
-                max_candidates=bounded_limit,
-            )
-        if candidate_kind == "numeric":
-            return select_semantic_prompt_candidates(
-                rows,
-                numeric_relevance_groups=[list(relevance_group)],
-                max_numeric_candidates=bounded_limit,
-                max_narrative_candidates=0,
-            )
-        return select_semantic_prompt_candidates(
-            rows,
-            narrative_relevance_groups=[list(relevance_group)],
-            max_numeric_candidates=0,
-            max_narrative_candidates=bounded_limit,
+        base_applicability_by_id[candidate_id] = semantic_candidate_applicability(
+            candidate,
+            owner,
         )
-
-    def ranked_by_local_subject(
-        rows: Sequence[Mapping[str, Any]],
-        bounded_limit: int,
-    ) -> List[Dict[str, Any]]:
-        selected_rows: List[Dict[str, Any]] = []
-        for local_subject_state in (
-            "company_match",
-            "segment_match",
-            "unknown",
-        ):
-            remaining = bounded_limit - len(selected_rows)
-            if remaining <= 0:
-                break
-            partition = [
-                dict(row)
-                for row in rows
-                if str(
-                    applicability_by_id.get(
-                        str(row.get("candidate_id") or ""),
-                        {},
-                    ).get("local_subject_state")
-                    or "unknown"
-                )
-                == local_subject_state
-            ]
-            selected_rows.extend(ranked(partition, remaining))
-        return selected_rows
-
-    bounded_limit = max(0, int(limit))
-    admitted = ranked_by_local_subject(eligible_rows, bounded_limit)
-    if candidate_kind == "evidence" and bounded_limit > 0:
-        # A source-defined narrative may need both structured facts and prose.
-        # Preserve kind diversity within each applicability tier without ever
-        # displacing a candidate from a stronger tier.
-        for applicability_state in ("compatible", "unknown_only"):
-            state_indexes = [
-                index
-                for index, candidate in enumerate(admitted)
-                if str(
-                    applicability_by_id.get(
-                        str(candidate.get("candidate_id") or ""),
-                        {},
-                    ).get("state")
-                    or "unknown_only"
-                )
-                == applicability_state
-            ]
-            if not state_indexes or any(
-                str(admitted[index].get("kind") or "") == "narrative"
-                for index in state_indexes
-            ):
-                continue
-            narrative_pool = [
-                item
-                for item in eligible_rows
-                if str(item.get("kind") or "") == "narrative"
-                and str(
-                    applicability_by_id.get(
-                        str(item.get("candidate_id") or ""),
-                        {},
-                    ).get("state")
-                    or "unknown_only"
-                )
-                == applicability_state
-                and semantic_candidate_relevance_score(item, relevance_group) > 0
-            ]
-            reserved_narrative = ranked_by_local_subject(narrative_pool, 1)
-            if not reserved_narrative:
-                continue
-            replacement_index = next(
-                (
-                    index
-                    for index in reversed(state_indexes)
-                    if str(admitted[index].get("kind") or "") != "narrative"
-                ),
-                None,
-            )
-            if replacement_index is not None:
-                admitted[replacement_index] = reserved_narrative[0]
-    admitted_by_state: Dict[str, List[Dict[str, Any]]] = {
+    matches_by_id = build_candidate_matches(
+        catalog,
+        owner=owner,
+        parent_owner=parent_owner,
+        base_applicability_by_id=base_applicability_by_id,
+    )
+    selected = rank_candidate_matches(
+        catalog,
+        matches_by_id,
+        allowed_kinds=tuple(sorted(allowed_kinds)),
+        limit=limit,
+        excluded_candidate_ids=excluded_candidate_ids,
+    )
+    excluded = {
+        str(candidate_id).strip()
+        for candidate_id in excluded_candidate_ids
+        if str(candidate_id or "").strip()
+    }
+    candidate_by_id = {
+        str(item.get("candidate_id") or ""): dict(item)
+        for item in catalog
+        if str(item.get("candidate_id") or "")
+    }
+    rows_by_state: Dict[str, List[str]] = {
         "compatible": [],
         "unknown_only": [],
+        "explicit_conflict": [],
     }
-    for candidate in admitted:
-        candidate_id = str(candidate.get("candidate_id") or "")
-        state = str(
-            applicability_by_id.get(candidate_id, {}).get("state")
-            or "unknown_only"
-        )
-        admitted_by_state.setdefault(state, []).append(candidate)
-    selected = ranked_by_local_subject(
-        admitted_by_state["compatible"],
-        bounded_limit,
-    )
-    if len(selected) < bounded_limit:
-        selected.extend(
-            ranked_by_local_subject(
-                admitted_by_state["unknown_only"],
-                bounded_limit - len(selected),
-            )
-        )
+    for candidate_id, match in matches_by_id.items():
+        if candidate_id in excluded:
+            continue
+        candidate = candidate_by_id.get(candidate_id, {})
+        if str(candidate.get("kind") or "") not in allowed_kinds:
+            continue
+        rows_by_state[match.state].append(candidate_id)
     counts = {
         state: len(rows)
         for state, rows in rows_by_state.items()
     }
-    return selected, counts, applicability_by_id
+    return (
+        selected,
+        counts,
+        {
+            candidate_id: project_candidate_match(match)
+            for candidate_id, match in matches_by_id.items()
+            if str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
+            in allowed_kinds
+        },
+    )
 
 
 def _semantic_candidate_cohorts(
@@ -651,7 +380,7 @@ def _semantic_candidate_cohorts(
                 ),
                 "limit": narrative_owner_limit if is_narrative else numeric_owner_limit,
                 "owner": obligation,
-                "relevance_group": _semantic_owner_relevance_group(obligation),
+                "parent_owner": None,
             }
         )
         if not is_narrative:
@@ -664,7 +393,7 @@ def _semantic_candidate_cohorts(
                     "candidate_kind": "narrative",
                     "limit": compatibility_limit,
                     "owner": obligation,
-                    "relevance_group": _semantic_owner_relevance_group(obligation),
+                    "parent_owner": None,
                 }
             )
         for requirement in obligation.get("evidence_requirements") or []:
@@ -693,9 +422,7 @@ def _semantic_candidate_cohorts(
                     ),
                     "limit": narrative_owner_limit if is_narrative else numeric_owner_limit,
                     "owner": effective_requirement,
-                    "relevance_group": _semantic_owner_relevance_group(
-                        effective_requirement,
-                    ),
+                    "parent_owner": obligation,
                 }
             )
 
@@ -720,26 +447,26 @@ def _semantic_candidate_cohorts(
         or narrative_reservation > global_narrative_limit
     ):
         return {
-            "schema": "semantic_candidate_cohorts_v1",
+            "schema": "semantic_candidate_cohorts_v2",
             "status": "capacity_exceeded",
             "reservation": reservation,
             "cohorts": [],
             "candidate_ids_by_owner": {},
             "visible_candidate_ids": [],
-            "candidate_applicability_by_id": {},
+            "candidate_match_by_id": {},
         }
 
     cohorts: List[Dict[str, Any]] = []
     selectable_by_owner: Dict[str, List[str]] = {}
     parent_requirement_ids: Dict[str, List[str]] = {}
-    applicability_by_id: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    match_by_id: Dict[str, Dict[str, Dict[str, Any]]] = {}
     visible_ids: List[str] = []
     for specification in specifications:
         owner_id = str(specification["owner_id"])
-        selected, counts, owner_applicability = _rank_applicable_owner_candidates(
+        selected, counts, owner_matches = _rank_applicable_owner_candidates(
             catalog,
             owner=specification["owner"],
-            relevance_group=specification["relevance_group"],
+            parent_owner=specification.get("parent_owner"),
             candidate_kind=str(specification["candidate_kind"]),
             limit=int(specification["limit"]),
             excluded_candidate_ids=excluded_by_owner.get(owner_id, []),
@@ -749,9 +476,9 @@ def _semantic_candidate_cohorts(
             for item in selected
             if str(item.get("candidate_id") or "")
         ]
-        for candidate_id, applicability in owner_applicability.items():
-            applicability_by_id.setdefault(candidate_id, {})[owner_id] = dict(
-                applicability
+        for candidate_id, match in owner_matches.items():
+            match_by_id.setdefault(candidate_id, {})[owner_id] = dict(
+                match
             )
         selectable_by_owner.setdefault(owner_id, [])
         selectable_by_owner[owner_id].extend(
@@ -776,7 +503,7 @@ def _semantic_candidate_cohorts(
                 "candidate_id_fingerprint": semantic_candidate_id_fingerprint(
                     candidate_ids
                 ),
-                "applicability_counts": counts,
+                "match_counts": counts,
                 "limit": int(specification["limit"]),
             }
         )
@@ -792,13 +519,13 @@ def _semantic_candidate_cohorts(
                 parent_ids.append(candidate_id)
 
     return {
-        "schema": "semantic_candidate_cohorts_v1",
+        "schema": "semantic_candidate_cohorts_v2",
         "status": "ok",
         "reservation": reservation,
         "cohorts": cohorts,
         "candidate_ids_by_owner": selectable_by_owner,
         "visible_candidate_ids": visible_ids,
-        "candidate_applicability_by_id": applicability_by_id,
+        "candidate_match_by_id": match_by_id,
     }
 
 
@@ -1154,66 +881,21 @@ class FinancialAgentCalculationMixin:
         *,
         source_candidates: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
-        obligations = [
-            dict(item)
-            for item in (
-                state.get("answer_obligations")
-                or dict(state.get("semantic_plan") or {}).get("answer_obligations")
-                or []
-            )
-            if isinstance(item, dict)
-        ]
-        relevance_groups = _semantic_obligation_relevance_groups(obligations)
-        relevance_texts = [item for group in relevance_groups for item in group]
         return build_semantic_candidate_catalog(
             source_candidates
             if source_candidates is not None
             else self._semantic_source_candidates_for_state(state),
             evidence_items=list(state.get("evidence_items") or []),
-            relevance_texts=list(dict.fromkeys(item for item in relevance_texts if item)),
         )
 
     @staticmethod
     def _semantic_program_prompt_rows(
         catalog: List[Dict[str, Any]],
-        relevance_groups: Optional[List[List[str]]] = None,
-        numeric_relevance_groups: Optional[List[List[str]]] = None,
-        narrative_relevance_groups: Optional[List[List[str]]] = None,
-        required_numeric_relevance_groups: Optional[List[List[str]]] = None,
-        required_narrative_relevance_groups: Optional[List[List[str]]] = None,
-        candidate_applicability_by_id: Optional[
+        candidate_match_by_id: Optional[
             Mapping[str, Mapping[str, Mapping[str, Any]]]
         ] = None,
     ) -> List[Dict[str, Any]]:
         limits = dict(CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_limits") or {})
-        numeric_limit = max(0, int(limits.get("numeric_candidates") or 48))
-        narrative_limit = max(0, int(limits.get("narrative_candidates") or 16))
-        required_group_limit = max(
-            0,
-            int(limits.get("required_input_candidates_per_group", 4)),
-        )
-        relevance_groups = list(relevance_groups or [])
-        selected = select_semantic_prompt_candidates(
-            catalog,
-            relevance_groups=relevance_groups,
-            numeric_relevance_groups=numeric_relevance_groups,
-            narrative_relevance_groups=narrative_relevance_groups,
-            required_numeric_relevance_groups=required_numeric_relevance_groups,
-            required_narrative_relevance_groups=required_narrative_relevance_groups,
-            max_numeric_candidates=numeric_limit,
-            max_narrative_candidates=narrative_limit,
-            max_required_candidates_per_group=required_group_limit,
-        )
-        numeric_groups = (
-            relevance_groups
-            if numeric_relevance_groups is None
-            else list(numeric_relevance_groups)
-        )
-        narrative_groups = (
-            relevance_groups
-            if narrative_relevance_groups is None
-            else list(narrative_relevance_groups)
-        )
         prompt_rows = [
             {
                 "candidate_id": str(item.get("candidate_id") or ""),
@@ -1251,32 +933,23 @@ class FinancialAgentCalculationMixin:
                 "candidate_kind": str(item.get("candidate_kind") or ""),
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
-                "applicability_by_owner": {
-                    str(owner_id): dict(applicability)
-                    for owner_id, applicability in dict(
-                        (candidate_applicability_by_id or {}).get(
+                "match_by_owner": {
+                    str(owner_id): dict(match)
+                    for owner_id, match in dict(
+                        (candidate_match_by_id or {}).get(
                             str(item.get("candidate_id") or ""),
                             {},
                         )
                     ).items()
                 },
                 "source_text": _bounded_relevance_excerpt(
-                    str(item.get("source_text") or ""),
+                    candidate_cell_local_source_text(item),
                     [
                         str(item.get("row_label") or ""),
                         str(item.get("raw_value") or ""),
                         *[
                             str(value)
                             for value in (item.get("local_entity_surfaces") or [])
-                        ],
-                        *[
-                            value
-                            for group in (
-                                numeric_groups
-                                if str(item.get("kind") or "") == "numeric"
-                                else narrative_groups
-                            )
-                            for value in group
                         ],
                     ],
                     limit=max(
@@ -1296,7 +969,7 @@ class FinancialAgentCalculationMixin:
                     ),
                 ),
             }
-            for item in selected
+            for item in catalog
         ]
         return prompt_rows
 
@@ -1326,8 +999,8 @@ class FinancialAgentCalculationMixin:
         ]
         prompt_rows = FinancialAgentCalculationMixin._semantic_program_prompt_rows(
             visible_catalog,
-            candidate_applicability_by_id=dict(
-                cohort_plan.get("candidate_applicability_by_id") or {}
+            candidate_match_by_id=dict(
+                cohort_plan.get("candidate_match_by_id") or {}
             ),
         )
         row_by_id = {
@@ -1336,7 +1009,7 @@ class FinancialAgentCalculationMixin:
             if str(item.get("candidate_id") or "")
         }
         return {
-            "schema": "semantic_program_candidate_payload_v1",
+            "schema": "semantic_program_candidate_payload_v2",
             "reservation": dict(cohort_plan.get("reservation") or {}),
             "cohorts": [
                 dict(item) for item in (cohort_plan.get("cohorts") or [])
@@ -1862,7 +1535,7 @@ class FinancialAgentCalculationMixin:
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_catalog_rows),
             "prompt_candidate_ids": prompt_candidate_ids,
-            "prompt_candidate_strategy": "obligation_owner_cohorts_v1",
+            "prompt_candidate_strategy": "obligation_owner_cohorts_v2",
             "prompt_candidate_payload_bytes": len(
                 prompt_catalog_json.encode("utf-8")
             ),
@@ -1871,7 +1544,7 @@ class FinancialAgentCalculationMixin:
                 cohort_plan.get("reservation") or {}
             ),
             "candidate_cohorts": list(cohort_plan.get("cohorts") or []),
-            "prompt_excerpt_strategy": "bounded_relevance_window_v1",
+            "prompt_excerpt_strategy": "cell_local_fact_projection_v1",
             "candidate_stage_diagnostics": candidate_stage_diagnostics,
             "proposed_candidates": proposed_candidates,
             "selected_candidates": selected_candidates,
@@ -1890,12 +1563,12 @@ class FinancialAgentCalculationMixin:
                 "candidate_catalog_fingerprint": calculation_plan["candidate_catalog_fingerprint"],
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_catalog_rows),
-                "prompt_candidate_strategy": "obligation_owner_cohorts_v1",
+                "prompt_candidate_strategy": "obligation_owner_cohorts_v2",
                 "prompt_candidate_payload_bytes": len(
                     prompt_catalog_json.encode("utf-8")
                 ),
                 "candidate_cohort_status": str(cohort_plan.get("status") or ""),
-                "prompt_excerpt_strategy": "bounded_relevance_window_v1",
+                "prompt_excerpt_strategy": "cell_local_fact_projection_v1",
                 "candidate_stage_diagnostics": candidate_stage_diagnostics,
                 "selected_candidate_ids": selected_candidate_ids,
                 "semantic_status": str(validation.get("status") or ""),
@@ -2392,7 +2065,7 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v3",
+            "schema": "semantic_candidate_stage_diagnostics_v4",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
@@ -2534,7 +2207,7 @@ class FinancialAgentCalculationMixin:
                     "prompt_candidate_payload_bytes"
                 ],
                 "candidate_stage_diagnostics_schema": (
-                    "semantic_candidate_stage_diagnostics_v3"
+                    "semantic_candidate_stage_diagnostics_v4"
                 ),
                 "selected_candidate_count": len(selected_candidate_ids),
                 "program_validation_status": str(

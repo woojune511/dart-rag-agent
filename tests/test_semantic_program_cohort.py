@@ -4,7 +4,7 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramCohortTests(unittest.TestCase):
-    def test_candidate_catalog_bounds_by_obligation_relevance_and_source_coverage(self) -> None:
+    def test_candidate_catalog_preserves_late_numeric_and_narrative_sources(self) -> None:
         source_candidates = [
             {
                 "candidate_id": f"noise-{index}",
@@ -53,12 +53,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             ]
         )
 
-        catalog = build_semantic_candidate_catalog(
-            source_candidates,
-            relevance_texts=["target total", "critical context"],
-            max_numeric_candidates=8,
-            max_narrative_candidates=4,
-        )
+        catalog = build_semantic_candidate_catalog(source_candidates)
         self.assertIn("999", [item["raw_value"] for item in catalog if item["kind"] == "numeric"])
         self.assertTrue(
             any(
@@ -75,7 +70,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             )
         )
 
-    def test_candidate_catalog_keeps_prose_values_and_prompt_stratifies_obligations(self) -> None:
+    def test_candidate_catalog_keeps_prose_values_and_prompt_projects_catalog(self) -> None:
         source_candidates = [
             {
                 "candidate_id": f"first-{index}",
@@ -120,169 +115,8 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         self.assertEqual(prose["normalized_value"], 676_900_000_000.0)
         self.assertIn("second requested adjustment", prose["source_text"])
 
-        rows = FinancialAgent._semantic_program_prompt_rows(
-            catalog,
-            relevance_groups=[
-                ["first requested value"],
-                ["second requested adjustment"],
-            ],
-        )
+        rows = FinancialAgent._semantic_program_prompt_rows(catalog)
         self.assertIn(prose["candidate_id"], {item["candidate_id"] for item in rows})
-
-    def test_prompt_candidate_relevance_tolerates_spacing_only_label_variants(self) -> None:
-        target = _candidate(
-            "target",
-            300,
-            row_label="target metric",
-        )
-        noise = [
-            _candidate(
-                f"noise-{index}",
-                index + 1,
-                row_label=f"targetmetric component {index}",
-            )
-            for index in range(20)
-        ]
-
-        selected = select_semantic_prompt_candidates(
-            [*noise, target],
-            relevance_groups=[["targetmetric"]],
-            max_numeric_candidates=4,
-            max_narrative_candidates=0,
-        )
-
-        self.assertIn("target", {item["candidate_id"] for item in selected})
-
-    def test_prompt_candidate_groups_are_owned_by_candidate_kind(self) -> None:
-        numeric_target = _candidate(
-            "numeric-target",
-            300,
-            row_label="reported amount",
-        )
-        narrative_target = {
-            **_candidate("narrative-target", 0, row_label=""),
-            "kind": "narrative",
-            "normalized_value": None,
-            "source_text": "stress scenario explains the reported change",
-        }
-        narrative_noise = [
-            {
-                **_candidate(f"narrative-noise-{index}", 0, row_label=""),
-                "kind": "narrative",
-                "normalized_value": None,
-                "source_text": f"reported amount context {index}",
-            }
-            for index in range(8)
-        ]
-
-        selected = select_semantic_prompt_candidates(
-            [numeric_target, *narrative_noise, narrative_target],
-            relevance_groups=[["reported amount"], ["stress scenario"]],
-            numeric_relevance_groups=[["reported amount"]],
-            narrative_relevance_groups=[["stress scenario"]],
-            max_numeric_candidates=1,
-            max_narrative_candidates=1,
-        )
-
-        self.assertEqual(
-            {item["candidate_id"] for item in selected},
-            {"numeric-target", "narrative-target"},
-        )
-
-    def test_prompt_relevance_treats_period_only_hint_as_scope(self) -> None:
-        groups = _semantic_obligation_relevance_groups(
-            [
-                _obligation(
-                    "ob_note",
-                    "narrative",
-                    "change explanation",
-                    scope=_scope(period="2024"),
-                    retrieval_hints=["risk context", "2024"],
-                )
-            ],
-            owner_kind="narrative",
-        )
-
-        self.assertEqual(groups, [["change explanation", "risk context"]])
-
-    def test_prompt_relevance_removes_embedded_declared_scope_markers(self) -> None:
-        consolidation_marker = str(
-            CONSOLIDATION_SCOPE_POLICY["query_markers"]["consolidated"][0]
-        )
-        groups = _semantic_obligation_relevance_groups(
-            [
-                _obligation(
-                    "ob_metric",
-                    "direct_value",
-                    f"2024 {consolidation_marker} target metric",
-                    scope=_scope(
-                        period="2024",
-                        consolidation_scope="consolidated",
-                    ),
-                    retrieval_hints=[consolidation_marker, "target metric"],
-                )
-            ],
-            owner_kind="numeric",
-        )
-
-        self.assertEqual(groups, [["target metric"]])
-
-    def test_required_evidence_relevance_excludes_output_and_optional_inputs(self) -> None:
-        required = _requirement("ob_value:req_required", "required quantity")
-        optional = {
-            **_requirement("ob_value:req_optional", "optional context"),
-            "required": False,
-        }
-        obligations = [
-            _obligation(
-                "ob_value",
-                "derived_value",
-                "change rate",
-                evidence_requirements=[required, optional],
-            )
-        ]
-
-        groups = _semantic_required_evidence_relevance_groups(
-            obligations,
-            owner_kind="numeric",
-        )
-
-        self.assertEqual(groups, [["required quantity"]])
-
-    def test_prompt_admission_reserves_a_ranked_alternative_from_a_relevant_source(self) -> None:
-        primary = {
-            **_candidate("primary", 100, row_label="requested aggregate"),
-            "source_candidate_id": "shared-source",
-            "evidence_id": "shared-evidence",
-        }
-        alternative = {
-            **_candidate("alternative", 90, row_label="similar amount"),
-            "source_candidate_id": "shared-source",
-            "evidence_id": "shared-evidence",
-            "aggregate_label": "requested aggregate net amount",
-        }
-        noise = [
-            _candidate(
-                f"noise-{index}",
-                index + 1,
-                row_label=f"requested aggregate component {index}",
-            )
-            for index in range(8)
-        ]
-
-        selected = select_semantic_prompt_candidates(
-            [primary, alternative, *noise],
-            relevance_groups=[["requested aggregate"]],
-            max_numeric_candidates=4,
-            max_narrative_candidates=0,
-        )
-        selected_ids = {item["candidate_id"] for item in selected}
-        selected_sources = {item["evidence_id"] for item in selected}
-
-        self.assertEqual(len(selected), 4)
-        self.assertIn("primary", selected_ids)
-        self.assertIn("alternative", selected_ids)
-        self.assertGreaterEqual(len(selected_sources), 3)
 
     def test_owner_cohort_prefers_local_match_and_excludes_conflicting_row(self) -> None:
         obligation = _obligation(
@@ -351,7 +185,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         )
         self.assertEqual(output_cohort["candidate_ids"], ["target", "unknown"])
         self.assertEqual(
-            output_cohort["applicability_counts"],
+            output_cohort["match_counts"],
             {"compatible": 1, "unknown_only": 1, "explicit_conflict": 1},
         )
         payload = FinancialAgent._semantic_program_prompt_payload(
@@ -364,7 +198,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         self.assertEqual(target_row["row_headers"], ["region", "target entity"])
         self.assertEqual(target_row["physical_row_id"], "row-target")
         self.assertEqual(
-            target_row["applicability_by_owner"]["ob_share"]["state"],
+            target_row["match_by_owner"]["ob_share"]["state"],
             "compatible",
         )
 
@@ -658,7 +492,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         )
         self.assertEqual(output_cohort["candidate_ids"][0], "target-share")
         self.assertIn("target-share", output_cohort["candidate_ids"])
-        self.assertEqual(len(output_cohort["candidate_ids"]), 4)
+        self.assertEqual(len(output_cohort["candidate_ids"]), 1)
 
     def test_owner_cohort_admits_relevant_unknown_before_scope_only_noise(self) -> None:
         obligation = _obligation(
@@ -707,11 +541,11 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             if item["cohort_id"] == "ob_metric:output"
         )
         self.assertIn("target-unknown", output_cohort["candidate_ids"])
-        self.assertEqual(output_cohort["candidate_ids"][-1], "target-unknown")
+        self.assertEqual(output_cohort["candidate_ids"][0], "target-unknown")
         self.assertEqual(len(output_cohort["candidate_ids"]), 4)
         self.assertEqual(
-            output_cohort["applicability_counts"],
-            {"compatible": 4, "unknown_only": 1, "explicit_conflict": 0},
+            output_cohort["match_counts"],
+            {"compatible": 0, "unknown_only": 5, "explicit_conflict": 0},
         )
 
     def test_candidate_cohort_reservation_overflow_fails_closed(self) -> None:
@@ -737,109 +571,6 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             cohort_plan["reservation"]["numeric_limit"],
         )
         self.assertEqual(cohort_plan["cohorts"], [])
-
-    def test_prompt_admission_keeps_each_relevant_sibling_cell(self) -> None:
-        sibling_cells = []
-        for candidate_id, raw_value, header in (
-            ("share", 25.81, "ownership share"),
-            ("carrying", 1_294_367, "carrying value"),
-            ("result", -803_742, "net result"),
-        ):
-            candidate = {
-                **_candidate(
-                    candidate_id,
-                    raw_value,
-                    row_label="target venture",
-                ),
-                "source_candidate_id": "shared-row",
-                "evidence_id": "shared-table",
-                "source_row_id": "target-row",
-                "column_headers": [header],
-                "source_text": f"target venture {header} {raw_value}",
-            }
-            sibling_cells.append(candidate)
-        noise = [
-            _candidate(
-                f"noise-{index}",
-                index + 1,
-                row_label=f"unrelated entity {index}",
-            )
-            for index in range(12)
-        ]
-
-        selected = select_semantic_prompt_candidates(
-            [*noise, *sibling_cells],
-            relevance_groups=[
-                ["target venture", "ownership share"],
-                ["target venture", "carrying value"],
-                ["target venture", "net result"],
-            ],
-            max_numeric_candidates=3,
-            max_narrative_candidates=0,
-        )
-
-        self.assertEqual(
-            {item["candidate_id"] for item in selected},
-            {"share", "carrying", "result"},
-        )
-
-    def test_prompt_admission_reserves_local_cohort_for_each_required_input(self) -> None:
-        fixture = _contract_residual_fixture()["candidate_admission"][
-            "required_input_prompt_coverage"
-        ]
-        rows = [
-            {
-                **_candidate(
-                    "result-rate",
-                    15,
-                    raw_unit="%",
-                    normalized_unit="PERCENT",
-                    row_label="",
-                ),
-                "source_candidate_id": "result-source",
-                "evidence_id": "result-source",
-                "source_text": "change rate 15 percent",
-                "candidate_kind": "sentence_value",
-            }
-        ]
-        required_groups = []
-        value = 100
-        for group in fixture["required_input_groups"]:
-            required_groups.append([group["surface"]])
-            for candidate in group["candidates"]:
-                is_percent = candidate["unit"] == "PERCENT"
-                rows.append(
-                    {
-                        **_candidate(
-                            candidate["candidate_id"],
-                            value,
-                            raw_unit="%" if is_percent else "items",
-                            normalized_unit=candidate["unit"],
-                            row_label="",
-                        ),
-                        "source_candidate_id": group["source_id"],
-                        "evidence_id": group["source_id"],
-                        "source_text": f"{group['surface']} reported value",
-                        "candidate_kind": "sentence_value",
-                    }
-                )
-                value += 1
-
-        all_groups = [fixture["output_relevance_group"], *required_groups]
-        selected = select_semantic_prompt_candidates(
-            rows,
-            relevance_groups=all_groups,
-            numeric_relevance_groups=all_groups,
-            required_numeric_relevance_groups=required_groups,
-            max_numeric_candidates=fixture["max_numeric_candidates"],
-            max_narrative_candidates=0,
-        )
-
-        selected_ids = {item["candidate_id"] for item in selected}
-        self.assertEqual(len(selected), fixture["max_numeric_candidates"])
-        self.assertTrue(
-            set(fixture["expected_required_candidate_ids"]).issubset(selected_ids)
-        )
 
     def test_narrative_candidates_may_ground_scope_collectively(self) -> None:
         obligation = _obligation(

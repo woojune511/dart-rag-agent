@@ -159,6 +159,7 @@ class FinancialAgentPlanningMixin:
                 "concept": str(spec.get("concept") or ""),
                 "name": str(spec.get("name") or ""),
                 "aliases": list(spec.get("aliases") or [])[:8],
+                "unit_family": str(spec.get("unit_family") or ""),
                 "preferred_sections": list(spec.get("preferred_sections") or [])[:6],
                 "preferred_statement_types": list(
                     spec.get("preferred_statement_types") or []
@@ -216,6 +217,41 @@ class FinancialAgentPlanningMixin:
         report_period = _normalise_spaces(str(report_scope.get("year") or ""))
         query_consolidation_scopes = explicit_query_consolidation_scopes(query)
         allowed_query_consolidation_scopes = set(query_consolidation_scopes)
+        target_notes: List[str] = []
+
+        def normalize_semantic_target(
+            raw_target: Any,
+            *,
+            concept_hints: Any = (),
+        ) -> Dict[str, List[str]]:
+            target = dict(raw_target or {})
+
+            def normalized_values(values: Any) -> List[str]:
+                return list(
+                    dict.fromkeys(
+                        cleaned
+                        for item in (values or [])
+                        for cleaned in [_normalise_spaces(str(item or ""))]
+                        if cleaned
+                    )
+                )
+
+            requested_concepts = normalized_values(target.get("concept_keys"))
+            if not requested_concepts:
+                requested_concepts = normalized_values(concept_hints)
+            known_concepts: List[str] = []
+            for concept_key in requested_concepts:
+                if ontology.has_concept_key(concept_key):
+                    known_concepts.append(concept_key)
+                else:
+                    target_notes.append(
+                        f"unknown_semantic_target_concept:{concept_key}"
+                    )
+            return {
+                "local_subjects": normalized_values(target.get("local_subjects")),
+                "concept_keys": list(dict.fromkeys(known_concepts)),
+                "metric_surfaces": normalized_values(target.get("metric_surfaces")),
+            }
 
         def normalize_scope(
             raw_scope: Any,
@@ -266,6 +302,11 @@ class FinancialAgentPlanningMixin:
         for index, obligation in enumerate(raw_obligations, start=1):
             stable_id = f"ob_{index:03d}"
             scope = normalize_scope(obligation.get("scope"))
+            obligation_concept_hints = list(obligation.get("concept_hints") or [])
+            obligation_target = normalize_semantic_target(
+                obligation.get("semantic_target"),
+                concept_hints=obligation_concept_hints,
+            )
             evidence_requirements = []
             for requirement_index, requirement in enumerate(
                 obligation.get("evidence_requirements") or [],
@@ -301,6 +342,10 @@ class FinancialAgentPlanningMixin:
                                 if _normalise_spaces(str(item))
                             )
                         ),
+                        "semantic_target": normalize_semantic_target(
+                            requirement.get("semantic_target"),
+                            concept_hints=requirement.get("concept_hints") or [],
+                        ),
                     }
                 )
             dependencies = [
@@ -333,6 +378,7 @@ class FinancialAgentPlanningMixin:
                             if _normalise_spaces(str(item))
                         )
                     ),
+                    "semantic_target": obligation_target,
                     "evidence_requirements": evidence_requirements,
                     "depends_on": list(dict.fromkeys(dependencies)),
                     "coupling_key": _normalise_spaces(
@@ -467,6 +513,7 @@ class FinancialAgentPlanningMixin:
                 for item in (
                     "requirement_planner",
                     _normalise_spaces(str(planned.rationale or "")),
+                    *list(dict.fromkeys(target_notes)),
                 )
                 if item
             ],

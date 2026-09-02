@@ -84,11 +84,28 @@ Candidate applicability has exactly three states:
 - `unknown_only`
 - `explicit_conflict`
 
-After relevance and local-subject admission within an owner cohort, compatible
-candidates rank first, unknown-only candidates may fill remaining capacity, and
-explicit conflicts are excluded. A source-defined narrative evidence cohort
-preserves at most one relevance-positive prose candidate in each admitted
-applicability tier; it never displaces a candidate from a stronger tier.
+Each obligation and evidence requirement may declare `SemanticTargetV1` with
+`local_subjects`, ontology-backed `concept_keys`, and query-visible
+`metric_surfaces`. `scope.company` remains the filing boundary and is never
+silently copied into local subject identity. Unknown concept keys are discarded
+with a planner note rather than becoming runtime vocabulary.
+
+The complete immutable candidate catalog is projected into generic fact views.
+Owner matching then evaluates independent scope, local-subject, owner-kind,
+document-subject, unit, metric, and physical-locality factors. Repeated words do
+not accumulate an additive relevance score and cannot compensate for an
+explicit scope, subject, or unit conflict. Within each owner cohort,
+`compatible` candidates always rank before `unknown_only`; explicit conflicts
+are excluded. Equal factor tiers are deterministic and source-diverse.
+
+Structured prompt rows contain only the physical cell value and its row/column
+axes, not the parent chunk's flattened table body. The prompt receives the
+factor projection but does not rerank it. Validation recomputes the same matcher
+for explicitly declared semantic targets and rejects a visible but conflicting
+ID as `candidate_semantic_target_mismatch`. During the schema transition, a
+target-less legacy owner may derive a local subject only from catalog identity
+surfaces that also occur in the owner text.
+
 Numeric owners have capacity four, narrative requirements six, and numeric
 compatibility narrative capacity two. Query-wide reservation remains bounded by
 96 numeric and 32 narrative candidates. Overflow fails before compiler calls;
@@ -149,9 +166,9 @@ island has one internal retry at most:
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v3` records
-island composition, call/retry counts, visibility fingerprints, and prompt
-bytes.
+original obligation order. `semantic_candidate_stage_diagnostics_v4` records
+owner factor counts, island composition, call/retry counts, visibility
+fingerprints, and prompt bytes.
 
 ## 7. Retrieval boundary
 

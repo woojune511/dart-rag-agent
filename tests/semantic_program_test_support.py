@@ -29,22 +29,18 @@ from src.agent.financial_graph_calculation import (
     _merge_targeted_program_retry,
     _retry_candidate_exclusions,
     _semantic_candidate_cohorts,
-    _semantic_obligation_relevance_groups,
-    _semantic_required_evidence_relevance_groups,
     build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
-    select_semantic_prompt_candidates,
     semantic_candidate_id_fingerprint,
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
-    CONSOLIDATION_SCOPE_POLICY,
     PLANNING_POLICY,
 )
 

@@ -876,10 +876,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
     def test_flattened_table_summary_is_not_binding_authority(self) -> None:
         fixture = _contract_residual_fixture()["candidate_admission"]
         source_metadata = fixture["source_candidates"][0]["metadata"]
-        catalog = build_semantic_candidate_catalog(
-            fixture["source_candidates"],
-            relevance_texts=fixture["relevance_texts"],
-        )
+        catalog = build_semantic_candidate_catalog(fixture["source_candidates"])
         raw_values = {
             str(item.get("raw_value") or "")
             for item in catalog
@@ -909,21 +906,6 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         )
 
         self.assertEqual(target["source_text"], fixture["expected_context"])
-        selected = select_semantic_prompt_candidates(
-            catalog,
-            relevance_groups=[[fixture["required_surface"]]],
-            required_numeric_relevance_groups=[
-                [fixture["required_surface"]]
-            ],
-            max_numeric_candidates=2,
-            max_narrative_candidates=0,
-            max_required_candidates_per_group=2,
-        )
-
-        self.assertIn(
-            target["candidate_id"],
-            {item["candidate_id"] for item in selected},
-        )
 
     def test_direct_binding_accepts_subject_from_structured_same_row_header(self) -> None:
         fixture = _contract_residual_fixture()["direct_binding"]["subject_identity"]
