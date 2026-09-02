@@ -19,18 +19,23 @@ from src.ops.benchmark_runner import (
     _apply_llm_route_overrides,
     _build_agent_routing_config,
     _build_cross_company_rows,
+    _build_store_only_manifest,
     _build_winner_ranking,
     _estimate_embedding_cost_usd,
     _estimate_cost_usd,
     _flatten_review_rows,
     _progress_watch_path_summary,
+    _run_eval_only_full_evaluation,
     _rerun_company_full_evaluation_only,
     _rerun_single_full_evaluation_only,
     _render_cross_company_summary_markdown,
     _render_summary_markdown,
     _serialise_eval_results,
+    _write_multi_company_outputs,
+    _write_store_only_manifest,
     _write_json,
     main as benchmark_main,
+    run_screening_experiment,
 )
 
 
@@ -43,6 +48,48 @@ def _write_results_json_only(**kwargs) -> None:
             "results": kwargs["results"],
         },
     )
+
+
+def _canonical_store_only_profile(root: Path) -> tuple[Path, Path, dict, list, list]:
+    report_path = root / "2023_report.html"
+    report_path.write_text("<html><body>local report</body></html>", encoding="utf-8")
+    output_dir = root / "output"
+    defaults = {
+        "chunk_size": 2500,
+        "chunk_overlap": 320,
+        "ingest_mode": "structural_selective_v2",
+        "embedding_provider": "openai",
+        "embedding_model_name": "text-embedding-3-large",
+    }
+    experiments = [{"id": "structural_selective_v2_prefix_2500_320"}]
+    company_runs = [
+        {
+            "id": "example_2023",
+            "defaults": {
+                "report_path": str(report_path),
+                "metadata": {
+                    "company": "Example",
+                    "year": 2023,
+                    "report_type": "annual",
+                    "rcept_no": "20230000000001",
+                },
+            },
+        }
+    ]
+    config_path = root / "profile.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "defaults": defaults,
+                "candidate_ids": ["structural_selective_v2_prefix_2500_320"],
+                "experiments": experiments,
+                "company_runs": company_runs,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return config_path, output_dir, defaults, experiments, company_runs
 
 
 class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
@@ -369,6 +416,144 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                 _BenchmarkProgressReporter,
             )
 
+    def test_store_only_manifest_is_canonical_stable_and_immutable(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path, output_dir, defaults, experiments, company_runs = _canonical_store_only_profile(root)
+            kwargs = {
+                "config_path": config_path,
+                "output_dir": output_dir,
+                "defaults": defaults,
+                "shared_experiments": experiments,
+                "company_runs": company_runs,
+                "requested_company_ids": ["example_2023"],
+            }
+
+            first = _build_store_only_manifest(**kwargs)
+            second = _build_store_only_manifest(**kwargs)
+            manifest_path = _write_store_only_manifest(output_dir, first)
+            _write_store_only_manifest(output_dir, second)
+
+            changed = dict(second)
+            changed["report_sha256"] = "different"
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                _write_store_only_manifest(output_dir, changed)
+
+            persisted = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(first, second)
+        self.assertEqual(persisted["execution_mode"], "store_only")
+        self.assertEqual(persisted["ingest"]["report_inventory"], "primary_report_only")
+        self.assertFalse(persisted["ingest"]["auto_fetch_missing_report"])
+        self.assertEqual(persisted["embedding"]["provider"], "openai")
+        self.assertEqual(persisted["embedding"]["model_name"], "text-embedding-3-large")
+        self.assertEqual(persisted["embedding"]["dimension"], 3072)
+        self.assertIn("full_evaluation", persisted["forbidden_operations"])
+
+    def test_store_only_preflight_stops_before_company_or_provider_dispatch(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path, output_dir, _, _, _ = _canonical_store_only_profile(root)
+            argv = [
+                "benchmark_runner",
+                "--config",
+                str(config_path),
+                "--output-dir",
+                str(output_dir),
+                "--company-run-id",
+                "example_2023",
+                "--store-only",
+                "--preflight-only",
+            ]
+
+            with patch.object(sys, "argv", argv), patch(
+                "src.ops.benchmark_runner._run_company_bundle"
+            ) as run_company, patch(
+                "src.ops.benchmark_runner._vector_store_manager_cls"
+            ) as vector_store_factory:
+                benchmark_main()
+
+            manifest = json.loads((output_dir / "store_only_manifest.json").read_text(encoding="utf-8"))
+
+        run_company.assert_not_called()
+        vector_store_factory.assert_not_called()
+        self.assertEqual(manifest["company_run_id"], "example_2023")
+
+    def test_store_only_execution_does_not_load_dataset_or_run_evaluation(self) -> None:
+        class FakeVectorStore:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class FakeParser:
+            calls = []
+
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+            def process_document(self, report_path, metadata):
+                self.calls.append((report_path, dict(metadata)))
+                return [SimpleNamespace(content="local report", metadata=dict(metadata))]
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            config_path, output_dir, defaults, experiments, company_runs = _canonical_store_only_profile(root)
+            config = {**defaults, **company_runs[0]["defaults"], **experiments[0]}
+            ingest_metrics = {
+                "mode": "structural_selective_v2",
+                "chunks": 1,
+                "api_calls": 0,
+                "elapsed_sec": 0.01,
+                "embedding_usage": {},
+                "artifacts": {"texts": [], "metadatas": [], "parents": {}},
+            }
+
+            with patch(
+                "src.ops.benchmark_runner._vector_store_manager_cls",
+                return_value=FakeVectorStore,
+            ), patch(
+                "src.ops.benchmark_runner._financial_agent_cls"
+            ) as financial_agent_factory, patch(
+                "src.ops.benchmark_runner._financial_parser_cls",
+                return_value=FakeParser,
+            ), patch(
+                "src.ops.benchmark_runner._run_ingest",
+                return_value=ingest_metrics,
+            ) as run_ingest, patch(
+                "src.ops.benchmark_runner._load_eval_dataset"
+            ) as load_dataset, patch(
+                "src.ops.benchmark_runner._run_smoke_queries"
+            ) as run_smoke, patch(
+                "src.ops.benchmark_runner._run_screening_eval"
+            ) as run_screening:
+                result = run_screening_experiment(
+                    config,
+                    output_dir,
+                    {},
+                    {"enabled": True, "question_ids": ["Q1"]},
+                    store_only=True,
+                )
+
+            effective_config = run_ingest.call_args.args[2]
+            cache_meta = json.loads(
+                (Path(result["store"]["persist_directory"]) / "benchmark_cache_meta.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+
+        load_dataset.assert_not_called()
+        financial_agent_factory.assert_not_called()
+        run_smoke.assert_not_called()
+        run_screening.assert_not_called()
+        self.assertEqual(len(FakeParser.calls), 1)
+        self.assertEqual(len(effective_config["report_inventory"]), 1)
+        self.assertFalse(effective_config["auto_fetch_missing_report"])
+        self.assertEqual(result["execution_mode"], "store_only")
+        self.assertIsNone(result["screen_pass"])
+        self.assertEqual(result["smoke"], {})
+        self.assertEqual(result["screening_eval"], {})
+        self.assertEqual(result["full_eval"], {})
+        self.assertEqual(cache_meta["status"], "completed")
+
     def test_write_json_replaces_from_same_directory(self) -> None:
         with TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "results.json"
@@ -430,8 +615,15 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             source = root / "source"
             target = root / "target"
             source.mkdir()
+            source_store = source / "store"
+            source_store.mkdir()
+            (source_store / "store.bin").write_bytes(b"source-store")
             source_payload = {
-                "recorded_matrix": {"mode": "single_company"},
+                "recorded_matrix": {
+                    "mode": "single_company",
+                    "execution_mode": "store_only",
+                    "full_evaluation": {"question_ids": ["source-question"]},
+                },
                 "full_eval_candidates": ["exp-1"],
                 "results": [
                     {
@@ -440,6 +632,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                         "ingest": {},
                         "screening_eval": {},
                         "full_eval": {"marker": "source"},
+                        "store": {
+                            "persist_directory": str(source_store),
+                            "collection_name": "sample",
+                        },
                     }
                 ],
             }
@@ -460,7 +656,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                     experiments=[{"id": "exp-1"}],
                     merged_by_id={"exp-1": {"id": "exp-1"}},
                     screening_config={},
-                    full_eval_config={},
+                    full_eval_config={"question_ids": ["focused-question"]},
                 )
 
             source_after = json.loads((source / "results.json").read_text(encoding="utf-8"))
@@ -468,6 +664,19 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
 
         self.assertEqual(source_after, source_payload)
         self.assertEqual(target_after["results"][0]["full_eval"], {"marker": "refreshed"})
+        self.assertEqual(target_after["recorded_matrix"]["execution_mode"], "eval_only")
+        self.assertEqual(
+            target_after["recorded_matrix"]["source_execution_mode"],
+            "store_only",
+        )
+        self.assertEqual(
+            target_after["recorded_matrix"]["full_evaluation"]["question_ids"],
+            ["focused-question"],
+        )
+        self.assertEqual(
+            target_after["recorded_matrix"]["source_full_evaluation"]["question_ids"],
+            ["source-question"],
+        )
         self.assertEqual(Path(result["source_output_dir"]), source)
         self.assertEqual(Path(result["output_dir"]), target)
 
@@ -478,8 +687,15 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             target_root = root / "target"
             source_company = source_root / "company-output"
             source_company.mkdir(parents=True)
+            source_store = source_company / "store"
+            source_store.mkdir()
+            (source_store / "store.bin").write_bytes(b"source-store")
             source_payload = {
-                "recorded_matrix": {"mode": "company_run"},
+                "recorded_matrix": {
+                    "mode": "company_run",
+                    "execution_mode": "store_only",
+                    "full_evaluation": {"question_ids": ["source-question"]},
+                },
                 "full_eval_candidates": ["exp-1"],
                 "results": [
                     {
@@ -488,6 +704,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                         "ingest": {},
                         "screening_eval": {},
                         "full_eval": {"marker": "source"},
+                        "store": {
+                            "persist_directory": str(source_store),
+                            "collection_name": "sample",
+                        },
                     }
                 ],
             }
@@ -507,7 +727,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
                     global_defaults={},
                     shared_experiments=[{"id": "exp-1"}],
                     screening_config={},
-                    full_eval_config={},
+                    full_eval_config={"question_ids": ["focused-question"]},
                     company_run={
                         "id": "company-1",
                         "output_subdir": "company-output",
@@ -521,8 +741,77 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
 
         self.assertEqual(source_after, source_payload)
         self.assertEqual(target_after["results"][0]["full_eval"], {"marker": "refreshed"})
+        self.assertEqual(target_after["recorded_matrix"]["execution_mode"], "eval_only")
+        self.assertEqual(
+            target_after["recorded_matrix"]["source_execution_mode"],
+            "store_only",
+        )
+        self.assertEqual(
+            target_after["recorded_matrix"]["full_evaluation"]["question_ids"],
+            ["focused-question"],
+        )
+        self.assertEqual(
+            target_after["recorded_matrix"]["source_full_evaluation"]["question_ids"],
+            ["source-question"],
+        )
         self.assertEqual(Path(result["source_output_dir"]), source_company)
         self.assertEqual(Path(result["output_dir"]), target_root / "company-output")
+
+    def test_eval_only_uses_disposable_working_store_and_preserves_source_bytes(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source_store = root / "source-store"
+            source_store.mkdir()
+            source_file = source_store / "chroma.sqlite3"
+            source_file.write_bytes(b"immutable-source")
+            result = {
+                "id": "exp-1",
+                "store": {
+                    "persist_directory": str(source_store),
+                    "collection_name": "sample",
+                },
+            }
+            observed = {}
+
+            def mutate_working_store(working_result, *_args, **_kwargs):
+                working_store = Path(working_result["store"]["persist_directory"])
+                observed["working_store"] = working_store
+                self.assertNotEqual(working_store, source_store)
+                (working_store / "chroma.sqlite3").write_bytes(b"mutated-working-copy")
+                return {"status": "done"}
+
+            with patch(
+                "src.ops.benchmark_runner._run_full_evaluation",
+                side_effect=mutate_working_store,
+            ):
+                evaluation = _run_eval_only_full_evaluation(result, {}, {})
+
+            self.assertEqual(evaluation, {"status": "done"})
+            self.assertEqual(source_file.read_bytes(), b"immutable-source")
+            self.assertEqual(
+                result["store"]["persist_directory"],
+                str(source_store),
+            )
+            self.assertFalse(observed["working_store"].exists())
+
+    def test_multi_company_outputs_record_eval_only_execution_mode(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            _write_multi_company_outputs(
+                output_dir=root,
+                config_path=root / "profile.json",
+                defaults={},
+                experiments=[],
+                company_runs=[],
+                screening_config={},
+                full_eval_config={},
+                company_bundles=[],
+                execution_mode="eval_only",
+            )
+
+            payload = json.loads((root / "results.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["execution_mode"], "eval_only")
 
     def test_progress_watch_path_summary_reports_latest_file(self) -> None:
         with TemporaryDirectory() as temp_dir:
