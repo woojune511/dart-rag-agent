@@ -42,7 +42,13 @@
 
 ## Support and experimental surfaces
 
-- `src/ops/`: evaluator, benchmark, audit, replay, and diagnostic entry points.
+| Path | Responsibility |
+| --- | --- |
+| `src/ops/evaluator.py` | evaluator-only numeric and source-qualified variant contracts |
+| `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
+| `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
+| `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
+
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.
 - `app.py`: experimental Streamlit client.
 - `tests/`: unit and contract gates. Semantic program coverage is split by

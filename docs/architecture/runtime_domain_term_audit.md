@@ -122,6 +122,10 @@ policy.
 A calculation scope follow-up moved note-context and consolidation section
 markers used by dependency/evidence scope checks onto existing retrieval
 policies.
+On 2026-09-01 the reviewed parser-only footnote pattern in
+`financial_row_surfaces.py` was widened from bare `(*)` annotations to numbered
+forms such as `(*1,5)`. This removes structural note markers from a preserved row
+label; it does not add a financial concept, company, metric, or routing keyword.
 
 | Metric | Count |
 | --- | ---: |
