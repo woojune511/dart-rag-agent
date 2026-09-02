@@ -8,8 +8,9 @@ Last updated: 2026-09-02
 - Branch: `codex/runtime-contract-integration`
 - Immutable base: `a278c1a`
 - Clean redesign predecessor: `8790f92`
-- The original dirty checkout at `C:\Users\geonj\Desktop\dart-rag-agent` was not
-  edited, cleaned, staged, or used as an output directory.
+- The original dirty checkout's 23 tracked/untracked predecessor paths remain
+  byte-identical and unstaged. The separately approved ignored store manifest
+  was added under its `data/chroma_dart` directory.
 
 ## Current implementation
 
@@ -46,12 +47,14 @@ evaluator, replay, and promotion tools remain optional or experimental.
   tolerances, or historical result bundles are rewritten. The three curated
   dataset slices add the same source-qualified calculation variants only to
   `LGE_T1_051`; `HYU_T3_072` remains review-only and is not registered.
-- No existing store receives a manifest automatically. The adoption CLI is
-  dry-run unless `--write-manifest` is explicitly supplied after separate review.
+- No existing store receives a manifest automatically. The approved adoption
+  wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
+  remained byte-identical.
 - No provider call, paid evaluation, fresh ingest, automatic benchmark retry, or
-  document embedding is authorized by this implementation task.
-- The current `data/chroma_dart` store remains an immutable predecessor and is
-  expected to be unready until separately validated and approved for adoption.
+  document embedding is authorized until the exact admission below receives a
+  separate approval.
+- The `data/chroma_dart` manifest layer now reports exact `compatible`,
+  `ready=true`, and `degraded=false`. This is not provider-query validation.
 
 ## Verification authority
 
@@ -69,11 +72,24 @@ network-blocked reprojection of the three stored source windows preserved source
 hashes and confirmed the expected T2, T3, and Samsung candidate boundaries; the
 integration does not claim a new provider or three-row runtime result.
 
-The legacy `data/chroma_dart` store was inspected through a temporary copy. Its
-collection `dart_reports_v2`, dimension `3072`, and declared canonical profile
-were compatible. The corrected dry-run and the original source store were
-byte-identical before and after inspection. No manifest was written.
+The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
+`98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
+Its collection is `dart_reports_v2`, dimension is `3072`, and the declared
+profile is canonical. All seven predecessor store files remained byte-identical.
 
-Provider validation remains a separate final gate. It may run once, store-fixed
-and eval-only with a 30-second heartbeat, only after a new manifest hash and cost
-estimate receive explicit approval.
+The ignored local admission directory
+`benchmarks/results/runtime_contract_integration_focused_admission_2026-09-02`
+binds the current 134-file runtime build, unchanged profile/dataset, immutable
+Hyundai and Samsung source stores, and the ordered questions `HYU_T2_010`,
+`HYU_T3_072`, then `SAM_T2_078`. Two fresh no-call processes produced the same
+5,640-byte receipt. Admission manifest SHA-256 is
+`cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`;
+receipt SHA-256 is
+`d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`.
+Both recorded zero provider constructors, network calls, and outputs.
+
+Provider validation remains a separate final gate. The proposed authorization
+is one store-fixed eval-only run, no automatic run retry, a 30-second heartbeat,
+and a USD `0.40` ceiling. The latest same-scope runner estimate is USD
+`0.1442999`, excluding embedding pricing. This exact hash-and-cost scope still
+requires explicit approval.

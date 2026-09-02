@@ -10,9 +10,9 @@ Last updated: 2026-09-02
 | Active branch | `codex/runtime-contract-integration` from clean redesign `8790f92` |
 | Runtime state | Boundary redesign and the preserved predecessor changes are integrated in a clean worktree |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
-| Store readiness | Legacy store dry-run is compatible, but no manifest was written; missing/mismatch still returns 503 unless explicit BM25-only degraded mode is configured |
+| Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
 | Provider evidence | Not refreshed; no call, paid run, fresh ingest, or embedding was performed in this integration |
-| Release status | Local source gates pass; release remains withheld until separately approved manifest adoption and store-fixed eval-only validation |
+| Release status | Local source and manifest gates pass; release remains withheld until the exact store-fixed eval-only admission is separately approved and executed |
 
 ## Current boundaries
 
@@ -58,22 +58,32 @@ operand, and result fields are unchanged. The HYU T3 source review records one
 possible same-basis consolidated tuple but deliberately does not register it or
 change the mixed-basis canonical key.
 
-A dry-run against a temporary copy of `data/chroma_dart` found the expected
-`dart_reports_v2` collection and dimension `3072`, with the canonical ingest
-profile declared. The copy and original store remained byte-identical and no
-manifest was written. Provider validation still requires a separate approval
-covering a written manifest SHA and estimated cost. Only one store-fixed
-eval-only run with a 30-second heartbeat is allowed; automatic retry and fresh
-ingest are forbidden.
+The approved adoption added only `data/chroma_dart/store_manifest.json`, SHA-256
+`98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
+All seven predecessor store files remained byte-identical. The pure manifest
+readiness check returns exact `compatible`, `ready=true`, and `degraded=false`;
+no provider query was made.
+
+A new ignored three-row admission binds the current runtime and the ordered
+scope `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`. Its manifest SHA-256 is
+`cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`.
+Two production-order no-call processes produced byte-identical 5,640-byte
+receipts at
+`d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`,
+with provider/network/output counts all zero and source/target/temp invariants
+intact. The latest same-scope runner estimate is USD `0.1442999`, excluding
+embedding pricing; the proposed one-run ceiling is USD `0.40`.
 
 ## Next work
 
-1. Review or merge `codex/runtime-contract-integration`; the original dirty
-   checkout remains the immutable predecessor.
-2. If store adoption is desired, approve the manifest write separately and
-   record the resulting manifest SHA. Compatibility alone is not authorization.
-3. Prepare a new store-fixed eval-only manifest and cost estimate. The one
-   provider-backed run remains a separate approval decision.
+1. Approve or decline the exact admission manifest
+   `cb188492...683a8`, one-run scope, and USD `0.40` ceiling. Rehearsal and
+   compatibility do not authorize provider dispatch.
+2. If approved, rerun the no-call rehearsal immediately before dispatch and
+   require the same hashes, then execute once with the 30-second heartbeat.
+3. Preserve the artifacts and stop without a paid retry unless all three rows
+   meet runtime completeness, runtime error `0`, and ledger `ok`; then review or
+   merge `codex/runtime-contract-integration`.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the
