@@ -104,6 +104,24 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_openapi_declares_ingest_and_query_requests_as_json_bodies(self) -> None:
+        services, _, _ = _services()
+        app = FastAPI()
+        app.state.services = services
+        app.include_router(get_router())
+
+        schema = app.openapi()
+        for path in ("/api/ingest", "/api/query"):
+            operation = schema["paths"][path]["post"]
+            self.assertIn("application/json", operation["requestBody"]["content"])
+            self.assertNotIn(
+                "req",
+                {
+                    parameter.get("name")
+                    for parameter in operation.get("parameters", [])
+                },
+            )
+
     def test_liveness_is_independent_but_readiness_is_strict(self) -> None:
         services, agent, _ = _services(status="missing", ready=False)
         with _client(services) as client:
