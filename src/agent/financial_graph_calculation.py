@@ -26,6 +26,10 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_stage_diagnostics,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_contracts import (
+    CandidateVisibilityV1,
+    CompilationEnvelopeV1,
+)
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
 from src.agent.financial_scope_policies import is_scope_only_period_surface
 from src.agent.financial_task_artifacts import (
@@ -40,6 +44,45 @@ from src.config.retrieval_policy import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _semantic_candidate_visibility(
+    catalog: Sequence[Mapping[str, Any]],
+    *,
+    visible_candidate_ids: Sequence[Any],
+    candidate_ids_by_owner: Mapping[str, Sequence[Any]],
+) -> CandidateVisibilityV1:
+    """Freeze the complete candidate authority used for one validation."""
+
+    requested_ids = {
+        str(candidate_id)
+        for candidate_id in visible_candidate_ids
+        if str(candidate_id)
+    }
+    requested_ids.update(
+        str(candidate_id)
+        for candidate_ids in candidate_ids_by_owner.values()
+        for candidate_id in candidate_ids
+        if str(candidate_id)
+    )
+    catalog_order = [
+        str(item.get("candidate_id") or "")
+        for item in catalog
+        if str(item.get("candidate_id") or "")
+    ]
+    ordered_visible_ids = [
+        candidate_id
+        for candidate_id in catalog_order
+        if candidate_id in requested_ids
+    ]
+    ordered_visible_ids.extend(
+        sorted(requested_ids.difference(ordered_visible_ids))
+    )
+    return CandidateVisibilityV1.create(
+        catalog_fingerprint=semantic_candidate_catalog_fingerprint(catalog),
+        visible_candidate_ids=ordered_visible_ids,
+        candidate_ids_by_owner=candidate_ids_by_owner,
+    )
 
 
 def _semantic_scope_free_relevance_surface(
@@ -1204,6 +1247,11 @@ class FinancialAgentCalculationMixin:
                 cohort_plan.get("candidate_ids_by_owner") or {}
             ).items()
         }
+        validation_visibility = _semantic_candidate_visibility(
+            catalog,
+            visible_candidate_ids=prompt_candidate_ids,
+            candidate_ids_by_owner=initial_selectable_ids_by_owner,
+        )
         candidate_by_id = {
             str(item.get("candidate_id") or ""): dict(item)
             for item in catalog
@@ -1239,8 +1287,7 @@ class FinancialAgentCalculationMixin:
             obligations=obligations,
             candidate_catalog=catalog,
             query=query,
-            selectable_candidate_ids=prompt_candidate_ids,
-            selectable_candidate_ids_by_owner=initial_selectable_ids_by_owner,
+            candidate_visibility=validation_visibility,
         )
         retry_count = 0
         invocation_errors: List[str] = []
@@ -1338,8 +1385,20 @@ class FinancialAgentCalculationMixin:
                     obligations=obligations,
                     candidate_catalog=catalog,
                     query=query,
-                    selectable_candidate_ids_by_owner=(
-                        validation_selectable_ids_by_owner
+                    candidate_visibility=(
+                        validation_visibility := _semantic_candidate_visibility(
+                            catalog,
+                            visible_candidate_ids=[
+                                candidate_id
+                                for candidate_ids in (
+                                    validation_selectable_ids_by_owner.values()
+                                )
+                                for candidate_id in candidate_ids
+                            ],
+                            candidate_ids_by_owner=(
+                                validation_selectable_ids_by_owner
+                            ),
+                        )
                     ),
                 )
                 proposed_ids = [
@@ -1516,6 +1575,11 @@ class FinancialAgentCalculationMixin:
                     indent=2,
                 )
 
+        compilation_envelope = CompilationEnvelopeV1.create(
+            visibility=validation_visibility,
+            program=program_data,
+            validation=validation,
+        )
         candidate_stage_diagnostics = semantic_candidate_stage_diagnostics(
             state=state,
             source_candidates=source_candidates,
@@ -1574,6 +1638,10 @@ class FinancialAgentCalculationMixin:
             "program_validation_history": validation_history,
             "program_retry_count": retry_count,
             "candidate_catalog_fingerprint": semantic_candidate_catalog_fingerprint(catalog),
+            "candidate_visibility": validation_visibility.to_projection(),
+            "compile_validation_fingerprint": (
+                compilation_envelope.validation_fingerprint
+            ),
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_catalog_rows),
             "prompt_candidate_ids": prompt_candidate_ids,
@@ -1641,6 +1709,7 @@ class FinancialAgentCalculationMixin:
             "semantic_candidate_catalog": catalog,
             "semantic_program": program_data,
             "semantic_program_validation": validation,
+            "semantic_compilation_envelope": compilation_envelope,
             "semantic_program_retry_count": retry_count,
             "missing_info": list(validation.get("missing_obligation_ids") or []),
             "planner_debug_trace": {
@@ -1677,17 +1746,18 @@ class FinancialAgentCalculationMixin:
             allow_legacy_top_level=False,
         )
         calculation_plan = dict(current_trace.get("calculation_plan") or {})
-        selectable_candidate_ids = (
-            list(calculation_plan.get("prompt_candidate_ids") or [])
-            if "prompt_candidate_ids" in calculation_plan
-            else None
-        )
+        compilation_envelope = state.get("semantic_compilation_envelope")
         execution = execute_semantic_calculation_program(
             program=dict(state.get("semantic_program") or {}),
             obligations=obligations,
             candidate_catalog=catalog,
             query=str(state.get("query") or ""),
-            selectable_candidate_ids=selectable_candidate_ids,
+            compilation_envelope=(
+                compilation_envelope
+                if isinstance(compilation_envelope, CompilationEnvelopeV1)
+                else None
+            ),
+            require_compilation_envelope=True,
         )
         calculation_operands = list(execution.get("calculation_operands") or [])
         calculation_result = dict(execution.get("calculation_result") or {})
@@ -1802,7 +1872,6 @@ class FinancialAgentCalculationMixin:
             "structured_result": structured_result,
             "subtask_results": output_rows,
             "subtask_loop_complete": True,
-            "semantic_program_validation": dict(execution.get("validation") or {}),
             "missing_info": list(execution.get("missing_obligation_ids") or []),
             "evidence_items": evidence_items,
             "runtime_evidence": evidence_items,

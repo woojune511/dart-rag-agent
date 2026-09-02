@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Literal, NotRequired, Optional, TypedDict
 
+from src.agent.financial_runtime_contracts import CompilationEnvelopeV1
+
 
 class RuntimeProjectionMetadata(TypedDict, total=False):
     source: str
@@ -209,6 +211,7 @@ class CalculationState(TypedDict):
     semantic_candidate_catalog: List[Dict[str, Any]]
     semantic_program: Dict[str, Any]
     semantic_program_validation: Dict[str, Any]
+    semantic_compilation_envelope: NotRequired[CompilationEnvelopeV1]
     semantic_program_retry_count: int
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]

@@ -4873,7 +4873,23 @@ class SemanticCalculationProgramGraphTests(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 2)
         self.assertIn('"evidence_mode": "source_defined_group"', str(llm.prompts[1]))
         self.assertIn('"requirement_id": "ob_003:req_001"', str(llm.prompts[1]))
+        compile_validation_bytes = json.dumps(
+            compiled["semantic_program_validation"],
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
         executed = agent._execute_semantic_calculation_program({**state, **compiled})
+        self.assertNotIn("semantic_program_validation", executed)
+        self.assertEqual(
+            json.dumps(
+                compiled["semantic_program_validation"],
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8"),
+            compile_validation_bytes,
+        )
         self.assertEqual(executed["structured_result"]["status"], "ok")
         self.assertIn(summary_text, executed["answer"])
         trace = executed["resolved_calculation_trace"]

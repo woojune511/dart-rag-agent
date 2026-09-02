@@ -22,6 +22,13 @@ from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
 )
+from src.agent.financial_runtime_contracts import (
+    CandidateVisibilityV1,
+    CompilationEnvelopeV1,
+)
+from src.agent.financial_reconciliation_candidates import (
+    semantic_candidate_catalog_fingerprint,
+)
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CALCULATION_RENDER_POLICY,
@@ -942,6 +949,7 @@ def validate_semantic_calculation_program(
     obligations: Sequence[Mapping[str, Any]],
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
+    candidate_visibility: Optional[CandidateVisibilityV1] = None,
     selectable_candidate_ids: Optional[Sequence[str]] = None,
     selectable_candidate_ids_by_owner: Optional[
         Mapping[str, Sequence[str]]
@@ -961,6 +969,11 @@ def validate_semantic_calculation_program(
         for item in candidate_rows
         if str(item.get("candidate_id") or "").strip()
     }
+    if candidate_visibility is not None:
+        selectable_candidate_ids = candidate_visibility.visible_candidate_ids
+        selectable_candidate_ids_by_owner = (
+            candidate_visibility.candidate_ids_by_owner()
+        )
     selectable_ids = (
         None
         if selectable_candidate_ids is None
@@ -1853,26 +1866,53 @@ def validate_semantic_calculation_program(
             coupling_groups.setdefault(coupling_key, []).append(obligation_id)
     invalid_coupled: set[str] = set()
     for coupling_key, obligation_ids in coupling_groups.items():
-        source_candidate_ids = [
-            candidate_id
+        if len(obligation_ids) < 2:
+            continue
+        source_candidate_ids_by_obligation = {
+            obligation_id: [
+                candidate_id
+                for candidate_id in sources_by_output.get(obligation_id, [])
+                if candidate_id in candidate_by_id
+                and candidate_id
+                not in set(
+                    compatibility_sources_by_output.get(obligation_id, [])
+                )
+            ]
             for obligation_id in obligation_ids
-            for candidate_id in sources_by_output.get(obligation_id, [])
-            if candidate_id in candidate_by_id
-            and candidate_id
-            not in set(compatibility_sources_by_output.get(obligation_id, []))
-        ]
-        contexts = {
-            _normalise_spaces(str(candidate_by_id[candidate_id].get("context_fingerprint") or ""))
-            for candidate_id in source_candidate_ids
-            if _normalise_spaces(
-                str(candidate_by_id[candidate_id].get("context_fingerprint") or "")
+        }
+        contexts_by_obligation = {
+            obligation_id: frozenset(
+                _normalise_spaces(
+                    str(
+                        candidate_by_id[candidate_id].get(
+                            "context_fingerprint"
+                        )
+                        or ""
+                    )
+                )
+                for candidate_id in candidate_ids
+                if _normalise_spaces(
+                    str(
+                        candidate_by_id[candidate_id].get(
+                            "context_fingerprint"
+                        )
+                        or ""
+                    )
+                )
+            )
+            for obligation_id, candidate_ids in (
+                source_candidate_ids_by_obligation.items()
             )
         }
         missing_context = any(
             not _normalise_spaces(
-                str(candidate_by_id[candidate_id].get("context_fingerprint") or "")
+                str(
+                    candidate_by_id[candidate_id].get("context_fingerprint")
+                    or ""
+                )
             )
-            for candidate_id in source_candidate_ids
+            for candidate_ids in source_candidate_ids_by_obligation.values()
+            for candidate_id in candidate_ids
         )
         compatibility_witnesses = {
             candidate_id
@@ -1880,15 +1920,14 @@ def validate_semantic_calculation_program(
             for candidate_id in compatibility_sources_by_output.get(obligation_id, [])
             if candidate_id in candidate_by_id
         }
-        if (
-            len(obligation_ids) > 1
-            and missing_context
-            and not compatibility_witnesses
-        ):
+        if missing_context and not compatibility_witnesses:
             for obligation_id in obligation_ids:
                 error("coupled_context_missing", obligation_id, coupling_key)
                 invalid_coupled.add(obligation_id)
-        elif len(contexts) > 1 and not compatibility_witnesses:
+        elif (
+            len(set(contexts_by_obligation.values())) > 1
+            and not compatibility_witnesses
+        ):
             for obligation_id in obligation_ids:
                 error("coupled_context_mismatch", obligation_id, coupling_key)
                 invalid_coupled.add(obligation_id)
@@ -2282,12 +2321,47 @@ def _render_semantic_program_answer(
     return _normalise_spaces(" ".join(str(item) for item in answer_parts if item))
 
 
+def _fail_closed_semantic_validation(
+    validation: Mapping[str, Any],
+    *,
+    code: str,
+    detail: str,
+    obligations: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    failed = dict(validation)
+    failed["status"] = "invalid"
+    failed["errors"] = [
+        *[
+            dict(item)
+            for item in (validation.get("errors") or [])
+            if isinstance(item, Mapping)
+        ],
+        {"code": code, "obligation_id": "", "detail": detail},
+    ]
+    failed["valid_direct_bindings"] = []
+    failed["valid_expressions"] = []
+    failed["valid_narrative_bindings"] = []
+    failed["selected_candidate_ids"] = []
+    failed["source_candidate_ids_by_obligation"] = {}
+    failed["inferred_units"] = {}
+    failed["missing_obligation_ids"] = [
+        str(item.get("obligation_id") or "")
+        for item in obligations
+        if bool(item.get("required", True))
+        and str(item.get("obligation_id") or "")
+    ]
+    return failed
+
+
 def execute_semantic_calculation_program(
     *,
     program: Mapping[str, Any],
     obligations: Sequence[Mapping[str, Any]],
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
+    compilation_envelope: Optional[CompilationEnvelopeV1] = None,
+    candidate_visibility: Optional[CandidateVisibilityV1] = None,
+    require_compilation_envelope: bool = False,
     selectable_candidate_ids: Optional[Sequence[str]] = None,
     selectable_candidate_ids_by_owner: Optional[
         Mapping[str, Sequence[str]]
@@ -2295,14 +2369,64 @@ def execute_semantic_calculation_program(
 ) -> Dict[str, Any]:
     """Execute only the validated subset and report completeness separately."""
 
+    authority_error: Optional[Tuple[str, str]] = None
+    if require_compilation_envelope and compilation_envelope is None:
+        authority_error = (
+            "visibility_mismatch",
+            "compile-time visibility envelope is missing",
+        )
+    if compilation_envelope is not None:
+        if (
+            candidate_visibility is not None
+            and candidate_visibility is not compilation_envelope.visibility
+        ):
+            authority_error = (
+                "visibility_mismatch",
+                "executor visibility is not the compile-time visibility object",
+            )
+        candidate_visibility = compilation_envelope.visibility
+        actual_catalog_fingerprint = semantic_candidate_catalog_fingerprint(
+            candidate_catalog
+        )
+        if (
+            actual_catalog_fingerprint
+            != compilation_envelope.visibility.catalog_fingerprint
+        ):
+            authority_error = (
+                "visibility_mismatch",
+                "candidate catalog fingerprint changed after compilation",
+            )
+        elif not compilation_envelope.matches_program(program):
+            authority_error = (
+                "validation_drift",
+                "semantic program changed after compile-time validation",
+            )
+
     validation = validate_semantic_calculation_program(
         program=program,
         obligations=obligations,
         candidate_catalog=candidate_catalog,
         query=query,
+        candidate_visibility=candidate_visibility,
         selectable_candidate_ids=selectable_candidate_ids,
         selectable_candidate_ids_by_owner=selectable_candidate_ids_by_owner,
     )
+    if (
+        compilation_envelope is not None
+        and authority_error is None
+        and not compilation_envelope.matches_validation(validation)
+    ):
+        authority_error = (
+            "validation_drift",
+            "runtime validation differs from compile-time validation",
+        )
+    if authority_error is not None:
+        validation = _fail_closed_semantic_validation(
+            validation,
+            code=authority_error[0],
+            detail=authority_error[1],
+            obligations=obligations,
+        )
     obligation_rows = [dict(item) for item in obligations if isinstance(item, Mapping)]
     obligation_by_id = {
         str(item.get("obligation_id") or ""): item for item in obligation_rows
