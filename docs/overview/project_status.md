@@ -50,6 +50,16 @@ covering the new manifest SHA and estimated cost. Only one store-fixed eval-only
 run with a 30-second heartbeat is allowed; automatic retry and fresh ingest are
 forbidden. T3 mixed-basis answer-key governance remains a separate dataset task.
 
+## Next work
+
+1. Integrate this clean redesign with the separately preserved dirty checkout in
+   a third worktree. Do not mutate the original checkout; resolve the four known
+   overlapping paths explicitly.
+2. Rerun focused, import/topology, full unittest, pycompile, and diff gates on the
+   integrated tree before changing store state.
+3. Run the store-manifest adoption CLI in dry-run mode. Any manifest write and
+   the one provider-backed eval-only run remain separate approval decisions.
+
 See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the
 normative contract, and the history documents for superseded implementation and

@@ -1,15 +1,18 @@
-# Core Runtime Surface Refactoring Plan
+# Core Runtime Surface Refactoring Plan (Historical)
 
 Last revised: 2026-09-01
 
-This is the active boundary and phased plan for reducing repository complexity
-while preserving verified financial QA behavior. Detailed chronology lives in
-Git history, `docs/history/implementation_history.md`, and
-`docs/history/experiment_history.md`; `docs/overview/project_status.md`
-contains current state and is the sole authority for next-work priority.
+Status: historical and superseded as an active work queue on 2026-09-02.
 
-`docs/architecture/agent_runtime_contract.md` remains authoritative for runtime
-behavior. Update both documents if a structural change alters that contract.
+This file preserves the phased rationale and completion record for the earlier
+surface refactoring. It is not a checklist for current work. Current state and
+next-work priority live only in `docs/overview/project_status.md`; normative
+runtime behavior lives in `docs/architecture/agent_runtime_contract.md`; live
+ownership is summarized in `docs/overview/codebase_map.md`.
+
+Use Git history, `docs/history/implementation_history.md`, and
+`docs/history/experiment_history.md` for chronology. Do not update this file for
+new implementation attempts unless correcting its historical record.
 
 ## Portfolio outcome
 

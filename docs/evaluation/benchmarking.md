@@ -1,10 +1,16 @@
-# Benchmarking Guide
+# Benchmarking Guide And Historical Run Log
 
 > Internal benchmark operations log, not a first-read portfolio document. Start
 > with [../../README.md](../../README.md) and
 > [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)
 > for the reviewer-facing experiment summary. This file keeps the detailed gate,
 > replay, and artifact interpretation history.
+>
+> Status: reference-only. Current validation and provider approval boundaries are
+> defined by [AGENTS.md](../../AGENTS.md),
+> [agent_runtime_contract.md](../architecture/agent_runtime_contract.md), and
+> [project_status.md](../overview/project_status.md). Dated profiles, commands,
+> scores, and "current" labels below describe their recorded checkpoint.
 
 Full raw benchmark bundles are local-only. Checked-in result material is limited
 to compact summaries or small historical diagnostics that are directly linked

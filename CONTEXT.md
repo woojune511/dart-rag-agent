@@ -21,6 +21,9 @@ The redesign is implemented as ordered commits:
 5. Final change: public `FinancialRunResultV1`, concise normative docs,
    generated topology, semantic-test split, and source-defined narrative
    evidence-cap preservation.
+6. Documentation follow-up: authority-first navigation, a bounded fast
+   development loop, and explicit historical labels for retired work queues and
+   gate logs.
 
 The product path is the single-agent `FinancialAgent`. MAS, Streamlit, benchmark,
 evaluator, replay, and promotion tools remain optional or experimental.

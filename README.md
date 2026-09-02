@@ -172,8 +172,10 @@ write approval.
 | Experimental | MAS facade, graph-expansion variants, cache/reflection promotion paths | Optional appendix; disabled or isolated by default |
 | Legacy compatibility | historical artifacts and superseded docs | Kept outside the runtime result and linked through history |
 
-The active cleanup sequence and deletion criteria are documented in
-[core_runtime_surface_refactoring_plan.md](docs/architecture/core_runtime_surface_refactoring_plan.md).
+Current runtime ownership and deletion boundaries are documented in the
+[runtime contract](docs/architecture/agent_runtime_contract.md) and
+[codebase map](docs/overview/codebase_map.md). The earlier phased cleanup plan is
+retained as historical rationale, not as the current work queue.
 
 ## Repository map
 

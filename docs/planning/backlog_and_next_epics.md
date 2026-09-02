@@ -1,9 +1,16 @@
 # Backlog And Next Epics
 
-이 문서는 **현재 backlog와 future epics를 관리하는 living document**다.
+Status: historical roadmap snapshot; last active priority list was recorded on
+2026-06-08.
+
+현재 우선순위와 다음 작업의 권위 문서는
+[project_status.md](../overview/project_status.md)다. 이 파일의 수치, 구현 상태,
+추천 순서는 과거 방향을 보존하며 현재 backlog로 실행하지 않는다.
+
+이 문서는 **당시 backlog와 future epics를 보존하는 historical document**다.
 
 - 끝난 실험의 상세 로그를 계속 누적하지는 않고
-- 현재 backlog 우선순위와 future epic 정의를 최신 상태로 유지
+- 당시 backlog 우선순위와 future epic 정의를 보존
 
 하는 용도로 쓴다.
 
@@ -1124,7 +1131,7 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
 - `"2024년 삼성전자와 SK하이닉스의 연구개발비 비중 차이를 구해줘"` 같은 질문을
   entity/report/period 혼동 없이 처리
 
-## 현재 추천 우선순위
+## 당시 추천 우선순위 (2026-06-08)
 
 1. `src.ops.portfolio_review_gates`를 green으로 유지해 reviewer-facing
    capability bundle이 계속 한 번에 확인되도록 한다.
