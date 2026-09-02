@@ -38,6 +38,7 @@ class AgentAnswer(TypedDict, total=False):
     routing_source: str
     routing_confidence: float
     routing_scores: Dict[str, float]
+    routing_degraded_reason: str
     companies: List[str]
     years: List[int]
     answer: str
@@ -169,6 +170,7 @@ class RoutingState(TypedDict):
     routing_source: str
     routing_confidence: float
     routing_scores: Dict[str, float]
+    routing_degraded_reason: str
     companies: List[str]
     years: List[int]
     topic: str

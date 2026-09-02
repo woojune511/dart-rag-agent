@@ -1,6 +1,4 @@
-"""
-Contextual ingest helpers for the financial graph agent.
-"""
+"""Context generation and indexing owned by the ingest boundary."""
 
 import logging
 import os
@@ -28,7 +26,13 @@ def _context_block_type_label(metadata: dict) -> str:
     return str(labels["paragraph"])
 
 
-class FinancialAgentContextualMixin:
+class ContextGenerator:
+    """Context generation and indexing service, independent of FinancialAgent."""
+
+    def __init__(self, llm: Any, store: Any) -> None:
+        self.llm = llm
+        self.vsm = store
+
     def ingest(self, chunks: List) -> None:
         if not chunks:
             logger.warning("[ingest] chunks are empty.")

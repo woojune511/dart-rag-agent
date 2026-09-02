@@ -118,6 +118,7 @@ class FinancialAgentPlanningMixin:
             "routing_source": result.routing_source,
             "routing_confidence": float(result.routing_confidence or 0.0),
             "routing_scores": dict(result.routing_scores or {}),
+            "routing_degraded_reason": str(result.degraded_reason or ""),
         }
 
     def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:

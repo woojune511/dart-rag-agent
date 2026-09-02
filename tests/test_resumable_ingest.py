@@ -27,6 +27,7 @@ from src.ops.benchmark_runner import (
 from src.ops.evaluator import EvalExample
 from src.ingestion.dart_fetcher import ReportMetadata
 from src.storage import document_batches
+from src.storage.store_manifest import canonical_store_manifest
 from src.storage.vector_store import VectorStoreManager
 
 
@@ -287,6 +288,9 @@ class ResumableIngestTests(unittest.TestCase):
             "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         )
         self.assertEqual(store_signature["embedding"]["dimension"], 384)
+        self.assertEqual(store_signature["schema_version"], "store_manifest_v1")
+        self.assertEqual(store_signature["ingest"]["chunk_size"], 2500)
+        self.assertEqual(store_signature["ingest"]["chunk_overlap"], 320)
         self.assertEqual(cache_signature["store_signature"], store_signature)
 
     def test_cache_signature_tracks_multi_report_inventory(self) -> None:
@@ -438,28 +442,20 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual([example.id for example in selected], ["SAM_T2_078", "SAM_T2_002"])
 
     def test_store_signature_mismatch_detects_embedding_dimension_change(self) -> None:
-        expected = {
-            "store_signature": {
-                "collection_name": "dart_reports_v2_test",
-                "embedding": {
-                    "provider": "huggingface",
-                    "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-                    "dimension": 384,
-                },
-            }
-        }
-        actual = {
-            "store_signature": {
-                "collection_name": "dart_reports_v2_test",
-                "embedding": {
-                    "provider": "google",
-                    "model_name": "models/gemini-embedding-2",
-                    "dimension": 3072,
-                },
-            }
-        }
+        expected = canonical_store_manifest(
+            collection_name="dart_reports_v2_test",
+            embedding_provider="huggingface",
+            embedding_model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+            embedding_dimension=384,
+        ).to_projection()
+        actual = canonical_store_manifest(
+            collection_name="dart_reports_v2_test",
+            embedding_provider="google",
+            embedding_model_name="models/gemini-embedding-2",
+            embedding_dimension=3072,
+        ).to_projection()
 
-        self.assertFalse(_store_signature_matches(actual, expected["store_signature"]))
+        self.assertFalse(_store_signature_matches(actual, expected))
 
     def test_search_raises_when_query_fallback_disabled(self) -> None:
         manager = self._make_manager()

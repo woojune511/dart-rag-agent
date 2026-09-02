@@ -39,3 +39,4 @@ class QueryRouteResult(_DeferredBaseModel):
     second_intent: Optional[QueryIntent] = None
     margin: float = 0.0
     required_margin: float = 0.0
+    degraded_reason: Optional[str] = None

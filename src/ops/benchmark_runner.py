@@ -25,8 +25,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config.runtime_contract import CANONICAL_INGEST_MODE
+from src.config.runtime_contract import (
+    CANONICAL_INGEST_MODE,
+    CANONICAL_INGEST_PROFILE_ID,
+    CANONICAL_PARSER_SCHEMA_VERSION,
+)
 from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER, get_embedding_runtime_spec
+from src.storage.store_manifest import (
+    StoreManifestV1,
+    canonical_store_manifest,
+    read_store_manifest,
+    store_manifest_path,
+    write_store_manifest,
+)
 from src.utils.gemini_usage_counts import (
     add_gemini_usage_counts,
     estimate_gemini_cost_usd,
@@ -676,10 +687,30 @@ def _build_store_signature(config: Dict[str, Any], collection_name: str) -> Dict
         provider=embedding_provider,
         model_name=embedding_model_name,
     )
-    return {
-        "collection_name": collection_name,
-        "embedding": embedding_spec,
-    }
+    ingest_mode = str(config.get("ingest_mode") or CANONICAL_INGEST_MODE)
+    profile_id = str(
+        config.get("ingest_profile_id")
+        or (
+            CANONICAL_INGEST_PROFILE_ID
+            if ingest_mode == CANONICAL_INGEST_MODE
+            else f"benchmark:{ingest_mode}"
+        )
+    )
+    return canonical_store_manifest(
+        collection_name=collection_name,
+        embedding_provider=str(embedding_spec["provider"]),
+        embedding_model_name=str(embedding_spec["model_name"]),
+        embedding_dimension=int(embedding_spec["dimension"]),
+        profile_id=profile_id,
+        parser_schema_version=str(
+            config.get("parser_schema_version")
+            or CANONICAL_PARSER_SCHEMA_VERSION
+        ),
+        chunk_size=int(config.get("chunk_size") or DEFAULT_CHUNK_SIZE),
+        chunk_overlap=int(
+            config.get("chunk_overlap") or DEFAULT_CHUNK_OVERLAP
+        ),
+    ).to_projection()
 
 
 def _build_cache_signature(config: Dict[str, Any], collection_name: str) -> Dict[str, Any]:
@@ -727,7 +758,7 @@ def _cache_meta_path(persist_dir: Path) -> Path:
 
 
 def _store_meta_path(persist_dir: Path) -> Path:
-    return persist_dir / "vector_store_meta.json"
+    return store_manifest_path(persist_dir)
 
 
 def _context_cache_path(output_root: Path, experiment_id: str) -> Path:
@@ -750,18 +781,16 @@ def _write_cache_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
 
 
 def _load_store_meta(persist_dir: Path) -> Dict[str, Any]:
-    path = _store_meta_path(persist_dir)
-    if not path.exists():
-        return {}
     try:
-        return _load_json(path)
+        manifest = read_store_manifest(persist_dir)
+        return manifest.to_projection() if manifest is not None else {}
     except Exception:
-        logger.warning("Failed to load vector store metadata: %s", path)
+        logger.warning("Failed to load store manifest: %s", _store_meta_path(persist_dir))
         return {}
 
 
 def _write_store_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
-    _write_json(_store_meta_path(persist_dir), payload)
+    write_store_manifest(persist_dir, StoreManifestV1.from_projection(payload))
 
 
 def _load_context_cache(output_root: Path, experiment_id: str) -> Dict[str, Any]:
@@ -784,7 +813,7 @@ def _cache_meta_matches(cache_meta: Dict[str, Any], signature: Dict[str, Any]) -
 
 
 def _store_signature_matches(store_meta: Dict[str, Any], store_signature: Dict[str, Any]) -> bool:
-    return bool(store_meta) and store_meta.get("store_signature") == store_signature
+    return bool(store_meta) and store_meta == store_signature
 
 
 def _cache_meta_is_completed(cache_meta: Dict[str, Any]) -> bool:
@@ -3692,7 +3721,10 @@ def _run_ingest(
             }
         return metrics
     if ingest_mode in {"contextual", "contextual_all"}:
-        metrics = agent.benchmark_contextual_ingest(
+        from src.ingestion.context_generator import ContextGenerator
+
+        context_generator = ContextGenerator(agent.llm, agent.vsm)
+        metrics = context_generator.benchmark_contextual_ingest(
             chunks,
             on_progress=context_progress,
             on_store_progress=store_progress,
@@ -3836,28 +3868,24 @@ def run_screening_experiment(
     context_matches = _cache_meta_matches(context_cache, cache_signature)
     store_signature_matches = _store_signature_matches(store_meta, store_signature)
 
-    preserve_legacy_partial_store = (
-        persist_dir.exists()
-        and reuse_store
-        and resume_partial_store
-        and not force_reindex
-        and not cache_meta
-        and (not store_meta or store_signature_matches)
-    )
-
     if force_reindex:
         if persist_dir.exists():
             shutil.rmtree(persist_dir)
         if context_cache_path.exists():
             context_cache_path.unlink()
     elif persist_dir.exists():
-        if preserve_legacy_partial_store:
-            logger.info("Preserving legacy partial store without cache metadata for resume: %s", persist_dir)
-        elif store_meta and not store_signature_matches:
+        if not store_meta:
+            logger.info(
+                "Discarding unmanaged benchmark store without a manifest: %s",
+                persist_dir,
+            )
+            shutil.rmtree(persist_dir)
+            cache_meta = {}
+        elif not store_signature_matches:
             logger.info(
                 "Discarding store due to embedding/store signature mismatch: expected=%s actual=%s",
                 store_signature,
-                store_meta.get("store_signature"),
+                store_meta,
             )
             shutil.rmtree(persist_dir)
             cache_meta = {}
@@ -3908,12 +3936,7 @@ def run_screening_experiment(
         cache_level = "store"
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
     elif reuse_context_cache and not force_reindex and context_matches:
         if progress_reporter:
@@ -3955,12 +3978,7 @@ def run_screening_experiment(
         )
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
     else:
         if progress_reporter:
@@ -4015,15 +4033,6 @@ def run_screening_experiment(
                 "collection_name": collection_name,
             },
         )
-        _write_store_meta(
-            persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
-        )
         ingest_metrics = _run_ingest(
             agent,
             chunks,
@@ -4056,12 +4065,7 @@ def run_screening_experiment(
         )
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
         _write_context_cache(
             output_root,

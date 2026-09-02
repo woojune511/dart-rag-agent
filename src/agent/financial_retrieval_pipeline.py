@@ -1730,8 +1730,8 @@ class FinancialRetrievalPipelineMixin:
 
         return selected[:effective_k]
 
-    def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Retrieve top candidate chunks and rerank them for the active task."""
+    def _build_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Normalize scope and construct the deterministic retrieval plan."""
         query = state["query"]
         retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
         active_subtask = dict(state.get("active_subtask") or {})
@@ -1862,6 +1862,53 @@ class FinancialRetrievalPipelineMixin:
             )
         hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
         section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
+        return {
+            "query": query,
+            "active_subtask": active_subtask,
+            "companies": companies,
+            "years": years,
+            "strict_company_scope": strict_company_scope,
+            "scope_report_type": scope_report_type,
+            "has_multi_source_scope": has_multi_source_scope,
+            "scope_consolidation": scope_consolidation,
+            "intent": intent,
+            "reflection_count": reflection_count,
+            "retry_queries": retry_queries,
+            "effective_k": effective_k,
+            "report_cache_consumer_assessment": report_cache_consumer_assessment,
+            "report_cache_index_diagnostics": report_cache_index_diagnostics,
+            "where_filter": where_filter,
+            "semantic_program_required": semantic_program_required,
+            "retrieval_intent": retrieval_intent,
+            "query_bundle": query_bundle,
+            "query_budget_trace": query_budget_trace,
+            "hint_budget": hint_budget,
+            "section_budget": section_budget,
+        }
+
+    def _execute_searches(
+        self,
+        state: FinancialAgentState,
+        plan: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Execute planned primary and retry searches without selecting evidence."""
+        active_subtask = dict(plan["active_subtask"])
+        companies = list(plan["companies"])
+        scope_report_type = str(plan["scope_report_type"])
+        scope_consolidation = str(plan["scope_consolidation"])
+        semantic_program_required = bool(plan["semantic_program_required"])
+        retrieval_intent = str(plan["retrieval_intent"])
+        intent = str(plan["intent"])
+        query_bundle = list(plan["query_bundle"])
+        query_budget_trace = dict(plan["query_budget_trace"])
+        hint_budget = int(plan["hint_budget"])
+        section_budget = int(plan["section_budget"])
+        where_filter = plan["where_filter"]
+        effective_k = int(plan["effective_k"])
+        retry_queries = list(plan["retry_queries"])
+        reflection_count = int(plan["reflection_count"])
+        retrieval_hint = ""
+        preferred_sections: List[str] = []
         query_budget_trace["enrichment"] = {
             "mode": "per_query",
             "queries": [],
@@ -2095,6 +2142,39 @@ class FinancialRetrievalPipelineMixin:
             if previous_docs:
                 docs = self._merge_retry_candidates(docs, previous_docs)
 
+        return {
+            "docs": docs,
+            "supplemental_docs": supplemental_docs,
+            "query_budget_trace": query_budget_trace,
+            "executed_duplicate_trace": executed_duplicate_trace,
+            "executed_queries": executed_queries,
+            "reused_queries": reused_queries,
+            "retrieval_query_result_cache": retrieval_query_result_cache,
+            "retry_queries": retry_queries,
+            "retrieval_hint": retrieval_hint,
+            "preferred_sections": preferred_sections,
+        }
+
+    def _select_evidence(
+        self,
+        state: FinancialAgentState,
+        plan: Dict[str, Any],
+        searches: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Apply scope filters, reranking, and the visible evidence policy."""
+        docs = list(searches["docs"])
+        supplemental_docs = list(searches["supplemental_docs"])
+        companies = list(plan["companies"])
+        years = list(plan["years"])
+        strict_company_scope = bool(plan["strict_company_scope"])
+        has_multi_source_scope = bool(plan["has_multi_source_scope"])
+        where_filter = plan["where_filter"]
+        reflection_count = int(plan["reflection_count"])
+        retry_queries = list(searches["retry_queries"])
+        active_subtask = dict(plan["active_subtask"])
+        semantic_program_required = bool(plan["semantic_program_required"])
+        effective_k = int(plan["effective_k"])
+
         logger.info(
             "[retrieve] companies=%s years=%s topic=%s where=%s retry_count=%s retry_queries=%s -> %s candidates",
             companies,
@@ -2170,6 +2250,62 @@ class FinancialRetrievalPipelineMixin:
         seed_source_ids, seed_unidentified_count = _stable_retrieval_source_ids(
             seed_docs
         )
+        return {
+            "docs": docs,
+            "seed_docs": seed_docs,
+            "reranked": reranked,
+            "format_preference": format_preference,
+            "retrieved_source_ids": retrieved_source_ids,
+            "retrieved_unidentified_count": retrieved_unidentified_count,
+            "seed_source_ids": seed_source_ids,
+            "seed_unidentified_count": seed_unidentified_count,
+        }
+
+    def _build_trace(
+        self,
+        state: FinancialAgentState,
+        plan: Dict[str, Any],
+        searches: Dict[str, Any],
+        selection: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Project selected evidence and search telemetry into the graph trace."""
+        query = str(plan["query"])
+        query_bundle = list(plan["query_bundle"])
+        where_filter = plan["where_filter"]
+        effective_k = int(plan["effective_k"])
+        reflection_count = int(plan["reflection_count"])
+        semantic_program_required = bool(plan["semantic_program_required"])
+        intent = str(plan["intent"])
+        strict_company_scope = bool(plan["strict_company_scope"])
+        has_multi_source_scope = bool(plan["has_multi_source_scope"])
+        scope_report_type = str(plan["scope_report_type"])
+        scope_consolidation = str(plan["scope_consolidation"])
+        report_cache_consumer_assessment = dict(
+            plan["report_cache_consumer_assessment"]
+        )
+        report_cache_index_diagnostics = dict(
+            plan["report_cache_index_diagnostics"]
+        )
+        docs = list(selection["docs"])
+        seed_docs = list(selection["seed_docs"])
+        reranked = list(selection["reranked"])
+        format_preference = str(selection["format_preference"])
+        retrieved_source_ids = list(selection["retrieved_source_ids"])
+        retrieved_unidentified_count = int(
+            selection["retrieved_unidentified_count"]
+        )
+        seed_source_ids = list(selection["seed_source_ids"])
+        seed_unidentified_count = int(selection["seed_unidentified_count"])
+        executed_queries = list(searches["executed_queries"])
+        reused_queries = list(searches["reused_queries"])
+        retry_queries = list(searches["retry_queries"])
+        query_budget_trace = dict(searches["query_budget_trace"])
+        executed_duplicate_trace = dict(searches["executed_duplicate_trace"])
+        retrieval_query_result_cache = dict(
+            searches["retrieval_query_result_cache"]
+        )
+        retrieval_hint = str(searches["retrieval_hint"])
+        preferred_sections = list(searches["preferred_sections"])
         selected_chunks: List[Dict[str, Any]] = []
         for rank, item in enumerate(docs, start=1):
             doc, score = item
@@ -2257,6 +2393,12 @@ class FinancialRetrievalPipelineMixin:
             "policy_trace": {
                 "intent": intent,
                 "answer_mode": "semantic_program" if semantic_program_required else "narrative",
+                "retrieval_mode": str(
+                    getattr(self, "retrieval_mode", "hybrid") or "hybrid"
+                ),
+                "degraded_reason": str(
+                    getattr(self, "retrieval_degraded_reason", "") or ""
+                ),
                 "format_preference": format_preference,
                 "retrieval_hint": retrieval_hint if len(query_bundle) == 1 else "",
                 "preferred_sections": (
@@ -2289,3 +2431,10 @@ class FinancialRetrievalPipelineMixin:
             "retrieval_debug_trace_history": retrieval_debug_trace_history,
             "retrieval_query_result_cache": retrieval_query_result_cache,
         }
+
+    def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Run the four retrieval boundary stages in a stable order."""
+        plan = self._build_plan(state)
+        searches = self._execute_searches(state, plan)
+        selection = self._select_evidence(state, plan, searches)
+        return self._build_trace(state, plan, searches, selection)

@@ -8,12 +8,14 @@ Swagger UI: http://localhost:8000/docs
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.financial_router import get_router, init_components
+from src.api.financial_router import get_router
+from src.api.services import build_app_services
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 수명 주기."""
     _configure_logging()
     logger.info("서버 시작 — 컴포넌트 초기화 중...")
-    init_components()
+    app.state.services = build_app_services()
     yield
     logger.info("서버 종료")
 
@@ -45,12 +47,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+_cors_origins = tuple(
+    origin.strip()
+    for origin in os.environ.get("DART_CORS_ALLOW_ORIGINS", "").split(",")
+    if origin.strip()
 )
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(_cors_origins),
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 app.include_router(get_router())
 

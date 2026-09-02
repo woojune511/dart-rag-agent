@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import math
 import os
 from pathlib import Path
+import threading
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from src.config.retrieval_policy import (
@@ -46,6 +48,12 @@ SEMANTIC_CONFUSION_PAIRS = {
     frozenset({"business_overview", "numeric_fact"}),
     frozenset({"numeric_fact", "comparison"}),
 }
+
+_CANONICAL_EMBEDDING_CACHE: Dict[
+    tuple[str, str, str, int],
+    tuple[tuple[float, ...], ...],
+] = {}
+_CANONICAL_EMBEDDING_CACHE_LOCK = threading.Lock()
 
 
 def default_canonical_queries_path() -> Path:
@@ -94,44 +102,98 @@ class QueryRouter:
         embeddings: Any,
         llm: Any,
         canonical_queries_path: Optional[Path] = None,
+        embedding_spec: Optional[Dict[str, Any]] = None,
         enable_semantic_router: bool = True,
         enable_llm_fallback: bool = True,
     ) -> None:
         self.embeddings = embeddings
         self.llm = llm
         self.canonical_queries_path = canonical_queries_path or default_canonical_queries_path()
+        self.embedding_spec = dict(embedding_spec or {})
         self.enable_semantic_router = bool(enable_semantic_router)
         self.enable_llm_fallback = bool(enable_llm_fallback)
         self._semantic_router = self._build_semantic_router()
 
+    def _canonical_embedding_cache_key(self) -> tuple[str, str, str, int]:
+        file_digest = hashlib.sha256(
+            self.canonical_queries_path.read_bytes()
+        ).hexdigest()
+        return (
+            file_digest,
+            str(self.embedding_spec.get("provider") or "unknown")
+            .strip()
+            .lower(),
+            str(self.embedding_spec.get("model_name") or "unknown").strip(),
+            int(self.embedding_spec.get("dimension") or 0),
+        )
+
     def _build_semantic_router(self) -> Dict[str, Any]:
         if not self.enable_semantic_router:
             logger.info("[routing] semantic router disabled by runtime config")
-            return {"enabled": False, "examples": []}
+            return {
+                "enabled": False,
+                "examples": [],
+                "degraded_reason": "semantic_router_disabled",
+            }
 
         try:
             examples = load_canonical_routing_examples(self.canonical_queries_path)
         except Exception as exc:
             logger.warning("[routing] failed to load canonical routing examples: %s", exc)
-            return {"enabled": False, "examples": []}
+            return {
+                "enabled": False,
+                "examples": [],
+                "degraded_reason": f"canonical_examples_unavailable:{exc}",
+            }
 
         if not examples:
             logger.warning("[routing] no canonical routing examples loaded from %s", self.canonical_queries_path)
-            return {"enabled": False, "examples": []}
+            return {
+                "enabled": False,
+                "examples": [],
+                "degraded_reason": "canonical_examples_empty",
+            }
 
         queries = [entry["query"] for entry in examples]
         try:
-            embeddings = self.embeddings.embed_documents(queries)
+            cache_key = self._canonical_embedding_cache_key()
+            with _CANONICAL_EMBEDDING_CACHE_LOCK:
+                cached_embeddings = _CANONICAL_EMBEDDING_CACHE.get(cache_key)
+            if cached_embeddings is None:
+                generated_embeddings = self.embeddings.embed_documents(queries)
+                expected_dimension = cache_key[3]
+                if expected_dimension and any(
+                    len(embedding) != expected_dimension
+                    for embedding in generated_embeddings
+                ):
+                    raise ValueError(
+                        "canonical routing embedding dimension mismatch"
+                    )
+                immutable_embeddings = tuple(
+                    tuple(float(value) for value in embedding)
+                    for embedding in generated_embeddings
+                )
+                with _CANONICAL_EMBEDDING_CACHE_LOCK:
+                    _CANONICAL_EMBEDDING_CACHE.setdefault(
+                        cache_key,
+                        immutable_embeddings,
+                    )
+                    cached_embeddings = _CANONICAL_EMBEDDING_CACHE[cache_key]
+            embeddings = [list(embedding) for embedding in cached_embeddings]
         except Exception as exc:
             logger.warning("[routing] failed to embed canonical routing queries: %s", exc)
-            return {"enabled": False, "examples": []}
+            return {
+                "enabled": False,
+                "examples": [],
+                "degraded_reason": f"canonical_embedding_failed:{exc}",
+            }
 
         enriched: List[Dict[str, Any]] = []
         for entry, embedding in zip(examples, embeddings):
             enriched.append({**entry, "embedding": embedding})
 
         logger.info("[routing] semantic router loaded %s canonical queries", len(enriched))
-        return {"enabled": True, "examples": enriched}
+        return {"enabled": True, "examples": enriched, "degraded_reason": ""}
 
     def _blocks_numeric_fast_path(self, query: str, semantic_result: Dict[str, Any]) -> bool:
         if not (
@@ -145,6 +207,7 @@ class QueryRouter:
     def semantic_route(self, query: str) -> Dict[str, Any]:
         router = self._semantic_router or {}
         examples = router.get("examples") or []
+        degraded_reason = str(router.get("degraded_reason") or "")
         if not router.get("enabled") or not examples:
             return {
                 "intent": None,
@@ -155,6 +218,7 @@ class QueryRouter:
                 "second_intent": "",
                 "scores": {},
                 "fast_path": False,
+                "degraded_reason": degraded_reason,
             }
 
         try:
@@ -170,6 +234,7 @@ class QueryRouter:
                 "second_intent": "",
                 "scores": {},
                 "fast_path": False,
+                "degraded_reason": f"query_embedding_failed:{exc}",
             }
 
         scores: Dict[str, float] = {}
@@ -192,6 +257,7 @@ class QueryRouter:
                 "second_intent": "",
                 "scores": {},
                 "fast_path": False,
+                "degraded_reason": degraded_reason,
             }
 
         top_intent, top_score = ranked[0]
@@ -214,6 +280,7 @@ class QueryRouter:
             "second_intent": second_intent,
             "scores": {intent: round(score, 4) for intent, score in ranked},
             "fast_path": fast_path,
+            "degraded_reason": degraded_reason,
         }
 
     def route(self, query: str) -> QueryRouteResult:
@@ -254,6 +321,7 @@ class QueryRouter:
                 second_intent=semantic_result.get("second_intent") or None,  # type: ignore[arg-type]
                 margin=float(semantic_result.get("margin") or 0.0),
                 required_margin=float(semantic_result.get("required_margin") or SEMANTIC_FASTPATH_MARGIN),
+                degraded_reason=str(semantic_result.get("degraded_reason") or "") or None,
             )
 
         if not self.enable_llm_fallback:
@@ -278,6 +346,7 @@ class QueryRouter:
                 second_intent=semantic_result.get("second_intent") or None,  # type: ignore[arg-type]
                 margin=float(semantic_result.get("margin") or 0.0),
                 required_margin=float(semantic_result.get("required_margin") or SEMANTIC_FASTPATH_MARGIN),
+                degraded_reason=str(semantic_result.get("degraded_reason") or "") or None,
             )
 
         QueryRoutingDecision = _query_routing_decision_model()
@@ -378,4 +447,5 @@ A: intent=qa, format_preference=paragraph
             second_intent=semantic_result.get("second_intent") or None,  # type: ignore[arg-type]
             margin=float(semantic_result.get("margin") or 0.0),
             required_margin=float(semantic_result.get("required_margin") or SEMANTIC_FASTPATH_MARGIN),
+            degraded_reason=str(semantic_result.get("degraded_reason") or "") or None,
         )

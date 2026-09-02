@@ -18,7 +18,6 @@ from src.agent.financial_agent_run_projection import (
     structured_result_answer_for_missing_public_answer,
 )
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
-from src.agent.financial_graph_contextual import FinancialAgentContextualMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_state import FinancialAgentState, FinancialAgentStateV2
@@ -114,7 +113,6 @@ class FinancialAgent(
     FinancialRetrievalPipelineMixin,
     FinancialAgentEvidenceMixin,
     FinancialAgentCalculationMixin,
-    FinancialAgentContextualMixin,
 ):
     """Top-level dependency, graph, and public projection owner."""
 
@@ -207,6 +205,7 @@ class FinancialAgent(
         self.query_router = QueryRouter(
             embeddings=self.vsm.embeddings,
             llm=self.llm,
+            embedding_spec=dict(getattr(self.vsm, "embedding_spec", {}) or {}),
             enable_semantic_router=bool(self.routing_config.get("enable_semantic_router", True)),
             enable_llm_fallback=bool(self.routing_config.get("enable_llm_fallback", True)),
         )

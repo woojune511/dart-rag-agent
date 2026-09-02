@@ -266,7 +266,7 @@ class ImportSideEffectTests(unittest.TestCase):
     def test_pure_usage_accounting_imports_do_not_load_langchain(self) -> None:
         modules = [
             "src.utils.gemini_usage_counts",
-            "src.agent.financial_graph_contextual",
+            "src.ingestion.context_generator",
         ]
         script = """
             import importlib
