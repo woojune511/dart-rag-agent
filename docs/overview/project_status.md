@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## At a glance
 
@@ -11,8 +11,8 @@ Last updated: 2026-09-02
 | Runtime state | Boundary redesign and the preserved predecessor changes are integrated in a clean worktree |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Not refreshed; no call, paid run, fresh ingest, or embedding was performed in this integration |
-| Release status | Local source and manifest gates pass; release remains withheld until the exact store-fixed eval-only admission is separately approved and executed |
+| Provider evidence | Exact admission `cb188492...683a8` was consumed once in a store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
+| Release status | **HOLD, 2/3 runtime-complete**; T3 is missing the Motional investment carrying-amount obligation |
 
 ## Current boundaries
 
@@ -64,26 +64,54 @@ All seven predecessor store files remained byte-identical. The pure manifest
 readiness check returns exact `compatible`, `ready=true`, and `degraded=false`;
 no provider query was made.
 
-A new ignored three-row admission binds the current runtime and the ordered
+A new ignored three-row admission bound the current runtime and the ordered
 scope `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`. Its manifest SHA-256 is
 `cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`.
 Two production-order no-call processes produced byte-identical 5,640-byte
 receipts at
 `d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`,
 with provider/network/output counts all zero and source/target/temp invariants
-intact. The latest same-scope runner estimate is USD `0.1442999`, excluding
-embedding pricing; the proposed one-run ceiling is USD `0.40`.
+intact. A third immediate pre-dispatch rehearsal reproduced both hashes with the
+target absent.
+
+The separately approved provider run executed exactly once, in the specified
+Hyundai-then-Samsung order, and completed in 314.7 seconds with runner exit code
+zero. The ignored root result is
+`benchmarks/results/runtime_contract_integration_focused_successor_2026-09-02/results.json`
+(SHA-256
+`59e43b35a2b013b13f53ff33ecbc8a43a04d7590f7ca8d5752ca1a62f286e5f3`).
+
+| Question | Runtime result | Gate evidence |
+| --- | --- | --- |
+| `HYU_T2_010` | `ok`, 2/2 obligations | `87.0만 대` and `78.1만 대` produced `11.4%` with source display `11.5%`; narrative also present; error 0, ledger `ok` |
+| `HYU_T3_072` | `partial`, 2/3 obligations | Motional `26%` and summary present; `ob_002` investment carrying amount missing; error 0, ledger `ok` |
+| `SAM_T2_078` | `ok`, 2/2 obligations | `28,352,769백만원` and Harman narrative present; error 0, ledger `ok` |
+
+The missing T3 value is not absent from the parsed table. The same Motional row
+projects `cand_e2f2596cb81e73b80bbc = 26%` and
+`cand_a8aa299ad5dea4f29cd5 = 700,691백만원`. The latter appears in the global
+prompt ID set but not in `ob_002`'s selectable owner cohort. Both attempts for
+that island therefore returned no candidate and the same visibility
+fingerprint. Dependency/coupling edges and preflight errors were empty, and the
+wrong-row BHAF `53%` physical candidate was not selectable. The observed owner
+is cohort ranking/admission, not table parsing or coupling.
+
+The runner estimated USD `0.1575934` for 21 LLM calls and 146,156 tokens, below
+the approved USD `0.40` ceiling. Embedding pricing remains unavailable; usage
+was 33 query-embedding calls and zero document-embedding calls. Source result
+hashes, both store directory fingerprints, and both SQLite hashes remained
+unchanged, and no disposable store remains.
 
 ## Next work
 
-1. Approve or decline the exact admission manifest
-   `cb188492...683a8`, one-run scope, and USD `0.40` ceiling. Rehearsal and
-   compatibility do not authorize provider dispatch.
-2. If approved, rerun the no-call rehearsal immediately before dispatch and
-   require the same hashes, then execute once with the 30-second heartbeat.
-3. Preserve the artifacts and stop without a paid retry unless all three rows
-   meet runtime completeness, runtime error `0`, and ledger `ok`; then review or
-   merge `codex/runtime-contract-integration`.
+1. Reconstruct and characterize the T3 `ob_002` ranking provider-free: explain
+   why the same-row investment-asset cell loses the four-slot owner cohort while
+   the percentage cell and unrelated candidates rank ahead.
+2. Repair only the generic policy/ontology/cohort-ranking seam, keeping physical
+   provenance, owner visibility, fail-closed validation, and the BHAF exclusion
+   intact. Add a company/question-free contract test and rerun local gates.
+3. Do not merge or rerun the paid gate yet. Any provider replay requires a new
+   immutable manifest, cost estimate, no-call receipts, and separate approval.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the

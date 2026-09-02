@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-02
+Last updated: 2026-09-03
 
 ## Checkout
 
@@ -50,9 +50,9 @@ evaluator, replay, and promotion tools remain optional or experimental.
 - No existing store receives a manifest automatically. The approved adoption
   wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
   remained byte-identical.
-- No provider call, paid evaluation, fresh ingest, automatic benchmark retry, or
-  document embedding is authorized until the exact admission below receives a
-  separate approval.
+- The exact admission below was approved and consumed by one store-fixed
+  provider-backed `eval-only` run on 2026-09-03. It did not authorize a second
+  run, fresh ingest, automatic benchmark retry, or document embedding.
 - The `data/chroma_dart` manifest layer now reports exact `compatible`,
   `ready=true`, and `degraded=false`. This is not provider-query validation.
 
@@ -69,8 +69,7 @@ evaluator/provenance cases, 30 benchmark-runner cases, 50 focused
 authority/import/topology/service cases, 86 reviewed runtime-domain literals,
 pycompile, and `git diff --check`. The clean redesign predecessor's read-only,
 network-blocked reprojection of the three stored source windows preserved source
-hashes and confirmed the expected T2, T3, and Samsung candidate boundaries; the
-integration does not claim a new provider or three-row runtime result.
+hashes and confirmed the expected T2, T3, and Samsung candidate boundaries.
 
 The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 `98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
@@ -88,8 +87,31 @@ receipt SHA-256 is
 `d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`.
 Both recorded zero provider constructors, network calls, and outputs.
 
-Provider validation remains a separate final gate. The proposed authorization
-is one store-fixed eval-only run, no automatic run retry, a 30-second heartbeat,
-and a USD `0.40` ceiling. The latest same-scope runner estimate is USD
-`0.1442999`, excluding embedding pricing. This exact hash-and-cost scope still
-requires explicit approval.
+Immediately before dispatch, a fresh production-order rehearsal reproduced the
+same manifest and receipt hashes with the target absent. The separately approved
+run then completed exactly once in 314.7 seconds at source head `d3f3319`; the
+ignored result bundle is
+`benchmarks/results/runtime_contract_integration_focused_successor_2026-09-02`
+and its root `results.json` SHA-256 is
+`59e43b35a2b013b13f53ff33ecbc8a43a04d7590f7ca8d5752ca1a62f286e5f3`.
+
+The release gate is **2/3, HOLD**. `HYU_T2_010` and `SAM_T2_078` are runtime
+complete. `HYU_T3_072` is `partial`: `ob_001` produced Motional `26%` and
+`ob_003` produced the four-measure Motional summary, but `ob_002` (Motional
+investment carrying amount) remained missing. Every row has runtime error zero
+and ledger integrity `ok`.
+
+The T3 source table contains the correct `700,691백만원` physical cell as
+`cand_a8aa299ad5dea4f29cd5`, and that ID is in the global prompt catalog. It was
+not in `ob_002`'s selectable owner cohort, so both compiler attempts returned no
+proposal for that obligation. All three islands had empty dependency/coupling
+edges and no preflight errors. This is an obligation-cohort ranking/admission
+failure, not a table-parser, coupling, validator, or executor failure.
+
+The runner recorded 21 LLM calls, 146,156 tokens, and an estimated runtime LLM
+cost of USD `0.1575934`, below the approved USD `0.40` ceiling. It recorded 33
+query-embedding calls, zero document-embedding calls, and no embedding price.
+Both source-store directory fingerprints, SQLite hashes, and predecessor result
+hashes remain unchanged; the disposable stores were removed. Per the admission,
+no paid retry was made. The next seam is provider-free characterization and a
+generic owner-cohort ranking repair before any new manifest or approval.

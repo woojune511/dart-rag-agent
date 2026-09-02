@@ -123,6 +123,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Multi-Output Answer Variants Production Evaluator Integration (2026-09-01)](#multi-output-answer-variants-production-evaluator-integration-2026-09-01) | 비활성 합성 계약을 strict typed loader, candidate-bound distinct-output matcher, atomic completeness reference로 production evaluator에 연결 | 신규 12/12, focused 249/249, full 705/705, audit 86, socket 0. Scalar/result schema와 curated data/result/provider 불변 |
 | [HYU T3 Multi-Output Variant Source Review (2026-09-01)](#hyu-t3-multi-output-variant-source-review-2026-09-01) | immutable Hyundai store에서 연결/별도 Motional tuple의 source basis와 matcher projection을 read-only 검토 | 연결 `26% / 700,691백만원`과 네 summary measure만 완전한 same-basis tuple. 별도 direct pair는 summary가 닫히지 않고 canonical key는 basis를 혼합. 등록 없이 generic unit/subject/period projection blocker를 다음 seam으로 고정 |
 | [Canonical Operand Projection Repair And T3 No-Call Gate (2026-09-01)](#canonical-operand-projection-repair-and-t3-no-call-gate-2026-09-01) | inline unit, validated row subject, current report period를 한 canonical operand projector로 보존하고 같은 six-ID proposal 재검증 | generic contract 13/13, focused 261/261, full 707/707, audit 86. 여섯 ID 불변, `ready`/`ok`, strict matcher `atomic_answer_variant_match`; dataset/result/store/provider 불변 |
+| [Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)](#runtime-contract-integration-three-row-provider-gate-2026-09-03) | boundary redesign 통합 head와 exact manifest `cb188492...683a8`의 승인된 Hyundai/Samsung 3문항 store-fixed replay | runner는 1회 완주, error 0·ledger 3/3 `ok`지만 runtime completeness는 2/3. T3의 올바른 `700,691백만원` 셀이 owner cohort에서 빠져 release HOLD; `$0.1575934`, no run retry |
 
 ## 보는 법
 
@@ -133,6 +134,88 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)
+
+### Authority and execution
+
+The user approved the exact admission manifest
+`cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`,
+one execution of its three ordered questions, and a USD `0.40` ceiling. A fresh
+production-order rehearsal immediately before dispatch reproduced the canonical
+5,640-byte receipt SHA-256
+`d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`,
+with the target absent and provider/network/output counts at zero.
+
+Source head `d3f3319` then ran one store-fixed `eval-only` process in the exact
+order `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`, with Hyundai before Samsung and
+a 30-second heartbeat. The runner exited zero after 314.7 seconds. There was no
+automatic run retry, fresh fetch, parse, ingest, source-store write, or document
+embedding. The ignored artifact is
+`benchmarks/results/runtime_contract_integration_focused_successor_2026-09-02`;
+its root `results.json` SHA-256 is
+`59e43b35a2b013b13f53ff33ecbc8a43a04d7590f7ca8d5752ca1a62f286e5f3`.
+
+### Runtime gate result
+
+| Question | Runtime obligations | Error / ledger | Observed output |
+| --- | --- | --- | --- |
+| `HYU_T2_010` | `ok`, 2/2 | `0 / ok` | `87.0만 대` and `78.1만 대` produce calculated `11.4%`, source display `11.5%`, plus the policy-response narrative |
+| `HYU_T3_072` | `partial`, 2/3 | `0 / ok` | Motional `26%` and the four-measure summary are present; `ob_002` Motional investment carrying amount is missing |
+| `SAM_T2_078` | `ok`, 2/2 | `0 / ok` | `28,352,769백만원` and the Harman direction/technology narrative are present |
+
+The formal runtime release gate is therefore **2/3, HOLD**, despite zero runtime
+errors and ledger integrity `ok` for all three rows. Evaluator
+faithfulness/completeness were respectively `1.000/0.700`, `0.700/0.500`, and
+`0.700/1.000`. Those qualitative scores are recorded for diagnosis; the T2
+display omission noted by the completeness judge does not change its 2/2
+runtime-obligation status, and answer-key/tolerance governance remains separate.
+
+### T3 owner diagnosis
+
+The source table and physical-cell projection are intact. The Motional row
+deterministically projects:
+
+- `cand_e2f2596cb81e73b80bbc`: ownership percentage `26%`;
+- `cand_a8aa299ad5dea4f29cd5`: investment asset `700,691백만원`.
+
+The second ID is present in the query's 14-ID global prompt catalog, but it is
+not selectable by `ob_002`. That owner's four numeric slots instead contain
+`cand_51227debb6062483d19a`, `cand_ab890f3ad3497420a258`,
+`cand_d7039c2d704c685f7e04`, and the percentage candidate
+`cand_e2f2596cb81e73b80bbc`. Both compiler attempts used the same six visible
+IDs, fingerprint
+`0f8eb6680036c28dd0871f6be996f307b4ab5a651bf26548752e099cf32e7b1c`,
+and 16,070 serialized bytes, proposed no binding, and returned `ob_002` missing.
+
+All three T3 islands had empty dependency edges, empty coupling keys, and no
+preflight error. Validation and execution did not reject the correct cell; the
+compiler never had owner authority to select it. The BHAF `53%` physical cell
+`cand_71982f64d6b3b1dc9d35` was also absent from the Motional owner space, so the
+wrong-row exclusion held. The observed failure owner is the obligation-specific
+cohort ranking/admission seam, not table parsing, coupling, validator drift, or
+execution.
+
+### Cost and immutability
+
+The runner recorded 21 LLM calls and 146,156 tokens with an estimated runtime
+LLM cost of USD `0.1575934`, below the approved ceiling. Embedding pricing was
+not present in the profile; observed usage was 33 query-embedding calls and zero
+document-embedding calls.
+
+The runtime, profile, and dataset hashes remained exactly those in the
+admission. Hyundai/Samsung source-store fingerprints remained
+`ebdbe7021f3eb34ad75007ee1736033f3428d50745921558fbae85498ba2ae81`
+and `862a01380754fd64e2395ecf506f9e4daa6ed404385b623b862623c425ddba3e`;
+their SQLite and predecessor `results.json` hashes also remained unchanged.
+Both disposable stores were removed. Per the admission stop condition, the raw
+artifact was preserved and no paid retry was made.
+
+The next authorized development seam is provider-free: characterize why the
+same-row investment cell loses `ob_002`'s four-slot ranking, then repair the
+generic policy/ontology/cohort mechanism while retaining owner visibility,
+fail-closed validation, and wrong-row exclusion. A new provider run would need a
+new manifest, no-call receipts, cost estimate, and separate approval.
 
 ## Canonical Operand Projection Repair And T3 No-Call Gate (2026-09-01)
 
