@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import unittest
+from collections.abc import Mapping
 
 from src.agent.financial_agent_run_projection import project_review_trace
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_run_result import FINANCIAL_RUN_RESULT_SCHEMA_VERSION
 
 
 class _Graph:
@@ -103,11 +105,47 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         agent.vsm = _VectorStore()
         agent.llm_usage_callback = None
         agent._project_runtime_calculation_trace = lambda _state: trace
-        result = agent.run("return the value")
-        self.assertEqual(result["answer"], "canonical answer: 10")
-        self.assertEqual(result["resolved_calculation_trace"], trace)
-        self.assertEqual([item["evidence_id"] for item in result["evidence_items"]], ["cand_a"])
+        result = agent.run("return the value", include_review_trace=True)
+        self.assertEqual(result.schema_version, FINANCIAL_RUN_RESULT_SCHEMA_VERSION)
+        self.assertEqual(result.agent_answer["answer"], "canonical answer: 10")
+        self.assertEqual(result.agent_answer["resolved_calculation_trace"], trace)
+        self.assertEqual(
+            [item["evidence_id"] for item in result.review_trace["evidence_items"]],
+            ["cand_a"],
+        )
+        self.assertIsNone(result.debug_bundle)
+        self.assertNotIsInstance(result, Mapping)
+        self.assertFalse(hasattr(result, "get"))
+        self.assertFalse(hasattr(result, "__getitem__"))
         self.assertFalse(hasattr(FinancialAgent, "_repair_public_runtime_calculation_trace"))
+
+    def test_review_and_debug_payloads_are_absent_by_default(self) -> None:
+        final = {
+            "query": "q",
+            "report_scope": {},
+            "query_type": "qa",
+            "companies": [],
+            "years": [],
+            "answer": "a",
+            "citations": [],
+            "retrieved_docs": [],
+            "tasks": [],
+            "artifacts": [],
+        }
+        agent = object.__new__(FinancialAgent)
+        agent.graph = _Graph(final)
+        agent.vsm = _VectorStore()
+        agent.llm_usage_callback = None
+        agent._project_runtime_calculation_trace = lambda _state: {}
+
+        result = agent.run("q")
+
+        self.assertIsNone(result.review_trace)
+        self.assertIsNone(result.debug_bundle)
+        self.assertEqual(
+            set(result.to_projection()),
+            {"schema_version", "agent_answer"},
+        )
 
 
 if __name__ == "__main__":

@@ -3576,56 +3576,61 @@ class RAGEvaluator:
             result = self.agent.run(
                 example.question,
                 report_scope=_build_example_report_scope(example),
+                include_review_trace=True,
+                include_debug_bundle=True,
             )
-            agent_llm_usage = dict(result.get("llm_usage", {}) or {})
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            debug_bundle = result.debug_bundle or {}
+            agent_llm_usage = dict(debug_bundle.get("llm_usage", {}) or {})
             agent_llm_usage_by_phase = {
                 str(phase): dict(usage)
-                for phase, usage in dict(result.get("llm_usage_by_phase", {}) or {}).items()
+                for phase, usage in dict(debug_bundle.get("llm_usage_by_phase", {}) or {}).items()
                 if isinstance(usage, dict)
             }
-            agent_embedding_usage = dict(result.get("embedding_usage", {}) or {})
-            answer = result.get("answer", "")
-            query_type = result.get("query_type", "unknown")
-            intent = result.get("intent", query_type or "unknown")
-            format_preference = result.get("format_preference", "")
-            routing_source = result.get("routing_source", "")
-            routing_confidence = _safe_float(result.get("routing_confidence"))
-            routing_scores = dict(result.get("routing_scores", {}) or {})
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = dict(result.get("retrieval_debug_trace", {}) or {})
+            agent_embedding_usage = dict(debug_bundle.get("embedding_usage", {}) or {})
+            answer = agent_answer.get("answer", "")
+            query_type = agent_answer.get("query_type", "unknown")
+            intent = agent_answer.get("intent", query_type or "unknown")
+            format_preference = agent_answer.get("format_preference", "")
+            routing_source = agent_answer.get("routing_source", "")
+            routing_confidence = _safe_float(agent_answer.get("routing_confidence"))
+            routing_scores = dict(agent_answer.get("routing_scores", {}) or {})
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = dict(review_trace.get("retrieval_debug_trace", {}) or {})
             retrieval_debug_trace_history = [
                 dict(item)
-                for item in (result.get("retrieval_debug_trace_history", []) or [])
+                for item in (review_trace.get("retrieval_debug_trace_history", []) or [])
                 if isinstance(item, dict)
             ]
-            citations = result.get("citations", [])
-            runtime_evidence = result.get("evidence_items", []) or []
-            selected_claim_ids = result.get("selected_claim_ids", []) or []
-            draft_points = result.get("draft_points", []) or []
-            kept_claim_ids = result.get("kept_claim_ids", []) or []
-            dropped_claim_ids = result.get("dropped_claim_ids", []) or []
-            unsupported_sentences = result.get("unsupported_sentences", []) or []
-            sentence_checks = result.get("sentence_checks", []) or []
-            agent_numeric_debug_trace = dict(result.get("numeric_debug_trace") or {})
+            citations = agent_answer.get("citations", [])
+            runtime_evidence = review_trace.get("evidence_items", []) or []
+            selected_claim_ids = review_trace.get("selected_claim_ids", []) or []
+            draft_points = review_trace.get("draft_points", []) or []
+            kept_claim_ids = review_trace.get("kept_claim_ids", []) or []
+            dropped_claim_ids = review_trace.get("dropped_claim_ids", []) or []
+            unsupported_sentences = review_trace.get("unsupported_sentences", []) or []
+            sentence_checks = review_trace.get("sentence_checks", []) or []
+            agent_numeric_debug_trace = dict(review_trace.get("numeric_debug_trace") or {})
             agent_numeric_debug_trace_history = [
                 dict(item)
-                for item in (result.get("numeric_debug_trace_history") or [])
+                for item in (review_trace.get("numeric_debug_trace_history") or [])
                 if isinstance(item, dict)
             ]
             # Live evaluator rows are current-contract results. Replay and
             # retrospective tools may opt into legacy top-level mirrors, but
             # fresh eval scoring must only consume canonical runtime projection.
             resolved_trace = _resolve_runtime_calculation_trace(
-                result,
+                agent_answer,
                 allow_legacy_top_level=False,
             )
             resolved_calculation_trace = dict(resolved_trace or {})
             runtime_projection = dict(resolved_calculation_trace.get("runtime_projection") or {})
-            task_artifact_trace = dict(result.get("task_artifact_trace") or {})
+            task_artifact_trace = dict(review_trace.get("task_artifact_trace") or {})
             calculation_operands = resolved_trace.get("calculation_operands", []) or []
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
-            structured_result = dict(result.get("structured_result") or calculation_result or {})
+            structured_result = dict(agent_answer.get("structured_result") or calculation_result or {})
             resolved_trace = _resolve_runtime_calculation_trace(
                 {
                     "answer": answer,

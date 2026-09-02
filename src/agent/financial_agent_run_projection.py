@@ -173,6 +173,7 @@ def project_agent_answer(
         "routing_source": final.get("routing_source", ""),
         "routing_confidence": final.get("routing_confidence", 0.0),
         "routing_scores": final.get("routing_scores", {}),
+        "routing_degraded_reason": final.get("routing_degraded_reason", ""),
         "companies": final["companies"],
         "years": final["years"],
         "answer": public_answer,

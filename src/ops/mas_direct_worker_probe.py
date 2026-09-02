@@ -20,6 +20,7 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
+from src.agent.financial_run_result import FinancialRunResultV1
 from src.experimental.mas.diagnostics import (
     build_researcher_probe_query,
     build_researcher_probe_where_filter,
@@ -107,14 +108,16 @@ def _task_projection(task: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _analyst_material_status(result: Dict[str, Any]) -> Dict[str, Any]:
-    answer = str(result.get("answer") or "").strip()
+def _analyst_material_status(result: FinancialRunResultV1) -> Dict[str, Any]:
+    answer_payload = result.agent_answer
+    review = result.review_trace or {}
+    answer = str(answer_payload.get("answer") or "").strip()
     resolved_trace = resolve_runtime_calculation_trace(
-        result,
+        answer_payload,
         allow_legacy_top_level=False,
     )
     calc_result = dict(
-        result.get("structured_result")
+        answer_payload.get("structured_result")
         or resolved_trace.get("calculation_result")
         or {}
     )
@@ -122,9 +125,10 @@ def _analyst_material_status(result: Dict[str, Any]) -> Dict[str, Any]:
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_operands = list(resolved_trace.get("calculation_operands") or [])
     retrieved_doc_count = _doc_count(
-        list(result.get("seed_retrieved_docs") or []) + list(result.get("retrieved_docs") or [])
+        list(review.get("seed_retrieved_docs") or [])
+        + list(review.get("retrieved_docs") or [])
     )
-    evidence_item_count = len(list(result.get("evidence_items") or []))
+    evidence_item_count = len(list(review.get("evidence_items") or []))
 
     success = bool(
         answer
@@ -240,8 +244,12 @@ def _run_analyst_task(
 ) -> Dict[str, Any]:
     projected = _task_projection(task)
     try:
-        result = analyst_core.run(projected["instruction"], report_scope=dict(report_scope or {}))
-        material = _analyst_material_status(dict(result or {}))
+        result = analyst_core.run(
+            projected["instruction"],
+            report_scope=dict(report_scope or {}),
+            include_review_trace=True,
+        )
+        material = _analyst_material_status(result)
     except Exception as exc:
         material = {
             "material_status": "error",

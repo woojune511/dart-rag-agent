@@ -9,12 +9,19 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, Iterable, List, Protocol, Sequence
 
+from src.agent.financial_run_result import FinancialRunResultV1
 from src.agent.mas_types import AgentTask, Artifact, EvidenceRecord, MultiAgentState, TaskStatus, build_artifact, build_evidence_record
 from src.schema.runtime_enums import ArtifactKind
 
 
 class AnalystCoreRunner(Protocol):
-    def run(self, query: str, *, report_scope: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    def run(
+        self,
+        query: str,
+        *,
+        report_scope: Dict[str, Any] | None = None,
+        include_review_trace: bool = False,
+    ) -> FinancialRunResultV1:
         ...
 
 
@@ -65,15 +72,17 @@ def _extract_doc_links(retrieved_docs: Sequence[Any]) -> List[str]:
     return links
 
 
-def _extract_evidence_links(result: Dict[str, Any]) -> List[str]:
+def _extract_evidence_links(result: FinancialRunResultV1) -> List[str]:
+    answer = result.agent_answer
+    review = result.review_trace or {}
     resolved_trace = _resolve_runtime_calculation_trace(
-        result,
+        answer,
         allow_legacy_top_level=False,
     )
     links: List[str] = []
-    links.extend(str(item).strip() for item in result.get("citations", []) or [])
+    links.extend(str(item).strip() for item in answer.get("citations", []) or [])
 
-    for evidence_item in result.get("evidence_items", []) or []:
+    for evidence_item in review.get("evidence_items", []) or []:
         anchor = str(evidence_item.get("source_anchor") or "").strip()
         if anchor:
             links.append(anchor)
@@ -83,18 +92,22 @@ def _extract_evidence_links(result: Dict[str, Any]) -> List[str]:
         if anchor:
             links.append(anchor)
 
-    links.extend(_extract_doc_links(result.get("retrieved_docs", []) or []))
+    links.extend(_extract_doc_links(review.get("retrieved_docs", []) or []))
     return _dedupe_preserve_order(links)
 
 
-def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[EvidenceRecord]:
+def _build_evidence_pool_entries(
+    task_id: str,
+    result: FinancialRunResultV1,
+) -> List[EvidenceRecord]:
+    review = result.review_trace or {}
     resolved_trace = _resolve_runtime_calculation_trace(
-        result,
+        result.agent_answer,
         allow_legacy_top_level=False,
     )
     pool: List[EvidenceRecord] = []
 
-    for evidence_item in result.get("evidence_items", []) or []:
+    for evidence_item in review.get("evidence_items", []) or []:
         pool.append(
             build_evidence_record(
                 task_id=task_id,
@@ -136,26 +149,31 @@ def _analyst_artifact_ids(task_id: str) -> Dict[str, str]:
     }
 
 
-def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, Artifact]:
+def _build_analyst_artifacts(
+    task_id: str,
+    result: FinancialRunResultV1,
+) -> Dict[str, Artifact]:
+    answer_payload = result.agent_answer
+    review = result.review_trace or {}
     resolved_trace = _resolve_runtime_calculation_trace(
-        result,
+        answer_payload,
         allow_legacy_top_level=False,
     )
     structured_result = dict(
-        result.get("structured_result")
+        answer_payload.get("structured_result")
         or resolved_trace.get("calculation_result")
         or {}
     )
     evidence_links = _extract_evidence_links(result)
-    answer = str(result.get("answer") or "").strip()
+    answer = str(answer_payload.get("answer") or "").strip()
     artifact_ids = _analyst_artifact_ids(task_id)
     calculation_operands = list(resolved_trace.get("calculation_operands", []) or [])
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_result = dict(structured_result or resolved_trace.get("calculation_result") or {})
-    retrieval_debug_trace = dict(result.get("retrieval_debug_trace") or {})
+    retrieval_debug_trace = dict(review.get("retrieval_debug_trace") or {})
     retrieval_debug_trace_history = [
         dict(item)
-        for item in list(result.get("retrieval_debug_trace_history") or [])
+        for item in list(review.get("retrieval_debug_trace_history") or [])
         if isinstance(item, dict)
     ]
     if answer and not any(
@@ -195,16 +213,16 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
             summary=answer,
             content={
                 "answer": answer,
-                "query_type": result.get("query_type", ""),
-                "intent": result.get("intent", ""),
-                "legacy_target_metric_family_hint": result.get("target_metric_family", ""),
-                "citations": list(result.get("citations", []) or []),
+                "query_type": answer_payload.get("query_type", ""),
+                "intent": answer_payload.get("intent", ""),
+                "legacy_target_metric_family_hint": answer_payload.get("target_metric_family", ""),
+                "citations": list(answer_payload.get("citations", []) or []),
                 "resolved_calculation_trace": resolved_trace,
                 "structured_result": structured_result,
                 "retrieval_debug_trace": retrieval_debug_trace,
                 "retrieval_debug_trace_history": retrieval_debug_trace_history,
-                "reflection_count": int(result.get("reflection_count", 0) or 0),
-                "retry_reason": str(result.get("retry_reason", "") or ""),
+                "reflection_count": int(review.get("reflection_count", 0) or 0),
+                "retry_reason": str(review.get("retry_reason", "") or ""),
             },
             payload={
                 "answer": answer,
@@ -219,14 +237,15 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def _is_successful_numeric_result(result: Dict[str, Any]) -> bool:
-    answer = str(result.get("answer") or "").strip()
+def _is_successful_numeric_result(result: FinancialRunResultV1) -> bool:
+    answer_payload = result.agent_answer
+    answer = str(answer_payload.get("answer") or "").strip()
     resolved_trace = _resolve_runtime_calculation_trace(
-        result,
+        answer_payload,
         allow_legacy_top_level=False,
     )
     calc_result = dict(
-        result.get("structured_result")
+        answer_payload.get("structured_result")
         or resolved_trace.get("calculation_result")
         or {}
     )
@@ -257,6 +276,7 @@ def make_run_analyst(core_runner: AnalystCoreRunner) -> Callable[[MultiAgentStat
                 result = core_runner.run(
                     task["instruction"],
                     report_scope=dict(state.get("report_scope") or {}),
+                    include_review_trace=True,
                 )
             except Exception as exc:
                 task_updates[task_id] = {

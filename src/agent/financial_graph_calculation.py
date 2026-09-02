@@ -21,6 +21,7 @@ from src.agent.financial_reconciliation_candidates import (
     build_semantic_source_candidates,
     select_semantic_prompt_evidence_candidates,
     select_semantic_prompt_candidates,
+    semantic_candidate_relevance_score,
     semantic_candidate_id_fingerprint,
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
@@ -500,6 +501,55 @@ def _rank_applicable_owner_candidates(
 
     bounded_limit = max(0, int(limit))
     admitted = ranked_by_local_subject(eligible_rows, bounded_limit)
+    if candidate_kind == "evidence" and bounded_limit > 0:
+        # A source-defined narrative may need both structured facts and prose.
+        # Preserve kind diversity within each applicability tier without ever
+        # displacing a candidate from a stronger tier.
+        for applicability_state in ("compatible", "unknown_only"):
+            state_indexes = [
+                index
+                for index, candidate in enumerate(admitted)
+                if str(
+                    applicability_by_id.get(
+                        str(candidate.get("candidate_id") or ""),
+                        {},
+                    ).get("state")
+                    or "unknown_only"
+                )
+                == applicability_state
+            ]
+            if not state_indexes or any(
+                str(admitted[index].get("kind") or "") == "narrative"
+                for index in state_indexes
+            ):
+                continue
+            narrative_pool = [
+                item
+                for item in eligible_rows
+                if str(item.get("kind") or "") == "narrative"
+                and str(
+                    applicability_by_id.get(
+                        str(item.get("candidate_id") or ""),
+                        {},
+                    ).get("state")
+                    or "unknown_only"
+                )
+                == applicability_state
+                and semantic_candidate_relevance_score(item, relevance_group) > 0
+            ]
+            reserved_narrative = ranked_by_local_subject(narrative_pool, 1)
+            if not reserved_narrative:
+                continue
+            replacement_index = next(
+                (
+                    index
+                    for index in reversed(state_indexes)
+                    if str(admitted[index].get("kind") or "") != "narrative"
+                ),
+                None,
+            )
+            if replacement_index is not None:
+                admitted[replacement_index] = reserved_narrative[0]
     admitted_by_state: Dict[str, List[Dict[str, Any]]] = {
         "compatible": [],
         "unknown_only": [],

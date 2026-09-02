@@ -14,6 +14,21 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 from src.experimental.mas.graph import build_initial_state, run_mas_graph
 from src.experimental.mas.nodes import make_run_analyst
 from src.experimental.mas.types import MultiAgentState, TaskStatus
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
+
+
+_ANSWER_FIELDS = {
+    "answer",
+    "query_type",
+    "intent",
+    "target_metric_family",
+    "citations",
+    "resolved_calculation_trace",
+    "structured_result",
+}
 
 
 class FakeAnalystCore:
@@ -22,11 +37,31 @@ class FakeAnalystCore:
         self.error = error
         self.calls = []
 
-    def run(self, query: str, *, report_scope=None):
-        self.calls.append({"query": query, "report_scope": dict(report_scope or {})})
+    def run(self, query: str, *, report_scope=None, include_review_trace=False):
+        self.calls.append(
+            {
+                "query": query,
+                "report_scope": dict(report_scope or {}),
+                "include_review_trace": include_review_trace,
+            }
+        )
         if self.error is not None:
             raise self.error
-        return self.result
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer={
+                key: value
+                for key, value in self.result.items()
+                if key in _ANSWER_FIELDS
+            },
+            review_trace={
+                key: value
+                for key, value in self.result.items()
+                if key not in _ANSWER_FIELDS
+            }
+            if include_review_trace
+            else None,
+        )
 
 
 def _analyst_state(status: TaskStatus = TaskStatus.PENDING) -> MultiAgentState:
@@ -123,6 +158,7 @@ class AnalystNodeMigrationTests(unittest.TestCase):
         updates = node(_analyst_state())
 
         self.assertEqual(len(fake.calls), 1)
+        self.assertTrue(fake.calls[0]["include_review_trace"])
         self.assertEqual(fake.calls[0]["report_scope"]["company"], "삼성전자")
         self.assertEqual(fake.calls[0]["report_scope"]["year"], "2024")
         self.assertEqual(updates["tasks"]["task_1"]["status"], TaskStatus.COMPLETED)

@@ -1258,15 +1258,17 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
         answer = ""
         query_type = "unknown"
         try:
-            result = agent.run(query)
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
-            citations = result.get("citations", [])
-            answer = result.get("answer", "") or ""
-            query_type = result.get("query_type")
+            result = agent.run(query, include_review_trace=True)
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = review_trace.get("retrieval_debug_trace", {}) or {}
+            citations = agent_answer.get("citations", [])
+            answer = agent_answer.get("answer", "") or ""
+            query_type = agent_answer.get("query_type")
             runtime_projection = {
-                "resolved_calculation_trace": result.get("resolved_calculation_trace"),
-                "structured_result": result.get("structured_result"),
+                "resolved_calculation_trace": agent_answer.get("resolved_calculation_trace"),
+                "structured_result": agent_answer.get("structured_result"),
             }
             # Smoke summaries are generated from the public run projection and
             # should not re-read legacy top-level calculation mirrors.
@@ -1342,12 +1344,15 @@ def _run_screening_eval(
             result = agent.run(
                 example.question,
                 report_scope=_build_example_report_scope_for_eval(example),
+                include_review_trace=True,
             )
-            answer = result.get("answer", "")
-            query_type = result.get("query_type", "unknown")
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
-            citations = result.get("citations", [])
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            answer = agent_answer.get("answer", "")
+            query_type = agent_answer.get("query_type", "unknown")
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = review_trace.get("retrieval_debug_trace", {}) or {}
+            citations = agent_answer.get("citations", [])
         except Exception as exc:
             error = str(exc)
             logger.error("[%s] screening run failed: %s", example.id, exc)

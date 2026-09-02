@@ -218,6 +218,42 @@ class ImportSideEffectTests(unittest.TestCase):
 
         self.assertEqual(failures, [])
 
+    def test_core_runtime_does_not_import_ops_or_experimental_modules(self) -> None:
+        forbidden_prefixes = ("src.ops", "src.experimental")
+        core_paths = [PROJECT_ROOT / "main.py"]
+        for package in (
+            "agent",
+            "api",
+            "config",
+            "ingestion",
+            "processing",
+            "routing",
+            "schema",
+            "storage",
+            "utils",
+        ):
+            core_paths.extend(sorted((PROJECT_ROOT / "src" / package).rglob("*.py")))
+
+        violations = []
+        for path in core_paths:
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                imported_modules = []
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported_modules.append(node.module)
+                elif isinstance(node, ast.Import):
+                    imported_modules.extend(alias.name for alias in node.names)
+                for module in imported_modules:
+                    if any(
+                        module == prefix or module.startswith(prefix + ".")
+                        for prefix in forbidden_prefixes
+                    ):
+                        violations.append(
+                            f"{path.relative_to(PROJECT_ROOT)}:{node.lineno}:{module}"
+                        )
+
+        self.assertEqual(violations, [])
+
     def test_core_entrypoint_imports_do_not_mutate_process_state(self) -> None:
         modules = [
             "main",
@@ -433,7 +469,7 @@ class ImportSideEffectTests(unittest.TestCase):
                 if any(module == prefix or module.startswith(prefix + ".") for prefix in forbidden)
             )
             print(json.dumps({
-                "answer": result.get("answer"),
+                "answer": result.agent_answer.get("answer"),
                 "cache_status": cache_diagnostics.get("status"),
                 "loaded": loaded,
             }, sort_keys=True))

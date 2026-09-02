@@ -807,6 +807,18 @@ def _catalog_relevance_score(
     return score
 
 
+def semantic_candidate_relevance_score(
+    candidate: Mapping[str, Any],
+    relevance_texts: Sequence[str],
+) -> int:
+    """Return the deterministic prompt-admission score for one candidate."""
+
+    return _catalog_relevance_score(
+        candidate,
+        _catalog_relevance_tokens(relevance_texts),
+    )
+
+
 def _catalog_source_key(row: Mapping[str, Any], index: int) -> str:
     return str(
         row.get("evidence_id")

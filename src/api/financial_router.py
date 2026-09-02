@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.agent.financial_run_result import FinancialRunResultV1
 
 logger = logging.getLogger(__name__)
 
@@ -137,18 +140,14 @@ def _schema_models() -> Dict[str, type]:
 
 def _query_response_from_agent_result(
     question: str,
-    result: Dict[str, Any],
+    result: FinancialRunResultV1,
     *,
     include_review_trace: bool = False,
     include_debug_bundle: bool = False,
     retrieval_readiness: Optional[Dict[str, Any]] = None,
 ) -> QueryResponse:
     QueryResponse = _schema_models()["QueryResponse"]
-    answer_payload = (
-        dict(result.get("agent_answer") or {})
-        if "agent_answer" in result
-        else result
-    )
+    answer_payload = dict(result.agent_answer)
     response = QueryResponse(
         question=question,
         answer=str(answer_payload.get("answer") or ""),
@@ -161,10 +160,10 @@ def _query_response_from_agent_result(
             answer_payload.get("resolved_calculation_trace") or {}
         ),
     )
-    if include_review_trace:
-        response.review_trace = dict(result.get("review_trace") or {})
-    if include_debug_bundle:
-        response.debug_bundle = dict(result.get("debug_bundle") or {})
+    if include_review_trace and result.review_trace is not None:
+        response.review_trace = dict(result.review_trace)
+    if include_debug_bundle and result.debug_bundle is not None:
+        response.debug_bundle = dict(result.debug_bundle)
     if retrieval_readiness and bool(retrieval_readiness.get("degraded")):
         response.retrieval_readiness = dict(retrieval_readiness)
     return response
@@ -355,6 +354,8 @@ def get_router():
                 agent.run,
                 req.question,
                 report_scope=report_scope,
+                include_review_trace=req.include_review_trace,
+                include_debug_bundle=req.include_debug_bundle,
             )
         except Exception as e:
             logger.error(f"agent.run 실패: {e}")

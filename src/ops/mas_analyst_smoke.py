@@ -21,6 +21,7 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
+from src.agent.financial_run_result import FinancialRunResultV1
 
 DEFAULT_STORE_DIR = (
     Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
@@ -81,24 +82,24 @@ def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
 
 
 def _calc_payload(
-    result: Dict[str, Any],
+    result: FinancialRunResultV1,
     *,
     allow_legacy_top_level: bool = False,
 ) -> Dict[str, Any]:
     resolved = resolve_runtime_calculation_trace(
-        result,
+        result.agent_answer,
         allow_legacy_top_level=allow_legacy_top_level,
     )
     return dict(resolved.get("calculation_result") or {})
 
 
 def _operand_count(
-    result: Dict[str, Any],
+    result: FinancialRunResultV1,
     *,
     allow_legacy_top_level: bool = False,
 ) -> int:
     resolved = resolve_runtime_calculation_trace(
-        result,
+        result.agent_answer,
         allow_legacy_top_level=allow_legacy_top_level,
     )
     return len(resolved.get("calculation_operands") or [])
@@ -169,7 +170,7 @@ def run_smoke(
             analyst_node=analyst_node,
         )
 
-        direct_answer = str(direct.get("answer") or "")
+        direct_answer = str(direct.agent_answer.get("answer") or "")
         mas_answer = _artifact_answer(mas_final)
         direct_calc_payload = _calc_payload(direct)
         mas_calc_payload = _artifact_calc_payload(mas_final)

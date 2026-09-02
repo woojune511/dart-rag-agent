@@ -1,5 +1,9 @@
 # Semantic Calculation Runtime Cleanup Manifest
 
+> **Status: completed predecessor manifest.** Paths and buckets below preserve
+> the review snapshot from that transition, including test files that were
+> subsequently split. They are not the current runtime topology.
+
 This manifest replaces the pre-transition extraction manifest. It describes the
 review boundaries for the canonical semantic calculation program introduced on
 2026-08-27. Numeric and mixed questions now follow one path:

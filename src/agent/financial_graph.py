@@ -21,6 +21,10 @@ from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_state import FinancialAgentState, FinancialAgentStateV2
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_task_artifacts import (
@@ -586,7 +590,14 @@ class FinancialAgent(
             }
         }
 
-    def run(self, query: str, *, report_scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def run(
+        self,
+        query: str,
+        *,
+        report_scope: Optional[Dict[str, Any]] = None,
+        include_review_trace: bool = False,
+        include_debug_bundle: bool = False,
+    ) -> FinancialRunResultV1:
         """Execute the graph and expose its canonical result without numeric repair."""
 
         usage_callback = getattr(self, "llm_usage_callback", None)
@@ -635,22 +646,28 @@ class FinancialAgent(
             structured_result=structured_result,
             runtime_calculation_trace=runtime_calculation_trace,
         )
-        review_trace = project_review_trace(
-            final,
-            runtime_evidence=runtime_evidence,
-            task_artifact_trace=task_artifact_trace,
+        review_trace = (
+            project_review_trace(
+                final,
+                runtime_evidence=runtime_evidence,
+                task_artifact_trace=task_artifact_trace,
+            )
+            if include_review_trace
+            else None
         )
-        debug_bundle = project_debug_bundle(
-            debug_traces=project_debug_traces(final),
-            llm_usage=llm_usage,
-            llm_usage_by_phase=llm_usage_by_phase,
-            embedding_usage=embedding_usage,
+        debug_bundle = (
+            project_debug_bundle(
+                debug_traces=project_debug_traces(final),
+                llm_usage=llm_usage,
+                llm_usage_by_phase=llm_usage_by_phase,
+                embedding_usage=embedding_usage,
+            )
+            if include_debug_bundle
+            else None
         )
-        return {
-            **agent_answer,
-            **review_trace,
-            **debug_bundle,
-            "agent_answer": agent_answer,
-            "review_trace": review_trace,
-            "debug_bundle": debug_bundle,
-        }
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer=agent_answer,
+            review_trace=review_trace,
+            debug_bundle=debug_bundle,
+        )

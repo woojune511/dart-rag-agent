@@ -1,5 +1,10 @@
 # Self-Reflection Capability Contract
 
+> **Status: superseded design record.** The current graph does not expose this
+> reflection escape state. Active retry is the one-attempt, island-local path
+> defined in [agent_runtime_contract.md](agent_runtime_contract.md); historical
+> promotion evidence remains review-only.
+
 This note defines the target boundary for retry/reflection behavior. The goal
 is to stop adding local rule branches to the live graph and make reflection a
 bounded capability with explicit inputs, outputs, limits, and ledger effects.

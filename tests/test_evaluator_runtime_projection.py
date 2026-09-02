@@ -48,6 +48,10 @@ from src.ops.evaluator import (
     _should_override_structured_summary_faithfulness,
 )
 from src.agent import financial_runtime_trace
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
@@ -60,12 +64,47 @@ class _FakeAgent:
     def __init__(self, result: dict) -> None:
         self.result = result
 
-    def run(self, question: str, report_scope=None) -> dict:
-        return dict(self.result)
+    def run(
+        self,
+        question: str,
+        *,
+        report_scope=None,
+        include_review_trace=False,
+        include_debug_bundle=False,
+    ) -> FinancialRunResultV1:
+        answer_fields = {
+            "answer",
+            "query_type",
+            "intent",
+            "format_preference",
+            "routing_source",
+            "routing_confidence",
+            "routing_scores",
+            "citations",
+            "resolved_calculation_trace",
+            "structured_result",
+        }
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer={
+                key: value
+                for key, value in self.result.items()
+                if key in answer_fields
+            },
+            review_trace={} if include_review_trace else None,
+            debug_bundle={} if include_debug_bundle else None,
+        )
 
 
 class _FailingAgent:
-    def run(self, question: str, report_scope=None) -> dict:
+    def run(
+        self,
+        question: str,
+        *,
+        report_scope=None,
+        include_review_trace=False,
+        include_debug_bundle=False,
+    ) -> FinancialRunResultV1:
         raise RuntimeError("model unavailable")
 
 

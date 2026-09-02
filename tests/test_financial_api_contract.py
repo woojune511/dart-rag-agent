@@ -6,6 +6,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.api.financial_router import get_router
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 from src.storage.store_manifest import StoreReadiness, canonical_store_manifest
 
 
@@ -13,7 +17,14 @@ class _Agent:
     def __init__(self) -> None:
         self.calls = []
 
-    def run(self, question, *, report_scope=None):
+    def run(
+        self,
+        question,
+        *,
+        report_scope=None,
+        include_review_trace=False,
+        include_debug_bundle=False,
+    ):
         self.calls.append(
             {
                 "question": question,
@@ -21,8 +32,9 @@ class _Agent:
                 "thread": threading.current_thread().name,
             }
         )
-        return {
-            "agent_answer": {
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer={
                 "answer": "answer",
                 "query_type": "qa",
                 "companies": ["A"],
@@ -31,9 +43,9 @@ class _Agent:
                 "structured_result": {"ok": True},
                 "resolved_calculation_trace": {},
             },
-            "review_trace": {"review": True},
-            "debug_bundle": {"debug": True},
-        }
+            review_trace={"review": True} if include_review_trace else None,
+            debug_bundle={"debug": True} if include_debug_bundle else None,
+        )
 
 
 class _IngestService:

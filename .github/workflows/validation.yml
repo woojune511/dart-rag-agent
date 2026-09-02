@@ -45,6 +45,7 @@ jobs:
           tests.test_portfolio_review_gates
           tests.test_query_routing_dataset_contract
           tests.test_runtime_domain_term_audit
+          tests.test_runtime_topology_doc
           tests.test_validation_workflow_contract
 
       - name: Audit runtime domain terms

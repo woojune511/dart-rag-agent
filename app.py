@@ -205,7 +205,9 @@ with tab2:
             try:
                 if not services.readiness.ready or agent is None:
                     raise RuntimeError(services.readiness.reason)
-                result = agent.run(question)
+                run_result = agent.run(question, include_review_trace=True)
+                answer_result = run_result.agent_answer
+                review_trace = run_result.review_trace or {}
 
                 # 쿼리 유형 배지
                 qtype_label = {
@@ -213,12 +215,12 @@ with tab2:
                     "comparison": "⚖️ 기업 비교",
                     "trend":      "📈 트렌드 분석",
                     "risk":       "⚠️ 리스크 분석",
-                }.get(result.get("query_type", ""), "🔍 분석")
+                }.get(answer_result.get("query_type", ""), "🔍 분석")
 
                 col_a, col_b, col_c = st.columns(3)
                 col_a.metric("쿼리 유형", qtype_label)
-                extracted_companies = result.get("companies", [])
-                extracted_years     = result.get("years", [])
+                extracted_companies = answer_result.get("companies", [])
+                extracted_years     = answer_result.get("years", [])
                 col_b.metric(
                     "인식된 기업",
                     ", ".join(extracted_companies) if extracted_companies else "—",
@@ -232,15 +234,15 @@ with tab2:
 
                 st.divider()
                 st.subheader("답변")
-                st.markdown(result.get("answer", "답변 없음"))
+                st.markdown(answer_result.get("answer", "답변 없음"))
 
-                citations = result.get("citations", [])
+                citations = answer_result.get("citations", [])
                 if citations:
                     with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
                         for i, cite in enumerate(citations, 1):
                             st.markdown(f"**{i}.** {cite}")
 
-                retrieved_docs = result.get("retrieved_docs", [])
+                retrieved_docs = review_trace.get("retrieved_docs", [])
                 if retrieved_docs:
                     with st.expander(f"🔎 검색된 청크 ({len(retrieved_docs)}개) — 클릭하여 검색 결과 원문 확인", expanded=False):
                         for i, item in enumerate(retrieved_docs, 1):
