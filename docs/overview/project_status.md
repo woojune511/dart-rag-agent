@@ -7,7 +7,7 @@ Last updated: 2026-09-03
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/typed-candidate-ranking`; post-gate source contract follow-up is under local validation |
+| Active branch | `codex/runtime-contract-integration`; the post-gate source contract follow-up is locally integrated |
 | Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
@@ -114,8 +114,9 @@ no disposable store remains.
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Complete local validation and integrate `codex/typed-candidate-ranking`;
-   benchmark artifacts remain uncommitted.
+2. Keep benchmark artifacts uncommitted. The reviewed
+   `codex/typed-candidate-ranking` successor is now integrated locally into
+   `codex/runtime-contract-integration`.
 3. Keep a broader local semantic reranker and persisted typed fact index as
    deferred designs. They need measured benefit and a migration contract rather
    than being bundled into the atomic-bundle repair.

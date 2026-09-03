@@ -5,7 +5,7 @@ Last updated: 2026-09-03
 ## Checkout
 
 - Integration worktree: `C:\Users\geonj\Desktop\dart-rag-agent-runtime-integration`
-- Branch: `codex/typed-candidate-ranking`
+- Branch: `codex/runtime-contract-integration`
 - Immutable base: `a278c1a`
 - Clean redesign predecessor: `8790f92`
 - Candidate-ranking predecessor: `729e0fb`
@@ -44,6 +44,8 @@ The boundary redesign is implemented as ordered commits:
     projection, reject a failed row as a unit, and fail closed on cohort
     capacity. Derived answers expose source-visible inputs, and evaluator
     artifacts retain future faithfulness rationale.
+11. Reviewed `codex/typed-candidate-ranking` was fast-forwarded into the
+    integration branch without a provider run, store write, or artifact commit.
 
 The separate dirty predecessor was then integrated explicitly:
 
