@@ -180,3 +180,25 @@ datasets, saved results, and excluded user files remained byte-identical.
   key/evidence correction are now the next separate explicit decision; the
   current key still combines different reporting bases.
 - Paid replay, compiler repair, ingest, and Phase 3 remain out of scope.
+
+## Dataset governance decision (2026-09-03)
+
+The reviewed consolidated tuple is now the canonical `HYU_T3_072` answer:
+
+- ownership share `26%` and carrying amount `700,691백만원` from connected
+  notes table 82 row `9:2`;
+- revenue `1,775백만원`, continuing-operation loss `(803,742)백만원`, other
+  comprehensive income `12,115백만원`, and total comprehensive loss
+  `(791,627)백만원` from connected notes table 90 row `21:4`.
+
+The curated answer, evidence descriptions, required entities, and raw dataset
+checkpoints now use that single consolidated basis. The separate-basis
+`25.81% / 1,294,367백만원` pair remains valid source evidence, but it is not
+combined with the consolidated summary in the canonical answer.
+
+The runtime follow-up also treats the policy-defined table 90 measures as one
+required physical-row group. A read-only reprojection of the consumed source
+window retained all four cells in physical column order. No saved result,
+store, or cache was rewritten, and no provider replay was performed. Future
+faithfulness-judge results persist their short rationale; the historical
+Samsung `0.7` result has no recoverable rationale and is not reinterpreted.
