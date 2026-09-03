@@ -1,150 +1,92 @@
 # Current Handoff Context
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
-## Checkout
+## Canonical source
 
-- Integration worktree: `C:\Users\geonj\Desktop\dart-rag-agent-runtime-integration`
-- Branch: `codex/runtime-contract-integration`
-- Immutable base: `a278c1a`
-- Clean redesign predecessor: `8790f92`
-- Candidate-ranking predecessor: `729e0fb`
-- The original dirty checkout remains an unstaged predecessor outside this
-  worktree. The separately approved ignored store manifest was added under its
-  `data/chroma_dart` directory.
+- `main` contains the runtime and candidate-boundary redesign through merge
+  commit `820cfd7` ([PR #87](https://github.com/woojune511/dart-rag-agent/pull/87)).
+- The reviewed feature head is `555c00b`; the post-merge documentation branch is
+  `codex/post-merge-closeout`.
+- The product path is the single-agent `FinancialAgent`. MAS, Streamlit,
+  benchmark, evaluator, replay, and promotion tools remain optional or
+  experimental consumers.
 
-## Current implementation
+## Current runtime
 
-The boundary redesign is implemented as ordered commits:
+- `FinancialAgentStateV2` is phase-owned and the final assembler is the only
+  task-ledger and answer writer.
+- Compiler, validator, and executor share one immutable candidate-visibility
+  envelope. Catalog, cohort, or validation drift fails before execution.
+- Typed per-owner matching replaces additive keyword scoring. Candidate prompts
+  are cell-local, and related outputs select one complete physical row before
+  compiler invocation.
+- Declared dependencies, non-empty coupling keys, and inferred complete-row
+  bundles define bounded compilation islands. Candidate failure promotes the
+  next complete row; format-only retry keeps the selected row.
+- Retrieval, ingest, store readiness, API services, and the typed
+  `FinancialRunResultV1` have explicit ownership boundaries. Store compatibility
+  is exact, unknown occupancy fails closed, and degraded BM25 use is visible.
+- FastAPI serializes shared query and ingest work before threadpool dispatch.
+  Cached Streamlit services separately serialize store inspection, query,
+  ingest, readiness refresh, and evaluation across sessions.
 
-1. `ea45baf`: immutable candidate visibility and compile/execution drift gates.
-2. `608c233`: phase-owned `FinancialAgentStateV2` and single ledger writer.
-3. `cf37596`: dependency/coupling compilation islands and bounded retry.
-4. `e7cc30b`: retrieval, ingest, store-manifest, API, and routing-cache boundaries.
-5. Final change: public `FinancialRunResultV1`, concise normative docs,
-   generated topology, semantic-test split, and source-defined narrative
-   evidence-cap preservation.
-6. Documentation follow-up: authority-first navigation, a bounded fast
-   development loop, and explicit historical labels for retired work queues and
-   gate logs.
-7. Current source change: typed per-owner semantic targets and deterministic
-   fact matching replace the additive keyword selector. The full catalog stays
-   immutable; only owner cohorts are bounded, structured prompts are cell-local,
-   and the validator rechecks declared targets with the same matcher.
-8. Current source successor: complete physical rows become immutable
-   evidence-bundle options for related same-subject outputs. Bundle membership
-   adds a compilation-island edge even when planner coupling is empty; validator
-   and executor reject mixed-row selections and retry the bundle atomically.
-9. `28d26dc`: complete bundle options are ranked from existing owner-cohort
-   positions and one physical row is selected before compiler invocation.
-   Output and source-defined requirement visibility is projected through that
-   option, while numeric compatibility narratives remain available.
-10. Current source follow-up: policy-defined source summaries select one
-    complete physical row, preserve all required sibling cells through atomic
-    projection, reject a failed row as a unit, and fail closed on cohort
-    capacity. Derived answers expose source-visible inputs, and evaluator
-    artifacts retain future faithfulness rationale.
-11. Reviewed `codex/typed-candidate-ranking` was fast-forwarded into the
-    integration branch without a provider run, store write, or artifact commit.
-
-The separate dirty predecessor was then integrated explicitly:
-
-1. `db67965`: exact-signature retrieval result caching only.
-2. `2068203`: parser preservation of `십억원` table units.
-3. `0a03b40`: FastAPI JSON request-body contract coverage on the lifespan-owned
-   service path.
-4. `14460f8`: source-qualified evaluator variants, strict multi-output matching,
-   and the reviewed dataset/documentation additions.
-5. `89ab496`: explicit store-only and immutable-source eval-only benchmark modes.
-6. `ff7f94b`: non-mutating SQLite inspection for legacy-store manifest dry-runs.
-
-The product path is the single-agent `FinancialAgent`. MAS, Streamlit, benchmark,
-evaluator, replay, and promotion tools remain optional or experimental.
-
-## Hard boundaries
-
-- Candidate IDs, catalog fingerprints, evaluator tolerances, stores, and
-  historical result bundles are not rewritten. The `HYU_T3_072` canonical key
-  is intentionally corrected in the dataset successor to the source-reviewed
-  consolidated tuple; it no longer combines separate-basis direct values with
-  consolidated summary values.
-- No existing store receives a manifest automatically. The approved adoption
-  wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
-  remained byte-identical.
-- Provider-capable runs remain exact-admission scoped. Atomic-bundle admission
-  `06a40243...016` was approved and consumed by one store-fixed `eval-only`
-  process on 2026-09-03. It does not authorize another run, fresh ingest,
-  automatic benchmark retry, or document embedding.
-- The `data/chroma_dart` manifest layer now reports exact `compatible`,
-  `ready=true`, and `degraded=false`. This is not provider-query validation.
-
-## Verification authority
-
-Current source and tests are authoritative. Stable rules are in
-[agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), live
-topology is in [runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and
-historical evidence remains in [implementation_history.md](docs/history/implementation_history.md)
+Stable rules are in
+[agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), the
+checked topology is in
+[runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and historical
+detail remains in [implementation_history.md](docs/history/implementation_history.md)
 and [experiment_history.md](docs/history/experiment_history.md).
 
-The current provider-free lineage covers typed owner matching, deterministic
-cohort ranking, cell-local prompts, complete-row bundle inference, cross-row
-rejection, and atomic option projection. The repair tests catalog-order-independent
-choice, next-row promotion, compatibility narrative preservation, and
-source-defined requirement projection. Read-only projection of the consumed T3
-result reduces its visible set from 16 IDs to 10, selects table 82 row `9:2`,
-retains the two numeric compatibility cohorts and five narrative IDs, and removes
-the table 83 numeric pair. The gate passes 766 total unittest cases, 184 focused
-semantic/scope cases, 29 documentation/import/topology cases, the
-86-literal domain audit, pycompile, and `git diff --check`. This is local source
-evidence only; no provider, network, store write, dataset change, or evaluator
-change was used.
+## Verification
 
-A read-only reprojection of the three saved source windows confirms no inferred
-bundle for T2 or Samsung and one three-owner T3 island with two physical options:
-table 82 row `9:2` (`26%`, `700,691백만원`) or table 83 row `9:2` (`25.92%`,
-`907,061백만원`), each with context-compatible source-defined narrative IDs.
-Structure-graph and table-payload SHA-256 values were identical before and after.
+- The reviewed PR head passed 790 local unittest cases, the 86-literal runtime
+  domain audit, import/topology checks, pycompile, and `git diff --check`.
+- GitHub's Python 3.13 reviewer-contract and full-unittest jobs passed. The
+  current-head Codex review reported no major issue and all review threads are
+  resolved.
+- The approved store-fixed three-question gate remains **3/3 runtime-complete**
+  with runtime error 0 and ledger `ok`: T2 retains `87.0만 대` and `78.1만 대`;
+  T3 selects one table-82 row for `26%` and `700,691백만원`; Samsung retains its
+  accepted numeric and Harman evidence.
+- Admission `06a40243...016` was consumed exactly once. The run used 17 LLM
+  calls, 117,631 LLM tokens, 32 query-embedding calls, zero document-embedding
+  calls, and an estimated USD `0.1212257` under the approved USD `0.40` cap.
+- The approved `data/chroma_dart` manifest is compatible and its predecessor
+  store files remained byte-identical. This is store readiness, not a new
+  provider-query result.
 
-The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
-`98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
-Its collection is `dart_reports_v2`, dimension is `3072`, and the declared
-profile is canonical. All seven predecessor store files remained byte-identical.
+## Dirty predecessor audit
 
-The atomic-bundle build used ignored admission
-`benchmarks/results/atomic_evidence_bundle_focused_admission_envbound_2026-09-03`.
-Its manifest is `06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`;
-both persisted rehearsals and the immediate pre-dispatch rehearsal produced the
-same 6,730-byte receipt at
-`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
+The original checkout
+`C:\Users\geonj\Desktop\dart-rag-agent` remains untouched on
+`codex/semantic-candidate-boundary-repair` at `a278c1a` with 24 visible dirty
+paths.
 
-The approved runner completed exactly once in 276.8 seconds at `28d26dc`. The
-ignored root result is
-`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`,
-SHA-256 `b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`.
-All three questions are runtime-complete with error zero and ledger `ok`.
+A read-only blob comparison against merged `main` found:
 
-- T2 retained the same four evidence IDs, `87.0만 대`, `78.1만 대`, calculated
-  `11.4%`, and source display `11.5%`.
-- T3 compiled once without retry. Both direct outputs use table 82 row `9:2`:
-  `26%` and `700,691백만원`; no table 83 numeric ID reached execution. Its
-  Motional summary remains grounded in the separate source summary rows.
-- Samsung retained all three predecessor evidence IDs and added one compatible
-  Harman overview source; `28,352,769백만원` and the Harman narrative remain.
+- 12 paths are already byte-identical to `main`.
+- The other 12 contain no change that should be ported. They are superseded
+  module-global API wiring, flat-result consumers, permissive partial-store
+  reuse, pre-rationale evaluator code, the mixed-basis T3 key, stale authority
+  prose, and tests for those predecessor contracts.
+- The divergent paths are `AGENTS.md`, the full curated dataset, numeric
+  evaluation and T3 review docs, `financial_router.py`, `benchmark_runner.py`,
+  `evaluator.py`, four associated test modules, and the standalone legacy HTTP
+  contract test.
 
-The bounded runtime release gate is therefore **3/3, PASS**. This does not change
-the historical paid output or promote qualitative evaluator scores: the raw
-benchmark still reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness
-`0.7`, and two company-level full-eval failures.
+Do not merge or rebase that dirty branch into `main`. It can be retired after
+explicit cleanup approval; export a patch first only if the user wants an
+additional archival copy.
 
-The post-gate provider-free successor corrects the T3 canonical dataset basis,
-preserves all four policy-defined table 90 row `21:4` cells through cohort and
-atomic projection, and re-renders the saved T2 operands as `2023 87.0만 대` and
-`2022 78.1만 대`. Future evaluator artifacts include a faithfulness rationale;
-the historical Samsung `0.7` reason cannot be recovered. These checks do not
-constitute a new provider or benchmark run.
+## Hard boundaries and next work
 
-The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
-zero document-embedding calls, and estimated runtime cost USD `0.1212257`.
-Embedding cost remains unavailable. Source result hashes, SQLite hashes, and
-complete store fingerprints are unchanged; no disposable store remains. The
-admission is exhausted and no automatic retry is authorized.
+1. Do not rerun the exhausted paid gate, perform fresh ingest, or rewrite saved
+   stores, caches, benchmark results, candidate IDs, or historical artifacts.
+2. Keep the broader local semantic reranker and persisted typed fact index
+   deferred. First produce a provider-free ambiguity baseline over existing
+   stored catalogs: complete-option count, top-two margin, unknown-only share,
+   prompt bytes, and failure class by owner/island.
+3. Add a reranker only if that baseline shows material residual ambiguity. A
+   typed fact index remains a separately approved versioned ingest/store
+   migration.

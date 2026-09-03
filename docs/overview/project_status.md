@@ -1,13 +1,13 @@
 # Project Status
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
 ## At a glance
 
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/runtime-contract-integration`; the post-gate source contract follow-up is locally integrated |
+| Canonical source | `main` at merge commit `820cfd7`; PR #87 merged with reviewed head `555c00b` |
 | Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
@@ -39,6 +39,8 @@ Last updated: 2026-09-03
   longer exposes ingest methods.
 - FastAPI dependencies live in lifespan-owned `AppServices`; sync query and ingest
   execute in a threadpool. Liveness and readiness are separate endpoints.
+- Cached Streamlit services serialize store inspection, query, ingest plus
+  readiness refresh, and evaluation across sessions.
 - Evaluator-only accepted calculation/answer variants require one complete,
   source-qualified atomic match. They do not alter runtime selection or promote
   qualitative scores.
@@ -53,16 +55,16 @@ Last updated: 2026-09-03
 
 ## Evidence and remaining gate
 
-The current provider-free source combines typed target matching, cell-local
+The merged provider-free source combines typed target matching, cell-local
 prompts, complete-row bundle inference, and fail-closed validation. Complete
 options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The source gate passes 766
-unittest cases, including 184 focused semantic/scope and 29
-documentation/import/topology cases, plus the 86-literal domain audit,
-pycompile, and `git diff --check`.
+same row. Ranked alternatives are diagnostic-only. The reviewed head passes 790
+local unittest cases, the 86-literal domain audit, import/topology checks,
+pycompile, and `git diff --check`. Both Python 3.13 CI jobs passed; the latest
+Codex review reported no major issue and all review threads are resolved.
 
 The exact atomic-bundle admission preserved the order `HYU_T2_010`,
 `HYU_T3_072`, `SAM_T2_078`. Manifest
@@ -114,12 +116,13 @@ no disposable store remains.
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Keep benchmark artifacts uncommitted. The reviewed
-   `codex/typed-candidate-ranking` successor is now integrated locally into
-   `codex/runtime-contract-integration`.
-3. Keep a broader local semantic reranker and persisted typed fact index as
-   deferred designs. They need measured benefit and a migration contract rather
-   than being bundled into the atomic-bundle repair.
+2. Keep benchmark artifacts uncommitted. The original dirty checkout remains
+   untouched: 12 of its 24 dirty paths are byte-identical to merged `main`; the
+   other 12 are superseded predecessor contracts with nothing to port. Do not
+   merge or rebase it; retire it only after explicit cleanup approval.
+3. Measure residual candidate ambiguity provider-free over existing stored
+   catalogs before implementing a broader local semantic reranker. Keep a
+   persisted typed fact index behind a separate versioned migration contract.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the
