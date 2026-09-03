@@ -237,6 +237,10 @@ for an existing non-empty store. Explicit BM25-only degraded mode is the sole
 exception; it must be enabled by configuration and exposed in readiness,
 response, and retrieval trace.
 
+A manifest-less Chroma directory whose embedding and pending-operation counts
+are both zero remains eligible for ingest initialization after restart. It is
+not query-ready, and ingest writes the manifest only after indexing documents.
+
 Legacy-store adoption uses a separate CLI. Its default is dry-run; writing a
 manifest requires the explicit write flag after collection, dimension, and
 declared profile validation.
@@ -251,6 +255,11 @@ FastAPI creates `AppServices` in lifespan and stores it on `app.state`. Query an
 ingest execute in a threadpool. `/api/health/live` reports process liveness;
 `/api/health/ready` reports strict store readiness; `/api/health` is a readiness
 alias. `QueryRequest.report_scope` is typed and passed without invented fields.
+
+Repository `.env` values are resolved before application settings, with process
+environment values taking precedence and imports leaving process state
+unchanged. Query and ingest operations sharing one `AppServices` instance are
+serialized before threadpool dispatch because the agent and store are mutable.
 
 CORS is disabled unless an environment allowlist is configured. Streamlit and
 MAS are experimental. Evaluator dependencies load only for an actual evaluation

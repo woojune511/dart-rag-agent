@@ -1,6 +1,14 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import os
+from pathlib import Path
+import sqlite3
+import tempfile
 import threading
+import time
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -48,6 +56,28 @@ class _Agent:
         )
 
 
+class _ConcurrentAgent(_Agent):
+    def __init__(self) -> None:
+        super().__init__()
+        self._guard = threading.Lock()
+        self.active_calls = 0
+        self.max_active_calls = 0
+
+    def run(self, question, **kwargs):
+        with self._guard:
+            self.active_calls += 1
+            self.max_active_calls = max(
+                self.max_active_calls,
+                self.active_calls,
+            )
+        try:
+            time.sleep(0.05)
+            return super().run(question, **kwargs)
+        finally:
+            with self._guard:
+                self.active_calls -= 1
+
+
 class _IngestService:
     def __init__(self) -> None:
         self.calls = []
@@ -68,7 +98,7 @@ class _IngestService:
         }
 
 
-def _services(*, status="compatible", ready=True, degraded=False):
+def _services(*, status="compatible", ready=True, degraded=False, agent=None):
     manifest = canonical_store_manifest(collection_name="runtime")
     readiness = StoreReadiness(
         status=status,
@@ -78,7 +108,7 @@ def _services(*, status="compatible", ready=True, degraded=False):
         actual=manifest if status == "compatible" else None,
         degraded=degraded,
     )
-    agent = _Agent()
+    agent = agent or _Agent()
     ingest = _IngestService()
     services = SimpleNamespace(
         expected_manifest=manifest,
@@ -90,6 +120,8 @@ def _services(*, status="compatible", ready=True, degraded=False):
         ),
         agent=agent,
         ingest_service=ingest,
+        operation_lock=asyncio.Lock(),
+        contextual_ingest_max_workers=8,
     )
     # The API contract test does not touch a real store after ingest.
     services.refresh_readiness = lambda: readiness
@@ -104,6 +136,96 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_empty_unmanifested_chroma_restart_is_initializable(self) -> None:
+        from src.api.services import _store_may_initialize
+
+        manifest = canonical_store_manifest(collection_name="runtime")
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            database_path = root / "chroma.sqlite3"
+            connection = sqlite3.connect(database_path)
+            try:
+                connection.execute("CREATE TABLE embeddings (id INTEGER)")
+                connection.execute("CREATE TABLE embeddings_queue (seq_id INTEGER)")
+                connection.commit()
+            finally:
+                connection.close()
+            readiness = StoreReadiness(
+                status="missing",
+                ready=False,
+                reason="store manifest is missing",
+                expected=manifest,
+            )
+
+            self.assertTrue(
+                _store_may_initialize(
+                    root,
+                    readiness=readiness,
+                    allow_degraded=False,
+                )
+            )
+
+            connection = sqlite3.connect(database_path)
+            try:
+                connection.execute("INSERT INTO embeddings VALUES (1)")
+                connection.commit()
+            finally:
+                connection.close()
+            self.assertFalse(
+                _store_may_initialize(
+                    root,
+                    readiness=readiness,
+                    allow_degraded=False,
+                )
+            )
+
+    def test_app_factory_reads_cors_from_project_dotenv_without_env_mutation(
+        self,
+    ) -> None:
+        from fastapi.middleware.cors import CORSMiddleware
+        from main import create_app
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / ".env").write_text(
+                "DART_CORS_ALLOW_ORIGINS=https://one.example,https://two.example\n",
+                encoding="utf-8",
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                before = dict(os.environ)
+                app = create_app(project_root=root)
+                self.assertEqual(dict(os.environ), before)
+
+        middleware = next(
+            item
+            for item in app.user_middleware
+            if item.cls is CORSMiddleware
+        )
+        self.assertEqual(
+            middleware.kwargs["allow_origins"],
+            ["https://one.example", "https://two.example"],
+        )
+
+    def test_app_settings_read_dotenv_before_service_configuration(self) -> None:
+        from src.api.services import resolve_app_settings
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / ".env").write_text(
+                "DART_STORE_PATH=dotenv-store\n"
+                "DART_REPORTS_PATH=dotenv-reports\n",
+                encoding="utf-8",
+            )
+            with patch.dict(
+                os.environ,
+                {"DART_STORE_PATH": "process-store"},
+                clear=True,
+            ):
+                settings = resolve_app_settings(root)
+
+        self.assertEqual(settings["DART_STORE_PATH"], "process-store")
+        self.assertEqual(settings["DART_REPORTS_PATH"], "dotenv-reports")
+
     def test_openapi_declares_ingest_and_query_requests_as_json_bodies(self) -> None:
         services, _, _ = _services()
         app = FastAPI()
@@ -150,6 +272,26 @@ class FinancialAPIContractTests(unittest.TestCase):
         payload = response.json()
         self.assertNotIn("review_trace", payload)
         self.assertNotIn("debug_bundle", payload)
+
+    def test_shared_agent_queries_are_serialized_before_threadpool_dispatch(
+        self,
+    ) -> None:
+        agent = _ConcurrentAgent()
+        services, _, _ = _services(agent=agent)
+        with _client(services) as client:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = [
+                    executor.submit(
+                        client.post,
+                        "/api/query",
+                        json={"question": f"q-{index}"},
+                    )
+                    for index in range(2)
+                ]
+                responses = [future.result() for future in futures]
+
+        self.assertEqual([response.status_code for response in responses], [200, 200])
+        self.assertEqual(agent.max_active_calls, 1)
 
     def test_review_and_debug_are_opt_in(self) -> None:
         services, _, _ = _services()

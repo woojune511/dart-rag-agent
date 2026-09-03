@@ -2,16 +2,27 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from src.storage.store_manifest import (
     StoreManifestV1,
     StoreReadiness,
     assess_store_readiness,
     canonical_store_manifest,
+    is_empty_chroma_store,
+)
+
+
+_APP_SETTING_NAMES = (
+    "CONTEXTUAL_INGEST_MAX_WORKERS",
+    "DART_ALLOW_DEGRADED_BM25_ONLY",
+    "DART_CORS_ALLOW_ORIGINS",
+    "DART_REPORTS_PATH",
+    "DART_STORE_PATH",
 )
 
 
@@ -19,13 +30,56 @@ def _enabled(value: str) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def resolve_app_settings(project_root: Path) -> Dict[str, str]:
+    """Resolve API settings without mutating the process environment."""
+
+    from dotenv import dotenv_values
+
+    dotenv_settings = dotenv_values(Path(project_root) / ".env")
+    return {
+        name: str(
+            os.environ[name]
+            if name in os.environ
+            else dotenv_settings.get(name) or ""
+        )
+        for name in _APP_SETTING_NAMES
+    }
+
+
+def _store_may_initialize(
+    persist_directory: Path,
+    *,
+    readiness: StoreReadiness,
+    allow_degraded: bool,
+) -> bool:
+    existing_entries = (
+        any(persist_directory.iterdir())
+        if persist_directory.is_dir()
+        else False
+    )
+    return bool(
+        readiness.status == "compatible"
+        or not existing_entries
+        or allow_degraded
+        or (
+            readiness.status == "missing"
+            and is_empty_chroma_store(persist_directory)
+        )
+    )
+
+
 @dataclass(slots=True)
 class AppServices:
     expected_manifest: StoreManifestV1
     readiness: StoreReadiness
+    contextual_ingest_max_workers: int = 8
     store: Optional[Any] = None
     agent: Optional[Any] = None
     ingest_service: Optional[Any] = None
+    operation_lock: asyncio.Lock = field(
+        default_factory=asyncio.Lock,
+        repr=False,
+    )
 
     def refresh_readiness(self) -> StoreReadiness:
         allow_degraded = bool(
@@ -55,6 +109,12 @@ def build_app_services(
     *,
     project_root: Optional[Path] = None,
 ) -> AppServices:
+    from dotenv import load_dotenv
+
+    root = project_root or Path(__file__).resolve().parents[2]
+    load_dotenv(root / ".env")
+    settings: Mapping[str, str] = resolve_app_settings(root)
+
     from src.agent.financial_graph import FinancialAgent
     from src.ingestion.context_generator import ContextGenerator
     from src.ingestion.dart_fetcher import DARTFetcher
@@ -62,15 +122,14 @@ def build_app_services(
     from src.processing.financial_parser import FinancialParser
     from src.storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
 
-    root = project_root or Path(__file__).resolve().parents[2]
     persist_directory = Path(
-        os.environ.get("DART_STORE_PATH") or root / "data" / "chroma_dart"
+        settings.get("DART_STORE_PATH") or root / "data" / "chroma_dart"
     )
     reports_directory = Path(
-        os.environ.get("DART_REPORTS_PATH") or root / "data" / "reports"
+        settings.get("DART_REPORTS_PATH") or root / "data" / "reports"
     )
     allow_degraded = _enabled(
-        os.environ.get("DART_ALLOW_DEGRADED_BM25_ONLY", "")
+        settings.get("DART_ALLOW_DEGRADED_BM25_ONLY", "")
     )
     expected = canonical_store_manifest(
         collection_name=DEFAULT_COLLECTION_NAME
@@ -79,17 +138,18 @@ def build_app_services(
         persist_directory,
         expected=expected,
     )
-    existing_entries = (
-        [entry for entry in persist_directory.iterdir()]
-        if persist_directory.is_dir()
-        else []
+    may_initialize = _store_may_initialize(
+        persist_directory,
+        readiness=initial,
+        allow_degraded=allow_degraded,
     )
-    may_initialize = (
-        initial.status == "compatible"
-        or not existing_entries
-        or allow_degraded
+    services = AppServices(
+        expected_manifest=expected,
+        readiness=initial,
+        contextual_ingest_max_workers=int(
+            settings.get("CONTEXTUAL_INGEST_MAX_WORKERS") or 8
+        ),
     )
-    services = AppServices(expected_manifest=expected, readiness=initial)
     if not may_initialize:
         return services
 
@@ -121,4 +181,4 @@ def build_app_services(
     return services
 
 
-__all__ = ["AppServices", "build_app_services"]
+__all__ = ["AppServices", "build_app_services", "resolve_app_settings"]

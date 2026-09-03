@@ -11,15 +11,12 @@ FastAPI 라우터 — DART 공시 분석 AI Agent REST API.
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.agent.financial_run_result import FinancialRunResultV1
 
 logger = logging.getLogger(__name__)
-
-_ENV_LOADED = False
 
 _SCHEMA_MODELS: Optional[Dict[str, type]] = None
 _SCHEMA_EXPORTS = {
@@ -32,20 +29,6 @@ _SCHEMA_EXPORTS = {
     "QueryResponse",
     "ReportScope",
 }
-
-
-def _load_env_once() -> None:
-    global _ENV_LOADED
-    if not _ENV_LOADED:
-        from dotenv import load_dotenv
-
-        load_dotenv()
-        _ENV_LOADED = True
-
-
-def _context_max_workers() -> int:
-    _load_env_once()
-    return int(os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", "8"))
 
 
 def _services(request: Any):
@@ -286,12 +269,14 @@ def get_router():
         if ingest_service is None:
             raise HTTPException(status_code=503, detail=services.readiness.reason)
         try:
-            result = await run_in_threadpool(
-                ingest_service.ingest_company,
-                req.company,
-                req.years,
-                max_workers=_context_max_workers(),
-            )
+            async with services.operation_lock:
+                result = await run_in_threadpool(
+                    ingest_service.ingest_company,
+                    req.company,
+                    req.years,
+                    max_workers=services.contextual_ingest_max_workers,
+                )
+                services.refresh_readiness()
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
 
@@ -304,8 +289,6 @@ def get_router():
         skipped = int(result.get("reports_skipped") or 0)
         if total_chunks == 0 and skipped == 0:
             raise HTTPException(status_code=422, detail="파싱된 청크가 없습니다. 파일 형식을 확인하세요.")
-        services.refresh_readiness()
-
         msg = f"'{req.company}' {req.years} 처리 완료"
         if total_chunks:
             msg += f" — {total_chunks}청크 신규 인덱싱"
@@ -350,13 +333,14 @@ def get_router():
                 if req.report_scope is not None
                 else None
             )
-            result = await run_in_threadpool(
-                agent.run,
-                req.question,
-                report_scope=report_scope,
-                include_review_trace=req.include_review_trace,
-                include_debug_bundle=req.include_debug_bundle,
-            )
+            async with services.operation_lock:
+                result = await run_in_threadpool(
+                    agent.run,
+                    req.question,
+                    report_scope=report_scope,
+                    include_review_trace=req.include_review_trace,
+                    include_debug_bundle=req.include_debug_bundle,
+                )
         except Exception as e:
             logger.error(f"agent.run 실패: {e}")
             raise HTTPException(status_code=500, detail=f"분석 실패: {e}")

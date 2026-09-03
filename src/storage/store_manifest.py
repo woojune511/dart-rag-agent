@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, Mapping, Optional
 
 from src.config.runtime_contract import (
@@ -148,6 +149,35 @@ def store_manifest_path(persist_directory: str | Path) -> Path:
     return Path(persist_directory) / STORE_MANIFEST_FILENAME
 
 
+def is_empty_chroma_store(persist_directory: str | Path) -> bool:
+    """Return true only for a readable initialized Chroma store with no data."""
+
+    database_path = Path(persist_directory) / "chroma.sqlite3"
+    if not database_path.is_file():
+        return False
+    if any(
+        database_path.with_name(f"{database_path.name}{suffix}").exists()
+        for suffix in ("-wal", "-shm")
+    ):
+        return False
+
+    database_uri = f"{database_path.resolve().as_uri()}?mode=ro&immutable=1"
+    try:
+        connection = sqlite3.connect(database_uri, uri=True)
+        try:
+            for table in ("embeddings", "embeddings_queue"):
+                row = connection.execute(
+                    f"SELECT COUNT(*) FROM {table}"
+                ).fetchone()
+                if row is None or int(row[0] or 0) > 0:
+                    return False
+        finally:
+            connection.close()
+    except sqlite3.Error:
+        return False
+    return True
+
+
 def read_store_manifest(
     persist_directory: str | Path,
 ) -> Optional[StoreManifestV1]:
@@ -247,6 +277,7 @@ __all__ = [
     "StoreReadiness",
     "assess_store_readiness",
     "canonical_store_manifest",
+    "is_empty_chroma_store",
     "read_store_manifest",
     "store_manifest_path",
     "write_store_manifest",
