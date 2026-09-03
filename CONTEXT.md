@@ -55,9 +55,10 @@ evaluator, replay, and promotion tools remain optional or experimental.
 - No existing store receives a manifest automatically. The approved adoption
   wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
   remained byte-identical.
-- The exact admission below was approved and consumed by one store-fixed
-  provider-backed `eval-only` run on 2026-09-03. It did not authorize a second
-  run, fresh ingest, automatic benchmark retry, or document embedding.
+- Provider-capable runs remain exact-admission scoped. The latest env-bound
+  admission was approved and consumed by one store-fixed `eval-only` run on
+  2026-09-03. It does not authorize another run, fresh ingest, automatic
+  benchmark retry, or document embedding.
 - The `data/chroma_dart` manifest layer now reports exact `compatible`,
   `ready=true`, and `degraded=false`. This is not provider-query validation.
 
@@ -92,43 +93,41 @@ The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 Its collection is `dart_reports_v2`, dimension is `3072`, and the declared
 profile is canonical. All seven predecessor store files remained byte-identical.
 
-The ignored local admission directory
-`benchmarks/results/runtime_contract_integration_focused_admission_2026-09-02`
-binds the current 134-file runtime build, unchanged profile/dataset, immutable
-Hyundai and Samsung source stores, and the ordered questions `HYU_T2_010`,
-`HYU_T3_072`, then `SAM_T2_078`. Two fresh no-call processes produced the same
-5,640-byte receipt. Admission manifest SHA-256 is
-`cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`;
-receipt SHA-256 is
-`d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`.
-Both recorded zero provider constructors, network calls, and outputs.
+The candidate-ranking build used ignored env-bound admission
+`benchmarks/results/typed_candidate_ranking_focused_admission_envbound_2026-09-03`.
+Its manifest SHA-256 is
+`9c1d1807f74397d528278592c6867e491decf23abbb03977fb33c837cf86a3c3`;
+two persisted no-call receipts and the immediate pre-dispatch receipt are the
+same 6,552 bytes at
+`31adb7b259247b9006be373e2aa2ff9def635dec50f6416ecbb9e921ff98c5f9`.
+The runtime resolved the worktree `.env` before provider configuration; no key
+value or `.env` hash is recorded.
 
-Immediately before dispatch, a fresh production-order rehearsal reproduced the
-same manifest and receipt hashes with the target absent. The separately approved
-run then completed exactly once in 314.7 seconds at source head `d3f3319`; the
-ignored result bundle is
-`benchmarks/results/runtime_contract_integration_focused_successor_2026-09-02`
-and its root `results.json` SHA-256 is
-`59e43b35a2b013b13f53ff33ecbc8a43a04d7590f7ca8d5752ca1a62f286e5f3`.
+The separately approved run completed exactly once in 295.5 seconds at runtime
+head `12fe139`. The ignored result bundle is
+`benchmarks/results/typed_candidate_ranking_focused_successor_envbound_2026-09-03`;
+its root `results.json` SHA-256 is
+`a80fdbdff7b7b8d05091b74f2cffcdfaf76822549d992ca5311ee6118d89617d`.
+The predecessor `b6762027...61e3` attempt had already been consumed by an
+environment-binding failure before provider construction and was not retried.
 
-The release gate is **2/3, HOLD**. `HYU_T2_010` and `SAM_T2_078` are runtime
-complete. `HYU_T3_072` is `partial`: `ob_001` produced Motional `26%` and
-`ob_003` produced the four-measure Motional summary, but `ob_002` (Motional
-investment carrying amount) remained missing. Every row has runtime error zero
-and ledger integrity `ok`.
+All three current rows report structured result `ok`, calculation `ok`, no
+missing obligation, runtime error zero, and ledger integrity `ok`. T2 selected
+`87.0만 대` and `78.1만 대`; Samsung preserved the accepted research-cost and
+Harman evidence. T3 now sees and selects `700,691백만원`, and the wrong-row BHAF
+`53%` value remains outside its owner cohort.
 
-The T3 source table contains the correct `700,691백만원` physical cell as
-`cand_a8aa299ad5dea4f29cd5`, and that ID is in the global prompt catalog. It was
-not in `ob_002`'s selectable owner cohort, so both compiler attempts returned no
-proposal for that obligation. All three islands had empty dependency/coupling
-edges and no preflight errors. This is an obligation-cohort ranking/admission
-failure, not a table-parser, coupling, validator, or executor failure.
+The release gate nevertheless remains **2/3 source-consistent, HOLD**. T3's
+three obligations had empty coupling keys and compiled as separate islands. The
+compiler chose `25.92%` from consolidated-notes table 83 because it considered
+that value more precise, then chose `700,691백만원` from table 82; the narrative
+used only detailed-table `당기순손익 -803,742` without its unit. Mechanical
+runtime completeness is 3/3, but the selected evidence is not one compatible
+Motional reporting tuple and does not contain the complete consolidated summary.
 
-The runner recorded 21 LLM calls, 146,156 tokens, and an estimated runtime LLM
-cost of USD `0.1575934`, below the approved USD `0.40` ceiling. It recorded 33
-query-embedding calls, zero document-embedding calls, and no embedding price.
-Both source-store directory fingerprints, SQLite hashes, and predecessor result
-hashes remain unchanged; the disposable stores were removed. Per the admission,
-no paid retry was made. The generic owner-cohort ranking repair is now implemented
-and remains provider-unverified. Any replay requires a new manifest, cost bound,
-no-call rehearsal, and separate approval.
+The runner recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
+document-embedding calls, and estimated runtime cost USD `0.1356168`. Embedding
+cost remains unavailable. One initial canonical-routing embedding request
+returned HTTP 429 and degraded safely; later calls completed. Source result
+hashes, SQLite hashes, and complete store fingerprints remain unchanged, and no
+disposable store remains. No automatic run retry was made or authorized.

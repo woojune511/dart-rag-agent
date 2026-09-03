@@ -11,8 +11,8 @@ Last updated: 2026-09-03
 | Runtime state | Typed owner targets and deterministic fact matching replace additive candidate keyword scoring |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Exact admission `cb188492...683a8` was consumed once in a store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
-| Release status | **HOLD, 2/3 runtime-complete**; T3 is missing the Motional investment carrying-amount obligation |
+| Provider evidence | Env-bound admission `9c1d1807...86a3c3` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
+| Release status | **HOLD, 2/3 source-consistent**; mechanical runtime status is 3/3, but T3 combines different Motional table bases |
 
 ## Current boundaries
 
@@ -84,48 +84,49 @@ All seven predecessor store files remained byte-identical. The pure manifest
 readiness check returns exact `compatible`, `ready=true`, and `degraded=false`;
 no provider query was made.
 
-A new ignored three-row admission bound the current runtime and the ordered
-scope `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`. Its manifest SHA-256 is
-`cb188492de5b51ee3b42cf5cf9aaf6c12192d92567c001a0426c4e6e785683a8`.
-Two production-order no-call processes produced byte-identical 5,640-byte
-receipts at
-`d63ae5e34e939b68f03f4bc69b897af2f2b755c47039e4a4873352d1117105b3`,
-with provider/network/output counts all zero and source/target/temp invariants
-intact. A third immediate pre-dispatch rehearsal reproduced both hashes with the
-target absent.
+The current ignored env-bound admission fixes the predecessor's missing runtime
+credential binding and preserves the ordered scope `HYU_T2_010`, `HYU_T3_072`,
+`SAM_T2_078`. Its manifest SHA-256 is
+`9c1d1807f74397d528278592c6867e491decf23abbb03977fb33c837cf86a3c3`.
+Two no-call processes plus the immediate pre-dispatch rehearsal produced the
+same 6,552-byte receipt at
+`31adb7b259247b9006be373e2aa2ff9def635dec50f6416ecbb9e921ff98c5f9`,
+with provider/network/output counts zero and source/target/temp invariants
+intact.
 
-The separately approved provider run executed exactly once, in the specified
-Hyundai-then-Samsung order, and completed in 314.7 seconds with runner exit code
-zero. The ignored root result is
-`benchmarks/results/runtime_contract_integration_focused_successor_2026-09-02/results.json`
+The separately approved provider run executed exactly once in Hyundai-then-
+Samsung order and completed in 295.5 seconds with exit code zero. The ignored
+root result is
+`benchmarks/results/typed_candidate_ranking_focused_successor_envbound_2026-09-03/results.json`
 (SHA-256
-`59e43b35a2b013b13f53ff33ecbc8a43a04d7590f7ca8d5752ca1a62f286e5f3`).
+`a80fdbdff7b7b8d05091b74f2cffcdfaf76822549d992ca5311ee6118d89617d`).
 
 | Question | Runtime result | Gate evidence |
 | --- | --- | --- |
-| `HYU_T2_010` | `ok`, 2/2 obligations | `87.0만 대` and `78.1만 대` produced `11.4%` with source display `11.5%`; narrative also present; error 0, ledger `ok` |
-| `HYU_T3_072` | `partial`, 2/3 obligations | Motional `26%` and summary present; `ob_002` investment carrying amount missing; error 0, ledger `ok` |
-| `SAM_T2_078` | `ok`, 2/2 obligations | `28,352,769백만원` and Harman narrative present; error 0, ledger `ok` |
+| `HYU_T2_010` | mechanically `ok`, source-consistent | `87.0만 대` and `78.1만 대` produced `11.4%` with source display `11.5%`; narrative present; error 0, ledger `ok` |
+| `HYU_T3_072` | mechanically `ok`, source-inconsistent | Selected `25.92%` from table 83, `700,691백만원` from table 82, and one detailed-table loss; 3/3 obligations, error 0, ledger `ok` |
+| `SAM_T2_078` | mechanically `ok`, source-consistent | `28,352,769백만원` and Harman narrative present; error 0, ledger `ok` |
 
-The missing T3 value is not absent from the parsed table. The same Motional row
-projects `cand_e2f2596cb81e73b80bbc = 26%` and
-`cand_a8aa299ad5dea4f29cd5 = 700,691백만원`. The latter appears in the global
-prompt ID set but not in `ob_002`'s selectable owner cohort. Both attempts for
-that island therefore returned no candidate and the same visibility
-fingerprint. Dependency/coupling edges and preflight errors were empty, and the
-wrong-row BHAF `53%` physical candidate was not selectable. The observed owner
-is cohort ranking/admission, not table parsing or coupling.
+The typed matcher repaired the original visibility loss: the `26%` candidate
+`cand_e2f2596cb81e73b80bbc` is first in the ownership cohort, and
+`cand_a8aa299ad5dea4f29cd5 = 700,691백만원` is first in the carrying-amount
+cohort. The wrong-row BHAF `53%` candidate is not selectable. The compiler may
+still choose any visible ID, however. It independently preferred the more
+precise-looking `25.92%` candidate from a different table. Because all three
+planner coupling keys were empty, no island or execution validation compared
+the physical row/table basis across outputs.
 
-The runner estimated USD `0.1575934` for 21 LLM calls and 146,156 tokens, below
-the approved USD `0.40` ceiling. Embedding pricing remains unavailable; usage
-was 33 query-embedding calls and zero document-embedding calls. Source result
-hashes, both store directory fingerprints, and both SQLite hashes remained
-unchanged, and no disposable store remains.
+The run recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
+document-embedding calls, and estimated runtime cost USD `0.1356168`. Embedding
+pricing remains unavailable. One initial canonical-routing embedding call
+returned HTTP 429 and degraded safely. Source result hashes, both store
+directory fingerprints, and both SQLite hashes remained unchanged; no
+disposable store remains.
 
 ## Next work
 
-1. Finish the local source gate and review this branch without changing stores,
-   datasets, evaluator tolerances, or historical artifacts.
+1. Characterize and repair generic same-entity multi-output row/table coherence
+   without adding company/question branches or changing the dataset/evaluator.
 2. Do not rerun the paid gate automatically. Any provider replay requires a new
    immutable manifest, cost estimate, no-call receipts, and separate approval.
 3. Treat a local semantic reranker, deterministic unique-match auto-bind, and a

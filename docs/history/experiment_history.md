@@ -124,6 +124,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [HYU T3 Multi-Output Variant Source Review (2026-09-01)](#hyu-t3-multi-output-variant-source-review-2026-09-01) | immutable Hyundai store에서 연결/별도 Motional tuple의 source basis와 matcher projection을 read-only 검토 | 연결 `26% / 700,691백만원`과 네 summary measure만 완전한 same-basis tuple. 별도 direct pair는 summary가 닫히지 않고 canonical key는 basis를 혼합. 등록 없이 generic unit/subject/period projection blocker를 다음 seam으로 고정 |
 | [Canonical Operand Projection Repair And T3 No-Call Gate (2026-09-01)](#canonical-operand-projection-repair-and-t3-no-call-gate-2026-09-01) | inline unit, validated row subject, current report period를 한 canonical operand projector로 보존하고 같은 six-ID proposal 재검증 | generic contract 13/13, focused 261/261, full 707/707, audit 86. 여섯 ID 불변, `ready`/`ok`, strict matcher `atomic_answer_variant_match`; dataset/result/store/provider 불변 |
 | [Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)](#runtime-contract-integration-three-row-provider-gate-2026-09-03) | boundary redesign 통합 head와 exact manifest `cb188492...683a8`의 승인된 Hyundai/Samsung 3문항 store-fixed replay | runner는 1회 완주, error 0·ledger 3/3 `ok`지만 runtime completeness는 2/3. T3의 올바른 `700,691백만원` 셀이 owner cohort에서 빠져 release HOLD; `$0.1575934`, no run retry |
+| [Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)](#typed-candidate-ranking-env-bound-three-row-provider-gate-2026-09-03) | typed owner target matcher와 env-bound admission의 승인된 동일 3문항 store-fixed replay | 기계적 3/3 `ok`, error 0, ledger 3/3이나 T3가 table 83의 `25.92%`와 table 82의 `700,691백만원`을 혼합해 source-consistent gate 2/3 HOLD; `$0.1356168` plus unpriced embeddings, no retry |
 
 ## 보는 법
 
@@ -134,6 +135,52 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)
+
+### Authority and execution
+
+The first approved candidate-ranking admission `b6762027...61e3` consumed its
+single process attempt but stopped before provider-client construction because
+the clean worktree did not contain the `.env` read by runtime configuration. It
+was not retried. A versioned successor bound the ignored worktree-root `.env`,
+the exact working directory, runtime commit `12fe139`, source hashes, and the
+ordered questions `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078` without recording
+credential values or an `.env` hash.
+
+The successor manifest is
+`9c1d1807f74397d528278592c6867e491decf23abbb03977fb33c837cf86a3c3`.
+Two persisted no-call runs and the immediate pre-dispatch run reproduced the
+same 6,552-byte receipt
+`31adb7b259247b9006be373e2aa2ff9def635dec50f6416ecbb9e921ff98c5f9`.
+The separately approved provider process then completed once in 295.5 seconds
+with exit code zero. Its ignored root `results.json` is SHA-256
+`a80fdbdff7b7b8d05091b74f2cffcdfaf76822549d992ca5311ee6118d89617d`.
+
+### Result and interpretation
+
+| Question | Mechanical contract | Source-consistency review |
+| --- | --- | --- |
+| `HYU_T2_010` | 2/2 obligations, calculation `ok`, error 0, ledger `ok` | selected `87.0만 대` and `78.1만 대`; final answer retained `11.4%` and source display `11.5%`, but omitted the raw operand displays |
+| `HYU_T3_072` | 3/3 obligations, calculation `ok`, error 0, ledger `ok` | HOLD: compiler selected `25.92%` from table 83, `700,691백만원` from table 82, and only detailed-table `당기순손익 -803,742` |
+| `SAM_T2_078` | 2/2 obligations, calculation `ok`, error 0, ledger `ok` | preserved `28,352,769백만원` and the Harman automotive narrative |
+
+The T3 matcher boundary itself improved: `cand_e2f2596cb81e73b80bbc = 26%`
+and `cand_a8aa299ad5dea4f29cd5 = 700,691백만원` are first in their respective
+owner cohorts, while BHAF `53%` is not selectable. The compiler chose the second
+ownership candidate because it described `25.92%` as more precise. The planner
+gave all three related obligations empty coupling keys, so they compiled in
+three independent islands and validation had no cross-table basis assertion.
+This is now a generic multi-output physical-row/table coherence blocker, not a
+catalog visibility, table parsing, ledger, or executor error.
+
+The runner recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
+document embeddings, and estimated runtime cost USD `0.1356168`; embedding cost
+was not priced. One initial canonical-routing embedding request returned HTTP
+429 and degraded safely. Source result hashes, SQLite hashes, and complete store
+fingerprints remained unchanged, and both disposable stores were removed. No
+automatic run retry occurred or is authorized. Mechanical completeness is 3/3,
+but source-consistent completeness remains 2/3 and release remains `HOLD`.
 
 ## Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)
 
