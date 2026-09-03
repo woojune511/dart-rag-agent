@@ -215,6 +215,7 @@ node or search-result order:
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may
 be preserved when graph expansion pushes it outside the final window only if it
 satisfies the active operand and provenance contract.
+Search-cache hits preserve the originating retrieval mode and fallback reason.
 
 Canonical routing embeddings use a process-wide success cache keyed by canonical
 file SHA-256, provider, model, and dimension. Failed results are never cached and
@@ -254,7 +255,9 @@ after documents are indexed. Multi-report ingest records it after the first
 successful store batch so a later failure remains resumable. A report is skipped
 only when every parsed `chunk_uid` is already present; otherwise document adds
 resume by chunk identity. Ingest results count only chunks actually added after
-resume filtering. `FinancialAgent` exposes no ingest method.
+resume filtering. Vector-batch progress is recorded immediately after the vector
+commit, and resume reconciles already-indexed chunks into the structure sidecar.
+`FinancialAgent` exposes no ingest method.
 
 Benchmark-only `in_progress` cache metadata may preserve a manifest-less partial
 store only when cache and store signatures match exactly and partial resume is

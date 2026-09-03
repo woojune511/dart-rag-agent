@@ -9,6 +9,7 @@ from src.ingestion.ingest_service import IngestService
 from src.storage.store_manifest import (
     canonical_store_manifest,
     read_store_manifest,
+    write_store_manifest,
 )
 
 
@@ -88,12 +89,16 @@ class _Store:
         self.indexed = indexed
         self.bm25_docs = ["existing"] if existing_docs else []
         self.indexed_chunk_uids = set()
+        self.structure_chunk_uids = set()
 
     def is_indexed(self, _receipt):
         return self.indexed
 
     def list_indexed_chunk_uids(self, *, rcept_no=None):
         return set(self.indexed_chunk_uids)
+
+    def list_structure_chunk_uids(self, *, rcept_no=None):
+        return set(self.structure_chunk_uids)
 
 
 class _TwoChunkParser:
@@ -130,9 +135,33 @@ class _FailThenResumeContextGenerator(_ContextGenerator):
         self.store.indexed_chunk_uids.update(
             str(chunk.metadata["chunk_uid"]) for chunk in rows
         )
+        self.store.structure_chunk_uids.update(
+            str(chunk.metadata["chunk_uid"]) for chunk in rows
+        )
         if on_store_progress:
             on_store_progress(len(rows), len(rows))
         return {"added_chunks": 1}
+
+
+class _RepairSidecarContextGenerator(_ContextGenerator):
+    def __init__(self, store):
+        super().__init__()
+        self.store = store
+
+    def contextual_ingest(
+        self,
+        chunks,
+        *,
+        on_store_progress=None,
+        max_workers,
+        resume_partial_store=False,
+    ):
+        rows = list(chunks)
+        self.calls.append((rows, max_workers, resume_partial_store))
+        self.store.structure_chunk_uids.update(
+            str(chunk.metadata["chunk_uid"]) for chunk in rows
+        )
+        return {"added_chunks": 0}
 
 
 class IngestServiceTests(unittest.TestCase):
@@ -268,6 +297,47 @@ class IngestServiceTests(unittest.TestCase):
             self.assertEqual(store.indexed_chunk_uids, {"chunk-1", "chunk-2"})
             self.assertEqual(len(context_generator.calls), 2)
             self.assertTrue(context_generator.calls[1][2])
+
+    def test_vector_complete_report_repairs_incomplete_structure_sidecar(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            report_path = root / "report.xml"
+            report_path.write_text("report", encoding="utf-8")
+            report = SimpleNamespace(
+                file_path=str(report_path),
+                corp_name="sample",
+                stock_code="000000",
+                year=2024,
+                report_type="annual",
+                rcept_no="receipt-1",
+            )
+            manifest = canonical_store_manifest(collection_name="runtime")
+            write_store_manifest(root, manifest)
+            store = _Store(root)
+            store.indexed_chunk_uids.update({"chunk-1", "chunk-2"})
+            store.structure_chunk_uids.add("chunk-1")
+            context_generator = _RepairSidecarContextGenerator(store)
+            service = IngestService(
+                _Fetcher([report]),
+                _TwoChunkParser(),
+                context_generator,
+                store,
+                manifest,
+            )
+
+            result = service.ingest_company("sample", [2024], max_workers=2)
+
+            self.assertEqual(result["reports_skipped"], 0)
+            self.assertEqual(result["reports_processed"], 1)
+            self.assertEqual(result["chunks_added"], 0)
+            self.assertEqual(
+                store.structure_chunk_uids,
+                {"chunk-1", "chunk-2"},
+            )
+            self.assertEqual(len(context_generator.calls), 1)
+            self.assertTrue(context_generator.calls[0][2])
 
     def test_nonempty_unmanifested_store_is_not_auto_adopted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

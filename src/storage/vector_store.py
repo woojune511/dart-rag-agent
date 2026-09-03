@@ -138,6 +138,9 @@ class VectorStoreManager:
         self.chroma_hnsw_sync_threshold = max(self.chroma_hnsw_batch_size, DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD)
         self._vector_capacity_cooldown_until = 0.0
         self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
+        self._search_cache_telemetry: Dict[
+            Tuple[str, int, int, Hashable], Dict[str, str]
+        ] = {}
         self.last_search_telemetry: Dict[str, Any] = {}
         self.last_embedding_usage: Dict[str, int] = zero_embedding_usage_counts()
         self.embedding_spec = get_embedding_runtime_spec(
@@ -234,17 +237,37 @@ class VectorStoreManager:
         cache.move_to_end(key)
         return list(cached)
 
-    def _store_cached_search(self, key: Tuple[str, int, int, Hashable], results: List[Tuple[Document, float]]) -> None:
+    def _store_cached_search(
+        self,
+        key: Tuple[str, int, int, Hashable],
+        results: List[Tuple[Document, float]],
+        *,
+        telemetry: Optional[Dict[str, Any]] = None,
+    ) -> None:
         if self.search_cache_size <= 0:
             return
         cache = getattr(self, "_search_cache", None)
         if cache is None:
             self._search_cache = OrderedDict()
             cache = self._search_cache
+        telemetry_cache = getattr(self, "_search_cache_telemetry", None)
+        if telemetry_cache is None:
+            self._search_cache_telemetry = {}
+            telemetry_cache = self._search_cache_telemetry
         cache[key] = list(results)
+        telemetry_row = dict(telemetry or {})
+        telemetry_cache[key] = {
+            "retrieval_mode": str(
+                telemetry_row.get("retrieval_mode") or ""
+            ),
+            "vector_skipped_reason": str(
+                telemetry_row.get("vector_skipped_reason") or ""
+            ),
+        }
         cache.move_to_end(key)
         while len(cache) > self.search_cache_size:
-            cache.popitem(last=False)
+            evicted_key, _ = cache.popitem(last=False)
+            telemetry_cache.pop(evicted_key, None)
 
     def persist(self) -> None:
         persist = getattr(self.vector_store, "persist", None)
@@ -426,6 +449,13 @@ class VectorStoreManager:
             chunk_uid_from_metadata=_chunk_uid_from_metadata,
         )
 
+    def list_structure_chunk_uids(
+        self,
+        *,
+        rcept_no: Optional[str] = None,
+    ) -> set[str]:
+        return self._structure_graph_chunk_uids(rcept_no=rcept_no)
+
     def list_indexed_chunk_uids(self, *, rcept_no: Optional[str] = None) -> set[str]:
         if getattr(self, "skip_vector_add", False):
             return self._structure_graph_chunk_uids(rcept_no=rcept_no)
@@ -575,13 +605,13 @@ class VectorStoreManager:
                 batch_index=batch_index,
                 total_batches=total_batches,
             )
+            added_count += len(batch)
+            if on_progress:
+                on_progress(added_count, len(pending))
             graph_started = time.perf_counter()
             self._update_structure_graph(batch_texts, batch_metadatas)
             structure_graph_update_sec += time.perf_counter() - graph_started
             batch_count += 1
-            added_count += len(batch)
-            if on_progress:
-                on_progress(added_count, len(pending))
         embedding_usage = subtract_embedding_usage_counts(self.get_embedding_usage_snapshot(), embedding_usage_before)
         return {
             "added_chunks": added_count,
@@ -629,6 +659,17 @@ class VectorStoreManager:
                 rcept_no=document_batches.single_rcept_no_for_resume(prepared)
             )
             resume_lookup_sec = _elapsed_sec(resume_started)
+
+        indexed = [
+            item
+            for item in prepared
+            if item[2] and item[2] in existing_chunk_uids
+        ]
+        if indexed:
+            self._update_structure_graph(
+                document_batches.batch_texts(indexed),
+                document_batches.batch_metadatas(indexed),
+            )
 
         pending = document_batches.pending_documents(prepared, existing_chunk_uids=existing_chunk_uids)
         skipped_chunks = duplicate_input_count + (len(prepared) - len(pending))
@@ -769,6 +810,18 @@ class VectorStoreManager:
             logger.info("Search cache hit for %r | filter=%s", query, where_filter)
             telemetry["cache_hit"] = True
             telemetry["retrieval_mode"] = "cache"
+            cached_telemetry = dict(
+                getattr(self, "_search_cache_telemetry", {}).get(cache_key)
+                or {}
+            )
+            if cached_telemetry.get("retrieval_mode"):
+                telemetry["cached_retrieval_mode"] = cached_telemetry[
+                    "retrieval_mode"
+                ]
+            if cached_telemetry.get("vector_skipped_reason"):
+                telemetry["cached_vector_skipped_reason"] = cached_telemetry[
+                    "vector_skipped_reason"
+                ]
             telemetry["result_count"] = len(cached)
             telemetry["total_sec"] = _elapsed_sec(started_at)
             self.last_embedding_usage = dict(telemetry["embedding_usage"])
@@ -869,5 +922,5 @@ class VectorStoreManager:
         telemetry["total_sec"] = _elapsed_sec(started_at)
         self.last_embedding_usage = dict(telemetry.get("embedding_usage") or zero_embedding_usage_counts())
         self.last_search_telemetry = telemetry
-        self._store_cached_search(cache_key, results)
+        self._store_cached_search(cache_key, results, telemetry=telemetry)
         return results

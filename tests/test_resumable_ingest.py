@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -156,7 +156,19 @@ class ResumableIngestTests(unittest.TestCase):
             [metadata["chunk_uid"] for metadata in manager.vector_store.add_calls[0]["metadatas"]],
             ["r1::chunk:2"],
         )
-        manager._update_structure_graph.assert_called_once()
+        self.assertEqual(
+            manager._update_structure_graph.call_args_list,
+            [
+                call(
+                    ["old"],
+                    [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+                ),
+                call(
+                    ["new"],
+                    [{"chunk_uid": "r1::chunk:2", "rcept_no": "r1"}],
+                ),
+            ],
+        )
         manager._init_bm25.assert_called_once()
 
     def test_add_documents_batches_pending_chunks_and_skips_input_duplicates(self) -> None:
@@ -185,6 +197,40 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(progress_events, [(0, 3), (2, 3), (3, 3)])
         self.assertEqual(manager._update_structure_graph.call_count, 2)
         manager._init_bm25.assert_called_once()
+
+    def test_sidecar_failure_after_vector_commit_is_resumable(self) -> None:
+        manager = self._make_manager()
+        manager._update_structure_graph.side_effect = RuntimeError(
+            "synthetic sidecar failure"
+        )
+        progress_events = []
+
+        with self.assertRaisesRegex(RuntimeError, "synthetic sidecar failure"):
+            manager.add_documents(
+                ["evidence"],
+                [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+                resume=True,
+                on_progress=lambda current, total: progress_events.append(
+                    (current, total)
+                ),
+            )
+
+        self.assertEqual(len(manager.vector_store.add_calls), 1)
+        self.assertEqual(progress_events, [(0, 1), (1, 1)])
+
+        manager._update_structure_graph = Mock()
+        resumed = manager.add_documents(
+            ["evidence"],
+            [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+            resume=True,
+        )
+
+        self.assertEqual(resumed["added_chunks"], 0)
+        self.assertEqual(resumed["skipped_chunks"], 1)
+        manager._update_structure_graph.assert_called_once_with(
+            ["evidence"],
+            [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+        )
 
     def test_add_documents_can_skip_vector_add_for_bm25_only_debug_store(self) -> None:
         manager = self._make_manager()

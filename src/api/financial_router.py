@@ -305,8 +305,9 @@ def get_router():
                 detail=f"'{req.company}'의 {req.years} 공시 문서를 찾을 수 없습니다.",
             )
         total_chunks = int(result.get("chunks_added") or 0)
+        processed = int(result.get("reports_processed") or 0)
         skipped = int(result.get("reports_skipped") or 0)
-        if total_chunks == 0 and skipped == 0:
+        if total_chunks == 0 and processed == 0 and skipped == 0:
             raise HTTPException(status_code=422, detail="파싱된 청크가 없습니다. 파일 형식을 확인하세요.")
         msg = f"'{req.company}' {req.years} 처리 완료"
         if total_chunks:

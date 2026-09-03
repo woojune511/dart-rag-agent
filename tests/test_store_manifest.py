@@ -56,7 +56,7 @@ class StoreManifestTests(unittest.TestCase):
             {"schema_version", "collection_name", "embedding", "ingest"},
         )
 
-    def test_unknown_manifest_fields_fail_readiness(self) -> None:
+    def test_unknown_manifest_fields_require_explicit_degraded_mode(self) -> None:
         expected = canonical_store_manifest(collection_name="runtime")
         projections = []
         for section in (None, "embedding", "ingest"):
@@ -70,13 +70,24 @@ class StoreManifestTests(unittest.TestCase):
             for section, projection in projections:
                 with self.subTest(section=section):
                     path.write_text(json.dumps(projection), encoding="utf-8")
-                    readiness = assess_store_readiness(
+                    strict = assess_store_readiness(
+                        temporary_directory,
+                        expected=expected,
+                    )
+                    degraded = assess_store_readiness(
                         temporary_directory,
                         expected=expected,
                         allow_degraded_bm25_only=True,
                         bm25_available=True,
                     )
-                    self.assertEqual((readiness.status, readiness.ready), ("invalid", False))
+                    self.assertEqual(
+                        (strict.status, strict.ready),
+                        ("invalid", False),
+                    )
+                    self.assertEqual(
+                        (degraded.status, degraded.ready, degraded.degraded),
+                        ("degraded", True, True),
+                    )
 
     def test_coercible_manifest_field_types_fail_readiness(self) -> None:
         expected = canonical_store_manifest(collection_name="runtime")

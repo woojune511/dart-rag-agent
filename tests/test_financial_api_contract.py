@@ -103,6 +103,16 @@ class _FailingIngestService:
         raise RuntimeError("synthetic partial ingest failure")
 
 
+class _RepairOnlyIngestService:
+    def ingest_company(self, _company, _years, *, max_workers):
+        return {
+            "files_fetched": 1,
+            "chunks_added": 0,
+            "reports_processed": 1,
+            "reports_skipped": 0,
+        }
+
+
 def _services(*, status="compatible", ready=True, degraded=False, agent=None):
     manifest = canonical_store_manifest(collection_name="runtime")
     readiness = StoreReadiness(
@@ -350,6 +360,18 @@ class FinancialAPIContractTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 200)
         self.assertIn("worker", ingest.calls[0]["thread"].lower())
+
+    def test_sidecar_only_repair_is_a_successful_ingest(self) -> None:
+        services, _, _ = _services()
+        services.ingest_service = _RepairOnlyIngestService()
+        with _client(services) as client:
+            response = client.post(
+                "/api/ingest",
+                json={"company": "A", "years": [2024]},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["chunks_added"], 0)
 
     def test_failed_ingest_refreshes_readiness(self) -> None:
         services, _, _ = _services(status="missing", ready=False)

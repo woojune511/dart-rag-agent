@@ -320,6 +320,32 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertEqual(len(first_results), 1)
         self.assertEqual(len(second_results), 1)
 
+    def test_search_cache_preserves_bm25_fallback_provenance(self) -> None:
+        manager = self._build_manager(
+            _CapacityErrorVectorStore(),
+            docs=["evidence"],
+            metadatas=[{"chunk_uid": "evidence"}],
+            scores=[1.0],
+        )
+
+        manager.search("same query", k=1)
+        self.assertEqual(
+            manager.last_search_telemetry["retrieval_mode"],
+            "bm25_fallback",
+        )
+
+        manager.search("same query", k=1)
+
+        self.assertEqual(manager.last_search_telemetry["retrieval_mode"], "cache")
+        self.assertEqual(
+            manager.last_search_telemetry["cached_retrieval_mode"],
+            "bm25_fallback",
+        )
+        self.assertEqual(
+            manager.last_search_telemetry["cached_vector_skipped_reason"],
+            "embedding_capacity_error",
+        )
+
     def test_force_bm25_only_skips_vector_search(self) -> None:
         vector_store = _CountVectorStore([])
         manager = self._build_manager(

@@ -291,6 +291,17 @@ def assess_store_readiness(
     try:
         actual = read_store_manifest(persist_directory)
     except Exception as exc:
+        if allow_degraded_bm25_only and bm25_available:
+            return StoreReadiness(
+                status="degraded",
+                ready=True,
+                reason=(
+                    f"manifest invalid ({exc}); "
+                    "explicit BM25-only mode enabled"
+                ),
+                expected=expected,
+                degraded=True,
+            )
         return StoreReadiness(
             status="invalid",
             ready=False,

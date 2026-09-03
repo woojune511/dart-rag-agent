@@ -59,6 +59,19 @@ class IngestService:
         list_indexed = getattr(self.store, "list_indexed_chunk_uids", None)
         if len(expected_ids) == len(chunk_rows) and callable(list_indexed):
             indexed_ids = set(list_indexed(rcept_no=report.rcept_no))
+            list_structure = getattr(
+                self.store,
+                "list_structure_chunk_uids",
+                None,
+            )
+            if callable(list_structure):
+                structure_ids = set(
+                    list_structure(rcept_no=report.rcept_no)
+                )
+                return bool(
+                    expected_ids.issubset(indexed_ids)
+                    and expected_ids.issubset(structure_ids)
+                )
             return expected_ids.issubset(indexed_ids)
         return bool(self.store.is_indexed(report.rcept_no))
 
@@ -94,6 +107,7 @@ class IngestService:
             manifest_recorded = True
 
         total_chunks = 0
+        processed = 0
         skipped = 0
         missing_files = 0
         for report in reports:
@@ -116,6 +130,7 @@ class IngestService:
                 max_workers=max_workers,
                 resume_partial_store=True,
             ) or {}
+            processed += 1
             total_chunks += int(ingest_result.get("added_chunks", len(chunks)))
             if not manifest_recorded:
                 write_store_manifest(self.store.persist_directory, self.manifest)
@@ -125,6 +140,7 @@ class IngestService:
             "years": normalized_years,
             "files_fetched": len(reports),
             "chunks_added": total_chunks,
+            "reports_processed": processed,
             "reports_skipped": skipped,
             "missing_files": missing_files,
         }
