@@ -566,6 +566,345 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             accepted["evidence_bundle_validation"][0]["status"], "ready"
         )
 
+    def test_source_defined_group_requires_every_visible_cell_from_one_row(self) -> None:
+        direct_obligations, direct_catalog, _plan, _visibility = self._fixture()
+        narrative = _bundle_obligation(
+            "ob_summary",
+            "summary metric",
+            kind="narrative",
+            evidence_mode="source_defined_group",
+            consolidation_scope="unknown",
+        )
+        narrative["semantic_target"]["metric_surfaces"] = [
+            "summary revenue",
+            "summary loss",
+        ]
+        narrative["evidence_requirements"][0]["semantic_target"] = dict(
+            narrative["semantic_target"]
+        )
+        summary_row = [
+            _row_candidate(
+                "cand-summary-revenue",
+                7,
+                metric="summary revenue",
+                table_id="table-summary",
+                row_id="row-summary",
+            ),
+            _row_candidate(
+                "cand-summary-loss",
+                8,
+                metric="summary loss",
+                table_id="table-summary",
+                row_id="row-summary",
+            ),
+        ]
+        alternative = _row_candidate(
+            "cand-summary-alternative",
+            9,
+            metric="summary alternative",
+            table_id="table-other-summary",
+            row_id="row-other",
+        )
+        obligations = [*direct_obligations, narrative]
+        catalog = [*direct_catalog, *summary_row, alternative]
+        cohort_plan = _semantic_candidate_cohorts(catalog, obligations)
+
+        output_cohort = next(
+            cohort
+            for cohort in cohort_plan["cohorts"]
+            if cohort["cohort_id"] == "ob_summary:output"
+        )
+        self.assertEqual(
+            output_cohort["candidate_ids"],
+            ["cand-summary-loss", "cand-summary-revenue"],
+        )
+        self.assertEqual(
+            output_cohort["source_defined_group_selection"],
+            {
+                "selection_mode": "complete_physical_row",
+                "physical_table_id": "table-summary",
+                "physical_row_id": "row-summary",
+                "required_candidate_ids": [
+                    "cand-summary-loss",
+                    "cand-summary-revenue",
+                ],
+                "policy_group_names": [],
+            },
+        )
+        self.assertNotIn(
+            "cand-summary-alternative",
+            cohort_plan["visible_candidate_ids"],
+        )
+
+        visibility = _semantic_candidate_visibility(
+            catalog,
+            visible_candidate_ids=cohort_plan["visible_candidate_ids"],
+            candidate_ids_by_owner=cohort_plan["candidate_ids_by_owner"],
+            evidence_bundle_constraints=cohort_plan[
+                "evidence_bundle_constraints"
+            ],
+        )
+        direct_bindings = [
+            {"obligation_id": "ob_alpha", "candidate_id": "cand-alpha-a"},
+            {"obligation_id": "ob_beta", "candidate_id": "cand-beta-a"},
+        ]
+        partial = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": direct_bindings,
+                "narrative_bindings": [
+                    {
+                        "obligation_id": "ob_summary",
+                        "candidate_ids": ["cand-summary-revenue"],
+                        "evidence_bindings": [
+                            {
+                                "candidate_id": "cand-summary-revenue",
+                                "source_requirement_id": "ob_summary:req_001",
+                            }
+                        ],
+                        "text": "Target Entity summary revenue is 7 items",
+                    }
+                ],
+            },
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query="Return both metrics and every item in the source summary.",
+            candidate_visibility=visibility,
+        )
+        self.assertEqual(partial["status"], "partial")
+        self.assertIn(
+            "incomplete_source_defined_group",
+            {error["code"] for error in partial["errors"]},
+        )
+
+        omitted_value = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": direct_bindings,
+                "narrative_bindings": [
+                    {
+                        "obligation_id": "ob_summary",
+                        "candidate_ids": [
+                            "cand-summary-revenue",
+                            "cand-summary-loss",
+                        ],
+                        "evidence_bindings": [
+                            {
+                                "candidate_id": candidate_id,
+                                "source_requirement_id": "ob_summary:req_001",
+                            }
+                            for candidate_id in (
+                                "cand-summary-revenue",
+                                "cand-summary-loss",
+                            )
+                        ],
+                        "text": "Target Entity summary revenue is 7 items",
+                    }
+                ],
+            },
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query="Return both metrics and every item in the source summary.",
+            candidate_visibility=visibility,
+        )
+        self.assertIn(
+            "source_defined_group_value_omitted",
+            {error["code"] for error in omitted_value["errors"]},
+        )
+
+        accepted = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": direct_bindings,
+                "narrative_bindings": [
+                    {
+                        "obligation_id": "ob_summary",
+                        "candidate_ids": [
+                            "cand-summary-revenue",
+                            "cand-summary-loss",
+                        ],
+                        "evidence_bindings": [
+                            {
+                                "candidate_id": candidate_id,
+                                "source_requirement_id": "ob_summary:req_001",
+                            }
+                            for candidate_id in (
+                                "cand-summary-revenue",
+                                "cand-summary-loss",
+                            )
+                        ],
+                        "text": (
+                            "Target Entity summary revenue is 7 items and "
+                            "summary loss is 8 items"
+                        ),
+                    }
+                ],
+            },
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query="Return both metrics and every item in the source summary.",
+            candidate_visibility=visibility,
+        )
+        self.assertEqual(accepted["status"], "ready")
+
+    def test_source_defined_policy_members_survive_atomic_bundle_projection(self) -> None:
+        direct_obligations, direct_catalog, _plan, _visibility = self._fixture()
+        narrative = _bundle_obligation(
+            "ob_summary",
+            "summary metric",
+            kind="narrative",
+            evidence_mode="source_defined_group",
+            consolidation_scope="unknown",
+        )
+        narrative["semantic_target"]["metric_surfaces"] = [
+            "summary revenue",
+            "summary loss",
+        ]
+        narrative["evidence_requirements"][0]["semantic_target"] = dict(
+            narrative["semantic_target"]
+        )
+        summary_row = [
+            _row_candidate(
+                "cand-summary-revenue",
+                7,
+                metric="summary revenue",
+                table_id="table-summary",
+                row_id="row-summary",
+            ),
+            _row_candidate(
+                "cand-summary-loss",
+                8,
+                metric="summary loss",
+                table_id="table-summary",
+                row_id="row-summary",
+            ),
+            _row_candidate(
+                "cand-summary-adjustment",
+                9,
+                metric="summary adjustment",
+                table_id="table-summary",
+                row_id="row-summary",
+            ),
+        ]
+        policy = {
+            "entity_metric_slot_groups": (
+                {
+                    "name": "complete_summary",
+                    "query_terms": ("summary",),
+                    "evidence_terms": (
+                        "summary revenue",
+                        "summary loss",
+                        "summary adjustment",
+                    ),
+                },
+            )
+        }
+
+        with patch(
+            "src.agent.financial_candidate_matching.active_narrative_policies",
+            return_value=[policy],
+        ):
+            cohort_plan = _semantic_candidate_cohorts(
+                [*direct_catalog, *summary_row],
+                [*direct_obligations, narrative],
+            )
+
+        output_cohort = next(
+            cohort
+            for cohort in cohort_plan["cohorts"]
+            if cohort["cohort_id"] == "ob_summary:output"
+        )
+        self.assertEqual(
+            output_cohort["candidate_ids"],
+            [
+                "cand-summary-loss",
+                "cand-summary-revenue",
+                "cand-summary-adjustment",
+            ],
+        )
+        self.assertEqual(
+            output_cohort["source_defined_group_selection"],
+            {
+                "selection_mode": "complete_physical_row",
+                "physical_table_id": "table-summary",
+                "physical_row_id": "row-summary",
+                "required_candidate_ids": [
+                    "cand-summary-loss",
+                    "cand-summary-revenue",
+                    "cand-summary-adjustment",
+                ],
+                "policy_group_names": ["complete_summary"],
+            },
+        )
+        constraint = cohort_plan["evidence_bundle_constraints"][0]
+        self.assertEqual(
+            constraint["options"][0]["candidate_ids_by_owner"]["ob_summary"],
+            [
+                "cand-summary-loss",
+                "cand-summary-revenue",
+                "cand-summary-adjustment",
+            ],
+        )
+
+        alternative_row = [
+            _row_candidate(
+                "cand-alt-revenue",
+                10,
+                metric="summary revenue",
+                table_id="table-alternative",
+                row_id="row-alternative",
+            ),
+            _row_candidate(
+                "cand-alt-loss",
+                11,
+                metric="summary loss",
+                table_id="table-alternative",
+                row_id="row-alternative",
+            ),
+            _row_candidate(
+                "cand-alt-adjustment",
+                12,
+                metric="summary adjustment",
+                table_id="table-alternative",
+                row_id="row-alternative",
+            ),
+        ]
+        with patch(
+            "src.agent.financial_candidate_matching.active_narrative_policies",
+            return_value=[policy],
+        ):
+            retried = _semantic_candidate_cohorts(
+                [*direct_catalog, *summary_row, *alternative_row],
+                [*direct_obligations, narrative],
+                excluded_candidate_ids_by_owner={
+                    "ob_summary": ["cand-summary-adjustment"]
+                },
+            )
+        retried_cohort = next(
+            cohort
+            for cohort in retried["cohorts"]
+            if cohort["cohort_id"] == "ob_summary:output"
+        )
+        self.assertEqual(
+            retried_cohort["candidate_ids"],
+            ["cand-alt-loss", "cand-alt-revenue", "cand-alt-adjustment"],
+        )
+
+        limits = CALCULATION_PROMPT_POLICY["semantic_program_prompt_limits"]
+        with patch(
+            "src.agent.financial_candidate_matching.active_narrative_policies",
+            return_value=[policy],
+        ), patch.dict(limits, {"narrative_candidates_per_owner": 2}):
+            overflow = _semantic_candidate_cohorts(
+                [*direct_catalog, *summary_row],
+                [*direct_obligations, narrative],
+            )
+        self.assertEqual(overflow["status"], "capacity_exceeded")
+        self.assertIn(
+            "ob_summary",
+            overflow["reservation"]["source_defined_group_overflow"],
+        )
+
     def test_visibility_copies_bundle_projection_inputs(self) -> None:
         _obligations, catalog, cohort_plan, _visibility = self._fixture()
         bundle_rows = cohort_plan["evidence_bundle_constraints"]

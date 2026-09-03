@@ -13,6 +13,7 @@ from src.agent.financial_candidate_matching import (
     candidate_cell_local_source_text,
     project_candidate_match,
     rank_candidate_matches,
+    select_source_defined_physical_row_group,
 )
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
@@ -334,6 +335,18 @@ def _project_atomic_evidence_bundle_options(
                 if candidate_id in allowed_set
             ]
         cohort["candidate_ids"] = candidate_ids
+        source_group_selection = dict(
+            cohort.get("source_defined_group_selection") or {}
+        )
+        if source_group_selection:
+            source_group_selection["required_candidate_ids"] = [
+                candidate_id
+                for candidate_id in (
+                    source_group_selection.get("required_candidate_ids") or []
+                )
+                if candidate_id in candidate_ids
+            ]
+            cohort["source_defined_group_selection"] = source_group_selection
         cohort["candidate_id_fingerprint"] = (
             semantic_candidate_id_fingerprint(candidate_ids)
         )
@@ -691,6 +704,127 @@ def _semantic_candidate_cohorts(
                 "limit": int(specification["limit"]),
             }
         )
+
+    source_group_obligation_ids = {
+        str(obligation.get("obligation_id") or "")
+        for obligation in obligation_rows
+        if str(obligation.get("kind") or "") == "narrative"
+        and str(obligation.get("evidence_mode") or "declared_inputs")
+        == "source_defined_group"
+    }
+    source_group_selection_by_parent: Dict[str, Dict[str, Any]] = {}
+    for cohort in cohorts:
+        parent_id = str(cohort.get("parent_obligation_id") or "")
+        if (
+            parent_id not in source_group_obligation_ids
+            or str(cohort.get("owner_type") or "") != "obligation"
+        ):
+            continue
+        original_candidate_ids = list(cohort.get("candidate_ids") or [])
+        explicitly_compatible_ids = [
+            candidate_id
+            for candidate_id in original_candidate_ids
+            if str(
+                match_by_id.get(candidate_id, {})
+                .get(parent_id, {})
+                .get("state")
+                or ""
+            )
+            == "compatible"
+        ]
+        group_excluded_ids = {
+            candidate_id
+            for candidate_owner_id, candidate_ids in excluded_by_owner.items()
+            if candidate_owner_id == parent_id
+            or candidate_owner_id.startswith(f"{parent_id}:")
+            for candidate_id in candidate_ids
+        }
+        obligation_by_id = {
+            str(obligation.get("obligation_id") or ""): obligation
+            for obligation in obligation_rows
+        }
+        selection = select_source_defined_physical_row_group(
+            catalog,
+            explicitly_compatible_ids,
+            owner=obligation_by_id.get(parent_id),
+            limit=int(cohort.get("limit") or 0),
+            excluded_candidate_ids=group_excluded_ids,
+        )
+        if selection.get("selection_mode") not in {
+            "complete_physical_row",
+            "capacity_exceeded",
+        }:
+            selection = {
+                "selection_mode": "open",
+                "physical_table_id": "",
+                "physical_row_id": "",
+                "candidate_ids": original_candidate_ids,
+                "required_candidate_ids": [],
+            }
+        source_group_selection_by_parent[parent_id] = selection
+
+    source_group_overflow = {
+        parent_id: selection
+        for parent_id, selection in source_group_selection_by_parent.items()
+        if selection.get("selection_mode") == "capacity_exceeded"
+    }
+    if source_group_overflow:
+        return {
+            "schema": "semantic_candidate_cohorts_v2",
+            "status": "capacity_exceeded",
+            "reservation": {
+                **reservation,
+                "source_defined_group_overflow": source_group_overflow,
+            },
+            "cohorts": [],
+            "candidate_ids_by_owner": {},
+            "visible_candidate_ids": [],
+            "candidate_match_by_id": match_by_id,
+            "evidence_bundle_constraints": [],
+            "evidence_bundle_option_selections": [],
+        }
+
+    for cohort in cohorts:
+        parent_id = str(cohort.get("parent_obligation_id") or "")
+        selection = source_group_selection_by_parent.get(parent_id)
+        if not selection:
+            continue
+        owner_excluded_ids = set(
+            excluded_by_owner.get(str(cohort.get("owner_id") or ""), [])
+        )
+        candidate_ids = [
+            candidate_id
+            for candidate_id in (selection.get("candidate_ids") or [])
+            if candidate_id not in owner_excluded_ids
+        ]
+        cohort["candidate_ids"] = candidate_ids
+        cohort["candidate_id_fingerprint"] = (
+            semantic_candidate_id_fingerprint(candidate_ids)
+        )
+        cohort["source_defined_group_selection"] = {
+            "selection_mode": str(selection.get("selection_mode") or "open"),
+            "physical_table_id": str(selection.get("physical_table_id") or ""),
+            "physical_row_id": str(selection.get("physical_row_id") or ""),
+            "required_candidate_ids": [
+                candidate_id
+                for candidate_id in (
+                    selection.get("required_candidate_ids") or []
+                )
+                if candidate_id in candidate_ids
+            ],
+            "policy_group_names": list(
+                selection.get("policy_group_names") or []
+            ),
+        }
+
+    visible_ids = list(
+        dict.fromkeys(
+            candidate_id
+            for cohort in cohorts
+            for candidate_id in (cohort.get("candidate_ids") or [])
+            if candidate_id
+        )
+    )
 
     evidence_bundle_constraints = build_physical_evidence_bundle_constraints(
         catalog,

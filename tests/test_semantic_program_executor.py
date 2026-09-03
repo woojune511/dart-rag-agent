@@ -52,6 +52,9 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
         self.assertAlmostEqual(output["normalized_value"], (380 - 343) / 343 * 100)
         self.assertEqual(output["operation_family"], "growth_rate")
         self.assertEqual(output["candidate_ids"], ["cand-closing", "cand-opening"])
+        self.assertIn("Inputs:", execution["answer"])
+        self.assertIn("closing quantity 380items", execution["answer"])
+        self.assertIn("opening quantity 343items", execution["answer"])
 
     def test_percentage_point_difference_accepts_percent_operands(self) -> None:
         execution = execute_semantic_calculation_program(
@@ -217,6 +220,9 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
         result = execute_semantic_calculation_program(**fixture)
         self.assertIn("원문 기재: 10.2%", result["answer"])
         self.assertIn("계산값", result["answer"])
+        self.assertIn("입력값은", result["answer"])
+        self.assertIn("40.0items", result["answer"])
+        self.assertIn("44.0items", result["answer"])
 
     def test_nonratio_source_display_preserves_compatible_dimensions(self) -> None:
         for dimension, unit in (("COUNT", "개"), ("KRW", "원"), ("PERCENT", "%")):

@@ -21,6 +21,10 @@ from src.agent.financial_runtime_contracts import (
     EvidenceBundleOptionV1,
 )
 from src.config import get_financial_ontology
+from src.config.retrieval_policy import (
+    active_narrative_policies,
+    narrative_policy_slot_groups,
+)
 
 
 _STRUCTURED_CANDIDATE_KINDS = frozenset(
@@ -712,6 +716,198 @@ def _candidate_bundle_context_state(
     return "unknown_only" if missing_explicit_dimension else "compatible"
 
 
+def select_source_defined_physical_row_group(
+    catalog: Sequence[Mapping[str, Any]],
+    candidate_ids: Sequence[Any],
+    *,
+    owner: Optional[Mapping[str, Any]] = None,
+    limit: int = 0,
+    excluded_candidate_ids: Sequence[Any] = (),
+) -> Dict[str, Any]:
+    """Select one complete structured row for a source-defined narrative.
+
+    Source-defined narrative cohorts may also contain prose.  When two or more
+    numeric cells from the same physical row are visible, those cells describe
+    one source-owned group.  Keep that best row plus prose, and expose the row
+    members that must be selected together.  A cohort without such a row keeps
+    its existing open selection behavior.
+    """
+
+    excluded_ids = {
+        str(candidate_id)
+        for candidate_id in excluded_candidate_ids
+        if str(candidate_id)
+    }
+    candidate_by_id = {
+        str(candidate.get("candidate_id") or ""): dict(candidate)
+        for candidate in catalog
+        if isinstance(candidate, Mapping)
+        and str(candidate.get("candidate_id") or "")
+    }
+    excluded_row_keys = {
+        (fact.physical_table_id, fact.physical_row_id)
+        for candidate_id in excluded_ids
+        for fact in [project_candidate_fact(candidate_by_id.get(candidate_id, {}))]
+        if fact.physical_table_id and fact.physical_row_id
+    }
+    ordered_ids: list[str] = []
+    for raw_candidate_id in candidate_ids:
+        candidate_id = str(raw_candidate_id)
+        if not candidate_id or candidate_id in excluded_ids:
+            continue
+        fact = project_candidate_fact(candidate_by_id.get(candidate_id, {}))
+        if (
+            fact.physical_table_id,
+            fact.physical_row_id,
+        ) in excluded_row_keys:
+            continue
+        if candidate_id not in ordered_ids:
+            ordered_ids.append(candidate_id)
+    positions = {
+        candidate_id: index for index, candidate_id in enumerate(ordered_ids)
+    }
+    row_ids: Dict[tuple[str, str], list[str]] = {}
+    structured_numeric_ids: set[str] = set()
+    for candidate_id in ordered_ids:
+        candidate = candidate_by_id.get(candidate_id)
+        if not candidate or str(candidate.get("kind") or "") != "numeric":
+            continue
+        fact = project_candidate_fact(candidate)
+        structured_numeric_ids.add(candidate_id)
+        if fact.physical_table_id and fact.physical_row_id:
+            row_ids.setdefault(
+                (fact.physical_table_id, fact.physical_row_id), []
+            ).append(candidate_id)
+
+    complete_rows = [
+        (row_key, member_ids)
+        for row_key, member_ids in row_ids.items()
+        if len(member_ids) >= 2
+    ]
+    if not complete_rows:
+        return {
+            "selection_mode": "open",
+            "physical_table_id": "",
+            "physical_row_id": "",
+            "candidate_ids": ordered_ids,
+            "required_candidate_ids": [],
+        }
+
+    row_key, required_ids = min(
+        complete_rows,
+        key=lambda item: (
+            -len(item[1]),
+            sum(positions[candidate_id] for candidate_id in item[1]),
+            max(positions[candidate_id] for candidate_id in item[1]),
+            item[0],
+        ),
+    )
+    owner_row = dict(owner or {})
+    target = dict(owner_row.get("semantic_target") or {})
+    owner_surface = _normalise_spaces(
+        " ".join(
+            str(value or "")
+            for value in (
+                owner_row.get("label"),
+                *list(owner_row.get("retrieval_hints") or []),
+                *list(owner_row.get("concept_hints") or []),
+                *list(target.get("metric_surfaces") or []),
+            )
+            if str(value or "").strip()
+        )
+    )
+    policy_group_names: list[str] = []
+    policy_evidence_terms: list[str] = []
+    for group in narrative_policy_slot_groups(
+        active_narrative_policies(owner_surface)
+    ):
+        if not any(
+            _surface_contains(owner_surface, query_term)
+            for query_term in group.get("query_terms") or []
+        ):
+            continue
+        group_name = str(group.get("name") or "")
+        if group_name:
+            policy_group_names.append(group_name)
+        for evidence_term in group.get("evidence_terms") or []:
+            if evidence_term not in policy_evidence_terms:
+                policy_evidence_terms.append(evidence_term)
+
+    if policy_evidence_terms:
+        for candidate_id, candidate in candidate_by_id.items():
+            if candidate_id in excluded_ids:
+                continue
+            fact = project_candidate_fact(candidate)
+            if (
+                fact.kind != "numeric"
+                or fact.physical_table_id != row_key[0]
+                or fact.physical_row_id != row_key[1]
+                or not any(
+                    _surface_contains(surface, evidence_term)
+                    for surface in fact.cell_metric_surfaces
+                    for evidence_term in policy_evidence_terms
+                )
+            ):
+                continue
+            if candidate_id not in required_ids:
+                required_ids.append(candidate_id)
+
+    catalog_positions = {
+        str(candidate.get("candidate_id") or ""): index
+        for index, candidate in enumerate(catalog)
+        if isinstance(candidate, Mapping)
+        and str(candidate.get("candidate_id") or "")
+    }
+
+    def physical_cell_order(candidate_id: str) -> tuple[int, int, int, str]:
+        fact = project_candidate_fact(candidate_by_id.get(candidate_id, {}))
+        column_match = re.search(r":(\d+)$", fact.physical_cell_id)
+        if column_match:
+            return (
+                0,
+                int(column_match.group(1)),
+                catalog_positions.get(candidate_id, 10**6),
+                candidate_id,
+            )
+        return (
+            1,
+            positions.get(candidate_id, 10**6),
+            catalog_positions.get(candidate_id, 10**6),
+            candidate_id,
+        )
+
+    required_ids = sorted(
+        dict.fromkeys(required_ids),
+        key=physical_cell_order,
+    )
+    if limit and len(required_ids) > int(limit):
+        return {
+            "selection_mode": "capacity_exceeded",
+            "physical_table_id": row_key[0],
+            "physical_row_id": row_key[1],
+            "candidate_ids": [],
+            "required_candidate_ids": required_ids,
+            "policy_group_names": policy_group_names,
+        }
+
+    optional_ids = [
+        candidate_id
+        for candidate_id in ordered_ids
+        if candidate_id not in structured_numeric_ids
+        and candidate_id not in required_ids
+    ]
+    remaining = max(0, int(limit) - len(required_ids)) if limit else len(optional_ids)
+    projected_ids = [*required_ids, *optional_ids[:remaining]]
+    return {
+        "selection_mode": "complete_physical_row",
+        "physical_table_id": row_key[0],
+        "physical_row_id": row_key[1],
+        "candidate_ids": projected_ids,
+        "required_candidate_ids": required_ids,
+        "policy_group_names": policy_group_names,
+    }
+
+
 def build_physical_evidence_bundle_constraints(
     catalog: Sequence[Mapping[str, Any]],
     obligations: Sequence[Mapping[str, Any]],
@@ -746,6 +942,27 @@ def build_physical_evidence_bundle_constraints(
         for cohort in cohorts
         if str(cohort.get("owner_type") or "") == "obligation"
         and str(cohort.get("owner_id") or "").strip()
+    }
+    source_group_required_ids = {
+        str(cohort.get("owner_id") or "").strip(): list(
+            dict.fromkeys(
+                str(candidate_id)
+                for candidate_id in (
+                    dict(cohort.get("source_defined_group_selection") or {}).get(
+                        "required_candidate_ids"
+                    )
+                    or []
+                )
+                if str(candidate_id)
+            )
+        )
+        for cohort in cohorts
+        if str(cohort.get("owner_type") or "") == "obligation"
+        and str(cohort.get("owner_id") or "").strip()
+        and dict(cohort.get("source_defined_group_selection") or {}).get(
+            "selection_mode"
+        )
+        == "complete_physical_row"
     }
     candidate_by_id = {
         str(item.get("candidate_id") or ""): dict(item)
@@ -908,6 +1125,9 @@ def build_physical_evidence_bundle_constraints(
             ]
             for narrative_id in narrative_ids:
                 narrative_candidates = output_candidate_ids.get(narrative_id, [])
+                required_group_ids = set(
+                    source_group_required_ids.get(narrative_id, [])
+                )
                 extended_options: list[EvidenceBundleOptionV1] = []
                 for option in options:
                     option_map = option.candidate_ids_by_owner()
@@ -942,7 +1162,14 @@ def build_physical_evidence_bundle_constraints(
                             and context_state == "compatible"
                         ):
                             compatible.append(candidate_id)
-                    allowed = compatible or fallback
+                    required = [
+                        candidate_id
+                        for candidate_id in fallback
+                        if candidate_id in required_group_ids
+                    ]
+                    allowed = list(dict.fromkeys([*required, *compatible]))
+                    if not allowed:
+                        allowed = fallback
                     if not allowed:
                         continue
                     extended_options.append(

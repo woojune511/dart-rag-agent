@@ -7,7 +7,10 @@ import math
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from src.agent.financial_candidate_matching import build_candidate_matches
+from src.agent.financial_candidate_matching import (
+    build_candidate_matches,
+    select_source_defined_physical_row_group,
+)
 from src.agent.financial_answer_slots import (
     build_calculated_value_slot,
     build_operand_value_slot,
@@ -944,6 +947,31 @@ def _ungrounded_narrative_numbers(
     )
 
 
+def _missing_narrative_candidate_values(
+    text: str,
+    candidates: Sequence[Mapping[str, Any]],
+) -> List[str]:
+    """Return selected structured candidates whose source value is not stated."""
+
+    text_tokens = {
+        token.replace(",", "").lstrip("+-")
+        for token in re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", str(text or ""))
+    }
+    missing: List[str] = []
+    for candidate in candidates:
+        candidate_id = str(candidate.get("candidate_id") or "").strip()
+        raw_tokens = {
+            token.replace(",", "").lstrip("+-")
+            for token in re.findall(
+                r"[-+]?\d[\d,]*(?:\.\d+)?",
+                str(candidate.get("raw_value") or ""),
+            )
+        }
+        if candidate_id and raw_tokens and raw_tokens.isdisjoint(text_tokens):
+            missing.append(candidate_id)
+    return missing
+
+
 def validate_semantic_calculation_program(
     *,
     program: Mapping[str, Any],
@@ -1845,6 +1873,7 @@ def validate_semantic_calculation_program(
                 and str(item.get("requirement_id") or "").strip()
             }
             bound_requirement_ids: set[str] = set()
+            bound_candidate_ids_by_requirement: Dict[str, set[str]] = {}
             for raw_evidence_binding in binding.get("evidence_bindings") or []:
                 evidence_binding = dict(raw_evidence_binding or {})
                 candidate_id = str(
@@ -1904,6 +1933,9 @@ def validate_semantic_calculation_program(
                     invalid = True
                     continue
                 bound_requirement_ids.add(requirement_id)
+                bound_candidate_ids_by_requirement.setdefault(
+                    requirement_id, set()
+                ).add(candidate_id)
                 for detail in _scope_errors(
                     candidate,
                     {"scope": dict(requirement.get("scope") or {})},
@@ -1924,6 +1956,86 @@ def validate_semantic_calculation_program(
                     missing_requirement_id,
                 )
                 invalid = True
+            if (
+                str(obligation.get("evidence_mode") or "declared_inputs")
+                == "source_defined_group"
+                and selectable_ids_by_owner is not None
+            ):
+                visible_owner_ids = (
+                    candidate_visibility.candidate_ids_by_owner().get(
+                        obligation_id, []
+                    )
+                    if candidate_visibility is not None
+                    else sorted(
+                        selectable_ids_by_owner.get(obligation_id, set())
+                    )
+                )
+                group_selection = select_source_defined_physical_row_group(
+                    candidate_rows,
+                    visible_owner_ids,
+                )
+                required_group_candidate_ids = [
+                    str(candidate_id)
+                    for candidate_id in (
+                        group_selection.get("required_candidate_ids") or []
+                    )
+                    if str(candidate_id)
+                ]
+                missing_selected_ids = [
+                    candidate_id
+                    for candidate_id in required_group_candidate_ids
+                    if candidate_id not in candidate_ids
+                ]
+                if missing_selected_ids:
+                    error(
+                        "incomplete_source_defined_group",
+                        obligation_id,
+                        ",".join(missing_selected_ids),
+                    )
+                    invalid = True
+                group_requirement_id = next(
+                    (
+                        str(requirement.get("requirement_id") or "").strip()
+                        for requirement in (
+                            obligation.get("evidence_requirements") or []
+                        )
+                        if isinstance(requirement, Mapping)
+                        and bool(requirement.get("required", True))
+                        and str(requirement.get("requirement_id") or "").strip()
+                    ),
+                    "",
+                )
+                missing_binding_ids = [
+                    candidate_id
+                    for candidate_id in required_group_candidate_ids
+                    if candidate_id
+                    not in bound_candidate_ids_by_requirement.get(
+                        group_requirement_id, set()
+                    )
+                ]
+                if missing_binding_ids:
+                    error(
+                        "missing_source_defined_group_binding",
+                        obligation_id,
+                        ",".join(missing_binding_ids),
+                    )
+                    invalid = True
+                if not missing_selected_ids:
+                    missing_value_ids = _missing_narrative_candidate_values(
+                        text,
+                        [
+                            candidate_by_id[candidate_id]
+                            for candidate_id in required_group_candidate_ids
+                            if candidate_id in candidate_by_id
+                        ],
+                    )
+                    if missing_value_ids:
+                        error(
+                            "source_defined_group_value_omitted",
+                            obligation_id,
+                            ",".join(missing_value_ids),
+                        )
+                        invalid = True
         if already_produced(obligation_id):
             invalid = True
         if invalid:
@@ -2391,6 +2503,75 @@ def _korean_semantic_output_subject(
     return _normalise_spaces(" ".join([*tokens, clean_label]))
 
 
+def _render_derived_input_summary(
+    output: Mapping[str, Any],
+    *,
+    render_policy: Mapping[str, Any],
+    korean_surface: bool,
+) -> str:
+    """Render source-visible operands used by one derived output."""
+
+    item_template = str(
+        render_policy.get("derived_input_item") or "{label} {value}"
+    )
+    joiner = str(render_policy.get("derived_input_joiner") or ", ")
+    rendered_items: List[str] = []
+    for raw_row in output.get("input_rows") or []:
+        if not isinstance(raw_row, Mapping):
+            continue
+        row = dict(raw_row)
+        value = render_grounded_operand_display(row)
+        if not value:
+            continue
+        label = _normalise_spaces(
+            str(
+                row.get("row_label")
+                or row.get("source_period_surface")
+                or row.get("period")
+                or ""
+            )
+        )
+        fallback_label = _normalise_spaces(str(row.get("label") or ""))
+        if (
+            not label
+            and fallback_label
+            and fallback_label
+            != _normalise_spaces(str(row.get("matched_operand_role") or ""))
+        ):
+            label = fallback_label
+        if not label:
+            year = row.get("value_year")
+            if year is None or year == "":
+                anchor_match = re.search(
+                    r"\|\s*((?:19|20)\d{2})\s*\|",
+                    str(row.get("source_anchor") or ""),
+                )
+                year = anchor_match.group(1) if anchor_match else ""
+            label = _normalise_spaces(str(year or ""))
+        period = _normalise_spaces(
+            str(row.get("source_period_surface") or row.get("period") or "")
+        )
+        if period and period.casefold() not in label.casefold():
+            label = _normalise_spaces(f"{period} {label}")
+        rendered = _normalise_spaces(
+            item_template.format(label=label, value=value)
+        )
+        if rendered and rendered not in rendered_items:
+            rendered_items.append(rendered)
+    if not rendered_items:
+        return ""
+    summary_template = str(
+        render_policy.get(
+            "derived_inputs_ko" if korean_surface else "derived_inputs"
+        )
+        or render_policy.get("derived_inputs")
+        or "Inputs: {items}."
+    )
+    return _normalise_spaces(
+        summary_template.format(items=joiner.join(rendered_items))
+    )
+
+
 def _render_semantic_program_answer(
     *,
     query: str,
@@ -2497,6 +2678,14 @@ def _render_semantic_program_answer(
                 item_template.format(label=scoped_label or label, value=value)
             )
             contextual_numeric_rendered = True
+        if output.get("kind") == "derived_value":
+            input_summary = _render_derived_input_summary(
+                output,
+                render_policy=render_policy,
+                korean_surface=korean_surface,
+            )
+            if input_summary:
+                answer_parts.append(input_summary)
 
     if missing_ids:
         labels = [

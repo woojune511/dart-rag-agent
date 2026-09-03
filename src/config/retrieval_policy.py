@@ -540,7 +540,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- narrative obligation은 근거 candidate_ids와 그 근거만으로 작성한 짧은 text를 함께 반환합니다. 숫자는 선택한 원문에 보이는 표기 그대로만 쓰고, 질문에 필수적이지 않은 숫자는 생략하세요.\n"
             "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
             "- narrative obligation에 required evidence_requirements가 있으면 선택한 candidate_ids가 그 사실과 관계 요구를 모두 충족해야 하며, evidence_bindings에 각 candidate_id와 source_requirement_id를 연결하세요. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
-            "- evidence_mode가 source_defined_group이면 런타임이 만든 하나의 원문 그룹 requirement를 사용합니다. 이 cohort에는 원문 문장뿐 아니라 구조화된 표의 숫자 셀도 함께 보일 수 있습니다. 실제 원문에 기재된 항목 이름과 값을 보존해 요약하고, 그 항목과 값을 뒷받침하는 candidate들을 해당 source_requirement_id에 바인딩하세요. 관행적인 예상 항목으로 원문 항목을 대체하거나 새로운 필수 항목을 만들지 마세요.\n"
+            "- evidence_mode가 source_defined_group이면 런타임이 만든 하나의 원문 그룹 requirement를 사용합니다. 이 cohort에는 원문 문장뿐 아니라 구조화된 표의 숫자 셀도 함께 보일 수 있습니다. source_defined_group_selection의 selection_mode가 complete_physical_row이면 required_candidate_ids를 모두 선택하고 같은 source_requirement_id에 각각 바인딩하며, 각 셀의 원문에 기재된 항목 이름과 값을 보존해 text에 모두 포함하세요. 관행적인 예상 항목으로 원문 항목을 대체하거나 새로운 필수 항목을 만들지 마세요.\n"
             "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
             "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
             "- 재시도에서는 repair_contract를 먼저 따르세요. formula AST의 변수 이름 집합과 variable_bindings의 variable 집합을 정확히 같게 만들고, 대상 obligation에 선언된 required evidence requirement를 빠짐없이 한 번씩 바인딩한 뒤 자체 점검하세요.\n"
@@ -556,6 +556,10 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "item_sentence_ko": "{subject}{topic_particle} {value}입니다.",
             "source_display_comparison": "calculated {calculated} (source-stated {source})",
             "source_display_comparison_ko": "계산값 {calculated} (원문 기재: {source})",
+            "derived_inputs": "Inputs: {items}.",
+            "derived_inputs_ko": "입력값은 {items}입니다.",
+            "derived_input_item": "{label} {value}",
+            "derived_input_joiner": ", ",
             "narrative": "{text}",
             "missing": "필요한 근거를 충분히 확인하지 못했습니다: {labels}",
             "korean_text_pattern": "[가-힣]",
@@ -1316,6 +1320,7 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
                     "계속영업이익",
                     "계속영업손실",
                     "영업수익",
+                    "기타포괄손익",
                     "총포괄손익",
                     "총포괄손실",
                 ),
