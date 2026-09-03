@@ -39,6 +39,7 @@ class AgentAnswer(TypedDict, total=False):
     routing_confidence: float
     routing_scores: Dict[str, float]
     routing_degraded_reason: str
+    retrieval_status: Dict[str, Any]
     companies: List[str]
     years: List[int]
     answer: str

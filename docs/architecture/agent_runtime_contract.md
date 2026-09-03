@@ -276,6 +276,10 @@ Readiness is refreshed inside that serialization boundary after every ingest
 attempt, including a partial failure. The experimental Streamlit ingest path
 applies the same success-or-failure refresh rule.
 
+Each run projects retrieval status from all executed-query telemetry. When a
+compatible store falls back to BM25 for a query, the HTTP response exposes that
+query as degraded without changing the persistent store readiness.
+
 CORS is disabled unless an environment allowlist is configured. Streamlit and
 MAS are experimental. Evaluator dependencies load only for an actual evaluation
 action. Core runtime imports may not depend on ops or experimental modules.

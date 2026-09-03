@@ -3,7 +3,10 @@ from __future__ import annotations
 import unittest
 from collections.abc import Mapping
 
-from src.agent.financial_agent_run_projection import project_review_trace
+from src.agent.financial_agent_run_projection import (
+    project_query_retrieval_status,
+    project_review_trace,
+)
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_run_result import FINANCIAL_RUN_RESULT_SCHEMA_VERSION
 
@@ -25,6 +28,38 @@ class _VectorStore:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
+    def test_query_retrieval_status_reports_any_bm25_fallback(self) -> None:
+        status = project_query_retrieval_status(
+            {
+                "retrieval_debug_trace_history": [
+                    {
+                        "executed_queries": [
+                            {
+                                "search_telemetry": {
+                                    "retrieval_mode": "hybrid",
+                                }
+                            },
+                            {
+                                "search_telemetry": {
+                                    "retrieval_mode": "bm25_fallback",
+                                    "vector_skipped_reason": "vector_store_read_error",
+                                }
+                            },
+                        ]
+                    }
+                ]
+            }
+        )
+
+        self.assertEqual(
+            status,
+            {
+                "degraded": True,
+                "modes": ["bm25_fallback"],
+                "reasons": ["vector_store_read_error"],
+            },
+        )
+
     def test_review_trace_exposes_semantic_program_contract(self) -> None:
         final = {
             "retrieved_docs": [],

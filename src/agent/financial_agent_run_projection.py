@@ -147,6 +147,51 @@ def project_debug_traces(final: Dict[str, Any]) -> DebugTraceBundle:
     return {"calculation": dict(final.get(CALCULATION_DEBUG_TRACE_FIELD) or {})}
 
 
+def project_query_retrieval_status(final: Dict[str, Any]) -> Dict[str, Any]:
+    trace_history = [
+        dict(item)
+        for item in (final.get("retrieval_debug_trace_history") or [])
+        if isinstance(item, dict)
+    ]
+    if not trace_history:
+        current_trace = final.get("retrieval_debug_trace")
+        if isinstance(current_trace, dict):
+            trace_history.append(dict(current_trace))
+
+    degraded_modes = {"bm25_only", "bm25_fallback"}
+    modes: list[str] = []
+    reasons: list[str] = []
+    for trace in trace_history:
+        for query in trace.get("executed_queries") or []:
+            if not isinstance(query, dict):
+                continue
+            telemetry = query.get("search_telemetry")
+            if not isinstance(telemetry, dict):
+                continue
+            mode = str(telemetry.get("retrieval_mode") or "").strip()
+            cached_mode = str(
+                telemetry.get("cached_retrieval_mode") or ""
+            ).strip()
+            for candidate_mode in (mode, cached_mode):
+                if candidate_mode in degraded_modes and candidate_mode not in modes:
+                    modes.append(candidate_mode)
+            if not ({mode, cached_mode} & degraded_modes):
+                continue
+            reason = str(
+                telemetry.get("vector_skipped_reason")
+                or telemetry.get("cached_vector_skipped_reason")
+                or ""
+            ).strip()
+            if reason and reason not in reasons:
+                reasons.append(reason)
+
+    return {
+        "degraded": bool(modes),
+        "modes": modes,
+        "reasons": reasons,
+    }
+
+
 def project_agent_answer(
     final: Dict[str, Any],
     *,
@@ -174,6 +219,7 @@ def project_agent_answer(
         "routing_confidence": final.get("routing_confidence", 0.0),
         "routing_scores": final.get("routing_scores", {}),
         "routing_degraded_reason": final.get("routing_degraded_reason", ""),
+        "retrieval_status": project_query_retrieval_status(final),
         "companies": final["companies"],
         "years": final["years"],
         "answer": public_answer,

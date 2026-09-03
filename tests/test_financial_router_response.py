@@ -23,6 +23,40 @@ def _result(agent_answer, *, review_trace=None, debug_bundle=None):
 
 
 class FinancialRouterResponseTests(unittest.TestCase):
+    def test_query_fallback_overlays_compatible_store_readiness(self) -> None:
+        response = _query_response_from_agent_result(
+            "question",
+            _result(
+                {
+                    "answer": "fallback answer",
+                    "query_type": "lookup",
+                    "companies": [],
+                    "years": [],
+                    "citations": [],
+                    "retrieval_status": {
+                        "degraded": True,
+                        "modes": ["bm25_fallback"],
+                        "reasons": ["embedding_capacity_error"],
+                    },
+                }
+            ),
+            retrieval_readiness={
+                "status": "compatible",
+                "ready": True,
+                "degraded": False,
+                "reason": "store manifest matches runtime contract",
+            },
+        )
+
+        readiness = _dump_excluding_none(response)["retrieval_readiness"]
+        self.assertEqual(readiness["status"], "degraded")
+        self.assertEqual(readiness["store_status"], "compatible")
+        self.assertTrue(readiness["degraded"])
+        self.assertEqual(
+            readiness["query_retrieval"]["reasons"],
+            ["embedding_capacity_error"],
+        )
+
     def test_query_response_prefers_agent_answer_projection_and_stays_slim_by_default(self) -> None:
         response = _query_response_from_agent_result(
             "question",

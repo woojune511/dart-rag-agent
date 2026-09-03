@@ -131,6 +131,23 @@ def _query_response_from_agent_result(
 ) -> QueryResponse:
     QueryResponse = _schema_models()["QueryResponse"]
     answer_payload = dict(result.agent_answer)
+    query_retrieval_status = dict(
+        answer_payload.get("retrieval_status") or {}
+    )
+    effective_readiness = dict(retrieval_readiness or {})
+    if bool(query_retrieval_status.get("degraded")):
+        store_status = str(effective_readiness.get("status") or "")
+        if store_status and store_status != "degraded":
+            effective_readiness["store_status"] = store_status
+        effective_readiness.update(
+            {
+                "status": "degraded",
+                "ready": bool(effective_readiness.get("ready", True)),
+                "degraded": True,
+                "reason": "query used BM25 fallback",
+                "query_retrieval": query_retrieval_status,
+            }
+        )
     response = QueryResponse(
         question=question,
         answer=str(answer_payload.get("answer") or ""),
@@ -147,8 +164,8 @@ def _query_response_from_agent_result(
         response.review_trace = dict(result.review_trace)
     if include_debug_bundle and result.debug_bundle is not None:
         response.debug_bundle = dict(result.debug_bundle)
-    if retrieval_readiness and bool(retrieval_readiness.get("degraded")):
-        response.retrieval_readiness = dict(retrieval_readiness)
+    if effective_readiness and bool(effective_readiness.get("degraded")):
+        response.retrieval_readiness = effective_readiness
     return response
 
 
