@@ -56,12 +56,14 @@ and [experiment_history.md](docs/history/experiment_history.md).
   store files remained byte-identical. This is store readiness, not a new
   provider-query result.
 
-## Dirty predecessor audit
+## Predecessor cleanup
 
-The original checkout
-`C:\Users\geonj\Desktop\dart-rag-agent` remains untouched on
-`codex/semantic-candidate-boundary-repair` at `a278c1a` with 24 visible dirty
-paths.
+On 2026-09-04 the original checkout
+`C:\Users\geonj\Desktop\dart-rag-agent` was converted into the primary clean
+`main` checkout at `9006ae7`. Its 24 visible dirty paths were preserved in the
+local recoverable stash named
+`pre-main-cleanup semantic-candidate-boundary predecessor 2026-09-04`; the
+`codex/semantic-candidate-boundary-repair` branch pointer remains at `a278c1a`.
 
 A read-only blob comparison against merged `main` found:
 
@@ -75,9 +77,13 @@ A read-only blob comparison against merged `main` found:
   `evaluator.py`, four associated test modules, and the standalone legacy HTTP
   contract test.
 
-Do not merge or rebase that dirty branch into `main`. It can be retired after
-explicit cleanup approval; export a patch first only if the user wants an
-additional archival copy.
+The clean, already-merged `runtime-integration` and `runtime-redesign` linked
+worktrees were removed. Before removal, 86 ignored result files found only in
+the integration worktree were copied into the primary `benchmarks/results`
+tree and verified by SHA-256; `.env`, reports, stores, and all benchmark
+artifacts remain uncommitted. Do not merge or rebase the predecessor branch
+into `main`; restore its stash on a separate branch only for explicit
+archaeology.
 
 ## Hard boundaries and next work
 
