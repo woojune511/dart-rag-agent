@@ -39,6 +39,11 @@ The boundary redesign is implemented as ordered commits:
    positions and one physical row is selected before compiler invocation.
    Output and source-defined requirement visibility is projected through that
    option, while numeric compatibility narratives remain available.
+10. Current source follow-up: policy-defined source summaries select one
+    complete physical row, preserve all required sibling cells through atomic
+    projection, reject a failed row as a unit, and fail closed on cohort
+    capacity. Derived answers expose source-visible inputs, and evaluator
+    artifacts retain future faithfulness rationale.
 
 The separate dirty predecessor was then integrated explicitly:
 
@@ -56,10 +61,11 @@ evaluator, replay, and promotion tools remain optional or experimental.
 
 ## Hard boundaries
 
-- No candidate IDs, catalog fingerprints, primary answer keys, evaluator
-  tolerances, or historical result bundles are rewritten. The three curated
-  dataset slices add the same source-qualified calculation variants only to
-  `LGE_T1_051`; `HYU_T3_072` remains review-only and is not registered.
+- Candidate IDs, catalog fingerprints, evaluator tolerances, stores, and
+  historical result bundles are not rewritten. The `HYU_T3_072` canonical key
+  is intentionally corrected in the dataset successor to the source-reviewed
+  consolidated tuple; it no longer combines separate-basis direct values with
+  consolidated summary values.
 - No existing store receives a manifest automatically. The approved adoption
   wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
   remained byte-identical.
@@ -85,8 +91,8 @@ choice, next-row promotion, compatibility narrative preservation, and
 source-defined requirement projection. Read-only projection of the consumed T3
 result reduces its visible set from 16 IDs to 10, selects table 82 row `9:2`,
 retains the two numeric compatibility cohorts and five narrative IDs, and removes
-the table 83 numeric pair. The gate passes 763 total unittest cases, 134 focused
-semantic/runtime-contract cases, 23 documentation/import/topology cases, the
+the table 83 numeric pair. The gate passes 766 total unittest cases, 184 focused
+semantic/scope cases, 29 documentation/import/topology cases, the
 86-literal domain audit, pycompile, and `git diff --check`. This is local source
 evidence only; no provider, network, store write, dataset change, or evaluator
 change was used.
@@ -124,9 +130,16 @@ All three questions are runtime-complete with error zero and ledger `ok`.
   Harman overview source; `28,352,769백만원` and the Harman narrative remain.
 
 The bounded runtime release gate is therefore **3/3, PASS**. This does not change
-the T3 mixed-basis answer key or promote qualitative evaluator scores: the raw
+the historical paid output or promote qualitative evaluator scores: the raw
 benchmark still reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness
 `0.7`, and two company-level full-eval failures.
+
+The post-gate provider-free successor corrects the T3 canonical dataset basis,
+preserves all four policy-defined table 90 row `21:4` cells through cohort and
+atomic projection, and re-renders the saved T2 operands as `2023 87.0만 대` and
+`2022 78.1만 대`. Future evaluator artifacts include a faithfulness rationale;
+the historical Samsung `0.7` reason cannot be recovered. These checks do not
+constitute a new provider or benchmark run.
 
 The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
 zero document-embedding calls, and estimated runtime cost USD `0.1212257`.

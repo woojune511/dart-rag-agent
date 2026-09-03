@@ -7,8 +7,8 @@ Last updated: 2026-09-03
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/typed-candidate-ranking` at atomic-bundle runtime `28d26dc` |
-| Runtime state | Typed owner matching plus compiler-visible atomic physical-row selection replace additive keyword scoring and independent multi-output selection |
+| Active branch | `codex/typed-candidate-ranking`; post-gate source contract follow-up is under local validation |
+| Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
 | Provider evidence | Atomic-bundle admission `06a40243...016` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
@@ -42,6 +42,11 @@ Last updated: 2026-09-03
 - Evaluator-only accepted calculation/answer variants require one complete,
   source-qualified atomic match. They do not alter runtime selection or promote
   qualitative scores.
+- A `source_defined_group` with a selected structured row exposes every
+  policy-defined cell from that physical row as required. Candidate failure
+  rejects that row as a unit, and capacity overflow fails before compilation.
+- Derived values render their source-visible inputs. Faithfulness judge output
+  records a short rationale without changing score thresholds or overrides.
 - Benchmark `store-only` excludes question/evaluator work, while `eval-only`
   evaluates from a disposable store copy and preserves its source bytes.
 - MAS and Streamlit remain experimental consumers, not the product authority.
@@ -54,8 +59,8 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The source gate passes 763
-unittest cases, including 134 focused semantic/runtime-contract and 23
+same row. Ranked alternatives are diagnostic-only. The source gate passes 766
+unittest cases, including 184 focused semantic/scope and 29
 documentation/import/topology cases, plus the 86-literal domain audit,
 pycompile, and `git diff --check`.
 
@@ -84,9 +89,21 @@ tables appropriate to those measures. Across all questions the compiler made
 five island calls and no internal retry.
 
 The bounded runtime gate is **3/3 PASS**. It does not change the HYU T3
-mixed-basis answer key or relax evaluator criteria. The raw evaluator still
+historical provider output or relax evaluator criteria. The raw evaluator still
 reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness `0.7`, and two
 company-level full-eval failures; those are not promoted into runtime acceptance.
+
+After that paid gate, the source review decision corrected the canonical HYU T3
+key from a mixed separate/consolidated basis to the complete consolidated tuple.
+Provider-free replay of the saved source window now keeps table 90 row `21:4`
+as four required cells: `1,775`, `(803,742)`, `12,115`, and `(791,627)`
+백만원. Re-rendering the saved T2 execution trace includes the source inputs
+`2023 87.0만 대` and `2022 78.1만 대` without exposing an internal obligation
+ID. These are local successor checks, not a new benchmark result.
+
+The historical Samsung faithfulness judge returned `0.7` without a persisted
+rationale, so its exact concern cannot be reconstructed. New evaluator outputs
+retain the judge reason; no score, tolerance, or acceptance rule was relaxed.
 
 The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
 zero document-embedding calls, and estimated runtime cost USD `0.1212257`, below
@@ -97,8 +114,8 @@ no disposable store remains.
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Review and integrate `codex/typed-candidate-ranking`; the bounded runtime
-   acceptance evidence is complete and benchmark artifacts remain uncommitted.
+2. Complete local validation and integrate `codex/typed-candidate-ranking`;
+   benchmark artifacts remain uncommitted.
 3. Keep a broader local semantic reranker and persisted typed fact index as
    deferred designs. They need measured benefit and a migration contract rather
    than being bundled into the atomic-bundle repair.

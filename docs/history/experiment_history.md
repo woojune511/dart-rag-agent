@@ -7100,3 +7100,15 @@ References:
 - No new calibration result was produced. Historical v1 metrics must not be
   presented as v2 metrics or as clean held-out performance against the current
   canonical set.
+
+## HYU T3 Source-Basis Dataset Correction (2026-09-03)
+
+- The immutable source review established one complete consolidated Motional
+  tuple: `26%`, `700,691백만원`, and the four table-90 summary measures.
+- The curated key and raw required-keyword checkpoint were corrected to that
+  basis. Historical benchmark bundles were not edited.
+- Provider-free reprojection confirmed that the source-defined summary cohort
+  now preserves all four policy-defined cells from table 90 row `21:4`.
+- This was a source, contract, and dataset-governance follow-up. It did not run
+  a provider, ingest documents, mutate a store, or create a new benchmark
+  score.
