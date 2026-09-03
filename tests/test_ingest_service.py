@@ -45,6 +45,7 @@ class _ContextGenerator:
         self.calls.append((list(chunks), max_workers, resume_partial_store))
         if on_store_progress:
             on_store_progress(len(chunks), len(chunks))
+        return {"added_chunks": len(chunks)}
 
 
 class _FailAfterFirstContextGenerator(_ContextGenerator):
@@ -131,6 +132,7 @@ class _FailThenResumeContextGenerator(_ContextGenerator):
         )
         if on_store_progress:
             on_store_progress(len(rows), len(rows))
+        return {"added_chunks": 1}
 
 
 class IngestServiceTests(unittest.TestCase):
@@ -262,6 +264,7 @@ class IngestServiceTests(unittest.TestCase):
             result = service.ingest_company("sample", [2024], max_workers=2)
 
             self.assertEqual(result["reports_skipped"], 0)
+            self.assertEqual(result["chunks_added"], 1)
             self.assertEqual(store.indexed_chunk_uids, {"chunk-1", "chunk-2"})
             self.assertEqual(len(context_generator.calls), 2)
             self.assertTrue(context_generator.calls[1][2])

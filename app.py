@@ -98,12 +98,14 @@ with tab1:
                 if ingest_service is None:
                     raise RuntimeError(services.readiness.reason)
                 st.write("📡 DART 공시 수집·파싱·컨텍스트 생성·인덱싱 중...")
-                result = ingest_service.ingest_company(
-                    company_input,
-                    selected_years,
-                    max_workers=CONTEXT_MAX_WORKERS,
-                )
-                services.refresh_readiness()
+                try:
+                    result = ingest_service.ingest_company(
+                        company_input,
+                        selected_years,
+                        max_workers=CONTEXT_MAX_WORKERS,
+                    )
+                finally:
+                    services.refresh_readiness()
                 if not int(result.get("files_fetched") or 0):
                     status.update(label="공시 문서를 찾을 수 없습니다.", state="error")
                     st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")

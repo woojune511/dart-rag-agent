@@ -78,6 +78,48 @@ class StoreManifestTests(unittest.TestCase):
                     )
                     self.assertEqual((readiness.status, readiness.ready), ("invalid", False))
 
+    def test_coercible_manifest_field_types_fail_readiness(self) -> None:
+        expected = canonical_store_manifest(collection_name="runtime")
+        projections = []
+        for label, section, field, value in (
+            (
+                "numeric-string",
+                "embedding",
+                "dimension",
+                str(expected.embedding.dimension),
+            ),
+            (
+                "integral-float",
+                "embedding",
+                "dimension",
+                float(expected.embedding.dimension),
+            ),
+            (
+                "fractional-float",
+                "ingest",
+                "chunk_size",
+                expected.ingest.chunk_size + 0.9,
+            ),
+            ("non-string", "embedding", "provider", 1),
+        ):
+            projection = expected.to_projection()
+            projection[section][field] = value
+            projections.append((label, projection))
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "store_manifest.json"
+            for label, projection in projections:
+                with self.subTest(label=label):
+                    path.write_text(json.dumps(projection), encoding="utf-8")
+                    readiness = assess_store_readiness(
+                        temporary_directory,
+                        expected=expected,
+                    )
+                    self.assertEqual(
+                        (readiness.status, readiness.ready),
+                        ("invalid", False),
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

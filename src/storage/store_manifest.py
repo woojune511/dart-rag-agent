@@ -53,6 +53,18 @@ def _require_mapping(value: Any, *, label: str) -> Mapping[str, Any]:
     return value
 
 
+def _require_string(value: Any, *, label: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be a string")
+    return value
+
+
+def _require_integer(value: Any, *, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an integer")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class StoreEmbeddingV1:
     provider: str
@@ -93,7 +105,10 @@ class StoreManifestV1:
     @classmethod
     def from_projection(cls, value: Mapping[str, Any]) -> "StoreManifestV1":
         _require_exact_fields(value, _MANIFEST_FIELDS, label="store manifest")
-        schema_version = str(value.get("schema_version") or "")
+        schema_version = _require_string(
+            value.get("schema_version"),
+            label="schema_version",
+        )
         if schema_version != STORE_MANIFEST_SCHEMA_VERSION:
             raise ValueError(
                 f"unsupported store manifest schema: {schema_version or 'missing'}"
@@ -104,19 +119,41 @@ class StoreManifestV1:
         _require_exact_fields(ingest, _INGEST_FIELDS, label="ingest")
         return cls(
             schema_version=schema_version,
-            collection_name=str(value.get("collection_name") or ""),
+            collection_name=_require_string(
+                value.get("collection_name"),
+                label="collection_name",
+            ),
             embedding=StoreEmbeddingV1(
-                provider=str(embedding.get("provider") or ""),
-                model_name=str(embedding.get("model_name") or ""),
-                dimension=int(embedding.get("dimension") or 0),
+                provider=_require_string(
+                    embedding.get("provider"),
+                    label="embedding.provider",
+                ),
+                model_name=_require_string(
+                    embedding.get("model_name"),
+                    label="embedding.model_name",
+                ),
+                dimension=_require_integer(
+                    embedding.get("dimension"),
+                    label="embedding.dimension",
+                ),
             ),
             ingest=StoreIngestV1(
-                profile_id=str(ingest.get("profile_id") or ""),
-                parser_schema_version=str(
-                    ingest.get("parser_schema_version") or ""
+                profile_id=_require_string(
+                    ingest.get("profile_id"),
+                    label="ingest.profile_id",
                 ),
-                chunk_size=int(ingest.get("chunk_size") or 0),
-                chunk_overlap=int(ingest.get("chunk_overlap") or 0),
+                parser_schema_version=_require_string(
+                    ingest.get("parser_schema_version"),
+                    label="ingest.parser_schema_version",
+                ),
+                chunk_size=_require_integer(
+                    ingest.get("chunk_size"),
+                    label="ingest.chunk_size",
+                ),
+                chunk_overlap=_require_integer(
+                    ingest.get("chunk_overlap"),
+                    label="ingest.chunk_overlap",
+                ),
             ),
         )
 

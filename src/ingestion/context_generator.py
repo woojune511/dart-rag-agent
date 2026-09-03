@@ -235,7 +235,7 @@ class ContextGenerator:
             log_item_failures=True,
         )
         texts, metadatas = self._contextual_index_payload(chunks, contexts)
-        self.vsm.add_documents(
+        add_metrics = self.vsm.add_documents(
             texts,
             metadatas,
             resume=resume_partial_store,
@@ -245,6 +245,7 @@ class ContextGenerator:
         return {
             "mode": "contextual",
             "chunks": total,
+            "added_chunks": int(add_metrics.get("added_chunks", total)),
             "stored_parent_chunks": len(parents),
             "api_calls": total,
             "fallback_count": 0,

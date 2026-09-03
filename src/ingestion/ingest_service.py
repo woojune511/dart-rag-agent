@@ -110,13 +110,13 @@ class IngestService:
             if self._report_is_fully_indexed(report, chunks):
                 skipped += 1
                 continue
-            self.context_generator.contextual_ingest(
+            ingest_result = self.context_generator.contextual_ingest(
                 chunks,
                 on_store_progress=record_manifest_after_mutation,
                 max_workers=max_workers,
                 resume_partial_store=True,
-            )
-            total_chunks += len(chunks)
+            ) or {}
+            total_chunks += int(ingest_result.get("added_chunks", len(chunks)))
             if not manifest_recorded:
                 write_store_manifest(self.store.persist_directory, self.manifest)
                 manifest_recorded = True
