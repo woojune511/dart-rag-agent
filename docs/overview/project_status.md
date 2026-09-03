@@ -7,7 +7,7 @@ Last updated: 2026-09-04
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Canonical source | `main` at merge commit `b6998b9`; provider-free ambiguity audit active on `codex/candidate-ambiguity-audit` |
+| Canonical source | `main`; runtime redesign through PR #89 and provider-free ambiguity audit through PR #90 |
 | Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |

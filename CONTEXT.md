@@ -4,11 +4,12 @@ Last updated: 2026-09-04
 
 ## Canonical source
 
-- `main` contains the runtime redesign and checkout closeout through merge
-  commit `b6998b9` ([PR #89](https://github.com/woojune511/dart-rag-agent/pull/89)).
-- Provider-free candidate ambiguity instrumentation is being finalized on
-  `codex/candidate-ambiguity-audit`; it does not change candidate IDs, stores,
-  or compiler prompt input.
+- `main` is the canonical source. The runtime redesign and checkout closeout
+  landed through [PR #89](https://github.com/woojune511/dart-rag-agent/pull/89);
+  provider-free candidate ambiguity instrumentation is delivered by
+  [PR #90](https://github.com/woojune511/dart-rag-agent/pull/90).
+- The ambiguity instrumentation does not change candidate IDs, stores, or
+  compiler prompt input.
 - The product path is the single-agent `FinancialAgent`. MAS, Streamlit,
   benchmark, evaluator, replay, and promotion tools remain optional or
   experimental consumers.
