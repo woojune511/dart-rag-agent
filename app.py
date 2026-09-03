@@ -91,21 +91,22 @@ with tab1:
 
     if st.button("🔄 수집 및 인덱싱", type="primary", disabled=not (company_input and selected_years)):
         services = load_components()
-        ingest_service = services.ingest_service
 
         with st.status(f"'{company_input}' {selected_years} 처리 중...", expanded=True) as status:
             try:
-                if ingest_service is None:
-                    raise RuntimeError(services.readiness.reason)
                 st.write("📡 DART 공시 수집·파싱·컨텍스트 생성·인덱싱 중...")
-                try:
-                    result = ingest_service.ingest_company(
-                        company_input,
-                        selected_years,
-                        max_workers=CONTEXT_MAX_WORKERS,
-                    )
-                finally:
-                    services.refresh_readiness()
+                with services.serialized_sync_operation():
+                    ingest_service = services.ingest_service
+                    if ingest_service is None:
+                        raise RuntimeError(services.readiness.reason)
+                    try:
+                        result = ingest_service.ingest_company(
+                            company_input,
+                            selected_years,
+                            max_workers=CONTEXT_MAX_WORKERS,
+                        )
+                    finally:
+                        services.refresh_readiness()
                 if not int(result.get("files_fetched") or 0):
                     status.update(label="공시 문서를 찾을 수 없습니다.", state="error")
                     st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")
@@ -130,11 +131,12 @@ with tab1:
 
     if st.button("🔍 현황 조회"):
         services = load_components()
-        vsm = services.store
         try:
-            if vsm is None:
-                raise RuntimeError(services.readiness.reason)
-            data = vsm.vector_store.get(include=["metadatas"])
+            with services.serialized_sync_operation():
+                vsm = services.store
+                if vsm is None:
+                    raise RuntimeError(services.readiness.reason)
+                data = vsm.vector_store.get(include=["metadatas"])
             metadatas = data.get("metadatas") or []
 
             if not metadatas:
@@ -201,13 +203,17 @@ with tab2:
 
     if st.button("🔍 분석 실행", type="primary", disabled=not question):
         services = load_components()
-        agent = services.agent
 
         with st.spinner("Agent 분석 중..."):
             try:
-                if not services.readiness.ready or agent is None:
-                    raise RuntimeError(services.readiness.reason)
-                run_result = agent.run(question, include_review_trace=True)
+                with services.serialized_sync_operation():
+                    agent = services.agent
+                    if not services.readiness.ready or agent is None:
+                        raise RuntimeError(services.readiness.reason)
+                    run_result = agent.run(
+                        question,
+                        include_review_trace=True,
+                    )
                 answer_result = run_result.agent_answer
                 review_trace = run_result.review_trace or {}
 
@@ -296,23 +302,30 @@ with tab3:
         st.markdown("**평가 실행**")
         if st.button("▶️ 평가 시작", type="primary"):
             services = load_components()
-            if not services.readiness.ready or services.agent is None:
-                st.error(services.readiness.reason)
-                st.stop()
-            # Experimental evaluator dependencies are loaded only for an
-            # explicit evaluation action, not during application startup.
-            from src.ops.evaluator import RAGEvaluator
+            with services.serialized_sync_operation():
+                if not services.readiness.ready or services.agent is None:
+                    st.error(services.readiness.reason)
+                    st.stop()
+                # Experimental evaluator dependencies are loaded only for an
+                # explicit evaluation action, not during application startup.
+                from src.ops.evaluator import RAGEvaluator
 
-            evaluator = RAGEvaluator(services.agent)
-            dataset = evaluator.load_dataset()
-            subset = evaluator.build_single_company_eval_slice(dataset, max_questions=n_questions)
-
-            with st.spinner(f"{len(subset)}개 질문 평가 중..."):
-                results = evaluator.run(
-                    examples=subset,
-                    run_name=run_name_input,
-                    params={"n_questions": len(subset), "mode": "single_company_accuracy"},
+                evaluator = RAGEvaluator(services.agent)
+                dataset = evaluator.load_dataset()
+                subset = evaluator.build_single_company_eval_slice(
+                    dataset,
+                    max_questions=n_questions,
                 )
+
+                with st.spinner(f"{len(subset)}개 질문 평가 중..."):
+                    results = evaluator.run(
+                        examples=subset,
+                        run_name=run_name_input,
+                        params={
+                            "n_questions": len(subset),
+                            "mode": "single_company_accuracy",
+                        },
+                    )
 
             st.session_state["eval_results"] = results["per_question"]
             st.session_state["eval_aggregate"] = results["aggregate"]

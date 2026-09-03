@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional
+import threading
+from typing import Any, Dict, Iterator, Mapping, Optional
 
 from src.storage.store_manifest import (
     StoreManifestV1,
@@ -97,6 +99,17 @@ class AppServices:
         default_factory=asyncio.Lock,
         repr=False,
     )
+    sync_operation_lock: Any = field(
+        default_factory=threading.Lock,
+        repr=False,
+    )
+
+    @contextmanager
+    def serialized_sync_operation(self) -> Iterator[None]:
+        """Serialize shared service use from synchronous optional clients."""
+
+        with self.sync_operation_lock:
+            yield
 
     def refresh_readiness(self) -> StoreReadiness:
         allow_degraded = bool(

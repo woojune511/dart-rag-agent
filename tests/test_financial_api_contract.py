@@ -151,6 +151,41 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_synchronous_optional_clients_share_one_service_lock(self) -> None:
+        from src.api.services import AppServices
+
+        manifest = canonical_store_manifest(collection_name="runtime")
+        services = AppServices(
+            expected_manifest=manifest,
+            readiness=StoreReadiness(
+                status="compatible",
+                ready=True,
+                reason="compatible",
+                expected=manifest,
+                actual=manifest,
+            ),
+        )
+        guard = threading.Lock()
+        active = 0
+        max_active = 0
+
+        def use_shared_services():
+            nonlocal active, max_active
+            with services.serialized_sync_operation():
+                with guard:
+                    active += 1
+                    max_active = max(max_active, active)
+                try:
+                    time.sleep(0.05)
+                finally:
+                    with guard:
+                        active -= 1
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            list(executor.map(lambda _index: use_shared_services(), range(2)))
+
+        self.assertEqual(max_active, 1)
+
     def test_forced_bm25_startup_requires_persisted_search_data(self) -> None:
         from src.api.services import _has_persisted_bm25_source
 

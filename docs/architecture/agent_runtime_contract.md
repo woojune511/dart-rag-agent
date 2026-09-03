@@ -276,8 +276,10 @@ environment values taking precedence and imports leaving process state
 unchanged. Query and ingest operations sharing one `AppServices` instance are
 serialized before threadpool dispatch because the agent and store are mutable.
 Readiness is refreshed inside that serialization boundary after every ingest
-attempt, including a partial failure. The experimental Streamlit ingest path
-applies the same success-or-failure refresh rule.
+attempt, including a partial failure. The experimental Streamlit path uses a
+process-wide synchronous lock on its cached `AppServices` for store inspection,
+query, ingest, and evaluation; ingest readiness refresh remains inside that
+same boundary on success or failure.
 
 Each run projects retrieval status from all executed-query telemetry. When a
 compatible store falls back to BM25 for a query, the HTTP response exposes that
