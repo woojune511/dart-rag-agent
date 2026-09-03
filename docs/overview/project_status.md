@@ -116,10 +116,13 @@ no disposable store remains.
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Keep benchmark artifacts uncommitted. The original dirty checkout remains
-   untouched: 12 of its 24 dirty paths are byte-identical to merged `main`; the
-   other 12 are superseded predecessor contracts with nothing to port. Do not
-   merge or rebase it; retire it only after explicit cleanup approval.
+2. Keep benchmark artifacts uncommitted. Checkout cleanup completed on
+   2026-09-04: the primary path now tracks clean `main`, the predecessor's 24
+   visible paths remain recoverable in a named local stash, and both clean,
+   already-merged linked worktrees were removed. The 86 integration-only
+   ignored result files were copied into the primary results tree and verified
+   before removal. Do not port the superseded predecessor contracts; restore
+   the stash on a separate branch only for explicit archaeology.
 3. Measure residual candidate ambiguity provider-free over existing stored
    catalogs before implementing a broader local semantic reranker. Keep a
    persisted typed fact index behind a separate versioned migration contract.
