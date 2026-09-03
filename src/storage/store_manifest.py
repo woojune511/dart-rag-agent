@@ -21,6 +21,36 @@ from src.config.runtime_contract import (
 
 STORE_MANIFEST_FILENAME = "store_manifest.json"
 STORE_MANIFEST_SCHEMA_VERSION = "store_manifest_v1"
+_MANIFEST_FIELDS = frozenset(
+    {"schema_version", "collection_name", "embedding", "ingest"}
+)
+_EMBEDDING_FIELDS = frozenset({"provider", "model_name", "dimension"})
+_INGEST_FIELDS = frozenset(
+    {"profile_id", "parser_schema_version", "chunk_size", "chunk_overlap"}
+)
+
+
+def _require_exact_fields(
+    value: Mapping[str, Any],
+    expected: frozenset[str],
+    *,
+    label: str,
+) -> None:
+    actual = set(value)
+    if actual == expected:
+        return
+    missing = sorted(expected - actual)
+    unknown = sorted(str(field) for field in actual - expected)
+    raise ValueError(
+        f"{label} fields do not match schema"
+        f" (missing={missing}, unknown={unknown})"
+    )
+
+
+def _require_mapping(value: Any, *, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{label} must be an object")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,13 +92,16 @@ class StoreManifestV1:
 
     @classmethod
     def from_projection(cls, value: Mapping[str, Any]) -> "StoreManifestV1":
+        _require_exact_fields(value, _MANIFEST_FIELDS, label="store manifest")
         schema_version = str(value.get("schema_version") or "")
         if schema_version != STORE_MANIFEST_SCHEMA_VERSION:
             raise ValueError(
                 f"unsupported store manifest schema: {schema_version or 'missing'}"
             )
-        embedding = dict(value.get("embedding") or {})
-        ingest = dict(value.get("ingest") or {})
+        embedding = _require_mapping(value.get("embedding"), label="embedding")
+        ingest = _require_mapping(value.get("ingest"), label="ingest")
+        _require_exact_fields(embedding, _EMBEDDING_FIELDS, label="embedding")
+        _require_exact_fields(ingest, _INGEST_FIELDS, label="ingest")
         return cls(
             schema_version=schema_version,
             collection_name=str(value.get("collection_name") or ""),

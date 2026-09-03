@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -54,6 +55,28 @@ class StoreManifestTests(unittest.TestCase):
             set(manifest.to_projection()),
             {"schema_version", "collection_name", "embedding", "ingest"},
         )
+
+    def test_unknown_manifest_fields_fail_readiness(self) -> None:
+        expected = canonical_store_manifest(collection_name="runtime")
+        projections = []
+        for section in (None, "embedding", "ingest"):
+            projection = expected.to_projection()
+            target = projection if section is None else projection[section]
+            target["unknown_option"] = True
+            projections.append((section or "root", projection))
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "store_manifest.json"
+            for section, projection in projections:
+                with self.subTest(section=section):
+                    path.write_text(json.dumps(projection), encoding="utf-8")
+                    readiness = assess_store_readiness(
+                        temporary_directory,
+                        expected=expected,
+                        allow_degraded_bm25_only=True,
+                        bm25_available=True,
+                    )
+                    self.assertEqual((readiness.status, readiness.ready), ("invalid", False))
 
 
 if __name__ == "__main__":

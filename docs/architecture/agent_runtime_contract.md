@@ -237,6 +237,9 @@ for an existing non-empty store. Explicit BM25-only degraded mode is the sole
 exception; it must be enabled by configuration and exposed in readiness,
 response, and retrieval trace.
 
+Exactness includes the complete top-level, embedding, and ingest field sets;
+unknown or missing fields make the manifest invalid.
+
 A manifest-less Chroma directory whose embedding and pending-operation counts
 are both zero remains eligible for ingest initialization after restart. It is
 not query-ready, and ingest writes the manifest only after indexing documents.
