@@ -35,10 +35,10 @@ The boundary redesign is implemented as ordered commits:
    evidence-bundle options for related same-subject outputs. Bundle membership
    adds a compilation-island edge even when planner coupling is empty; validator
    and executor reject mixed-row selections and retry the bundle atomically.
-9. Current provider-free repair: complete bundle options are ranked from existing
-   owner-cohort positions and the best physical row is selected before compiler
-   invocation. Output and source-defined requirement visibility is projected
-   through that row, while numeric compatibility narratives remain available.
+9. `28d26dc`: complete bundle options are ranked from existing owner-cohort
+   positions and one physical row is selected before compiler invocation.
+   Output and source-defined requirement visibility is projected through that
+   option, while numeric compatibility narratives remain available.
 
 The separate dirty predecessor was then integrated explicitly:
 
@@ -63,8 +63,8 @@ evaluator, replay, and promotion tools remain optional or experimental.
 - No existing store receives a manifest automatically. The approved adoption
   wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
   remained byte-identical.
-- Provider-capable runs remain exact-admission scoped. Evidence-bundle admission
-  `b068ac4b...5501` was approved and consumed by one store-fixed `eval-only`
+- Provider-capable runs remain exact-admission scoped. Atomic-bundle admission
+  `06a40243...016` was approved and consumed by one store-fixed `eval-only`
   process on 2026-09-03. It does not authorize another run, fresh ingest,
   automatic benchmark retry, or document embedding.
 - The `data/chroma_dart` manifest layer now reports exact `compatible`,
@@ -102,42 +102,34 @@ The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 Its collection is `dart_reports_v2`, dimension is `3072`, and the declared
 profile is canonical. All seven predecessor store files remained byte-identical.
 
-The evidence-bundle build used ignored admission
-`benchmarks/results/evidence_bundle_focused_admission_envbound_2026-09-03`.
-Its manifest SHA-256 is
-`b068ac4b108d8243a417b61e355439ef1f25106c3b707db12ce0561015a45501`;
-two persisted no-call receipts and the immediate pre-dispatch receipt are the
-same 6,710 bytes at
-`98484f569246a4cc4af07b4e0070426a73aee9def2a4317b4011082593ecb191`.
-The runtime resolved the worktree `.env` before provider configuration; no key
-value or `.env` hash is recorded.
+The atomic-bundle build used ignored admission
+`benchmarks/results/atomic_evidence_bundle_focused_admission_envbound_2026-09-03`.
+Its manifest is `06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`;
+both persisted rehearsals and the immediate pre-dispatch rehearsal produced the
+same 6,730-byte receipt at
+`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
 
-The separately approved runner process completed exactly once in 313.9 seconds
-at runtime head `cc14901`. The ignored result bundle is
-`benchmarks/results/evidence_bundle_focused_successor_envbound_2026-09-03`;
-its root `results.json` SHA-256 is
-`e679e712d3e228a9e19d6ef4c52b64e649853d9f5a44a83ed700deac48fea6b2`.
+The approved runner completed exactly once in 276.8 seconds at `28d26dc`. The
+ignored root result is
+`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`,
+SHA-256 `b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`.
+All three questions are runtime-complete with error zero and ledger `ok`.
 
-T2 and Samsung remain runtime-complete with error zero and ledger integrity
-`ok`; their accepted evidence ID sequences are identical to the predecessor.
-T2 retains `87.0만 대`, `78.1만 대`, calculated `11.4%`, and source display
-`11.5%`. Samsung retains `28,352,769백만원` and the Harman narrative.
+- T2 retained the same four evidence IDs, `87.0만 대`, `78.1만 대`, calculated
+  `11.4%`, and source display `11.5%`.
+- T3 compiled once without retry. Both direct outputs use table 82 row `9:2`:
+  `26%` and `700,691백만원`; no table 83 numeric ID reached execution. Its
+  Motional summary remains grounded in the separate source summary rows.
+- Samsung retained all three predecessor evidence IDs and added one compatible
+  Harman overview source; `28,352,769백만원` and the Harman narrative remain.
 
-T3 now forms one three-owner island with one physical-row bundle and two valid
-options: table 82 row `9:2` (`26%`, `700,691백만원`) or table 83 row `9:2`
-(`25.92%`, `907,061백만원`). The first compiler attempt was partial. The one
-allowed internal retry proposed the table 83 ownership candidate together with
-the table 82 carrying-amount candidate. Validation rejected that mixed proposal
-as `evidence_bundle_mismatch`; execution emitted no T3 output and all three
-obligations remain missing. The release gate is therefore **2/3 runtime-complete,
-HOLD**. The safety boundary works, but the compiler still chooses IDs per owner
-instead of selecting a bundle option atomically in this consumed predecessor
-run. Current source now removes that choice by exposing one preselected option,
-but no successor provider run has been authorized or claimed.
+The bounded runtime release gate is therefore **3/3, PASS**. This does not change
+the T3 mixed-basis answer key or promote qualitative evaluator scores: the raw
+benchmark still reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness
+`0.7`, and two company-level full-eval failures.
 
-The runner recorded 18 LLM calls, 166,963 LLM tokens, 32 query-embedding calls,
-zero document-embedding calls, and estimated runtime cost USD `0.1645241`, below
-the approved USD `0.40` ceiling. Embedding cost remains unavailable. Source
-result hashes, SQLite hashes, and complete store fingerprints remain unchanged,
-and no disposable store remains. No automatic runner retry was made or is
-authorized.
+The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
+zero document-embedding calls, and estimated runtime cost USD `0.1212257`.
+Embedding cost remains unavailable. Source result hashes, SQLite hashes, and
+complete store fingerprints are unchanged; no disposable store remains. The
+admission is exhausted and no automatic retry is authorized.

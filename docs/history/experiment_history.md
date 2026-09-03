@@ -126,6 +126,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)](#runtime-contract-integration-three-row-provider-gate-2026-09-03) | boundary redesign 통합 head와 exact manifest `cb188492...683a8`의 승인된 Hyundai/Samsung 3문항 store-fixed replay | runner는 1회 완주, error 0·ledger 3/3 `ok`지만 runtime completeness는 2/3. T3의 올바른 `700,691백만원` 셀이 owner cohort에서 빠져 release HOLD; `$0.1575934`, no run retry |
 | [Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)](#typed-candidate-ranking-env-bound-three-row-provider-gate-2026-09-03) | typed owner target matcher와 env-bound admission의 승인된 동일 3문항 store-fixed replay | 기계적 3/3 `ok`, error 0, ledger 3/3이나 T3가 table 83의 `25.92%`와 table 82의 `700,691백만원`을 혼합해 source-consistent gate 2/3 HOLD; `$0.1356168` plus unpriced embeddings, no retry |
 | [Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)](#evidence-bundle-fail-closed-three-row-provider-gate-2026-09-03) | physical-row bundle 계약과 exact manifest `b068ac4b...5501`의 승인된 동일 3문항 store-fixed replay | T3 mixed-row proposal을 validator가 거절해 잘못된 출력을 막았지만 0/3 incomplete; 전체 runtime completeness 2/3 HOLD, `$0.1645241` plus unpriced embeddings, no runner retry |
+| [Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)](#atomic-evidence-bundle-selection-three-row-provider-gate-2026-09-03) | compiler 전에 complete physical-row option을 하나 선택하는 exact manifest `06a40243...016`의 승인된 동일 3문항 replay | T3 direct pair가 table 82 row `9:2`를 공유하고 전체 runtime gate 3/3 PASS; `$0.1212257` plus unpriced embeddings, no runner retry |
 
 ## 보는 법
 
@@ -136,6 +137,66 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)
+
+### Authority and execution
+
+The user approved exact manifest
+`06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`,
+one execution of its three ordered questions, and a USD `0.40` ceiling. Two
+persisted no-call rehearsals and the immediate pre-dispatch rehearsal produced
+the same 6,730-byte receipt SHA-256
+`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
+
+Runtime head `28d26dc` ran exactly one store-fixed `eval-only` process in the
+order `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`, Hyundai before Samsung, with a
+30-second heartbeat. It exited zero after 276.8 seconds. The ignored result is
+`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`;
+its SHA-256 is
+`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`.
+
+### Runtime gate result
+
+| Question | Runtime obligations | Error / ledger | Observed output |
+| --- | --- | --- | --- |
+| `HYU_T2_010` | `ok`, 2/2 | `0 / ok` | The same four predecessor evidence IDs; `87.0만 대`, `78.1만 대`, calculated `11.4%`, and source display `11.5%` |
+| `HYU_T3_072` | `ok`, 3/3 | `0 / ok` | `26%` and `700,691백만원` both selected from table 82 row `9:2`, plus the source-grounded Motional summary |
+| `SAM_T2_078` | `ok`, 2/2 | `0 / ok` | All three predecessor evidence IDs remain; one compatible Harman overview source was added; `28,352,769백만원` and the narrative remain |
+
+The bounded runtime release gate is **3/3 PASS**. The compiler made five island
+calls across the three questions with no retry.
+
+### Atomic T3 selection
+
+The T3 ranker considered the two complete direct-output options from the saved
+source window: table 82 row `9:2` (`26%`, `700,691백만원`) and table 83 row
+`9:2` (`25.92%`, `907,061백만원`). It selected table 82 before compiler
+invocation and reduced the compiler-visible dictionary to 10 IDs. The compiler
+then selected `cand_e2f2596cb81e73b80bbc` and
+`cand_a8aa299ad5dea4f29cd5`, both from that physical row. No table 83 numeric ID
+entered validation or execution. Supplemental Motional summary measures remain
+grounded in their own source summary rows rather than being relabeled as table
+82 cells.
+
+This closes the predecessor's independent per-owner choice defect: the compiler
+can only choose the already selected direct-output option, while validator and
+executor retain the same fail-closed bundle contract.
+
+### Cost, immutability, and claim boundary
+
+The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
+zero document-embedding calls, and estimated runtime cost USD `0.1212257`.
+Embedding pricing remains unavailable. Both source `results.json` hashes, both
+SQLite hashes, and both full store fingerprints exactly match the admission;
+no disposable store remains. No automatic runner retry occurred or is
+authorized.
+
+This runtime acceptance does not alter the T3 mixed-basis answer key or relax
+the evaluator. The raw benchmark still reports T2/T3 completeness `0.7/0.3`,
+Samsung faithfulness `0.7`, and two company-level full-eval failures. Those
+qualitative/dataset-governance outcomes are preserved rather than promoted into
+a broader benchmark-pass claim.
 
 ## Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)
 

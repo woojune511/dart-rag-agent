@@ -7,12 +7,12 @@ Last updated: 2026-09-03
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/typed-candidate-ranking`, successor of provider-gate snapshot `9641563` |
+| Active branch | `codex/typed-candidate-ranking` at atomic-bundle runtime `28d26dc` |
 | Runtime state | Typed owner matching plus compiler-visible atomic physical-row selection replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Evidence-bundle admission `b068ac4b...5501` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
-| Release status | **HOLD, 2/3 runtime-complete**; T3 rejects a mixed-row proposal and emits no unsupported answer |
+| Provider evidence | Atomic-bundle admission `06a40243...016` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
+| Release status | **PASS, 3/3 runtime-complete** with runtime error 0 and ledger `ok`; qualitative evaluator thresholds remain separate |
 
 ## Current boundaries
 
@@ -59,77 +59,46 @@ unittest cases, including 134 focused semantic/runtime-contract and 23
 documentation/import/topology cases, plus the 86-literal domain audit,
 pycompile, and `git diff --check`.
 
-Read-only projection of the consumed T3 calculation plan selects table 82 row
-`9:2`, reduces its visible IDs from 16 to 10, retains both numeric compatibility
-cohorts and all five compatible source-defined narrative IDs, and removes the
-table 83 numeric pair. This directly exercises the saved failure shape without
-calling a provider or writing an artifact. The historical release status remains
-HOLD until a separately approved successor run demonstrates runtime completeness.
+The exact atomic-bundle admission preserved the order `HYU_T2_010`,
+`HYU_T3_072`, `SAM_T2_078`. Manifest
+`06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`
+and all three no-call rehearsals resolve to the same 6,730-byte receipt SHA-256
+`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
 
-The clean redesign predecessor's read-only reprojection rebuilt candidates from
-the three stored source windows with network access blocked. It retained both
-Hyundai T2 period values
-while excluding the two market totals, retained Motional 26% while excluding
-both BHAF 53% candidates, and restored all three accepted Samsung evidence IDs;
-the saved Samsung program validated `ready`. Source hashes did not change and no
-result artifact was written.
-
-The three curated dataset slices now carry identical source-qualified
-calculation variants for `LGE_T1_051`; their existing primary answer, tolerance,
-operand, and result fields are unchanged. The HYU T3 source review records one
-possible same-basis consolidated tuple but deliberately does not register it or
-change the mixed-basis canonical key.
-
-The approved adoption added only `data/chroma_dart/store_manifest.json`, SHA-256
-`98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
-All seven predecessor store files remained byte-identical. The pure manifest
-readiness check returns exact `compatible`, `ready=true`, and `degraded=false`;
-no provider query was made.
-
-The current ignored evidence-bundle admission preserves the ordered scope
-`HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`. Its manifest SHA-256 is
-`b068ac4b108d8243a417b61e355439ef1f25106c3b707db12ce0561015a45501`.
-Two no-call processes plus the immediate pre-dispatch rehearsal produced the
-same 6,710-byte receipt at
-`98484f569246a4cc4af07b4e0070426a73aee9def2a4317b4011082593ecb191`,
-with provider/network/output counts zero and source/target/temp invariants
-intact.
-
-The separately approved provider run executed exactly once in Hyundai-then-
-Samsung order and completed in 313.9 seconds with exit code zero. The ignored
-root result is
-`benchmarks/results/evidence_bundle_focused_successor_envbound_2026-09-03/results.json`
+The separately approved process ran once, exited zero after 276.8 seconds, and
+wrote ignored result
+`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`
 (SHA-256
-`e679e712d3e228a9e19d6ef4c52b64e649853d9f5a44a83ed700deac48fea6b2`).
+`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`).
 
 | Question | Runtime result | Gate evidence |
 | --- | --- | --- |
-| `HYU_T2_010` | `ok`, 2/2 obligations | Predecessor evidence IDs are unchanged; `87.0만 대` and `78.1만 대` produce `11.4%`, with source display `11.5%`; error 0, ledger `ok` |
-| `HYU_T3_072` | `incomplete`, 0/3 obligations | One retry proposed table 83 ownership plus table 82 carrying amount; `evidence_bundle_mismatch` rejected it and no output was emitted; error 0, ledger `ok` |
-| `SAM_T2_078` | `ok`, 2/2 obligations | Predecessor evidence IDs are unchanged; `28,352,769백만원` and Harman narrative remain; error 0, ledger `ok` |
+| `HYU_T2_010` | `ok`, 2/2 obligations | Same four predecessor evidence IDs; `87.0만 대` and `78.1만 대` produce `11.4%`, with source display `11.5%`; error 0, ledger `ok` |
+| `HYU_T3_072` | `ok`, 3/3 obligations | One compiler call, no retry; ownership `26%` and carrying amount `700,691백만원` both come from table 82 row `9:2`; no table 83 numeric ID; error 0, ledger `ok` |
+| `SAM_T2_078` | `ok`, 2/2 obligations | All three predecessor evidence IDs retained plus one compatible Harman overview source; `28,352,769백만원` and Harman narrative remain; error 0, ledger `ok` |
 
-T3 had one inferred bundle, one compilation island, and two complete physical
-options: table 82 row `9:2` (`26%`, `700,691백만원`) and table 83 row `9:2`
-(`25.92%`, `907,061백만원`). The first compiler attempt selected only narrative
-evidence and remained partial. The allowed retry selected the table 83 ownership
-candidate and table 82 carrying-amount candidate despite the explicit option
-map. The validator rejected it. This confirms that the remaining defect is not
-parsing, visibility, island construction, or fail-closed validation; the
-compiler interface still ranks owner IDs independently instead of making an
-atomic bundle-option choice.
+T3's option ranker considered both complete direct-output rows, selected table
+82 before compiler invocation, and projected the direct owner spaces through
+that choice. Its Motional summary is still grounded in the distinct summary
+tables appropriate to those measures. Across all questions the compiler made
+five island calls and no internal retry.
 
-The run recorded 18 LLM calls, 166,963 LLM tokens, 32 query-embedding calls,
-zero document-embedding calls, and estimated runtime cost USD `0.1645241`, below
-the approved USD `0.40` ceiling. Embedding pricing remains unavailable. Source
-result hashes, both store directory fingerprints, and both SQLite hashes remain
-unchanged; no disposable store remains.
+The bounded runtime gate is **3/3 PASS**. It does not change the HYU T3
+mixed-basis answer key or relax evaluator criteria. The raw evaluator still
+reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness `0.7`, and two
+company-level full-eval failures; those are not promoted into runtime acceptance.
+
+The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
+zero document-embedding calls, and estimated runtime cost USD `0.1212257`, below
+the approved USD `0.40` ceiling. Embedding pricing is unavailable. Both source
+result hashes, SQLite hashes, and complete store fingerprints remain unchanged;
+no disposable store remains.
 
 ## Next work
 
-1. Do not rerun the paid gate automatically. The current admission is consumed.
-2. The provider-free source gate is complete. Preserve the consumed result as an
-   immutable predecessor; any new provider admission must be generated from the
-   committed successor and separately approved before replay.
+1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
+2. Review and integrate `codex/typed-candidate-ranking`; the bounded runtime
+   acceptance evidence is complete and benchmark artifacts remain uncommitted.
 3. Keep a broader local semantic reranker and persisted typed fact index as
    deferred designs. They need measured benefit and a migration contract rather
    than being bundled into the atomic-bundle repair.
