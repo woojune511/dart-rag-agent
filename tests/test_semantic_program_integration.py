@@ -973,6 +973,36 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(primary_exclusions, {"ob_direct": ["cand-primary"]})
         self.assertEqual(witness_exclusions, {"ob_direct": ["cand-witness"]})
 
+    def test_requirement_scope_retry_excludes_only_the_failed_input(self) -> None:
+        program = {
+            "expressions": [
+                {
+                    "obligation_id": "ob_mix",
+                    "variable_bindings": [
+                        _binding("A", "cand-valid", "ob_mix:req_valid"),
+                        _binding("B", "cand-rejected", "ob_mix:req_rejected"),
+                    ],
+                }
+            ]
+        }
+
+        exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "candidate_requirement_scope_mismatch",
+                    "obligation_id": "ob_mix",
+                    "detail": "ob_mix:req_rejected: scope mismatch: period",
+                }
+            ],
+            target_obligation_ids=["ob_mix"],
+        )
+
+        self.assertEqual(
+            exclusions,
+            {"ob_mix:req_rejected": ["cand-rejected"]},
+        )
+
     def test_retry_keeps_same_cohort_for_context_field_mismatch(self) -> None:
         program = {
             "expressions": [
