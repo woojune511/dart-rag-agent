@@ -90,6 +90,11 @@ class _Store:
         self.bm25_docs = ["existing"] if existing_docs else []
         self.indexed_chunk_uids = set()
         self.structure_chunk_uids = set()
+        self.vector_store = SimpleNamespace(
+            _collection=SimpleNamespace(
+                count=lambda: len(self.indexed_chunk_uids),
+            )
+        )
 
     def is_indexed(self, _receipt):
         return self.indexed
@@ -351,6 +356,29 @@ class IngestServiceTests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "non-empty store"):
                 service.ingest_company("sample", [2024], max_workers=1)
+
+    def test_unmanifested_store_with_unknown_occupancy_is_rejected(self) -> None:
+        def unavailable_count():
+            raise OSError("unavailable")
+
+        for count in (None, unavailable_count):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as root:
+                store = _Store(root)
+                store.vector_store = SimpleNamespace(
+                    _collection=SimpleNamespace(count=count),
+                )
+                service = IngestService(
+                    _Fetcher([]),
+                    _Parser(),
+                    _ContextGenerator(),
+                    store,
+                    canonical_store_manifest(collection_name="runtime"),
+                )
+
+                with self.assertRaisesRegex(RuntimeError, "could not be verified"):
+                    service.ingest_company("sample", [2024], max_workers=1)
+
+                self.assertIsNone(read_store_manifest(root))
 
 
 if __name__ == "__main__":

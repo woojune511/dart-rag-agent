@@ -1003,6 +1003,51 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             {"ob_mix:req_rejected": ["cand-rejected"]},
         )
 
+    def test_unknown_narrative_retry_requires_an_exact_rejected_id(self) -> None:
+        program = {
+            "narrative_bindings": [
+                {
+                    "obligation_id": "ob_summary",
+                    "candidate_ids": ["cand-valid", "cand-unregistered"],
+                    "evidence_bindings": [
+                        {
+                            "candidate_id": "cand-valid",
+                            "source_requirement_id": "ob_summary:req_summary",
+                        }
+                    ],
+                }
+            ]
+        }
+
+        generic_exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "unknown_narrative_candidate",
+                    "obligation_id": "ob_summary",
+                    "detail": "",
+                }
+            ],
+            target_obligation_ids=["ob_summary"],
+        )
+        exact_exclusions = _retry_candidate_exclusions(
+            program=program,
+            validation_errors=[
+                {
+                    "code": "unknown_narrative_candidate",
+                    "obligation_id": "ob_summary",
+                    "detail": "cand-unregistered",
+                }
+            ],
+            target_obligation_ids=["ob_summary"],
+        )
+
+        self.assertEqual(generic_exclusions, {})
+        self.assertEqual(
+            exact_exclusions,
+            {"ob_summary": ["cand-unregistered"]},
+        )
+
     def test_retry_keeps_same_cohort_for_context_field_mismatch(self) -> None:
         program = {
             "expressions": [

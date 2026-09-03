@@ -1139,6 +1139,8 @@ def _retry_candidate_exclusions(
         exact_rows = [row for row in candidate_rows if row[1] == detail]
         if exact_rows:
             candidate_rows = exact_rows
+        elif code == "unknown_narrative_candidate":
+            candidate_rows = []
         elif code == "candidate_requirement_scope_mismatch":
             requirement_id = detail.partition(": scope mismatch:")[0].strip()
             requirement_rows = [

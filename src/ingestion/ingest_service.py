@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Optional
 
 from src.storage.store_manifest import (
     StoreManifestV1,
@@ -25,7 +25,7 @@ class IngestService:
     store: Any
     manifest: StoreManifestV1
 
-    def _store_has_documents(self) -> bool:
+    def _store_has_documents(self) -> Optional[bool]:
         if list(getattr(self.store, "bm25_docs", []) or []):
             return True
         vector_store = getattr(self.store, "vector_store", None)
@@ -35,8 +35,8 @@ class IngestService:
             try:
                 return int(count() or 0) > 0
             except Exception:
-                return False
-        return False
+                return None
+        return None
 
     def _assert_manifest_boundary(self) -> None:
         actual = read_store_manifest(self.store.persist_directory)
@@ -44,10 +44,16 @@ class IngestService:
             raise RuntimeError(
                 "store manifest does not match the ingest runtime contract"
             )
-        if actual is None and self._store_has_documents():
-            raise RuntimeError(
-                "refusing to adopt a non-empty store without an approved manifest"
-            )
+        if actual is None:
+            store_has_documents = self._store_has_documents()
+            if store_has_documents is True:
+                raise RuntimeError(
+                    "refusing to adopt a non-empty store without an approved manifest"
+                )
+            if store_has_documents is None:
+                raise RuntimeError(
+                    "refusing ingest because store emptiness could not be verified"
+                )
 
     def _report_is_fully_indexed(self, report: Any, chunks: Iterable[Any]) -> bool:
         chunk_rows = list(chunks)
