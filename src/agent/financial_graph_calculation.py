@@ -19,9 +19,10 @@ from src.agent.financial_candidate_matching import (
     summarize_candidate_match_ranking,
 )
 from src.agent.financial_candidate_tiebreaker import (
+    SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
     SemanticCandidateTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV2,
+    SemanticTieBreakPairV3,
 )
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
@@ -777,7 +778,7 @@ def _semantic_candidate_cohorts(
         if str(item.get("candidate_id") or "")
     }
     preliminary_rankings: List[Dict[str, Any]] = []
-    tie_break_pairs: List[SemanticTieBreakPairV2] = []
+    tie_break_pairs: List[SemanticTieBreakPairV3] = []
     skipped_tie_cohort_ids: List[str] = []
     eligible_tie_pair_count = 0
     for specification in specifications:
@@ -841,7 +842,7 @@ def _semantic_candidate_cohorts(
             ):
                 continue
             tie_break_pairs.append(
-                SemanticTieBreakPairV2.create(
+                SemanticTieBreakPairV3.create(
                     cohort_id=str(specification["cohort_id"]),
                     owner_id=owner_id,
                     candidate_id=candidate_id,
@@ -850,25 +851,7 @@ def _semantic_candidate_cohorts(
                     parent_owner=specification.get("parent_owner"),
                     resolved_target=target_projection,
                     candidate=candidate,
-                    candidate_text=_bounded_relevance_excerpt(
-                        candidate_cell_local_source_text(candidate),
-                        [
-                            str(specification["owner"].get("label") or ""),
-                            str(
-                                dict(
-                                    specification.get("parent_owner") or {}
-                                ).get("label")
-                                or ""
-                            ),
-                            *list(resolved_target.local_subjects),
-                            *list(resolved_target.metric_surfaces),
-                            str(candidate.get("raw_value") or ""),
-                        ],
-                        limit=int(
-                            tie_break_policy.get("candidate_text_chars")
-                            or 240
-                        ),
-                    ),
+                    candidate_text=candidate_cell_local_source_text(candidate),
                     query_text_limit=int(
                         tie_break_policy.get("query_text_chars") or 320
                     ),
@@ -935,6 +918,7 @@ def _semantic_candidate_cohorts(
                 ),
                 cache_hit_count=tie_break_batch.cache_hit_count,
                 error_code="incomplete_score_batch",
+                score_transform=tie_break_batch.score_transform,
             )
     scored_by_cohort = (
         tie_break_batch.scores_by_cohort()
@@ -1007,6 +991,9 @@ def _semantic_candidate_cohorts(
             ),
             "scorer_id": (
                 tie_break_batch.scorer_id if top_tier_count >= 2 else ""
+            ),
+            "score_transform": (
+                tie_break_batch.score_transform if top_tier_count >= 2 else ""
             ),
             "candidate_count": len(ordered_scored_ids),
             "ordered_candidate_ids": ordered_scored_ids,
@@ -1202,6 +1189,16 @@ def _semantic_candidate_cohorts(
         ],
         "semantic_tiebreaker": {
             **tie_break_batch.to_projection(),
+            "pair_schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
+            "evidence_locator_counts": {
+                locator: sum(
+                    pair.evidence_locator == locator
+                    for pair in tie_break_pairs
+                )
+                for locator in sorted(
+                    {pair.evidence_locator for pair in tie_break_pairs}
+                )
+            },
             "eligible_pair_count": eligible_tie_pair_count,
             "max_candidates_per_cohort": max_tie_candidates_per_cohort,
             "max_pairs_per_query": max_tie_pairs_per_query,

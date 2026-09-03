@@ -17,9 +17,10 @@ from typing import Any, Mapping, Sequence
 
 from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
+    SUPPORTED_SCORE_TRANSFORMS,
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV2,
+    SemanticTieBreakPairV3,
 )
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 
@@ -109,11 +110,11 @@ def load_fixture(path: str | Path = DEFAULT_FIXTURE_PATH) -> dict[str, Any]:
 
 def build_pairs(
     payload: Mapping[str, Any],
-) -> tuple[SemanticTieBreakPairV2, ...]:
+) -> tuple[SemanticTieBreakPairV3, ...]:
     policy = dict(
         CALCULATION_PROMPT_POLICY.get("semantic_top_tier_tiebreaker") or {}
     )
-    pairs: list[SemanticTieBreakPairV2] = []
+    pairs: list[SemanticTieBreakPairV3] = []
     for raw_case in payload.get("cases") or []:
         case = dict(raw_case)
         owner = dict(case.get("owner") or {})
@@ -123,7 +124,7 @@ def build_pairs(
             candidate_fixture = dict(raw_candidate)
             candidate = dict(candidate_fixture.get("candidate") or {})
             pairs.append(
-                SemanticTieBreakPairV2.create(
+                SemanticTieBreakPairV3.create(
                     cohort_id=str(case.get("cohort_id") or ""),
                     owner_id=str(case.get("owner_id") or ""),
                     candidate_id=str(candidate_fixture.get("candidate_id") or ""),
@@ -156,6 +157,165 @@ def _nearest_rank_percentile(values: Sequence[float], percentile: float) -> floa
     ordered = sorted(float(value) for value in values)
     rank = max(1, math.ceil((percentile / 100.0) * len(ordered)))
     return ordered[min(rank - 1, len(ordered) - 1)]
+
+
+def calibrate_score_margin(
+    payload: Mapping[str, Any],
+    score_batch: SemanticTieBreakBatchV1,
+) -> dict[str, Any]:
+    """Find the best observed zero-error margin without changing runtime policy."""
+
+    thresholds = dict(payload.get("thresholds") or {})
+    current_margin = float(thresholds.get("min_score_margin") or 0.0)
+    scores_by_cohort = score_batch.scores_by_cohort()
+    observations: list[dict[str, Any]] = []
+    missing_case_ids: list[str] = []
+    for raw_case in payload.get("cases") or []:
+        case = dict(raw_case)
+        case_id = str(case.get("case_id") or "")
+        cohort_id = str(case.get("cohort_id") or "")
+        visible_ids = [
+            str(candidate.get("candidate_id") or "")
+            for candidate in case.get("candidates") or []
+        ]
+        cohort_scores = dict(scores_by_cohort.get(cohort_id) or {})
+        if any(candidate_id not in cohort_scores for candidate_id in visible_ids):
+            missing_case_ids.append(case_id)
+            continue
+        ordered_ids = sorted(
+            visible_ids,
+            key=lambda candidate_id: (
+                -cohort_scores[candidate_id],
+                candidate_id,
+            ),
+        )
+        acceptable_ids = {
+            str(candidate_id)
+            for candidate_id in case.get("acceptable_top_candidate_ids") or []
+        }
+        observations.append(
+            {
+                "case_id": case_id,
+                "expected_action": str(case.get("expected_action") or ""),
+                "top_candidate_id": ordered_ids[0],
+                "top_is_acceptable": ordered_ids[0] in acceptable_ids,
+                "margin": float(
+                    cohort_scores[ordered_ids[0]]
+                    - cohort_scores[ordered_ids[1]]
+                ),
+            }
+        )
+    if score_batch.status != "applied" or missing_case_ids or not observations:
+        return {
+            "schema": "semantic_score_margin_calibration_v1",
+            "status": "unavailable",
+            "score_transform": score_batch.score_transform,
+            "current_min_score_margin": current_margin,
+            "recommended_min_score_margin": None,
+            "missing_case_ids": missing_case_ids,
+            "runtime_policy_changed": False,
+        }
+
+    candidate_thresholds = {0.0, current_margin}
+    for observation in observations:
+        margin = round(max(0.0, float(observation["margin"])), 8)
+        candidate_thresholds.add(margin)
+        candidate_thresholds.add(round(margin + 1e-8, 8))
+
+    selection_count = sum(
+        observation["expected_action"] == "select"
+        for observation in observations
+    )
+    abstention_count = sum(
+        observation["expected_action"] == "abstain"
+        for observation in observations
+    )
+    max_confident_errors = int(
+        thresholds.get("max_confident_error_count") or 0
+    )
+    min_abstention_accuracy = float(
+        thresholds.get("min_abstention_accuracy") or 0.0
+    )
+    rows: list[dict[str, Any]] = []
+    for margin_threshold in sorted(candidate_thresholds):
+        confident_correct = 0
+        confident_errors = 0
+        correct_abstentions = 0
+        for observation in observations:
+            confident = float(observation["margin"]) >= margin_threshold
+            expected_select = observation["expected_action"] == "select"
+            correct_selection = bool(
+                expected_select and observation["top_is_acceptable"]
+            )
+            if confident and correct_selection:
+                confident_correct += 1
+            elif confident:
+                confident_errors += 1
+            if not confident and not expected_select:
+                correct_abstentions += 1
+        coverage = confident_correct / selection_count if selection_count else 0.0
+        abstention_accuracy = (
+            correct_abstentions / abstention_count if abstention_count else 1.0
+        )
+        rows.append(
+            {
+                "min_score_margin": margin_threshold,
+                "confident_correct_selection_rate": coverage,
+                "confident_error_count": confident_errors,
+                "abstention_accuracy": abstention_accuracy,
+                "eligible": confident_errors <= max_confident_errors
+                and abstention_accuracy >= min_abstention_accuracy,
+            }
+        )
+    eligible = [row for row in rows if row["eligible"]]
+    recommended = (
+        max(
+            eligible,
+            key=lambda row: (
+                row["confident_correct_selection_rate"],
+                -row["min_score_margin"],
+            ),
+        )
+        if eligible
+        else None
+    )
+    return {
+        "schema": "semantic_score_margin_calibration_v1",
+        "status": "available" if recommended else "no_safe_margin",
+        "score_transform": score_batch.score_transform,
+        "current_min_score_margin": current_margin,
+        "recommended_min_score_margin": (
+            round(float(recommended["min_score_margin"]), 8)
+            if recommended
+            else None
+        ),
+        "confident_correct_selection_rate": (
+            round(float(recommended["confident_correct_selection_rate"]), 6)
+            if recommended
+            else 0.0
+        ),
+        "confident_error_count": (
+            int(recommended["confident_error_count"])
+            if recommended
+            else None
+        ),
+        "abstention_accuracy": (
+            round(float(recommended["abstention_accuracy"]), 6)
+            if recommended
+            else None
+        ),
+        "observed_margin_min": round(
+            min(float(row["margin"]) for row in observations),
+            8,
+        ),
+        "observed_margin_max": round(
+            max(float(row["margin"]) for row in observations),
+            8,
+        ),
+        "missing_case_ids": [],
+        "runtime_policy_changed": False,
+        "note": "development fixture diagnostic; review before policy change",
+    }
 
 
 def evaluate_gate(
@@ -295,6 +455,7 @@ def evaluate_gate(
         and warm_p95_ms <= float(thresholds.get("max_warm_p95_ms") or 0.0),
     }
     promotion_ready = bool(checks) and all(checks.values())
+    margin_calibration = calibrate_score_margin(payload, score_batch)
     return {
         "schema": "semantic_tiebreaker_promotion_gate_result_v1",
         "status": "ready" if promotion_ready else "needs_review",
@@ -330,6 +491,7 @@ def evaluate_gate(
                 else None
             ),
         },
+        "margin_calibration": margin_calibration,
         "checks": checks,
         "confident_error_case_ids": confident_error_case_ids,
         "missing_score_case_ids": missing_score_case_ids,
@@ -343,6 +505,7 @@ def run_gate(
     local_files_only: bool = True,
     latency_runs: int = 3,
     device: str = "",
+    score_transform: str = "",
 ) -> dict[str, Any]:
     payload = load_fixture(fixture_path)
     pairs = build_pairs(payload)
@@ -353,6 +516,9 @@ def run_gate(
         model_name=str(policy.get("model_name") or ""),
         revision=str(policy.get("revision") or ""),
         code_revision=str(policy.get("code_revision") or ""),
+        score_transform=str(
+            score_transform or policy.get("score_transform") or "sigmoid"
+        ),
         max_length=int(policy.get("max_length") or 256),
         batch_size=int(policy.get("batch_size") or 32),
         cache_size=0,
@@ -369,6 +535,7 @@ def run_gate(
             scorer_id=scorer.scorer_id,
             requested_pair_count=len(pairs),
             error_code=scorer.load_error_code or "model_unavailable",
+            score_transform=scorer.score_transform,
         )
         return evaluate_gate(
             payload,
@@ -385,6 +552,7 @@ def run_gate(
         scorer_id=scorer.scorer_id,
         requested_pair_count=len(pairs),
         error_code="latency_run_missing",
+        score_transform=scorer.score_transform,
     )
     for _ in range(max(1, int(latency_runs))):
         started = time.perf_counter_ns()
@@ -404,13 +572,16 @@ def run_gate(
 def render_text(result: Mapping[str, Any]) -> str:
     metrics = dict(result.get("metrics") or {})
     checks = dict(result.get("checks") or {})
+    calibration = dict(result.get("margin_calibration") or {})
+    scorer = dict(result.get("scorer") or {})
     lines = [
         "# Semantic Tie-Breaker Promotion Gate",
         "",
         f"Status: {result.get('status')}",
         f"Cases: {result.get('case_count')}",
         f"Pair schema: {result.get('pair_schema')}",
-        f"Scorer: {dict(result.get('scorer') or {}).get('scorer_id', '')}",
+        f"Scorer: {scorer.get('scorer_id', '')}",
+        f"Score transform: {scorer.get('score_transform') or '-'}",
         f"Device: {result.get('resolved_device') or '-'}",
         "",
         "Metrics:",
@@ -422,6 +593,7 @@ def render_text(result: Mapping[str, Any]) -> str:
         f"  - confident_error_count: {metrics.get('confident_error_count')}",
         f"  - cold_load_ms: {metrics.get('cold_load_ms')}",
         f"  - warm_p95_ms: {metrics.get('warm_p95_ms')}",
+        f"  - diagnostic_recommended_margin: {calibration.get('recommended_min_score_margin')}",
         "",
         "Checks:",
         *[
@@ -441,6 +613,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Permit model download. Default uses only the existing local cache.",
     )
     parser.add_argument("--device", default="")
+    parser.add_argument(
+        "--score-transform",
+        choices=tuple(sorted(SUPPORTED_SCORE_TRANSFORMS)),
+        default="",
+        help="Override the explicit model-score transform for calibration.",
+    )
     parser.add_argument("--latency-runs", type=int, default=3)
     parser.add_argument("--format", choices=("text", "json"), default="text")
     parser.add_argument("--output", type=Path)
@@ -454,6 +632,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         local_files_only=not args.allow_download,
         latency_runs=args.latency_runs,
         device=str(args.device or ""),
+        score_transform=str(args.score_transform or ""),
     )
     rendered = (
         json.dumps(result, ensure_ascii=False, indent=2) + "\n"
@@ -475,6 +654,7 @@ __all__ = [
     "DEFAULT_FIXTURE_PATH",
     "FIXTURE_SCHEMA",
     "build_pairs",
+    "calibrate_score_margin",
     "evaluate_gate",
     "load_fixture",
     "render_text",

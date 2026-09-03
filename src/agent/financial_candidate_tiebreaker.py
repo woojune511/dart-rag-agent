@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import math
+import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from threading import Lock
@@ -48,55 +49,277 @@ def _projection_text(value: Mapping[str, Any]) -> str:
     )
 
 
-def _candidate_specific_evidence(
-    candidate_text: str,
-    candidate: Mapping[str, Any],
+def _bounded_focus_excerpt(
+    source_text: str,
+    focus_texts: Sequence[Any],
     *,
     limit: int,
 ) -> str:
-    """Mark the physical candidate value inside an otherwise natural passage."""
+    """Return a normalized bounded excerpt around the strongest visible hint."""
 
-    text = _normalized_text(candidate_text)[: max(0, int(limit))]
+    text = _normalized_text(source_text)
+    bounded = max(0, int(limit))
+    if not bounded or len(text) <= bounded:
+        return text
+    focus = list(
+        dict.fromkeys(
+            surface
+            for item in focus_texts
+            for surface in [
+                _normalized_text(item).casefold(),
+                *[
+                    token.casefold()
+                    for token in re.findall(
+                        r"[^\W_]+",
+                        _normalized_text(item),
+                        flags=re.UNICODE,
+                    )
+                    if len(token) >= 2
+                ],
+            ]
+            if surface
+        )
+    )
+    lowered = text.casefold()
+    matches = [
+        (len(surface), lowered.find(surface), surface)
+        for surface in focus
+        if lowered.find(surface) >= 0
+    ]
+    if not matches:
+        return text[:bounded]
+    _length, position, surface = max(
+        matches,
+        key=lambda item: (item[0], -item[1]),
+    )
+    center = position + len(surface) // 2
+    start = max(0, center - bounded // 3)
+    start = min(start, max(0, len(text) - bounded))
+    return text[start : start + bounded]
+
+
+def _value_surfaces(candidate: Mapping[str, Any]) -> list[str]:
     raw_value = _normalized_text(candidate.get("raw_value"))
     raw_unit = _normalized_text(candidate.get("raw_unit"))
-    value_surfaces = _string_list(
+    return _string_list(
         [
             f"{raw_value}{raw_unit}" if raw_value and raw_unit else "",
             f"{raw_value} {raw_unit}" if raw_value and raw_unit else "",
             raw_value,
         ]
     )
-    for surface in value_surfaces:
+
+
+def _surface_has_boundaries(
+    text: str,
+    *,
+    start: int,
+    end: int,
+    surface: str,
+) -> bool:
+    return bool(
+        (start == 0 or not surface[0].isalnum() or not text[start - 1].isalnum())
+        and (
+            end == len(text)
+            or not surface[-1].isalnum()
+            or not text[end].isalnum()
+        )
+    )
+
+
+def _surface_span_at(
+    text: str,
+    *,
+    start: int,
+    surfaces: Sequence[str],
+) -> tuple[int, int] | None:
+    for surface in sorted(surfaces, key=len, reverse=True):
+        end = start + len(surface)
+        if (
+            text.startswith(surface, start)
+            and _surface_has_boundaries(
+                text,
+                start=start,
+                end=end,
+                surface=surface,
+            )
+        ):
+            return start, end
+    return None
+
+
+def _candidate_value_span(
+    candidate_text: str,
+    candidate: Mapping[str, Any],
+) -> tuple[tuple[int, int] | None, str]:
+    """Locate one value without trusting a span from a different text window."""
+
+    text = str(candidate_text or "")
+    surfaces = _value_surfaces(candidate)
+    raw_value = _normalized_text(candidate.get("raw_value"))
+    if not text or not raw_value:
+        return None, "not_applicable"
+
+    raw_span = candidate.get("source_span")
+    if isinstance(raw_span, Sequence) and not isinstance(
+        raw_span,
+        (str, bytes, bytearray),
+    ):
+        try:
+            start, end = int(raw_span[0]), int(raw_span[1])
+        except (IndexError, TypeError, ValueError):
+            start, end = -1, -1
+        if 0 <= start < end <= len(text):
+            fragment = _normalized_text(text[start:end])
+            if fragment == raw_value:
+                extended = _surface_span_at(
+                    text,
+                    start=start,
+                    surfaces=surfaces,
+                )
+                return extended or (start, end), "source_span"
+
+    occurrences: dict[int, tuple[int, int]] = {}
+    for surface in sorted(surfaces, key=len, reverse=True):
         search_from = 0
         while (position := text.find(surface, search_from)) >= 0:
             end = position + len(surface)
-            left_bound = (
-                position == 0
-                or not surface[0].isalnum()
-                or not text[position - 1].isalnum()
-            )
-            right_bound = (
-                end == len(text)
-                or not surface[-1].isalnum()
-                or not text[end].isalnum()
-            )
-            if left_bound and right_bound:
-                return (
-                    f"{text[:position]}[SELECTED VALUE {text[position:end]}]"
-                    f"{text[end:]}"
-                )
+            if _surface_has_boundaries(
+                text,
+                start=position,
+                end=end,
+                surface=surface,
+            ):
+                previous = occurrences.get(position)
+                if previous is None or end > previous[1]:
+                    occurrences[position] = (position, end)
             search_from = position + 1
+    if len(occurrences) == 1:
+        return next(iter(occurrences.values())), "unique_value_surface"
+    return None, "ambiguous_value_surface" if occurrences else "value_not_found"
+
+
+def _is_clause_boundary(text: str, position: int) -> bool:
+    character = text[position]
+    if character in "\n\r!?。！？;；|":
+        return True
+    if character in ",，":
+        return not (
+            position > 0
+            and position + 1 < len(text)
+            and text[position - 1].isdigit()
+            and text[position + 1].isdigit()
+        )
+    if character == ".":
+        return not (
+            position > 0
+            and position + 1 < len(text)
+            and text[position - 1].isdigit()
+            and text[position + 1].isdigit()
+        )
+    return False
+
+
+def _clause_window(
+    text: str,
+    span: tuple[int, int],
+) -> tuple[int, int]:
+    start, end = span
+    clause_start = 0
+    for position in range(start - 1, -1, -1):
+        if _is_clause_boundary(text, position):
+            clause_start = position + 1
+            break
+    clause_end = len(text)
+    for position in range(end, len(text)):
+        if _is_clause_boundary(text, position):
+            clause_end = position + 1
+            break
+    return clause_start, clause_end
+
+
+def _bounded_value_window(
+    text: str,
+    span: tuple[int, int],
+    *,
+    limit: int,
+    clause_local: bool,
+) -> tuple[str, tuple[int, int]]:
+    window_start, window_end = (
+        _clause_window(text, span) if clause_local else (0, len(text))
+    )
+    bounded = max(0, int(limit))
+    if bounded and window_end - window_start > bounded:
+        clause_start, clause_end = window_start, window_end
+        value_start, value_end = span
+        center = (value_start + value_end) // 2
+        window_start = max(clause_start, center - bounded // 2)
+        window_start = min(window_start, max(clause_start, clause_end - bounded))
+        window_end = min(clause_end, window_start + bounded)
+        if value_start < window_start:
+            window_start = value_start
+            window_end = min(clause_end, window_start + bounded)
+        if value_end > window_end:
+            window_end = value_end
+            window_start = max(clause_start, window_end - bounded)
+    relative_span = (span[0] - window_start, span[1] - window_start)
+    return text[window_start:window_end], relative_span
+
+
+def _candidate_specific_evidence(
+    candidate_text: str,
+    candidate: Mapping[str, Any],
+    *,
+    limit: int,
+    focus_texts: Sequence[Any] = (),
+) -> tuple[str, str]:
+    """Project one candidate-specific passage and report how its value was found."""
+
+    row = dict(candidate or {})
+    raw_value = _normalized_text(candidate.get("raw_value"))
+    raw_unit = _normalized_text(candidate.get("raw_unit"))
+    candidate_focus_texts = [
+        *focus_texts,
+        row.get("row_label"),
+        *_string_list(row.get("row_headers")),
+        *_string_list(row.get("column_headers")),
+        *_string_list(row.get("local_entity_surfaces")),
+        raw_value,
+    ]
+    span, locator = _candidate_value_span(candidate_text, row)
+    if span is not None:
+        sentence_value = str(row.get("candidate_kind") or "") == "sentence_value" or str(
+            row.get("value_role") or ""
+        ) == "sentence_value"
+        window, relative_span = _bounded_value_window(
+            str(candidate_text or ""),
+            span,
+            limit=limit,
+            clause_local=sentence_value,
+        )
+        start, end = relative_span
+        marked = (
+            f"{window[:start]}[SELECTED VALUE {window[start:end]}]"
+            f"{window[end:]}"
+        )
+        return _normalized_text(marked), locator
+    text = _bounded_focus_excerpt(
+        candidate_text,
+        candidate_focus_texts,
+        limit=limit,
+    )
     if raw_value:
         value = " ".join(part for part in (raw_value, raw_unit) if part)
-        return f"[SELECTED VALUE {value}] {text}".strip()
-    return text
+        return f"[SELECTED VALUE {value}] {text}".strip(), locator
+    return text, locator
 
 
-SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v2"
+SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v3"
+SUPPORTED_SCORE_TRANSFORMS = frozenset({"raw_logit", "sigmoid"})
 
 
 @dataclass(frozen=True, slots=True)
-class SemanticTieBreakPairV2:
+class SemanticTieBreakPairV3:
     """One owner/candidate pair that is eligible for semantic tie-breaking."""
 
     cohort_id: str
@@ -104,6 +327,7 @@ class SemanticTieBreakPairV2:
     candidate_id: str
     target_text: str
     evidence_text: str
+    evidence_locator: str
     pair_fingerprint: str
 
     @classmethod
@@ -121,7 +345,7 @@ class SemanticTieBreakPairV2:
         candidate_text: str,
         query_text_limit: int = 260,
         candidate_text_limit: int = 180,
-    ) -> "SemanticTieBreakPairV2":
+    ) -> "SemanticTieBreakPairV3":
         parent = dict(parent_owner or {})
         row = dict(candidate or {})
         owner_label = _normalized_text(owner.get("label"))
@@ -144,10 +368,17 @@ class SemanticTieBreakPairV2:
                 ]
             )
         )
-        evidence_text = _candidate_specific_evidence(
+        evidence_text, evidence_locator = _candidate_specific_evidence(
             candidate_text,
             row,
             limit=candidate_text_limit,
+            focus_texts=[
+                owner_label,
+                parent_label,
+                *_string_list(resolved_target.get("local_subjects")),
+                *_string_list(resolved_target.get("metric_surfaces")),
+                *_string_list(resolved_target.get("concept_keys")),
+            ],
         )
         serialized = _projection_text(
             {
@@ -162,6 +393,7 @@ class SemanticTieBreakPairV2:
             candidate_id=_normalized_text(candidate_id),
             target_text=target_text,
             evidence_text=evidence_text,
+            evidence_locator=evidence_locator,
             pair_fingerprint=hashlib.sha256(
                 serialized.encode("utf-8")
             ).hexdigest(),
@@ -184,6 +416,7 @@ class SemanticTieBreakBatchV1:
     unique_inference_pair_count: int = 0
     cache_hit_count: int = 0
     error_code: str = ""
+    score_transform: str = ""
 
     def scores_by_cohort(self) -> dict[str, dict[str, float]]:
         rows: dict[str, dict[str, float]] = {}
@@ -200,6 +433,7 @@ class SemanticTieBreakBatchV1:
             "unique_inference_pair_count": self.unique_inference_pair_count,
             "cache_hit_count": self.cache_hit_count,
             "error_code": self.error_code,
+            "score_transform": self.score_transform,
             "scores": [
                 {
                     "cohort_id": item.cohort_id,
@@ -214,7 +448,7 @@ class SemanticTieBreakBatchV1:
 class SemanticCandidateTieBreaker(Protocol):
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV2],
+        pairs: Sequence[SemanticTieBreakPairV3],
     ) -> SemanticTieBreakBatchV1: ...
 
 
@@ -233,6 +467,7 @@ class LocalCrossEncoderTieBreaker:
         device: str = "",
         local_files_only: bool = False,
         trust_remote_code: bool = False,
+        score_transform: str = "sigmoid",
         model_factory: Callable[..., Any] | None = None,
     ) -> None:
         self.model_name = _normalized_text(model_name)
@@ -244,6 +479,11 @@ class LocalCrossEncoderTieBreaker:
         self.device = _normalized_text(device)
         self.local_files_only = bool(local_files_only)
         self.trust_remote_code = bool(trust_remote_code)
+        self.score_transform = _normalized_text(score_transform).casefold()
+        if self.score_transform not in SUPPORTED_SCORE_TRANSFORMS:
+            raise ValueError(
+                f"unsupported semantic score transform: {self.score_transform}"
+            )
         self._model_factory = model_factory
         self._model: Any = None
         self._resolved_device = ""
@@ -261,6 +501,7 @@ class LocalCrossEncoderTieBreaker:
                 "revision": self.revision,
                 "code_revision": self.code_revision,
                 "max_length": self.max_length,
+                "score_transform": self.score_transform,
             }
         )
         return "cross_encoder_" + hashlib.sha256(
@@ -382,19 +623,20 @@ class LocalCrossEncoderTieBreaker:
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV2],
+        pairs: Sequence[SemanticTieBreakPairV3],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         if not rows:
             return SemanticTieBreakBatchV1(
                 status="not_needed",
                 scorer_id=self.scorer_id,
+                score_transform=self.score_transform,
             )
 
         with self._lock:
             scores_by_fingerprint: dict[str, float] = {}
             missing_by_fingerprint: OrderedDict[
-                str, SemanticTieBreakPairV2
+                str, SemanticTieBreakPairV3
             ] = OrderedDict()
             cache_hit_count = 0
             for pair in rows:
@@ -419,9 +661,17 @@ class LocalCrossEncoderTieBreaker:
                         unique_inference_pair_count=len(missing_by_fingerprint),
                         cache_hit_count=cache_hit_count,
                         error_code=self._load_error_code or "model_unavailable",
+                        score_transform=self.score_transform,
                     )
                 inference_rows = list(missing_by_fingerprint.values())
                 try:
+                    import torch
+
+                    activation_fn = (
+                        torch.nn.Identity()
+                        if self.score_transform == "raw_logit"
+                        else torch.nn.Sigmoid()
+                    )
                     raw_scores = model.predict(
                         [
                             (pair.target_text, pair.evidence_text)
@@ -430,6 +680,7 @@ class LocalCrossEncoderTieBreaker:
                         batch_size=self.batch_size,
                         show_progress_bar=False,
                         convert_to_numpy=True,
+                        activation_fn=activation_fn,
                     )
                     values = self._score_values(raw_scores)
                     if len(values) != len(inference_rows):
@@ -442,6 +693,7 @@ class LocalCrossEncoderTieBreaker:
                         unique_inference_pair_count=len(inference_rows),
                         cache_hit_count=cache_hit_count,
                         error_code=type(exc).__name__,
+                        score_transform=self.score_transform,
                     )
                 for pair, score in zip(inference_rows, values):
                     scores_by_fingerprint[pair.pair_fingerprint] = score
@@ -469,6 +721,7 @@ class LocalCrossEncoderTieBreaker:
                 requested_pair_count=len(rows),
                 unique_inference_pair_count=len(missing_by_fingerprint),
                 cache_hit_count=cache_hit_count,
+                score_transform=self.score_transform,
             )
 
 
@@ -477,6 +730,7 @@ __all__ = [
     "SEMANTIC_TIE_BREAK_PAIR_SCHEMA",
     "SemanticCandidateTieBreaker",
     "SemanticTieBreakBatchV1",
-    "SemanticTieBreakPairV2",
+    "SemanticTieBreakPairV3",
     "SemanticTieBreakScoreV1",
+    "SUPPORTED_SCORE_TRANSFORMS",
 ]

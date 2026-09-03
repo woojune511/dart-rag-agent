@@ -24,9 +24,9 @@ Last updated: 2026-09-04
   are cell-local, and related outputs select one complete physical row before
   compiler invocation.
 - The current feature branch adds an opt-in local cross-encoder only for exact
-  strongest-factor ties plus a source-controlled promotion gate. Pair v2 marks
-  the selected physical value in natural cell-local evidence; the model remains
-  outside applicability, visibility, bundles, and compiler prompts.
+  strongest-factor ties plus a source-controlled promotion gate. Pair v3 uses a
+  validated source span or unique value surface to isolate sentence clauses;
+  the model remains outside applicability, visibility, bundles, and prompts.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -46,7 +46,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 809 local unittest cases, the 86-literal runtime
+- The current feature branch passed 814 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -103,16 +103,18 @@ archaeology.
    one complete-row bundle has two options; the selected row wins by
    position-sum margin 2 and
    worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. The six-case local promotion gate is `needs_review`. On pair v2 the model's
-   raw top-1 was `0.6` versus the deterministic baseline's `0.2`, but only
-   `0.2` of selection cases cleared the
-   `0.05` margin; required minima are `0.8` and `0.6`. Ambiguity abstention and
-   warm CPU p95 (`462 ms`) passed with zero confident errors. Cold load was
-   about `7.21 s`. The default must remain disabled.
-4. The verified saved-artifact replay still exposed 31 pairs, all cohorts
-   abstained, no first candidate changed, and T3 retained table 82. Prefer a
-   numeric-binding hard-negative model or smaller/GPU/ONNX scorer over keyword
-   weights or a lower confidence margin; do not rerun the paid benchmark merely
-   to tune the reranker.
-5. Keep the persisted typed fact index deferred behind a separately approved,
+3. Pair v3's six-case cached-model gate remains `needs_review`: explicit
+   `sigmoid` scoring kept unthresholded top-1 at `0.6` versus baseline `0.2`,
+   confident selection at `0.2`, abstention `1.0`, zero confident errors, and
+   warm CPU p95 about `411 ms`. Explicit `raw_logit` raised coverage to `1.0`
+   only by adding two confident errors. The default remains disabled.
+4. The read-only exporter recovered 8 real tied cohorts and 31 candidate pairs
+   from all three fingerprint-verified catalogs (template fingerprint
+   `a60909c5...8dca`). Pair v3 separated the T2 `11.5%` and `5.6%` clauses; the
+   scored saved replay still abstained everywhere, changed no first candidate,
+   and retained T3 table 82 row `9:2`.
+5. Review and label the exported real ties before another model bakeoff. Prefer
+   numeric-binding hard negatives or smaller/GPU/ONNX inference; do not lower a
+   margin or add keyword weights merely to manufacture coverage.
+6. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

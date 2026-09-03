@@ -39,6 +39,7 @@ class SemanticTieBreakerPromotionGateTests(unittest.TestCase):
         return SemanticTieBreakBatchV1(
             status="applied",
             scorer_id="fixture-scorer",
+            score_transform="sigmoid",
             requested_pair_count=len(self.pairs),
             unique_inference_pair_count=len(
                 {pair.pair_fingerprint for pair in self.pairs}
@@ -77,6 +78,12 @@ class SemanticTieBreakerPromotionGateTests(unittest.TestCase):
             "[SELECTED VALUE 11.5%]",
             pairs["sales_growth_11_5"].evidence_text,
         )
+        self.assertNotIn("11.5", pairs["market_share_5_6"].evidence_text)
+        self.assertNotIn("5.6", pairs["sales_growth_11_5"].evidence_text)
+        self.assertEqual(
+            pairs["market_share_5_6"].evidence_locator,
+            "unique_value_surface",
+        )
         self.assertNotEqual(
             pairs["market_share_5_6"].pair_fingerprint,
             pairs["sales_growth_11_5"].pair_fingerprint,
@@ -109,6 +116,17 @@ class SemanticTieBreakerPromotionGateTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["confident_selection_rate"], 1.0)
         self.assertEqual(result["metrics"]["abstention_accuracy"], 1.0)
         self.assertEqual(result["metrics"]["warm_p95_ms"], 520.0)
+        self.assertEqual(
+            result["margin_calibration"]["score_transform"],
+            "sigmoid",
+        )
+        self.assertFalse(
+            result["margin_calibration"]["runtime_policy_changed"]
+        )
+        self.assertGreater(
+            result["margin_calibration"]["recommended_min_score_margin"],
+            0.0,
+        )
         self.assertIn("Status: ready", render_text(result))
 
     def test_confident_wrong_selection_blocks_promotion(self) -> None:

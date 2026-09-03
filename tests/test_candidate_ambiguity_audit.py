@@ -441,6 +441,7 @@ class CandidateAmbiguityAuditTests(unittest.TestCase):
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["question_id"], "question-1")
+        self.assertEqual(rows[0]["question"], "Return the quantity.")
 
 
 if __name__ == "__main__":

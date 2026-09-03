@@ -210,6 +210,38 @@ confidently bind a numeric candidate to the correct clause. Keep it disabled;
 the next model experiment should target numeric-binding hard negatives rather
 than lower the margin or add keyword weights.
 
+### Clause-local pair v3 and real-tie labeling export
+
+The saved prose candidates retain numeric spans from their parent source while
+their `source_text` is a sentence excerpt, so those coordinates cannot be used
+blindly. Pair v3 accepts a span only when it matches the exact scorer input;
+otherwise it permits one boundary-valid unique value surface and abstains from
+clause localization when that surface is missing or ambiguous. This split the
+same-sentence `11.5%` growth and `5.6%` share examples into separate clauses.
+
+A provider-free exporter rebuilt every saved catalog with matching fingerprints
+and produced an in-memory unlabeled template for all 8 strongest-factor ties and
+31 candidate pairs, with no skipped plan. Its deterministic fingerprint was
+`a60909c542046bb0af05852cb70d433cb126727a6f23c6a764792ed5d23f8dca`;
+no labeling or benchmark artifact was written.
+
+The scorer now declares its transform as part of scorer identity and passes an
+explicit activation to SentenceTransformers. The conservative policy remains
+`sigmoid`. Its six-case result stayed `needs_review`: unthresholded top-1 `0.6`,
+confident selection `0.2`, abstention `1.0`, zero confident errors, and warm CPU
+p95 `410.617 ms`. The explicit `raw_logit` comparison also had top-1 `0.6`, but
+the unchanged `0.05` gate selected every case and made two confident errors.
+Diagnostic calibration could recover only `0.2` zero-error selection coverage
+for either transform, so it did not rewrite runtime policy.
+
+The verified three-question scored replay still exposed `2 / 20 / 9` pairs,
+abstained in all 8 tied cohorts, changed no first candidate, and retained table
+82 row `9:2`. Both transform probes used cached local files only. No provider,
+download, benchmark runner, fresh ingest, document embedding, store mutation,
+or historical result rewrite ran. Focused semantic tests passed 142/142, import
+and documentation gates 29/29, the runtime-domain audit retained 86 reviewed
+literals, and full unittest discovery passed 814/814.
+
 ## Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)
 
 ### Authority and execution

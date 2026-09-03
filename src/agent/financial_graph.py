@@ -236,6 +236,9 @@ class FinancialAgent(
                 model_name=model_name,
                 revision=revision,
                 code_revision=code_revision,
+                score_transform=str(
+                    tie_break_policy.get("score_transform") or "sigmoid"
+                ),
                 max_length=int(tie_break_policy.get("max_length") or 256),
                 batch_size=int(tie_break_policy.get("batch_size") or 32),
                 cache_size=int(tie_break_policy.get("cache_size") or 2048),

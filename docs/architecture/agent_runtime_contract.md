@@ -103,24 +103,36 @@ are excluded. Equal factor tiers are deterministic and source-diverse.
 An optional local cross-encoder may break a tie only inside the strongest exact
 factor-vector tier. It never admits an explicit conflict, promotes a lower
 tier, changes owner visibility, or selects cells independently of a physical-row
-bundle. Pair schema `semantic_tie_break_pair_v2` presents a natural query plus
-the owner target, and marks the candidate's physical value inside bounded
-cell-local evidence. This keeps two values from the same sentence distinct
-without asking the model to reinterpret deterministic scope metadata.
+bundle. Pair schema `semantic_tie_break_pair_v3` presents a natural query plus
+the owner target and marks the candidate's physical value inside bounded
+cell-local evidence. Sentence values are projected from the clause containing
+the value. A saved `source_span` is used only when it matches the exact text
+window; otherwise one unique boundary-valid value surface may locate the clause.
+Missing or ambiguous surfaces keep a bounded unlocalized fallback rather than
+guessing a clause. This keeps two values from the same sentence distinct without
+asking the model to reinterpret deterministic scope metadata.
 
 The initial query pass scores at most 12 candidates per cohort and 64 pairs in
 one batch. A top-versus-runner margin below `0.05`, capacity overflow, or scorer
-unavailability preserves the deterministic order. Model loading is lazy, pair
-scores are process-local and bounded. The feature remains disabled by default
+unavailability preserves the deterministic order. The score transform is an
+explicit part of scorer identity; the pinned runtime policy uses `sigmoid`,
+while `raw_logit` is available only as an explicitly selected calibration
+variant. Model loading is lazy, pair scores are process-local and bounded. The
+feature remains disabled by default
 until `src.ops.semantic_tiebreaker_promotion_gate` shows a labeled top-1 gain,
 no confident error, correct ambiguity abstention, and warm p95 within one
-second. The gate uses cached model files unless download is explicitly enabled.
+second. Its margin calibration is diagnostic and never rewrites runtime policy.
+`src.ops.export_semantic_tiebreak_cases` creates an unlabeled template only from
+fingerprint-verified saved catalogs. The gate uses cached model files unless
+download is explicitly enabled.
 
 Activation is explicit through routing config
 `enable_semantic_candidate_tiebreaker` or
 `DART_SEMANTIC_TIEBREAKER_ENABLED=1`. The policy-pinned model and code revisions
 are the default; overriding the model does not inherit remote-code trust unless
-`DART_SEMANTIC_TIEBREAKER_TRUST_REMOTE_CODE` is also explicitly enabled.
+`DART_SEMANTIC_TIEBREAKER_TRUST_REMOTE_CODE` is also explicitly enabled. The
+promotion gate may compare another transform with `--score-transform`, but the
+runtime transform changes only through reviewed policy together with its margin.
 
 Structured prompt rows contain only the physical cell value and its row/column
 axes, not the parent chunk's flattened table body. The prompt receives the

@@ -584,6 +584,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "model_name": "Alibaba-NLP/gte-multilingual-reranker-base",
             "revision": "8215cf04918ba6f7b6a62bb44238ce2953d8831c",
             "code_revision": "40ced75c3017eb27626c9d4ea981bde21a2662f4",
+            "score_transform": "sigmoid",
             "max_length": 256,
             "query_text_chars": 260,
             "candidate_text_chars": 180,

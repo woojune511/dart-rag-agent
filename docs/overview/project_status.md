@@ -28,8 +28,9 @@ Last updated: 2026-09-04
   cell-local structured text and one factor projection; they do not perform a
   second keyword ranking pass.
 - An opt-in, bounded local cross-encoder can reorder only exact strongest-factor
-  ties; low confidence or failure keeps the default order, and its diagnostics
-  never enter the compiler prompt. It remains disabled by default.
+  ties. Pair v3 isolates sentence-local values through a validated span or one
+  unique value surface; explicit sigmoid scores stay out of compiler prompts.
+  Low confidence or failure keeps the default order. It remains disabled.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -64,7 +65,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 809
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 814
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -127,6 +128,7 @@ position-sum 2 and worst-position 1. Two audits were byte-identical and saved
 result SHA-256 `b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
 was unchanged. These results justify only a strongest-tier tie-breaker;
 applicability, visibility, and row-bundle contracts remain authoritative.
+The labeling exporter recovered 8 tied cohorts and 31 pairs with no skipped catalog; clause-local replay changed no first candidate and retained T3 row `9:2`.
 
 ## Next work
 
@@ -138,13 +140,11 @@ applicability, visibility, and row-bundle contracts remain authoritative.
    ignored result files were copied into the primary results tree and verified
    before removal. Do not port the superseded predecessor contracts; restore
    the stash on a separate branch only for explicit archaeology.
-3. Keep the top-tier tie-breaker opt-in. On its six-case local gate the model's
-   raw top-1 was `0.6` versus the deterministic baseline's `0.2`, but confident
-   selection was only `0.2`; warm CPU
-   p95 passed at `462 ms`. Saved replay changed no first candidate and preserved
-   T3 table 82. Do not lower the margin to manufacture coverage.
-4. Prefer numeric-binding hard-negative training or a smaller/GPU/ONNX scorer.
-   Keep the typed fact index behind a separate versioned ingest/store migration.
+3. Keep the tie-breaker opt-in. Pair v3 plus explicit sigmoid kept top-1 at
+   `0.6`, confident selection `0.2`, abstention `1.0`, zero confident errors,
+   and warm CPU p95 about `411 ms`; raw logits caused two confident errors.
+4. Label the exported real ties before numeric-binding or smaller/GPU/ONNX model
+   comparison. Keep the typed fact index behind a versioned store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.

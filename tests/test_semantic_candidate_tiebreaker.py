@@ -7,7 +7,7 @@ from unittest.mock import patch
 from src.agent.financial_candidate_tiebreaker import (
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV2,
+    SemanticTieBreakPairV3,
     SemanticTieBreakScoreV1,
 )
 from src.agent.financial_graph import FinancialAgent
@@ -84,11 +84,11 @@ def _obligation(obligation_id: str, metric: str) -> dict:
 class _ScoreByCandidate:
     def __init__(self, scores: dict[str, float]) -> None:
         self.scores = dict(scores)
-        self.calls: list[tuple[SemanticTieBreakPairV2, ...]] = []
+        self.calls: list[tuple[SemanticTieBreakPairV3, ...]] = []
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV2],
+        pairs: Sequence[SemanticTieBreakPairV3],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         self.calls.append(rows)
@@ -113,9 +113,11 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         class FakeModel:
             def __init__(self) -> None:
                 self.calls: list[list[tuple[str, str]]] = []
+                self.predict_kwargs: list[dict] = []
 
-            def predict(self, pairs, **_kwargs):
+            def predict(self, pairs, **kwargs):
                 self.calls.append(list(pairs))
+                self.predict_kwargs.append(dict(kwargs))
                 return [0.2, 0.8]
 
         model = FakeModel()
@@ -132,7 +134,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
         owner = _obligation("ob_metric", "metric alpha")
         pairs = [
-            SemanticTieBreakPairV2.create(
+            SemanticTieBreakPairV3.create(
                 cohort_id="ob_metric:output",
                 owner_id="ob_metric",
                 candidate_id=candidate_id,
@@ -179,10 +181,29 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         self.assertEqual(second.cache_hit_count, 2)
         self.assertEqual(len(factory_calls), 1)
         self.assertEqual(len(model.calls), 1)
+        self.assertEqual(first.score_transform, "sigmoid")
+        self.assertEqual(
+            type(model.predict_kwargs[0]["activation_fn"]).__name__,
+            "Sigmoid",
+        )
         self.assertEqual(
             [item.score for item in second.scores],
             [0.2, 0.8],
         )
+        raw_scorer = LocalCrossEncoderTieBreaker(
+            model_name="local/test-model",
+            revision="revision-1",
+            score_transform="raw_logit",
+            model_factory=factory,
+        )
+        self.assertNotEqual(scorer.scorer_id, raw_scorer.scorer_id)
+
+    def test_cross_encoder_rejects_unknown_score_transform(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported semantic score"):
+            LocalCrossEncoderTieBreaker(
+                model_name="local/test-model",
+                score_transform="implicit-default",
+            )
 
     def test_prepare_loads_model_without_running_inference(self) -> None:
         class FakeModel:
@@ -305,7 +326,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "period_source": "source_surface_unresolved",
         }
 
-        pair = SemanticTieBreakPairV2.create(
+        pair = SemanticTieBreakPairV3.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-a",
@@ -338,7 +359,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": "metric alpha 100 million | metric alpha 0 million",
         }
 
-        pair = SemanticTieBreakPairV2.create(
+        pair = SemanticTieBreakPairV3.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-zero",
@@ -358,6 +379,72 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         self.assertIn("100 million", pair.evidence_text)
         self.assertIn("[SELECTED VALUE 0 million]", pair.evidence_text)
         self.assertNotIn("1[SELECTED VALUE", pair.evidence_text)
+
+    def test_sentence_pair_projects_only_the_selected_value_clause(self) -> None:
+        owner = _obligation("ob_metric", "growth rate")
+        source_text = (
+            "Target Entity grew 11.5% year over year, "
+            "while its market share was 5.6%."
+        )
+        candidate = {
+            "candidate_kind": "sentence_value",
+            "raw_value": "11.5",
+            "raw_unit": "%",
+            "source_span": [500, 504],
+            "source_text": source_text,
+        }
+
+        pair = SemanticTieBreakPairV3.create(
+            cohort_id="ob_metric:output",
+            owner_id="ob_metric",
+            candidate_id="candidate-growth",
+            query="Find the growth rate",
+            owner=owner,
+            parent_owner=None,
+            resolved_target={
+                "local_subjects": ["Target Entity"],
+                "concept_keys": [],
+                "metric_surfaces": ["growth rate"],
+            },
+            candidate=candidate,
+            candidate_text=source_text,
+        )
+
+        self.assertEqual(pair.evidence_locator, "unique_value_surface")
+        self.assertIn("[SELECTED VALUE 11.5%]", pair.evidence_text)
+        self.assertNotIn("5.6", pair.evidence_text)
+
+    def test_valid_source_span_selects_one_repeated_value(self) -> None:
+        owner = _obligation("ob_metric", "second rate")
+        source_text = "First rate was 5%; second rate was 5%."
+        second_start = source_text.rfind("5")
+        candidate = {
+            "candidate_kind": "sentence_value",
+            "raw_value": "5",
+            "raw_unit": "%",
+            "source_span": [second_start, second_start + 1],
+            "source_text": source_text,
+        }
+
+        pair = SemanticTieBreakPairV3.create(
+            cohort_id="ob_metric:output",
+            owner_id="ob_metric",
+            candidate_id="candidate-second",
+            query="Find the second rate",
+            owner=owner,
+            parent_owner=None,
+            resolved_target={
+                "local_subjects": ["Target Entity"],
+                "concept_keys": [],
+                "metric_surfaces": ["second rate"],
+            },
+            candidate=candidate,
+            candidate_text=source_text,
+        )
+
+        self.assertEqual(pair.evidence_locator, "source_span")
+        self.assertNotIn("First rate", pair.evidence_text)
+        self.assertIn("second rate was [SELECTED VALUE 5%]", pair.evidence_text)
 
     def test_complete_row_bundle_aggregates_semantic_owner_order(self) -> None:
         obligations = [
