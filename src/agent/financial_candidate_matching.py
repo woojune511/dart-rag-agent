@@ -16,6 +16,10 @@ from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
 )
+from src.agent.financial_runtime_contracts import (
+    EvidenceBundleConstraintV1,
+    EvidenceBundleOptionV1,
+)
 from src.config import get_financial_ontology
 
 
@@ -626,6 +630,343 @@ def rank_candidate_matches(
         if len(selected) >= bounded_limit:
             break
     return selected
+
+
+def _bundle_scope_is_compatible(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_scope = dict(left.get("scope") or {})
+    right_scope = dict(right.get("scope") or {})
+    for field in ("company", "consolidation_scope", "basis"):
+        left_value = _normalise_spaces(str(left_scope.get(field) or ""))
+        right_value = _normalise_spaces(str(right_scope.get(field) or ""))
+        if left_value.casefold() in {"", "unknown", "none", "null"}:
+            continue
+        if right_value.casefold() in {"", "unknown", "none", "null"}:
+            continue
+        if field == "company":
+            if not _identity_matches(left_value, right_value):
+                return False
+        elif _compact(left_value) != _compact(right_value):
+            return False
+    return True
+
+
+def _owners_share_local_subject(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> bool:
+    left_subjects = resolve_owner_target(left).local_subjects
+    right_subjects = resolve_owner_target(right).local_subjects
+    return bool(
+        left_subjects
+        and right_subjects
+        and any(
+            _identity_matches(left_subject, right_subject)
+            for left_subject in left_subjects
+            for right_subject in right_subjects
+        )
+    )
+
+
+def _candidate_context_value(
+    candidate: Mapping[str, Any],
+    field: str,
+) -> str:
+    if field == "company":
+        value = candidate.get("document_company") or candidate.get("company")
+    else:
+        value = candidate.get(field)
+    normalized = _normalise_spaces(str(value or ""))
+    return "" if normalized.casefold() in {"unknown", "none", "null"} else normalized
+
+
+def _candidate_bundle_context_state(
+    anchors: Sequence[Mapping[str, Any]],
+    candidate: Mapping[str, Any],
+) -> str:
+    missing_explicit_dimension = False
+    for field in ("company", "year", "consolidation_scope", "basis"):
+        expected = tuple(
+            dict.fromkeys(
+                value
+                for anchor in anchors
+                for value in [_candidate_context_value(anchor, field)]
+                if value
+            )
+        )
+        if not expected:
+            continue
+        observed = _candidate_context_value(candidate, field)
+        if not observed:
+            missing_explicit_dimension = True
+            continue
+        matches = (
+            any(_identity_matches(value, observed) for value in expected)
+            if field == "company"
+            else any(_compact(value) == _compact(observed) for value in expected)
+        )
+        if not matches:
+            return "explicit_conflict"
+    return "unknown_only" if missing_explicit_dimension else "compatible"
+
+
+def build_physical_evidence_bundle_constraints(
+    catalog: Sequence[Mapping[str, Any]],
+    obligations: Sequence[Mapping[str, Any]],
+    *,
+    cohorts: Sequence[Mapping[str, Any]],
+    candidate_match_by_id: Mapping[str, Mapping[str, Mapping[str, Any]]],
+) -> Tuple[EvidenceBundleConstraintV1, ...]:
+    """Infer complete same-row bundles for related multi-output facts.
+
+    Only explicitly compatible candidates participate.  A source-defined
+    narrative may join a direct-value bundle across tables when its report,
+    company, consolidation, and basis context is compatible with that row.
+    """
+
+    obligation_rows = [
+        dict(item)
+        for item in obligations
+        if isinstance(item, Mapping)
+        and str(item.get("obligation_id") or "").strip()
+    ]
+    obligation_by_id = {
+        str(item.get("obligation_id") or "").strip(): item
+        for item in obligation_rows
+    }
+    owner_order = {owner_id: index for index, owner_id in enumerate(obligation_by_id)}
+    output_candidate_ids = {
+        str(cohort.get("owner_id") or "").strip(): [
+            str(candidate_id)
+            for candidate_id in (cohort.get("candidate_ids") or [])
+            if str(candidate_id)
+        ]
+        for cohort in cohorts
+        if str(cohort.get("owner_type") or "") == "obligation"
+        and str(cohort.get("owner_id") or "").strip()
+    }
+    candidate_by_id = {
+        str(item.get("candidate_id") or ""): dict(item)
+        for item in catalog
+        if isinstance(item, Mapping) and str(item.get("candidate_id") or "")
+    }
+    fact_by_id = {
+        candidate_id: project_candidate_fact(candidate)
+        for candidate_id, candidate in candidate_by_id.items()
+    }
+    direct_ids = [
+        owner_id
+        for owner_id, obligation in obligation_by_id.items()
+        if str(obligation.get("kind") or "") == "direct_value"
+        and bool(resolve_owner_target(obligation).local_subjects)
+    ]
+    adjacency = {owner_id: set() for owner_id in direct_ids}
+    for left_index, left_id in enumerate(direct_ids):
+        for right_id in direct_ids[left_index + 1 :]:
+            if (
+                _owners_share_local_subject(
+                    obligation_by_id[left_id], obligation_by_id[right_id]
+                )
+                and _bundle_scope_is_compatible(
+                    obligation_by_id[left_id], obligation_by_id[right_id]
+                )
+            ):
+                adjacency[left_id].add(right_id)
+                adjacency[right_id].add(left_id)
+
+    components: list[list[str]] = []
+    seen: set[str] = set()
+    for owner_id in direct_ids:
+        if owner_id in seen:
+            continue
+        pending = [owner_id]
+        component: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current in component:
+                continue
+            component.add(current)
+            pending.extend(adjacency[current] - component)
+        seen.update(component)
+        if len(component) >= 2:
+            components.append(sorted(component, key=owner_order.__getitem__))
+
+    constraints: list[EvidenceBundleConstraintV1] = []
+    for component in components:
+        row_candidates: Dict[tuple[str, str], Dict[str, list[str]]] = {}
+        positions_by_owner = {
+            owner_id: {
+                candidate_id: index
+                for index, candidate_id in enumerate(
+                    output_candidate_ids.get(owner_id, [])
+                )
+            }
+            for owner_id in component
+        }
+        for owner_id in component:
+            for candidate_id in output_candidate_ids.get(owner_id, []):
+                candidate = candidate_by_id.get(candidate_id)
+                fact = fact_by_id.get(candidate_id)
+                match = dict(
+                    candidate_match_by_id.get(candidate_id, {}).get(owner_id, {})
+                )
+                if (
+                    not candidate
+                    or str(candidate.get("kind") or "") != "numeric"
+                    or not fact
+                    or not fact.physical_table_id
+                    or not fact.physical_row_id
+                    or str(match.get("state") or "") != "compatible"
+                ):
+                    continue
+                row_candidates.setdefault(
+                    (fact.physical_table_id, fact.physical_row_id), {}
+                ).setdefault(owner_id, []).append(candidate_id)
+        remaining_owner_ids = set(component)
+        while remaining_owner_ids:
+            observed_owner_sets = {
+                tuple(
+                    owner_id
+                    for owner_id in component
+                    if owner_id in remaining_owner_ids
+                    and candidate_ids_by_owner.get(owner_id)
+                )
+                for candidate_ids_by_owner in row_candidates.values()
+            }
+            bundle_owner_sets = [
+                owner_ids
+                for owner_ids in observed_owner_sets
+                if len(owner_ids) >= 2
+            ]
+            if not bundle_owner_sets:
+                break
+            bundle_owner_ids = min(
+                bundle_owner_sets,
+                key=lambda owner_ids: (
+                    -len(owner_ids),
+                    tuple(owner_order[owner_id] for owner_id in owner_ids),
+                ),
+            )
+            complete_rows = [
+                (row_key, candidate_ids_by_owner)
+                for row_key, candidate_ids_by_owner in row_candidates.items()
+                if all(
+                    candidate_ids_by_owner.get(owner_id)
+                    for owner_id in bundle_owner_ids
+                )
+            ]
+            complete_rows.sort(
+                key=lambda item: (
+                    sum(
+                        min(
+                            positions_by_owner[owner_id].get(candidate_id, 10**6)
+                            for candidate_id in item[1][owner_id]
+                        )
+                        for owner_id in bundle_owner_ids
+                    ),
+                    max(
+                        min(
+                            positions_by_owner[owner_id].get(candidate_id, 10**6)
+                            for candidate_id in item[1][owner_id]
+                        )
+                        for owner_id in bundle_owner_ids
+                    ),
+                    item[0],
+                )
+            )
+            options = [
+                EvidenceBundleOptionV1.create(
+                    physical_table_id=row_key[0],
+                    physical_row_id=row_key[1],
+                    candidate_ids_by_owner={
+                        owner_id: candidate_ids_by_owner[owner_id]
+                        for owner_id in bundle_owner_ids
+                    },
+                )
+                for row_key, candidate_ids_by_owner in complete_rows
+            ]
+            constraint_owner_ids = list(bundle_owner_ids)
+
+            narrative_ids = [
+                owner_id
+                for owner_id, obligation in obligation_by_id.items()
+                if str(obligation.get("kind") or "") == "narrative"
+                and str(obligation.get("evidence_mode") or "declared_inputs")
+                == "source_defined_group"
+                and bool(obligation.get("required", True))
+                and all(
+                    _owners_share_local_subject(
+                        obligation, obligation_by_id[direct_id]
+                    )
+                    and _bundle_scope_is_compatible(
+                        obligation, obligation_by_id[direct_id]
+                    )
+                    for direct_id in bundle_owner_ids
+                )
+            ]
+            for narrative_id in narrative_ids:
+                narrative_candidates = output_candidate_ids.get(narrative_id, [])
+                extended_options: list[EvidenceBundleOptionV1] = []
+                for option in options:
+                    option_map = option.candidate_ids_by_owner()
+                    anchors = [
+                        candidate_by_id[candidate_id]
+                        for direct_id in bundle_owner_ids
+                        for candidate_id in option_map.get(direct_id, [])
+                        if candidate_id in candidate_by_id
+                    ]
+                    compatible: list[str] = []
+                    fallback: list[str] = []
+                    for candidate_id in narrative_candidates:
+                        candidate = candidate_by_id.get(candidate_id)
+                        if not candidate:
+                            continue
+                        match_state = str(
+                            candidate_match_by_id.get(candidate_id, {})
+                            .get(narrative_id, {})
+                            .get("state")
+                            or ""
+                        )
+                        if match_state == "explicit_conflict":
+                            continue
+                        context_state = _candidate_bundle_context_state(
+                            anchors, candidate
+                        )
+                        if context_state == "explicit_conflict":
+                            continue
+                        fallback.append(candidate_id)
+                        if (
+                            match_state == "compatible"
+                            and context_state == "compatible"
+                        ):
+                            compatible.append(candidate_id)
+                    allowed = compatible or fallback
+                    if not allowed:
+                        continue
+                    extended_options.append(
+                        EvidenceBundleOptionV1.create(
+                            physical_table_id=option.physical_table_id,
+                            physical_row_id=option.physical_row_id,
+                            candidate_ids_by_owner={
+                                **option_map,
+                                narrative_id: allowed,
+                            },
+                        )
+                    )
+                if extended_options:
+                    options = extended_options
+                    constraint_owner_ids.append(narrative_id)
+
+            constraints.append(
+                EvidenceBundleConstraintV1.create(
+                    owner_ids=constraint_owner_ids,
+                    options=options,
+                )
+            )
+            remaining_owner_ids.difference_update(bundle_owner_ids)
+    return tuple(constraints)
 
 
 def candidate_cell_local_source_text(candidate: Mapping[str, Any]) -> str:

@@ -7,8 +7,8 @@ Last updated: 2026-09-03
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Active branch | `codex/typed-candidate-ranking` from integration predecessor `729e0fb` |
-| Runtime state | Typed owner targets and deterministic fact matching replace additive candidate keyword scoring |
+| Active branch | `codex/typed-candidate-ranking`, successor of provider-gate snapshot `9641563` |
+| Runtime state | Typed owner matching plus immutable physical-row evidence bundles replace additive candidate keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
 | Provider evidence | Env-bound admission `9c1d1807...86a3c3` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
@@ -27,9 +27,11 @@ Last updated: 2026-09-03
 - The candidate catalog remains complete and stable. Cohort prompts contain
   cell-local structured text and one factor projection; they do not perform a
   second keyword ranking pass.
-- Numeric compilation is isolated by declared dependency and non-empty coupling
-  key. Unknown dependency, self-dependency, cycle, island overflow, or candidate
-  reservation overflow fails before compiler calls.
+- Numeric compilation is isolated by declared dependency, non-empty coupling
+  key, and inferred complete-row evidence bundles. A bundle adds an island edge
+  even when planner coupling is empty; all outputs must select one physical-row
+  option. Unknown dependency, self-dependency, cycle, island overflow, or
+  candidate reservation overflow fails before compiler calls.
 - Retrieval is internally split into plan, search, selection, and trace stages.
 - `IngestService` owns fetch through manifest recording. `FinancialAgent` no
   longer exposes ingest methods.
@@ -44,14 +46,6 @@ Last updated: 2026-09-03
 
 ## Evidence and remaining gate
 
-The source-change gate is focused tests, runtime-domain audit, import/topology
-checks, full unittest discovery, pycompile, and `git diff --check`. The preceding
-integration gate passed 751 total unittest cases, 124 focused
-evaluator/provenance cases, 30 benchmark-runner cases, 50 focused
-authority/import/topology/service cases, and 86 reviewed domain literals.
-Historical benchmark scores and bundles are not evidence for this candidate
-ranking build.
-
 The new provider-free matcher contract covers typed targets, deterministic
 catalog-order independence, compatible-before-unknown ordering, catalog-grounded
 legacy fallback, cell-local prompt projection, validator rejection of a visible
@@ -63,6 +57,17 @@ places the Motional carrying-amount cell in the intended owner cohort and keeps
 the BHAF row out; it also prioritizes the two Hyundai T2 period values over
 market totals and preserves Samsung's accepted evidence visibility. It does not
 claim a new LLM/compiler outcome.
+
+The current provider-free successor infers a bundle only when two or more
+same-subject direct outputs have a complete compatible physical row. It rejects
+mixed-row programs, can attach required source-defined narrative only through a
+compatible report context, and retries all bundle owners together while
+excluding only rejected IDs. The source gate passes 760 unittest cases,
+including eight focused bundle cases, the 86-literal runtime-domain audit,
+import/topology checks, pycompile, and `git diff --check`. This is local contract
+evidence, not a new provider result. Read-only reprojection gives T3 one island
+with two coherent options: table 82 row `9:2` (`26%`, `700,691백만원`) or table 83
+row `9:2` (`25.92%`, `907,061백만원`); T2 and Samsung gain no spurious bundle.
 
 The clean redesign predecessor's read-only reprojection rebuilt candidates from
 the three stored source windows with network access blocked. It retained both
@@ -107,14 +112,17 @@ root result is
 | `HYU_T3_072` | mechanically `ok`, source-inconsistent | Selected `25.92%` from table 83, `700,691백만원` from table 82, and one detailed-table loss; 3/3 obligations, error 0, ledger `ok` |
 | `SAM_T2_078` | mechanically `ok`, source-consistent | `28,352,769백만원` and Harman narrative present; error 0, ledger `ok` |
 
-The typed matcher repaired the original visibility loss: the `26%` candidate
+The paid artifact shows that the typed matcher repaired the original visibility
+loss: the `26%` candidate
 `cand_e2f2596cb81e73b80bbc` is first in the ownership cohort, and
 `cand_a8aa299ad5dea4f29cd5 = 700,691백만원` is first in the carrying-amount
 cohort. The wrong-row BHAF `53%` candidate is not selectable. The compiler may
-still choose any visible ID, however. It independently preferred the more
+still choose any visible ID in that predecessor runtime, however. It independently preferred the more
 precise-looking `25.92%` candidate from a different table. Because all three
 planner coupling keys were empty, no island or execution validation compared
-the physical row/table basis across outputs.
+the physical row/table basis across outputs. The source successor now infers
+that missing bundle edge, but the immutable paid result remains HOLD until a
+separately approved run validates the new runtime.
 
 The run recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
 document-embedding calls, and estimated runtime cost USD `0.1356168`. Embedding
@@ -125,11 +133,9 @@ disposable store remains.
 
 ## Next work
 
-1. Characterize and repair generic same-entity multi-output row/table coherence
-   without adding company/question branches or changing the dataset/evaluator.
-2. Do not rerun the paid gate automatically. Any provider replay requires a new
+1. Do not rerun the paid gate automatically. Any provider replay requires a new
    immutable manifest, cost estimate, no-call receipts, and separate approval.
-3. Treat a local semantic reranker, deterministic unique-match auto-bind, and a
+2. Treat a local semantic reranker, deterministic unique-match auto-bind, and a
    persisted typed fact index as deferred designs. They need their own measured
    benefit and migration contract rather than being bundled into this repair.
 

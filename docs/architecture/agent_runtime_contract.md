@@ -55,6 +55,8 @@ Compiler authority is represented by frozen, slotted standard-library
 contracts:
 
 - `OwnerCandidateVisibility`
+- `EvidenceBundleOptionV1`
+- `EvidenceBundleConstraintV1`
 - `CandidateVisibilityV1`
 - `CompilationEnvelopeV1`
 
@@ -121,6 +123,20 @@ remain stable. `document_company` is metadata, not proof of a value's local
 subject. Row headers and local entity surfaces remain part of candidate
 provenance and applicability.
 
+When two or more direct outputs have the same explicit local subject, compatible
+declared scope, and at least one physical row containing a compatible candidate
+for every output, the runtime creates an immutable evidence-bundle constraint.
+Each complete row is one option. All constrained outputs must select candidate
+IDs from one option; mixing rows fails as `evidence_bundle_mismatch`. This
+invariant is inferred independently of planner `coupling_key`.
+
+A required `source_defined_group` narrative may join that bundle across tables
+only when local subject and declared scope agree and its filing company, report
+year, consolidation scope, and basis do not conflict with the direct row.
+Explicitly compatible narrative context is used before unknown context. If no
+complete physical row exists, the runtime does not infer a bundle or force
+otherwise independent outputs together.
+
 ## 5. Internal graph state v2
 
 `FinancialAgentStateV2` has these phase envelopes, in order:
@@ -149,9 +165,9 @@ structured result. The checked node/edge list is generated in
 
 ## 6. Compilation islands
 
-Each answer obligation is a vertex. Two vertices share an island only when one
-declares a dependency on the other or both have the same non-empty
-`coupling_key`.
+Each answer obligation is a vertex. Two vertices share an island when one
+declares a dependency on the other, both have the same non-empty `coupling_key`,
+or they are members of the same inferred evidence-bundle constraint.
 
 Unknown dependency, self-dependency, and cycle fail the affected island before a
 compiler call. A query may contain at most eight islands. All candidate
@@ -164,11 +180,15 @@ island has one internal retry at most:
   ranked candidate;
 - AST, schema, or binding format failure retains the same cohort.
 
+If any member of an evidence bundle needs retry, every obligation in that bundle
+is retried together. Only rejected candidate IDs are excluded; valid row options
+remain selectable.
+
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v4` records
-owner factor counts, island composition, call/retry counts, visibility
-fingerprints, and prompt bytes.
+original obligation order. `semantic_candidate_stage_diagnostics_v5` records
+owner factor counts, bundle constraints, island composition, call/retry counts,
+visibility fingerprints, and prompt bytes.
 
 ## 7. Retrieval boundary
 

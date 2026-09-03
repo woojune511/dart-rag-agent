@@ -31,6 +31,10 @@ The boundary redesign is implemented as ordered commits:
    fact matching replace the additive keyword selector. The full catalog stays
    immutable; only owner cohorts are bounded, structured prompts are cell-local,
    and the validator rechecks declared targets with the same matcher.
+8. Current source successor: complete physical rows become immutable
+   evidence-bundle options for related same-subject outputs. Bundle membership
+   adds a compilation-island edge even when planner coupling is empty; validator
+   and executor reject mixed-row selections and retry the bundle atomically.
 
 The separate dirty predecessor was then integrated explicitly:
 
@@ -70,13 +74,6 @@ topology is in [runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and
 historical evidence remains in [implementation_history.md](docs/history/implementation_history.md)
 and [experiment_history.md](docs/history/experiment_history.md).
 
-The preceding integration source gate is 751 unittest cases, 124 focused
-evaluator/provenance cases, 30 benchmark-runner cases, 50 focused
-authority/import/topology/service cases, 86 reviewed runtime-domain literals,
-pycompile, and `git diff --check`. The clean redesign predecessor's read-only,
-network-blocked reprojection of the three stored source windows preserved source
-hashes and confirmed the expected T2, T3, and Samsung candidate boundaries.
-
 The candidate-ranking change has provider-free contract coverage for typed
 targets, catalog-order determinism, compatibility-tier precedence, legacy
 catalog grounding, cell-local prompt projection, validator revalidation, and
@@ -87,6 +84,20 @@ reconstruction of stored source windows
 places Hyundai T2's two period values and T3's Motional carrying amount in their
 intended owner cohorts while excluding the conflicting market/BHAF rows. This is
 local source evidence only, not a new provider acceptance result.
+
+The evidence-bundle successor adds provider-free contracts for complete-row
+inference, cross-row rejection, context-compatible cross-table narrative,
+immutable visibility, bundle-island construction, and atomic retry. Its local
+source gate passes 760 total unittest cases, including eight focused bundle cases,
+the 86-literal runtime-domain audit, import/topology checks, pycompile, and
+`git diff --check`. No provider, network, fresh ingest, store mutation, dataset
+change, or evaluator relaxation is part of this source gate.
+
+A read-only reprojection of the three saved source windows confirms no inferred
+bundle for T2 or Samsung and one three-owner T3 island with two physical options:
+table 82 row `9:2` (`26%`, `700,691백만원`) or table 83 row `9:2` (`25.92%`,
+`907,061백만원`), each with context-compatible source-defined narrative IDs.
+Structure-graph and table-payload SHA-256 values were identical before and after.
 
 The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 `98ec5dcb6a376c490d3ced20c5ffe56c276a8f5e382d97dc18dcbe59d3920615`.
@@ -124,6 +135,8 @@ that value more precise, then chose `700,691백만원` from table 82; the narrat
 used only detailed-table `당기순손익 -803,742` without its unit. Mechanical
 runtime completeness is 3/3, but the selected evidence is not one compatible
 Motional reporting tuple and does not contain the complete consolidated summary.
+That paid artifact predates the evidence-bundle successor; local contract success
+does not retroactively change it or authorize another provider run.
 
 The runner recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
 document-embedding calls, and estimated runtime cost USD `0.1356168`. Embedding

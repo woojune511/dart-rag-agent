@@ -62,34 +62,33 @@ class _FixedCompiler:
             for obligation_id in self.obligation_ids
             if f'"obligation_id": "{obligation_id}"' in prompt_text
         ]
-        if len(target_ids) != 1:
-            raise AssertionError(f"expected one island obligation, got {target_ids}")
-        target_id = target_ids[0]
+        if not target_ids:
+            raise AssertionError("expected at least one island obligation")
         response = self.response.model_dump()
         response["direct_bindings"] = [
             row
             for row in response.get("direct_bindings") or []
-            if row.get("obligation_id") == target_id
+            if row.get("obligation_id") in target_ids
         ]
         response["expressions"] = [
             row
             for row in response.get("expressions") or []
-            if row.get("obligation_id") == target_id
+            if row.get("obligation_id") in target_ids
         ]
         response["narrative_bindings"] = [
             row
             for row in response.get("narrative_bindings") or []
-            if row.get("obligation_id") == target_id
+            if row.get("obligation_id") in target_ids
         ]
         response["missing_obligation_ids"] = [
             value
             for value in response.get("missing_obligation_ids") or []
-            if value == target_id
+            if value in target_ids
         ]
         response["ambiguous_obligation_ids"] = [
             value
             for value in response.get("ambiguous_obligation_ids") or []
-            if value == target_id
+            if value in target_ids
         ]
         has_binding = any(
             response.get(key)
@@ -253,7 +252,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
 
     def _graph(self, name="consolidated"):
         program = self._program(name)
-        expected_calls = 3 if name in {"wrong_subject", "missing_share"} else 2
+        expected_calls = 2 if name in {"wrong_subject", "missing_share"} else 1
         obligations = self._obligations()
         llm = _FixedCompiler(
             program,
@@ -285,9 +284,9 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         }
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=deepcopy(self.catalog)):
             state.update(agent._compile_semantic_calculation_program(state))
-        self.assertEqual(llm.models, ["SemanticCalculationProgram"] * 2)
+        self.assertEqual(llm.models, ["SemanticCalculationProgram"])
         self.assertEqual(len(llm.prompts), expected_calls)
-        self.assertEqual(state["semantic_program_retry_count"], expected_calls - 2)
+        self.assertEqual(state["semantic_program_retry_count"], expected_calls - 1)
         state.update(agent._execute_semantic_calculation_program(state))
         state.update(agent._format_citations(state))
         ledger = project_task_artifact_trace(state["tasks"], state["artifacts"])

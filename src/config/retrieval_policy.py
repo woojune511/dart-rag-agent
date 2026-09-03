@@ -525,6 +525,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "필수 규칙:\n"
             "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
             "- 같은 candidate가 보여도 다른 owner cohort의 ID를 가져다 쓰지 마세요. row_headers, local_entity_surfaces, physical provenance, match_by_owner의 subject·metric·unit factor를 함께 확인하세요.\n"
+            "- evidence_bundle_constraints가 있으면 각 constraint의 모든 owner 출력은 하나의 option에서 함께 선택하세요. option은 동일한 물리적 행의 direct fact와 그 행의 주체·보고기간·연결범위·basis에 호환되는 source-defined 근거만 묶습니다. 서로 다른 option의 candidate_id를 섞지 마세요.\n"
             "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
             "- candidate_kind가 sentence_value이면 source_text 문장에 그 숫자가 직접 기재된 후보입니다. 질문의 의미를 문장이 직접 설명하면 인접한 회계 행을 대용하지 말고 이 후보를 우선 검토하세요.\n"
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"

@@ -714,12 +714,12 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["program_mode"], "semantic_program")
         self.assertEqual(
             trace["calculation_plan"]["prompt_candidate_strategy"],
-            "compilation_islands_v1",
+            "compilation_islands_v2",
         )
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v4",
+            "semantic_candidate_stage_diagnostics_v5",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)

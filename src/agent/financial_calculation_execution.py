@@ -1136,6 +1136,7 @@ def validate_semantic_calculation_program(
     sources_by_output: Dict[str, List[str]] = {}
     compatibility_sources_by_output: Dict[str, List[str]] = {}
     output_units: Dict[str, str] = {}
+    evidence_bundle_validation: List[Dict[str, Any]] = []
 
     def already_produced(obligation_id: str) -> bool:
         if obligation_id in produced:
@@ -1938,6 +1939,108 @@ def validate_semantic_calculation_program(
         )
         sources_by_output[obligation_id] = candidate_ids
 
+    invalid_bundled: set[str] = set()
+    for constraint in (
+        candidate_visibility.evidence_bundle_constraints
+        if candidate_visibility is not None
+        else ()
+    ):
+        owner_ids = [
+            owner_id
+            for owner_id in constraint.owner_ids
+            if owner_id in obligation_by_id
+        ]
+        if len(owner_ids) < 2 or not all(
+            owner_id in produced for owner_id in owner_ids
+        ):
+            evidence_bundle_validation.append(
+                {
+                    "constraint_id": constraint.constraint_id,
+                    "status": "incomplete",
+                    "owner_ids": owner_ids,
+                    "selected_option_id": "",
+                }
+            )
+            continue
+        selected_by_owner = {
+            owner_id: [
+                candidate_id
+                for candidate_id in sources_by_output.get(owner_id, [])
+                if candidate_id
+                not in set(
+                    compatibility_sources_by_output.get(owner_id, [])
+                )
+            ]
+            for owner_id in owner_ids
+        }
+        matching_options = [
+            option
+            for option in constraint.options
+            if all(
+                option.allows(owner_id, selected_by_owner[owner_id])
+                for owner_id in owner_ids
+            )
+        ]
+        if matching_options:
+            evidence_bundle_validation.append(
+                {
+                    "constraint_id": constraint.constraint_id,
+                    "status": "ready",
+                    "owner_ids": owner_ids,
+                    "selected_option_id": matching_options[0].option_id,
+                }
+            )
+            continue
+
+        ranked_options = sorted(
+            enumerate(constraint.options),
+            key=lambda item: (
+                -sum(
+                    item[1].allows(owner_id, selected_by_owner[owner_id])
+                    for owner_id in owner_ids
+                ),
+                item[0],
+            ),
+        )
+        closest_option = ranked_options[0][1]
+        closest_ids_by_owner = closest_option.candidate_ids_by_owner()
+        mismatched_owner_ids: List[str] = []
+        for owner_id in owner_ids:
+            if closest_option.allows(owner_id, selected_by_owner[owner_id]):
+                continue
+            mismatched_owner_ids.append(owner_id)
+            allowed = set(closest_ids_by_owner.get(owner_id, []))
+            rejected_ids = [
+                candidate_id
+                for candidate_id in selected_by_owner[owner_id]
+                if candidate_id not in allowed
+            ]
+            for candidate_id in rejected_ids or selected_by_owner[owner_id]:
+                error("evidence_bundle_mismatch", owner_id, candidate_id)
+        invalid_bundled.update(owner_ids)
+        evidence_bundle_validation.append(
+            {
+                "constraint_id": constraint.constraint_id,
+                "status": "mismatch",
+                "owner_ids": owner_ids,
+                "selected_option_id": "",
+                "closest_option_id": closest_option.option_id,
+                "mismatched_owner_ids": mismatched_owner_ids,
+            }
+        )
+    if invalid_bundled:
+        valid_direct = [
+            item
+            for item in valid_direct
+            if str(item.get("obligation_id") or "") not in invalid_bundled
+        ]
+        valid_narrative = [
+            item
+            for item in valid_narrative
+            if str(item.get("obligation_id") or "") not in invalid_bundled
+        ]
+        produced.difference_update(invalid_bundled)
+
     coupling_groups: Dict[str, List[str]] = {}
     for obligation_id, obligation in obligation_by_id.items():
         coupling_key = _normalise_spaces(str(obligation.get("coupling_key") or ""))
@@ -2062,6 +2165,7 @@ def validate_semantic_calculation_program(
         "selected_candidate_ids": selected_candidate_ids,
         "source_candidate_ids_by_obligation": sources_by_output,
         "inferred_units": output_units,
+        "evidence_bundle_validation": evidence_bundle_validation,
     }
 
 

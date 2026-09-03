@@ -8,6 +8,7 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_candidate_matching import (
+    build_physical_evidence_bundle_constraints,
     build_candidate_matches,
     candidate_cell_local_source_text,
     project_candidate_match,
@@ -50,8 +51,10 @@ MAX_SEMANTIC_COMPILATION_ISLANDS = 8
 
 def build_semantic_compilation_islands(
     obligations: Sequence[Mapping[str, Any]],
+    *,
+    evidence_bundle_constraints: Sequence[Mapping[str, Any]] = (),
 ) -> Dict[str, Any]:
-    """Build deterministic dependency/coupling connected components."""
+    """Build deterministic dependency/coupling/bundle components."""
 
     rows = [
         dict(item)
@@ -110,6 +113,24 @@ def build_semantic_compilation_islands(
         for left, right in zip(obligation_ids, obligation_ids[1:]):
             adjacency[left].add(right)
             adjacency[right].add(left)
+
+    bundle_rows = [
+        dict(item)
+        for item in evidence_bundle_constraints
+        if isinstance(item, Mapping)
+        and str(item.get("constraint_id") or "").strip()
+    ]
+    evidence_bundle_edges: List[tuple[str, str]] = []
+    for bundle in bundle_rows:
+        owner_ids = [
+            str(owner_id).strip()
+            for owner_id in (bundle.get("owner_ids") or [])
+            if str(owner_id).strip() in obligation_by_id
+        ]
+        for left, right in zip(owner_ids, owner_ids[1:]):
+            adjacency[left].add(right)
+            adjacency[right].add(left)
+            evidence_bundle_edges.append((left, right))
 
     components: List[List[str]] = []
     seen: set[str] = set()
@@ -174,17 +195,28 @@ def build_semantic_compilation_islands(
             for coupling_key, obligation_ids in coupling_groups.items()
             if len(set(obligation_ids) & component_set) >= 2
         ]
+        island_bundle_ids = [
+            str(bundle.get("constraint_id") or "")
+            for bundle in bundle_rows
+            if len(set(bundle.get("owner_ids") or []) & component_set) >= 2
+        ]
         islands.append(
             {
                 "island_id": f"island_{island_index:03d}",
                 "obligation_ids": component,
                 "dependency_edges": [list(edge) for edge in local_edges],
                 "coupling_keys": island_coupling_keys,
+                "evidence_bundle_constraint_ids": island_bundle_ids,
+                "evidence_bundle_edges": [
+                    list(edge)
+                    for edge in evidence_bundle_edges
+                    if edge[0] in component_set and edge[1] in component_set
+                ],
                 "errors": island_errors,
             }
         )
     return {
-        "schema": "semantic_compilation_islands_v1",
+        "schema": "semantic_compilation_islands_v2",
         "status": (
             "invalid"
             if any(island["errors"] for island in islands)
@@ -199,6 +231,7 @@ def _semantic_candidate_visibility(
     *,
     visible_candidate_ids: Sequence[Any],
     candidate_ids_by_owner: Mapping[str, Sequence[Any]],
+    evidence_bundle_constraints: Sequence[Mapping[str, Any]] = (),
 ) -> CandidateVisibilityV1:
     """Freeze the complete candidate authority used for one validation."""
 
@@ -230,6 +263,7 @@ def _semantic_candidate_visibility(
         catalog_fingerprint=semantic_candidate_catalog_fingerprint(catalog),
         visible_candidate_ids=ordered_visible_ids,
         candidate_ids_by_owner=candidate_ids_by_owner,
+        evidence_bundle_constraints=evidence_bundle_constraints,
     )
 
 
@@ -454,6 +488,7 @@ def _semantic_candidate_cohorts(
             "candidate_ids_by_owner": {},
             "visible_candidate_ids": [],
             "candidate_match_by_id": {},
+            "evidence_bundle_constraints": [],
         }
 
     cohorts: List[Dict[str, Any]] = []
@@ -518,6 +553,13 @@ def _semantic_candidate_cohorts(
             if candidate_id not in parent_ids:
                 parent_ids.append(candidate_id)
 
+    evidence_bundle_constraints = build_physical_evidence_bundle_constraints(
+        catalog,
+        obligation_rows,
+        cohorts=cohorts,
+        candidate_match_by_id=match_by_id,
+    )
+
     return {
         "schema": "semantic_candidate_cohorts_v2",
         "status": "ok",
@@ -526,6 +568,10 @@ def _semantic_candidate_cohorts(
         "candidate_ids_by_owner": selectable_by_owner,
         "visible_candidate_ids": visible_ids,
         "candidate_match_by_id": match_by_id,
+        "evidence_bundle_constraints": [
+            constraint.to_projection()
+            for constraint in evidence_bundle_constraints
+        ],
     }
 
 
@@ -668,6 +714,7 @@ _CANDIDATE_REJECTION_ERROR_CODES = {
     "compatibility_scope_mismatch",
     "direct_compatibility_context_mismatch",
     "unknown_narrative_candidate",
+    "evidence_bundle_mismatch",
 }
 
 
@@ -787,6 +834,10 @@ def _retry_candidate_exclusions(
         "compatibility_scope_mismatch": ("compatibility",),
         "direct_compatibility_context_mismatch": ("compatibility",),
         "unknown_narrative_candidate": ("narrative",),
+        "evidence_bundle_mismatch": (
+            "direct_primary",
+            "narrative",
+        ),
     }
     exclusions: Dict[str, List[str]] = {}
     for error in validation_errors:
@@ -1009,10 +1060,16 @@ class FinancialAgentCalculationMixin:
             if str(item.get("candidate_id") or "")
         }
         return {
-            "schema": "semantic_program_candidate_payload_v2",
+            "schema": "semantic_program_candidate_payload_v3",
             "reservation": dict(cohort_plan.get("reservation") or {}),
             "cohorts": [
                 dict(item) for item in (cohort_plan.get("cohorts") or [])
+            ],
+            "evidence_bundle_constraints": [
+                dict(item)
+                for item in (
+                    cohort_plan.get("evidence_bundle_constraints") or []
+                )
             ],
             "candidates_by_id": {
                 candidate_id: row_by_id[candidate_id]
@@ -1137,10 +1194,15 @@ class FinancialAgentCalculationMixin:
                 cohort_plan.get("candidate_ids_by_owner") or {}
             ).items()
         }
+        initial_bundle_constraints = list(
+            cohort_plan.get("evidence_bundle_constraints") or []
+        )
+        validation_bundle_constraints = list(initial_bundle_constraints)
         validation_visibility = _semantic_candidate_visibility(
             catalog,
             visible_candidate_ids=prompt_candidate_ids,
             candidate_ids_by_owner=initial_selectable_ids_by_owner,
+            evidence_bundle_constraints=validation_bundle_constraints,
         )
         candidate_by_id = {
             str(item.get("candidate_id") or ""): dict(item)
@@ -1288,6 +1350,9 @@ class FinancialAgentCalculationMixin:
                             candidate_ids_by_owner=(
                                 validation_selectable_ids_by_owner
                             ),
+                            evidence_bundle_constraints=(
+                                validation_bundle_constraints
+                            ),
                         )
                     ),
                 )
@@ -1342,6 +1407,16 @@ class FinancialAgentCalculationMixin:
                         ]
                     )
                 )
+                retry_target_set = set(retry_target_ids)
+                for constraint in validation_visibility.evidence_bundle_constraints:
+                    if retry_target_set.intersection(constraint.owner_ids):
+                        retry_target_set.update(constraint.owner_ids)
+                retry_target_ids = [
+                    str(obligation.get("obligation_id") or "")
+                    for obligation in obligations
+                    if str(obligation.get("obligation_id") or "")
+                    in retry_target_set
+                ]
                 needs_retry = (
                     str(validation.get("status") or "") != "ready"
                     and bool(retry_target_ids)
@@ -1382,6 +1457,19 @@ class FinancialAgentCalculationMixin:
                     )
                 retry_selectable_ids_by_owner = dict(
                     active_cohort_plan.get("candidate_ids_by_owner") or {}
+                )
+                validation_bundle_constraints = [
+                    constraint
+                    for constraint in initial_bundle_constraints
+                    if not target_owner_ids.intersection(
+                        constraint.get("owner_ids") or []
+                    )
+                ]
+                validation_bundle_constraints.extend(
+                    list(
+                        active_cohort_plan.get("evidence_bundle_constraints")
+                        or []
+                    )
                 )
                 validation_selectable_ids_by_owner = {
                     **initial_selectable_ids_by_owner,
@@ -1535,7 +1623,7 @@ class FinancialAgentCalculationMixin:
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_catalog_rows),
             "prompt_candidate_ids": prompt_candidate_ids,
-            "prompt_candidate_strategy": "obligation_owner_cohorts_v2",
+            "prompt_candidate_strategy": "evidence_bundle_cohorts_v1",
             "prompt_candidate_payload_bytes": len(
                 prompt_catalog_json.encode("utf-8")
             ),
@@ -1544,6 +1632,9 @@ class FinancialAgentCalculationMixin:
                 cohort_plan.get("reservation") or {}
             ),
             "candidate_cohorts": list(cohort_plan.get("cohorts") or []),
+            "evidence_bundle_constraints": list(
+                cohort_plan.get("evidence_bundle_constraints") or []
+            ),
             "prompt_excerpt_strategy": "cell_local_fact_projection_v1",
             "candidate_stage_diagnostics": candidate_stage_diagnostics,
             "proposed_candidates": proposed_candidates,
@@ -1563,7 +1654,7 @@ class FinancialAgentCalculationMixin:
                 "candidate_catalog_fingerprint": calculation_plan["candidate_catalog_fingerprint"],
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_catalog_rows),
-                "prompt_candidate_strategy": "obligation_owner_cohorts_v2",
+                "prompt_candidate_strategy": "evidence_bundle_cohorts_v1",
                 "prompt_candidate_payload_bytes": len(
                     prompt_catalog_json.encode("utf-8")
                 ),
@@ -1673,9 +1764,14 @@ class FinancialAgentCalculationMixin:
             for item in catalog
             if str(item.get("candidate_id") or "")
         }
-        island_plan = build_semantic_compilation_islands(obligations)
-        islands = [dict(item) for item in island_plan.get("islands") or []]
         global_cohort_plan = _semantic_candidate_cohorts(catalog, obligations)
+        island_plan = build_semantic_compilation_islands(
+            obligations,
+            evidence_bundle_constraints=list(
+                global_cohort_plan.get("evidence_bundle_constraints") or []
+            ),
+        )
+        islands = [dict(item) for item in island_plan.get("islands") or []]
         global_block_reason = ""
         if len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
             global_block_reason = "semantic compilation island limit exceeded"
@@ -1716,6 +1812,9 @@ class FinancialAgentCalculationMixin:
                     ),
                     candidate_ids_by_owner=dict(
                         island_cohorts.get("candidate_ids_by_owner") or {}
+                    ),
+                    evidence_bundle_constraints=list(
+                        island_cohorts.get("evidence_bundle_constraints") or []
                     ),
                 )
                 program = {
@@ -1938,6 +2037,8 @@ class FinancialAgentCalculationMixin:
         }
 
         selectable_by_owner: Dict[str, List[str]] = {}
+        merged_bundle_constraints: List[Dict[str, Any]] = []
+        merged_bundle_constraint_ids: set[str] = set()
         for result in island_results:
             envelope = result.get("envelope")
             if not isinstance(envelope, CompilationEnvelopeV1):
@@ -1951,6 +2052,11 @@ class FinancialAgentCalculationMixin:
                     for candidate_id in candidate_ids
                     if candidate_id not in selectable_by_owner[owner_id]
                 )
+            for constraint in envelope.visibility.evidence_bundle_constraints:
+                if constraint.constraint_id in merged_bundle_constraint_ids:
+                    continue
+                merged_bundle_constraint_ids.add(constraint.constraint_id)
+                merged_bundle_constraints.append(constraint.to_projection())
         merged_visibility = _semantic_candidate_visibility(
             catalog,
             visible_candidate_ids=[
@@ -1959,6 +2065,7 @@ class FinancialAgentCalculationMixin:
                 for candidate_id in candidate_ids
             ],
             candidate_ids_by_owner=selectable_by_owner,
+            evidence_bundle_constraints=merged_bundle_constraints,
         )
         validation = validate_semantic_calculation_program(
             program=merged_program,
@@ -2045,6 +2152,12 @@ class FinancialAgentCalculationMixin:
                         island.get("dependency_edges") or []
                     ),
                     "coupling_keys": list(island.get("coupling_keys") or []),
+                    "evidence_bundle_constraint_ids": list(
+                        island.get("evidence_bundle_constraint_ids") or []
+                    ),
+                    "evidence_bundle_edges": list(
+                        island.get("evidence_bundle_edges") or []
+                    ),
                     "preflight_errors": list(island.get("errors") or []),
                     "blocked_reason": str(result.get("blocked_reason") or ""),
                     "call_count": int(result.get("call_count") or 0),
@@ -2065,10 +2178,13 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v4",
+            "schema": "semantic_candidate_stage_diagnostics_v5",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
+            "evidence_bundle_constraints": list(
+                global_cohort_plan.get("evidence_bundle_constraints") or []
+            ),
             "attempts": [
                 {
                     **dict(attempt),
@@ -2120,7 +2236,7 @@ class FinancialAgentCalculationMixin:
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_visible_ids),
             "prompt_candidate_ids": prompt_visible_ids,
-            "prompt_candidate_strategy": "compilation_islands_v1",
+            "prompt_candidate_strategy": "compilation_islands_v2",
             "prompt_candidate_payload_bytes": sum(
                 int(result.get("prompt_bytes") or 0)
                 for result in island_results
@@ -2133,6 +2249,9 @@ class FinancialAgentCalculationMixin:
             ),
             "candidate_cohorts": list(
                 global_cohort_plan.get("cohorts") or []
+            ),
+            "evidence_bundle_constraints": list(
+                global_cohort_plan.get("evidence_bundle_constraints") or []
             ),
             "compilation_islands": islands,
             "candidate_stage_diagnostics": candidate_stage_diagnostics,
@@ -2207,7 +2326,7 @@ class FinancialAgentCalculationMixin:
                     "prompt_candidate_payload_bytes"
                 ],
                 "candidate_stage_diagnostics_schema": (
-                    "semantic_candidate_stage_diagnostics_v4"
+                    "semantic_candidate_stage_diagnostics_v5"
                 ),
                 "selected_candidate_count": len(selected_candidate_ids),
                 "program_validation_status": str(
