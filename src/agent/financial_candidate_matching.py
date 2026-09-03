@@ -31,6 +31,15 @@ _STRUCTURED_CANDIDATE_KINDS = frozenset(
     {"structured_value", "structured_row", "table_row", "evidence_row"}
 )
 _VALID_UNIT_FAMILIES = frozenset({"KRW", "USD", "COUNT", "PERCENT"})
+CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
+    "applicability_state",
+    "local_subject",
+    "owner_kind",
+    "document_subject",
+    "unit",
+    "metric",
+    "structured_locality",
+)
 
 
 def _ordered_surfaces(values: Iterable[Any]) -> Tuple[str, ...]:
@@ -171,6 +180,99 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
         "rank_vector": list(match.rank_vector),
         "target_concept_keys": list(match.target_concept_keys),
         "target_local_subjects": list(match.target_local_subjects),
+    }
+
+
+def summarize_candidate_match_ranking(
+    matches_by_id: Mapping[str, CandidateMatchV1 | Mapping[str, Any]],
+    candidate_ids: Sequence[Any],
+) -> Dict[str, Any]:
+    """Summarize factor tiers without collapsing them into one additive score."""
+
+    rows: list[tuple[Tuple[int, ...], str, str]] = []
+    unresolved_count = 0
+    for candidate_id in dict.fromkeys(
+        str(item).strip()
+        for item in candidate_ids
+        if str(item or "").strip()
+    ):
+        raw_match = matches_by_id.get(candidate_id)
+        if isinstance(raw_match, CandidateMatchV1):
+            state = raw_match.state
+            rank_vector = tuple(raw_match.rank_vector)
+        elif isinstance(raw_match, Mapping):
+            state = str(raw_match.get("state") or "")
+            try:
+                rank_vector = tuple(
+                    int(value) for value in (raw_match.get("rank_vector") or [])
+                )
+            except (TypeError, ValueError):
+                rank_vector = ()
+        else:
+            state = ""
+            rank_vector = ()
+        if state == "explicit_conflict":
+            continue
+        if len(rank_vector) != len(CANDIDATE_MATCH_RANK_FACTORS):
+            unresolved_count += 1
+            continue
+        rows.append((rank_vector, candidate_id, state))
+
+    rows.sort(key=lambda item: item[1])
+    rows.sort(key=lambda item: item[0], reverse=True)
+    top_vector = rows[0][0] if rows else ()
+    runner_up_vector = rows[1][0] if len(rows) >= 2 else ()
+    if not rows:
+        relation = "empty"
+    elif len(rows) == 1:
+        relation = "single_candidate"
+    elif top_vector == runner_up_vector:
+        relation = "tie"
+    else:
+        relation = "separated"
+
+    first_differing_factor = ""
+    first_differing_delta = 0
+    if relation == "separated":
+        for index, (top_value, runner_up_value) in enumerate(
+            zip(top_vector, runner_up_vector)
+        ):
+            if top_value == runner_up_value:
+                continue
+            first_differing_factor = CANDIDATE_MATCH_RANK_FACTORS[index]
+            first_differing_delta = top_value - runner_up_value
+            break
+
+    state_counts = {
+        state: sum(
+            1 for _vector, _candidate_id, observed in rows if observed == state
+        )
+        for state in ("compatible", "unknown_only")
+    }
+    eligible_count = len(rows)
+    unknown_only_count = state_counts["unknown_only"]
+    return {
+        "schema": "candidate_ranking_diagnostics_v1",
+        "factor_order": list(CANDIDATE_MATCH_RANK_FACTORS),
+        "eligible_candidate_count": eligible_count,
+        "unresolved_rank_vector_count": unresolved_count,
+        "rank_tier_count": len({row[0] for row in rows}),
+        "top_tier_candidate_count": sum(
+            1
+            for rank_vector, _candidate_id, _state in rows
+            if rank_vector == top_vector
+        ),
+        "top_rank_vector": list(top_vector),
+        "runner_up_rank_vector": list(runner_up_vector),
+        "top_two_relation": relation,
+        "first_differing_factor": first_differing_factor,
+        "first_differing_delta": first_differing_delta,
+        "compatible_count": state_counts["compatible"],
+        "unknown_only_count": unknown_only_count,
+        "unknown_only_denominator": eligible_count,
+        "unknown_only_share": (
+            unknown_only_count / eligible_count if eligible_count else None
+        ),
     }
 
 
@@ -791,9 +893,10 @@ def select_source_defined_physical_row_group(
             "physical_row_id": "",
             "candidate_ids": ordered_ids,
             "required_candidate_ids": [],
+            "complete_option_count": 0,
         }
 
-    row_key, required_ids = min(
+    ranked_complete_rows = sorted(
         complete_rows,
         key=lambda item: (
             -len(item[1]),
@@ -802,6 +905,8 @@ def select_source_defined_physical_row_group(
             item[0],
         ),
     )
+    row_key, required_ids = ranked_complete_rows[0]
+    complete_option_count = len(ranked_complete_rows)
     owner_row = dict(owner or {})
     target = dict(owner_row.get("semantic_target") or {})
     owner_surface = _normalise_spaces(
@@ -887,6 +992,7 @@ def select_source_defined_physical_row_group(
             "physical_row_id": row_key[1],
             "candidate_ids": [],
             "required_candidate_ids": required_ids,
+            "complete_option_count": complete_option_count,
             "policy_group_names": policy_group_names,
         }
 
@@ -904,6 +1010,7 @@ def select_source_defined_physical_row_group(
         "physical_row_id": row_key[1],
         "candidate_ids": projected_ids,
         "required_candidate_ids": required_ids,
+        "complete_option_count": complete_option_count,
         "policy_group_names": policy_group_names,
     }
 

@@ -180,6 +180,33 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         matches = plan["candidate_match_by_id"]
         self.assertEqual(matches["compatible"]["ob_amount"]["state"], "compatible")
         self.assertEqual(matches["unknown"]["ob_amount"]["state"], "unknown_only")
+        ranking = output["ranking_diagnostics"]
+        self.assertEqual(ranking["population"], "eligible_catalog")
+        self.assertEqual(ranking["eligible_candidate_count"], 2)
+        self.assertEqual(ranking["top_tier_candidate_count"], 1)
+        self.assertEqual(ranking["top_two_relation"], "separated")
+        self.assertEqual(
+            ranking["first_differing_factor"],
+            "applicability_state",
+        )
+        self.assertEqual(ranking["unknown_only_share"], 0.5)
+
+    def test_ranking_diagnostics_preserve_factor_ties(self) -> None:
+        left = {**self.target_amount, "candidate_id": "left"}
+        right = {**self.target_amount, "candidate_id": "right"}
+
+        plan = _semantic_candidate_cohorts([right, left], [_obligation()])
+        output = next(
+            row
+            for row in plan["cohorts"]
+            if row["cohort_id"] == "ob_amount:output"
+        )
+        ranking = output["ranking_diagnostics"]
+
+        self.assertEqual(ranking["top_two_relation"], "tie")
+        self.assertEqual(ranking["top_tier_candidate_count"], 2)
+        self.assertEqual(ranking["first_differing_factor"], "")
+        self.assertEqual(ranking["first_differing_delta"], 0)
 
     def test_repeated_text_terms_do_not_outscore_an_exact_cell_match(self) -> None:
         repeated_text = {
@@ -238,6 +265,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         row = payload["candidates_by_id"]["amount-target"]
         self.assertIn("700691", row["source_text"])
         self.assertIn("investment carrying amount", row["source_text"])
+        self.assertNotIn("ranking_diagnostics", payload["cohorts"][0])
         self.assertNotIn("26%", row["source_text"])
         self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v4")
 

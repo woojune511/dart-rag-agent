@@ -14,6 +14,7 @@ from src.agent.financial_candidate_matching import (
     project_candidate_match,
     rank_candidate_matches,
     select_source_defined_physical_row_group,
+    summarize_candidate_match_ranking,
 )
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
@@ -280,6 +281,18 @@ def _project_atomic_evidence_bundle_options(
     selected_ids_by_parent: Dict[str, List[str]] = {}
     active_constraints: List[EvidenceBundleConstraintV1] = []
     selections: List[Dict[str, Any]] = []
+    positions_by_owner = {
+        str(cohort.get("owner_id") or ""): {
+            str(candidate_id): index
+            for index, candidate_id in enumerate(
+                cohort.get("candidate_ids") or []
+            )
+            if str(candidate_id)
+        }
+        for cohort in cohorts
+        if str(cohort.get("owner_type") or "") == "obligation"
+        and str(cohort.get("owner_id") or "")
+    }
     for constraint in constraints:
         selected_option = constraint.options[0]
         selected_map = selected_option.candidate_ids_by_owner()
@@ -299,6 +312,36 @@ def _project_atomic_evidence_bundle_options(
             options=(selected_option,),
         )
         active_constraints.append(active_constraint)
+        ranked_option_diagnostics: List[Dict[str, Any]] = []
+        for option in constraint.options:
+            option_positions = {
+                owner_id: min(
+                    (
+                        positions_by_owner.get(owner_id, {}).get(
+                            candidate_id,
+                            10**6,
+                        )
+                        for candidate_id in candidate_ids
+                    ),
+                    default=10**6,
+                )
+                for owner_id, candidate_ids in (
+                    option.candidate_ids_by_owner().items()
+                )
+            }
+            ranked_option_diagnostics.append(
+                {
+                    "option_id": option.option_id,
+                    "physical_table_id": option.physical_table_id,
+                    "physical_row_id": option.physical_row_id,
+                    "owner_candidate_positions": option_positions,
+                    "position_sum": sum(option_positions.values()),
+                    "worst_position": max(
+                        option_positions.values(),
+                        default=10**6,
+                    ),
+                }
+            )
         selections.append(
             {
                 "constraint_id": active_constraint.constraint_id,
@@ -307,9 +350,13 @@ def _project_atomic_evidence_bundle_options(
                 "selection_strategy": (
                     "owner_cohort_sum_then_worst_rank_v1"
                 ),
+                "complete_option_count": len(constraint.options),
+                "selected_physical_table_id": selected_option.physical_table_id,
+                "selected_physical_row_id": selected_option.physical_row_id,
                 "ranked_options": [
                     option.to_projection() for option in constraint.options
                 ],
+                "ranked_option_diagnostics": ranked_option_diagnostics,
             }
         )
 
@@ -438,6 +485,21 @@ def _active_evidence_bundle_selection_diagnostics(
     ]
 
 
+def _semantic_program_prompt_cohort(
+    raw_cohort: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Keep observability-only ranking fields out of compiler input."""
+
+    cohort = dict(raw_cohort)
+    cohort.pop("ranking_diagnostics", None)
+    source_group = cohort.get("source_defined_group_selection")
+    if isinstance(source_group, Mapping):
+        prompt_source_group = dict(source_group)
+        prompt_source_group.pop("complete_option_count", None)
+        cohort["source_defined_group_selection"] = prompt_source_group
+    return cohort
+
+
 def _rank_applicable_owner_candidates(
     catalog: Sequence[Mapping[str, Any]],
     *,
@@ -446,7 +508,12 @@ def _rank_applicable_owner_candidates(
     limit: int,
     parent_owner: Optional[Mapping[str, Any]] = None,
     excluded_candidate_ids: Sequence[str] = (),
-) -> tuple[List[Dict[str, Any]], Dict[str, int], Dict[str, Dict[str, Any]]]:
+) -> tuple[
+    List[Dict[str, Any]],
+    Dict[str, int],
+    Dict[str, Dict[str, Any]],
+    Dict[str, Any],
+]:
     allowed_kinds = (
         {"numeric", "narrative"}
         if candidate_kind == "evidence"
@@ -501,6 +568,19 @@ def _rank_applicable_owner_candidates(
         state: len(rows)
         for state, rows in rows_by_state.items()
     }
+    ranking_diagnostics = summarize_candidate_match_ranking(
+        matches_by_id,
+        [
+            *rows_by_state["compatible"],
+            *rows_by_state["unknown_only"],
+        ],
+    )
+    ranking_diagnostics.update(
+        {
+            "population": "eligible_catalog",
+            "source": "runtime_candidate_matching",
+        }
+    )
     return (
         selected,
         counts,
@@ -510,6 +590,7 @@ def _rank_applicable_owner_candidates(
             if str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
             in allowed_kinds
         },
+        ranking_diagnostics,
     )
 
 
@@ -668,13 +749,15 @@ def _semantic_candidate_cohorts(
     visible_ids: List[str] = []
     for specification in specifications:
         owner_id = str(specification["owner_id"])
-        selected, counts, owner_matches = _rank_applicable_owner_candidates(
-            catalog,
-            owner=specification["owner"],
-            parent_owner=specification.get("parent_owner"),
-            candidate_kind=str(specification["candidate_kind"]),
-            limit=int(specification["limit"]),
-            excluded_candidate_ids=excluded_by_owner.get(owner_id, []),
+        selected, counts, owner_matches, ranking_diagnostics = (
+            _rank_applicable_owner_candidates(
+                catalog,
+                owner=specification["owner"],
+                parent_owner=specification.get("parent_owner"),
+                candidate_kind=str(specification["candidate_kind"]),
+                limit=int(specification["limit"]),
+                excluded_candidate_ids=excluded_by_owner.get(owner_id, []),
+            )
         )
         candidate_ids = [
             str(item.get("candidate_id") or "")
@@ -701,6 +784,7 @@ def _semantic_candidate_cohorts(
                     candidate_ids
                 ),
                 "match_counts": counts,
+                "ranking_diagnostics": ranking_diagnostics,
                 "limit": int(specification["limit"]),
             }
         )
@@ -760,6 +844,7 @@ def _semantic_candidate_cohorts(
                 "physical_row_id": "",
                 "candidate_ids": original_candidate_ids,
                 "required_candidate_ids": [],
+                "complete_option_count": 0,
             }
         source_group_selection_by_parent[parent_id] = selection
 
@@ -812,6 +897,9 @@ def _semantic_candidate_cohorts(
                 )
                 if candidate_id in candidate_ids
             ],
+            "complete_option_count": int(
+                selection.get("complete_option_count") or 0
+            ),
             "policy_group_names": list(
                 selection.get("policy_group_names") or []
             ),
@@ -1347,7 +1435,9 @@ class FinancialAgentCalculationMixin:
             "schema": "semantic_program_candidate_payload_v4",
             "reservation": dict(cohort_plan.get("reservation") or {}),
             "cohorts": [
-                dict(item) for item in (cohort_plan.get("cohorts") or [])
+                _semantic_program_prompt_cohort(item)
+                for item in (cohort_plan.get("cohorts") or [])
+                if isinstance(item, Mapping)
             ],
             "evidence_bundle_constraints": [
                 dict(item)
@@ -1885,7 +1975,7 @@ class FinancialAgentCalculationMixin:
                 cohorts=list(cohort_plan.get("cohorts") or []),
                 attempts=attempt_candidate_diagnostics,
             ),
-            "schema": "semantic_candidate_stage_diagnostics_v6",
+            "schema": "semantic_candidate_stage_diagnostics_v7",
             "evidence_bundle_constraints": active_bundle_constraints,
             "evidence_bundle_option_selections": active_bundle_selections,
         }
@@ -2513,7 +2603,7 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v6",
+            "schema": "semantic_candidate_stage_diagnostics_v7",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
@@ -2659,7 +2749,7 @@ class FinancialAgentCalculationMixin:
                     "prompt_candidate_payload_bytes"
                 ],
                 "candidate_stage_diagnostics_schema": (
-                    "semantic_candidate_stage_diagnostics_v6"
+                    "semantic_candidate_stage_diagnostics_v7"
                 ),
                 "selected_candidate_count": len(selected_candidate_ids),
                 "program_validation_status": str(

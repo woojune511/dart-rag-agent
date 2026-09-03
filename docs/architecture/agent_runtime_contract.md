@@ -197,9 +197,12 @@ selected; AST, schema, and binding-format retries retain the active option.
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v6` records
-owner factor counts, the active constraint, ranked option selection, island
-composition, call/retry counts, visibility fingerprints, and prompt bytes.
+original obligation order. `semantic_candidate_stage_diagnostics_v7` records
+owner factor counts, factor-vector tier separation, unknown-only share inputs,
+the active constraint, complete-row option counts and ranked option selection,
+island composition, call/retry counts, visibility fingerprints, and prompt
+bytes. Ranking diagnostics are observability-only and are not serialized into
+the compiler prompt.
 
 ## 7. Retrieval boundary
 

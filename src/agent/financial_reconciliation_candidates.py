@@ -357,7 +357,7 @@ def semantic_candidate_stage_diagnostics(
         and str(item.get("physical_cell_key") or "").strip()
     }
     return {
-        "schema": "semantic_candidate_stage_diagnostics_v3",
+        "schema": "semantic_candidate_stage_diagnostics_v4",
         "source_window_origin": source_window_origin,
         "source_window": source_window,
         "source_candidate_count": len(source_candidate_ids),
@@ -403,6 +403,12 @@ def semantic_candidate_stage_diagnostics(
                 ),
                 "match_counts": dict(
                     item.get("match_counts") or {}
+                ),
+                "ranking_diagnostics": dict(
+                    item.get("ranking_diagnostics") or {}
+                ),
+                "source_defined_group_selection": dict(
+                    item.get("source_defined_group_selection") or {}
                 ),
             }
             for item in cohorts

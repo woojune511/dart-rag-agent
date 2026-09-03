@@ -719,10 +719,17 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v6",
+            "semantic_candidate_stage_diagnostics_v7",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)
+        self.assertTrue(
+            all(
+                cohort["ranking_diagnostics"]["population"]
+                == "eligible_catalog"
+                for cohort in stage_diagnostics["cohorts"]
+            )
+        )
         self.assertEqual(len(trace["calculation_operands"]), 2)
         merged = {**state, **compiled}
         executed = agent._execute_semantic_calculation_program(merged)
