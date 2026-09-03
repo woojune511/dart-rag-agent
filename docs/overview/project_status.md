@@ -27,6 +27,9 @@ Last updated: 2026-09-04
 - The candidate catalog remains complete and stable. Cohort prompts contain
   cell-local structured text and one factor projection; they do not perform a
   second keyword ranking pass.
+- An opt-in, bounded local cross-encoder can reorder only exact strongest-factor
+  ties; low confidence or failure keeps the default order, and its diagnostics
+  never enter the compiler prompt. It remains disabled by default.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -61,10 +64,10 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The reviewed head passes 790
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 802
 local unittest cases, the 86-literal domain audit, import/topology checks,
-pycompile, and `git diff --check`. Both Python 3.13 CI jobs passed; the latest
-Codex review reported no major issue and all review threads are resolved.
+pycompile, and `git diff --check`. The predecessor main build passed both Python
+3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
 
 The exact atomic-bundle admission preserved the order `HYU_T2_010`,
 `HYU_T3_072`, `SAM_T2_078`. Manifest
@@ -115,22 +118,15 @@ no disposable store remains.
 
 ## Provider-free candidate ambiguity baseline
 
-The audit rebuilds saved source windows from the immutable structure graph and
-table sidecar, without Chroma or providers, and accepts them only when all saved
-source/catalog counts and fingerprints match. All three matched: 413 candidates
-for T2, 3,191 for T3, and 503 for Samsung.
-
-Eight of 16 owner cohorts have a multi-candidate top factor tier (T2 1, T3 4,
-Samsung 3); 3,301 of 3,323 non-conflicting candidate-owner evaluations are
-`unknown_only` (`99.34%`). Five islands used 154,689 prompt bytes with no retry
-or failure. T3's two complete rows were separated by position-sum 2 and
-worst-position 1. Two audit runs were byte-identical, while saved result SHA-256
-`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
-remained unchanged.
-
-This justifies a provider-free tie-breaker inside the strongest tier, not a
-whole-catalog keyword score; existing applicability, visibility, and row-bundle
-contracts remain authoritative.
+The read-only audit rebuilt all three immutable source windows with matching
+fingerprints: 413 candidates for T2, 3,191 for T3, and 503 for Samsung. Eight of
+16 cohorts have a multi-candidate top factor tier; 3,301/3,323 non-conflicting
+candidate-owner evaluations are `unknown_only` (`99.34%`). Five islands used
+154,689 prompt bytes with no retry or failure. T3's two complete rows differ by
+position-sum 2 and worst-position 1. Two audits were byte-identical and saved
+result SHA-256 `b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
+was unchanged. These results justify only a strongest-tier tie-breaker;
+applicability, visibility, and row-bundle contracts remain authoritative.
 
 ## Next work
 
@@ -142,9 +138,11 @@ contracts remain authoritative.
    ignored result files were copied into the primary results tree and verified
    before removal. Do not port the superseded predecessor contracts; restore
    the stash on a separate branch only for explicit archaeology.
-3. Implement and test the bounded top-tier semantic tie-breaker provider-free.
-   Do not rerank lower tiers or add benchmark-specific vocabulary. Keep the
-   persisted typed fact index behind a separate versioned migration contract.
+3. Keep the top-tier tie-breaker opt-in: 31 saved pairs produced no confident
+   first-choice change. Promote only after a labeled top-1 gain and warm p95
+   below one second; never rerank lower tiers or add benchmark vocabulary.
+4. Prefer hard-negative training or a smaller/GPU/ONNX scorer if needed. Keep
+   the typed fact index behind a separate versioned ingest/store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.

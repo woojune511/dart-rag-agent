@@ -100,6 +100,22 @@ explicit scope, subject, or unit conflict. Within each owner cohort,
 `compatible` candidates always rank before `unknown_only`; explicit conflicts
 are excluded. Equal factor tiers are deterministic and source-diverse.
 
+An optional local cross-encoder may break a tie only inside the strongest exact
+factor-vector tier. It never admits an explicit conflict, promotes a lower
+tier, changes owner visibility, or selects cells independently of a physical-row
+bundle. The initial query pass scores at most 12 candidates per cohort and 64
+pairs in one batch. A top-versus-runner margin below `0.05`, capacity overflow,
+or scorer unavailability preserves the deterministic order. Model loading is
+lazy, pair scores are process-local and bounded, and the feature is disabled by
+default until a representative hard-negative gate shows a quality gain within
+the latency budget.
+
+Activation is explicit through routing config
+`enable_semantic_candidate_tiebreaker` or
+`DART_SEMANTIC_TIEBREAKER_ENABLED=1`. The policy-pinned model and code revisions
+are the default; overriding the model does not inherit remote-code trust unless
+`DART_SEMANTIC_TIEBREAKER_TRUST_REMOTE_CODE` is also explicitly enabled.
+
 Structured prompt rows contain only the physical cell value and its row/column
 axes, not the parent chunk's flattened table body. The prompt receives the
 factor projection but does not rerank it. Validation recomputes the same matcher
@@ -197,12 +213,13 @@ selected; AST, schema, and binding-format retries retain the active option.
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v7` records
+original obligation order. `semantic_candidate_stage_diagnostics_v8` records
 owner factor counts, factor-vector tier separation, unknown-only share inputs,
 the active constraint, complete-row option counts and ranked option selection,
-island composition, call/retry counts, visibility fingerprints, and prompt
-bytes. Ranking diagnostics are observability-only and are not serialized into
-the compiler prompt.
+island composition, call/retry counts, visibility fingerprints, prompt bytes,
+and bounded semantic tie-break status, scorer identity, scores, and margin.
+Ranking diagnostics are observability-only and are not serialized into the
+compiler prompt.
 
 ## 7. Retrieval boundary
 

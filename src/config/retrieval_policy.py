@@ -579,6 +579,22 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "narrative_source_chars": 600,
         }
 ,
+    'semantic_top_tier_tiebreaker': {
+            "enabled_by_default": False,
+            "model_name": "Alibaba-NLP/gte-multilingual-reranker-base",
+            "revision": "8215cf04918ba6f7b6a62bb44238ce2953d8831c",
+            "code_revision": "40ced75c3017eb27626c9d4ea981bde21a2662f4",
+            "max_length": 256,
+            "query_text_chars": 320,
+            "candidate_text_chars": 240,
+            "batch_size": 32,
+            "cache_size": 2048,
+            "max_candidates_per_cohort": 12,
+            "max_pairs_per_query": 64,
+            "min_score_margin": 0.05,
+            "trust_remote_code": True,
+        }
+,
 }
 
 

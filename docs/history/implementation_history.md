@@ -12563,3 +12563,23 @@ are complete. It remains only as an audit record, not an active priority.
   heartbeat bundles remain ignored. GitHub Actions `33007869709` passed reviewer
   contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,172/2,172
   in 211.605 seconds. PR #86 stays draft and `main` unchanged.
+
+## Bounded strongest-tier semantic tie-breaker (2026-09-04)
+
+- Added a lazy local cross-encoder behind an opt-in flag. Deterministic scope,
+  subject, unit, metric, locality, owner visibility, and complete-row bundle
+  contracts remain authoritative; only an exact strongest factor tie can move.
+- Pair text is typed and cell-local. Initial ranking uses one bounded batch,
+  per-cohort and per-query caps, a bounded cache, and a minimum score margin.
+  Low margin, capacity, load, or inference failure preserves the old order.
+- Diagnostics advance to `semantic_candidate_stage_diagnostics_v8` and record
+  scorer identity, pair counts, scores, and margins without serializing them
+  into the compiler prompt. Heavy ML imports and model loading remain lazy.
+- The verified three-question source replay exposed 31 pairs within 248 model
+  tokens. Every cohort abstained, no first candidate changed, and T3 retained
+  table 82, so the feature remains disabled by default rather than claiming a
+  quality improvement.
+- Focused semantic/import/topology tests passed 90/90, the runtime-domain audit
+  passed 86 reviewed literals, and full unittest discovery passed 802/802. No
+  LLM provider run, benchmark refresh, fresh ingest, store mutation, or
+  historical artifact rewrite was performed.

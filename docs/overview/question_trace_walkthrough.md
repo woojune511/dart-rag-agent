@@ -47,6 +47,12 @@ compile/validate한다. Runtime은 완전한 row option을 owner cohort 순위�
 그 행으로 projection되며, 다른 행의 candidate는 prompt에 들어가지 않는다.
 Numeric compatibility narrative는 scope 보조 근거로 계속 노출된다.
 
+설정으로 활성화된 local cross-encoder는 hard applicability를 통과한 최상위
+factor 동률 안에서만 한 번에 점수를 계산한다. 점수 차가 작거나 입력 상한을
+넘거나 모델을 사용할 수 없으면 deterministic 순서를 유지한다. 이 점수는
+compiler prompt에 들어가지 않으며, row-bundle 선택은 재정렬된 owner 순위를
+사용하되 여전히 하나의 완전한 물리 행만 노출한다.
+
 ```text
 retrieve_evidence
   -> build_candidates
@@ -99,7 +105,7 @@ Internal callers must use these attributes; flat dict fallback은 없다.
 | wrong scope/search window | `retrieval_debug_trace` |
 | candidate missing or wrong row | `SemanticTargetV1`, factor matches, and cohort diagnostics |
 | hidden/cross-owner ID | `CandidateVisibilityV1` and compile validation |
-| compile retry | `semantic_candidate_stage_diagnostics_v7` island, factor tiers, selected bundle option, and attempts |
+| compile retry | `semantic_candidate_stage_diagnostics_v8` island, factor tiers, semantic tie status, selected bundle option, and attempts |
 | execution refusal | `visibility_mismatch`, `validation_drift`, `evidence_bundle_mismatch`, or semantic validation errors |
 | answer/evidence mismatch | `AgentAnswer`, `ReviewTrace.evidence_items`, ledger integrity |
 

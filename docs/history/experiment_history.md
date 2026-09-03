@@ -127,6 +127,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)](#typed-candidate-ranking-env-bound-three-row-provider-gate-2026-09-03) | typed owner target matcher와 env-bound admission의 승인된 동일 3문항 store-fixed replay | 기계적 3/3 `ok`, error 0, ledger 3/3이나 T3가 table 83의 `25.92%`와 table 82의 `700,691백만원`을 혼합해 source-consistent gate 2/3 HOLD; `$0.1356168` plus unpriced embeddings, no retry |
 | [Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)](#evidence-bundle-fail-closed-three-row-provider-gate-2026-09-03) | physical-row bundle 계약과 exact manifest `b068ac4b...5501`의 승인된 동일 3문항 store-fixed replay | T3 mixed-row proposal을 validator가 거절해 잘못된 출력을 막았지만 0/3 incomplete; 전체 runtime completeness 2/3 HOLD, `$0.1645241` plus unpriced embeddings, no runner retry |
 | [Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)](#atomic-evidence-bundle-selection-three-row-provider-gate-2026-09-03) | compiler 전에 complete physical-row option을 하나 선택하는 exact manifest `06a40243...016`의 승인된 동일 3문항 replay | T3 direct pair가 table 82 row `9:2`를 공유하고 전체 runtime gate 3/3 PASS; `$0.1212257` plus unpriced embeddings, no runner retry |
+| [Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)](#bounded-local-cross-encoder-tie-breaker-characterization-2026-09-04) | strongest exact factor tier의 31개 pair만 local GTE로 점수화 | 모든 동률이 margin gate에서 abstain해 기존 첫 후보와 T3 table 82를 보존; default disabled, provider benchmark 0 |
 
 ## 보는 법
 
@@ -137,6 +138,51 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)
+
+### Contract and implementation
+
+- The deterministic applicability vector remains the admission and tier
+  authority. A local cross-encoder sees only candidates tied in the strongest
+  exact vector; it cannot admit conflicts, promote lower tiers, expand owner
+  visibility, or split a physical-row bundle.
+- The scorer is lazy and disabled by default. The pinned multilingual GTE model
+  runs in one batch with 12-candidate-per-cohort and 64-pair initial-query caps,
+  a bounded process cache, and a `0.05` top-score margin. Unavailability,
+  overflow, or low margin preserves the previous deterministic order.
+- Pair text contains the typed owner target plus a bounded cell-local evidence
+  excerpt. The saved three-question projection contained 31 pairs and stayed
+  within the model input window: mean 183.3 tokens, maximum 248 of 256.
+- Semantic scores and margins are diagnostic-only and are removed from compiler
+  prompt serialization. Candidate IDs, catalog fingerprints, visibility,
+  validation, and execution contracts are unchanged.
+
+### Saved-artifact characterization
+
+The immutable source windows for `HYU_T2_010`, `HYU_T3_072`, and
+`SAM_T2_078` rebuilt with verified catalog fingerprints. T2 exposed 2 pairs
+(1 unique inference pair), T3 20 (13 unique), and Samsung 9 (6 unique). Every
+top-versus-runner margin was between `0.0` and `0.00845835`, below the `0.05`
+gate. The scorer therefore changed no first candidate, and the T3 complete-row
+selector retained table 82.
+
+On the local CPU environment, model score wall time was about 6.107 seconds for
+the cold T2 load, 1.064 seconds for the warm 20-pair T3 batch, and 0.656 seconds
+for the warm 9-pair Samsung batch. Model weights were fetched only to the
+user-level Hugging Face cache for this local characterization; subsequent probes
+used local-only loading. No LLM provider, benchmark runner, fresh ingest,
+document embedding, source store mutation, or historical result rewrite ran.
+
+### Decision and follow-up
+
+The implementation boundary and latency are usable, but this model has not yet
+shown a ranking-quality gain on the known hard negatives. The feature remains
+opt-in. Promotion requires a labeled hard-negative set with a measurable top-1
+gain, no physical-row regression, and warm deployment p95 below one second.
+If it misses that gate, evaluate better hard-negative training or a
+smaller/GPU/ONNX reranker rather than adding keyword weights. The persisted
+typed fact index remains a separate versioned ingest/store migration.
 
 ## Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)
 

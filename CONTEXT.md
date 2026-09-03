@@ -23,6 +23,10 @@ Last updated: 2026-09-04
 - Typed per-owner matching replaces additive keyword scoring. Candidate prompts
   are cell-local, and related outputs select one complete physical row before
   compiler invocation.
+- The current feature branch adds an opt-in local cross-encoder only for exact
+  strongest-factor ties. It is lazy, bounded, margin-gated, and excluded from
+  compiler prompts; the default remains disabled because the saved hard
+  negatives did not show a confident ranking improvement.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -42,11 +46,11 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The reviewed PR head passed 790 local unittest cases, the 86-literal runtime
+- The current feature branch passed 802 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
-- GitHub's Python 3.13 reviewer-contract and full-unittest jobs passed. The
-  current-head Codex review reported no major issue and all review threads are
-  resolved.
+- The predecessor main build's Python 3.13 reviewer-contract and full-unittest
+  jobs passed. This local feature branch has not been pushed or remotely
+  reviewed.
 - The approved store-fixed three-question gate remains **3/3 runtime-complete**
   with runtime error 0 and ledger `ok`: T2 retains `87.0만 대` and `78.1만 대`;
   T3 selects one table-82 row for `26%` and `700,691백만원`; Samsung retains its
@@ -99,9 +103,15 @@ archaeology.
    one complete-row bundle has two options; the selected row wins by
    position-sum margin 2 and
    worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. The next implementation should be a bounded, provider-free tie-breaker only
-   inside those tied top factor tiers. It must preserve hard applicability,
-   owner visibility, and complete-row bundle selection. Do not rerank the whole
-   catalog or introduce benchmark-specific terms.
-4. Keep the persisted typed fact index deferred behind a separately approved,
+3. The bounded local tie-breaker is implemented but not promoted. Saved-artifact
+   replay scored 31 tied pairs: every cohort abstained below the `0.05` margin,
+   no first candidate changed, and T3 retained table 82. CPU model scoring was
+   about 1.07 seconds for the 20-pair T3 batch after warm-up; cold load was about
+   6.1 seconds. Enable it only after a labeled hard-negative set demonstrates a
+   top-1 gain and deployment warm p95 stays within one second.
+4. If that gate fails, prefer better training pairs or a smaller/GPU/ONNX
+   reranker over adding keyword weights. Keep the current deterministic matcher
+   as the authority and do not run another paid benchmark merely to tune the
+   reranker.
+5. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

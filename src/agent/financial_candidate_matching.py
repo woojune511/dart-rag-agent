@@ -686,8 +686,9 @@ def rank_candidate_matches(
     allowed_kinds: Sequence[str],
     limit: int,
     excluded_candidate_ids: Sequence[str] = (),
+    top_tier_semantic_scores: Optional[Mapping[str, float]] = None,
 ) -> list[Dict[str, Any]]:
-    """Select stronger factor tiers first, diversifying sources within a tie."""
+    """Select factor tiers first and use semantics only inside the top tie."""
 
     excluded = {str(item) for item in excluded_candidate_ids if str(item)}
     allowed = {str(item) for item in allowed_kinds}
@@ -710,16 +711,45 @@ def rank_candidate_matches(
     )
     selected: list[Dict[str, Any]] = []
     bounded_limit = max(0, int(limit))
-    for tier_vector in tier_vectors:
+    semantic_scores = {
+        str(candidate_id): float(score)
+        for candidate_id, score in dict(
+            top_tier_semantic_scores or {}
+        ).items()
+    }
+    for tier_index, tier_vector in enumerate(tier_vectors):
         tier = sorted(
             (match for match in eligible if match.rank_vector == tier_vector),
             key=lambda item: item.candidate_id,
         )
+        semantic_order: Dict[str, int] = {}
+        if tier_index == 0 and semantic_scores:
+            tier.sort(
+                key=lambda item: (
+                    -semantic_scores.get(item.candidate_id, float("-inf")),
+                    item.candidate_id,
+                )
+            )
+            semantic_order = {
+                match.candidate_id: index for index, match in enumerate(tier)
+            }
         by_source: Dict[str, list[CandidateMatchV1]] = {}
         for match in tier:
             source_key = project_candidate_fact(candidate_by_id[match.candidate_id]).source_key
             by_source.setdefault(source_key, []).append(match)
-        source_keys = sorted(by_source)
+        source_keys = sorted(
+            by_source,
+            key=lambda source_key: (
+                min(
+                    (
+                        semantic_order.get(match.candidate_id, 10**9)
+                        for match in by_source[source_key]
+                    ),
+                    default=10**9,
+                ),
+                source_key,
+            ),
+        )
         while source_keys and len(selected) < bounded_limit:
             next_source_keys: list[str] = []
             for source_key in source_keys:

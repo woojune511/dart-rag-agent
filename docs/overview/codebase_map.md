@@ -24,6 +24,7 @@
 | `src/agent/financial_graph_planning.py` | routing and requirement planning |
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
 | `src/agent/financial_reconciliation_candidates.py` | source candidate and catalog construction |
+| `src/agent/financial_candidate_tiebreaker.py` | optional lazy local cross-encoder for strongest-tier ties only |
 | `src/agent/financial_graph_calculation.py` | cohorts, compilation islands, targeted retry |
 | `src/agent/financial_calculation_execution.py` | applicability, validation, deterministic execution |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
