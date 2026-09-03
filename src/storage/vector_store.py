@@ -145,15 +145,19 @@ class VectorStoreManager:
             model_name=self.embedding_model_name,
         )
 
-        logger.info(
-            "Loading %s embeddings (%s). A full reindex is recommended when this model changes.",
-            self.embedding_provider,
-            self.embedding_model_name,
-        )
-        self.embeddings = create_embeddings(
-            provider=self.embedding_provider,
-            model_name=self.embedding_model_name,
-        )
+        if self.force_bm25_only:
+            logger.info("Skipping dense embedding initialization in forced BM25-only mode.")
+            self.embeddings = None
+        else:
+            logger.info(
+                "Loading %s embeddings (%s). A full reindex is recommended when this model changes.",
+                self.embedding_provider,
+                self.embedding_model_name,
+            )
+            self.embeddings = create_embeddings(
+                provider=self.embedding_provider,
+                model_name=self.embedding_model_name,
+            )
 
         chroma_cls = _chroma_cls()
         self.vector_store = chroma_cls(

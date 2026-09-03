@@ -5,6 +5,7 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 
@@ -102,6 +103,33 @@ class _BrokenGetVectorStore:
 
 
 class VectorStoreFallbackTests(unittest.TestCase):
+    def test_force_bm25_only_does_not_initialize_dense_embeddings(self) -> None:
+        class _CaptureChroma:
+            def __init__(self, *, embedding_function, **_kwargs):
+                self.embedding_function = embedding_function
+
+        with TemporaryDirectory() as temporary_directory:
+            with (
+                patch(
+                    "src.storage.vector_store.create_embeddings",
+                    side_effect=AssertionError("embedding construction forbidden"),
+                ),
+                patch(
+                    "src.storage.vector_store._chroma_cls",
+                    return_value=_CaptureChroma,
+                ),
+                patch.object(VectorStoreManager, "_init_bm25"),
+            ):
+                manager = VectorStoreManager(
+                    persist_directory=temporary_directory,
+                    embedding_provider="openai",
+                    embedding_model_name="text-embedding-3-large",
+                    force_bm25_only=True,
+                )
+
+        self.assertIsNone(manager.embeddings)
+        self.assertIsNone(manager.vector_store.embedding_function)
+
     def test_graph_persistence_writes_deduplicated_table_payload_sidecar(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             graph_path = Path(tmp_dir) / "document_structure_graph.json"
