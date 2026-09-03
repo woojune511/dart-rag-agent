@@ -189,6 +189,7 @@ class ContextGenerator:
         self,
         chunks: List,
         on_progress=None,
+        on_store_progress=None,
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
     ) -> Dict[str, Any]:
@@ -233,7 +234,11 @@ class ContextGenerator:
             log_item_failures=True,
         )
         texts, metadatas = self._contextual_index_payload(chunks, contexts)
-        self.vsm.add_documents(texts, metadatas)
+        self.vsm.add_documents(
+            texts,
+            metadatas,
+            on_progress=on_store_progress,
+        )
         logger.info("[contextual_ingest] indexed %s contextualized chunks", total)
         return {
             "mode": "contextual",

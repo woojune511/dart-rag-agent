@@ -29,8 +29,47 @@ class _ContextGenerator:
     def __init__(self):
         self.calls = []
 
-    def contextual_ingest(self, chunks, *, max_workers):
+    def contextual_ingest(
+        self,
+        chunks,
+        *,
+        on_store_progress=None,
+        max_workers,
+    ):
         self.calls.append((list(chunks), max_workers))
+        if on_store_progress:
+            on_store_progress(len(chunks), len(chunks))
+
+
+class _FailAfterFirstContextGenerator(_ContextGenerator):
+    def contextual_ingest(
+        self,
+        chunks,
+        *,
+        on_store_progress=None,
+        max_workers,
+    ):
+        super().contextual_ingest(
+            chunks,
+            on_store_progress=on_store_progress,
+            max_workers=max_workers,
+        )
+        if len(self.calls) > 1:
+            raise RuntimeError("synthetic later-report failure")
+
+
+class _FailAfterFirstBatchContextGenerator(_ContextGenerator):
+    def contextual_ingest(
+        self,
+        chunks,
+        *,
+        on_store_progress=None,
+        max_workers,
+    ):
+        self.calls.append((list(chunks), max_workers))
+        if on_store_progress:
+            on_store_progress(1, len(chunks))
+        raise RuntimeError("synthetic later-batch failure")
 
 
 class _Store:
@@ -71,6 +110,73 @@ class IngestServiceTests(unittest.TestCase):
 
             self.assertEqual(result["chunks_added"], 1)
             self.assertEqual(len(context_generator.calls), 1)
+            self.assertEqual(read_store_manifest(root), manifest)
+
+    def test_partial_success_records_manifest_before_later_report_failure(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            reports = []
+            for index in range(2):
+                report_path = root / f"report-{index}.xml"
+                report_path.write_text("report", encoding="utf-8")
+                reports.append(
+                    SimpleNamespace(
+                        file_path=str(report_path),
+                        corp_name="sample",
+                        stock_code="000000",
+                        year=2024,
+                        report_type="annual",
+                        rcept_no=f"receipt-{index}",
+                    )
+                )
+            manifest = canonical_store_manifest(collection_name="runtime")
+            service = IngestService(
+                _Fetcher(reports),
+                _Parser(),
+                _FailAfterFirstContextGenerator(),
+                _Store(root),
+                manifest,
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "synthetic later-report failure",
+            ):
+                service.ingest_company("sample", [2024], max_workers=2)
+
+            self.assertEqual(read_store_manifest(root), manifest)
+            service._assert_manifest_boundary()
+
+    def test_partial_batch_records_manifest_before_indexing_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            report_path = root / "report.xml"
+            report_path.write_text("report", encoding="utf-8")
+            report = SimpleNamespace(
+                file_path=str(report_path),
+                corp_name="sample",
+                stock_code="000000",
+                year=2024,
+                report_type="annual",
+                rcept_no="receipt-1",
+            )
+            manifest = canonical_store_manifest(collection_name="runtime")
+            service = IngestService(
+                _Fetcher([report]),
+                _Parser(),
+                _FailAfterFirstBatchContextGenerator(),
+                _Store(root),
+                manifest,
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "synthetic later-batch failure",
+            ):
+                service.ingest_company("sample", [2024], max_workers=2)
+
             self.assertEqual(read_store_manifest(root), manifest)
 
     def test_nonempty_unmanifested_store_is_not_auto_adopted(self) -> None:

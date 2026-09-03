@@ -559,6 +559,76 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(result["full_eval"], {})
         self.assertEqual(cache_meta["status"], "completed")
 
+    def test_exact_in_progress_store_is_preserved_for_partial_resume(self) -> None:
+        from src.ops.benchmark_runner import (
+            DEFAULT_COLLECTION_NAME,
+            _build_cache_signature,
+            _build_store_signature,
+            _collect_report_inventory,
+            _slugify,
+            _write_cache_meta,
+        )
+
+        class FakeVectorStore:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        class FakeParser:
+            def __init__(self, **_kwargs):
+                pass
+
+            def process_document(self, _report_path, metadata):
+                return [SimpleNamespace(content="local report", metadata=dict(metadata))]
+
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            _, output_dir, defaults, experiments, company_runs = _canonical_store_only_profile(root)
+            config = {**defaults, **company_runs[0]["defaults"], **experiments[0]}
+            config_with_inventory = dict(config)
+            config_with_inventory["report_inventory"] = _collect_report_inventory(
+                config,
+                dict(config["metadata"]),
+                [],
+            )
+            config_with_inventory["auto_fetch_missing_report"] = False
+            collection_name = f"{DEFAULT_COLLECTION_NAME}_{_slugify(config['id'])}"
+            store_signature = _build_store_signature(config_with_inventory, collection_name)
+            cache_signature = _build_cache_signature(config_with_inventory, collection_name)
+            persist_dir = output_dir / "stores" / _slugify(config["id"])
+            persist_dir.mkdir(parents=True)
+            sentinel = persist_dir / "partial-vector-store"
+            sentinel.write_text("preserve", encoding="utf-8")
+            _write_cache_meta(
+                persist_dir,
+                {
+                    "status": "in_progress",
+                    "signature": cache_signature,
+                    "store_signature": store_signature,
+                },
+            )
+
+            with patch(
+                "src.ops.benchmark_runner._vector_store_manager_cls",
+                return_value=FakeVectorStore,
+            ), patch(
+                "src.ops.benchmark_runner._financial_parser_cls",
+                return_value=FakeParser,
+            ), patch(
+                "src.ops.benchmark_runner._run_ingest",
+                side_effect=RuntimeError("stop after store preparation"),
+            ), patch("src.ops.benchmark_runner.shutil.rmtree") as remove_store:
+                with self.assertRaisesRegex(RuntimeError, "stop after store preparation"):
+                    run_screening_experiment(
+                        config,
+                        output_dir,
+                        {},
+                        {"enabled": True, "question_ids": ["Q1"]},
+                        store_only=True,
+                    )
+
+            remove_store.assert_not_called()
+            self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserve")
+
     def test_write_json_replaces_from_same_directory(self) -> None:
         with TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "results.json"

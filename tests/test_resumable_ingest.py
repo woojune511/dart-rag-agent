@@ -266,6 +266,52 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertTrue(_cache_meta_is_completed({"signature": {"x": 1}}))
         self.assertFalse(_cache_meta_is_completed({"status": "in_progress"}))
 
+    def test_matching_in_progress_metadata_authorizes_partial_store_resume(
+        self,
+    ) -> None:
+        from src.ops.benchmark_runner import _cache_meta_allows_partial_resume
+
+        cache_signature = {"cache": "exact"}
+        store_signature = {"store": "exact"}
+        metadata = {
+            "status": "in_progress",
+            "signature": cache_signature,
+            "store_signature": store_signature,
+        }
+
+        self.assertTrue(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature={"cache": "changed"},
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                {**metadata, "status": "completed"},
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=False,
+            )
+        )
+
     def test_store_signature_tracks_embedding_backend(self) -> None:
         config = {
             "metadata": {"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "rcept_no": "r1"},

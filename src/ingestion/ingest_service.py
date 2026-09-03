@@ -71,6 +71,15 @@ class IngestService:
         reports = list(
             self.fetcher.fetch_company_reports(company, normalized_years) or []
         )
+        manifest_recorded = read_store_manifest(self.store.persist_directory) is not None
+
+        def record_manifest_after_mutation(completed: int, _total: int) -> None:
+            nonlocal manifest_recorded
+            if int(completed or 0) <= 0 or manifest_recorded:
+                return
+            write_store_manifest(self.store.persist_directory, self.manifest)
+            manifest_recorded = True
+
         total_chunks = 0
         skipped = 0
         missing_files = 0
@@ -90,11 +99,13 @@ class IngestService:
                 continue
             self.context_generator.contextual_ingest(
                 chunks,
+                on_store_progress=record_manifest_after_mutation,
                 max_workers=max_workers,
             )
             total_chunks += len(chunks)
-        if total_chunks:
-            write_store_manifest(self.store.persist_directory, self.manifest)
+            if not manifest_recorded:
+                write_store_manifest(self.store.persist_directory, self.manifest)
+                manifest_recorded = True
         return {
             "company": str(company),
             "years": normalized_years,

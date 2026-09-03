@@ -833,6 +833,21 @@ def _cache_meta_is_completed(cache_meta: Dict[str, Any]) -> bool:
     return bool(cache_meta) and str(cache_meta.get("status") or "completed") == "completed"
 
 
+def _cache_meta_allows_partial_resume(
+    cache_meta: Dict[str, Any],
+    *,
+    cache_signature: Dict[str, Any],
+    store_signature: Dict[str, Any],
+    enabled: bool,
+) -> bool:
+    return bool(
+        enabled
+        and str(cache_meta.get("status") or "") == "in_progress"
+        and _cache_meta_matches(cache_meta, cache_signature)
+        and cache_meta.get("store_signature") == store_signature
+    )
+
+
 def _merge_resume_metrics(metrics: Dict[str, Any], add_metrics: Dict[str, Any]) -> Dict[str, Any]:
     merged = dict(metrics)
     merged["resume_enabled"] = bool(add_metrics.get("resume_enabled", False))
@@ -4034,6 +4049,12 @@ def run_screening_experiment(
     store_matches = _cache_meta_matches(cache_meta, cache_signature)
     context_matches = _cache_meta_matches(context_cache, cache_signature)
     store_signature_matches = _store_signature_matches(store_meta, store_signature)
+    partial_store_resume = _cache_meta_allows_partial_resume(
+        cache_meta,
+        cache_signature=cache_signature,
+        store_signature=store_signature,
+        enabled=reuse_store and resume_partial_store,
+    )
 
     if force_reindex:
         if persist_dir.exists():
@@ -4042,12 +4063,18 @@ def run_screening_experiment(
             context_cache_path.unlink()
     elif persist_dir.exists():
         if not store_meta:
-            logger.info(
-                "Discarding unmanaged benchmark store without a manifest: %s",
-                persist_dir,
-            )
-            shutil.rmtree(persist_dir)
-            cache_meta = {}
+            if partial_store_resume:
+                logger.info(
+                    "Resuming exact in-progress benchmark store: %s",
+                    persist_dir,
+                )
+            else:
+                logger.info(
+                    "Discarding unmanaged benchmark store without a manifest: %s",
+                    persist_dir,
+                )
+                shutil.rmtree(persist_dir)
+                cache_meta = {}
         elif not store_signature_matches:
             logger.info(
                 "Discarding store due to embedding/store signature mismatch: expected=%s actual=%s",
