@@ -28,6 +28,7 @@ from src.ops.evaluator import (
     _compute_ndcg_at_k,
     _contains_section,
     _compute_calculation_correctness,
+    _compute_faithfulness,
     _compute_grounded_rendering_correctness,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
@@ -46,6 +47,7 @@ from src.ops.evaluator import (
     _should_override_numeric_faithfulness,
     _should_override_numeric_grounding,
     _should_override_numeric_grounding_from_runtime_evidence,
+    FaithfulnessJudgement,
 )
 from src.agent import financial_runtime_trace
 from src.agent.financial_run_result import (
@@ -109,6 +111,33 @@ class _FailingAgent:
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_faithfulness_judge_returns_score_and_persistable_reason(self) -> None:
+        judge = Mock()
+        judge.invoke.return_value = Mock(
+            content=json.dumps(
+                {
+                    "score": 0.7,
+                    "reason": "One summary phrase is interpretive.",
+                }
+            )
+        )
+
+        result = _compute_faithfulness(
+            judge,
+            "The result increased because of the review.",
+            ["The result increased. A review was also performed."],
+        )
+
+        self.assertEqual(
+            result,
+            FaithfulnessJudgement(
+                score=0.7,
+                reason="One summary phrase is interpretive.",
+            ),
+        )
+        self.assertIn('"score"', judge.invoke.call_args.args[0])
+        self.assertIn('"reason"', judge.invoke.call_args.args[0])
+
     def _evaluate_fixed_qualitative_score(
         self, *, question, answer, raw_score, answer_type="summary", category="comparison",
         format_preference="mixed", narrative=True, numeric_fast_gate=False,
@@ -187,6 +216,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                     judge.assert_called_once()
                     self.assertEqual(result.raw_faithfulness, raw_score)
                     self.assertEqual(result.faithfulness, raw_score)
+                    self.assertIsNone(result.faithfulness_reason)
                     self.assertIsNone(result.faithfulness_override_reason)
 
     def test_numeric_pass_and_fast_gate_cannot_bypass_mixed_qualitative_judge(self) -> None:

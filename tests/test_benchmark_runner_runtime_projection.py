@@ -192,6 +192,7 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
             evidence=[],
             raw_faithfulness=1.0,
             faithfulness=1.0,
+            faithfulness_reason="All answer claims are present in context.",
             faithfulness_override_reason=None,
             answer_relevancy=1.0,
             context_recall=1.0,
@@ -267,6 +268,10 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
 
         row = _serialise_eval_results([result])[0]
 
+        self.assertEqual(
+            row["faithfulness_reason"],
+            "All answer claims are present in context.",
+        )
         self.assertEqual(len(row["retrieval_debug_trace_history"]), 2)
         self.assertEqual(
             row["retrieval_debug_trace_history"][1]["query_budget"]["source"]["active_subtask_id"],

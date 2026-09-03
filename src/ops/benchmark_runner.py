@@ -1173,6 +1173,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "evidence": result.evidence,
                 "raw_faithfulness": result.raw_faithfulness,
                 "faithfulness": result.faithfulness,
+                "faithfulness_reason": getattr(result, "faithfulness_reason", None),
                 "faithfulness_override_reason": result.faithfulness_override_reason,
                 "answer_relevancy": result.answer_relevancy,
                 "context_recall": result.context_recall,
@@ -2604,6 +2605,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "routing_scores": json.dumps(question_result.get("routing_scores", {}), ensure_ascii=False),
                     "raw_faithfulness": question_result.get("raw_faithfulness"),
                     "faithfulness": question_result.get("faithfulness"),
+                    "faithfulness_reason": question_result.get("faithfulness_reason"),
                     "faithfulness_override_reason": question_result.get("faithfulness_override_reason"),
                     "answer_relevancy": question_result.get("answer_relevancy"),
                     "context_recall": question_result.get("context_recall"),
@@ -2693,6 +2695,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "routing_scores",
         "raw_faithfulness",
         "faithfulness",
+        "faithfulness_reason",
         "faithfulness_override_reason",
         "answer_relevancy",
         "context_recall",
@@ -2781,6 +2784,8 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
             lines.append(f"- Routing Scores: {row['routing_scores']}")
         if row.get("faithfulness_override_reason"):
             lines.append(f"- Faithfulness Override: {row['faithfulness_override_reason']}")
+        if row.get("faithfulness_reason"):
+            lines.append(f"- Faithfulness Reason: {row['faithfulness_reason']}")
         if row.get("completeness_reason"):
             lines.append(f"- Completeness Reason: {row['completeness_reason']}")
         if row.get("numeric_final_judgement"):

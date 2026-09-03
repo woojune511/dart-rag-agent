@@ -15,7 +15,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
@@ -276,6 +276,12 @@ def _build_example_report_scope(example: EvalExample) -> Dict[str, Any]:
 
 
 @dataclass
+class FaithfulnessJudgement:
+    score: float
+    reason: Optional[str] = None
+
+
+@dataclass
 class EvalResult:
     id: str
     question: str
@@ -308,6 +314,7 @@ class EvalResult:
     routing_source: str
     routing_confidence: Optional[float]
     latency_sec: float
+    faithfulness_reason: Optional[str] = None
     routing_scores: Dict[str, float] = field(default_factory=dict)
     absolute_error_rate: Optional[float] = None
     raw_operand_selection_correctness: Optional[float] = None
@@ -423,7 +430,9 @@ _FAITHFULNESS_PROMPT = """\
 - 연도/기수 표기를 사용자가 이해하기 쉽게 풀어쓴 것은 감점하지 마세요.
 - 정보를 압축하거나 요약했더라도 없는 사실을 추가하지 않았다면 감점하지 마세요.
 
-숫자(0.0~1.0)만 답하세요."""
+다음 JSON 객체만 답하세요:
+{{"score": 0.0, "reason": "근거가 부족하거나 해석이 추가된 답변 부분을 한 문장으로 설명"}}
+score는 0.0~1.0 범위여야 합니다. 1.0인 경우에도 모든 주장이 근거에 있음을 reason에 짧게 적으세요."""
 
 _COMPLETENESS_PROMPT = """\
 다음은 질문, 답변, 그리고 정답 기준 요약입니다.
@@ -2197,20 +2206,64 @@ def load_eval_examples_from_path(dataset_path: str | Path) -> List[EvalExample]:
     return [_example_from_dict(item) for item in data]
 
 
-def _compute_faithfulness(llm: ChatGoogleGenerativeAI, answer: str, contexts: List[str]) -> float:
+def _compute_faithfulness(
+    llm: ChatGoogleGenerativeAI,
+    answer: str,
+    contexts: List[str],
+) -> FaithfulnessJudgement:
     if not answer or not contexts:
-        return 0.0
+        return FaithfulnessJudgement(
+            score=0.0,
+            reason="answer or evaluation context is empty",
+        )
 
     context_text = "\n\n---\n\n".join(contexts[:8])
     prompt = _FAITHFULNESS_PROMPT.format(context=context_text[:4000], answer=answer[:1500])
     try:
         response = llm.invoke(prompt)
-        text = response.content.strip()
-        match = re.search(r"(0(?:\.\d+)?|1(?:\.0+)?)", text)
-        return float(match.group(1)) if match else 0.5
+        text = str(getattr(response, "content", "") or "").strip()
+        payload = _extract_json_object(text)
+        score_value: Optional[float] = None
+        if payload.get("score") is not None:
+            try:
+                score_value = float(payload["score"])
+            except (TypeError, ValueError):
+                score_value = None
+        if score_value is None:
+            match = re.search(r"(0(?:\.\d+)?|1(?:\.0+)?)", text)
+            score_value = float(match.group(1)) if match else 0.5
+        return FaithfulnessJudgement(
+            score=_clip_score(score_value),
+            reason=str(payload.get("reason") or "").strip() or None,
+        )
     except Exception as exc:
         logger.warning("faithfulness calculation failed: %s", exc)
-        return 0.5
+        return FaithfulnessJudgement(
+            score=0.5,
+            reason=f"faithfulness judge failed: {type(exc).__name__}",
+        )
+
+
+def _coerce_faithfulness_judgement(value: Any) -> FaithfulnessJudgement:
+    """Accept legacy numeric test doubles while production returns rationale."""
+
+    if isinstance(value, FaithfulnessJudgement):
+        return value
+    if isinstance(value, Mapping):
+        try:
+            return FaithfulnessJudgement(
+                score=_clip_score(float(value.get("score", 0.5))),
+                reason=str(value.get("reason") or "").strip() or None,
+            )
+        except (TypeError, ValueError):
+            pass
+    try:
+        return FaithfulnessJudgement(score=_clip_score(float(value)))
+    except (TypeError, ValueError):
+        return FaithfulnessJudgement(
+            score=0.5,
+            reason="faithfulness judge returned an unreadable result",
+        )
 
 
 def _compute_completeness_judge(
@@ -4892,6 +4945,7 @@ class RAGEvaluator:
 
         raw_faithfulness: Optional[float] = None
         faithfulness = 0.0
+        faithfulness_reason = None
         faithfulness_override_reason = None
         answer_relevancy = 0.0
         context_recall = _compute_context_recall(example, contexts)
@@ -4963,6 +5017,7 @@ class RAGEvaluator:
         if numeric_fast_gate_pass:
             raw_faithfulness = None
             faithfulness = 1.0
+            faithfulness_reason = "not run: numeric fast gate"
             faithfulness_override_reason = (
                 "numeric_fast_gate PASS: generic faithfulness judge를 생략하고 numeric evaluator 결과로 보정"
             )
@@ -4971,6 +5026,7 @@ class RAGEvaluator:
             completeness_reason = "numeric_fast_gate PASS: generic completeness judge 생략"
         elif self.skip_llm_judges:
             raw_faithfulness = None
+            faithfulness_reason = "not run: LLM judges disabled"
             faithfulness = (
                 1.0
                 if _should_override_numeric_faithfulness(
@@ -4987,7 +5043,11 @@ class RAGEvaluator:
             completeness = _compute_completeness(example, answer)
             completeness_reason = "skip_llm_judges: heuristic completeness only"
         else:
-            raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
+            faithfulness_judgement = _coerce_faithfulness_judgement(
+                _compute_faithfulness(self._llm, answer, contexts)
+            )
+            raw_faithfulness = faithfulness_judgement.score
+            faithfulness_reason = faithfulness_judgement.reason
             faithfulness = raw_faithfulness
             answer_relevancy = (
                 0.0
@@ -5235,6 +5295,7 @@ class RAGEvaluator:
             format_preference=format_preference,
             routing_source=routing_source,
             routing_confidence=routing_confidence,
+            faithfulness_reason=faithfulness_reason,
             routing_scores=routing_scores,
             latency_sec=latency,
             citations=citations,
