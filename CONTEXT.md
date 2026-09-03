@@ -24,9 +24,9 @@ Last updated: 2026-09-04
   are cell-local, and related outputs select one complete physical row before
   compiler invocation.
 - The current feature branch adds an opt-in local cross-encoder only for exact
-  strongest-factor ties. It is lazy, bounded, margin-gated, and excluded from
-  compiler prompts; the default remains disabled because the saved hard
-  negatives did not show a confident ranking improvement.
+  strongest-factor ties plus a source-controlled promotion gate. Pair v2 marks
+  the selected physical value in natural cell-local evidence; the model remains
+  outside applicability, visibility, bundles, and compiler prompts.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -46,7 +46,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 802 local unittest cases, the 86-literal runtime
+- The current feature branch passed 809 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -103,15 +103,16 @@ archaeology.
    one complete-row bundle has two options; the selected row wins by
    position-sum margin 2 and
    worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. The bounded local tie-breaker is implemented but not promoted. Saved-artifact
-   replay scored 31 tied pairs: every cohort abstained below the `0.05` margin,
-   no first candidate changed, and T3 retained table 82. CPU model scoring was
-   about 1.07 seconds for the 20-pair T3 batch after warm-up; cold load was about
-   6.1 seconds. Enable it only after a labeled hard-negative set demonstrates a
-   top-1 gain and deployment warm p95 stays within one second.
-4. If that gate fails, prefer better training pairs or a smaller/GPU/ONNX
-   reranker over adding keyword weights. Keep the current deterministic matcher
-   as the authority and do not run another paid benchmark merely to tune the
-   reranker.
+3. The six-case local promotion gate is `needs_review`. On pair v2 the model's
+   raw top-1 was `0.6` versus the deterministic baseline's `0.2`, but only
+   `0.2` of selection cases cleared the
+   `0.05` margin; required minima are `0.8` and `0.6`. Ambiguity abstention and
+   warm CPU p95 (`462 ms`) passed with zero confident errors. Cold load was
+   about `7.21 s`. The default must remain disabled.
+4. The verified saved-artifact replay still exposed 31 pairs, all cohorts
+   abstained, no first candidate changed, and T3 retained table 82. Prefer a
+   numeric-binding hard-negative model or smaller/GPU/ONNX scorer over keyword
+   weights or a lower confidence margin; do not rerun the paid benchmark merely
+   to tune the reranker.
 5. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

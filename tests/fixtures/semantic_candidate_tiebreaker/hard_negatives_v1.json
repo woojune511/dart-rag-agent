@@ -1,0 +1,275 @@
+{
+  "schema": "semantic_candidate_tiebreak_hard_negatives_v1",
+  "gate_id": "semantic_candidate_tiebreak_promotion_v1",
+  "thresholds": {
+    "min_top1_accuracy": 0.8,
+    "min_top1_gain": 0.2,
+    "min_confident_selection_rate": 0.6,
+    "min_abstention_accuracy": 1.0,
+    "max_confident_error_count": 0,
+    "max_warm_p95_ms": 1000.0,
+    "min_score_margin": 0.05
+  },
+  "cases": [
+    {
+      "case_id": "same_sentence_growth_vs_market_share",
+      "query": "2023년 글로벌 전기차 판매량은 전년 대비 몇 퍼센트 성장했나요?",
+      "cohort_id": "growth:output",
+      "owner_id": "growth",
+      "owner": {
+        "label": "2023년 글로벌 전기차 판매량 전년 대비 성장률",
+        "scope": {"period": "2023"}
+      },
+      "resolved_target": {
+        "local_subjects": ["글로벌 전기차 판매량"],
+        "metric_surfaces": ["전년 대비 성장률"],
+        "concept_keys": [],
+        "expected_unit_family": "percent"
+      },
+      "baseline_candidate_ids": ["market_share_5_6", "sales_growth_11_5"],
+      "expected_action": "select",
+      "acceptable_top_candidate_ids": ["sales_growth_11_5"],
+      "candidates": [
+        {
+          "candidate_id": "market_share_5_6",
+          "candidate_text": "2023년 글로벌 전기차 판매량은 1,410만 대로 전년 대비 11.5% 증가했으며, 전체 자동차 시장에서 전기차 비중은 5.6%였습니다.",
+          "candidate": {
+            "raw_value": "5.6",
+            "raw_unit": "%",
+            "value_role": "sentence_value",
+            "period": "2023",
+            "period_source": "source_surface",
+            "source_text": "2023년 글로벌 전기차 판매량은 1,410만 대로 전년 대비 11.5% 증가했으며, 전체 자동차 시장에서 전기차 비중은 5.6%였습니다."
+          }
+        },
+        {
+          "candidate_id": "sales_growth_11_5",
+          "candidate_text": "2023년 글로벌 전기차 판매량은 1,410만 대로 전년 대비 11.5% 증가했으며, 전체 자동차 시장에서 전기차 비중은 5.6%였습니다.",
+          "candidate": {
+            "raw_value": "11.5",
+            "raw_unit": "%",
+            "value_role": "sentence_value",
+            "period": "2023",
+            "period_source": "source_surface",
+            "source_text": "2023년 글로벌 전기차 판매량은 1,410만 대로 전년 대비 11.5% 증가했으며, 전체 자동차 시장에서 전기차 비중은 5.6%였습니다."
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "aggregate_total_vs_cost_line",
+      "query": "당기 연구개발비용 총계는 얼마인가요?",
+      "cohort_id": "research_total:output",
+      "owner_id": "research_total",
+      "owner": {
+        "label": "당기 연구개발비용 총계",
+        "scope": {"period": "당기"}
+      },
+      "resolved_target": {
+        "local_subjects": [],
+        "metric_surfaces": ["연구개발비용 총계"],
+        "concept_keys": [],
+        "expected_unit_family": "KRW"
+      },
+      "baseline_candidate_ids": ["research_cost_line", "research_total_line"],
+      "expected_action": "select",
+      "acceptable_top_candidate_ids": ["research_total_line"],
+      "candidates": [
+        {
+          "candidate_id": "research_cost_line",
+          "candidate_text": "연구개발비(비용) | 당기 28,339,724 | 백만원",
+          "candidate": {
+            "raw_value": "28,339,724",
+            "raw_unit": "백만원",
+            "row_label": "연구개발비(비용)",
+            "row_headers": ["연구개발비(비용)"],
+            "column_headers": ["당기"],
+            "value_role": "detail",
+            "period": "당기",
+            "aggregate_label": "",
+            "source_text": "연구개발비(비용) | 당기 28,339,724 | 백만원"
+          }
+        },
+        {
+          "candidate_id": "research_total_line",
+          "candidate_text": "연구개발비용 총계 | 당기 28,352,769 | 백만원",
+          "candidate": {
+            "raw_value": "28,352,769",
+            "raw_unit": "백만원",
+            "row_label": "연구개발비용 총계",
+            "row_headers": ["연구개발비용 총계"],
+            "column_headers": ["당기"],
+            "value_role": "total",
+            "period": "당기",
+            "aggregate_label": "총계",
+            "source_text": "연구개발비용 총계 | 당기 28,352,769 | 백만원"
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "business_strategy_vs_company_overview",
+      "query": "사업의 성장 방향과 제품에 적용하는 기술을 설명해 주세요.",
+      "cohort_id": "strategy:narrative",
+      "owner_id": "strategy",
+      "owner": {
+        "label": "사업 성장 방향과 적용 기술",
+        "scope": {}
+      },
+      "resolved_target": {
+        "local_subjects": ["해당 사업"],
+        "metric_surfaces": ["성장 방향", "적용 기술"],
+        "concept_keys": [],
+        "expected_unit_family": ""
+      },
+      "baseline_candidate_ids": ["company_overview", "technology_strategy"],
+      "expected_action": "select",
+      "acceptable_top_candidate_ids": ["technology_strategy"],
+      "candidates": [
+        {
+          "candidate_id": "company_overview",
+          "candidate_text": "회사는 여러 지역에 생산 및 판매 법인을 두고 다양한 제품과 서비스를 공급하고 있습니다.",
+          "candidate": {
+            "local_entity_surfaces": ["해당 사업"],
+            "value_role": "narrative",
+            "source_text": "회사는 여러 지역에 생산 및 판매 법인을 두고 다양한 제품과 서비스를 공급하고 있습니다."
+          }
+        },
+        {
+          "candidate_id": "technology_strategy",
+          "candidate_text": "무선통신과 디스플레이 등 IT 기술을 제품에 접목하고 커넥티드 서비스와 소프트웨어 역량을 강화해 성장 영역을 확대하고 있습니다.",
+          "candidate": {
+            "local_entity_surfaces": ["해당 사업"],
+            "value_role": "narrative",
+            "source_text": "무선통신과 디스플레이 등 IT 기술을 제품에 접목하고 커넥티드 서비스와 소프트웨어 역량을 강화해 성장 영역을 확대하고 있습니다."
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "same_sentence_revenue_growth_vs_margin",
+      "query": "What was the year-over-year revenue growth rate?",
+      "cohort_id": "revenue_growth:output",
+      "owner_id": "revenue_growth",
+      "owner": {
+        "label": "year-over-year revenue growth rate",
+        "scope": {"period": "2024"}
+      },
+      "resolved_target": {
+        "local_subjects": ["revenue"],
+        "metric_surfaces": ["year-over-year growth rate"],
+        "concept_keys": [],
+        "expected_unit_family": "percent"
+      },
+      "baseline_candidate_ids": ["operating_margin_7", "revenue_growth_18"],
+      "expected_action": "select",
+      "acceptable_top_candidate_ids": ["revenue_growth_18"],
+      "candidates": [
+        {
+          "candidate_id": "operating_margin_7",
+          "candidate_text": "Revenue increased 18% year over year in 2024, while the operating margin was 7%.",
+          "candidate": {
+            "raw_value": "7",
+            "raw_unit": "%",
+            "value_role": "sentence_value",
+            "period": "2024",
+            "source_text": "Revenue increased 18% year over year in 2024, while the operating margin was 7%."
+          }
+        },
+        {
+          "candidate_id": "revenue_growth_18",
+          "candidate_text": "Revenue increased 18% year over year in 2024, while the operating margin was 7%.",
+          "candidate": {
+            "raw_value": "18",
+            "raw_unit": "%",
+            "value_role": "sentence_value",
+            "period": "2024",
+            "source_text": "Revenue increased 18% year over year in 2024, while the operating margin was 7%."
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "specific_driver_vs_generic_context_control",
+      "query": "영업이익이 증가한 구체적인 원인은 무엇인가요?",
+      "cohort_id": "profit_driver:narrative",
+      "owner_id": "profit_driver",
+      "owner": {
+        "label": "영업이익 증가 원인",
+        "scope": {}
+      },
+      "resolved_target": {
+        "local_subjects": [],
+        "metric_surfaces": ["영업이익 증가 원인"],
+        "concept_keys": [],
+        "expected_unit_family": ""
+      },
+      "baseline_candidate_ids": ["profit_driver", "generic_market_context"],
+      "expected_action": "select",
+      "acceptable_top_candidate_ids": ["profit_driver"],
+      "candidates": [
+        {
+          "candidate_id": "profit_driver",
+          "candidate_text": "고수익 제품 판매 확대와 원재료 가격 안정으로 매출총이익이 늘어 영업이익이 증가했습니다.",
+          "candidate": {
+            "value_role": "narrative",
+            "source_text": "고수익 제품 판매 확대와 원재료 가격 안정으로 매출총이익이 늘어 영업이익이 증가했습니다."
+          }
+        },
+        {
+          "candidate_id": "generic_market_context",
+          "candidate_text": "회사는 시장 변화에 대응하기 위해 다양한 사업 활동을 수행하고 있습니다.",
+          "candidate": {
+            "value_role": "narrative",
+            "source_text": "회사는 시장 변화에 대응하기 위해 다양한 사업 활동을 수행하고 있습니다."
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "duplicate_evidence_requires_abstention",
+      "query": "당기 영업이익은 얼마인가요?",
+      "cohort_id": "duplicate_profit:output",
+      "owner_id": "duplicate_profit",
+      "owner": {
+        "label": "당기 영업이익",
+        "scope": {"period": "당기"}
+      },
+      "resolved_target": {
+        "local_subjects": [],
+        "metric_surfaces": ["영업이익"],
+        "concept_keys": [],
+        "expected_unit_family": "KRW"
+      },
+      "baseline_candidate_ids": ["duplicate_a", "duplicate_b"],
+      "expected_action": "abstain",
+      "acceptable_top_candidate_ids": [],
+      "candidates": [
+        {
+          "candidate_id": "duplicate_a",
+          "candidate_text": "영업이익 | 당기 120 | 백만원",
+          "candidate": {
+            "raw_value": "120",
+            "raw_unit": "백만원",
+            "row_headers": ["영업이익"],
+            "column_headers": ["당기"],
+            "period": "당기",
+            "source_text": "영업이익 | 당기 120 | 백만원"
+          }
+        },
+        {
+          "candidate_id": "duplicate_b",
+          "candidate_text": "영업이익 | 당기 120 | 백만원",
+          "candidate": {
+            "raw_value": "120",
+            "raw_unit": "백만원",
+            "row_headers": ["영업이익"],
+            "column_headers": ["당기"],
+            "period": "당기",
+            "source_text": "영업이익 | 당기 120 | 백만원"
+          }
+        }
+      ]
+    }
+  ]
+}

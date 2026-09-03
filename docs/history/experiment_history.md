@@ -184,6 +184,32 @@ If it misses that gate, evaluate better hard-negative training or a
 smaller/GPU/ONNX reranker rather than adding keyword weights. The persisted
 typed fact index remains a separate versioned ingest/store migration.
 
+### Labeled hard-negative promotion gate
+
+Pair v2 corrected the candidate-identity projection and reduced the saved-pair
+token envelope from a maximum of 248 to 161 tokens. The local-only gate used
+five labeled selection cases and one duplicate-evidence abstention case. The
+deterministic baseline and model raw top-1 were `0.2` and `0.6`, for a `0.4`
+gain, but only one of five selection cases cleared the runtime `0.05` margin.
+Required top-1 and confident-selection rates are `0.8` and `0.6`, so status is
+`needs_review`. Duplicate evidence abstained correctly and there were zero
+confident errors.
+
+The exact-head rerun used fixture fingerprint
+`22a8117f799247ea05750bc9ff2ede97690c8e9ee21c775d8927d27c6037c267`
+and scorer `cross_encoder_cb688842c0f5e582`. Three repeated 12-pair CPU batches
+had warm p95 `462.494 ms`; cached cold model load was `7,212.528 ms`. A
+read-only replay of the immutable three-question
+source windows rebuilt all catalogs, projected 31 pairs, changed no first
+candidate, and kept the T3 table-82 row bundle. Every cohort still abstained
+below the margin. No provider, download, benchmark runner, fresh ingest,
+document embedding, store mutation, or result rewrite was used.
+
+The latency boundary is viable, but this general retrieval reranker does not
+confidently bind a numeric candidate to the correct clause. Keep it disabled;
+the next model experiment should target numeric-binding hard negatives rather
+than lower the margin or add keyword weights.
+
 ## Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)
 
 ### Authority and execution

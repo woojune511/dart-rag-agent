@@ -48,6 +48,7 @@
 | `src/ops/evaluator.py` | evaluator-only numeric and source-qualified variant contracts |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
+| `src/ops/semantic_tiebreaker_promotion_gate.py` | local labeled quality and warm-latency gate for the optional reranker |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.

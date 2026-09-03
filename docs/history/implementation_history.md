@@ -12583,3 +12583,20 @@ are complete. It remains only as an audit record, not an active priority.
   passed 86 reviewed literals, and full unittest discovery passed 802/802. No
   LLM provider run, benchmark refresh, fresh ingest, store mutation, or
   historical artifact rewrite was performed.
+
+## Semantic tie-break pair identity and promotion gate (2026-09-04)
+
+- Advanced the pair projection to `semantic_tie_break_pair_v2`. The target is
+  the natural user query plus the typed owner focus, while evidence marks the
+  candidate's raw value inside the bounded cell-local text. Values extracted
+  from the same sentence therefore no longer share one pair fingerprint.
+- Added a six-case source-controlled fixture and a local promotion command that
+  measures baseline and model top-1, confident selection, ambiguity abstention,
+  confident errors, cold load, and repeated warm p95. It defaults to cached
+  files and cannot silently download a model.
+- The gate is advisory to activation: it does not change deterministic
+  applicability, cohort visibility, physical-row bundles, compiler prompts, or
+  the default-disabled setting.
+- Focused semantic, bundle, import, and documentation contracts passed 89/89;
+  the runtime-domain audit retained 86 reviewed literals and full unittest
+  discovery passed 809/809.

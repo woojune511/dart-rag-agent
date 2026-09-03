@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def _normalized_text(value: Any) -> str:
-    return " ".join(str(value or "").split())
+    return " ".join(str("" if value is None else value).split())
 
 
 def _string_list(values: Any) -> list[str]:
@@ -48,34 +48,55 @@ def _projection_text(value: Mapping[str, Any]) -> str:
     )
 
 
-def _labeled_text(items: Sequence[tuple[str, Any]]) -> str:
-    parts: list[str] = []
-    for label, raw_value in items:
-        if isinstance(raw_value, Sequence) and not isinstance(
+def _candidate_specific_evidence(
+    candidate_text: str,
+    candidate: Mapping[str, Any],
+    *,
+    limit: int,
+) -> str:
+    """Mark the physical candidate value inside an otherwise natural passage."""
+
+    text = _normalized_text(candidate_text)[: max(0, int(limit))]
+    raw_value = _normalized_text(candidate.get("raw_value"))
+    raw_unit = _normalized_text(candidate.get("raw_unit"))
+    value_surfaces = _string_list(
+        [
+            f"{raw_value}{raw_unit}" if raw_value and raw_unit else "",
+            f"{raw_value} {raw_unit}" if raw_value and raw_unit else "",
             raw_value,
-            (str, bytes),
-        ):
-            value = ", ".join(_string_list(raw_value))
-        else:
-            value = _normalized_text(raw_value)
-        if value:
-            parts.append(f"{label}: {value}")
-    return " | ".join(parts)
-
-
-def _candidate_period_surface(candidate: Mapping[str, Any]) -> str:
-    period = _normalized_text(candidate.get("period"))
-    value_year = _normalized_text(candidate.get("value_year"))
-    period_source = _normalized_text(candidate.get("period_source"))
-    if value_year and period_source == "source_surface_unresolved":
-        return value_year
-    return period or value_year or _normalized_text(
-        candidate.get("source_period_surface")
+        ]
     )
+    for surface in value_surfaces:
+        search_from = 0
+        while (position := text.find(surface, search_from)) >= 0:
+            end = position + len(surface)
+            left_bound = (
+                position == 0
+                or not surface[0].isalnum()
+                or not text[position - 1].isalnum()
+            )
+            right_bound = (
+                end == len(text)
+                or not surface[-1].isalnum()
+                or not text[end].isalnum()
+            )
+            if left_bound and right_bound:
+                return (
+                    f"{text[:position]}[SELECTED VALUE {text[position:end]}]"
+                    f"{text[end:]}"
+                )
+            search_from = position + 1
+    if raw_value:
+        value = " ".join(part for part in (raw_value, raw_unit) if part)
+        return f"[SELECTED VALUE {value}] {text}".strip()
+    return text
+
+
+SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v2"
 
 
 @dataclass(frozen=True, slots=True)
-class SemanticTieBreakPairV1:
+class SemanticTieBreakPairV2:
     """One owner/candidate pair that is eligible for semantic tie-breaking."""
 
     cohort_id: str
@@ -98,62 +119,39 @@ class SemanticTieBreakPairV1:
         resolved_target: Mapping[str, Any],
         candidate: Mapping[str, Any],
         candidate_text: str,
-        query_text_limit: int = 320,
-        candidate_text_limit: int = 240,
-    ) -> "SemanticTieBreakPairV1":
+        query_text_limit: int = 260,
+        candidate_text_limit: int = 180,
+    ) -> "SemanticTieBreakPairV2":
         parent = dict(parent_owner or {})
         row = dict(candidate or {})
         owner_label = _normalized_text(owner.get("label"))
         parent_label = _normalized_text(parent.get("label"))
         if parent_label == owner_label:
             parent_label = ""
-        scope = {
-            key: _normalized_text(value)
-            for key, value in {
-                **dict(parent.get("scope") or {}),
-                **dict(owner.get("scope") or {}),
-            }.items()
-            if _normalized_text(value)
-        }
-        target_text = _labeled_text(
-            [
-                ("task", owner_label),
-                ("parent task", parent_label),
-                ("subject", resolved_target.get("local_subjects")),
-                ("metric", resolved_target.get("metric_surfaces")),
-                ("concept", resolved_target.get("concept_keys")),
-                ("unit", resolved_target.get("expected_unit_family")),
-                (
-                    "scope",
-                    [f"{key}={value}" for key, value in scope.items()],
-                ),
-                (
-                    "question",
-                    _normalized_text(query)[: max(0, int(query_text_limit))],
-                ),
-            ]
-        )
-        evidence_text = _labeled_text(
-            [
-                (
-                    "evidence",
-                    _normalized_text(candidate_text)[
-                        : max(0, int(candidate_text_limit))
+        # Scope, period, unit, and locality already define the deterministic
+        # factor tier.  The reranker sees only the remaining semantic question.
+        target_text = ". ".join(
+            _string_list(
+                [
+                    _normalized_text(query)[
+                        : max(0, int(query_text_limit))
                     ],
-                ),
-                (
-                    "period",
-                    _candidate_period_surface(row),
-                ),
-                ("period source", row.get("period_source")),
-                ("scope", row.get("consolidation_scope")),
-                ("segment", row.get("segment")),
-                ("basis", row.get("basis")),
-            ]
+                    owner_label,
+                    parent_label,
+                    *_string_list(resolved_target.get("local_subjects")),
+                    *_string_list(resolved_target.get("metric_surfaces")),
+                    *_string_list(resolved_target.get("concept_keys")),
+                ]
+            )
+        )
+        evidence_text = _candidate_specific_evidence(
+            candidate_text,
+            row,
+            limit=candidate_text_limit,
         )
         serialized = _projection_text(
             {
-                "schema": "semantic_tie_break_pair_v1",
+                "schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
                 "target_text": target_text,
                 "evidence_text": evidence_text,
             }
@@ -216,7 +214,7 @@ class SemanticTieBreakBatchV1:
 class SemanticCandidateTieBreaker(Protocol):
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV1],
+        pairs: Sequence[SemanticTieBreakPairV2],
     ) -> SemanticTieBreakBatchV1: ...
 
 
@@ -258,7 +256,7 @@ class LocalCrossEncoderTieBreaker:
         payload = _projection_text(
             {
                 "kind": "local_cross_encoder",
-                "pair_schema": "semantic_tie_break_pair_v1",
+                "pair_schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
                 "model_name": self.model_name,
                 "revision": self.revision,
                 "code_revision": self.code_revision,
@@ -268,6 +266,20 @@ class LocalCrossEncoderTieBreaker:
         return "cross_encoder_" + hashlib.sha256(
             payload.encode("utf-8")
         ).hexdigest()[:16]
+
+    @property
+    def load_error_code(self) -> str:
+        return self._load_error_code
+
+    @property
+    def resolved_device(self) -> str:
+        return self._resolved_device
+
+    def prepare(self) -> bool:
+        """Load the optional model without scoring or mutating the pair cache."""
+
+        with self._lock:
+            return self._load_model() is not None
 
     def _load_model(self) -> Any:
         if self._model is not None:
@@ -370,7 +382,7 @@ class LocalCrossEncoderTieBreaker:
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV1],
+        pairs: Sequence[SemanticTieBreakPairV2],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         if not rows:
@@ -382,7 +394,7 @@ class LocalCrossEncoderTieBreaker:
         with self._lock:
             scores_by_fingerprint: dict[str, float] = {}
             missing_by_fingerprint: OrderedDict[
-                str, SemanticTieBreakPairV1
+                str, SemanticTieBreakPairV2
             ] = OrderedDict()
             cache_hit_count = 0
             for pair in rows:
@@ -462,8 +474,9 @@ class LocalCrossEncoderTieBreaker:
 
 __all__ = [
     "LocalCrossEncoderTieBreaker",
+    "SEMANTIC_TIE_BREAK_PAIR_SCHEMA",
     "SemanticCandidateTieBreaker",
     "SemanticTieBreakBatchV1",
-    "SemanticTieBreakPairV1",
+    "SemanticTieBreakPairV2",
     "SemanticTieBreakScoreV1",
 ]

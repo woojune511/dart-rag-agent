@@ -7,7 +7,7 @@ from unittest.mock import patch
 from src.agent.financial_candidate_tiebreaker import (
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV1,
+    SemanticTieBreakPairV2,
     SemanticTieBreakScoreV1,
 )
 from src.agent.financial_graph import FinancialAgent
@@ -84,11 +84,11 @@ def _obligation(obligation_id: str, metric: str) -> dict:
 class _ScoreByCandidate:
     def __init__(self, scores: dict[str, float]) -> None:
         self.scores = dict(scores)
-        self.calls: list[tuple[SemanticTieBreakPairV1, ...]] = []
+        self.calls: list[tuple[SemanticTieBreakPairV2, ...]] = []
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV1],
+        pairs: Sequence[SemanticTieBreakPairV2],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         self.calls.append(rows)
@@ -132,7 +132,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
         owner = _obligation("ob_metric", "metric alpha")
         pairs = [
-            SemanticTieBreakPairV1.create(
+            SemanticTieBreakPairV2.create(
                 cohort_id="ob_metric:output",
                 owner_id="ob_metric",
                 candidate_id=candidate_id,
@@ -183,6 +183,26 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             [item.score for item in second.scores],
             [0.2, 0.8],
         )
+
+    def test_prepare_loads_model_without_running_inference(self) -> None:
+        class FakeModel:
+            def __init__(self) -> None:
+                self.predict_calls = 0
+
+            def predict(self, _pairs, **_kwargs):
+                self.predict_calls += 1
+                return []
+
+        model = FakeModel()
+        scorer = LocalCrossEncoderTieBreaker(
+            model_name="local/test-model",
+            model_factory=lambda *_args, **_kwargs: model,
+        )
+
+        self.assertTrue(scorer.prepare())
+        self.assertTrue(scorer.prepare())
+        self.assertEqual(model.predict_calls, 0)
+        self.assertEqual(scorer.load_error_code, "")
 
     def test_semantics_only_reorders_the_strongest_factor_tie(self) -> None:
         owner = _obligation("ob_metric", "metric alpha")
@@ -270,7 +290,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         self.assertEqual(semantic["status"], "abstained_low_margin")
         self.assertAlmostEqual(semantic["top_score_margin"], 0.01)
 
-    def test_pair_projection_prefers_typed_period_over_header_surface(self) -> None:
+    def test_pair_projection_marks_the_selected_physical_value(self) -> None:
         owner = _obligation("ob_metric", "metric alpha")
         candidate = {
             **_candidate(
@@ -285,7 +305,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "period_source": "source_surface_unresolved",
         }
 
-        pair = SemanticTieBreakPairV1.create(
+        pair = SemanticTieBreakPairV2.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-a",
@@ -302,11 +322,42 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             candidate_text=str(candidate["source_text"]),
         )
 
-        self.assertIn("period: 2024", pair.evidence_text)
-        self.assertIn(
-            "period source: source_surface_unresolved",
-            pair.evidence_text,
+        self.assertIn("[SELECTED VALUE 10 million]", pair.evidence_text)
+        self.assertNotIn("period source", pair.evidence_text)
+
+    def test_pair_projection_marks_zero_without_matching_a_larger_number(self) -> None:
+        owner = _obligation("ob_metric", "metric alpha")
+        candidate = {
+            **_candidate(
+                "candidate-zero",
+                row_id="row-zero",
+                column="metric alpha",
+                value="0",
+            ),
+            "raw_value": 0,
+            "source_text": "metric alpha 100 million | metric alpha 0 million",
+        }
+
+        pair = SemanticTieBreakPairV2.create(
+            cohort_id="ob_metric:output",
+            owner_id="ob_metric",
+            candidate_id="candidate-zero",
+            query="Find metric alpha",
+            owner=owner,
+            parent_owner=None,
+            resolved_target={
+                "local_subjects": ["Target Entity"],
+                "concept_keys": [],
+                "metric_surfaces": ["metric alpha"],
+                "expected_unit_family": "KRW",
+            },
+            candidate=candidate,
+            candidate_text=str(candidate["source_text"]),
         )
+
+        self.assertIn("100 million", pair.evidence_text)
+        self.assertIn("[SELECTED VALUE 0 million]", pair.evidence_text)
+        self.assertNotIn("1[SELECTED VALUE", pair.evidence_text)
 
     def test_complete_row_bundle_aggregates_semantic_owner_order(self) -> None:
         obligations = [

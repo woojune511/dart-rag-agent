@@ -64,7 +64,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 802
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 809
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -93,7 +93,7 @@ that choice. Its Motional summary is still grounded in the distinct summary
 tables appropriate to those measures. Across all questions the compiler made
 five island calls and no internal retry.
 
-The bounded runtime gate is **3/3 PASS**. It does not change the HYU T3
+The bounded provider runtime gate is **3/3 PASS**. It does not change the HYU T3
 historical provider output or relax evaluator criteria. The raw evaluator still
 reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness `0.7`, and two
 company-level full-eval failures; those are not promoted into runtime acceptance.
@@ -138,11 +138,13 @@ applicability, visibility, and row-bundle contracts remain authoritative.
    ignored result files were copied into the primary results tree and verified
    before removal. Do not port the superseded predecessor contracts; restore
    the stash on a separate branch only for explicit archaeology.
-3. Keep the top-tier tie-breaker opt-in: 31 saved pairs produced no confident
-   first-choice change. Promote only after a labeled top-1 gain and warm p95
-   below one second; never rerank lower tiers or add benchmark vocabulary.
-4. Prefer hard-negative training or a smaller/GPU/ONNX scorer if needed. Keep
-   the typed fact index behind a separate versioned ingest/store migration.
+3. Keep the top-tier tie-breaker opt-in. On its six-case local gate the model's
+   raw top-1 was `0.6` versus the deterministic baseline's `0.2`, but confident
+   selection was only `0.2`; warm CPU
+   p95 passed at `462 ms`. Saved replay changed no first candidate and preserved
+   T3 table 82. Do not lower the margin to manufacture coverage.
+4. Prefer numeric-binding hard-negative training or a smaller/GPU/ONNX scorer.
+   Keep the typed fact index behind a separate versioned ingest/store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.
