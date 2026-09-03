@@ -3,9 +3,14 @@ from __future__ import annotations
 from tests.semantic_program_test_support import *
 
 from src.agent.financial_graph_calculation import (
+    _project_atomic_evidence_bundle_options,
     _semantic_candidate_visibility,
 )
-from src.agent.financial_runtime_contracts import CompilationEnvelopeV1
+from src.agent.financial_runtime_contracts import (
+    CompilationEnvelopeV1,
+    EvidenceBundleConstraintV1,
+    EvidenceBundleOptionV1,
+)
 
 
 def _bundle_obligation(
@@ -161,10 +166,23 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
         self.assertEqual(constraint.owner_ids, ("ob_alpha", "ob_beta"))
         self.assertEqual(
             [option.physical_table_id for option in constraint.options],
-            ["table-a", "table-b"],
+            ["table-a"],
         )
         self.assertEqual(
             constraint.options[0].candidate_ids_by_owner(),
+            {
+                "ob_alpha": ["cand-alpha-a"],
+                "ob_beta": ["cand-beta-a"],
+            },
+        )
+        selection = cohort_plan["evidence_bundle_option_selections"][0]
+        self.assertEqual(selection["selected_option_id"], constraint.options[0].option_id)
+        self.assertEqual(
+            [item["physical_table_id"] for item in selection["ranked_options"]],
+            ["table-a", "table-b"],
+        )
+        self.assertEqual(
+            cohort_plan["candidate_ids_by_owner"],
             {
                 "ob_alpha": ["cand-alpha-a"],
                 "ob_beta": ["cand-beta-a"],
@@ -189,6 +207,126 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             prompt_payload["evidence_bundle_constraints"],
             cohort_plan["evidence_bundle_constraints"],
         )
+        self.assertEqual(
+            prompt_payload["evidence_bundle_option_selections"],
+            [
+                {
+                    key: selection[key]
+                    for key in (
+                        "constraint_id",
+                        "source_constraint_id",
+                        "selected_option_id",
+                        "selection_strategy",
+                    )
+                }
+            ],
+        )
+        self.assertNotIn("cand-alpha-b", prompt_payload["candidates_by_id"])
+        self.assertNotIn("cand-beta-b", prompt_payload["candidates_by_id"])
+
+    def test_atomic_option_selection_is_catalog_order_independent(self) -> None:
+        obligations, catalog, _cohort_plan, _visibility = self._fixture()
+
+        forward = _semantic_candidate_cohorts(catalog, obligations)
+        reverse = _semantic_candidate_cohorts(list(reversed(catalog)), obligations)
+
+        self.assertEqual(
+            forward["evidence_bundle_option_selections"],
+            reverse["evidence_bundle_option_selections"],
+        )
+        self.assertEqual(
+            forward["candidate_ids_by_owner"],
+            reverse["candidate_ids_by_owner"],
+        )
+
+    def test_excluding_selected_row_promotes_next_atomic_option(self) -> None:
+        obligations, catalog, _cohort_plan, _visibility = self._fixture()
+
+        promoted = _semantic_candidate_cohorts(
+            catalog,
+            obligations,
+            excluded_candidate_ids_by_owner={"ob_alpha": ["cand-alpha-a"]},
+        )
+
+        constraint = promoted["evidence_bundle_constraints"][0]
+        self.assertEqual(constraint["options"][0]["physical_table_id"], "table-b")
+        self.assertEqual(
+            promoted["candidate_ids_by_owner"],
+            {
+                "ob_alpha": ["cand-alpha-b"],
+                "ob_beta": ["cand-beta-b"],
+            },
+        )
+
+    def test_atomic_projection_preserves_numeric_compatibility_evidence(self) -> None:
+        options = tuple(
+            EvidenceBundleOptionV1.create(
+                physical_table_id=table_id,
+                physical_row_id="row-target",
+                candidate_ids_by_owner={
+                    "ob_alpha": [f"cand-alpha-{suffix}"],
+                    "ob_beta": [f"cand-beta-{suffix}"],
+                },
+            )
+            for table_id, suffix in (("table-a", "a"), ("table-b", "b"))
+        )
+        constraint = EvidenceBundleConstraintV1.create(
+            owner_ids=["ob_alpha", "ob_beta"],
+            options=options,
+        )
+        cohorts = [
+            {
+                "cohort_id": "ob_alpha:output",
+                "owner_id": "ob_alpha",
+                "parent_obligation_id": "ob_alpha",
+                "owner_type": "obligation",
+                "candidate_ids": ["cand-alpha-a", "cand-alpha-b"],
+            },
+            {
+                "cohort_id": "ob_alpha:compatibility",
+                "owner_id": "ob_alpha",
+                "parent_obligation_id": "ob_alpha",
+                "owner_type": "compatibility",
+                "candidate_ids": ["cand-alpha-context"],
+            },
+            {
+                "cohort_id": "ob_beta:output",
+                "owner_id": "ob_beta",
+                "parent_obligation_id": "ob_beta",
+                "owner_type": "obligation",
+                "candidate_ids": ["cand-beta-a", "cand-beta-b"],
+            },
+            {
+                "cohort_id": "ob_beta:compatibility",
+                "owner_id": "ob_beta",
+                "parent_obligation_id": "ob_beta",
+                "owner_type": "compatibility",
+                "candidate_ids": ["cand-beta-context"],
+            },
+        ]
+
+        projected = _project_atomic_evidence_bundle_options(
+            cohorts=cohorts,
+            visible_candidate_ids=[
+                "cand-alpha-a",
+                "cand-alpha-b",
+                "cand-alpha-context",
+                "cand-beta-a",
+                "cand-beta-b",
+                "cand-beta-context",
+            ],
+            constraints=[constraint],
+        )
+
+        self.assertEqual(
+            projected["candidate_ids_by_owner"],
+            {
+                "ob_alpha": ["cand-alpha-a", "cand-alpha-context"],
+                "ob_beta": ["cand-beta-a", "cand-beta-context"],
+            },
+        )
+        self.assertNotIn("cand-alpha-b", projected["visible_candidate_ids"])
+        self.assertNotIn("cand-beta-b", projected["visible_candidate_ids"])
 
     def test_independent_same_subject_output_does_not_hide_a_complete_pair(self) -> None:
         obligations, catalog, _cohort_plan, _visibility = self._fixture()
@@ -211,7 +349,36 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
         )
 
     def test_validator_and_executor_reject_cross_row_selection(self) -> None:
-        obligations, catalog, _cohort_plan, visibility = self._fixture()
+        obligations, catalog, _cohort_plan, _visibility = self._fixture()
+        options = tuple(
+            EvidenceBundleOptionV1.create(
+                physical_table_id=table_id,
+                physical_row_id="row-target",
+                candidate_ids_by_owner={
+                    "ob_alpha": [f"cand-alpha-{suffix}"],
+                    "ob_beta": [f"cand-beta-{suffix}"],
+                },
+            )
+            for table_id, suffix in (("table-a", "a"), ("table-b", "b"))
+        )
+        raw_constraint = EvidenceBundleConstraintV1.create(
+            owner_ids=["ob_alpha", "ob_beta"],
+            options=options,
+        )
+        visibility = _semantic_candidate_visibility(
+            catalog,
+            visible_candidate_ids=[
+                "cand-alpha-a",
+                "cand-beta-a",
+                "cand-alpha-b",
+                "cand-beta-b",
+            ],
+            candidate_ids_by_owner={
+                "ob_alpha": ["cand-alpha-a", "cand-alpha-b"],
+                "ob_beta": ["cand-beta-a", "cand-beta-b"],
+            },
+            evidence_bundle_constraints=[raw_constraint.to_projection()],
+        )
         mixed_program = {
             "status": "ready",
             "direct_bindings": [
@@ -307,6 +474,10 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 for option in constraint["options"]
             )
         )
+        self.assertEqual(
+            cohort_plan["candidate_ids_by_owner"]["ob_summary:req_001"],
+            ["cand-summary-explicit"],
+        )
 
         visibility = _semantic_candidate_visibility(
             catalog,
@@ -348,10 +519,10 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             query="Return both metrics and the source-defined summary.",
             candidate_visibility=visibility,
         )
-        self.assertEqual(validation["status"], "invalid")
+        self.assertEqual(validation["status"], "partial")
         self.assertIn(
             {
-                "code": "evidence_bundle_mismatch",
+                "code": "candidate_not_exposed_to_compiler",
                 "obligation_id": "ob_summary",
                 "detail": "cand-summary-unknown",
             },
@@ -415,7 +586,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             ["cand-alpha-a"],
         )
 
-    def test_bundle_retry_replaces_only_the_incompatible_candidate(self) -> None:
+    def test_bundle_retry_does_not_reintroduce_hidden_alternative(self) -> None:
         obligations, catalog, _cohort_plan, _visibility = self._fixture()
         llm, compiled = self._compile(
             obligations,
@@ -449,8 +620,18 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 2)
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
-        self.assertIn("evidence_bundle_constraints", str(llm.prompts[0]))
-        self.assertIn("cand-alpha-a", str(llm.prompts[1]))
+        self.assertIn("evidence_bundle_option_selections", str(llm.prompts[0]))
+        self.assertNotIn("cand-alpha-b", str(llm.prompts[0]))
+        attempt_rows = compiled["resolved_calculation_trace"]["calculation_plan"][
+            "candidate_stage_diagnostics"
+        ]["attempts"]
+        self.assertEqual(
+            [row["visible_candidate_ids"] for row in attempt_rows],
+            [
+                ["cand-alpha-a", "cand-beta-a"],
+                ["cand-alpha-a", "cand-beta-a"],
+            ],
+        )
         self.assertEqual(
             [
                 binding["candidate_id"]
@@ -484,11 +665,11 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 "direct_bindings": [
                     {
                         "obligation_id": "ob_alpha",
-                        "candidate_id": "cand-alpha-b",
+                        "candidate_id": "cand-alpha-a",
                     },
                     {
                         "obligation_id": "ob_beta",
-                        "candidate_id": "cand-beta-b",
+                        "candidate_id": "cand-beta-a",
                     },
                 ]
             },
@@ -500,7 +681,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 binding["candidate_id"]
                 for binding in compiled["semantic_program"]["direct_bindings"]
             ],
-            ["cand-alpha-b", "cand-beta-b"],
+            ["cand-alpha-a", "cand-beta-a"],
         )
 
     def test_retry_preserves_an_unaffected_bundle_in_the_same_island(self) -> None:

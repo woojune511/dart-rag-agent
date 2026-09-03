@@ -126,9 +126,19 @@ provenance and applicability.
 When two or more direct outputs have the same explicit local subject, compatible
 declared scope, and at least one physical row containing a compatible candidate
 for every output, the runtime creates an immutable evidence-bundle constraint.
-Each complete row is one option. All constrained outputs must select candidate
-IDs from one option; mixing rows fails as `evidence_bundle_mismatch`. This
-invariant is inferred independently of planner `coupling_key`.
+Each complete row is one option. Options are ordered by the sum of their best
+owner-cohort positions, then their worst owner position, then physical table and
+row ID. Before compilation, code selects the first option and projects every
+constrained output and requirement cohort through that physical row. Numeric
+compatibility narratives remain auxiliary selectable IDs. The compiler receives
+only the active one-option constraint and its candidate dictionary; ranked
+alternatives remain diagnostics and never enter the prompt.
+
+All constrained outputs therefore share one physical-row selection by
+construction. Mixing rows is not representable through normal compiler
+visibility, while validator and executor retain `evidence_bundle_mismatch` as a
+defense-in-depth check. This invariant is inferred independently of planner
+`coupling_key`.
 
 A required `source_defined_group` narrative may join that bundle across tables
 only when local subject and declared scope agree and its filing company, report
@@ -181,14 +191,15 @@ island has one internal retry at most:
 - AST, schema, or binding format failure retains the same cohort.
 
 If any member of an evidence bundle needs retry, every obligation in that bundle
-is retried together. Only rejected candidate IDs are excluded; valid row options
-remain selectable.
+is retried together. Candidate rejection rebuilds the bounded cohorts and bundle
+ranking. If the active row is no longer complete, the next complete option is
+selected; AST, schema, and binding-format retries retain the active option.
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v5` records
-owner factor counts, bundle constraints, island composition, call/retry counts,
-visibility fingerprints, and prompt bytes.
+original obligation order. `semantic_candidate_stage_diagnostics_v6` records
+owner factor counts, the active constraint, ranked option selection, island
+composition, call/retry counts, visibility fingerprints, and prompt bytes.
 
 ## 7. Retrieval boundary
 

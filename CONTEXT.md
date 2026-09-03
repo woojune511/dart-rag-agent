@@ -35,6 +35,10 @@ The boundary redesign is implemented as ordered commits:
    evidence-bundle options for related same-subject outputs. Bundle membership
    adds a compilation-island edge even when planner coupling is empty; validator
    and executor reject mixed-row selections and retry the bundle atomically.
+9. Current provider-free repair: complete bundle options are ranked from existing
+   owner-cohort positions and the best physical row is selected before compiler
+   invocation. Output and source-defined requirement visibility is projected
+   through that row, while numeric compatibility narratives remain available.
 
 The separate dirty predecessor was then integrated explicitly:
 
@@ -74,24 +78,18 @@ topology is in [runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and
 historical evidence remains in [implementation_history.md](docs/history/implementation_history.md)
 and [experiment_history.md](docs/history/experiment_history.md).
 
-The candidate-ranking change has provider-free contract coverage for typed
-targets, catalog-order determinism, compatibility-tier precedence, legacy
-catalog grounding, cell-local prompt projection, validator revalidation, and
-the added ontology concepts. Its source gate passes 752 total unittest cases,
-146 focused semantic/import/topology/documentation cases, the 86-literal runtime
-domain audit, pycompile, JSON validation, and `git diff --check`. Read-only
-reconstruction of stored source windows
-places Hyundai T2's two period values and T3's Motional carrying amount in their
-intended owner cohorts while excluding the conflicting market/BHAF rows. This is
-local source evidence only, not a new provider acceptance result.
-
-The evidence-bundle successor adds provider-free contracts for complete-row
-inference, cross-row rejection, context-compatible cross-table narrative,
-immutable visibility, bundle-island construction, and atomic retry. Its local
-source gate passes 760 total unittest cases, including eight focused bundle cases,
-the 86-literal runtime-domain audit, import/topology checks, pycompile, and
-`git diff --check`. No provider, network, fresh ingest, store mutation, dataset
-change, or evaluator relaxation is part of this source gate.
+The current provider-free lineage covers typed owner matching, deterministic
+cohort ranking, cell-local prompts, complete-row bundle inference, cross-row
+rejection, and atomic option projection. The repair tests catalog-order-independent
+choice, next-row promotion, compatibility narrative preservation, and
+source-defined requirement projection. Read-only projection of the consumed T3
+result reduces its visible set from 16 IDs to 10, selects table 82 row `9:2`,
+retains the two numeric compatibility cohorts and five narrative IDs, and removes
+the table 83 numeric pair. The gate passes 763 total unittest cases, 134 focused
+semantic/runtime-contract cases, 23 documentation/import/topology cases, the
+86-literal domain audit, pycompile, and `git diff --check`. This is local source
+evidence only; no provider, network, store write, dataset change, or evaluator
+change was used.
 
 A read-only reprojection of the three saved source windows confirms no inferred
 bundle for T2 or Samsung and one three-owner T3 island with two physical options:
@@ -133,7 +131,9 @@ the table 82 carrying-amount candidate. Validation rejected that mixed proposal
 as `evidence_bundle_mismatch`; execution emitted no T3 output and all three
 obligations remain missing. The release gate is therefore **2/3 runtime-complete,
 HOLD**. The safety boundary works, but the compiler still chooses IDs per owner
-instead of selecting a bundle option atomically.
+instead of selecting a bundle option atomically in this consumed predecessor
+run. Current source now removes that choice by exposing one preselected option,
+but no successor provider run has been authorized or claimed.
 
 The runner recorded 18 LLM calls, 166,963 LLM tokens, 32 query-embedding calls,
 zero document-embedding calls, and estimated runtime cost USD `0.1645241`, below

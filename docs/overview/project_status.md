@@ -8,7 +8,7 @@ Last updated: 2026-09-03
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Active branch | `codex/typed-candidate-ranking`, successor of provider-gate snapshot `9641563` |
-| Runtime state | Typed owner matching plus immutable physical-row evidence bundles replace additive candidate keyword scoring and independent multi-output selection |
+| Runtime state | Typed owner matching plus compiler-visible atomic physical-row selection replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
 | Provider evidence | Evidence-bundle admission `b068ac4b...5501` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
@@ -29,9 +29,11 @@ Last updated: 2026-09-03
   second keyword ranking pass.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
-  even when planner coupling is empty; all outputs must select one physical-row
-  option. Unknown dependency, self-dependency, cycle, island overflow, or
-  candidate reservation overflow fails before compiler calls.
+  even when planner coupling is empty. Code ranks complete rows from existing
+  owner cohorts, selects one before compiler invocation, and removes alternative
+  row IDs from output and requirement visibility. Numeric compatibility
+  narratives remain available. Unknown dependency, self-dependency, cycle,
+  island overflow, or candidate reservation overflow fails before compiler calls.
 - Retrieval is internally split into plan, search, selection, and trace stages.
 - `IngestService` owns fetch through manifest recording. `FinancialAgent` no
   longer exposes ingest methods.
@@ -46,28 +48,23 @@ Last updated: 2026-09-03
 
 ## Evidence and remaining gate
 
-The new provider-free matcher contract covers typed targets, deterministic
-catalog-order independence, compatible-before-unknown ordering, catalog-grounded
-legacy fallback, cell-local prompt projection, validator rejection of a visible
-semantic conflict, and ontology unit families. The current source gate passes
-752 total unittest cases, 146 focused semantic/import/topology/documentation
-cases, the 86-literal runtime-domain audit, pycompile, JSON validation, and
-`git diff --check`. Stored-source reconstruction
-places the Motional carrying-amount cell in the intended owner cohort and keeps
-the BHAF row out; it also prioritizes the two Hyundai T2 period values over
-market totals and preserves Samsung's accepted evidence visibility. It does not
-claim a new LLM/compiler outcome.
+The current provider-free source combines typed target matching, cell-local
+prompts, complete-row bundle inference, and fail-closed validation. Complete
+options use the existing per-owner ranks: lowest summed position, then lowest
+worst position, then physical IDs. Only the selected row enters the compiler's
+candidate dictionary and active constraint. Candidate rejection rebuilds the
+cohorts so the next complete row can be promoted; format-only retry keeps the
+same row. Ranked alternatives are diagnostic-only. The source gate passes 763
+unittest cases, including 134 focused semantic/runtime-contract and 23
+documentation/import/topology cases, plus the 86-literal domain audit,
+pycompile, and `git diff --check`.
 
-The current provider-free successor infers a bundle only when two or more
-same-subject direct outputs have a complete compatible physical row. It rejects
-mixed-row programs, can attach required source-defined narrative only through a
-compatible report context, and retries all bundle owners together while
-excluding only rejected IDs. The source gate passes 760 unittest cases,
-including eight focused bundle cases, the 86-literal runtime-domain audit,
-import/topology checks, pycompile, and `git diff --check`. This is local contract
-evidence, not a new provider result. Read-only reprojection gives T3 one island
-with two coherent options: table 82 row `9:2` (`26%`, `700,691백만원`) or table 83
-row `9:2` (`25.92%`, `907,061백만원`); T2 and Samsung gain no spurious bundle.
+Read-only projection of the consumed T3 calculation plan selects table 82 row
+`9:2`, reduces its visible IDs from 16 to 10, retains both numeric compatibility
+cohorts and all five compatible source-defined narrative IDs, and removes the
+table 83 numeric pair. This directly exercises the saved failure shape without
+calling a provider or writing an artifact. The historical release status remains
+HOLD until a separately approved successor run demonstrates runtime completeness.
 
 The clean redesign predecessor's read-only reprojection rebuilt candidates from
 the three stored source windows with network access blocked. It retained both
@@ -130,10 +127,9 @@ unchanged; no disposable store remains.
 ## Next work
 
 1. Do not rerun the paid gate automatically. The current admission is consumed.
-2. Make bundle selection atomic: rank physical-row options from existing typed
-   owner ranks, expose one option ID as the compiler choice, and project owner
-   visibility through that option so a mixed-row program is unrepresentable.
-   Verify this provider-free before preparing another admission.
+2. The provider-free source gate is complete. Preserve the consumed result as an
+   immutable predecessor; any new provider admission must be generated from the
+   committed successor and separately approved before replay.
 3. Keep a broader local semantic reranker and persisted typed fact index as
    deferred designs. They need measured benefit and a migration contract rather
    than being bundled into the atomic-bundle repair.

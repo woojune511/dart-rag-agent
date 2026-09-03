@@ -42,7 +42,10 @@ Numeric 또는 mixed requirement이면 `build_candidates`가 물리 provenance�
 catalog를 만든다. `compile_program`은 obligation dependency와 non-empty coupling
 key뿐 아니라 같은 local subject의 완전한 physical-row evidence bundle을 기준으로
 island를 만들고, island별 candidate visibility 안에서만 program을
-compile/validate한다. Bundle에 속한 출력은 한 row option만 함께 선택할 수 있다.
+compile/validate한다. Runtime은 완전한 row option을 owner cohort 순위로 정렬하고
+첫 option을 compiler 호출 전에 고른다. Bundle 출력과 source-defined requirement는
+그 행으로 projection되며, 다른 행의 candidate는 prompt에 들어가지 않는다.
+Numeric compatibility narrative는 scope 보조 근거로 계속 노출된다.
 
 ```text
 retrieve_evidence
@@ -54,9 +57,11 @@ retrieve_evidence
 Executor는 compiler와 동일한 `CompilationEnvelopeV1`을 받는다. Catalog,
 visibility, validation fingerprint가 달라지거나 owner 밖 ID가 선택되면 산술을
 실행하지 않는다. 서로 다른 bundle option의 행을 섞으면
-`evidence_bundle_mismatch`로 거절한다. Bundle 구성원 하나가 실패하면 그 bundle만
-함께 재시도하고, 성공한 다른 island는 retry prompt에 다시 넣지 않으며 merge 후
-JSON bytes를 유지한다.
+`evidence_bundle_mismatch`로 거절한다. 정상 compiler 경로에서는 한 option만
+보이므로 이 검사는 defense-in-depth다. Bundle 구성원 하나의 candidate가
+거절되면 그 bundle의 cohort를 다시 만들고, 선택 행이 불완전해졌을 때만 다음
+완전한 행으로 승격한다. 성공한 다른 island는 retry prompt에 다시 넣지 않으며
+merge 후 JSON bytes를 유지한다.
 
 ## 5. Narrative branch
 
@@ -94,7 +99,7 @@ Internal callers must use these attributes; flat dict fallback은 없다.
 | wrong scope/search window | `retrieval_debug_trace` |
 | candidate missing or wrong row | `SemanticTargetV1`, factor matches, and cohort diagnostics |
 | hidden/cross-owner ID | `CandidateVisibilityV1` and compile validation |
-| compile retry | `semantic_candidate_stage_diagnostics_v5` island and bundle attempts |
+| compile retry | `semantic_candidate_stage_diagnostics_v6` island, selected bundle option, and attempts |
 | execution refusal | `visibility_mismatch`, `validation_drift`, `evidence_bundle_mismatch`, or semantic validation errors |
 | answer/evidence mismatch | `AgentAnswer`, `ReviewTrace.evidence_items`, ledger integrity |
 
