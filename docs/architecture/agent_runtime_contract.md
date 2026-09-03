@@ -280,7 +280,8 @@ CORS is disabled unless an environment allowlist is configured. Streamlit and
 MAS are experimental. Evaluator dependencies load only for an actual evaluation
 action. Core runtime imports may not depend on ops or experimental modules.
 Explicit forced BM25-only startup does not initialize a dense embedding client;
-hybrid startup continues to require the manifest-declared embedding runtime.
+it is selected only when persisted BM25 source data exists. A new or verified
+empty store stays on the manifest-declared dense initialization and ingest path.
 
 ## 10. Validation and release gate
 

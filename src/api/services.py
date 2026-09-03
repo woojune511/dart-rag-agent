@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
@@ -65,6 +66,22 @@ def _store_may_initialize(
             readiness.status == "missing"
             and is_empty_chroma_store(persist_directory)
         )
+    )
+
+
+def _has_persisted_bm25_source(persist_directory: Path) -> bool:
+    graph_path = persist_directory / "document_structure_graph.json"
+    try:
+        graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        graph = {}
+    nodes = graph.get("nodes") if isinstance(graph, Mapping) else None
+    if isinstance(nodes, Mapping) and bool(nodes):
+        return True
+
+    database_path = persist_directory / "chroma.sqlite3"
+    return database_path.is_file() and not is_empty_chroma_store(
+        persist_directory
     )
 
 
@@ -153,13 +170,18 @@ def build_app_services(
     if not may_initialize:
         return services
 
+    force_bm25_only = bool(
+        allow_degraded
+        and initial.status != "compatible"
+        and _has_persisted_bm25_source(persist_directory)
+    )
     store = VectorStoreManager(
         persist_directory=str(persist_directory),
         collection_name=expected.collection_name,
         embedding_provider=expected.embedding.provider,
         embedding_model_name=expected.embedding.model_name,
         allow_query_embedding_fallback=allow_degraded,
-        force_bm25_only=allow_degraded and initial.status != "compatible",
+        force_bm25_only=force_bm25_only,
     )
     agent = FinancialAgent(store, k=8)
     context_generator = ContextGenerator(agent.llm, store)

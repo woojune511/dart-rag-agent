@@ -141,8 +141,24 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_forced_bm25_startup_requires_persisted_search_data(self) -> None:
+        from src.api.services import _has_persisted_bm25_source
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.assertFalse(_has_persisted_bm25_source(root))
+
+            (root / "document_structure_graph.json").write_text(
+                '{"nodes":{"chunk-1":{"text":"evidence"}}}',
+                encoding="utf-8",
+            )
+            self.assertTrue(_has_persisted_bm25_source(root))
+
     def test_empty_unmanifested_chroma_restart_is_initializable(self) -> None:
-        from src.api.services import _store_may_initialize
+        from src.api.services import (
+            _has_persisted_bm25_source,
+            _store_may_initialize,
+        )
 
         manifest = canonical_store_manifest(collection_name="runtime")
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -155,6 +171,7 @@ class FinancialAPIContractTests(unittest.TestCase):
                 connection.commit()
             finally:
                 connection.close()
+            self.assertFalse(_has_persisted_bm25_source(root))
             readiness = StoreReadiness(
                 status="missing",
                 ready=False,
