@@ -251,8 +251,9 @@ declared profile validation.
 `IngestService(fetcher, parser, context_generator, store)` owns fetch, parse,
 context generation, indexing, and manifest recording. A manifest is written only
 after documents are indexed. Multi-report ingest records it after the first
-successful store batch so a later failure remains resumable. `FinancialAgent`
-exposes no ingest method.
+successful store batch so a later failure remains resumable. A report is skipped
+only when every parsed `chunk_uid` is already present; otherwise document adds
+resume by chunk identity. `FinancialAgent` exposes no ingest method.
 
 Benchmark-only `in_progress` cache metadata may preserve a manifest-less partial
 store only when cache and store signatures match exactly and partial resume is
@@ -270,6 +271,8 @@ Repository `.env` values are resolved before application settings, with process
 environment values taking precedence and imports leaving process state
 unchanged. Query and ingest operations sharing one `AppServices` instance are
 serialized before threadpool dispatch because the agent and store are mutable.
+Readiness is refreshed inside that serialization boundary after every ingest
+attempt, including a partial failure.
 
 CORS is disabled unless an environment allowlist is configured. Streamlit and
 MAS are experimental. Evaluator dependencies load only for an actual evaluation

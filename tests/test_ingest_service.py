@@ -22,7 +22,12 @@ class _Fetcher:
 
 class _Parser:
     def process_document(self, _path, metadata):
-        return [SimpleNamespace(content="text", metadata=metadata)]
+        return [
+            SimpleNamespace(
+                content="text",
+                metadata={**metadata, "chunk_uid": "chunk-1"},
+            )
+        ]
 
 
 class _ContextGenerator:
@@ -35,8 +40,9 @@ class _ContextGenerator:
         *,
         on_store_progress=None,
         max_workers,
+        resume_partial_store=False,
     ):
-        self.calls.append((list(chunks), max_workers))
+        self.calls.append((list(chunks), max_workers, resume_partial_store))
         if on_store_progress:
             on_store_progress(len(chunks), len(chunks))
 
@@ -48,11 +54,13 @@ class _FailAfterFirstContextGenerator(_ContextGenerator):
         *,
         on_store_progress=None,
         max_workers,
+        resume_partial_store=False,
     ):
         super().contextual_ingest(
             chunks,
             on_store_progress=on_store_progress,
             max_workers=max_workers,
+            resume_partial_store=resume_partial_store,
         )
         if len(self.calls) > 1:
             raise RuntimeError("synthetic later-report failure")
@@ -65,8 +73,9 @@ class _FailAfterFirstBatchContextGenerator(_ContextGenerator):
         *,
         on_store_progress=None,
         max_workers,
+        resume_partial_store=False,
     ):
-        self.calls.append((list(chunks), max_workers))
+        self.calls.append((list(chunks), max_workers, resume_partial_store))
         if on_store_progress:
             on_store_progress(1, len(chunks))
         raise RuntimeError("synthetic later-batch failure")
@@ -77,9 +86,51 @@ class _Store:
         self.persist_directory = str(root)
         self.indexed = indexed
         self.bm25_docs = ["existing"] if existing_docs else []
+        self.indexed_chunk_uids = set()
 
     def is_indexed(self, _receipt):
         return self.indexed
+
+    def list_indexed_chunk_uids(self, *, rcept_no=None):
+        return set(self.indexed_chunk_uids)
+
+
+class _TwoChunkParser:
+    def process_document(self, _path, metadata):
+        return [
+            SimpleNamespace(
+                content=f"text-{index}",
+                metadata={**metadata, "chunk_uid": f"chunk-{index}"},
+            )
+            for index in (1, 2)
+        ]
+
+
+class _FailThenResumeContextGenerator(_ContextGenerator):
+    def __init__(self, store):
+        super().__init__()
+        self.store = store
+
+    def contextual_ingest(
+        self,
+        chunks,
+        *,
+        on_store_progress=None,
+        max_workers,
+        resume_partial_store=False,
+    ):
+        rows = list(chunks)
+        self.calls.append((rows, max_workers, resume_partial_store))
+        if len(self.calls) == 1:
+            self.store.indexed_chunk_uids.add("chunk-1")
+            if on_store_progress:
+                on_store_progress(1, len(rows))
+            raise RuntimeError("synthetic partial report failure")
+        self.store.indexed_chunk_uids.update(
+            str(chunk.metadata["chunk_uid"]) for chunk in rows
+        )
+        if on_store_progress:
+            on_store_progress(len(rows), len(rows))
 
 
 class IngestServiceTests(unittest.TestCase):
@@ -178,6 +229,42 @@ class IngestServiceTests(unittest.TestCase):
                 service.ingest_company("sample", [2024], max_workers=2)
 
             self.assertEqual(read_store_manifest(root), manifest)
+
+    def test_partial_report_resumes_by_chunk_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            report_path = root / "report.xml"
+            report_path.write_text("report", encoding="utf-8")
+            report = SimpleNamespace(
+                file_path=str(report_path),
+                corp_name="sample",
+                stock_code="000000",
+                year=2024,
+                report_type="annual",
+                rcept_no="receipt-1",
+            )
+            store = _Store(root)
+            context_generator = _FailThenResumeContextGenerator(store)
+            service = IngestService(
+                _Fetcher([report]),
+                _TwoChunkParser(),
+                context_generator,
+                store,
+                canonical_store_manifest(collection_name="runtime"),
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "synthetic partial report failure",
+            ):
+                service.ingest_company("sample", [2024], max_workers=2)
+
+            result = service.ingest_company("sample", [2024], max_workers=2)
+
+            self.assertEqual(result["reports_skipped"], 0)
+            self.assertEqual(store.indexed_chunk_uids, {"chunk-1", "chunk-2"})
+            self.assertEqual(len(context_generator.calls), 2)
+            self.assertTrue(context_generator.calls[1][2])
 
     def test_nonempty_unmanifested_store_is_not_auto_adopted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

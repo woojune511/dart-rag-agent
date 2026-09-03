@@ -49,6 +49,19 @@ class IngestService:
                 "refusing to adopt a non-empty store without an approved manifest"
             )
 
+    def _report_is_fully_indexed(self, report: Any, chunks: Iterable[Any]) -> bool:
+        chunk_rows = list(chunks)
+        expected_ids = {
+            str(getattr(chunk, "metadata", {}).get("chunk_uid") or "").strip()
+            for chunk in chunk_rows
+        }
+        expected_ids.discard("")
+        list_indexed = getattr(self.store, "list_indexed_chunk_uids", None)
+        if len(expected_ids) == len(chunk_rows) and callable(list_indexed):
+            indexed_ids = set(list_indexed(rcept_no=report.rcept_no))
+            return expected_ids.issubset(indexed_ids)
+        return bool(self.store.is_indexed(report.rcept_no))
+
     @staticmethod
     def _report_metadata(report: Any) -> Dict[str, Any]:
         return {
@@ -88,19 +101,20 @@ class IngestService:
                 missing_files += 1
                 logger.warning("Skipping report without a local file: %s", report)
                 continue
-            if self.store.is_indexed(report.rcept_no):
-                skipped += 1
-                continue
             chunks = self.parser.process_document(
                 report.file_path,
                 self._report_metadata(report),
             )
             if not chunks:
                 continue
+            if self._report_is_fully_indexed(report, chunks):
+                skipped += 1
+                continue
             self.context_generator.contextual_ingest(
                 chunks,
                 on_store_progress=record_manifest_after_mutation,
                 max_workers=max_workers,
+                resume_partial_store=True,
             )
             total_chunks += len(chunks)
             if not manifest_recorded:

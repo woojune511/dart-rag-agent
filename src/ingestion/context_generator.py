@@ -192,6 +192,7 @@ class ContextGenerator:
         on_store_progress=None,
         max_workers: Optional[int] = None,
         batch_size: Optional[int] = None,
+        resume_partial_store: bool = False,
     ) -> Dict[str, Any]:
         """Index chunks with contextual retrieval and parent-child storage."""
         if not chunks:
@@ -237,6 +238,7 @@ class ContextGenerator:
         self.vsm.add_documents(
             texts,
             metadatas,
+            resume=resume_partial_store,
             on_progress=on_store_progress,
         )
         logger.info("[contextual_ingest] indexed %s contextualized chunks", total)

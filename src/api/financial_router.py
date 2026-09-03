@@ -270,13 +270,15 @@ def get_router():
             raise HTTPException(status_code=503, detail=services.readiness.reason)
         try:
             async with services.operation_lock:
-                result = await run_in_threadpool(
-                    ingest_service.ingest_company,
-                    req.company,
-                    req.years,
-                    max_workers=services.contextual_ingest_max_workers,
-                )
-                services.refresh_readiness()
+                try:
+                    result = await run_in_threadpool(
+                        ingest_service.ingest_company,
+                        req.company,
+                        req.years,
+                        max_workers=services.contextual_ingest_max_workers,
+                    )
+                finally:
+                    services.refresh_readiness()
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
 

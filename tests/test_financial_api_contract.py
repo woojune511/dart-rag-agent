@@ -98,6 +98,11 @@ class _IngestService:
         }
 
 
+class _FailingIngestService:
+    def ingest_company(self, _company, _years, *, max_workers):
+        raise RuntimeError("synthetic partial ingest failure")
+
+
 def _services(*, status="compatible", ready=True, degraded=False, agent=None):
     manifest = canonical_store_manifest(collection_name="runtime")
     readiness = StoreReadiness(
@@ -328,6 +333,33 @@ class FinancialAPIContractTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 200)
         self.assertIn("worker", ingest.calls[0]["thread"].lower())
+
+    def test_failed_ingest_refreshes_readiness(self) -> None:
+        services, _, _ = _services(status="missing", ready=False)
+        services.ingest_service = _FailingIngestService()
+        compatible = StoreReadiness(
+            status="compatible",
+            ready=True,
+            reason="compatible",
+            expected=services.expected_manifest,
+            actual=services.expected_manifest,
+        )
+
+        def refresh_readiness():
+            services.readiness = compatible
+            return compatible
+
+        services.refresh_readiness = refresh_readiness
+        with _client(services) as client:
+            failed = client.post(
+                "/api/ingest",
+                json={"company": "A", "years": [2024]},
+            )
+            ready = client.get("/api/health/ready")
+
+        self.assertEqual(failed.status_code, 502)
+        self.assertEqual(ready.status_code, 200)
+        self.assertTrue(ready.json()["ready"])
 
 
 if __name__ == "__main__":
