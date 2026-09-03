@@ -9,9 +9,9 @@ Last updated: 2026-09-03
 - Immutable base: `a278c1a`
 - Clean redesign predecessor: `8790f92`
 - Candidate-ranking predecessor: `729e0fb`
-- The original dirty checkout's 23 tracked/untracked predecessor paths remain
-  byte-identical and unstaged. The separately approved ignored store manifest
-  was added under its `data/chroma_dart` directory.
+- The original dirty checkout remains an unstaged predecessor outside this
+  worktree. The separately approved ignored store manifest was added under its
+  `data/chroma_dart` directory.
 
 ## Current implementation
 
@@ -59,10 +59,10 @@ evaluator, replay, and promotion tools remain optional or experimental.
 - No existing store receives a manifest automatically. The approved adoption
   wrote only `data/chroma_dart/store_manifest.json`; its seven predecessor files
   remained byte-identical.
-- Provider-capable runs remain exact-admission scoped. The latest env-bound
-  admission was approved and consumed by one store-fixed `eval-only` run on
-  2026-09-03. It does not authorize another run, fresh ingest, automatic
-  benchmark retry, or document embedding.
+- Provider-capable runs remain exact-admission scoped. Evidence-bundle admission
+  `b068ac4b...5501` was approved and consumed by one store-fixed `eval-only`
+  process on 2026-09-03. It does not authorize another run, fresh ingest,
+  automatic benchmark retry, or document embedding.
 - The `data/chroma_dart` manifest layer now reports exact `compatible`,
   `ready=true`, and `degraded=false`. This is not provider-query validation.
 
@@ -104,43 +104,40 @@ The approved legacy-store adoption wrote one 394-byte manifest with SHA-256
 Its collection is `dart_reports_v2`, dimension is `3072`, and the declared
 profile is canonical. All seven predecessor store files remained byte-identical.
 
-The candidate-ranking build used ignored env-bound admission
-`benchmarks/results/typed_candidate_ranking_focused_admission_envbound_2026-09-03`.
+The evidence-bundle build used ignored admission
+`benchmarks/results/evidence_bundle_focused_admission_envbound_2026-09-03`.
 Its manifest SHA-256 is
-`9c1d1807f74397d528278592c6867e491decf23abbb03977fb33c837cf86a3c3`;
+`b068ac4b108d8243a417b61e355439ef1f25106c3b707db12ce0561015a45501`;
 two persisted no-call receipts and the immediate pre-dispatch receipt are the
-same 6,552 bytes at
-`31adb7b259247b9006be373e2aa2ff9def635dec50f6416ecbb9e921ff98c5f9`.
+same 6,710 bytes at
+`98484f569246a4cc4af07b4e0070426a73aee9def2a4317b4011082593ecb191`.
 The runtime resolved the worktree `.env` before provider configuration; no key
 value or `.env` hash is recorded.
 
-The separately approved run completed exactly once in 295.5 seconds at runtime
-head `12fe139`. The ignored result bundle is
-`benchmarks/results/typed_candidate_ranking_focused_successor_envbound_2026-09-03`;
+The separately approved runner process completed exactly once in 313.9 seconds
+at runtime head `cc14901`. The ignored result bundle is
+`benchmarks/results/evidence_bundle_focused_successor_envbound_2026-09-03`;
 its root `results.json` SHA-256 is
-`a80fdbdff7b7b8d05091b74f2cffcdfaf76822549d992ca5311ee6118d89617d`.
-The predecessor `b6762027...61e3` attempt had already been consumed by an
-environment-binding failure before provider construction and was not retried.
+`e679e712d3e228a9e19d6ef4c52b64e649853d9f5a44a83ed700deac48fea6b2`.
 
-All three current rows report structured result `ok`, calculation `ok`, no
-missing obligation, runtime error zero, and ledger integrity `ok`. T2 selected
-`87.0만 대` and `78.1만 대`; Samsung preserved the accepted research-cost and
-Harman evidence. T3 now sees and selects `700,691백만원`, and the wrong-row BHAF
-`53%` value remains outside its owner cohort.
+T2 and Samsung remain runtime-complete with error zero and ledger integrity
+`ok`; their accepted evidence ID sequences are identical to the predecessor.
+T2 retains `87.0만 대`, `78.1만 대`, calculated `11.4%`, and source display
+`11.5%`. Samsung retains `28,352,769백만원` and the Harman narrative.
 
-The release gate nevertheless remains **2/3 source-consistent, HOLD**. T3's
-three obligations had empty coupling keys and compiled as separate islands. The
-compiler chose `25.92%` from consolidated-notes table 83 because it considered
-that value more precise, then chose `700,691백만원` from table 82; the narrative
-used only detailed-table `당기순손익 -803,742` without its unit. Mechanical
-runtime completeness is 3/3, but the selected evidence is not one compatible
-Motional reporting tuple and does not contain the complete consolidated summary.
-That paid artifact predates the evidence-bundle successor; local contract success
-does not retroactively change it or authorize another provider run.
+T3 now forms one three-owner island with one physical-row bundle and two valid
+options: table 82 row `9:2` (`26%`, `700,691백만원`) or table 83 row `9:2`
+(`25.92%`, `907,061백만원`). The first compiler attempt was partial. The one
+allowed internal retry proposed the table 83 ownership candidate together with
+the table 82 carrying-amount candidate. Validation rejected that mixed proposal
+as `evidence_bundle_mismatch`; execution emitted no T3 output and all three
+obligations remain missing. The release gate is therefore **2/3 runtime-complete,
+HOLD**. The safety boundary works, but the compiler still chooses IDs per owner
+instead of selecting a bundle option atomically.
 
-The runner recorded 20 LLM calls, 136,312 LLM tokens, 30 embedding calls, zero
-document-embedding calls, and estimated runtime cost USD `0.1356168`. Embedding
-cost remains unavailable. One initial canonical-routing embedding request
-returned HTTP 429 and degraded safely; later calls completed. Source result
-hashes, SQLite hashes, and complete store fingerprints remain unchanged, and no
-disposable store remains. No automatic run retry was made or authorized.
+The runner recorded 18 LLM calls, 166,963 LLM tokens, 32 query-embedding calls,
+zero document-embedding calls, and estimated runtime cost USD `0.1645241`, below
+the approved USD `0.40` ceiling. Embedding cost remains unavailable. Source
+result hashes, SQLite hashes, and complete store fingerprints remain unchanged,
+and no disposable store remains. No automatic runner retry was made or is
+authorized.

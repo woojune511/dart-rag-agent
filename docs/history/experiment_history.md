@@ -125,6 +125,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Canonical Operand Projection Repair And T3 No-Call Gate (2026-09-01)](#canonical-operand-projection-repair-and-t3-no-call-gate-2026-09-01) | inline unit, validated row subject, current report period를 한 canonical operand projector로 보존하고 같은 six-ID proposal 재검증 | generic contract 13/13, focused 261/261, full 707/707, audit 86. 여섯 ID 불변, `ready`/`ok`, strict matcher `atomic_answer_variant_match`; dataset/result/store/provider 불변 |
 | [Runtime-Contract Integration Three-Row Provider Gate (2026-09-03)](#runtime-contract-integration-three-row-provider-gate-2026-09-03) | boundary redesign 통합 head와 exact manifest `cb188492...683a8`의 승인된 Hyundai/Samsung 3문항 store-fixed replay | runner는 1회 완주, error 0·ledger 3/3 `ok`지만 runtime completeness는 2/3. T3의 올바른 `700,691백만원` 셀이 owner cohort에서 빠져 release HOLD; `$0.1575934`, no run retry |
 | [Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)](#typed-candidate-ranking-env-bound-three-row-provider-gate-2026-09-03) | typed owner target matcher와 env-bound admission의 승인된 동일 3문항 store-fixed replay | 기계적 3/3 `ok`, error 0, ledger 3/3이나 T3가 table 83의 `25.92%`와 table 82의 `700,691백만원`을 혼합해 source-consistent gate 2/3 HOLD; `$0.1356168` plus unpriced embeddings, no retry |
+| [Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)](#evidence-bundle-fail-closed-three-row-provider-gate-2026-09-03) | physical-row bundle 계약과 exact manifest `b068ac4b...5501`의 승인된 동일 3문항 store-fixed replay | T3 mixed-row proposal을 validator가 거절해 잘못된 출력을 막았지만 0/3 incomplete; 전체 runtime completeness 2/3 HOLD, `$0.1645241` plus unpriced embeddings, no runner retry |
 
 ## 보는 법
 
@@ -135,6 +136,72 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)
+
+### Authority and execution
+
+The user approved manifest
+`b068ac4b108d8243a417b61e355439ef1f25106c3b707db12ce0561015a45501`,
+one execution of its three ordered questions, and a USD `0.40` ceiling. The
+immediate production-order rehearsal reproduced the canonical 6,710-byte
+receipt SHA-256
+`98484f569246a4cc4af07b4e0070426a73aee9def2a4317b4011082593ecb191`
+with the target absent and provider/network/output counts zero.
+
+Runtime head `cc14901` then ran exactly one store-fixed `eval-only` process in
+the order `HYU_T2_010`, `HYU_T3_072`, `SAM_T2_078`, Hyundai before Samsung,
+with a 30-second heartbeat. It exited zero after 313.9 seconds. The ignored
+result bundle is
+`benchmarks/results/evidence_bundle_focused_successor_envbound_2026-09-03`;
+its root `results.json` SHA-256 is
+`e679e712d3e228a9e19d6ef4c52b64e649853d9f5a44a83ed700deac48fea6b2`.
+
+### Runtime gate result
+
+| Question | Runtime obligations | Error / ledger | Observed output |
+| --- | --- | --- | --- |
+| `HYU_T2_010` | `ok`, 2/2 | `0 / ok` | Same predecessor evidence IDs; `87.0만 대` and `78.1만 대` produce `11.4%`, source display `11.5%`, plus policy narrative |
+| `HYU_T3_072` | `incomplete`, 0/3 | `0 / ok` | Mixed-row retry proposal rejected as `evidence_bundle_mismatch`; no unsupported value emitted |
+| `SAM_T2_078` | `ok`, 2/2 | `0 / ok` | Same predecessor evidence IDs; `28,352,769백만원` and Harman narrative preserved |
+
+The release gate is **2/3 runtime-complete, HOLD**. This differs from the
+predecessor failure in a useful way: the old runtime emitted a mechanically
+complete but source-inconsistent T3 answer, whereas this runtime refuses the
+same kind of mixed-row selection.
+
+### T3 bundle diagnosis
+
+The candidate stage inferred one physical-row bundle spanning `ob_001`,
+`ob_002`, and `ob_003`, which correctly merged them into one island. It exposed
+two complete options:
+
+- table 82 row `9:2`: `26%`, `700,691백만원`, and compatible narrative IDs;
+- table 83 row `9:2`: `25.92%`, `907,061백만원`, and compatible narrative IDs.
+
+The first compiler attempt was `partial`: it proposed one narrative candidate
+while both direct obligations remained missing/ambiguous. The one allowed
+internal retry retained the same 16 visible IDs and 76,266-byte candidate
+payload, then proposed `cand_1662e0875b6da25cc909` from table 83 for ownership
+and `cand_a8aa299ad5dea4f29cd5` from table 82 for carrying amount. Validation
+reported `evidence_bundle_mismatch`, selected no bundle option, and preserved all
+three obligations as missing. No executor output was produced.
+
+The remaining seam is therefore atomic selection, not table parsing, candidate
+visibility, wrong-subject filtering, island construction, or validator drift.
+The prompt still lets the model choose IDs independently per owner and only
+checks the option afterward. The next provider-free change should rank physical
+row options from the existing typed owner ranks and project owner visibility
+through one selected option, making a mixed-row proposal unrepresentable.
+
+### Cost and immutability
+
+The run recorded 18 LLM calls, 166,963 LLM tokens, 32 query-embedding calls,
+zero document-embedding calls, and estimated runtime cost USD `0.1645241`, below
+the approved USD `0.40` ceiling. Embedding cost was not priced. Both source
+result hashes, both SQLite hashes, and both complete store fingerprints are
+unchanged; no disposable store remains. No automatic runner retry occurred or
+is authorized.
 
 ## Typed Candidate Ranking Env-Bound Three-Row Provider Gate (2026-09-03)
 
