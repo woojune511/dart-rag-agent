@@ -13,48 +13,20 @@ def _graph_model(name: str) -> Any:
     return getattr(module, name)
 
 
-def aggregate_synthesis_output_model() -> Any:
-    return _graph_model("AggregateSynthesisOutput")
+def requirement_planner_output_model() -> Any:
+    return _graph_model("RequirementPlannerOutput")
 
 
-def calculation_plan_model() -> Any:
-    return _graph_model("CalculationPlan")
-
-
-def calculation_render_output_model() -> Any:
-    return _graph_model("CalculationRenderOutput")
-
-
-def calculation_verification_output_model() -> Any:
-    return _graph_model("CalculationVerificationOutput")
+def semantic_calculation_program_model() -> Any:
+    return _graph_model("SemanticCalculationProgram")
 
 
 def compression_output_model() -> Any:
     return _graph_model("CompressionOutput")
 
 
-def concept_planner_output_model() -> Any:
-    return _graph_model("ConceptPlannerOutput")
-
-
 def evidence_extraction_model() -> Any:
     return _graph_model("EvidenceExtraction")
-
-
-def numeric_extraction_model() -> Any:
-    return _graph_model("NumericExtraction")
-
-
-def operand_extraction_model() -> Any:
-    return _graph_model("OperandExtraction")
-
-
-def reconciliation_candidate_rerank_model() -> Any:
-    return _graph_model("ReconciliationCandidateRerank")
-
-
-def reflection_query_plan_model() -> Any:
-    return _graph_model("ReflectionQueryPlan")
 
 
 def validation_output_model() -> Any:

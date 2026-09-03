@@ -15,7 +15,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
@@ -133,6 +133,42 @@ class EvalEvidence:
 
 
 @dataclass
+class EvalCalculationVariant:
+    """One atomic, source-qualified calculation answer accepted by the dataset."""
+
+    id: str
+    answer_key: str
+    expected_operands: List[Dict[str, Any]] = field(default_factory=list)
+    expected_operation: str = ""
+    expected_calculation_result: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class EvalAnswerVariantOutput:
+    """One source-qualified direct output required by an accepted answer variant."""
+
+    output_id: str
+    kind: str
+    label: str
+    subject: str
+    raw_value: str
+    raw_unit: str
+    normalized_unit: str
+    period: str
+    consolidation_scope: str
+    source_anchor_contains: List[str] = field(default_factory=list)
+
+
+@dataclass
+class EvalAnswerVariant:
+    """One complete multi-output answer representation accepted by the dataset."""
+
+    id: str
+    answer_key: str
+    expected_outputs: List[EvalAnswerVariantOutput] = field(default_factory=list)
+
+
+@dataclass
 class EvalExample:
     id: str
     question: str
@@ -158,6 +194,8 @@ class EvalExample:
     expected_operands: List[Dict[str, Any]] = field(default_factory=list)
     expected_operation: str = ""
     expected_calculation_result: Dict[str, Any] = field(default_factory=dict)
+    accepted_calculation_variants: List[EvalCalculationVariant] = field(default_factory=list)
+    accepted_answer_variants: List[EvalAnswerVariant] = field(default_factory=list)
     verification_status: str = ""
     notes: str = ""
     company_aliases: List[str] = field(default_factory=list)
@@ -167,6 +205,18 @@ class EvalExample:
     @property
     def canonical_answer_key(self) -> str:
         return self.answer_key or self.ground_truth
+
+    @property
+    def accepted_answer_keys(self) -> List[str]:
+        answer_keys: List[str] = []
+        for value in [
+            self.canonical_answer_key,
+            *(variant.answer_key for variant in self.accepted_calculation_variants),
+        ]:
+            cleaned = str(value or "").strip()
+            if cleaned and cleaned not in answer_keys:
+                answer_keys.append(cleaned)
+        return answer_keys
 
     @property
     def canonical_expected_sections(self) -> List[str]:
@@ -226,6 +276,12 @@ def _build_example_report_scope(example: EvalExample) -> Dict[str, Any]:
 
 
 @dataclass
+class FaithfulnessJudgement:
+    score: float
+    reason: Optional[str] = None
+
+
+@dataclass
 class EvalResult:
     id: str
     question: str
@@ -258,6 +314,7 @@ class EvalResult:
     routing_source: str
     routing_confidence: Optional[float]
     latency_sec: float
+    faithfulness_reason: Optional[str] = None
     routing_scores: Dict[str, float] = field(default_factory=dict)
     absolute_error_rate: Optional[float] = None
     raw_operand_selection_correctness: Optional[float] = None
@@ -267,6 +324,9 @@ class EvalResult:
     trend_interpretation_correctness: Optional[float] = None
     grounded_rendering_correctness: Optional[float] = None
     calculation_correctness: Optional[float] = None
+    accepted_calculation_variant_match: Optional[float] = None
+    accepted_calculation_variant_id: str = ""
+    accepted_calculation_variant_debug: Dict[str, Any] = field(default_factory=dict)
     citations: List[str] = field(default_factory=list)
     retrieved_metadata: List[Dict[str, Any]] = field(default_factory=list)
     retrieved_previews: List[Dict[str, Any]] = field(default_factory=list)
@@ -370,7 +430,9 @@ _FAITHFULNESS_PROMPT = """\
 - 연도/기수 표기를 사용자가 이해하기 쉽게 풀어쓴 것은 감점하지 마세요.
 - 정보를 압축하거나 요약했더라도 없는 사실을 추가하지 않았다면 감점하지 마세요.
 
-숫자(0.0~1.0)만 답하세요."""
+다음 JSON 객체만 답하세요:
+{{"score": 0.0, "reason": "근거가 부족하거나 해석이 추가된 답변 부분을 한 문장으로 설명"}}
+score는 0.0~1.0 범위여야 합니다. 1.0인 경우에도 모든 주장이 근거에 있음을 reason에 짧게 적으세요."""
 
 _COMPLETENESS_PROMPT = """\
 다음은 질문, 답변, 그리고 정답 기준 요약입니다.
@@ -686,14 +748,19 @@ def _build_runtime_evidence_contexts(runtime_evidence: List[Dict[str, Any]], lim
         year = str(metadata.get("year") or "").strip()
         statement_type = str(metadata.get("statement_type") or "").strip()
         source_anchor = str(row.get("source_anchor") or "").strip()
-        claim = str(row.get("claim") or "").strip()
-        quote_span = str(row.get("quote_span") or row.get("raw_row_text") or row.get("quote") or "").strip()
-        source_context = str(row.get("source_context") or "").strip()
-        text_parts = [
-            part
-            for part in [company, year, section_path, statement_type, source_anchor, claim, quote_span, source_context]
-            if part
-        ]
+        claim = _compact_runtime_evidence_judge_text(row.get("claim"))
+        quote_span = _compact_runtime_evidence_judge_text(
+            row.get("quote_span") or row.get("raw_row_text") or row.get("quote")
+        )
+        source_context = _compact_runtime_evidence_judge_text(row.get("source_context"))
+        text_parts: List[str] = []
+        seen_parts: set[str] = set()
+        for part in [company, year, section_path, statement_type, source_anchor, claim, quote_span, source_context]:
+            normalized = str(part or "").strip()
+            if not normalized or normalized in seen_parts:
+                continue
+            seen_parts.add(normalized)
+            text_parts.append(normalized)
         if not text_parts:
             continue
         context = "\n".join(text_parts)
@@ -704,6 +771,14 @@ def _build_runtime_evidence_contexts(runtime_evidence: List[Dict[str, Any]], lim
         if len(contexts) >= limit:
             break
     return contexts
+
+
+def _compact_runtime_evidence_judge_text(value: Any) -> str:
+    """Remove indexed metadata brackets while preserving source-visible headings."""
+
+    text = str(value or "")
+    text = re.sub(r"\[[^\]\r\n]*:[^\]\r\n]*\]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _prioritize_runtime_evidence_contexts(
@@ -1092,6 +1167,208 @@ def _compute_numeric_equivalence(
         "unsupported_answer_candidates": [],
         "reason": "no_equivalent_value",
     }
+
+
+def _numeric_values_match_reference_precision(
+    answer_candidate: Dict[str, Any],
+    reference_candidate: Dict[str, Any],
+) -> bool:
+    if answer_candidate.get("kind") != reference_candidate.get("kind"):
+        return False
+    answer_value = _safe_float(answer_candidate.get("normalized_value"))
+    reference_value = _safe_float(reference_candidate.get("normalized_value"))
+    if answer_value is None or reference_value is None:
+        return False
+
+    kind = str(reference_candidate.get("kind") or "")
+    if kind == "currency":
+        tolerance = max(abs(reference_value) * 1e-6, _currency_display_step(reference_candidate))
+    elif kind == "percent":
+        tolerance = max(0.05, _percent_display_step(reference_candidate) / 2.0)
+    elif kind == "ratio":
+        tolerance = max(1e-4, _ratio_display_step(reference_candidate) / 2.0)
+    else:
+        tolerance = 1e-4
+    return abs(answer_value - reference_value) <= tolerance
+
+
+def _compute_numeric_variant_equivalence(
+    *,
+    answer: str,
+    answer_key: str,
+    support_texts: Optional[Iterable[str]] = None,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Require every numeric claim in one variant, at that variant's precision."""
+
+    answer_candidates = _extract_numeric_candidates(answer)
+    reference_candidates = _extract_numeric_candidates(answer_key)
+    if not answer_candidates or not reference_candidates:
+        return None, {
+            "answer_candidates": answer_candidates,
+            "reference_candidates": reference_candidates,
+            "matched_pairs": [],
+            "reason": "missing_candidates",
+        }
+
+    unmatched_answer_indices = list(range(len(answer_candidates)))
+    matched_pairs: List[Dict[str, Any]] = []
+    missing_reference_candidates: List[Dict[str, Any]] = []
+    for reference_candidate in reference_candidates:
+        match_index: Optional[int] = None
+        for answer_index in unmatched_answer_indices:
+            if _numeric_values_match_reference_precision(
+                answer_candidates[answer_index],
+                reference_candidate,
+            ):
+                match_index = answer_index
+                break
+        if match_index is None:
+            missing_reference_candidates.append(reference_candidate)
+            continue
+        unmatched_answer_indices.remove(match_index)
+        matched_pairs.append(
+            {
+                "answer": answer_candidates[match_index],
+                "reference": reference_candidate,
+            }
+        )
+
+    if missing_reference_candidates:
+        return 0.0, {
+            "answer_candidates": answer_candidates,
+            "reference_candidates": reference_candidates,
+            "matched_pairs": matched_pairs,
+            "missing_reference_candidates": missing_reference_candidates,
+            "reason": "incomplete_variant_numeric_claims",
+        }
+
+    auxiliary_support_texts = list(support_texts or [])
+    unsupported_answer_candidates: List[Dict[str, Any]] = []
+    for answer_index in unmatched_answer_indices:
+        answer_candidate = answer_candidates[answer_index]
+        if any(
+            _numeric_values_match_reference_precision(answer_candidate, reference_candidate)
+            for reference_candidate in reference_candidates
+        ):
+            continue
+        if auxiliary_support_texts and _numeric_candidate_supported_by_texts(
+            answer_candidate,
+            auxiliary_support_texts,
+        ):
+            continue
+        unsupported_answer_candidates.append(answer_candidate)
+    if unsupported_answer_candidates:
+        return 0.0, {
+            "answer_candidates": answer_candidates,
+            "reference_candidates": reference_candidates,
+            "matched_pairs": matched_pairs,
+            "unsupported_answer_candidates": unsupported_answer_candidates,
+            "reason": "unsupported_answer_numeric_claim",
+        }
+    return 1.0, {
+        "answer_candidates": answer_candidates,
+        "reference_candidates": reference_candidates,
+        "matched_pairs": matched_pairs,
+        "unsupported_answer_candidates": [],
+        "reason": "complete_variant_numeric_claims",
+    }
+
+
+def _compute_example_numeric_equivalence(
+    *,
+    example: EvalExample,
+    answer: str,
+    support_texts: Optional[Iterable[str]] = None,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Match numeric prose against one complete accepted answer representation."""
+
+    variants = list(example.accepted_calculation_variants or [])
+    if not variants:
+        return _compute_numeric_equivalence(
+            answer=answer,
+            answer_key=example.canonical_answer_key,
+            canonical_evidence=example.evidence,
+            support_texts=support_texts,
+        )
+
+    variant_rows: List[Dict[str, Any]] = []
+    matched_ids: List[str] = []
+    saw_comparable = False
+    for variant in variants:
+        if not variant.id or not variant.answer_key:
+            score: Optional[float] = 0.0
+            debug = {"reason": "invalid_variant_answer_contract"}
+        else:
+            score, debug = _compute_numeric_variant_equivalence(
+                answer=answer,
+                answer_key=variant.answer_key,
+                support_texts=support_texts,
+            )
+        if score is not None:
+            saw_comparable = True
+        if score == 1.0:
+            matched_ids.append(variant.id)
+        variant_rows.append(
+            {
+                "variant_id": variant.id,
+                "score": score,
+                "debug": debug,
+            }
+        )
+
+    score = 1.0 if matched_ids else (0.0 if saw_comparable else None)
+    return score, {
+        "reason": "accepted_answer_variant" if matched_ids else "no_accepted_answer_variant",
+        "matched_variant_ids": matched_ids,
+        "variants": variant_rows,
+    }
+
+
+def _resolve_atomic_calculation_variant_evaluation(
+    *,
+    example: EvalExample,
+    equivalence: Optional[float],
+    equivalence_debug: Dict[str, Any],
+    trace_match: Optional[float],
+    trace_variant_id: str,
+    trace_debug: Dict[str, Any],
+) -> Tuple[Optional[float], Dict[str, Any], Optional[float], str, Dict[str, Any]]:
+    if trace_match is None:
+        return equivalence, equivalence_debug, None, trace_variant_id, trace_debug
+
+    answer_variant_ids = set(equivalence_debug.get("matched_variant_ids") or [])
+    trace_variant_ids = set(trace_debug.get("matched_variant_ids") or [])
+    atomic_variant_ids = [
+        variant.id
+        for variant in example.accepted_calculation_variants
+        if variant.id in answer_variant_ids and variant.id in trace_variant_ids
+    ]
+    atomic_match = 1.0 if atomic_variant_ids else 0.0
+    matched_id = atomic_variant_ids[0] if atomic_variant_ids else ""
+    combined_equivalence_debug = {
+        "reason": "atomic_accepted_calculation_variant"
+        if atomic_variant_ids
+        else "no_atomic_accepted_calculation_variant",
+        "matched_variant_ids": atomic_variant_ids,
+        "answer_match": equivalence_debug,
+        "trace_match": trace_debug,
+    }
+    combined_trace_debug = {
+        **trace_debug,
+        "answer_matched_variant_ids": [
+            variant.id
+            for variant in example.accepted_calculation_variants
+            if variant.id in answer_variant_ids
+        ],
+        "atomic_matched_variant_ids": atomic_variant_ids,
+    }
+    return (
+        atomic_match,
+        combined_equivalence_debug,
+        atomic_match,
+        matched_id,
+        combined_trace_debug,
+    )
 
 
 def _operand_kind_from_normalized_unit(unit: str) -> Optional[str]:
@@ -1515,6 +1792,9 @@ def _compute_numeric_evaluation(
     contexts: List[str],
     calculation_operands: List[Dict[str, Any]],
     retrieval_hit_at_k: float,
+    calculation_plan: Optional[Dict[str, Any]] = None,
+    calculation_result: Optional[Dict[str, Any]] = None,
+    calculation_variant_operands: Optional[List[Dict[str, Any]]] = None,
     deterministic_grounding_only: bool = False,
 ) -> Dict[str, Any]:
     numeric_support_texts: List[str] = []
@@ -1537,11 +1817,26 @@ def _compute_numeric_evaluation(
             if str(metadata.get(key) or "").strip()
         )
     numeric_support_texts.extend(str(context or "") for context in contexts if str(context or "").strip())
-    equivalence, equivalence_debug = _compute_numeric_equivalence(
+    equivalence, equivalence_debug = _compute_example_numeric_equivalence(
+        example=example,
         answer=answer,
-        answer_key=example.canonical_answer_key,
-        canonical_evidence=example.evidence,
         support_texts=numeric_support_texts,
+    )
+    variant_match, variant_id, variant_debug = _compute_accepted_calculation_variant_match(
+        example=example,
+        calculation_operands=list(calculation_variant_operands or calculation_operands),
+        calculation_plan=dict(calculation_plan or {}),
+        calculation_result=dict(calculation_result or {}),
+    )
+    equivalence, equivalence_debug, variant_match, variant_id, variant_debug = (
+        _resolve_atomic_calculation_variant_evaluation(
+            example=example,
+            equivalence=equivalence,
+            equivalence_debug=equivalence_debug,
+            trace_match=variant_match,
+            trace_variant_id=variant_id,
+            trace_debug=variant_debug,
+        )
     )
     operand_grounding, operand_grounding_debug = _compute_operand_grounding_score(
         runtime_evidence=runtime_evidence,
@@ -1593,10 +1888,14 @@ def _compute_numeric_evaluation(
         "numeric_retrieval_support": retrieval_support,
         "numeric_final_judgement": final_judgement,
         "numeric_confidence": confidence,
+        "accepted_calculation_variant_match": variant_match,
+        "accepted_calculation_variant_id": variant_id,
+        "accepted_calculation_variant_debug": variant_debug,
         "numeric_debug": {
             "equivalence": equivalence_debug,
             "grounding": grounding_debug,
             "operand_grounding": operand_grounding_debug,
+            "accepted_calculation_variant": variant_debug,
             "retrieval_hit_at_k_diagnostic": retrieval_hit_at_k,
         },
     }
@@ -1631,6 +1930,111 @@ def _extract_retrieved_metadata(retrieved_docs: List[Any]) -> List[Dict[str, Any
             }
         )
     return rows
+
+
+_ANSWER_VARIANT_FIELDS = {"id", "answer_key", "expected_outputs"}
+_ANSWER_VARIANT_OUTPUT_FIELDS = {
+    "output_id",
+    "kind",
+    "label",
+    "subject",
+    "raw_value",
+    "raw_unit",
+    "normalized_unit",
+    "period",
+    "consolidation_scope",
+    "source_anchor_contains",
+}
+
+
+def _load_accepted_answer_variants(raw_variants: Any) -> List[EvalAnswerVariant]:
+    if raw_variants is None:
+        return []
+    if not isinstance(raw_variants, list):
+        raise ValueError("accepted_answer_variants must be a list")
+
+    variants: List[EvalAnswerVariant] = []
+    for variant_index, raw_variant in enumerate(raw_variants):
+        prefix = f"accepted_answer_variants[{variant_index}]"
+        if not isinstance(raw_variant, dict):
+            raise ValueError(f"{prefix} must be an object")
+        unexpected_variant_fields = set(raw_variant) - _ANSWER_VARIANT_FIELDS
+        missing_variant_fields = _ANSWER_VARIANT_FIELDS - set(raw_variant)
+        if unexpected_variant_fields:
+            raise ValueError(
+                f"{prefix} has unexpected fields: {sorted(unexpected_variant_fields)}"
+            )
+        if missing_variant_fields:
+            raise ValueError(
+                f"{prefix} is missing fields: {sorted(missing_variant_fields)}"
+            )
+
+        variant_id = str(raw_variant.get("id") or "").strip()
+        answer_key = str(raw_variant.get("answer_key") or "").strip()
+        raw_outputs = raw_variant.get("expected_outputs")
+        if not isinstance(raw_outputs, list) or not raw_outputs:
+            raise ValueError(f"{prefix}.expected_outputs must be a non-empty list")
+
+        outputs: List[EvalAnswerVariantOutput] = []
+        for output_index, raw_output in enumerate(raw_outputs):
+            output_prefix = f"{prefix}.expected_outputs[{output_index}]"
+            if not isinstance(raw_output, dict):
+                raise ValueError(f"{output_prefix} must be an object")
+            unexpected_output_fields = set(raw_output) - _ANSWER_VARIANT_OUTPUT_FIELDS
+            missing_output_fields = _ANSWER_VARIANT_OUTPUT_FIELDS - set(raw_output)
+            if unexpected_output_fields:
+                raise ValueError(
+                    f"{output_prefix} has unexpected fields: {sorted(unexpected_output_fields)}"
+                )
+            if missing_output_fields:
+                raise ValueError(
+                    f"{output_prefix} is missing fields: {sorted(missing_output_fields)}"
+                )
+
+            source_constraint = raw_output.get("source_anchor_contains")
+            if isinstance(source_constraint, list):
+                source_tokens = [
+                    str(value).strip()
+                    for value in source_constraint
+                    if str(value or "").strip()
+                ]
+            elif isinstance(source_constraint, str):
+                source_tokens = [source_constraint.strip()] if source_constraint.strip() else []
+            else:
+                source_tokens = []
+
+            outputs.append(
+                EvalAnswerVariantOutput(
+                    output_id=str(raw_output.get("output_id") or "").strip(),
+                    kind=str(raw_output.get("kind") or "").strip(),
+                    label=str(raw_output.get("label") or "").strip(),
+                    subject=str(raw_output.get("subject") or "").strip(),
+                    raw_value=str(
+                        raw_output.get("raw_value")
+                        if raw_output.get("raw_value") is not None
+                        else ""
+                    ).strip(),
+                    raw_unit=str(raw_output.get("raw_unit") or "").strip(),
+                    normalized_unit=str(raw_output.get("normalized_unit") or "").strip(),
+                    period=str(raw_output.get("period") or "").strip(),
+                    consolidation_scope=str(raw_output.get("consolidation_scope") or "").strip(),
+                    source_anchor_contains=source_tokens,
+                )
+            )
+        variants.append(
+            EvalAnswerVariant(
+                id=variant_id,
+                answer_key=answer_key,
+                expected_outputs=outputs,
+            )
+        )
+
+    contract_errors = _accepted_answer_variant_contract_errors(variants)
+    if contract_errors:
+        raise ValueError(
+            "accepted_answer_variants invalid: " + ", ".join(contract_errors)
+        )
+    return variants
 
 
 def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
@@ -1710,6 +2114,45 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
                 normalised_aliases[str(alias_key)] = [str(value) for value in alias_values if str(value).strip()]
             elif alias_values:
                 normalised_aliases[str(alias_key)] = [str(alias_values)]
+    accepted_calculation_variants_raw = item.get("accepted_calculation_variants", [])
+    if accepted_calculation_variants_raw is None:
+        accepted_calculation_variants_raw = []
+    if not isinstance(accepted_calculation_variants_raw, list):
+        raise ValueError("accepted_calculation_variants must be a list")
+    accepted_calculation_variants: List[EvalCalculationVariant] = []
+    for index, variant in enumerate(accepted_calculation_variants_raw):
+        if not isinstance(variant, dict):
+            raise ValueError(
+                f"accepted_calculation_variants[{index}] must be an object"
+            )
+        expected_variant_operands = variant.get("expected_operands") or []
+        if not isinstance(expected_variant_operands, list):
+            raise ValueError(
+                f"accepted_calculation_variants[{index}].expected_operands must be a list"
+            )
+        if any(not isinstance(row, dict) for row in expected_variant_operands):
+            raise ValueError(
+                f"accepted_calculation_variants[{index}].expected_operands must contain objects"
+            )
+        expected_variant_result = variant.get("expected_calculation_result") or {}
+        if not isinstance(expected_variant_result, dict):
+            raise ValueError(
+                f"accepted_calculation_variants[{index}].expected_calculation_result must be an object"
+            )
+        accepted_calculation_variants.append(
+            EvalCalculationVariant(
+                id=str(variant.get("id") or ""),
+                answer_key=str(variant.get("answer_key") or ""),
+                expected_operands=[
+                    dict(row) for row in expected_variant_operands if isinstance(row, dict)
+                ],
+                expected_operation=str(variant.get("expected_operation") or ""),
+                expected_calculation_result=dict(expected_variant_result),
+            )
+        )
+    accepted_answer_variants = _load_accepted_answer_variants(
+        item.get("accepted_answer_variants", [])
+    )
     return EvalExample(
         id=str(item.get("id") or item.get("query_id") or ""),
         question=item["question"],
@@ -1743,6 +2186,8 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
         ],
         expected_operation=str(item.get("expected_operation") or ""),
         expected_calculation_result=dict(item.get("expected_calculation_result") or {}),
+        accepted_calculation_variants=accepted_calculation_variants,
+        accepted_answer_variants=accepted_answer_variants,
         verification_status=str(item.get("verification_status") or ""),
         notes=str(item.get("notes") or ""),
         company_aliases=company_aliases,
@@ -1761,26 +2206,72 @@ def load_eval_examples_from_path(dataset_path: str | Path) -> List[EvalExample]:
     return [_example_from_dict(item) for item in data]
 
 
-def _compute_faithfulness(llm: ChatGoogleGenerativeAI, answer: str, contexts: List[str]) -> float:
+def _compute_faithfulness(
+    llm: ChatGoogleGenerativeAI,
+    answer: str,
+    contexts: List[str],
+) -> FaithfulnessJudgement:
     if not answer or not contexts:
-        return 0.0
+        return FaithfulnessJudgement(
+            score=0.0,
+            reason="answer or evaluation context is empty",
+        )
 
     context_text = "\n\n---\n\n".join(contexts[:8])
     prompt = _FAITHFULNESS_PROMPT.format(context=context_text[:4000], answer=answer[:1500])
     try:
         response = llm.invoke(prompt)
-        text = response.content.strip()
-        match = re.search(r"(0(?:\.\d+)?|1(?:\.0+)?)", text)
-        return float(match.group(1)) if match else 0.5
+        text = str(getattr(response, "content", "") or "").strip()
+        payload = _extract_json_object(text)
+        score_value: Optional[float] = None
+        if payload.get("score") is not None:
+            try:
+                score_value = float(payload["score"])
+            except (TypeError, ValueError):
+                score_value = None
+        if score_value is None:
+            match = re.search(r"(0(?:\.\d+)?|1(?:\.0+)?)", text)
+            score_value = float(match.group(1)) if match else 0.5
+        return FaithfulnessJudgement(
+            score=_clip_score(score_value),
+            reason=str(payload.get("reason") or "").strip() or None,
+        )
     except Exception as exc:
         logger.warning("faithfulness calculation failed: %s", exc)
-        return 0.5
+        return FaithfulnessJudgement(
+            score=0.5,
+            reason=f"faithfulness judge failed: {type(exc).__name__}",
+        )
+
+
+def _coerce_faithfulness_judgement(value: Any) -> FaithfulnessJudgement:
+    """Accept legacy numeric test doubles while production returns rationale."""
+
+    if isinstance(value, FaithfulnessJudgement):
+        return value
+    if isinstance(value, Mapping):
+        try:
+            return FaithfulnessJudgement(
+                score=_clip_score(float(value.get("score", 0.5))),
+                reason=str(value.get("reason") or "").strip() or None,
+            )
+        except (TypeError, ValueError):
+            pass
+    try:
+        return FaithfulnessJudgement(score=_clip_score(float(value)))
+    except (TypeError, ValueError):
+        return FaithfulnessJudgement(
+            score=0.5,
+            reason="faithfulness judge returned an unreadable result",
+        )
 
 
 def _compute_completeness_judge(
     llm: ChatGoogleGenerativeAI,
     example: EvalExample,
     answer: str,
+    *,
+    reference_answer_key: Optional[str] = None,
 ) -> tuple[Optional[float], Optional[str]]:
     if example.expected_refusal:
         return None, None
@@ -1801,7 +2292,9 @@ def _compute_completeness_judge(
         question=example.question[:1000],
         category=category[:200],
         answer=answer[:1500],
-        answer_key=example.canonical_answer_key[:1000],
+        answer_key=(
+            str(reference_answer_key or "").strip() or example.canonical_answer_key
+        )[:1000],
         required_entities=required_entities[:500],
         allowed_grounded_extras=allowed_grounded_extras[:500],
         math_rubric=math_rubric[:700],
@@ -2080,17 +2573,6 @@ def _compute_entity_coverage(example: EvalExample, contexts: List[str]) -> Optio
     return covered / len(example.required_entities)
 
 
-def _compute_answer_entity_coverage(example: EvalExample, answer: str) -> Optional[float]:
-    if not example.required_entities:
-        return None
-    covered = 0
-    for entity in example.required_entities:
-        variants = _entity_aliases(example, entity)
-        if _contains_entity_variant(answer, variants):
-            covered += 1
-    return covered / len(example.required_entities)
-
-
 def _compute_completeness(example: EvalExample, answer: str) -> Optional[float]:
     if example.expected_refusal:
         return None
@@ -2112,8 +2594,26 @@ def _compute_completeness(example: EvalExample, answer: str) -> Optional[float]:
     return entity_score
 
 
-def _should_override_numeric_faithfulness(numeric_eval: Dict[str, Any]) -> bool:
+def _calculation_result_has_narrative_output(calculation_result: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(calculation_result, dict):
+        return False
+    return any(
+        isinstance(output, dict) and str(output.get("kind") or "").strip().lower() == "narrative"
+        for output in (calculation_result.get("outputs") or [])
+    )
+
+
+def _should_override_numeric_faithfulness(
+    numeric_eval: Dict[str, Any],
+    *,
+    calculation_result: Optional[Dict[str, Any]] = None,
+    format_preference: str = "",
+) -> bool:
     if not numeric_eval:
+        return False
+    if str(format_preference or "").strip().lower() == "mixed":
+        return False
+    if _calculation_result_has_narrative_output(calculation_result):
         return False
     return (
         numeric_eval.get("numeric_final_judgement") == "PASS"
@@ -2121,35 +2621,6 @@ def _should_override_numeric_faithfulness(numeric_eval: Dict[str, Any]) -> bool:
         and numeric_eval.get("numeric_grounding") == 1.0
         and numeric_eval.get("numeric_retrieval_support") == 1.0
     )
-
-
-def _looks_like_hybrid_mixed_query(question: str) -> bool:
-    text = str(question or "")
-    if not text.strip():
-        return False
-    has_numeric_intent = any(
-        marker in text
-        for marker in (
-            "계산",
-            "증가",
-            "감소",
-            "성장률",
-            "비율",
-            "증감",
-            "매출",
-            "영업수익",
-            "금액",
-            "규모",
-            "총액",
-            "지급액",
-            "현금흐름",
-        )
-    )
-    has_narrative_intent = any(
-        marker in text
-        for marker in ("영향", "원인", "배경", "요약", "설명", "기여")
-    )
-    return has_numeric_intent and has_narrative_intent
 
 
 def _answer_numeric_material_grounded_in_runtime_evidence(
@@ -2298,138 +2769,6 @@ def _should_override_numeric_grounding_from_runtime_evidence(
     return _answer_numeric_material_grounded_in_runtime_evidence(answer, runtime_evidence)
 
 
-def _should_override_hybrid_faithfulness(
-    *,
-    example: EvalExample,
-    answer: str,
-    raw_faithfulness: Optional[float],
-    runtime_evidence: List[Dict[str, Any]],
-    context_recall: float,
-    retrieval_hit_at_k: float,
-    section_match_rate: float,
-    citation_coverage: float,
-    entity_coverage: Optional[float],
-    completeness: Optional[float],
-    calculation_correctness: Optional[float],
-    grounded_rendering_correctness: Optional[float],
-    unsupported_sentences: List[str],
-) -> bool:
-    def _clean(text: Any) -> str:
-        return re.sub(r"\s+", " ", str(text or "")).strip()
-
-    if raw_faithfulness is None:
-        return False
-    if raw_faithfulness >= 1.0:
-        return False
-    if not _looks_like_hybrid_mixed_query(example.question):
-        return False
-    if not str(answer or "").strip() or _looks_like_full_abstention_answer(answer):
-        return False
-    numeric_material_grounded = _answer_numeric_material_grounded_in_runtime_evidence(answer, runtime_evidence)
-    if completeness != 1.0:
-        return False
-    if (
-        calculation_correctness is not None
-        and calculation_correctness != 1.0
-        and not numeric_material_grounded
-    ):
-        return False
-    if (
-        grounded_rendering_correctness is not None
-        and grounded_rendering_correctness != 1.0
-        and not numeric_material_grounded
-    ):
-        return False
-    if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
-        return False
-    if section_match_rate < 0.5:
-        return False
-    if citation_coverage < (2.0 / 3.0):
-        return False
-    if entity_coverage is not None and entity_coverage < 0.75:
-        answer_entity_coverage = _compute_answer_entity_coverage(example, answer)
-        structured_answer_grounded = (
-            calculation_correctness == 1.0
-            and grounded_rendering_correctness == 1.0
-        )
-        if not (
-            structured_answer_grounded
-            and answer_entity_coverage is not None
-            and answer_entity_coverage >= 0.75
-        ):
-            return False
-    if unsupported_sentences:
-        return False
-    unique_claims = {
-        _clean(row.get("claim") or row.get("quote_span") or row.get("source_anchor") or "")
-        for row in runtime_evidence
-        if _clean(row.get("claim") or row.get("quote_span") or row.get("source_anchor") or "")
-    }
-    if len(unique_claims) < 2:
-        return False
-    return True
-
-
-def _should_override_structured_summary_faithfulness(
-    *,
-    example: EvalExample,
-    answer: str,
-    raw_faithfulness: Optional[float],
-    runtime_evidence: List[Dict[str, Any]],
-    context_recall: float,
-    retrieval_hit_at_k: float,
-    section_match_rate: float,
-    citation_coverage: float,
-    entity_coverage: Optional[float],
-    completeness: Optional[float],
-    calculation_correctness: Optional[float],
-    grounded_rendering_correctness: Optional[float],
-    unsupported_sentences: List[str],
-) -> bool:
-    if raw_faithfulness is None or raw_faithfulness >= 1.0:
-        return False
-    if not str(answer or "").strip() or _looks_like_full_abstention_answer(answer):
-        return False
-    if example.answer_type != "summary" and (example.category or "").lower() not in {
-        "business_overview",
-        "numeric_fact",
-    }:
-        return False
-    if completeness != 1.0:
-        return False
-    if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
-        return False
-    if section_match_rate < 0.5 or citation_coverage < (2.0 / 3.0):
-        return False
-    if unsupported_sentences:
-        return False
-    answer_entity_coverage = _compute_answer_entity_coverage(example, answer)
-    if entity_coverage is not None and entity_coverage < 0.5:
-        return False
-    if answer_entity_coverage is not None and answer_entity_coverage < 0.5:
-        return False
-    numeric_candidates = list(_extract_numeric_candidates(answer))
-    if numeric_candidates:
-        if calculation_correctness != 1.0 or grounded_rendering_correctness != 1.0:
-            return False
-        if len(numeric_candidates) < 2:
-            return False
-        return True
-    if calculation_correctness is not None and calculation_correctness != 1.0:
-        return False
-    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
-        return False
-    direct_runtime_evidence = [
-        row
-        for row in runtime_evidence
-        if str(row.get("claim") or row.get("quote_span") or "").strip()
-        and str(row.get("support_level") or "direct").strip().lower() in {"direct", "high"}
-    ]
-    if not direct_runtime_evidence:
-        return False
-    return True
-
-
 def _should_override_numeric_grounding(
     *,
     numeric_eval: Dict[str, Any],
@@ -2549,6 +2888,32 @@ def _compute_absolute_error_rate(
             if best_error is None or error < best_error:
                 best_error = error
     return best_error
+
+
+def _compute_example_absolute_error_rate(
+    *,
+    example: EvalExample,
+    answer: str,
+) -> Optional[float]:
+    if not example.accepted_calculation_variants:
+        return _compute_absolute_error_rate(
+            answer=answer,
+            answer_key=example.canonical_answer_key,
+            canonical_evidence=example.evidence,
+        )
+    errors = [
+        error
+        for answer_key in example.accepted_answer_keys
+        if (
+            error := _compute_absolute_error_rate(
+                answer=answer,
+                answer_key=answer_key,
+                canonical_evidence=[],
+            )
+        )
+        is not None
+    ]
+    return min(errors) if errors else None
 
 
 def _default_calculation_absolute_tolerance(unit: str) -> float:
@@ -2895,10 +3260,13 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
     if expected_label and actual_label:
         label_match = _labels_match(expected_label, actual_label)
 
-    expected_value, expected_unit = _normalise_math_operand_value(
-        str(expected.get("raw_value") or ""),
-        str(expected.get("raw_unit") or ""),
-    )
+    expected_value = _safe_float(expected.get("normalized_value"))
+    expected_unit = str(expected.get("normalized_unit") or "").strip()
+    if expected_value is None:
+        expected_value, expected_unit = _normalise_math_operand_value(
+            str(expected.get("raw_value") or ""),
+            str(expected.get("raw_unit") or ""),
+        )
     actual_value = _safe_float(actual.get("normalized_value"))
     actual_unit = str(actual.get("normalized_unit") or "").strip()
     if expected_value is not None and actual_value is not None:
@@ -2932,6 +3300,913 @@ def _operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
         return True
 
     return label_match
+
+
+_EVAL_OPERATION_ALIASES = {
+    "add": "sum",
+    "addition": "sum",
+    "sum": "sum",
+    "subtract": "difference",
+    "subtraction": "difference",
+    "difference": "difference",
+    "divide": "ratio",
+    "division": "ratio",
+    "ratio": "ratio",
+    "multiply": "product",
+    "multiplication": "product",
+    "product": "product",
+    "growth": "growth_rate",
+    "growth_rate": "growth_rate",
+    "cagr": "cagr",
+    "lookup": "lookup",
+    "direct": "lookup",
+    "formula": "formula",
+}
+
+
+def _normalise_eval_operation(value: Any) -> str:
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    return _EVAL_OPERATION_ALIASES.get(normalized, normalized)
+
+
+def _flatten_record_values(record: Dict[str, Any], *keys: str) -> List[str]:
+    values: List[str] = []
+
+    def _push(value: Any) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for nested in value:
+                _push(nested)
+            return
+        cleaned = str(value or "").strip()
+        if cleaned and cleaned not in values:
+            values.append(cleaned)
+
+    for key in keys:
+        _push(record.get(key))
+    answer_slot = record.get("answer_slot")
+    if isinstance(answer_slot, dict):
+        for key in keys:
+            _push(answer_slot.get(key))
+    return values
+
+
+def _constraint_contains(expected: Any, actual_values: List[str]) -> bool:
+    alternatives = expected if isinstance(expected, list) else [expected]
+    expected_values = [str(value or "").strip().casefold() for value in alternatives]
+    expected_values = [value for value in expected_values if value]
+    if not expected_values:
+        return True
+    normalized_actual = [str(value or "").strip().casefold() for value in actual_values]
+    return any(
+        expected_value in actual_value
+        for expected_value in expected_values
+        for actual_value in normalized_actual
+    )
+
+
+def _constraint_equals(expected: Any, actual_values: List[str]) -> bool:
+    alternatives = expected if isinstance(expected, list) else [expected]
+    expected_values = {str(value or "").strip().casefold() for value in alternatives}
+    expected_values.discard("")
+    if not expected_values:
+        return True
+    normalized_actual = {str(value or "").strip().casefold() for value in actual_values}
+    return bool(expected_values & normalized_actual)
+
+
+def _record_matches_variant_constraints(
+    expected: Dict[str, Any],
+    actual: Dict[str, Any],
+) -> Tuple[bool, List[str]]:
+    reasons: List[str] = []
+    expected_label = str(expected.get("label") or "").strip()
+    actual_labels = [
+        str(actual.get(field) or "").strip()
+        for field in ("label", "subject")
+        if str(actual.get(field) or "").strip()
+    ]
+    if expected.get("strict_label") and (
+        not expected_label
+        or not actual_labels
+        or not any(
+            _normalise_label_text(expected_label)
+            == _normalise_label_text(actual_label)
+            for actual_label in actual_labels
+        )
+    ):
+        reasons.append("strict_label_mismatch")
+
+    contains_constraints = {
+        "source_anchor_contains": ("source_anchor", "source_anchors"),
+        "table_source_id_contains": ("table_source_id", "table_source_ids"),
+    }
+    for expected_key, actual_keys in contains_constraints.items():
+        if expected.get(expected_key) and not _constraint_contains(
+            expected.get(expected_key),
+            _flatten_record_values(actual, *actual_keys),
+        ):
+            reasons.append(f"{expected_key}_mismatch")
+
+    exact_constraints = {
+        "statement_type": ("statement_type",),
+        "consolidation_scope": ("consolidation_scope",),
+        "matched_operand_role": ("matched_operand_role", "role", "value_role"),
+        "source_row_id": ("source_row_id", "source_row_ids"),
+    }
+    for expected_key, actual_keys in exact_constraints.items():
+        if expected.get(expected_key) and not _constraint_equals(
+            expected.get(expected_key),
+            _flatten_record_values(actual, *actual_keys),
+        ):
+            reasons.append(f"{expected_key}_mismatch")
+    return not reasons, reasons
+
+
+def _record_provenance_ids(record: Dict[str, Any]) -> set[str]:
+    return set(
+        _flatten_record_values(
+            record,
+            "operand_id",
+            "candidate_id",
+            "candidate_ids",
+            "compatibility_candidate_ids",
+            "source_candidate_id",
+            "source_candidate_ids",
+            "evidence_id",
+            "evidence_ids",
+            "source_evidence_ids",
+            "source_row_id",
+            "source_row_ids",
+        )
+    )
+
+
+def _record_binding_ids(record: Dict[str, Any]) -> set[str]:
+    return set(
+        _flatten_record_values(
+            record,
+            "operand_id",
+            "candidate_id",
+            "candidate_ids",
+            "compatibility_candidate_ids",
+            "source_candidate_id",
+            "source_candidate_ids",
+            "evidence_id",
+            "evidence_ids",
+            "source_evidence_ids",
+        )
+    )
+
+
+def _expected_value_is_available(expected: Dict[str, Any]) -> bool:
+    if _safe_float(expected.get("normalized_value")) is not None:
+        return True
+    value, _ = _normalise_math_operand_value(
+        str(expected.get("raw_value") or ""),
+        str(expected.get("raw_unit") or ""),
+    )
+    return value is not None
+
+
+def _calculation_output_candidates(
+    calculation_result: Dict[str, Any],
+    calculation_plan: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    candidates: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _push(row: Any) -> None:
+        if not isinstance(row, dict):
+            return
+        candidate = dict(row)
+        answer_slot = dict(candidate.get("answer_slot") or {})
+        if candidate.get("normalized_value") is None and answer_slot.get("normalized_value") is not None:
+            candidate["normalized_value"] = answer_slot.get("normalized_value")
+        if not str(candidate.get("normalized_unit") or "").strip():
+            candidate["normalized_unit"] = answer_slot.get("normalized_unit")
+        if not str(candidate.get("label") or "").strip():
+            candidate["label"] = answer_slot.get("label")
+        fingerprint = json.dumps(candidate, ensure_ascii=False, sort_keys=True, default=str)
+        if fingerprint not in seen:
+            seen.add(fingerprint)
+            candidates.append(candidate)
+
+    for row in calculation_result.get("outputs") or []:
+        _push(row)
+    outputs_by_obligation = calculation_result.get("outputs_by_obligation") or {}
+    if isinstance(outputs_by_obligation, dict):
+        for row in outputs_by_obligation.values():
+            _push(row)
+
+    primary_slot = _resolve_primary_numeric_answer_slot(
+        dict(calculation_result.get("answer_slots") or {})
+    )
+    top_level = {
+        "status": calculation_result.get("status"),
+        "label": primary_slot.get("label") or calculation_result.get("label"),
+        "normalized_value": (
+            calculation_result.get("result_value")
+            if calculation_result.get("result_value") is not None
+            else primary_slot.get("normalized_value")
+        ),
+        "normalized_unit": primary_slot.get("normalized_unit"),
+        "result_unit": calculation_result.get("result_unit") or primary_slot.get("raw_unit"),
+        "operation_family": (
+            calculation_result.get("operation_family")
+            or calculation_plan.get("operation_family")
+        ),
+        "answer_slot": primary_slot,
+        "candidate_ids": calculation_result.get("candidate_ids") or [],
+        "source_row_ids": calculation_result.get("source_row_ids") or [],
+        "source_anchors": calculation_result.get("source_anchors") or [],
+    }
+    if _safe_float(top_level.get("normalized_value")) is not None:
+        _push(top_level)
+    return candidates
+
+
+def _result_output_matches_expected(
+    *,
+    expected: Dict[str, Any],
+    expected_operation: str,
+    actual: Dict[str, Any],
+    matched_operands: List[Dict[str, Any]],
+) -> Tuple[bool, List[str]]:
+    reasons: List[str] = []
+    if str(actual.get("status") or "ok").strip().lower() != "ok":
+        reasons.append("result_status_not_ok")
+
+    actual_for_numeric_match = dict(actual)
+    if not str(actual_for_numeric_match.get("normalized_unit") or "").strip():
+        result_unit = str(actual_for_numeric_match.get("result_unit") or "").strip()
+        _, normalized_unit = _normalise_math_operand_value("1", result_unit)
+        actual_for_numeric_match["normalized_unit"] = normalized_unit
+    if not _operand_matches(expected, actual_for_numeric_match):
+        reasons.append("result_value_or_label_mismatch")
+    constraints_match, constraint_reasons = _record_matches_variant_constraints(
+        expected,
+        actual_for_numeric_match,
+    )
+    if not constraints_match:
+        reasons.extend(constraint_reasons)
+
+    required_operation = _normalise_eval_operation(
+        expected.get("operation_family") or expected_operation
+    )
+    actual_operation = _normalise_eval_operation(actual.get("operation_family"))
+    if required_operation and actual_operation != required_operation:
+        reasons.append("operation_mismatch")
+
+    result_provenance = _record_provenance_ids(actual)
+    result_binding_ids = _record_binding_ids(actual)
+    if matched_operands:
+        if not result_provenance:
+            reasons.append("result_provenance_missing")
+        else:
+            for operand in matched_operands:
+                operand_binding_ids = _record_binding_ids(operand)
+                operand_provenance = _record_provenance_ids(operand)
+                if operand_binding_ids and result_binding_ids:
+                    is_bound = bool(operand_binding_ids & result_binding_ids)
+                else:
+                    is_bound = bool(operand_provenance & result_provenance)
+                if not operand_provenance or not is_bound:
+                    reasons.append("result_not_bound_to_all_matched_operands")
+                    break
+    return not reasons, list(dict.fromkeys(reasons))
+
+
+def _compute_accepted_calculation_variant_match(
+    *,
+    example: EvalExample,
+    calculation_operands: List[Dict[str, Any]],
+    calculation_plan: Dict[str, Any],
+    calculation_result: Dict[str, Any],
+) -> Tuple[Optional[float], str, Dict[str, Any]]:
+    variants = list(example.accepted_calculation_variants or [])
+    if not variants:
+        return None, "", {"reason": "not_applicable", "variants": []}
+
+    duplicate_ids = {
+        variant.id
+        for variant in variants
+        if variant.id and sum(1 for row in variants if row.id == variant.id) > 1
+    }
+    output_candidates = _calculation_output_candidates(calculation_result, calculation_plan)
+    variant_debug: List[Dict[str, Any]] = []
+    matched_variant_ids: List[str] = []
+
+    for variant in variants:
+        contract_errors: List[str] = []
+        if not variant.id:
+            contract_errors.append("missing_variant_id")
+        if variant.id in duplicate_ids:
+            contract_errors.append("duplicate_variant_id")
+        if not variant.answer_key:
+            contract_errors.append("missing_answer_key")
+        if not variant.expected_operands:
+            contract_errors.append("missing_expected_operands")
+        if not variant.expected_operation:
+            contract_errors.append("missing_expected_operation")
+        if not variant.expected_calculation_result:
+            contract_errors.append("missing_expected_calculation_result")
+        elif not _expected_value_is_available(variant.expected_calculation_result):
+            contract_errors.append("missing_expected_result_value")
+
+        operand_candidate_indices: List[List[int]] = []
+        operand_rows: List[Dict[str, Any]] = []
+        for expected_operand in variant.expected_operands:
+            candidate_indices: List[int] = []
+            rejected: List[Dict[str, Any]] = []
+            if not isinstance(expected_operand, dict) or not _expected_value_is_available(expected_operand):
+                contract_errors.append("invalid_expected_operand")
+                operand_candidate_indices.append([])
+                operand_rows.append(
+                    {"matched": False, "candidate_actual_indices": [], "rejected": []}
+                )
+                continue
+            for actual_index, actual_operand in enumerate(calculation_operands):
+                if not _operand_matches(expected_operand, actual_operand):
+                    rejected.append({"actual_index": actual_index, "reasons": ["value_period_or_label_mismatch"]})
+                    continue
+                constraints_match, reasons = _record_matches_variant_constraints(
+                    expected_operand,
+                    actual_operand,
+                )
+                if not constraints_match:
+                    rejected.append({"actual_index": actual_index, "reasons": reasons})
+                    continue
+                candidate_indices.append(actual_index)
+            operand_candidate_indices.append(candidate_indices)
+            operand_rows.append(
+                {
+                    "matched": False,
+                    "actual_index": None,
+                    "candidate_actual_indices": candidate_indices,
+                    "rejected": rejected,
+                }
+            )
+
+        actual_to_expected: Dict[int, int] = {}
+
+        def _assign_expected(expected_index: int, seen_actual: set[int]) -> bool:
+            for actual_index in operand_candidate_indices[expected_index]:
+                if actual_index in seen_actual:
+                    continue
+                seen_actual.add(actual_index)
+                previous_expected = actual_to_expected.get(actual_index)
+                if previous_expected is None or _assign_expected(previous_expected, seen_actual):
+                    actual_to_expected[actual_index] = expected_index
+                    return True
+            return False
+
+        for expected_index in range(len(operand_candidate_indices)):
+            _assign_expected(expected_index, set())
+        expected_to_actual = {
+            expected_index: actual_index
+            for actual_index, expected_index in actual_to_expected.items()
+        }
+        matched_actual_indices = [
+            expected_to_actual[expected_index]
+            for expected_index in range(len(variant.expected_operands))
+            if expected_index in expected_to_actual
+        ]
+        for expected_index, operand_row in enumerate(operand_rows):
+            actual_index = expected_to_actual.get(expected_index)
+            operand_row["matched"] = actual_index is not None
+            operand_row["actual_index"] = actual_index
+
+        operands_complete = (
+            not contract_errors
+            and len(matched_actual_indices) == len(variant.expected_operands)
+        )
+        matched_operands = [calculation_operands[index] for index in matched_actual_indices]
+        result_rows: List[Dict[str, Any]] = []
+        result_complete = False
+        if operands_complete:
+            for output_index, output in enumerate(output_candidates):
+                matches, reasons = _result_output_matches_expected(
+                    expected=variant.expected_calculation_result,
+                    expected_operation=variant.expected_operation,
+                    actual=output,
+                    matched_operands=matched_operands,
+                )
+                result_rows.append(
+                    {
+                        "output_index": output_index,
+                        "matched": matches,
+                        "reasons": reasons,
+                        "operation_family": output.get("operation_family"),
+                        "label": output.get("label"),
+                    }
+                )
+                if matches:
+                    result_complete = True
+                    break
+
+        complete = bool(operands_complete and result_complete and not contract_errors)
+        if complete:
+            matched_variant_ids.append(variant.id)
+        variant_debug.append(
+            {
+                "variant_id": variant.id,
+                "contract_errors": list(dict.fromkeys(contract_errors)),
+                "matched_operand_count": len(matched_actual_indices),
+                "expected_operand_count": len(variant.expected_operands),
+                "operands": operand_rows,
+                "result_matched": result_complete,
+                "results": result_rows,
+                "trace_matched": complete,
+            }
+        )
+
+    matched_id = matched_variant_ids[0] if matched_variant_ids else ""
+    return (1.0 if matched_variant_ids else 0.0), matched_id, {
+        "reason": "atomic_variant_match" if matched_variant_ids else "no_atomic_variant_match",
+        "matched_variant_ids": matched_variant_ids,
+        "variants": variant_debug,
+    }
+
+
+def _accepted_answer_variant_contract_errors(
+    variants: List[EvalAnswerVariant],
+) -> List[str]:
+    """Validate the evaluator-only direct-output contract without runtime data."""
+
+    errors: List[str] = []
+    if not variants:
+        return errors
+    if any(not isinstance(variant, EvalAnswerVariant) for variant in variants):
+        return ["invalid_variant_type"]
+
+    variant_ids = [str(variant.id or "").strip() for variant in variants]
+    if any(not variant_id for variant_id in variant_ids):
+        errors.append("missing_variant_id")
+    if len(variant_ids) != len(set(variant_ids)):
+        errors.append("duplicate_variant_id")
+
+    required_output_ids: Optional[set[str]] = None
+    for variant_index, variant in enumerate(variants):
+        prefix = f"variant_{variant_index}"
+        if not str(variant.answer_key or "").strip():
+            errors.append(f"{prefix}_missing_answer_key")
+        if not variant.expected_outputs:
+            errors.append(f"{prefix}_missing_expected_outputs")
+            continue
+
+        output_ids: List[str] = []
+        for output_index, output in enumerate(variant.expected_outputs):
+            output_prefix = f"{prefix}_output_{output_index}"
+            if not isinstance(output, EvalAnswerVariantOutput):
+                errors.append(f"{output_prefix}_invalid_type")
+                continue
+            output_id = str(output.output_id or "").strip()
+            output_ids.append(output_id)
+            required_text = {
+                "output_id": output_id,
+                "kind": output.kind,
+                "label": output.label,
+                "subject": output.subject,
+                "raw_value": output.raw_value,
+                "raw_unit": output.raw_unit,
+                "normalized_unit": output.normalized_unit,
+                "period": output.period,
+                "consolidation_scope": output.consolidation_scope,
+            }
+            for field_name, value in required_text.items():
+                if not str(value or "").strip():
+                    errors.append(f"{output_prefix}_missing_{field_name}")
+            if str(output.kind or "").strip().lower() != "direct_value":
+                errors.append(f"{output_prefix}_unsupported_kind")
+            source_constraints = output.source_anchor_contains
+            if isinstance(source_constraints, str):
+                source_constraints = [source_constraints]
+            if not isinstance(source_constraints, (list, tuple, set)) or not [
+                str(value or "").strip()
+                for value in source_constraints
+                if str(value or "").strip()
+            ]:
+                errors.append(f"{output_prefix}_missing_source_anchor_contains")
+            normalized_value, inferred_unit = _normalise_math_operand_value(
+                str(output.raw_value or ""),
+                str(output.raw_unit or ""),
+            )
+            if normalized_value is None:
+                errors.append(f"{output_prefix}_invalid_raw_value")
+            expected_unit = str(output.normalized_unit or "").strip().upper()
+            if inferred_unit != "UNKNOWN" and expected_unit != inferred_unit:
+                errors.append(f"{output_prefix}_normalized_unit_mismatch")
+
+        if any(not output_id for output_id in output_ids):
+            errors.append(f"{prefix}_missing_output_id")
+        if len(output_ids) != len(set(output_ids)):
+            errors.append(f"{prefix}_duplicate_output_id")
+        output_id_set = set(output_ids)
+        if required_output_ids is None:
+            required_output_ids = output_id_set
+        elif output_id_set != required_output_ids:
+            errors.append(f"{prefix}_output_coverage_mismatch")
+
+    return list(dict.fromkeys(errors))
+
+
+def _normalise_exact_text(value: Any) -> str:
+    return re.sub(r"\s+", "", str(value or "")).casefold()
+
+
+def _source_anchors_are_consistent(left: str, right_values: List[str]) -> bool:
+    normalized_left = str(left or "").strip().casefold()
+    if not normalized_left or not right_values:
+        return True
+    return any(
+        normalized_left == str(right or "").strip().casefold()
+        for right in right_values
+        if str(right or "").strip()
+    )
+
+
+def _project_bound_direct_answer_outputs(
+    *,
+    calculation_operands: List[Dict[str, Any]],
+    calculation_result: Dict[str, Any],
+    required_output_ids: set[str],
+) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """Join canonical direct outputs to exactly one bound candidate operand each."""
+
+    errors: List[str] = []
+    projected: List[Dict[str, Any]] = []
+    if str(calculation_result.get("status") or "").strip().lower() != "ok":
+        errors.append("calculation_result_not_ok")
+
+    raw_outputs = calculation_result.get("outputs")
+    if not isinstance(raw_outputs, list):
+        return [], [*errors, "canonical_outputs_missing"]
+    direct_outputs = [
+        output
+        for output in raw_outputs
+        if isinstance(output, dict)
+        and str(output.get("kind") or "").strip().lower() == "direct_value"
+    ]
+    actual_output_ids = [
+        str(output.get("obligation_id") or output.get("output_id") or "").strip()
+        for output in direct_outputs
+    ]
+    if (
+        len(actual_output_ids) != len(required_output_ids)
+        or set(actual_output_ids) != required_output_ids
+        or len(actual_output_ids) != len(set(actual_output_ids))
+    ):
+        errors.append("actual_output_id_set_mismatch")
+
+    canonical_operands = [
+        dict(operand) for operand in calculation_operands if isinstance(operand, dict)
+    ]
+    for output, output_id in zip(direct_outputs, actual_output_ids):
+        if not output_id:
+            errors.append("missing_actual_output_id")
+            continue
+        if str(output.get("status") or "").strip().lower() != "ok":
+            errors.append("direct_output_not_ok")
+            continue
+
+        output_binding_ids = _record_binding_ids(output)
+        bound_operands = [
+            operand
+            for operand in canonical_operands
+            if output_binding_ids
+            and _record_binding_ids(operand)
+            and bool(output_binding_ids & _record_binding_ids(operand))
+        ]
+        if not bound_operands:
+            errors.append("unbound_output")
+            continue
+        if len(bound_operands) != 1:
+            errors.append("ambiguous_output_binding")
+            continue
+        operand = bound_operands[0]
+
+        subject = str(operand.get("subject") or "").strip()
+        subject_source = str(operand.get("subject_source") or "").strip()
+        subject_source_row_ids = _flatten_record_values(
+            operand,
+            "subject_source_row_ids",
+        )
+        raw_value = str(
+            operand.get("raw_value") if operand.get("raw_value") is not None else ""
+        ).strip()
+        raw_unit = str(operand.get("raw_unit") or "").strip()
+        normalized_value = _safe_float(operand.get("normalized_value"))
+        normalized_unit = str(operand.get("normalized_unit") or "").strip()
+        period = str(operand.get("period") or "").strip()
+        consolidation_scope = str(operand.get("consolidation_scope") or "").strip()
+        source_anchor = str(operand.get("source_anchor") or "").strip()
+        label = str(output.get("label") or "").strip()
+        if not all(
+            (
+                subject,
+                subject_source,
+                raw_value,
+                raw_unit,
+                normalized_unit,
+                period,
+                consolidation_scope,
+                source_anchor,
+                label,
+            )
+        ) or normalized_value is None:
+            errors.append("incomplete_bound_output")
+            continue
+        if not subject_source_row_ids or not (
+            set(subject_source_row_ids) & _record_provenance_ids(operand)
+        ):
+            errors.append("operand_subject_provenance_mismatch")
+            continue
+
+        output_subject = str(output.get("subject") or "").strip()
+        output_subject_source = str(output.get("subject_source") or "").strip()
+        if (
+            not output_subject
+            or _normalise_exact_text(output_subject) != _normalise_exact_text(subject)
+            or not output_subject_source
+            or _normalise_exact_text(output_subject_source)
+            != _normalise_exact_text(subject_source)
+        ):
+            errors.append("output_operand_subject_mismatch")
+            continue
+
+        output_value = _safe_float(output.get("normalized_value"))
+        answer_slot = output.get("answer_slot")
+        if not isinstance(answer_slot, dict):
+            answer_slot = {}
+        if output_value is None:
+            output_value = _safe_float(answer_slot.get("normalized_value"))
+        output_unit = str(
+            output.get("normalized_unit") or answer_slot.get("normalized_unit") or ""
+        ).strip()
+        if (
+            output_value is None
+            or not output_unit
+            or _normalise_exact_text(output_unit)
+            != _normalise_exact_text(normalized_unit)
+            or not math.isclose(
+                output_value,
+                normalized_value,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            )
+        ):
+            errors.append("output_operand_value_mismatch")
+            continue
+
+        slot_scope = str(answer_slot.get("consolidation_scope") or "").strip()
+        if slot_scope and _normalise_exact_text(slot_scope) != _normalise_exact_text(
+            consolidation_scope
+        ):
+            errors.append("output_operand_scope_mismatch")
+            continue
+        slot_subject = str(answer_slot.get("subject") or "").strip()
+        if slot_subject and _normalise_exact_text(slot_subject) != _normalise_exact_text(
+            subject
+        ):
+            errors.append("output_operand_subject_mismatch")
+            continue
+        slot_period = str(answer_slot.get("period") or "").strip()
+        if slot_period and _normalise_period_text(slot_period) != _normalise_period_text(period):
+            errors.append("output_operand_period_mismatch")
+            continue
+        slot_raw_unit = str(answer_slot.get("raw_unit") or "").strip()
+        if slot_raw_unit and _normalise_exact_text(slot_raw_unit) != _normalise_exact_text(
+            raw_unit
+        ):
+            errors.append("output_operand_raw_unit_mismatch")
+            continue
+        slot_raw_value = str(
+            answer_slot.get("raw_value")
+            if answer_slot.get("raw_value") is not None
+            else ""
+        ).strip()
+        if slot_raw_value:
+            slot_normalized_value, _ = _normalise_math_operand_value(
+                slot_raw_value,
+                slot_raw_unit or raw_unit,
+            )
+            if slot_normalized_value is None or not math.isclose(
+                slot_normalized_value,
+                normalized_value,
+                rel_tol=1e-12,
+                abs_tol=1e-9,
+            ):
+                errors.append("output_operand_raw_value_mismatch")
+                continue
+        output_source_anchors = _flatten_record_values(
+            output,
+            "source_anchor",
+            "source_anchors",
+        )
+        if not _source_anchors_are_consistent(source_anchor, output_source_anchors):
+            errors.append("output_operand_source_mismatch")
+            continue
+
+        projected.append(
+            {
+                "output_id": output_id,
+                "kind": "direct_value",
+                "label": label,
+                "subject": subject,
+                "raw_value": raw_value,
+                "raw_unit": raw_unit,
+                "normalized_value": normalized_value,
+                "normalized_unit": normalized_unit,
+                "period": period,
+                "consolidation_scope": consolidation_scope,
+                "source_anchor": source_anchor,
+            }
+        )
+    return projected, list(dict.fromkeys(errors))
+
+
+def _answer_variant_output_matches(
+    expected: EvalAnswerVariantOutput,
+    actual: Dict[str, Any],
+) -> Tuple[bool, List[str]]:
+    reasons: List[str] = []
+    exact_values = {
+        "output_id": (expected.output_id, actual.get("output_id")),
+        "kind": (expected.kind, actual.get("kind")),
+        "label": (expected.label, actual.get("label")),
+        "subject": (expected.subject, actual.get("subject")),
+        "raw_unit": (expected.raw_unit, actual.get("raw_unit")),
+        "normalized_unit": (expected.normalized_unit, actual.get("normalized_unit")),
+        "consolidation_scope": (
+            expected.consolidation_scope,
+            actual.get("consolidation_scope"),
+        ),
+    }
+    for field_name, (expected_value, actual_value) in exact_values.items():
+        if _normalise_exact_text(expected_value) != _normalise_exact_text(actual_value):
+            reasons.append(f"{field_name}_mismatch")
+
+    if _normalise_period_text(expected.period) != _normalise_period_text(actual.get("period")):
+        reasons.append("period_mismatch")
+
+    expected_value, _ = _normalise_math_operand_value(expected.raw_value, expected.raw_unit)
+    actual_value = _safe_float(actual.get("normalized_value"))
+    if (
+        expected_value is None
+        or actual_value is None
+        or not math.isclose(
+            expected_value,
+            actual_value,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        )
+    ):
+        reasons.append("value_mismatch")
+
+    if not _constraint_contains(
+        expected.source_anchor_contains,
+        _flatten_record_values(actual, "source_anchor"),
+    ):
+        reasons.append("source_anchor_contains_mismatch")
+    return not reasons, reasons
+
+
+def _compute_accepted_answer_variant_match(
+    *,
+    example: EvalExample,
+    answer: str,
+    calculation_operands: List[Dict[str, Any]],
+    calculation_result: Dict[str, Any],
+) -> Tuple[Optional[float], str, Dict[str, Any]]:
+    """Resolve one complete direct-output trace and answer to the same variant."""
+
+    variants = list(example.accepted_answer_variants or [])
+    if not variants:
+        return None, "", {
+            "reason": "not_applicable",
+            "trace_matched_variant_ids": [],
+            "answer_matched_variant_ids": [],
+            "atomic_matched_variant_ids": [],
+            "projection_errors": [],
+            "variants": [],
+        }
+
+    contract_errors = _accepted_answer_variant_contract_errors(variants)
+    if contract_errors:
+        return 0.0, "", {
+            "reason": "invalid_answer_variant_contract",
+            "contract_errors": contract_errors,
+            "trace_matched_variant_ids": [],
+            "answer_matched_variant_ids": [],
+            "atomic_matched_variant_ids": [],
+            "projection_errors": [],
+            "variants": [],
+        }
+
+    required_output_ids = {
+        output.output_id for output in variants[0].expected_outputs
+    }
+    actual_outputs, projection_errors = _project_bound_direct_answer_outputs(
+        calculation_operands=calculation_operands,
+        calculation_result=calculation_result,
+        required_output_ids=required_output_ids,
+    )
+    trace_matched_variant_ids: List[str] = []
+    answer_matched_variant_ids: List[str] = []
+    variant_debug: List[Dict[str, Any]] = []
+
+    for variant in variants:
+        candidate_indices: List[List[int]] = []
+        output_debug: List[Dict[str, Any]] = []
+        for expected_output in variant.expected_outputs:
+            matching_indices: List[int] = []
+            rejected: List[Dict[str, Any]] = []
+            for actual_index, actual_output in enumerate(actual_outputs):
+                matches, reasons = _answer_variant_output_matches(
+                    expected_output,
+                    actual_output,
+                )
+                if matches:
+                    matching_indices.append(actual_index)
+                else:
+                    rejected.append(
+                        {"actual_index": actual_index, "reasons": reasons}
+                    )
+            candidate_indices.append(matching_indices)
+            output_debug.append(
+                {
+                    "output_id": expected_output.output_id,
+                    "candidate_actual_indices": matching_indices,
+                    "rejected": rejected,
+                }
+            )
+
+        actual_to_expected: Dict[int, int] = {}
+
+        def _assign_expected(expected_index: int, seen_actual: set[int]) -> bool:
+            for actual_index in candidate_indices[expected_index]:
+                if actual_index in seen_actual:
+                    continue
+                seen_actual.add(actual_index)
+                previous_expected = actual_to_expected.get(actual_index)
+                if previous_expected is None or _assign_expected(previous_expected, seen_actual):
+                    actual_to_expected[actual_index] = expected_index
+                    return True
+            return False
+
+        for expected_index in range(len(candidate_indices)):
+            _assign_expected(expected_index, set())
+        trace_complete = bool(
+            not projection_errors
+            and len(actual_to_expected) == len(variant.expected_outputs)
+            and len(actual_outputs) == len(variant.expected_outputs)
+        )
+        if trace_complete:
+            trace_matched_variant_ids.append(variant.id)
+
+        answer_score, answer_debug = _compute_numeric_variant_equivalence(
+            answer=answer,
+            answer_key=variant.answer_key,
+        )
+        if answer_score == 1.0:
+            answer_matched_variant_ids.append(variant.id)
+        variant_debug.append(
+            {
+                "variant_id": variant.id,
+                "trace_matched": trace_complete,
+                "outputs": output_debug,
+                "answer_score": answer_score,
+                "answer_debug": answer_debug,
+            }
+        )
+
+    atomic_matched_variant_ids: List[str] = []
+    if len(trace_matched_variant_ids) == 1:
+        trace_variant_id = trace_matched_variant_ids[0]
+        if trace_variant_id in answer_matched_variant_ids:
+            atomic_matched_variant_ids = [trace_variant_id]
+
+    if projection_errors:
+        reason = "output_projection_failed"
+    elif len(trace_matched_variant_ids) > 1:
+        reason = "ambiguous_trace_variant_match"
+    elif not trace_matched_variant_ids:
+        reason = "no_complete_trace_variant"
+    elif not atomic_matched_variant_ids:
+        reason = "answer_trace_variant_mismatch"
+    else:
+        reason = "atomic_answer_variant_match"
+    matched_id = atomic_matched_variant_ids[0] if atomic_matched_variant_ids else ""
+    return (1.0 if atomic_matched_variant_ids else 0.0), matched_id, {
+        "reason": reason,
+        "contract_errors": [],
+        "trace_matched_variant_ids": trace_matched_variant_ids,
+        "answer_matched_variant_ids": answer_matched_variant_ids,
+        "atomic_matched_variant_ids": atomic_matched_variant_ids,
+        "projection_errors": projection_errors,
+        "projected_output_ids": [row.get("output_id") for row in actual_outputs],
+        "variants": variant_debug,
+    }
 
 
 def _slot_has_numeric_material(slot: Dict[str, Any]) -> bool:
@@ -3553,6 +4828,7 @@ class RAGEvaluator:
         unsupported_sentences: List[str] = []
         sentence_checks: List[Dict[str, Any]] = []
         calculation_operands: List[Dict[str, Any]] = []
+        calculation_variant_operands: List[Dict[str, Any]] = []
         calculation_plan: Dict[str, Any] = {}
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
@@ -3576,56 +4852,61 @@ class RAGEvaluator:
             result = self.agent.run(
                 example.question,
                 report_scope=_build_example_report_scope(example),
+                include_review_trace=True,
+                include_debug_bundle=True,
             )
-            agent_llm_usage = dict(result.get("llm_usage", {}) or {})
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            debug_bundle = result.debug_bundle or {}
+            agent_llm_usage = dict(debug_bundle.get("llm_usage", {}) or {})
             agent_llm_usage_by_phase = {
                 str(phase): dict(usage)
-                for phase, usage in dict(result.get("llm_usage_by_phase", {}) or {}).items()
+                for phase, usage in dict(debug_bundle.get("llm_usage_by_phase", {}) or {}).items()
                 if isinstance(usage, dict)
             }
-            agent_embedding_usage = dict(result.get("embedding_usage", {}) or {})
-            answer = result.get("answer", "")
-            query_type = result.get("query_type", "unknown")
-            intent = result.get("intent", query_type or "unknown")
-            format_preference = result.get("format_preference", "")
-            routing_source = result.get("routing_source", "")
-            routing_confidence = _safe_float(result.get("routing_confidence"))
-            routing_scores = dict(result.get("routing_scores", {}) or {})
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = dict(result.get("retrieval_debug_trace", {}) or {})
+            agent_embedding_usage = dict(debug_bundle.get("embedding_usage", {}) or {})
+            answer = agent_answer.get("answer", "")
+            query_type = agent_answer.get("query_type", "unknown")
+            intent = agent_answer.get("intent", query_type or "unknown")
+            format_preference = agent_answer.get("format_preference", "")
+            routing_source = agent_answer.get("routing_source", "")
+            routing_confidence = _safe_float(agent_answer.get("routing_confidence"))
+            routing_scores = dict(agent_answer.get("routing_scores", {}) or {})
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = dict(review_trace.get("retrieval_debug_trace", {}) or {})
             retrieval_debug_trace_history = [
                 dict(item)
-                for item in (result.get("retrieval_debug_trace_history", []) or [])
+                for item in (review_trace.get("retrieval_debug_trace_history", []) or [])
                 if isinstance(item, dict)
             ]
-            citations = result.get("citations", [])
-            runtime_evidence = result.get("evidence_items", []) or []
-            selected_claim_ids = result.get("selected_claim_ids", []) or []
-            draft_points = result.get("draft_points", []) or []
-            kept_claim_ids = result.get("kept_claim_ids", []) or []
-            dropped_claim_ids = result.get("dropped_claim_ids", []) or []
-            unsupported_sentences = result.get("unsupported_sentences", []) or []
-            sentence_checks = result.get("sentence_checks", []) or []
-            agent_numeric_debug_trace = dict(result.get("numeric_debug_trace") or {})
+            citations = agent_answer.get("citations", [])
+            runtime_evidence = review_trace.get("evidence_items", []) or []
+            selected_claim_ids = review_trace.get("selected_claim_ids", []) or []
+            draft_points = review_trace.get("draft_points", []) or []
+            kept_claim_ids = review_trace.get("kept_claim_ids", []) or []
+            dropped_claim_ids = review_trace.get("dropped_claim_ids", []) or []
+            unsupported_sentences = review_trace.get("unsupported_sentences", []) or []
+            sentence_checks = review_trace.get("sentence_checks", []) or []
+            agent_numeric_debug_trace = dict(review_trace.get("numeric_debug_trace") or {})
             agent_numeric_debug_trace_history = [
                 dict(item)
-                for item in (result.get("numeric_debug_trace_history") or [])
+                for item in (review_trace.get("numeric_debug_trace_history") or [])
                 if isinstance(item, dict)
             ]
             # Live evaluator rows are current-contract results. Replay and
             # retrospective tools may opt into legacy top-level mirrors, but
             # fresh eval scoring must only consume canonical runtime projection.
             resolved_trace = _resolve_runtime_calculation_trace(
-                result,
+                agent_answer,
                 allow_legacy_top_level=False,
             )
             resolved_calculation_trace = dict(resolved_trace or {})
             runtime_projection = dict(resolved_calculation_trace.get("runtime_projection") or {})
-            task_artifact_trace = dict(result.get("task_artifact_trace") or {})
+            task_artifact_trace = dict(review_trace.get("task_artifact_trace") or {})
             calculation_operands = resolved_trace.get("calculation_operands", []) or []
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
-            structured_result = dict(result.get("structured_result") or calculation_result or {})
+            structured_result = dict(agent_answer.get("structured_result") or calculation_result or {})
             resolved_trace = _resolve_runtime_calculation_trace(
                 {
                     "answer": answer,
@@ -3640,6 +4921,9 @@ class RAGEvaluator:
             calculation_operands = resolved_trace.get("calculation_operands", []) or []
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
+            calculation_variant_operands = [
+                dict(row) for row in calculation_operands if isinstance(row, dict)
+            ]
             calculation_operands = _resolve_evaluator_operands(
                 calculation_operands=calculation_operands,
                 calculation_result=calculation_result,
@@ -3661,6 +4945,7 @@ class RAGEvaluator:
 
         raw_faithfulness: Optional[float] = None
         faithfulness = 0.0
+        faithfulness_reason = None
         faithfulness_override_reason = None
         answer_relevancy = 0.0
         context_recall = _compute_context_recall(example, contexts)
@@ -3697,17 +4982,42 @@ class RAGEvaluator:
                 contexts=contexts,
                 calculation_operands=calculation_operands,
                 retrieval_hit_at_k=retrieval_hit_at_k,
+                calculation_plan=calculation_plan,
+                calculation_result=calculation_result,
+                calculation_variant_operands=calculation_variant_operands,
                 deterministic_grounding_only=self.numeric_fast_gate or self.skip_llm_judges,
+            )
+
+        accepted_answer_variant_match, accepted_answer_variant_id, _ = (
+            _compute_accepted_answer_variant_match(
+                example=example,
+                answer=answer,
+                calculation_operands=calculation_variant_operands,
+                calculation_result=calculation_result,
+            )
+        )
+        completeness_reference_answer_key = example.canonical_answer_key
+        if accepted_answer_variant_match == 1.0 and accepted_answer_variant_id:
+            completeness_reference_answer_key = next(
+                (
+                    variant.answer_key
+                    for variant in example.accepted_answer_variants
+                    if variant.id == accepted_answer_variant_id
+                ),
+                example.canonical_answer_key,
             )
 
         numeric_fast_gate_pass = bool(
             self.numeric_fast_gate
             and is_numeric_gate_question
+            and str(format_preference or "").strip().lower() != "mixed"
+            and not _calculation_result_has_narrative_output(calculation_result)
             and numeric_eval.get("numeric_final_judgement") == "PASS"
         )
         if numeric_fast_gate_pass:
             raw_faithfulness = None
             faithfulness = 1.0
+            faithfulness_reason = "not run: numeric fast gate"
             faithfulness_override_reason = (
                 "numeric_fast_gate PASS: generic faithfulness judge를 생략하고 numeric evaluator 결과로 보정"
             )
@@ -3716,7 +5026,16 @@ class RAGEvaluator:
             completeness_reason = "numeric_fast_gate PASS: generic completeness judge 생략"
         elif self.skip_llm_judges:
             raw_faithfulness = None
-            faithfulness = 1.0 if _should_override_numeric_faithfulness(numeric_eval) else 0.0
+            faithfulness_reason = "not run: LLM judges disabled"
+            faithfulness = (
+                1.0
+                if _should_override_numeric_faithfulness(
+                    numeric_eval,
+                    calculation_result=calculation_result,
+                    format_preference=format_preference,
+                )
+                else 0.0
+            )
             faithfulness_override_reason = (
                 "skip_llm_judges: LLM faithfulness judge disabled; deterministic numeric PASS only can promote score"
             )
@@ -3724,19 +5043,32 @@ class RAGEvaluator:
             completeness = _compute_completeness(example, answer)
             completeness_reason = "skip_llm_judges: heuristic completeness only"
         else:
-            raw_faithfulness = _compute_faithfulness(self._llm, answer, contexts)
+            faithfulness_judgement = _coerce_faithfulness_judgement(
+                _compute_faithfulness(self._llm, answer, contexts)
+            )
+            raw_faithfulness = faithfulness_judgement.score
+            faithfulness_reason = faithfulness_judgement.reason
             faithfulness = raw_faithfulness
             answer_relevancy = (
                 0.0
                 if self.skip_embedding_metrics
                 else _compute_answer_relevancy(self._embeddings, example.question, answer)
             )
-            completeness, completeness_reason = _compute_completeness_judge(self._llm, example, answer)
+            completeness, completeness_reason = _compute_completeness_judge(
+                self._llm,
+                example,
+                answer,
+                reference_answer_key=completeness_reference_answer_key,
+            )
             if completeness is None:
                 completeness = _compute_completeness(example, answer)
                 if completeness is not None and completeness_reason is None:
                     completeness_reason = "heuristic completeness fallback"
-            if _should_override_numeric_faithfulness(numeric_eval):
+            if _should_override_numeric_faithfulness(
+                numeric_eval,
+                calculation_result=calculation_result,
+                format_preference=format_preference,
+            ):
                 faithfulness = 1.0
                 faithfulness_override_reason = (
                     "numeric evaluator PASS (equivalence/grounding/retrieval_support 모두 1.0)로 faithfulness를 1.0으로 보정"
@@ -3748,10 +5080,9 @@ class RAGEvaluator:
         context_precision_at_5 = _compute_context_precision_at_k(example, retrieved_docs, 5)
         entity_coverage = _compute_entity_coverage(example, contexts)
         refusal_accuracy = _compute_refusal_accuracy(example, answer)
-        absolute_error_rate = _compute_absolute_error_rate(
+        absolute_error_rate = _compute_example_absolute_error_rate(
+            example=example,
             answer=answer,
-            answer_key=example.canonical_answer_key,
-            canonical_evidence=example.evidence,
         )
         operand_selection_correctness = _compute_operand_selection_correctness(
             example=example,
@@ -3766,6 +5097,10 @@ class RAGEvaluator:
             example=example,
             calculation_result=calculation_result,
         )
+        accepted_variant_match = numeric_eval.get("accepted_calculation_variant_match")
+        if accepted_variant_match is not None:
+            operand_selection_correctness = accepted_variant_match
+            numeric_result_correctness = accepted_variant_match
         raw_numeric_grounding = numeric_eval.get("numeric_grounding")
         raw_numeric_final_judgement = numeric_eval.get("numeric_final_judgement")
         raw_numeric_confidence = numeric_eval.get("numeric_confidence")
@@ -3773,6 +5108,8 @@ class RAGEvaluator:
         # context, the planner found a valid derivation path. Do not penalise it
         # for choosing a mathematically equivalent operand set.
         if (
+            not example.accepted_calculation_variants
+            and
             numeric_result_correctness == 1.0
             and numeric_eval.get("numeric_grounding") == 1.0
             and operand_selection_correctness is not None
@@ -3855,48 +5192,14 @@ class RAGEvaluator:
             )
             numeric_eval["numeric_final_judgement"] = final_judgement
             numeric_eval["numeric_confidence"] = confidence
-        if _should_override_numeric_faithfulness(numeric_eval):
+        if _should_override_numeric_faithfulness(
+            numeric_eval,
+            calculation_result=calculation_result,
+            format_preference=format_preference,
+        ):
             faithfulness = 1.0
             faithfulness_override_reason = (
                 "numeric evaluator PASS (equivalence/grounding/retrieval_support 모두 1.0)로 faithfulness를 1.0으로 보정"
-            )
-        elif _should_override_hybrid_faithfulness(
-            example=example,
-            answer=answer,
-            raw_faithfulness=raw_faithfulness,
-            runtime_evidence=runtime_evidence,
-            context_recall=context_recall,
-            retrieval_hit_at_k=retrieval_hit_at_k,
-            section_match_rate=section_match_rate,
-            citation_coverage=citation_coverage,
-            entity_coverage=entity_coverage,
-            completeness=completeness,
-            calculation_correctness=calculation_correctness,
-            grounded_rendering_correctness=grounded_rendering_correctness,
-            unsupported_sentences=unsupported_sentences,
-        ):
-            faithfulness = 1.0
-            faithfulness_override_reason = (
-                "hybrid mixed-query evidence coverage가 충분해 faithfulness를 1.0으로 보정"
-            )
-        elif _should_override_structured_summary_faithfulness(
-            example=example,
-            answer=answer,
-            raw_faithfulness=raw_faithfulness,
-            runtime_evidence=runtime_evidence,
-            context_recall=context_recall,
-            retrieval_hit_at_k=retrieval_hit_at_k,
-            section_match_rate=section_match_rate,
-            citation_coverage=citation_coverage,
-            entity_coverage=entity_coverage,
-            completeness=completeness,
-            calculation_correctness=calculation_correctness,
-            grounded_rendering_correctness=grounded_rendering_correctness,
-            unsupported_sentences=unsupported_sentences,
-        ):
-            faithfulness = 1.0
-            faithfulness_override_reason = (
-                "structured summary 계산/렌더링 검증이 충분해 faithfulness를 1.0으로 보정"
             )
         if calculation_result:
             derived_metrics = dict(calculation_result.get("derived_metrics") or {})
@@ -3977,12 +5280,22 @@ class RAGEvaluator:
             trend_interpretation_correctness=trend_interpretation_correctness,
             grounded_rendering_correctness=grounded_rendering_correctness,
             calculation_correctness=calculation_correctness,
+            accepted_calculation_variant_match=numeric_eval.get(
+                "accepted_calculation_variant_match"
+            ),
+            accepted_calculation_variant_id=str(
+                numeric_eval.get("accepted_calculation_variant_id") or ""
+            ),
+            accepted_calculation_variant_debug=dict(
+                numeric_eval.get("accepted_calculation_variant_debug") or {}
+            ),
             retrieved_count=len(contexts),
             query_type=query_type,
             intent=intent,
             format_preference=format_preference,
             routing_source=routing_source,
             routing_confidence=routing_confidence,
+            faithfulness_reason=faithfulness_reason,
             routing_scores=routing_scores,
             latency_sec=latency,
             citations=citations,
@@ -4153,6 +5466,10 @@ class RAGEvaluator:
                     metrics["raw_numeric_confidence"] = result.raw_numeric_confidence
                 if result.numeric_confidence is not None:
                     metrics["numeric_confidence"] = result.numeric_confidence
+                if result.accepted_calculation_variant_match is not None:
+                    metrics["accepted_calculation_variant_match"] = (
+                        result.accepted_calculation_variant_match
+                    )
                 if result.raw_operand_selection_correctness is not None:
                     metrics["raw_operand_selection_correctness"] = result.raw_operand_selection_correctness
                 if result.operand_selection_correctness is not None:
@@ -4240,6 +5557,9 @@ class RAGEvaluator:
                 "numeric_retrieval_support": _average_optional("numeric_retrieval_support"),
                 "raw_numeric_confidence": _average_optional("raw_numeric_confidence"),
                 "numeric_confidence": _average_optional("numeric_confidence"),
+                "accepted_calculation_variant_match": _average_optional(
+                    "accepted_calculation_variant_match"
+                ),
                 "absolute_error_rate": _average_optional("absolute_error_rate"),
                 "raw_operand_selection_correctness": _average_optional("raw_operand_selection_correctness"),
                 "operand_selection_correctness": _average_optional("operand_selection_correctness"),
@@ -4310,6 +5630,12 @@ class RAGEvaluator:
                             "numeric_final_judgement": result.numeric_final_judgement,
                             "raw_numeric_confidence": result.raw_numeric_confidence,
                             "numeric_confidence": result.numeric_confidence,
+                            "accepted_calculation_variant_match": (
+                                result.accepted_calculation_variant_match
+                            ),
+                            "accepted_calculation_variant_id": (
+                                result.accepted_calculation_variant_id
+                            ),
                             "absolute_error_rate": result.absolute_error_rate,
                             "raw_operand_selection_correctness": result.raw_operand_selection_correctness,
                             "operand_selection_correctness": result.operand_selection_correctness,

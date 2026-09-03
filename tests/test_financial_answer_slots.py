@@ -11,13 +11,10 @@ from src.agent import (
     financial_answer_projection,
     financial_answer_slots,
     financial_graph_calculation,
-    financial_operand_resolution,
 )
 from src.agent.financial_answer_slots import (
     RatioResultDisplaySyncInput,
-    build_answer_slots,
     build_calculated_value_slot,
-    build_missing_value_slot,
     build_operand_value_slot,
     coerce_slot_numeric,
     slot_status,
@@ -190,62 +187,6 @@ class FinancialAnswerSlotTests(unittest.TestCase):
                     )
                 self.assertEqual(events, ["len", "status"])
 
-    def test_answer_slot_material_predicate_bindings_preserve_plain_callback(self) -> None:
-        calculation_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
-        ordered_results = [{"task_id": "lookup"}]
-        delegated_result = [{"task_id": "aligned"}]
-        captured = {}
-
-        def align(rows, **kwargs):
-            captured["rows"] = rows
-            captured.update(kwargs)
-            captured["material_result"] = kwargs["slot_has_material"](
-                {"normalized_value": 0}
-            )
-            return delegated_result
-
-        with patch.object(
-            financial_graph_calculation,
-            "align_lookup_result_units_from_peer_source_slots",
-            side_effect=align,
-        ):
-            actual = calculation_agent._align_lookup_result_units_from_peer_source_slots(
-                ordered_results
-            )
-
-        self.assertIs(actual, delegated_result)
-        self.assertIs(captured["rows"], ordered_results)
-        self.assertTrue(captured["material_result"])
-        material_callback = captured["slot_has_material"]
-        self.assertIs(
-            material_callback,
-            financial_answer_slots.answer_slot_has_material,
-        )
-
-        primary_slot = {"normalized_value": 0, "nested": {"preserve": True}}
-        predicate_calls = []
-
-        def material(slot):
-            predicate_calls.append(slot)
-            return True
-
-        with patch.object(
-            financial_answer_projection,
-            "answer_slot_has_material",
-            side_effect=material,
-        ):
-            self.assertTrue(
-                financial_answer_projection.subtask_row_has_material(
-                    {
-                        "answer_slots": {
-                            "primary_value": primary_slot,
-                            "current_value": {"normalized_value": 1},
-                        }
-                    }
-                )
-            )
-        self.assertEqual(predicate_calls, [primary_slot])
-        self.assertIsNot(predicate_calls[0], primary_slot)
 
     def test_answer_slot_period_helpers_preserve_value_and_immutability_contract(self) -> None:
         period_hint = financial_answer_slots.answer_slot_period_hint
@@ -601,125 +542,6 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "key regex failed"):
                 period_key("2023")
 
-    def test_answer_slot_period_helper_bindings_preserve_static21_and_growth_polarity(self) -> None:
-        def public_callers(name):
-            callers = []
-            for module_name, module in (
-                ("graph", financial_graph_calculation),
-                ("owner", financial_answer_projection),
-                ("operand", financial_operand_resolution),
-            ):
-                tree = ast.parse(inspect.getsource(module))
-                parents = {}
-                for parent in ast.walk(tree):
-                    for child in ast.iter_child_nodes(parent):
-                        parents[child] = parent
-                for node in ast.walk(tree):
-                    if not isinstance(node, ast.Call):
-                        continue
-                    if not isinstance(node.func, ast.Name) or node.func.id != name:
-                        continue
-                    owner = node
-                    while owner in parents and not isinstance(owner, ast.FunctionDef):
-                        owner = parents[owner]
-                    callers.append((module_name, owner.name))
-            return Counter(callers)
-
-        self.assertEqual(
-            public_callers("answer_slot_period_hint"),
-            Counter(
-                {
-                    ("graph", "_lookup_gap_is_satisfied_by_sibling_slots"): 2,
-                    ("graph", "_sibling_lookup_gap_is_satisfied"): 3,
-                    ("graph", "_feedback_gap_is_satisfied_by_derived_slots"): 1,
-                    ("graph", "_matching_resolved_slot_for_task"): 1,
-                    ("owner", "growth_row_has_conflicting_periods"): 2,
-                }
-            ),
-        )
-        self.assertEqual(
-            public_callers("period_match_key"),
-            Counter(
-                {
-                    ("graph", "_lookup_gap_is_satisfied_by_sibling_slots"): 3,
-                    ("graph", "_feedback_gap_is_satisfied_by_derived_slots"): 3,
-                    ("graph", "_task_target_period_keys"): 1,
-                    ("graph", "_matching_resolved_slot_for_task"): 1,
-                    ("owner", "growth_row_has_conflicting_periods"): 2,
-                    ("operand", "growth_operand_periods_conflict"): 2,
-                }
-            ),
-        )
-
-        nested = {"preserve": True}
-        current_slot = {"period": "current", "nested": nested}
-        prior_slot = {"period": "prior", "nested": nested}
-        row = {
-            "answer": "2023 result",
-            "calculation_result": {
-                "answer_slots": {
-                    "current_value": current_slot,
-                    "prior_value": prior_slot,
-                }
-            },
-        }
-        events = []
-
-        def same_hint(slot):
-            events.append(("hint", slot))
-            return "2023"
-
-        def key(value):
-            events.append(("key", value))
-            return value
-
-        with (
-            patch.object(
-                financial_answer_projection,
-                "answer_slot_period_hint",
-                side_effect=same_hint,
-            ),
-            patch.object(
-                financial_answer_projection,
-                "period_match_key",
-                side_effect=key,
-            ),
-        ):
-            self.assertTrue(financial_answer_projection.growth_row_has_conflicting_periods(row))
-        self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
-        self.assertEqual([event[1] for event in events if event[0] == "key"], ["2023", "2023"])
-        prepared_slots = [event[1] for event in events if event[0] == "hint"]
-        self.assertEqual(prepared_slots, [current_slot, prior_slot])
-        self.assertIsNot(prepared_slots[0], current_slot)
-        self.assertIsNot(prepared_slots[1], prior_slot)
-        self.assertIs(prepared_slots[0]["nested"], nested)
-        self.assertIs(prepared_slots[1]["nested"], nested)
-
-        class RowTextBomb(dict):
-            def get(self, key, default=None):
-                if key in {"answer", "formatted_result", "rendered_value"}:
-                    raise AssertionError("row text accessed after period mismatch")
-                return super().get(key, default)
-
-        mismatch_row = RowTextBomb(row)
-        events.clear()
-        with (
-            patch.object(
-                financial_answer_projection,
-                "answer_slot_period_hint",
-                side_effect=lambda slot: events.append(("hint", slot))
-                or ("2023" if slot.get("period") == "current" else "2022"),
-            ),
-            patch.object(
-                financial_answer_projection,
-                "period_match_key",
-                side_effect=lambda value: events.append(("key", value)) or value,
-            ),
-        ):
-            self.assertFalse(
-                financial_answer_projection.growth_row_has_conflicting_periods(mismatch_row)
-            )
-        self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
 
     def test_source_task_display_compatibility_preserves_behavior_contract(self) -> None:
         compatible = financial_answer_slots.source_task_display_compatible_with_slot
@@ -1272,22 +1094,6 @@ class FinancialAnswerSlotTests(unittest.TestCase):
         self.assertEqual(coerce_slot_numeric("12.5"), 12.5)
         self.assertIsNone(coerce_slot_numeric("not numeric"))
 
-    def test_build_missing_value_slot_preserves_source_ids_and_policy_defaults(self) -> None:
-        slot = build_missing_value_slot(
-            role="primary_value",
-            label=" 매출 ",
-            concept="revenue",
-            source_row_ids=["", "row_1", "row_1"],
-        )
-
-        self.assertEqual(slot["status"], "missing")
-        self.assertEqual(slot["role"], "primary_value")
-        self.assertEqual(slot["label"], "매출")
-        self.assertEqual(slot["concept"], "revenue")
-        self.assertEqual(slot["normalized_unit"], "UNKNOWN")
-        self.assertEqual(slot["source_row_id"], "row_1")
-        self.assertEqual(slot["source_row_ids"], ["row_1"])
-
     def test_build_operand_value_slot_renders_normalized_value(self) -> None:
         slot = build_operand_value_slot(
             {
@@ -1327,159 +1133,6 @@ class FinancialAnswerSlotTests(unittest.TestCase):
         self.assertEqual(slot["role"], "delta_value")
         self.assertEqual(slot["rendered_value"], "1백만원")
         self.assertEqual(slot["source_row_ids"], ["row_a", "row_b"])
-
-    def test_build_answer_slots_creates_missing_lookup_primary_value(self) -> None:
-        slots = build_answer_slots(
-            active_subtask={
-                "operation_family": "lookup",
-                "metric_label": "법인세비용차감전순이익",
-                "required_operands": [
-                    {
-                        "role": "operand",
-                        "label": "법인세비용차감전순이익",
-                        "concept": "income_before_income_taxes",
-                        "period_hint": "2023년",
-                    }
-                ],
-            },
-            operation_family="lookup",
-            ordered_operands=[],
-            result_value=None,
-            result_unit="",
-            normalized_unit="UNKNOWN",
-            source_normalized_unit="UNKNOWN",
-            current_value=None,
-            prior_value=None,
-            delta_value=None,
-            current_period="2023",
-            prior_period="",
-            source_row_ids=[],
-        )
-
-        self.assertEqual(slots["operation_family"], "lookup")
-        self.assertEqual(slots["primary_value"]["status"], "missing")
-        self.assertEqual(slots["primary_value"]["concept"], "income_before_income_taxes")
-        self.assertEqual(slots["primary_value"]["period"], "2023년")
-
-    def test_build_answer_slots_creates_difference_period_slots(self) -> None:
-        slots = build_answer_slots(
-            active_subtask={
-                "operation_family": "difference",
-                "metric_label": "증감액",
-                "required_operands": [
-                    {"role": "current_period", "label": "당기"},
-                    {"role": "prior_period", "label": "전기"},
-                ],
-            },
-            operation_family="difference",
-            ordered_operands=[
-                {
-                    "evidence_id": "row_current",
-                    "label": "당기",
-                    "matched_operand_role": "current_period",
-                    "raw_value": "3",
-                    "raw_unit": "%",
-                    "normalized_value": 3.0,
-                    "normalized_unit": "PERCENT",
-                    "period": "2023",
-                },
-                {
-                    "evidence_id": "row_prior",
-                    "label": "전기",
-                    "matched_operand_role": "prior_period",
-                    "raw_value": "1",
-                    "raw_unit": "%",
-                    "normalized_value": 1.0,
-                    "normalized_unit": "PERCENT",
-                    "period": "2022",
-                },
-            ],
-            result_value=2.0,
-            result_unit="%p",
-            normalized_unit="PERCENT",
-            source_normalized_unit="PERCENT",
-            current_value=3.0,
-            prior_value=1.0,
-            delta_value=2.0,
-            current_period="2023",
-            prior_period="2022",
-            source_row_ids=["row_current", "row_prior"],
-        )
-
-        self.assertEqual(slots["operation_family"], "difference")
-        self.assertEqual(slots["result_semantics"], "period_delta")
-        self.assertEqual(slots["primary_value"]["role"], "delta_value")
-        self.assertEqual(slots["current_value"]["rendered_value"], "3%")
-        self.assertEqual(slots["prior_value"]["rendered_value"], "1%")
-        self.assertEqual(slots["delta_value"]["rendered_value"], "2.00%p")
-        self.assertEqual(slots["direction"], "increase")
-
-    def test_build_answer_slots_keeps_component_subtraction_as_derived_value(self) -> None:
-        slots = build_answer_slots(
-            active_subtask={
-                "operation_family": "difference",
-                "metric_label": "adjusted result",
-                "required_operands": [
-                    {"role": "minuend", "label": "base amount"},
-                    {"role": "subtrahend", "label": "excluded component"},
-                ],
-            },
-            operation_family="difference",
-            ordered_operands=[
-                {
-                    "evidence_id": "row_base",
-                    "label": "base amount",
-                    "matched_operand_role": "minuend",
-                    "raw_value": "100",
-                    "raw_unit": "백만원",
-                    "normalized_value": 100_000_000.0,
-                    "normalized_unit": "KRW",
-                    "period": "2023",
-                },
-                {
-                    "evidence_id": "row_component",
-                    "label": "excluded component",
-                    "matched_operand_role": "subtrahend",
-                    "raw_value": "40",
-                    "raw_unit": "백만원",
-                    "normalized_value": 40_000_000.0,
-                    "normalized_unit": "KRW",
-                    "period": "2023",
-                },
-            ],
-            result_value=60_000_000.0,
-            result_unit="백만원",
-            normalized_unit="KRW",
-            source_normalized_unit="KRW",
-            current_value=100_000_000.0,
-            prior_value=40_000_000.0,
-            delta_value=60_000_000.0,
-            current_period="2023",
-            prior_period="2023",
-            source_row_ids=["row_base", "row_component"],
-        )
-
-        self.assertEqual(slots["result_semantics"], "derived_value")
-        self.assertEqual(slots["primary_value"]["role"], "primary_value")
-        self.assertIsNone(slots["current_value"])
-        self.assertIsNone(slots["prior_value"])
-        self.assertIsNone(slots["delta_value"])
-        self.assertIsNone(slots["direction"])
-        self.assertEqual(
-            financial_answer_projection.material_gap_feedback_for_subtask_result(
-                {
-                    "metric_label": "adjusted result",
-                    "status": "ok",
-                    "calculation_result": {
-                        "status": "ok",
-                        "rendered_value": "60백만원",
-                        "answer_slots": slots,
-                    },
-                }
-            ),
-            "",
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

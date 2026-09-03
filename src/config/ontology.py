@@ -132,56 +132,10 @@ class FinancialOntologyManager:
                     merged[key] = value
         return merged
 
-    def _component_payload(self, component: Dict[str, Any]) -> Dict[str, Any]:
-        raw = dict(component or {})
-        concept_key = str(raw.get("concept") or raw.get("concept_ref") or "").strip()
-        concept = dict(self.concepts.get(concept_key) or {})
-        name = (
-            str(raw.get("name") or "").strip()
-            or str(concept.get("display_name") or concept.get("name") or "").strip()
-        )
-        aliases = _dedupe_preserve_order([*(concept.get("aliases", []) or []), *(raw.get("aliases", []) or [])])
-        keywords = _dedupe_preserve_order([*(concept.get("keywords", []) or []), *(raw.get("keywords", []) or [])])
-        preferred_sections = _dedupe_preserve_order(
-            [*(concept.get("preferred_sections", []) or []), *(raw.get("preferred_sections", []) or [])]
-        )
-        preferred_statement_types = _dedupe_preserve_order(
-            [*(concept.get("preferred_statement_types", []) or []), *(raw.get("preferred_statement_types", []) or [])]
-        )
-        binding_policy = self._merge_binding_policy(
-            self.binding_policy_defaults,
-            concept.get("binding_policy"),
-            raw.get("binding_policy"),
-            raw.get("binding_policy_override"),
-        )
-        merged = {**concept, **raw}
-        merged.update(
-            {
-                "concept": concept_key,
-                "name": name,
-                "display_name": str(concept.get("display_name") or name).strip(),
-                "aliases": aliases,
-                "keywords": keywords,
-                "preferred_sections": preferred_sections,
-                "preferred_statement_types": preferred_statement_types,
-                "binding_policy": binding_policy,
-                "unit_family": str(concept.get("unit_family") or raw.get("unit_family") or "").strip(),
-                "surface_contract": dict(concept.get("surface_contract") or raw.get("surface_contract") or {}),
-            }
-        )
-        return merged
-
     def _metric_aliases(self, metric: Dict[str, Any]) -> List[str]:
         values = [metric.get("display_name", "")]
         values.extend(metric.get("aliases", []) or [])
         values.extend(metric.get("intent_keywords", []) or [])
-        return _dedupe_preserve_order(values)
-
-    def _component_aliases(self, component: Dict[str, Any]) -> List[str]:
-        payload = self._component_payload(component)
-        values = [payload.get("name", ""), payload.get("display_name", "")]
-        values.extend(payload.get("aliases", []) or [])
-        values.extend(payload.get("keywords", []) or [])
         return _dedupe_preserve_order(values)
 
     def _concept_aliases(self, concept: Dict[str, Any]) -> List[str]:
@@ -345,11 +299,6 @@ class FinancialOntologyManager:
             for alias in self._metric_aliases(metric):
                 if _normalise_spaces(alias) in combined:
                     score += 3
-            components = dict(metric.get("components") or {})
-            for component in components.values():
-                for alias in self._component_aliases(component):
-                    if _normalise_spaces(alias) in combined:
-                        score += 1
             if score > 0:
                 matches.append((score, key, metric))
         matches.sort(key=lambda item: item[0], reverse=True)
@@ -364,62 +313,6 @@ class FinancialOntologyManager:
         if not metric:
             return None
         return {"key": key, **metric}
-
-    def aliases_for_metric(self, key: str) -> List[str]:
-        metric = self.metric_families.get(key) or {}
-        return self._metric_aliases(metric)
-
-    def statement_type_hints_for_metric(self, key: str) -> List[str]:
-        metric = self.metric_families.get(key) or {}
-        return _dedupe_preserve_order(metric.get("statement_type_hints", []) or [])
-
-    def retrieval_keywords_for_metric(self, key: str) -> List[str]:
-        metric = self.metric_families.get(key) or {}
-        values = list(metric.get("retrieval_keywords", []) or [])
-        values.extend(metric.get("query_hints", []) or [])
-        components = dict(metric.get("components") or {})
-        for component in components.values():
-            values.extend(self._component_aliases(component))
-        return _dedupe_preserve_order(values)
-
-    def default_constraints_for_metric(self, key: str) -> Dict[str, Any]:
-        metric = self.metric_families.get(key) or {}
-        constraints = dict(metric.get("default_constraints") or {})
-        return {
-            "consolidation_scope": str(constraints.get("consolidation_scope") or "unknown"),
-            "period_focus": str(constraints.get("period_focus") or "unknown"),
-            "entity_scope": str(constraints.get("entity_scope") or "unknown"),
-            "segment_scope": str(constraints.get("segment_scope") or "none"),
-        }
-
-    def formula_family_for_metric(self, key: str) -> str:
-        metric = self.metric_families.get(key) or {}
-        return str(metric.get("formula_family") or "")
-
-    def build_operand_spec(self, key: str) -> List[Dict[str, Any]]:
-        metric = self.metric_families.get(key) or {}
-        components = dict(metric.get("components") or {})
-        rows: List[Dict[str, Any]] = []
-        for role, component in components.items():
-            payload = self._component_payload(component)
-            rows.append(
-                {
-                    "role": str(role).strip(),
-                    "label": str(payload.get("name") or "").strip(),
-                    "concept": str(payload.get("concept") or "").strip(),
-                    "aliases": _dedupe_preserve_order(payload.get("aliases", []) or []),
-                    "keywords": _dedupe_preserve_order(payload.get("keywords", []) or []),
-                    "required": bool(payload.get("required", True)),
-                    "period_hint": str(payload.get("period_hint") or "").strip(),
-                    "period_focus": str(payload.get("period_focus") or "").strip(),
-                    "preferred_sections": _dedupe_preserve_order(payload.get("preferred_sections", []) or []),
-                    "preferred_statement_types": _dedupe_preserve_order(payload.get("preferred_statement_types", []) or []),
-                    "binding_policy": dict(payload.get("binding_policy") or {}),
-                    "unit_family": str(payload.get("unit_family") or "").strip(),
-                    "surface_contract": dict(payload.get("surface_contract") or {}),
-                }
-            )
-        return rows
 
     def preferred_sections(self, query: str, topic: str = "", intent: str = "") -> List[str]:
         sections: List[str] = []
@@ -443,9 +336,6 @@ class FinancialOntologyManager:
         hints: List[str] = []
         for metric in self.match_metric_families(query, topic, intent):
             hints.extend(str(hint).strip() for hint in metric.get("query_hints", []) if str(hint).strip())
-            components = dict(metric.get("components") or {})
-            for component in components.values():
-                hints.extend(self._component_aliases(component))
         for concept in self.match_concepts(query, topic, intent):
             hints.extend(self._concept_aliases(concept))
         return _dedupe_preserve_order(hints)
@@ -455,36 +345,6 @@ class FinancialOntologyManager:
         for metric in self.match_metric_families(query, topic, intent):
             patterns.extend(str(pattern).strip() for pattern in metric.get("row_patterns", []) if str(pattern).strip())
         return _dedupe_preserve_order(patterns)
-
-    def component_specs(self, query: str, topic: str = "", intent: str = "") -> List[Dict[str, Any]]:
-        specs: List[Dict[str, Any]] = []
-        for metric in self.match_metric_families(query, topic, intent):
-            components = dict(metric.get("components") or {})
-            for role, component in components.items():
-                payload = self._component_payload(component)
-                specs.append(
-                    {
-                        "metric_key": metric.get("key"),
-                        "metric_display_name": metric.get("display_name"),
-                        "role": role,
-                        "name": str(payload.get("name") or "").strip(),
-                        "concept": str(payload.get("concept") or "").strip(),
-                        "aliases": _dedupe_preserve_order(payload.get("aliases", []) or []),
-                        "keywords": [str(keyword).strip() for keyword in payload.get("keywords", []) if str(keyword).strip()],
-                        "required": bool(payload.get("required", True)),
-                        "period_hint": str(payload.get("period_hint") or "").strip(),
-                        "period_focus": str(payload.get("period_focus") or "").strip(),
-                        "preferred_sections": [str(section).strip() for section in payload.get("preferred_sections", []) if str(section).strip()],
-                        "preferred_statement_types": [
-                            str(item).strip()
-                            for item in payload.get("preferred_statement_types", [])
-                            if str(item).strip()
-                        ],
-                        "binding_policy": dict(payload.get("binding_policy") or {}),
-                        "surface_contract": dict(payload.get("surface_contract") or {}),
-                    }
-                )
-        return specs
 
     def concept_specs(self, query: str, topic: str = "", intent: str = "") -> List[Dict[str, Any]]:
         specs: List[Dict[str, Any]] = []

@@ -3,9 +3,10 @@ import subprocess
 import sys
 import unittest
 from collections.abc import Mapping
+from contextlib import ExitStack
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -27,6 +28,7 @@ from src.ops.evaluator import (
     _compute_ndcg_at_k,
     _contains_section,
     _compute_calculation_correctness,
+    _compute_faithfulness,
     _compute_grounded_rendering_correctness,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
@@ -42,12 +44,16 @@ from src.ops.evaluator import (
     _resolve_evaluator_operands,
     _resolve_runtime_calculation_trace,
     _supplement_resolved_operands_from_runtime_evidence,
-    _should_override_hybrid_faithfulness,
+    _should_override_numeric_faithfulness,
     _should_override_numeric_grounding,
     _should_override_numeric_grounding_from_runtime_evidence,
-    _should_override_structured_summary_faithfulness,
+    FaithfulnessJudgement,
 )
 from src.agent import financial_runtime_trace
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 from src.agent.financial_runtime_trace import runtime_trace_state_update
 
 
@@ -60,16 +66,192 @@ class _FakeAgent:
     def __init__(self, result: dict) -> None:
         self.result = result
 
-    def run(self, question: str, report_scope=None) -> dict:
-        return dict(self.result)
+    def run(
+        self,
+        question: str,
+        *,
+        report_scope=None,
+        include_review_trace=False,
+        include_debug_bundle=False,
+    ) -> FinancialRunResultV1:
+        answer_fields = {
+            "answer",
+            "query_type",
+            "intent",
+            "format_preference",
+            "routing_source",
+            "routing_confidence",
+            "routing_scores",
+            "citations",
+            "resolved_calculation_trace",
+            "structured_result",
+        }
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer={
+                key: value
+                for key, value in self.result.items()
+                if key in answer_fields
+            },
+            review_trace={} if include_review_trace else None,
+            debug_bundle={} if include_debug_bundle else None,
+        )
 
 
 class _FailingAgent:
-    def run(self, question: str, report_scope=None) -> dict:
+    def run(
+        self,
+        question: str,
+        *,
+        report_scope=None,
+        include_review_trace=False,
+        include_debug_bundle=False,
+    ) -> FinancialRunResultV1:
         raise RuntimeError("model unavailable")
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_faithfulness_judge_returns_score_and_persistable_reason(self) -> None:
+        judge = Mock()
+        judge.invoke.return_value = Mock(
+            content=json.dumps(
+                {
+                    "score": 0.7,
+                    "reason": "One summary phrase is interpretive.",
+                }
+            )
+        )
+
+        result = _compute_faithfulness(
+            judge,
+            "The result increased because of the review.",
+            ["The result increased. A review was also performed."],
+        )
+
+        self.assertEqual(
+            result,
+            FaithfulnessJudgement(
+                score=0.7,
+                reason="One summary phrase is interpretive.",
+            ),
+        )
+        self.assertIn('"score"', judge.invoke.call_args.args[0])
+        self.assertIn('"reason"', judge.invoke.call_args.args[0])
+
+    def _evaluate_fixed_qualitative_score(
+        self, *, question, answer, raw_score, answer_type="summary", category="comparison",
+        format_preference="mixed", narrative=True, numeric_fast_gate=False,
+    ):
+        evidence = [
+            {"claim": "Quantity increased by 10% to 44 items.", "support_level": "direct"},
+            {"claim": "The unit introduced a review stage with coverage of 75%.", "support_level": "direct"},
+        ]
+        outputs = [{"kind": "derived_value", "status": "ok"}]
+        if narrative:
+            outputs.append({"kind": "narrative", "status": "ok"})
+        evaluator = RAGEvaluator(
+            _FakeAgent({
+                "answer": answer, "format_preference": format_preference,
+                "evidence_items": evidence,
+                "resolved_calculation_trace": {
+                    "calculation_plan": {"mode": "semantic_program"},
+                    "calculation_result": {"status": "ok", "outputs": outputs},
+                },
+            }),
+            skip_llm_judges=True,
+            numeric_fast_gate=numeric_fast_gate,
+        )
+        # Construct no provider; only replace judge/metric results, not promotion policy.
+        evaluator.skip_llm_judges = False
+        evaluator._llm = Mock()
+        evaluator._llm.invoke.side_effect = AssertionError("provider call forbidden")
+        example = EvalExample(
+            id="generic-judgement-boundary", question=question, ground_truth="10%; review stage",
+            company="sample", year=2024, section="activity",
+            category=category, answer_type=answer_type,
+        )
+        values = {
+            "_compute_faithfulness": raw_score,
+            "_compute_completeness_judge": (1.0, "fixed completeness result"),
+            "_compute_context_recall": 1.0,
+            "_compute_retrieval_hit_at_k": 1.0,
+            "_compute_section_match_rate": 1.0,
+            "_compute_citation_coverage": 1.0,
+            "_compute_numeric_result_correctness": 1.0,
+            "_compute_grounded_rendering_correctness": (1.0, "fixed numeric rendering result"),
+            "_compute_trend_interpretation_correctness": (1.0, "fixed trend result"),
+            "_compute_numeric_evaluation": {
+                "numeric_final_judgement": "PASS", "numeric_equivalence": 1.0,
+                "numeric_grounding": 1.0, "numeric_retrieval_support": 1.0,
+            },
+        }
+        with ExitStack() as stack:
+            mocks = {
+                name: stack.enter_context(patch(f"src.ops.evaluator.{name}", return_value=value))
+                for name, value in values.items()
+            }
+            result = evaluator.evaluate_one(example)
+        evaluator._llm.invoke.assert_not_called()
+        self.assertIsNone(result.error)
+        self.assertEqual(result.calculation_correctness, 1.0)
+        self.assertEqual(result.completeness, 1.0)
+        self.assertEqual(result.context_recall, 1.0)
+        return result, mocks["_compute_faithfulness"]
+
+    def test_coverage_cannot_promote_qualitative_faithfulness_in_evaluate_one(self) -> None:
+        cases = (
+            ("증가율을 계산하고 작업 변경의 원인을 설명해 줘.", "comparison",
+             "Quantity increased by 10%; review coverage was 75%, which caused the increase."),
+            ("Summarize the quantity and activity change.", "business_overview",
+             "Quantity increased by 10%; review coverage was 75%, which caused the increase."),
+            ("Summarize the activity change.", "business_overview",
+             "The review stage caused the improvement."),
+        )
+        for question, category, answer in cases:
+            for raw_score in (0.0, 0.4, 0.7, 1.0):
+                with self.subTest(question=question, raw_score=raw_score):
+                    result, judge = self._evaluate_fixed_qualitative_score(
+                        question=question, answer=answer, category=category, raw_score=raw_score,
+                    )
+                    judge.assert_called_once()
+                    self.assertEqual(result.raw_faithfulness, raw_score)
+                    self.assertEqual(result.faithfulness, raw_score)
+                    self.assertIsNone(result.faithfulness_reason)
+                    self.assertIsNone(result.faithfulness_override_reason)
+
+    def test_numeric_pass_and_fast_gate_cannot_bypass_mixed_qualitative_judge(self) -> None:
+        for format_preference, narrative in (("mixed", True), ("mixed", False), ("table", True)):
+            for numeric_fast_gate in (False, True):
+                with self.subTest(format=format_preference, narrative=narrative, fast=numeric_fast_gate):
+                    result, judge = self._evaluate_fixed_qualitative_score(
+                        question="Return the quantity change and explain the review stage.",
+                        answer="Quantity increased by 10%; review coverage was 75%, which caused the increase.",
+                        raw_score=0.4, answer_type="numeric", category="numeric_fact",
+                        format_preference=format_preference, narrative=narrative,
+                        numeric_fast_gate=numeric_fast_gate,
+                    )
+                    judge.assert_called_once()
+                    self.assertEqual(result.numeric_final_judgement, "PASS")
+                    self.assertEqual(result.raw_faithfulness, 0.4)
+                    self.assertEqual(result.faithfulness, 0.4)
+                    self.assertIsNone(result.faithfulness_override_reason)
+
+    def test_pure_numeric_pass_retains_its_existing_faithfulness_gate(self) -> None:
+        for fast_gate in (False, True):
+            with self.subTest(fast_gate=fast_gate):
+                result, judge = self._evaluate_fixed_qualitative_score(
+                    question="Return the quantity change.", answer="10%", raw_score=0.4,
+                    answer_type="numeric", category="numeric_fact",
+                    format_preference="table", narrative=False, numeric_fast_gate=fast_gate,
+                )
+                self.assertEqual(result.faithfulness, 1.0)
+                if fast_gate:
+                    judge.assert_not_called()
+                    self.assertIsNone(result.raw_faithfulness)
+                else:
+                    judge.assert_called_once()
+                    self.assertEqual(result.raw_faithfulness, 0.4)
+
     def test_faithfulness_context_prioritizes_final_runtime_evidence(self) -> None:
         broad_contexts = [
             "retrieved chunk one",
@@ -87,6 +269,65 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
 
         self.assertIn("selected result increased by 11.5%", contexts[0])
         self.assertEqual(contexts[1:], broad_contexts)
+
+    def test_faithfulness_context_compacts_duplicate_payloads_before_global_budget(self) -> None:
+        runtime_evidence = []
+        for index in range(4):
+            claim = (
+                f"[source: filing] [table_context: {'x' * 700}] "
+                f"[Heading {index}] relation-{index} "
+                + ("supporting detail " * 45)
+            )
+            runtime_evidence.append(
+                {
+                    "claim": claim,
+                    "quote_span": claim,
+                    "source_anchor": f"ExampleCo | 2023 | Section {index}",
+                }
+            )
+
+        contexts = _build_runtime_evidence_contexts(runtime_evidence)
+        judge_window = "\n\n---\n\n".join(contexts)[:4000]
+
+        self.assertNotIn("[table_context:", judge_window)
+        self.assertIn("[Heading 0]", judge_window)
+        for index in range(4):
+            self.assertIn(f"relation-{index}", judge_window)
+
+    def test_numeric_faithfulness_override_does_not_cover_narrative_output(self) -> None:
+        numeric_eval = {
+            "numeric_final_judgement": "PASS",
+            "numeric_equivalence": 1.0,
+            "numeric_grounding": 1.0,
+            "numeric_retrieval_support": 1.0,
+        }
+
+        self.assertTrue(
+            _should_override_numeric_faithfulness(
+                numeric_eval,
+                calculation_result={"outputs": [{"kind": "derived_value", "status": "ok"}]},
+                format_preference="table",
+            )
+        )
+        self.assertFalse(
+            _should_override_numeric_faithfulness(
+                numeric_eval,
+                calculation_result={"outputs": [{"kind": "derived_value", "status": "ok"}]},
+                format_preference="mixed",
+            )
+        )
+        self.assertFalse(
+            _should_override_numeric_faithfulness(
+                numeric_eval,
+                calculation_result={
+                    "outputs": [
+                        {"kind": "derived_value", "status": "ok"},
+                        {"kind": "narrative", "status": "ok"},
+                    ]
+                },
+                format_preference="mixed",
+            )
+        )
 
     def test_missing_answer_detection_uses_refusal_phrases_not_bare_substrings(self) -> None:
         self.assertFalse(_looks_like_missing_answer("차별화된 기술 개발을 통해 끊임없는 혁신을 추구합니다."))
@@ -1201,339 +1442,6 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 operand_selection_correctness=1.0,
                 numeric_result_correctness=None,
                 grounded_rendering_correctness=None,
-            )
-        )
-
-    def test_should_override_hybrid_faithfulness_for_mixed_query(self) -> None:
-        example = EvalExample(
-            id="nav_t2_006",
-            question="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
-            ground_truth="41.4%와 포시마크 영향",
-            company="네이버",
-            year=2023,
-            section="경영진단",
-            expected_sections=[
-                "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적"
-            ],
-        )
-        runtime_evidence = [
-            {
-                "claim": "커머스 부문은 2023년에 전년 대비 41.4% 성장했다.",
-                "quote_span": "전년 대비 41.4% 성장",
-                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-            {
-                "claim": "Poshmark의 성공적인 체질 개선이 성장에 기여했다.",
-                "quote_span": "Poshmark의 성공적인 체질 개선",
-                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-        ]
-
-        self.assertTrue(
-            _should_override_hybrid_faithfulness(
-                example=example,
-                answer="네이버 커머스 부문은 2023년에 전년 대비 41.4% 성장했습니다. 이러한 성장은 포시마크의 체질 개선에 기인합니다.",
-                raw_faithfulness=0.7,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=0.6,
-                citation_coverage=2.0 / 3.0,
-                entity_coverage=0.75,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=1.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_not_override_hybrid_faithfulness_without_enough_evidence(self) -> None:
-        example = EvalExample(
-            id="nav_t2_006",
-            question="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크 인수가 커머스 실적에 미친 영향을 요약해 줘.",
-            ground_truth="41.4%와 포시마크 영향",
-            company="네이버",
-            year=2023,
-            section="경영진단",
-        )
-        runtime_evidence = [
-            {
-                "claim": "커머스 부문은 2023년에 전년 대비 41.4% 성장했다.",
-                "quote_span": "전년 대비 41.4% 성장",
-                "source_anchor": "NAVER | 2023 | IV. 이사의 경영진단 및 분석의견",
-            }
-        ]
-
-        self.assertFalse(
-            _should_override_hybrid_faithfulness(
-                example=example,
-                answer="네이버 커머스 부문은 2023년에 전년 대비 41.4% 성장했습니다.",
-                raw_faithfulness=0.7,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=0.6,
-                citation_coverage=2.0 / 3.0,
-                entity_coverage=0.75,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=1.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_override_hybrid_faithfulness_when_answer_entities_and_structured_result_are_grounded(self) -> None:
-        example = EvalExample(
-            id="hyu_t2_010",
-            question="2023년 미국 판매대수의 전년 대비 성장률을 계산하고, IRA 등 정책 대응 상황을 요약해 줘.",
-            ground_truth="87.0만 대, 78.1만 대, 11.5%, 보호무역주의 대응",
-            company="현대자동차",
-            year=2023,
-            section="경영진단",
-            required_entities=["미국", "현대차", "인플레이션 감축법", "보호무역주의"],
-            expected_sections=["IV. 이사의 경영진단 및 분석의견"],
-        )
-        runtime_evidence = [
-            {
-                "claim": "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매했다.",
-                "quote_span": "전년 대비 11.5% 증가한 87.0만 대",
-                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-            {
-                "claim": "미국의 인플레이션 감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요하다.",
-                "quote_span": "인플레이션 감축법과 보호무역주의에 대한 적극적인 대응",
-                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-        ]
-
-        self.assertTrue(
-            _should_override_hybrid_faithfulness(
-                example=example,
-                answer=(
-                    "2023년 미국 시장 현대차 판매대수는 87.0만 대, 2022년은 78.1만 대로 "
-                    "전년 대비 성장률은 11.5%입니다. 정책 대응 측면에서는 미국의 인플레이션 "
-                    "감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요한 상황입니다."
-                ),
-                raw_faithfulness=0.5,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=1.0,
-                citation_coverage=1.0,
-                entity_coverage=0.5,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=1.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_not_override_hybrid_faithfulness_when_low_context_entities_are_missing_from_answer(self) -> None:
-        example = EvalExample(
-            id="hyu_t2_010",
-            question="2023년 미국 판매대수의 전년 대비 성장률을 계산하고, IRA 등 정책 대응 상황을 요약해 줘.",
-            ground_truth="87.0만 대, 78.1만 대, 11.5%, 보호무역주의 대응",
-            company="현대자동차",
-            year=2023,
-            section="경영진단",
-            required_entities=["미국", "현대차", "인플레이션 감축법", "보호무역주의"],
-        )
-        runtime_evidence = [
-            {
-                "claim": "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대를 판매했다.",
-                "quote_span": "전년 대비 11.5% 증가한 87.0만 대",
-                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-            {
-                "claim": "미국의 인플레이션 감축법과 각국 보호무역주의에 대한 적극적인 대응이 필요하다.",
-                "quote_span": "인플레이션 감축법과 보호무역주의에 대한 적극적인 대응",
-                "source_anchor": "현대자동차 | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-        ]
-
-        self.assertFalse(
-            _should_override_hybrid_faithfulness(
-                example=example,
-                answer="2023년 미국 시장 판매대수는 87.0만 대이고 전년 대비 성장률은 11.5%입니다.",
-                raw_faithfulness=0.5,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=1.0,
-                citation_coverage=1.0,
-                entity_coverage=0.5,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=1.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_override_structured_summary_faithfulness_for_grounded_multi_numeric_summary(self) -> None:
-        example = EvalExample(
-            id="hyu_t3_072",
-            question="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
-            ground_truth="Motional AD LLC, 25.81%, 1,294,367백만원, 계속영업손실, 총포괄손실",
-            company="현대자동차",
-            year=2023,
-            section="연결재무제표 주석",
-            category="business_overview",
-            answer_type="summary",
-            required_entities=["Motional AD LLC", "25.81%", "1,294,367", "계속영업손실", "총포괄손실"],
-        )
-
-        self.assertTrue(
-            _should_override_structured_summary_faithfulness(
-                example=example,
-                answer=(
-                    "Motional의 지분율은 25.81%, 투자장부금액은 1,294,367백만원입니다. "
-                    "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
-                ),
-                raw_faithfulness=0.5,
-                runtime_evidence=[],
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=0.625,
-                citation_coverage=1.0,
-                entity_coverage=0.6,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=1.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_not_override_structured_summary_faithfulness_when_rendering_is_not_grounded(self) -> None:
-        example = EvalExample(
-            id="hyu_t3_072",
-            question="2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
-            ground_truth="Motional AD LLC, 25.81%, 1,294,367백만원, 계속영업손실, 총포괄손실",
-            company="현대자동차",
-            year=2023,
-            section="연결재무제표 주석",
-            category="business_overview",
-            answer_type="summary",
-            required_entities=["Motional AD LLC", "25.81%", "1,294,367", "계속영업손실", "총포괄손실"],
-        )
-
-        self.assertFalse(
-            _should_override_structured_summary_faithfulness(
-                example=example,
-                answer=(
-                    "Motional의 지분율은 25.81%, 투자장부금액은 1,294,367백만원입니다. "
-                    "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
-                ),
-                raw_faithfulness=0.5,
-                runtime_evidence=[],
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=0.625,
-                citation_coverage=1.0,
-                entity_coverage=0.6,
-                completeness=1.0,
-                calculation_correctness=1.0,
-                grounded_rendering_correctness=0.0,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_override_structured_summary_faithfulness_for_grounded_narrative_summary(self) -> None:
-        example = EvalExample(
-            id="summary_t1",
-            question="Summarize the strategy outcome from the annual report.",
-            ground_truth="premium mix adjustment and cumulative sales milestone",
-            company="ExampleCo",
-            year=2023,
-            section="Management Discussion",
-            category="business_overview",
-            answer_type="summary",
-            required_entities=["premium mix", "cumulative sales milestone"],
-        )
-        runtime_evidence = [
-            {
-                "claim": "The premium product mix contributed to record performance.",
-                "quote_span": "premium product mix contributed to record performance",
-                "support_level": "direct",
-            },
-            {
-                "claim": "The brand reached a cumulative sales milestone.",
-                "quote_span": "reached a cumulative sales milestone",
-                "support_level": "direct",
-            },
-        ]
-
-        self.assertTrue(
-            _should_override_structured_summary_faithfulness(
-                example=example,
-                answer=(
-                    "The premium mix contributed to record performance, "
-                    "and the brand reached a cumulative sales milestone."
-                ),
-                raw_faithfulness=0.0,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=1.0,
-                citation_coverage=1.0,
-                entity_coverage=1.0,
-                completeness=1.0,
-                calculation_correctness=None,
-                grounded_rendering_correctness=None,
-                unsupported_sentences=[],
-            )
-        )
-
-    def test_should_override_hybrid_faithfulness_for_dividend_mixed_query_with_runtime_numeric_coverage(self) -> None:
-        example = EvalExample(
-            id="mix_t3_048",
-            question="2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
-            ground_truth="9조 8,645억원과 2024~2026년 주주환원 정책",
-            company="삼성전자",
-            year=2023,
-            section="배당",
-            expected_sections=[
-                "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
-                "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
-            ],
-        )
-        runtime_evidence = [
-            {
-                "claim": "배당금 지급 9조 8,645억원",
-                "quote_span": "배당금 지급 9조 8,645억원",
-                "source_anchor": "삼성전자 | 2023 | IV. 이사의 경영진단 및 분석의견",
-            },
-            {
-                "claim": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지",
-                "quote_span": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지",
-                "source_anchor": "삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항",
-            },
-            {
-                "claim": "정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획",
-                "quote_span": "정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획",
-                "source_anchor": "삼성전자 | 2023 | III. 재무에 관한 사항 > 6. 배당에 관한 사항",
-            },
-        ]
-
-        self.assertTrue(
-            _should_override_hybrid_faithfulness(
-                example=example,
-                answer=(
-                    "2023년 연결 현금흐름표상 배당금 지급으로 유출된 현금은 9조 8,645억원입니다. "
-                    "사업보고서의 배당에 관한 사항에 따르면 삼성전자는 2024년부터 2026년까지 "
-                    "3년간 잉여현금흐름의 50%를 재원으로 연간 9.8조원 수준의 정규배당을 유지하고, "
-                    "정규배당 이후 잔여 재원이 발생하면 추가로 환원할 계획입니다."
-                ),
-                raw_faithfulness=0.0,
-                runtime_evidence=runtime_evidence,
-                context_recall=1.0,
-                retrieval_hit_at_k=1.0,
-                section_match_rate=1.0,
-                citation_coverage=1.0,
-                entity_coverage=1.0,
-                completeness=1.0,
-                calculation_correctness=0.0,
-                grounded_rendering_correctness=0.0,
-                unsupported_sentences=[],
             )
         )
 

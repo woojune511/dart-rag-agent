@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 
@@ -389,7 +390,6 @@ class RetrievalScopeTests(unittest.TestCase):
                 "query": "Revenue 2023",
                 "active_subtask": {
                     "task_id": "task_2",
-                    "operation_family": "lookup",
                     "retrieval_queries": ["Revenue 2023"],
                 },
                 "report_scope": {"year": 2023},
@@ -407,7 +407,7 @@ class RetrievalScopeTests(unittest.TestCase):
                         "query_budget": {
                             "source": {
                                 "active_subtask_id": "task_1",
-                                "active_subtask_operation": "lookup",
+                                "answer_mode": "semantic_program",
                             }
                         },
                         "executed_queries": [
@@ -480,7 +480,6 @@ class RetrievalScopeTests(unittest.TestCase):
                 **base_state,
                 "active_subtask": {
                     "task_id": "task_1",
-                    "operation_family": "lookup",
                     "query": "shared primary",
                     "retrieval_queries": ["shared primary"],
                 },
@@ -493,7 +492,6 @@ class RetrievalScopeTests(unittest.TestCase):
                 **base_state,
                 "active_subtask": {
                     "task_id": "task_2",
-                    "operation_family": "lookup",
                     "query": "shared primary",
                     "retrieval_queries": ["shared primary"],
                 },
@@ -517,7 +515,7 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertTrue(reuse["candidates"][0]["current_result_cache_hit"])
         self.assertEqual(len(second["retrieved_docs"]), 1)
 
-    def test_retrieve_reuses_lookup_objective_cache_for_reworded_primary_query(self) -> None:
+    def test_retrieve_does_not_reuse_semantic_objective_cache_for_distinct_query(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.k = 2
         agent.retrieval_query_budget = 0
@@ -557,25 +555,28 @@ class RetrievalScopeTests(unittest.TestCase):
             "topic": "",
             "format_preference": "table",
         }
-        required_operands = [
+        answer_obligations = [
             {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
                 "label": "target metric",
-                "concept": "target_metric",
-                "role": "value",
-                "period_hint": "2023",
                 "required": True,
+                "scope": {"period": "2023"},
             }
         ]
         first = agent._retrieve(
             {
                 **base_state,
+                "semantic_plan": {
+                    "program_required": True,
+                    "answer_obligations": answer_obligations,
+                },
+                "answer_obligations": answer_obligations,
                 "active_subtask": {
                     "task_id": "task_1",
-                    "operation_family": "lookup",
                     "metric_label": "target metric",
                     "query": "target metric primary table",
                     "retrieval_queries": ["target metric primary table"],
-                    "required_operands": required_operands,
                 },
             }
         )
@@ -584,69 +585,61 @@ class RetrievalScopeTests(unittest.TestCase):
         second = agent._retrieve(
             {
                 **base_state,
+                "semantic_plan": {
+                    "program_required": True,
+                    "answer_obligations": answer_obligations,
+                },
+                "answer_obligations": answer_obligations,
                 "active_subtask": {
                     "task_id": "task_2",
-                    "operation_family": "lookup",
                     "metric_label": "target metric",
                     "query": "target metric statement row",
                     "retrieval_queries": ["target metric statement row"],
-                    "required_operands": required_operands,
                 },
                 "retrieval_debug_trace_history": first["retrieval_debug_trace_history"],
                 "retrieval_query_result_cache": first["retrieval_query_result_cache"],
             }
         )
 
-        self.assertEqual(len(agent.vsm.queries), 1)
-        self.assertEqual(second["retrieval_debug_trace"]["executed_queries"], [])
+        self.assertEqual(len(agent.vsm.queries), 2)
+        self.assertEqual(
+            [item["base_query"] for item in second["retrieval_debug_trace"]["executed_queries"]],
+            ["target metric statement row"],
+        )
         reused_queries = second["retrieval_debug_trace"]["reused_queries"]
-        self.assertGreaterEqual(len(reused_queries), 1)
-        primary_reuses = [item for item in reused_queries if item.get("source") == "primary"]
-        self.assertEqual(len(primary_reuses), 1)
-        self.assertEqual(primary_reuses[0]["result_cache_hit_mode"], "objective")
+        self.assertEqual(reused_queries, [])
         cache_trace = second["retrieval_debug_trace"]["query_result_cache"]
-        self.assertEqual(cache_trace["reuse_count"], len(reused_queries))
-        self.assertEqual(cache_trace["objective_hit_count"], len(reused_queries))
-        self.assertEqual(cache_trace["by_source"]["primary"]["objective_hit_count"], 1)
+        self.assertEqual(cache_trace["scope"], "state_same_filter_exact_signature")
+        self.assertEqual(cache_trace["reuse_count"], 0)
+        self.assertEqual(cache_trace["objective_hit_count"], 0)
+        self.assertEqual(cache_trace["entry_count"], 2)
         self.assertGreaterEqual(len(second["retrieved_docs"]), 1)
 
-    def test_focused_operand_retrieval_is_skipped_when_primary_docs_cover_required_operands(self) -> None:
+    def test_semantic_program_executes_distinct_queries_with_same_obligations(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
+        agent.k = 2
         agent.retrieval_query_budget = 0
         agent.retry_retrieval_query_budget = 0
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="2023 revenue 1,000\n2023 cost 800",
-                        metadata={
-                            "chunk_id": "complete-primary",
-                            "block_type": "table",
-                            "year": 2023,
-                            "table_row_labels_text": "revenue cost",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 0
+        agent.vsm = _QueryCaptureVSM()
         agent._merge_retry_candidates = lambda existing, new: existing + new
         agent._rerank_docs = lambda docs, state: docs
         agent._supplement_section_seed_docs = lambda state: []
 
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "target metric",
+                "required": True,
+                "scope": {"period": "2023"},
+            }
+        ]
         result = agent._retrieve(
             {
-                "query": "2023 revenue cost ratio",
-                "active_subtask": {
-                    "query": "2023 revenue cost ratio",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
-                    ],
-                },
+                "query": "target metric",
                 "report_scope": {"year": 2023},
                 "companies": [],
                 "years": [2023],
@@ -657,251 +650,1315 @@ class RetrievalScopeTests(unittest.TestCase):
                 "retry_queries": [],
                 "topic": "",
                 "format_preference": "table",
-            }
-        )
-
-        self.assertEqual(len(agent.vsm.queries), 1)
-        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertTrue(focus_trace["skipped"])
-        self.assertEqual(focus_trace["skip_reason"], "primary_required_operand_coverage_complete")
-        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
-        self.assertEqual(focus_trace["selected_count"], 0)
-
-    def test_focused_operand_retrieval_runs_when_primary_docs_miss_required_operand(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
-        agent.retrieval_query_budget = 0
-        agent.retry_retrieval_query_budget = 0
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="2023 revenue 1,000",
-                        metadata={
-                            "chunk_id": "partial-primary",
-                            "block_type": "table",
-                            "year": 2023,
-                            "table_row_labels_text": "revenue",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
-        agent._merge_retry_candidates = lambda existing, new: existing + new
-        agent._rerank_docs = lambda docs, state: docs
-        agent._supplement_section_seed_docs = lambda state: []
-
-        result = agent._retrieve(
-            {
-                "query": "2023 revenue cost ratio",
-                "active_subtask": {
-                    "query": "2023 revenue cost ratio",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
-                    ],
+                "semantic_plan": {
+                    "program_required": True,
+                    "answer_obligations": obligations,
                 },
-                "report_scope": {"year": 2023},
-                "companies": [],
-                "years": [2023],
-                "section_filter": None,
-                "intent": "numeric_fact",
-                "query_type": "numeric_fact",
-                "reflection_count": 0,
-                "retry_queries": [],
-                "topic": "",
-                "format_preference": "table",
-            }
-        )
-
-        self.assertGreater(len(agent.vsm.queries), 1)
-        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertFalse(focus_trace["skipped"])
-        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 1)
-        self.assertGreater(focus_trace["selected_count"], 0)
-
-    def test_focused_operand_retrieval_runs_when_primary_docs_only_contain_period_numbers(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
-        agent.retrieval_query_budget = 0
-        agent.retry_retrieval_query_budget = 0
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="2023 revenue\n2023 cost",
-                        metadata={
-                            "chunk_id": "labels-only-primary",
-                            "block_type": "table",
-                            "year": 2023,
-                            "table_row_labels_text": "revenue cost",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
-        agent._merge_retry_candidates = lambda existing, new: existing + new
-        agent._rerank_docs = lambda docs, state: docs
-        agent._supplement_section_seed_docs = lambda state: []
-
-        result = agent._retrieve(
-            {
-                "query": "2023 revenue cost ratio",
-                "active_subtask": {
-                    "query": "2023 revenue cost ratio",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
-                    ],
-                },
-                "report_scope": {"year": 2023},
-                "companies": [],
-                "years": [2023],
-                "section_filter": None,
-                "intent": "numeric_fact",
-                "query_type": "numeric_fact",
-                "reflection_count": 0,
-                "retry_queries": [],
-                "topic": "",
-                "format_preference": "table",
-            }
-        )
-
-        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertFalse(focus_trace["skipped"])
-        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 0)
-        self.assertGreater(focus_trace["selected_count"], 0)
-
-    def test_focused_operand_retrieval_skips_complete_primary_coverage_with_narrative_sibling(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
-        agent.retrieval_query_budget = 0
-        agent.retry_retrieval_query_budget = 0
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="2023 revenue 1,000\n2023 cost 800",
-                        metadata={
-                            "chunk_id": "complete-primary",
-                            "block_type": "table",
-                            "year": 2023,
-                            "table_row_labels_text": "revenue cost",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
-        agent._merge_retry_candidates = lambda existing, new: existing + new
-        agent._rerank_docs = lambda docs, state: docs
-        agent._supplement_section_seed_docs = lambda state: []
-
-        result = agent._retrieve(
-            {
-                "query": "2023 revenue cost ratio and explain the business context",
+                "answer_obligations": obligations,
                 "active_subtask": {
                     "task_id": "task_1",
-                    "query": "2023 revenue cost ratio",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
+                    "metric_label": "target metric",
+                    "query": "target metric",
+                    "retrieval_queries": [
+                        "target metric management table",
+                        "target metric financial statement row",
                     ],
                 },
-                "calc_subtasks": [
-                    {"task_id": "task_1", "operation_family": "ratio"},
-                    {"task_id": "task_2", "operation_family": "narrative_summary"},
-                ],
-                "report_scope": {"year": 2023},
-                "companies": [],
-                "years": [2023],
-                "section_filter": None,
-                "intent": "numeric_fact",
-                "query_type": "numeric_fact",
-                "reflection_count": 0,
-                "retry_queries": [],
-                "topic": "",
-                "format_preference": "table",
             }
         )
 
-        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertTrue(focus_trace["skipped"])
-        self.assertEqual(focus_trace["skip_reason"], "primary_required_operand_coverage_complete")
-        self.assertEqual(focus_trace["skip_blocked_reason"], "narrative_sibling_subtask_present")
-        self.assertEqual(focus_trace["duplicate_drop_blocked_reason"], "narrative_sibling_subtask_present")
-        self.assertEqual(focus_trace["primary_operand_coverage"]["covered_count"], 2)
-        self.assertEqual(focus_trace["selected_count"], 0)
+        self.assertEqual(len(agent.vsm.queries), 2)
+        trace = result["retrieval_debug_trace"]
+        self.assertEqual(
+            [item["base_query"] for item in trace["executed_queries"]],
+            [
+                "target metric management table",
+                "target metric financial statement row",
+            ],
+        )
+        self.assertEqual(trace["reused_queries"], [])
+        self.assertEqual(trace["query_result_cache"]["entry_count"], 2)
 
-    def test_focused_operand_retrieval_drops_primary_duplicate_queries_without_narrative_sibling(self) -> None:
+    def test_semantic_program_enriches_each_retrieval_query_from_its_own_meaning(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
+        agent.k = 2
         agent.retrieval_query_budget = 0
         agent.retry_retrieval_query_budget = 0
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="revenue 1,000",
-                        metadata={
-                            "chunk_id": "complete-primary",
-                            "block_type": "table",
-                            "table_row_labels_text": "revenue",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 4
+        agent.preferred_section_query_budget = 2
+        agent.vsm = _QueryCaptureVSM()
         agent._merge_retry_candidates = lambda existing, new: existing + new
         agent._rerank_docs = lambda docs, state: docs
         agent._supplement_section_seed_docs = lambda state: []
 
+        state = {
+            "query": "compare the requested metric",
+            "report_scope": {},
+            "companies": [],
+            "years": [],
+            "section_filter": None,
+            "intent": "comparison",
+            "query_type": "comparison",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "requested metric",
+            "format_preference": "table",
+            "semantic_plan": {"program_required": True, "answer_obligations": []},
+            "answer_obligations": [],
+            "active_subtask": {
+                "task_id": "task_1",
+                "retrieval_queries": ["opening metric", "closing metric"],
+            },
+        }
+
+        def hint_for_query(query, _topic, _intent, **_kwargs):
+            return "opening-context" if query == "opening metric" else "closing-context"
+
+        def sections_for_query(_state, query, _topic, _intent, **_kwargs):
+            return ["opening-section"] if query == "opening metric" else ["closing-section"]
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.retrieval_hint_from_topic",
+            side_effect=hint_for_query,
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            side_effect=sections_for_query,
+        ):
+            result = agent._retrieve(state)
+
+        executed = result["retrieval_debug_trace"]["executed_queries"]
+        self.assertEqual(len(executed), 2)
+        self.assertEqual(
+            executed[0]["query_enrichment"],
+            {
+                "retrieval_hint_terms": ["opening-context"],
+                "preferred_sections": ["opening-section"],
+            },
+        )
+        self.assertEqual(
+            executed[1]["query_enrichment"],
+            {
+                "retrieval_hint_terms": ["closing-context"],
+                "preferred_sections": ["closing-section"],
+            },
+        )
+        self.assertNotIn("closing-context", executed[0]["executed_query"])
+        self.assertNotIn("opening-context", executed[1]["executed_query"])
+
+    def test_semantic_program_query_enrichment_respects_obligation_kind_ownership(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 4
+        agent.preferred_section_query_budget = 2
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "retrieval_hints": ["quantity change"],
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_001:req_001",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening metric"],
+                    }
+                ],
+            },
+            {
+                "obligation_id": "ob_002",
+                "kind": "narrative",
+                "label": "cause explanation",
+                "required": True,
+                "retrieval_hints": ["cause explanation"],
+                "evidence_requirements": [],
+            },
+        ]
+        state = {
+            "query": "calculate quantity change and explain the cause",
+            "report_scope": {},
+            "companies": [],
+            "years": [],
+            "section_filter": None,
+            "intent": "risk",
+            "query_type": "risk",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": "quantity change and cause",
+            "format_preference": "mixed",
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {
+                "task_id": "task_1",
+                "retrieval_queries": ["opening metric", "cause explanation"],
+            },
+        }
+
+        def hint_for_query(
+            _query,
+            _topic,
+            _intent,
+            *,
+            include_narrative_policies=True,
+        ):
+            return "narrative-context" if include_narrative_policies else "numeric-context"
+
+        def sections_for_query(
+            _state,
+            _query,
+            _topic,
+            _intent,
+            *,
+            include_narrative_policies=True,
+        ):
+            return [
+                "narrative-section"
+                if include_narrative_policies
+                else "numeric-section"
+            ]
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.retrieval_hint_from_topic",
+            side_effect=hint_for_query,
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            side_effect=sections_for_query,
+        ):
+            result = agent._retrieve(state)
+
+        executed = result["retrieval_debug_trace"]["executed_queries"]
+        self.assertEqual(len(executed), 2)
+        self.assertEqual(executed[0]["query_semantics"]["mode"], "numeric")
+        self.assertEqual(executed[1]["query_semantics"]["mode"], "narrative")
+        self.assertIn("numeric-context", executed[0]["executed_query"])
+        self.assertNotIn("narrative-context", executed[0]["executed_query"])
+        self.assertIn("narrative-context", executed[1]["executed_query"])
+        self.assertNotIn("numeric-context", executed[1]["executed_query"])
+
+    def test_semantic_query_budget_reserves_later_required_groups(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 2
+        agent.retrieval_query_budget = 4
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 0
+        agent.vsm = _QueryCaptureVSM()
+        agent._merge_retry_candidates = lambda existing, new: existing + new
+        agent._rerank_docs = lambda docs, state: docs
+        agent._supplement_section_seed_docs = lambda state: []
+
+        query = "Return the opening amount, closing amount, and source-defined summary."
+        obligations = [
+            {
+                "obligation_id": "ob_opening",
+                "kind": "direct_value",
+                "label": "opening amount",
+                "required": True,
+                "retrieval_hints": [
+                    "opening amount",
+                    "opening ledger",
+                    "opening note",
+                ],
+                "evidence_requirements": [],
+            },
+            {
+                "obligation_id": "ob_closing",
+                "kind": "direct_value",
+                "label": "closing amount",
+                "required": True,
+                "retrieval_hints": ["closing amount"],
+                "evidence_requirements": [],
+            },
+            {
+                "obligation_id": "ob_summary",
+                "kind": "narrative",
+                "label": "source-defined summary",
+                "required": True,
+                "retrieval_hints": ["source-defined summary"],
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_summary:req_summary",
+                        "label": "source-defined summary",
+                        "required": True,
+                        "retrieval_hints": ["source-defined summary"],
+                    }
+                ],
+            },
+        ]
+        retrieval_queries = [
+            query,
+            "opening amount",
+            "opening ledger",
+            "opening note",
+            "closing amount",
+            "source-defined summary",
+        ]
+        state = {
+            "query": query,
+            "report_scope": {},
+            "companies": [],
+            "years": [],
+            "section_filter": None,
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "reflection_count": 0,
+            "retry_queries": [],
+            "topic": query,
+            "format_preference": "mixed",
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {
+                "task_id": "task_1",
+                "retrieval_queries": retrieval_queries,
+            },
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.retrieval_hint_from_topic",
+            return_value="",
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ):
+            result = agent._retrieve(state)
+
+        trace = result["retrieval_debug_trace"]
+        self.assertEqual(
+            trace["query_bundle"],
+            [
+                query,
+                "opening amount",
+                "closing amount",
+                "source-defined summary",
+            ],
+        )
+        primary = trace["query_budget"]["primary"]
+        self.assertEqual(
+            primary["selection_strategy"],
+            "semantic_required_group_coverage_v1",
+        )
+        self.assertEqual(primary["unreserved_group_ids"], [])
+        self.assertEqual(
+            {item["group_id"] for item in primary["reserved_group_queries"]},
+            {
+                "ob_opening",
+                "ob_closing",
+                "ob_summary:req_summary",
+            },
+        )
+
+    def test_narrative_supplement_keeps_table_alternatives_when_no_prose_matches(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "target venture | equity result | 10",
+                "target venture | continuing result | -20 | total comprehensive result | -18",
+                "unrelated table | 90",
+            ],
+            [
+                {
+                    "chunk_uid": "movement-table",
+                    "company": "sample",
+                    "year": 2024,
+                    "statement_type": "notes",
+                    "block_type": "table",
+                    "table_header_context": "entity | equity result",
+                },
+                {
+                    "chunk_uid": "summary-table",
+                    "company": "sample",
+                    "year": 2024,
+                    "statement_type": "notes",
+                    "block_type": "table",
+                    "table_header_context": (
+                        "entity | continuing result | total comprehensive result"
+                    ),
+                },
+                {
+                    "chunk_uid": "section-only-noise",
+                    "company": "sample",
+                    "year": 2024,
+                    "statement_type": "notes",
+                    "block_type": "table",
+                    "section_path": "target venture result",
+                    "table_header_context": "entity | unrelated value",
+                },
+            ],
+        )
+        obligation = {
+            "obligation_id": "ob_summary",
+            "kind": "narrative",
+            "label": "target venture result",
+            "required": True,
+            "retrieval_hints": ["target venture result"],
+            "evidence_requirements": [
+                {
+                    "requirement_id": "ob_summary:req_summary",
+                    "label": "target venture result",
+                    "required": True,
+                    "retrieval_hints": ["target venture result"],
+                }
+            ],
+        }
+        state = {
+            "query": "Summarize the target venture result.",
+            "topic": "target venture result",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["sample"],
+            "years": [2024],
+            "answer_obligations": [obligation],
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": [obligation],
+            },
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["notes"],
+        ):
+            selected = agent._supplement_section_seed_docs(state)
+
+        selected_ids = {
+            doc.metadata.get("chunk_uid")
+            for doc, _score in selected
+        }
+        self.assertEqual(
+            selected_ids,
+            {"movement-table", "summary-table"},
+        )
+        self.assertNotIn("section-only-noise", selected_ids)
+
+    def test_semantic_program_supplement_requires_declared_input_hint_match(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "opening quantity | 120 | units",
+                "unrelated total | 900 | units",
+            ],
+            [
+                {
+                    "chunk_uid": "relevant-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+                {
+                    "chunk_uid": "unrelated-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "unrelated total",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "retrieval_hints": ["quantity change"],
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_001:req_001",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening quantity"],
+                        "scope": {
+                            "company": "Example Co",
+                            "period": "2024",
+                            "consolidation_scope": "consolidated",
+                        },
+                    }
+                ],
+            }
+        ]
+        state = {
+            "query": "quantity change from the primary statement",
+            "topic": "quantity change",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=["primary statement"],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["relevant-row"],
+        )
+
+    def test_semantic_program_supplement_does_not_require_domain_section_prior(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            ["opening quantity | 120 | units"],
+            [
+                {
+                    "chunk_uid": "declared-input-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                }
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "opening quantity",
+                "required": True,
+                "retrieval_hints": ["opening quantity"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+        state = {
+            "query": "opening quantity",
+            "topic": "opening quantity",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=[],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["declared-input-row"],
+        )
+
+    def test_semantic_program_supplement_matches_declared_hint_after_preview_prefix(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [f"{'context ' * 160}opening quantity | 120 | units"],
+            [
+                {
+                    "chunk_uid": "late-relevant-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "context",
+                }
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_001:req_001",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening quantity"],
+                        "scope": {
+                            "company": "Example Co",
+                            "period": "2024",
+                            "consolidation_scope": "consolidated",
+                        },
+                    }
+                ],
+            }
+        ]
+        state = {
+            "query": "quantity change from the primary statement",
+            "topic": "quantity change",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=["primary statement"],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["late-relevant-row"],
+        )
+
+    def test_semantic_program_supplement_matches_whitespace_only_label_variant(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            ["opening quantity | 120 | units"],
+            [
+                {
+                    "chunk_uid": "spacing-variant-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "context",
+                }
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "openingquantity",
+                "required": True,
+                "retrieval_hints": ["openingquantity"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+        state = {
+            "query": "openingquantity from the primary statement",
+            "topic": "openingquantity",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=["primary statement"],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["spacing-variant-row"],
+        )
+
+    def test_semantic_program_supplement_honors_statement_type_priority(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "opening quantity | 120 | units",
+                "opening quantity | 120 | units",
+            ],
+            [
+                {
+                    "chunk_uid": "summary-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "summary_financials",
+                    "consolidation_scope": "unknown",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+                {
+                    "chunk_uid": "primary-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "opening quantity",
+                "required": True,
+                "retrieval_hints": ["opening quantity"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+        state = {
+            "query": "opening quantity from the primary statement",
+            "topic": "opening quantity",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=["primary statement"],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement", "summary_financials"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(supplemented[0][0].metadata["chunk_uid"], "primary-row")
+
+    def test_semantic_program_numeric_supplement_prefers_atomic_declared_value_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "portfolio total | 900 | units",
+                "2024 consolidated target measure total is reported on the preceding row",
+                "target measure aggregate | 120 | units",
+            ],
+            [
+                {
+                    "chunk_uid": "preferred-statement-generic-total",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "preferred notes",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "portfolio total",
+                    "table_value_labels_text": "portfolio amount 900",
+                },
+                {
+                    "chunk_uid": "context-only-scope-note",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "operating detail",
+                    "statement_type": "unknown",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "scope note",
+                    "table_value_labels_text": "",
+                },
+                {
+                    "chunk_uid": "atomic-target-row",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "operating detail",
+                    "statement_type": "unknown",
+                    "consolidation_scope": "unknown",
+                    "block_type": "table",
+                    "table_row_labels_text": "target measure aggregate",
+                    "table_value_labels_text": "target measure aggregate 120",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "2024 consolidated target measure total",
+                "required": True,
+                "retrieval_hints": ["target measure", "total"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+        state = {
+            "query": "report the 2024 consolidated target measure total",
+            "topic": "target measure total",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["notes"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["atomic-target-row"],
+        )
+
+    def test_semantic_program_supplement_prefers_table_for_numeric_input(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "opening quantity is described here",
+                "opening quantity | 120 | units",
+            ],
+            [
+                {
+                    "chunk_uid": "explanatory-paragraph",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "paragraph",
+                    "table_row_labels_text": "opening quantity",
+                },
+                {
+                    "chunk_uid": "structured-table",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "direct_value",
+                "label": "opening quantity",
+                "required": True,
+                "retrieval_hints": ["opening quantity"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            }
+        ]
+        state = {
+            "query": "opening quantity from the primary statement",
+            "topic": "opening quantity",
+            "intent": "numeric_fact",
+            "query_type": "numeric_fact",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=["primary statement"],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(supplemented[0][0].metadata["chunk_uid"], "structured-table")
+
+    def test_semantic_program_supplement_preserves_required_narrative_input(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "opening quantity | 120 | units",
+                "stress scenario appears in a numeric appendix",
+                "stress scenario explains the reported change",
+            ],
+            [
+                {
+                    "chunk_uid": "structured-table",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "primary statement",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+                {
+                    "chunk_uid": "narrative-table-noise",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "supporting notes",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "stress scenario",
+                },
+                {
+                    "chunk_uid": "narrative-explanation",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "section_path": "supporting notes",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "block_type": "paragraph",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_numeric",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_numeric:req_opening",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening quantity"],
+                    }
+                ],
+            },
+            {
+                "obligation_id": "ob_narrative",
+                "kind": "narrative",
+                "label": "change explanation",
+                "required": True,
+                "retrieval_hints": ["stress scenario"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+            },
+        ]
+        state = {
+            "query": "calculate the quantity change and explain it",
+            "topic": "quantity change",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=["income_statement", "notes"],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            {doc.metadata["chunk_uid"] for doc, _score in supplemented},
+            {"structured-table", "narrative-explanation"},
+        )
+
+    def test_semantic_program_narrative_requirement_owns_targeted_supplement(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "portfolio expansion provides general background",
+                "a stress scenario caused the reported change",
+            ],
+            [
+                {
+                    "chunk_uid": "general-context",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "consolidation_scope": "consolidated",
+                    "block_type": "paragraph",
+                },
+                {
+                    "chunk_uid": "direct-relation",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "consolidation_scope": "consolidated",
+                    "block_type": "paragraph",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_narrative",
+                "kind": "narrative",
+                "label": "explanation",
+                "required": True,
+                "retrieval_hints": ["portfolio expansion"],
+                "scope": {
+                    "company": "Example Co",
+                    "period": "2024",
+                    "consolidation_scope": "consolidated",
+                },
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_narrative:req_relation",
+                        "label": "reported change cause",
+                        "required": True,
+                        "retrieval_hints": [
+                            "stress scenario caused the reported change"
+                        ],
+                    }
+                ],
+            }
+        ]
+        state = {
+            "query": "explain the change",
+            "topic": "change explanation",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=[],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        self.assertEqual(
+            [doc.metadata["chunk_uid"] for doc, _score in supplemented],
+            ["direct-relation"],
+        )
+
+    def test_semantic_program_supplement_keeps_bounded_narrative_alternatives(self) -> None:
+        narrative_ids = [f"narrative-{index}" for index in range(5)]
+        period_noise_ids = [f"period-noise-{index}" for index in range(3)]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.vsm = _BM25OnlyVSM(
+            [
+                "opening quantity | 120 | units",
+                *[f"2024 annual context {index}" for index in range(3)],
+                *[
+                    f"risk context provides a distinct explanation {index}"
+                    for index in range(5)
+                ],
+                "risk context | tabular cross-reference",
+            ],
+            [
+                {
+                    "chunk_uid": "structured-table",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "opening quantity",
+                },
+                *[
+                    {
+                        "chunk_uid": candidate_id,
+                        "company": "Example Co",
+                        "year": 2024,
+                        "consolidation_scope": "consolidated",
+                        "block_type": "paragraph",
+                    }
+                    for candidate_id in period_noise_ids
+                ],
+                *[
+                    {
+                        "chunk_uid": candidate_id,
+                        "company": "Example Co",
+                        "year": 2024,
+                        "consolidation_scope": "consolidated",
+                        "block_type": "paragraph",
+                    }
+                    for candidate_id in narrative_ids
+                ],
+                {
+                    "chunk_uid": "narrative-table-noise",
+                    "company": "Example Co",
+                    "year": 2024,
+                    "consolidation_scope": "consolidated",
+                    "block_type": "table",
+                    "table_row_labels_text": "risk context",
+                },
+            ],
+        )
+        obligations = [
+            {
+                "obligation_id": "ob_numeric",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_numeric:req_opening",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening quantity"],
+                    }
+                ],
+            },
+            {
+                "obligation_id": "ob_narrative",
+                "kind": "narrative",
+                "label": "change explanation",
+                "required": True,
+                "retrieval_hints": ["risk context", "2024"],
+                "scope": {"period": "2024"},
+            },
+        ]
+        state = {
+            "query": "calculate the quantity change and explain it",
+            "topic": "quantity change",
+            "intent": "comparison",
+            "query_type": "comparison",
+            "companies": ["Example Co"],
+            "years": [2024],
+            "report_scope": {},
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "answer_obligations": obligations,
+            "active_subtask": {},
+        }
+
+        with patch(
+            "src.agent.financial_retrieval_pipeline.supplement_section_terms_for_query",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_sections",
+            return_value=[],
+        ), patch(
+            "src.agent.financial_retrieval_pipeline._active_preferred_statement_types",
+            return_value=[],
+        ):
+            supplemented = agent._supplement_section_seed_docs(state)
+
+        selected_ids = {
+            doc.metadata["chunk_uid"] for doc, _score in supplemented
+        }
+        self.assertIn("structured-table", selected_ids)
+        self.assertTrue(set(narrative_ids).issubset(selected_ids))
+        self.assertTrue(set(period_noise_ids).isdisjoint(selected_ids))
+        self.assertNotIn("narrative-table-noise", selected_ids)
+
+    def test_semantic_program_preserves_targeted_supplement_in_seed_pool(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.k = 1
+        agent.retrieval_query_budget = 0
+        agent.retry_retrieval_query_budget = 0
+        agent.focused_retrieval_query_budget = 0
+        agent.retrieval_hint_query_token_budget = 0
+        agent.preferred_section_query_budget = 0
+        high_docs = [
+            (
+                Document(
+                    page_content=f"general context {index}",
+                    metadata={
+                        "chunk_uid": f"general-{index}",
+                        "block_type": "table",
+                    },
+                ),
+                float(10 - index),
+            )
+            for index in range(6)
+        ]
+        targeted = Document(
+            page_content="opening quantity | 120 | units",
+            metadata={"chunk_uid": "targeted-input", "block_type": "table"},
+        )
+        agent.vsm = _StaticVSM(high_docs)
+        agent._merge_retry_candidates = FinancialAgent._merge_retry_candidates.__get__(
+            agent,
+            FinancialAgent,
+        )
+        agent._rerank_docs = lambda docs, _state: sorted(
+            docs,
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        agent._supplement_section_seed_docs = lambda _state: [(targeted, 0.01)]
+
+        obligations = [
+            {
+                "obligation_id": "ob_001",
+                "kind": "derived_value",
+                "label": "quantity change",
+                "required": True,
+                "retrieval_hints": ["quantity change"],
+                "evidence_requirements": [
+                    {
+                        "requirement_id": "ob_001:req_001",
+                        "label": "opening quantity",
+                        "required": True,
+                        "retrieval_hints": ["opening quantity"],
+                    }
+                ],
+            }
+        ]
         result = agent._retrieve(
             {
-                "query": "revenue cost ratio",
-                "active_subtask": {
-                    "task_id": "task_1",
-                    "query": "revenue",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
-                    ],
-                },
-                "calc_subtasks": [
-                    {"task_id": "task_1", "operation_family": "ratio"},
-                ],
+                "query": "quantity change",
                 "report_scope": {},
                 "companies": [],
                 "years": [],
                 "section_filter": None,
-                "intent": "numeric_fact",
-                "query_type": "numeric_fact",
+                "intent": "comparison",
+                "query_type": "comparison",
                 "reflection_count": 0,
                 "retry_queries": [],
-                "topic": "",
+                "topic": "quantity change",
                 "format_preference": "table",
+                "semantic_plan": {
+                    "program_required": True,
+                    "answer_obligations": obligations,
+                },
+                "answer_obligations": obligations,
+                "active_subtask": {
+                    "task_id": "task_1",
+                    "retrieval_queries": ["opening quantity"],
+                },
             }
         )
 
-        executed = result["retrieval_debug_trace"]["executed_queries"]
-        self.assertEqual([row["base_query"] for row in executed], ["revenue", "cost"])
-        self.assertEqual([row["source"] for row in executed], ["primary", "operand_focus"])
-        focus_trace = result["retrieval_debug_trace"]["query_budget"]["operand_focus"]
-        self.assertFalse(focus_trace["skipped"])
-        self.assertEqual(focus_trace["selected_count_before_duplicate_drop"], 2)
-        self.assertEqual(focus_trace["duplicate_selected_query_dropped_count"], 1)
-        self.assertEqual(focus_trace["selected_count"], 1)
+        seed_ids = [
+            doc.metadata.get("chunk_uid")
+            for doc, _score in result["seed_retrieved_docs"]
+        ]
+        self.assertIn("targeted-input", seed_ids)
+
 
     def test_retry_query_budget_keeps_builtin_default_when_unset(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -949,65 +2006,6 @@ class RetrievalScopeTests(unittest.TestCase):
         self.assertEqual(duplicate_guard["dropped_count"], 1)
         self.assertEqual(duplicate_guard["by_source"]["primary"]["dropped_count"], 1)
 
-    def test_executed_duplicate_guard_preserves_cross_source_queries(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 4
-        agent.retrieval_query_budget = 0
-        agent.retry_retrieval_query_budget = 1
-        agent.focused_retrieval_query_budget = 4
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="revenue 1,000",
-                        metadata={
-                            "chunk_id": "partial-primary",
-                            "block_type": "table",
-                            "table_row_labels_text": "revenue",
-                        },
-                    ),
-                    1.0,
-                )
-            ]
-        )
-        agent._merge_retry_candidates = lambda existing, new: existing + new
-        agent._rerank_docs = lambda docs, state: docs
-        agent._supplement_section_seed_docs = lambda state: []
-
-        result = agent._retrieve(
-            {
-                "query": "revenue cost ratio",
-                "active_subtask": {
-                    "task_id": "task_1",
-                    "query": "revenue",
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {"label": "revenue", "role": "denominator"},
-                        {"label": "cost", "role": "numerator"},
-                    ],
-                },
-                "calc_subtasks": [
-                    {"task_id": "task_1", "operation_family": "ratio"},
-                    {"task_id": "task_2", "operation_family": "narrative_summary"},
-                ],
-                "report_scope": {},
-                "companies": [],
-                "years": [],
-                "section_filter": None,
-                "intent": "numeric_fact",
-                "query_type": "numeric_fact",
-                "reflection_count": 0,
-                "retry_queries": ["cost"],
-                "topic": "",
-                "format_preference": "table",
-            }
-        )
-
-        executed = result["retrieval_debug_trace"]["executed_queries"]
-        self.assertEqual([row["source"] for row in executed], ["primary", "operand_focus", "operand_focus", "retry"])
-        self.assertEqual([row["base_query"] for row in executed], ["revenue", "revenue", "cost", "cost"])
-        duplicate_guard = result["retrieval_debug_trace"]["executed_duplicate_guard"]
-        self.assertEqual(duplicate_guard["dropped_count"], 0)
 
     def test_multi_source_receipts_override_primary_receipt_filter(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -1181,100 +2179,18 @@ class RetrievalScopeTests(unittest.TestCase):
             [chunk["chunk_uid"] for chunk in result["retrieval_debug_trace"]["selected_chunks"]],
             ["table-low", "para-high"],
         )
-
-    def test_preferred_operand_section_doc_is_preserved_over_higher_scored_noncanonical_table(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        agent.k = 2
-        preferred_table = (
-            Document(
-                page_content="revenue | 1,000\ncost | 800\nadmin expense | 100",
-                metadata={
-                    "chunk_id": "preferred-income",
-                    "block_type": "table",
-                    "statement_type": "income_statement",
-                    "section_path": "Financial statements > Income statement",
-                    "table_context": "Income statement",
-                    "table_row_labels_text": "revenue cost admin expense",
-                },
-            ),
-            0.10,
-        )
-        agent.vsm = _StaticVSM(
-            [
-                (
-                    Document(
-                        page_content="cost | 8\nadmin expense | 1",
-                        metadata={
-                            "chunk_id": "notes-high",
-                            "block_type": "table",
-                            "statement_type": "notes",
-                            "section_path": "Financial statements > Notes",
-                            "table_context": "Notes",
-                            "table_row_labels_text": "cost admin expense",
-                        },
-                    ),
-                    0.99,
-                ),
-                (
-                    Document(
-                        page_content="general paragraph",
-                        metadata={"chunk_id": "para-high", "block_type": "paragraph"},
-                    ),
-                    0.98,
-                ),
-                preferred_table,
-            ]
-        )
-        agent._merge_retry_candidates = lambda existing, new: existing + new
-        agent._rerank_docs = lambda docs, state: docs
-        agent._supplement_section_seed_docs = lambda state: []
-
-        result = agent._retrieve(
+        self.assertEqual(
+            result["retrieval_debug_trace"]["source_window"],
             {
-                "query": "Calculate the expense ratio.",
-                "active_subtask": {
-                    "operation_family": "ratio",
-                    "required_operands": [
-                        {
-                            "label": "cost",
-                            "role": "numerator_1",
-                            "preferred_statement_types": ["income_statement"],
-                            "preferred_sections": ["Income statement"],
-                        },
-                        {
-                            "label": "admin expense",
-                            "role": "numerator_2",
-                            "preferred_statement_types": ["income_statement"],
-                            "preferred_sections": ["Income statement"],
-                        },
-                        {
-                            "label": "revenue",
-                            "role": "denominator_1",
-                            "preferred_statement_types": ["income_statement"],
-                            "preferred_sections": ["Income statement"],
-                        },
-                    ],
-                    "preferred_statement_types": ["income_statement"],
-                    "preferred_sections": ["Income statement"],
-                },
-                "report_scope": {},
-                "companies": [],
-                "years": [],
-                "section_filter": None,
-                "intent": "comparison",
-                "query_type": "comparison",
-                "reflection_count": 0,
-                "retry_queries": [],
-                "topic": "",
-                "format_preference": "table",
-            }
+                "retrieved_source_ids": ["table-low", "para-high"],
+                "retrieved_unidentified_count": 0,
+                "seed_source_ids": ["para-high", "para-second", "table-low"],
+                "seed_unidentified_count": 0,
+            },
         )
 
-        selected_ids = [doc.metadata.get("chunk_id") for doc, _score in result["retrieved_docs"]]
-        self.assertIn("preferred-income", selected_ids)
-        self.assertEqual(selected_ids[0], "preferred-income")
 
-    def test_supplemental_seed_uses_preferred_statement_type_with_operand_coverage(self) -> None:
+    def test_supplemental_seed_uses_preferred_statement_type_with_obligation_hints(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.vsm = _BM25OnlyVSM(
             docs=[
@@ -1313,13 +2229,17 @@ class RetrievalScopeTests(unittest.TestCase):
                 "query_type": "comparison",
                 "companies": ["ExampleCo"],
                 "years": [2023],
+                "answer_obligations": [
+                    {
+                        "obligation_id": "ob_001",
+                        "kind": "direct_value",
+                        "label": "revenue",
+                        "retrieval_hints": ["revenue", "cost", "admin expense"],
+                    }
+                ],
+                "semantic_plan": {"program_required": True},
                 "active_subtask": {
                     "preferred_statement_types": ["income_statement"],
-                    "required_operands": [
-                        {"label": "revenue", "preferred_statement_types": ["income_statement"]},
-                        {"label": "cost", "preferred_statement_types": ["income_statement"]},
-                        {"label": "admin expense", "preferred_statement_types": ["income_statement"]},
-                    ],
                 },
             }
         )

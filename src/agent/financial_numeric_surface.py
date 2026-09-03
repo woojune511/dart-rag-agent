@@ -6,7 +6,12 @@ import re
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from src.agent.financial_runtime_normalization import _normalise_spaces, _parse_number_text
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
+from src.config.retrieval_policy import (
+    CALCULATION_RENDER_POLICY,
+    KOREAN_COUNT_SCALE_PREFIXES,
+    KOREAN_COUNT_UNITS,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
+)
 
 
 def ratio_components_have_suspicious_scale(calculation_result: Dict[str, Any]) -> bool:
@@ -146,7 +151,12 @@ def promote_table_numeric_support_evidence(
     return promoted
 
 
-def _numeric_unit_terms() -> tuple[Dict[str, float], List[str], List[str]]:
+def _numeric_unit_terms() -> tuple[
+    Dict[str, float],
+    List[str],
+    Dict[str, float],
+    List[str],
+]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     unit_scale = {
         str(unit): float(scale)
@@ -158,8 +168,25 @@ def _numeric_unit_terms() -> tuple[Dict[str, float], List[str], List[str]]:
         for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
         if str(unit)
     ]
-    unit_terms = sorted([*unit_scale.keys(), *percent_units], key=len, reverse=True)
-    return unit_scale, percent_units, unit_terms
+    count_unit_scale: Dict[str, float] = {
+        str(unit): 1.0 for unit in KOREAN_COUNT_UNITS if str(unit)
+    }
+    for prefix, scale in KOREAN_COUNT_SCALE_PREFIXES:
+        cleaned_prefix = _normalise_spaces(str(prefix))
+        if not cleaned_prefix:
+            continue
+        for unit in KOREAN_COUNT_UNITS:
+            cleaned_unit = _normalise_spaces(str(unit))
+            if not cleaned_unit:
+                continue
+            count_unit_scale[f"{cleaned_prefix}{cleaned_unit}"] = float(scale)
+            count_unit_scale[f"{cleaned_prefix} {cleaned_unit}"] = float(scale)
+    unit_terms = sorted(
+        [*unit_scale.keys(), *percent_units, *count_unit_scale.keys()],
+        key=len,
+        reverse=True,
+    )
+    return unit_scale, percent_units, count_unit_scale, unit_terms
 
 
 def _mixed_currency_surface_candidates(
@@ -213,6 +240,7 @@ def _numeric_surface_candidate_from_match(
     *,
     unit_scale: Dict[str, float],
     percent_units: List[str],
+    count_unit_scale: Dict[str, float],
     context_unit: str,
 ) -> Dict[str, Any]:
     raw_value = match.group("value")
@@ -239,6 +267,15 @@ def _numeric_surface_candidate_from_match(
             "value": parsed * unit_scale[unit],
             "unit": unit,
             "display_step": unit_scale[unit],
+            "text": candidate_text,
+            "span": match.span(),
+        }
+    if unit in count_unit_scale:
+        return {
+            "kind": "count",
+            "value": parsed * count_unit_scale[unit],
+            "unit": unit,
+            "display_step": count_unit_scale[unit],
             "text": candidate_text,
             "span": match.span(),
         }
@@ -270,7 +307,7 @@ def numeric_candidates_with_spans_from_surface(
     text = str(surface or "")
     if not text:
         return []
-    unit_scale, percent_units, unit_terms = _numeric_unit_terms()
+    unit_scale, percent_units, count_unit_scale, unit_terms = _numeric_unit_terms()
     pattern = _numeric_surface_pattern(unit_terms)
     metadata = dict(metadata or {})
     context_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
@@ -302,9 +339,21 @@ def numeric_candidates_with_spans_from_surface(
             display_step = unit_scale[context_unit]
         elif unit in percent_units:
             normalized_unit = "PERCENT"
+        elif unit in count_unit_scale:
+            normalized_value = parsed * count_unit_scale[unit]
+            normalized_unit = "COUNT"
+            display_step = count_unit_scale[unit]
         candidates.append(
             {
-                "kind": "currency" if normalized_unit == "KRW" else "percent" if normalized_unit == "PERCENT" else "generic",
+                "kind": (
+                    "currency"
+                    if normalized_unit == "KRW"
+                    else "percent"
+                    if normalized_unit == "PERCENT"
+                    else "count"
+                    if normalized_unit == "COUNT"
+                    else "generic"
+                ),
                 "value": normalized_value,
                 "normalized_value": normalized_value,
                 "normalized_unit": normalized_unit,
@@ -320,7 +369,7 @@ def numeric_candidates_with_spans_from_surface(
 
 def extract_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
-    unit_scale, percent_units, unit_terms = _numeric_unit_terms()
+    unit_scale, percent_units, count_unit_scale, unit_terms = _numeric_unit_terms()
     magnitude_markers = [
         _normalise_spaces(str(marker))
         for marker in (render_policy.get("krw_value_magnitude_markers") or ())
@@ -341,6 +390,7 @@ def extract_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
             match,
             unit_scale=unit_scale,
             percent_units=percent_units,
+            count_unit_scale=count_unit_scale,
             context_unit=context_unit,
         )
         if candidate:

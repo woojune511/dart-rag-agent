@@ -1,0 +1,168 @@
+{
+  "provenance": {
+    "kind": "synthetic_fixed_output_characterization",
+    "purpose": "Exercise the production evaluator's atomic, source-qualified multi-output answer-variant contract without curated data or provider calls.",
+    "limits": "Invented issuer, subject, values, sources, and outputs. This fixture verifies contract behavior but is not a dataset answer, provider judgement, benchmark result, or source-review decision."
+  },
+  "example": {
+    "id": "generic_multi_output_variant_case",
+    "question": "Sample issuer의 2024년 Unit Alpha 배분율과 보고 금액을 정리해 줘.",
+    "ground_truth": "Unit Alpha 배분율은 35%이고 보고 금액은 220백만원입니다.",
+    "answer_key": "Unit Alpha 배분율은 35%이고 보고 금액은 220백만원입니다.",
+    "company": "Sample issuer",
+    "year": 2024,
+    "section": "sample notes",
+    "category": "business_overview",
+    "answer_type": "mixed"
+  },
+  "contract": {
+    "field_name": "accepted_answer_variants",
+    "required_output_ids": ["share", "amount"],
+    "required_variant_fields": ["id", "answer_key", "expected_outputs"],
+    "required_output_fields": [
+      "output_id",
+      "kind",
+      "label",
+      "subject",
+      "raw_value",
+      "raw_unit",
+      "normalized_unit",
+      "period",
+      "consolidation_scope",
+      "source_anchor_contains"
+    ],
+    "variants": [
+      {
+        "id": "consolidated-answer",
+        "answer_key": "Sample issuer의 2024년 연결기준 Unit Alpha 배분율은 40%이고 보고 금액은 120백만원입니다.",
+        "expected_outputs": [
+          {
+            "output_id": "share",
+            "kind": "direct_value",
+            "label": "배분율",
+            "subject": "Unit Alpha",
+            "raw_value": "40",
+            "raw_unit": "%",
+            "normalized_unit": "PERCENT",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "source_anchor_contains": "group-note"
+          },
+          {
+            "output_id": "amount",
+            "kind": "direct_value",
+            "label": "보고 금액",
+            "subject": "Unit Alpha",
+            "raw_value": "120",
+            "raw_unit": "백만원",
+            "normalized_unit": "KRW",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "source_anchor_contains": "group-note"
+          }
+        ]
+      },
+      {
+        "id": "separate-answer",
+        "answer_key": "Sample issuer의 2024년 별도기준 Unit Alpha 배분율은 35%이고 보고 금액은 220백만원입니다.",
+        "expected_outputs": [
+          {
+            "output_id": "share",
+            "kind": "direct_value",
+            "label": "배분율",
+            "subject": "Unit Alpha",
+            "raw_value": "35",
+            "raw_unit": "%",
+            "normalized_unit": "PERCENT",
+            "period": "2024",
+            "consolidation_scope": "separate",
+            "source_anchor_contains": "standalone-note"
+          },
+          {
+            "output_id": "amount",
+            "kind": "direct_value",
+            "label": "보고 금액",
+            "subject": "Unit Alpha",
+            "raw_value": "220",
+            "raw_unit": "백만원",
+            "normalized_unit": "KRW",
+            "period": "2024",
+            "consolidation_scope": "separate",
+            "source_anchor_contains": "standalone-note"
+          }
+        ]
+      }
+    ]
+  },
+  "fixed_output_cases": [
+    {
+      "id": "complete_consolidated",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "expected_variant_ids": ["consolidated-answer"]
+    },
+    {
+      "id": "complete_separate",
+      "output_refs": ["separate-answer/share", "separate-answer/amount"],
+      "expected_variant_ids": ["separate-answer"]
+    },
+    {
+      "id": "cross_basis_mix",
+      "output_refs": ["consolidated-answer/share", "separate-answer/amount"],
+      "expected_variant_ids": []
+    },
+    {
+      "id": "missing_share",
+      "output_refs": ["consolidated-answer/amount"],
+      "expected_variant_ids": []
+    },
+    {
+      "id": "equal_value_wrong_source_and_basis",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "overrides": {
+        "amount": {
+          "consolidation_scope": "separate",
+          "source_anchor": "[Sample issuer | 2024 | standalone-note]"
+        }
+      },
+      "expected_variant_ids": []
+    },
+    {
+      "id": "equal_value_wrong_source_only",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "overrides": {
+        "amount": {
+          "source_anchor": "[Sample issuer | 2024 | standalone-note]"
+        }
+      },
+      "expected_variant_ids": []
+    },
+    {
+      "id": "equal_value_wrong_basis_only",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "overrides": {
+        "amount": {
+          "consolidation_scope": "separate"
+        }
+      },
+      "expected_variant_ids": []
+    },
+    {
+      "id": "unknown_selected_basis",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "overrides": {
+        "share": {"consolidation_scope": "unknown"},
+        "amount": {"consolidation_scope": "unknown"}
+      },
+      "expected_variant_ids": []
+    },
+    {
+      "id": "wrong_subject_equal_values",
+      "output_refs": ["consolidated-answer/share", "consolidated-answer/amount"],
+      "overrides": {
+        "share": {"subject": "Unit Beta"},
+        "amount": {"subject": "Unit Beta"}
+      },
+      "expected_variant_ids": []
+    }
+  ]
+}

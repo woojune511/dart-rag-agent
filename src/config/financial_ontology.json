@@ -54,102 +54,10 @@
         "EBITDA",
         "상각전\\s*영업이익"
       ],
-      "direct_lookup_preferred": true,
-      "formula_template": "operating_income + depreciation_expense + amortization_expense",
-      "formula_family": "sum",
-      "result_unit": "KRW",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "addend_1": {
-          "concept_ref": "operating_income",
-          "name": "영업이익",
-          "aliases": [
-            "영업손익"
-          ],
-          "keywords": [
-            "영업이익",
-            "영업손익"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "주요 경영지표",
-            "경영지표",
-            "영업성과",
-            "영업실적",
-            "요약재무정보",
-            "손익계산서"
-          ],
-          "preferred_statement_types": [
-            "mda",
-            "summary_financials",
-            "income_statement"
-          ]
-        },
-        "addend_2": {
-          "concept_ref": "depreciation_expense",
-          "name": "감가상각비",
-          "aliases": [
-            "감가 상각비",
-            "depreciation expense"
-          ],
-          "keywords": [
-            "감가상각비",
-            "감가 상각비",
-            "상각"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "주요 경영지표",
-            "경영지표",
-            "영업성과",
-            "영업실적",
-            "비용의 성격별 분류",
-            "연결재무제표 주석",
-            "재무제표 주석"
-          ],
-          "preferred_statement_types": [
-            "mda",
-            "notes",
-            "cash_flow",
-            "income_statement"
-          ]
-        },
-        "addend_3": {
-          "concept_ref": "amortization_expense",
-          "name": "무형자산상각비",
-          "aliases": [
-            "무형자산 상각비",
-            "상각비",
-            "amortization expense"
-          ],
-          "keywords": [
-            "무형자산상각비",
-            "무형자산 상각비",
-            "상각비",
-            "상각"
-          ],
-          "required": false,
-          "preferred_sections": [
-            "주요 경영지표",
-            "경영지표",
-            "영업성과",
-            "영업실적",
-            "무형자산",
-            "비용의 성격별 분류",
-            "연결재무제표 주석",
-            "재무제표 주석"
-          ],
-          "preferred_statement_types": [
-            "mda",
-            "notes",
-            "cash_flow",
-            "income_statement"
-          ]
-        }
       }
     },
     "rnd_ratio": {
@@ -196,53 +104,10 @@
         "연구개발비\\s*/\\s*매출액\\s*비율",
         "연구개발비용\\s*/\\s*매출액\\s*비율"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "research_and_development_expense",
-          "name": "연구개발비용",
-          "aliases": [
-            "연구개발비",
-            "연구개발비용 계"
-          ],
-          "keywords": [
-            "연구개발비용",
-            "연구개발비",
-            "연구개발비용 계"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "연구개발활동",
-            "주요계약 및 연구개발활동",
-            "연구개발실적"
-          ]
-        },
-        "denominator": {
-          "concept_ref": "revenue",
-          "name": "매출액",
-          "aliases": [
-            "영업수익",
-            "수익"
-          ],
-          "keywords": [
-            "매출액",
-            "영업수익",
-            "수익"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "요약재무정보",
-            "연결 손익계산서",
-            "손익계산서"
-          ]
-        }
       }
     },
     "operating_margin": {
@@ -284,50 +149,10 @@
         "영업이익률",
         "영업이익\\s*/\\s*매출액"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "operating_income",
-          "name": "영업이익",
-          "aliases": [
-            "영업손익"
-          ],
-          "keywords": [
-            "영업이익",
-            "영업손익"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "요약재무정보",
-            "손익계산서"
-          ]
-        },
-        "denominator": {
-          "concept_ref": "revenue",
-          "name": "매출액",
-          "aliases": [
-            "영업수익",
-            "수익"
-          ],
-          "keywords": [
-            "매출액",
-            "영업수익",
-            "수익"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "요약재무정보",
-            "손익계산서",
-            "매출 및 수주상황"
-          ]
-        }
       }
     },
     "operating_margin_drag": {
@@ -376,98 +201,10 @@
         "영업이익률.*영향",
         "이익률.*영향"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT_POINT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "amortization_expense",
-          "name": "무형자산상각비",
-          "aliases": [
-            "무형자산 상각비",
-            "상각비"
-          ],
-          "keywords": [
-            "무형자산상각비",
-            "무형자산 상각비",
-            "상각비"
-          ],
-          "required": true,
-          "binding_policy_override": {
-            "prefer_value_roles": [
-              "aggregate"
-            ],
-            "prefer_aggregation_stages": [
-              "final",
-              "subtotal",
-              "direct"
-            ],
-            "require_surface_contract_for_direct_match": true,
-            "require_surface_contract_for_direct_lookup": true
-          },
-          "surface_contract": {
-            "positive": [
-              "무형자산상각비",
-              "무형자산 상각비",
-              "amortization expense"
-            ],
-            "negative": [
-              "영업권",
-              "상각누계액",
-              "손상누계액"
-            ]
-          },
-          "preferred_sections": [
-            "연결재무제표 주석",
-            "비용의 성격별 분류",
-            "포괄손익계산서"
-          ],
-          "preferred_statement_types": [
-            "notes",
-            "income_statement"
-          ]
-        },
-        "denominator": {
-          "concept_ref": "revenue",
-          "name": "매출액",
-          "aliases": [
-            "매출",
-            "영업수익",
-            "수익"
-          ],
-          "keywords": [
-            "매출액",
-            "매출",
-            "영업수익",
-            "수익"
-          ],
-          "required": true,
-          "binding_policy_override": {
-            "prefer_value_roles": [
-              "aggregate"
-            ],
-            "prefer_aggregation_stages": [
-              "final",
-              "subtotal",
-              "direct"
-            ]
-          },
-          "preferred_sections": [
-            "요약재무정보",
-            "이사의 경영진단 및 분석의견",
-            "손익계산서"
-          ],
-          "preferred_statement_types": [
-            "summary_financials",
-            "mda",
-            "income_statement"
-          ]
-        }
       }
     },
     "debt_ratio": {
@@ -508,45 +245,10 @@
         "부채비율",
         "총부채\\s*/\\s*총자본"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "name": "부채총계",
-          "aliases": [
-            "총부채"
-          ],
-          "keywords": [
-            "부채총계",
-            "총부채"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "재무상태표",
-            "요약재무정보"
-          ]
-        },
-        "denominator": {
-          "name": "자본총계",
-          "aliases": [
-            "총자본"
-          ],
-          "keywords": [
-            "자본총계",
-            "총자본"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "재무상태표",
-            "요약재무정보"
-          ]
-        }
       }
     },
     "current_ratio": {
@@ -585,39 +287,10 @@
         "유동비율",
         "유동자산\\s*/\\s*유동부채"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "name": "유동자산",
-          "aliases": [],
-          "keywords": [
-            "유동자산"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "재무상태표",
-            "요약재무정보"
-          ]
-        },
-        "denominator": {
-          "name": "유동부채",
-          "aliases": [],
-          "keywords": [
-            "유동부채"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "재무상태표",
-            "요약재무정보"
-          ]
-        }
       }
     },
     "free_cash_flow": {
@@ -654,47 +327,10 @@
         "잉여현금흐름",
         "free cash flow"
       ],
-      "formula_template": "operating_cash_flow - capex",
-      "formula_family": "difference",
-      "result_unit": "KRW",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "name": "영업활동현금흐름",
-          "aliases": [
-            "영업으로부터 창출된 현금흐름",
-            "영업활동으로 인한 현금흐름"
-          ],
-          "keywords": [
-            "영업활동현금흐름",
-            "영업으로부터 창출된 현금흐름",
-            "영업활동으로 인한 현금흐름"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "현금흐름표"
-          ]
-        },
-        "denominator": {
-          "name": "유형자산의 취득",
-          "aliases": [
-            "유형자산 취득",
-            "설비투자"
-          ],
-          "keywords": [
-            "유형자산의 취득",
-            "유형자산 취득",
-            "설비투자"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "현금흐름표"
-          ]
-        }
       }
     },
     "roe": {
@@ -741,78 +377,10 @@
         "ROE",
         "자기자본이익률"
       ],
-      "formula_template": "(numerator / average(denominator_1, denominator_2)) * 100",
-      "formula_family": "ratio",
-      "denominator_aggregation": "average",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "net_income",
-          "name": "당기순이익",
-          "aliases": [
-            "연결총당기순이익",
-            "지배기업주주지분순이익"
-          ],
-          "keywords": [
-            "당기순이익",
-            "연결총당기순이익",
-            "지배기업주주지분순이익"
-          ],
-          "required": true,
-          "preferred_sections": [
-            "요약재무정보",
-            "손익계산서"
-          ]
-        },
-        "denominator_1": {
-          "concept_ref": "total_equity",
-          "name": "자본총계",
-          "aliases": [
-            "총자본",
-            "평균자본"
-          ],
-          "keywords": [
-            "자본총계",
-            "총자본",
-            "평균자본"
-          ],
-          "required": true,
-          "period_hint": "current",
-          "binding_policy_override": {
-            "prefer_period_focus": "current"
-          },
-          "preferred_sections": [
-            "요약재무정보",
-            "재무상태표"
-          ]
-        },
-        "denominator_2": {
-          "concept_ref": "total_equity",
-          "name": "자본총계",
-          "aliases": [
-            "총자본",
-            "평균자본"
-          ],
-          "keywords": [
-            "자본총계",
-            "총자본",
-            "평균자본"
-          ],
-          "required": true,
-          "period_hint": "prior",
-          "binding_policy_override": {
-            "prefer_period_focus": "prior"
-          },
-          "preferred_sections": [
-            "요약재무정보",
-            "재무상태표"
-          ]
-        }
       }
     }
   }

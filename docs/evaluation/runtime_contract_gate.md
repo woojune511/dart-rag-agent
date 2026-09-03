@@ -1,9 +1,14 @@
-# Runtime Contract Gate
+# Runtime Contract Gate (Historical Profile)
 
-This document defines the official runtime smoke gate that must pass before
-promoting curated mainline benchmark-profile changes or landing runtime-contract
-changes that affect numeric planning, grounding, aggregation, or evaluator
-projection.
+Status: historical evaluation profile, not the current release authority.
+
+This document preserves the earlier curated runtime smoke gate used before
+promoting benchmark-profile or numeric-runtime changes. Current local validation
+and provider approval boundaries are defined in
+[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) and
+[project_status.md](../overview/project_status.md). The profile remains useful
+for an explicitly scoped regression, but its recorded results do not establish
+readiness for the current build.
 
 ## Canonical profile
 

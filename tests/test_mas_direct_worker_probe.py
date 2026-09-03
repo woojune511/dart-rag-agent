@@ -15,6 +15,10 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.ops import mas_direct_worker_probe
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 
 
 class FakeVectorStore:
@@ -32,9 +36,45 @@ class FakeAnalystCore:
         self.result = result or {}
         self.calls = []
 
-    def run(self, query, *, report_scope=None):
-        self.calls.append({"query": query, "report_scope": dict(report_scope or {})})
-        return dict(self.result)
+    def run(self, query, *, report_scope=None, include_review_trace=False):
+        self.calls.append(
+            {
+                "query": query,
+                "report_scope": dict(report_scope or {}),
+                "include_review_trace": include_review_trace,
+            }
+        )
+        return FinancialRunResultV1(
+            schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+            agent_answer={
+                key: value
+                for key, value in self.result.items()
+                if key
+                in {
+                    "answer",
+                    "query_type",
+                    "intent",
+                    "citations",
+                    "structured_result",
+                    "resolved_calculation_trace",
+                }
+            },
+            review_trace={
+                key: value
+                for key, value in self.result.items()
+                if key
+                not in {
+                    "answer",
+                    "query_type",
+                    "intent",
+                    "citations",
+                    "structured_result",
+                    "resolved_calculation_trace",
+                }
+            }
+            if include_review_trace
+            else None,
+        )
 
 
 class FakeResearcherCore:

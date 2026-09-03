@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Optional
 
-from src.agent.financial_answer_projection import preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_state import (
     AgentAnswer,
     DebugBundle,
@@ -15,8 +14,6 @@ from src.agent.financial_graph_state import (
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
-    attach_runtime_projection_metadata,
-    build_runtime_aggregate_calculation_projection,
     structured_result_subtask_rows_and_answer,
 )
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
@@ -95,7 +92,15 @@ def structured_result_answer_for_missing_public_answer(
     structured_result: Dict[str, Any],
 ) -> str:
     answer_text = _normalise_spaces(str(public_answer or ""))
-    _, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
+    structured_answer = _normalise_spaces(
+        str(
+            structured_result.get("answer")
+            or structured_result.get("final_answer")
+            or ""
+        )
+    )
+    if not structured_answer:
+        _, structured_answer = structured_result_subtask_rows_and_answer(structured_result)
     if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
         return ""
     missing_markers = tuple(
@@ -110,37 +115,6 @@ def structured_result_answer_for_missing_public_answer(
     ):
         return structured_answer
     return ""
-
-
-def complete_aggregate_public_answer_projection(
-    *,
-    subtask_results: list[Dict[str, Any]],
-    base_answer: str,
-    public_answer: str,
-) -> tuple[str, RuntimeCalculationTrace]:
-    complete_answer = preferred_complete_aggregate_subtask_answer(
-        subtask_results,
-        base_answer or public_answer,
-    )
-    if not complete_answer:
-        return "", {}
-    projection = build_runtime_aggregate_calculation_projection(
-        subtask_results,
-        complete_answer,
-    )
-    projection_result = dict(projection.get("calculation_result") or {})
-    if not projection_result.get("subtask_results"):
-        return complete_answer, {}
-    projection = attach_runtime_projection_metadata(
-        projection,
-        source="structured_result_subtasks",
-    )
-    projection["runtime_projection"] = {
-        **dict(projection.get("runtime_projection") or {}),
-        "public_answer_repaired": True,
-        "complete_aggregate_answer_selected": True,
-    }
-    return complete_answer, projection
 
 
 def with_public_answer(state: Dict[str, Any], public_answer: str) -> Dict[str, Any]:
@@ -173,6 +147,51 @@ def project_debug_traces(final: Dict[str, Any]) -> DebugTraceBundle:
     return {"calculation": dict(final.get(CALCULATION_DEBUG_TRACE_FIELD) or {})}
 
 
+def project_query_retrieval_status(final: Dict[str, Any]) -> Dict[str, Any]:
+    trace_history = [
+        dict(item)
+        for item in (final.get("retrieval_debug_trace_history") or [])
+        if isinstance(item, dict)
+    ]
+    if not trace_history:
+        current_trace = final.get("retrieval_debug_trace")
+        if isinstance(current_trace, dict):
+            trace_history.append(dict(current_trace))
+
+    degraded_modes = {"bm25_only", "bm25_fallback"}
+    modes: list[str] = []
+    reasons: list[str] = []
+    for trace in trace_history:
+        for query in trace.get("executed_queries") or []:
+            if not isinstance(query, dict):
+                continue
+            telemetry = query.get("search_telemetry")
+            if not isinstance(telemetry, dict):
+                continue
+            mode = str(telemetry.get("retrieval_mode") or "").strip()
+            cached_mode = str(
+                telemetry.get("cached_retrieval_mode") or ""
+            ).strip()
+            for candidate_mode in (mode, cached_mode):
+                if candidate_mode in degraded_modes and candidate_mode not in modes:
+                    modes.append(candidate_mode)
+            if not ({mode, cached_mode} & degraded_modes):
+                continue
+            reason = str(
+                telemetry.get("vector_skipped_reason")
+                or telemetry.get("cached_vector_skipped_reason")
+                or ""
+            ).strip()
+            if reason and reason not in reasons:
+                reasons.append(reason)
+
+    return {
+        "degraded": bool(modes),
+        "modes": modes,
+        "reasons": reasons,
+    }
+
+
 def project_agent_answer(
     final: Dict[str, Any],
     *,
@@ -199,6 +218,8 @@ def project_agent_answer(
         "routing_source": final.get("routing_source", ""),
         "routing_confidence": final.get("routing_confidence", 0.0),
         "routing_scores": final.get("routing_scores", {}),
+        "routing_degraded_reason": final.get("routing_degraded_reason", ""),
+        "retrieval_status": project_query_retrieval_status(final),
         "companies": final["companies"],
         "years": final["years"],
         "answer": public_answer,
@@ -240,6 +261,11 @@ def project_review_trace(
         "reflection_action": final.get("reflection_action", {}),
         "reflection_report": final.get("reflection_report", {}),
         "semantic_plan": final.get("semantic_plan", {}),
+        "answer_obligations": final.get("answer_obligations", []),
+        "semantic_candidate_catalog": final.get("semantic_candidate_catalog", []),
+        "semantic_program": final.get("semantic_program", {}),
+        "semantic_program_validation": final.get("semantic_program_validation", {}),
+        "semantic_program_retry_count": final.get("semantic_program_retry_count", 0),
         "calc_subtasks": final.get("calc_subtasks", []),
         "retrieval_queries": final.get("retrieval_queries", []),
         "active_subtask_index": final.get("active_subtask_index", 0),

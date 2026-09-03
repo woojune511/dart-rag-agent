@@ -1,5 +1,5 @@
 """
-Streamlit UI — DART 공시 분석 AI Agent
+Streamlit UI — DART 공시 분석 AI Agent (experimental)
 
 탭 구성:
   Tab 1: 기업 데이터 수집 — DART 수집 + 파싱 + 인덱싱
@@ -35,27 +35,9 @@ CONTEXT_MAX_WORKERS = int(os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", "8"))
 
 @st.cache_resource(show_spinner="모델 및 DB 로딩 중...")
 def load_components():
-    from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
-    from agent.financial_graph import FinancialAgent
-    from processing.financial_parser import (
-        DEFAULT_CHUNK_OVERLAP,
-        DEFAULT_CHUNK_SIZE,
-        FinancialParser,
-    )
-    from ingestion.dart_fetcher import DARTFetcher
-    from ops.evaluator import RAGEvaluator
+    from src.api.services import build_app_services
 
-    _PROJECT_ROOT = Path(__file__).resolve().parent
-    chroma_path   = str(_PROJECT_ROOT / "data" / "chroma_dart")
-    reports_dir   = str(_PROJECT_ROOT / "data" / "reports")
-
-    vsm     = VectorStoreManager(persist_directory=chroma_path, collection_name=DEFAULT_COLLECTION_NAME)
-    agent   = FinancialAgent(vsm, k=8)
-    parser  = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
-    fetcher = DARTFetcher(download_dir=reports_dir)
-    evaluator = RAGEvaluator(agent)
-
-    return vsm, agent, parser, fetcher, evaluator
+    return build_app_services(project_root=Path(__file__).resolve().parent)
 
 
 # --------------------------------------------------------------------------
@@ -69,7 +51,9 @@ st.set_page_config(
 )
 
 st.title("📊 DART 공시 분석 AI Agent")
-st.caption("DART(전자공시시스템) 기반 기업 공시 문서를 분석하는 AI Agent")
+st.caption(
+    "Experimental UI — DART(전자공시시스템) 기반 기업 공시 문서를 분석합니다."
+)
 
 # --------------------------------------------------------------------------
 # 탭 구성
@@ -106,53 +90,29 @@ with tab1:
         )
 
     if st.button("🔄 수집 및 인덱싱", type="primary", disabled=not (company_input and selected_years)):
-        vsm, agent, parser, fetcher, evaluator = load_components()
+        services = load_components()
 
         with st.status(f"'{company_input}' {selected_years} 처리 중...", expanded=True) as status:
             try:
-                st.write("📡 DART API에서 공시 목록 조회...")
-                reports = fetcher.fetch_company_reports(company_input, selected_years)
-
-                if not reports:
+                st.write("📡 DART 공시 수집·파싱·컨텍스트 생성·인덱싱 중...")
+                with services.serialized_sync_operation():
+                    ingest_service = services.ingest_service
+                    if ingest_service is None:
+                        raise RuntimeError(services.readiness.reason)
+                    try:
+                        result = ingest_service.ingest_company(
+                            company_input,
+                            selected_years,
+                            max_workers=CONTEXT_MAX_WORKERS,
+                        )
+                    finally:
+                        services.refresh_readiness()
+                if not int(result.get("files_fetched") or 0):
                     status.update(label="공시 문서를 찾을 수 없습니다.", state="error")
                     st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")
                 else:
-                    total_chunks = 0
-                    skipped = 0
-                    progress = st.progress(0)
-                    for i, report in enumerate(reports):
-                        if not report.file_path or not Path(report.file_path).exists():
-                            continue
-                        if vsm.is_indexed(report.rcept_no):
-                            st.write(f"⏭️ 이미 인덱싱됨: {report.corp_name} {report.year} 사업보고서 — 건너뜀")
-                            skipped += 1
-                            progress.progress((i + 1) / len(reports))
-                            continue
-                        st.write(f"📄 파싱 중: {report.corp_name} {report.year} 사업보고서")
-                        meta = {
-                            "company":     report.corp_name,
-                            "stock_code":  report.stock_code or "unknown",
-                            "year":        report.year,
-                            "report_type": report.report_type,
-                            "rcept_no":    report.rcept_no,
-                        }
-                        chunks = parser.process_document(report.file_path, meta)
-                        if chunks:
-                            st.write(f"  → LLM 컨텍스트 생성 및 인덱싱 중: {len(chunks)}개 청크 (병렬 {CONTEXT_MAX_WORKERS}개)")
-                            ctx_progress = st.progress(0, text="LLM 컨텍스트 생성 중... (0/{})".format(len(chunks)))
-
-                            def _on_ctx_progress(done, total, _pb=ctx_progress):
-                                _pb.progress(done / total, text=f"LLM 컨텍스트 생성 중... ({done}/{total})")
-
-                            agent.contextual_ingest(
-                                chunks,
-                                on_progress=_on_ctx_progress,
-                                max_workers=CONTEXT_MAX_WORKERS,
-                            )
-                            ctx_progress.empty()
-                            total_chunks += len(chunks)
-                        progress.progress((i + 1) / len(reports))
-
+                    total_chunks = int(result.get("chunks_added") or 0)
+                    skipped = int(result.get("reports_skipped") or 0)
                     if total_chunks == 0 and skipped > 0:
                         status.update(label="이미 모두 인덱싱된 문서입니다.", state="complete")
                         st.info(f"ℹ️ {skipped}개 문서가 이미 인덱싱되어 있어 건너뛰었습니다.")
@@ -170,9 +130,13 @@ with tab1:
     st.subheader("현재 인덱싱 현황")
 
     if st.button("🔍 현황 조회"):
-        vsm, *_ = load_components()
+        services = load_components()
         try:
-            data = vsm.vector_store.get(include=["metadatas"])
+            with services.serialized_sync_operation():
+                vsm = services.store
+                if vsm is None:
+                    raise RuntimeError(services.readiness.reason)
+                data = vsm.vector_store.get(include=["metadatas"])
             metadatas = data.get("metadatas") or []
 
             if not metadatas:
@@ -238,11 +202,20 @@ with tab2:
         st.text_area("질문", value=question, height=80, disabled=True, key="shown_question")
 
     if st.button("🔍 분석 실행", type="primary", disabled=not question):
-        _, agent, *_ = load_components()
+        services = load_components()
 
         with st.spinner("Agent 분석 중..."):
             try:
-                result = agent.run(question)
+                with services.serialized_sync_operation():
+                    agent = services.agent
+                    if not services.readiness.ready or agent is None:
+                        raise RuntimeError(services.readiness.reason)
+                    run_result = agent.run(
+                        question,
+                        include_review_trace=True,
+                    )
+                answer_result = run_result.agent_answer
+                review_trace = run_result.review_trace or {}
 
                 # 쿼리 유형 배지
                 qtype_label = {
@@ -250,12 +223,12 @@ with tab2:
                     "comparison": "⚖️ 기업 비교",
                     "trend":      "📈 트렌드 분석",
                     "risk":       "⚠️ 리스크 분석",
-                }.get(result.get("query_type", ""), "🔍 분석")
+                }.get(answer_result.get("query_type", ""), "🔍 분석")
 
                 col_a, col_b, col_c = st.columns(3)
                 col_a.metric("쿼리 유형", qtype_label)
-                extracted_companies = result.get("companies", [])
-                extracted_years     = result.get("years", [])
+                extracted_companies = answer_result.get("companies", [])
+                extracted_years     = answer_result.get("years", [])
                 col_b.metric(
                     "인식된 기업",
                     ", ".join(extracted_companies) if extracted_companies else "—",
@@ -269,15 +242,15 @@ with tab2:
 
                 st.divider()
                 st.subheader("답변")
-                st.markdown(result.get("answer", "답변 없음"))
+                st.markdown(answer_result.get("answer", "답변 없음"))
 
-                citations = result.get("citations", [])
+                citations = answer_result.get("citations", [])
                 if citations:
                     with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
                         for i, cite in enumerate(citations, 1):
                             st.markdown(f"**{i}.** {cite}")
 
-                retrieved_docs = result.get("retrieved_docs", [])
+                retrieved_docs = review_trace.get("retrieved_docs", [])
                 if retrieved_docs:
                     with st.expander(f"🔎 검색된 청크 ({len(retrieved_docs)}개) — 클릭하여 검색 결과 원문 확인", expanded=False):
                         for i, item in enumerate(retrieved_docs, 1):
@@ -328,16 +301,31 @@ with tab3:
     with col_run:
         st.markdown("**평가 실행**")
         if st.button("▶️ 평가 시작", type="primary"):
-            _, agent, _, _, evaluator = load_components()
-            dataset = evaluator.load_dataset()
-            subset = evaluator.build_single_company_eval_slice(dataset, max_questions=n_questions)
+            services = load_components()
+            with services.serialized_sync_operation():
+                if not services.readiness.ready or services.agent is None:
+                    st.error(services.readiness.reason)
+                    st.stop()
+                # Experimental evaluator dependencies are loaded only for an
+                # explicit evaluation action, not during application startup.
+                from src.ops.evaluator import RAGEvaluator
 
-            with st.spinner(f"{len(subset)}개 질문 평가 중..."):
-                results = evaluator.run(
-                    examples=subset,
-                    run_name=run_name_input,
-                    params={"n_questions": len(subset), "mode": "single_company_accuracy"},
+                evaluator = RAGEvaluator(services.agent)
+                dataset = evaluator.load_dataset()
+                subset = evaluator.build_single_company_eval_slice(
+                    dataset,
+                    max_questions=n_questions,
                 )
+
+                with st.spinner(f"{len(subset)}개 질문 평가 중..."):
+                    results = evaluator.run(
+                        examples=subset,
+                        run_name=run_name_input,
+                        params={
+                            "n_questions": len(subset),
+                            "mode": "single_company_accuracy",
+                        },
+                    )
 
             st.session_state["eval_results"] = results["per_question"]
             st.session_state["eval_aggregate"] = results["aggregate"]

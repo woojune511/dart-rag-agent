@@ -1,6 +1,10 @@
 import unittest
 
 from src.api.financial_router import _query_response_from_agent_result
+from src.agent.financial_run_result import (
+    FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+    FinancialRunResultV1,
+)
 
 
 def _dump_excluding_none(model):
@@ -9,19 +13,55 @@ def _dump_excluding_none(model):
     return model.dict(exclude_none=True)
 
 
+def _result(agent_answer, *, review_trace=None, debug_bundle=None):
+    return FinancialRunResultV1(
+        schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
+        agent_answer=agent_answer,
+        review_trace=review_trace,
+        debug_bundle=debug_bundle,
+    )
+
+
 class FinancialRouterResponseTests(unittest.TestCase):
+    def test_query_fallback_overlays_compatible_store_readiness(self) -> None:
+        response = _query_response_from_agent_result(
+            "question",
+            _result(
+                {
+                    "answer": "fallback answer",
+                    "query_type": "lookup",
+                    "companies": [],
+                    "years": [],
+                    "citations": [],
+                    "retrieval_status": {
+                        "degraded": True,
+                        "modes": ["bm25_fallback"],
+                        "reasons": ["embedding_capacity_error"],
+                    },
+                }
+            ),
+            retrieval_readiness={
+                "status": "compatible",
+                "ready": True,
+                "degraded": False,
+                "reason": "store manifest matches runtime contract",
+            },
+        )
+
+        readiness = _dump_excluding_none(response)["retrieval_readiness"]
+        self.assertEqual(readiness["status"], "degraded")
+        self.assertEqual(readiness["store_status"], "compatible")
+        self.assertTrue(readiness["degraded"])
+        self.assertEqual(
+            readiness["query_retrieval"]["reasons"],
+            ["embedding_capacity_error"],
+        )
+
     def test_query_response_prefers_agent_answer_projection_and_stays_slim_by_default(self) -> None:
         response = _query_response_from_agent_result(
             "question",
-            {
-                "answer": "stale flat answer",
-                "query_type": "flat",
-                "companies": ["flat company"],
-                "years": [1999],
-                "citations": ["flat citation"],
-                "structured_result": {"status": "flat"},
-                "resolved_calculation_trace": {"source": "flat"},
-                "agent_answer": {
+            _result(
+                {
                     "answer": "projection answer",
                     "query_type": "projection",
                     "companies": ["projection company"],
@@ -30,9 +70,9 @@ class FinancialRouterResponseTests(unittest.TestCase):
                     "structured_result": {"status": "ok"},
                     "resolved_calculation_trace": {"source": "projection"},
                 },
-                "review_trace": {"retrieval_debug_trace": {"selected_count": 1}},
-                "debug_bundle": {"llm_usage": {"total_tokens": 10}},
-            },
+                review_trace={"retrieval_debug_trace": {"selected_count": 1}},
+                debug_bundle={"llm_usage": {"total_tokens": 10}},
+            ),
         )
 
         payload = _dump_excluding_none(response)
@@ -50,15 +90,8 @@ class FinancialRouterResponseTests(unittest.TestCase):
     def test_query_response_preserves_empty_agent_answer_projection(self) -> None:
         response = _query_response_from_agent_result(
             "question",
-            {
-                "answer": "stale flat answer",
-                "query_type": "flat",
-                "companies": ["flat company"],
-                "years": [1999],
-                "citations": ["flat citation"],
-                "structured_result": {"status": "flat"},
-                "resolved_calculation_trace": {"source": "flat"},
-                "agent_answer": {
+            _result(
+                {
                     "answer": "",
                     "query_type": "",
                     "companies": [],
@@ -67,7 +100,7 @@ class FinancialRouterResponseTests(unittest.TestCase):
                     "structured_result": {},
                     "resolved_calculation_trace": {},
                 },
-            },
+            ),
         )
 
         payload = _dump_excluding_none(response)
@@ -83,17 +116,17 @@ class FinancialRouterResponseTests(unittest.TestCase):
     def test_query_response_can_include_review_and_debug_bundles_explicitly(self) -> None:
         response = _query_response_from_agent_result(
             "question",
-            {
-                "agent_answer": {
+            _result(
+                {
                     "answer": "projection answer",
                     "query_type": "lookup",
                     "companies": [],
                     "years": [],
                     "citations": [],
                 },
-                "review_trace": {"task_artifact_trace": {"integrity_status": "ok"}},
-                "debug_bundle": {"llm_usage": {"total_tokens": 10}},
-            },
+                review_trace={"task_artifact_trace": {"integrity_status": "ok"}},
+                debug_bundle={"llm_usage": {"total_tokens": 10}},
+            ),
             include_review_trace=True,
             include_debug_bundle=True,
         )
@@ -103,26 +136,12 @@ class FinancialRouterResponseTests(unittest.TestCase):
         self.assertEqual(payload["review_trace"]["task_artifact_trace"]["integrity_status"], "ok")
         self.assertEqual(payload["debug_bundle"]["llm_usage"]["total_tokens"], 10)
 
-    def test_query_response_falls_back_to_flat_payload_for_legacy_agent_results(self) -> None:
-        response = _query_response_from_agent_result(
-            "question",
-            {
-                "answer": "flat answer",
-                "query_type": "lookup",
-                "companies": ["company"],
-                "years": [2023],
-                "citations": ["citation"],
-                "structured_result": {"status": "ok"},
-                "resolved_calculation_trace": {"source": "flat"},
-            },
-        )
-
-        payload = _dump_excluding_none(response)
-
-        self.assertEqual(payload["answer"], "flat answer")
-        self.assertEqual(payload["query_type"], "lookup")
-        self.assertEqual(payload["structured_result"], {"status": "ok"})
-        self.assertEqual(payload["resolved_calculation_trace"], {"source": "flat"})
+    def test_query_response_rejects_unversioned_flat_agent_results(self) -> None:
+        with self.assertRaises(AttributeError):
+            _query_response_from_agent_result(
+                "question",
+                {"answer": "flat answer"},
+            )
 
 
 if __name__ == "__main__":

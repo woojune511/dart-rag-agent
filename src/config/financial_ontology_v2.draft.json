@@ -67,23 +67,10 @@
         "연구개발비\\s*/\\s*매출액\\s*비율",
         "연구개발비용\\s*/\\s*매출액\\s*비율"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "research_and_development_expense",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "revenue",
-          "required": true
-        }
       }
     },
     "operating_margin": {
@@ -125,23 +112,10 @@
         "영업이익률",
         "영업이익\\s*/\\s*매출액"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "operating_income",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "revenue",
-          "required": true
-        }
       }
     },
     "debt_ratio": {
@@ -182,23 +156,10 @@
         "부채비율",
         "총부채\\s*/\\s*총자본"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "total_liabilities",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "total_equity",
-          "required": true
-        }
       }
     },
     "current_ratio": {
@@ -237,23 +198,10 @@
         "유동비율",
         "유동자산\\s*/\\s*유동부채"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "current_assets",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "current_liabilities",
-          "required": true
-        }
       }
     },
     "free_cash_flow": {
@@ -290,23 +238,10 @@
         "잉여현금흐름",
         "free cash flow"
       ],
-      "formula_template": "operating_cash_flow - capex",
-      "formula_family": "difference",
-      "result_unit": "KRW",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "operating_cash_flow",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "property_plant_equipment_acquisition",
-          "required": true
-        }
       }
     },
     "roe": {
@@ -353,23 +288,10 @@
         "ROE",
         "자기자본이익률"
       ],
-      "formula_template": "(numerator / denominator) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none"
-      },
-      "components": {
-        "numerator": {
-          "concept_ref": "net_income",
-          "required": true
-        },
-        "denominator": {
-          "concept_ref": "average_equity",
-          "required": true
-        }
       }
     },
     "asset_debt_burden_ratio": {
@@ -419,36 +341,11 @@
         "유형자산",
         "무형자산"
       ],
-      "formula_template": "((short_term_borrowings + long_term_borrowings + bonds_payable) / (property_plant_equipment + intangible_assets)) * 100",
-      "formula_family": "ratio",
-      "result_unit": "PERCENT",
       "default_constraints": {
         "period_focus": "current",
         "entity_scope": "company",
         "segment_scope": "none",
         "consolidation_scope": "consolidated"
-      },
-      "components": {
-        "numerator_1": {
-          "concept_ref": "short_term_borrowings",
-          "required": true
-        },
-        "numerator_2": {
-          "concept_ref": "long_term_borrowings",
-          "required": true
-        },
-        "numerator_3": {
-          "concept_ref": "bonds_payable",
-          "required": true
-        },
-        "denominator_1": {
-          "concept_ref": "property_plant_equipment",
-          "required": true
-        },
-        "denominator_2": {
-          "concept_ref": "intangible_assets",
-          "required": true
-        }
       }
     }
   },

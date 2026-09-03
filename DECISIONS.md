@@ -1,4 +1,4 @@
-# 기술 결정 로그
+# 기술 결정 로그 (Historical)
 
 > 이 문서는 **append-only 성격의 결정 로그**다.
 > 현재 상태와 다음 작업은 `CONTEXT.md`와
@@ -6,12 +6,16 @@
 > 계획을 보존하는 historical log다.
 > 즉, 이 문서는 최신 snapshot을 유지하려고 덮어쓰지 않고,
 > 중요한 설계 판단과 그 근거를 누적 기록하는 용도로 쓴다.
+> 아래 상단 요약과 상태 표도 작성 당시 checkpoint를 보존하므로, 현재 제품
+> 경계나 release 상태와 충돌하면 current authority 문서를 우선한다.
 
 ---
 
-## 핵심 결정 요약
+## 과거 핵심 결정 요약
 
-이 섹션은 **포트폴리오 관점에서 지금 이 프로젝트를 설명할 때 가장 중요한 기술 결정**만 위쪽에 모아 둔 요약이다.  
+이 섹션은 **작성 당시 포트폴리오 관점에서 중요했던 기술 결정**을 모아 둔
+historical summary다. 현재 설명은 `README.md`와
+`docs/overview/project_status.md`를 따른다.
 과거의 상세 실험 로그와 히스토리는 아래 `상세 결정`부터 이어진다.
 
 ## 포트폴리오용 Decision Scorecard

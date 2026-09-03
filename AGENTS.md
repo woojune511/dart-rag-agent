@@ -4,7 +4,7 @@
 
 구현 단위의 세부 계약은 `docs/architecture/agent_runtime_contract.md`를 따른다. 이 문서와 충돌하면 더 구체적인 runtime contract를 우선하고, 원칙 변경이 필요하면 두 문서를 함께 갱신한다.
 
-구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/core_runtime_surface_refactoring_plan.md`를 먼저 확인한다. 이 리팩터링 계획은 "코드 줄 수 줄이기"보다 "core runtime / review trace / debug-eval-experimental surface 분리"를 우선한다.
+구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/agent_runtime_contract.md`와 `docs/overview/codebase_map.md`를 먼저 확인한다. 과거 단계별 근거가 필요할 때만 historical `docs/architecture/core_runtime_surface_refactoring_plan.md`를 참고한다.
 
 ## Core Principles
 
@@ -60,6 +60,22 @@
    - guardrail은 operation signal이 함께 있을 때만 적용한다.
    - routing 변경은 confusion benchmark나 전용 unit test로 확인한다.
 
+## Fast Development Loop
+
+기본 개발 루프는 가장 싼 검증에서 시작해 필요한 gate까지만 올라간다.
+
+1. 현재 source, contract, trace로 실패 경계를 먼저 재현한다.
+2. 한 번에 하나의 owner 또는 contract seam만 바꾼다.
+3. deterministic·provider-free unit/contract test로 가장 빠른 피드백을 받는다.
+4. focused suite가 통과한 뒤에만 audit/import gate로 확장하고, full unittest는
+   phase·통합·release 경계 또는 광범위한 영향이 있을 때 실행한다.
+5. 동일한 접근이 두 번 같은 이유로 실패하면 그대로 재시도하지 말고 실패 층을
+   다시 분류하거나 다른 mechanism으로 전환한다.
+6. 진행 중 시도별 일지를 current 문서에 누적하지 않는다. handoff 때 검증된 현재
+   상태와 남은 blocker만 갱신하고, chronology는 Git과 history 문서에 둔다.
+7. local/no-call 성공을 provider 또는 release 성공으로 표현하지 않는다. provider,
+   fresh ingest, store mutation은 별도 필요성과 승인 경계를 따른다.
+
 ## Change Workflow
 
 1. **Classify**
@@ -78,7 +94,7 @@
 
 4. **Verify**
    - 최소 관련 test를 먼저 돌린다.
-   - 그 다음 `python -m unittest discover -s tests`를 돌릴 수 있으면 돌린다.
+   - full unittest는 phase·통합·release gate 또는 영향 범위가 넓은 변경에서 돌린다.
    - `src/agent` 또는 `src/routing` 런타임 변경은 broader test 전에 `python -m src.ops.audit_runtime_domain_terms`를 돌린다.
    - benchmark가 필요하면 focused/eval-only를 우선한다.
 

@@ -18,134 +18,50 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIsNotNone(metric)
         self.assertEqual(metric.get("key"), "debt_ratio")
 
-    def test_metric_aliases_are_exposed(self) -> None:
-        aliases = self.ontology.aliases_for_metric("free_cash_flow")
-        self.assertIn("FCF", aliases)
-        self.assertIn("잉여현금흐름", aliases)
-
-    def test_ebitda_metric_family_exposes_components_and_mda_hints(self) -> None:
-        metric = self.ontology.best_metric_family(
-            "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
-            intent="comparison",
-        )
+    def test_metric_family_is_retrieval_policy_not_a_calculation_recipe(self) -> None:
+        metric = self.ontology.best_metric_family("EBITDA", intent="comparison")
         self.assertIsNotNone(metric)
         self.assertEqual(metric.get("key"), "ebitda")
-        self.assertTrue(metric.get("direct_lookup_preferred"))
+        for removed_key in (
+            "components",
+            "denominator_aggregation",
+            "direct_lookup_preferred",
+            "formula_family",
+            "formula_template",
+            "result_unit",
+        ):
+            self.assertNotIn(removed_key, metric)
+        self.assertIn("mda", metric.get("statement_type_hints") or [])
+        self.assertTrue(metric.get("preferred_sections"))
+        self.assertTrue(metric.get("query_hints"))
 
-        specs = self.ontology.build_operand_spec("ebitda")
-        self.assertEqual(
-            [(spec["role"], spec["concept"]) for spec in specs],
-            [
-                ("addend_1", "operating_income"),
-                ("addend_2", "depreciation_expense"),
-                ("addend_3", "amortization_expense"),
-            ],
-        )
-        self.assertIn("mda", self.ontology.statement_type_hints_for_metric("ebitda"))
+    def test_query_hints_are_declarative_and_do_not_expose_operand_roles(self) -> None:
+        hints = self.ontology.query_hints("ROE", intent="comparison")
+        self.assertTrue(hints)
+        payload_text = json.dumps(self.ontology.payload, ensure_ascii=False)
+        self.assertNotIn('"components"', payload_text)
+        self.assertNotIn('"denominator_aggregation"', payload_text)
 
-    def test_statement_type_hints_are_exposed(self) -> None:
-        hints = self.ontology.statement_type_hints_for_metric("debt_ratio")
-        self.assertIn("balance_sheet", hints)
-        self.assertIn("summary_financials", hints)
+    def test_v2_concept_binding_metadata_remains_available(self) -> None:
+        policy = self.ontology_v2.binding_policy_for_concept("bonds_payable")
+        self.assertIn("aggregate", policy.get("prefer_value_roles", []))
+        concept = self.ontology_v2.concept("bonds_payable")
+        self.assertIsNotNone(concept)
+        self.assertIn("notes", concept.get("preferred_statement_types") or [])
 
-    def test_retrieval_keywords_include_component_aliases(self) -> None:
-        keywords = self.ontology.retrieval_keywords_for_metric("roe")
-        self.assertIn("당기순이익", keywords)
-        self.assertIn("지배기업주주지분순이익", keywords)
-        self.assertIn("자본총계", keywords)
-
-    def test_roe_operand_spec_requires_current_and_prior_equity_for_average_denominator(self) -> None:
-        metric = self.ontology.metric_family("roe")
-        self.assertEqual(metric["denominator_aggregation"], "average")
-
-        specs = self.ontology.build_operand_spec("roe")
-        self.assertEqual([spec["role"] for spec in specs], ["numerator", "denominator_1", "denominator_2"])
-
-        denominator_1 = next(spec for spec in specs if spec["role"] == "denominator_1")
-        denominator_2 = next(spec for spec in specs if spec["role"] == "denominator_2")
-        self.assertEqual(denominator_1["concept"], "total_equity")
-        self.assertEqual(denominator_2["concept"], "total_equity")
-        self.assertEqual(denominator_1["period_hint"], "current")
-        self.assertEqual(denominator_2["period_hint"], "prior")
-        self.assertEqual(denominator_1["binding_policy"]["prefer_period_focus"], "current")
-        self.assertEqual(denominator_2["binding_policy"]["prefer_period_focus"], "prior")
-
-    def test_operating_margin_drag_uses_amortization_over_aggregate_revenue(self) -> None:
-        specs = self.ontology.build_operand_spec("operating_margin_drag")
-        self.assertEqual([spec["role"] for spec in specs], ["numerator", "denominator"])
-
-        numerator = next(spec for spec in specs if spec["role"] == "numerator")
-        denominator = next(spec for spec in specs if spec["role"] == "denominator")
-        self.assertEqual(numerator["concept"], "amortization_expense")
-        self.assertEqual(denominator["concept"], "revenue")
-        self.assertEqual(numerator["binding_policy"]["prefer_value_roles"], ["aggregate"])
-        self.assertEqual(denominator["binding_policy"]["prefer_value_roles"], ["aggregate"])
-        self.assertEqual(numerator["binding_policy"]["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
-        self.assertEqual(denominator["binding_policy"]["prefer_aggregation_stages"], ["final", "subtotal", "direct"])
-
-    def test_default_constraints_are_normalised(self) -> None:
-        constraints = self.ontology.default_constraints_for_metric("current_ratio")
-        self.assertEqual(constraints["period_focus"], "current")
-        self.assertEqual(constraints["entity_scope"], "company")
-        self.assertEqual(constraints["segment_scope"], "none")
-        self.assertEqual(constraints["consolidation_scope"], "unknown")
-
-    def test_build_operand_spec_contains_aliases_and_required_flag(self) -> None:
-        specs = self.ontology.build_operand_spec("debt_ratio")
-        self.assertEqual(len(specs), 2)
-        numerator = next(spec for spec in specs if spec["role"] == "numerator")
-        denominator = next(spec for spec in specs if spec["role"] == "denominator")
-        self.assertEqual(numerator["label"], "부채총계")
-        self.assertIn("총부채", numerator["aliases"])
-        self.assertTrue(numerator["required"])
-        self.assertEqual(denominator["label"], "자본총계")
-
-    def test_v2_operand_spec_resolves_concept_aliases_and_binding_policy(self) -> None:
-        specs = self.ontology_v2.build_operand_spec("asset_debt_burden_ratio")
-        bonds = next(spec for spec in specs if spec["concept"] == "bonds_payable")
-
-        self.assertEqual(bonds["label"], "사채")
-        self.assertIn("회사채", bonds["aliases"])
-        self.assertIn("notes", bonds["preferred_statement_types"])
-        self.assertIn("aggregate", bonds["binding_policy"].get("prefer_value_roles", []))
-        self.assertIn("final", bonds["binding_policy"].get("prefer_aggregation_stages", []))
-
-    def test_v2_component_specs_expose_concept_binding_metadata(self) -> None:
-        specs = self.ontology_v2.component_specs("유무형자산 대비 차입금 비중을 계산해 줘", intent="comparison")
-        bonds = next(spec for spec in specs if spec["concept"] == "bonds_payable")
-
-        self.assertEqual(bonds["name"], "사채")
-        self.assertIn("차입금 및 사채", bonds["preferred_sections"])
-        self.assertIn("detail", bonds["binding_policy"].get("avoid_value_roles", []))
-
-    def test_binding_policy_override_takes_precedence_over_concept_default(self) -> None:
+    def test_concept_binding_policy_overrides_default_policy(self) -> None:
         payload = {
             "binding_policy_defaults": {
                 "prefer_value_roles": ["detail"],
                 "prefer_aggregation_stages": ["none"],
             },
-            "metric_families": {
-                "demo_metric": {
-                    "display_name": "데모 지표",
-                    "aliases": ["데모 지표"],
-                    "components": {
-                        "numerator": {
-                            "concept_ref": "demo_concept",
-                            "binding_policy_override": {
-                                "prefer_value_roles": ["aggregate"],
-                                "prefer_aggregation_stages": ["final"],
-                            },
-                        }
-                    },
-                }
-            },
             "concepts": {
                 "demo_concept": {
-                    "display_name": "데모 개념",
-                    "aliases": ["데모 개념"],
+                    "display_name": "demo concept",
+                    "aliases": ["demo alias"],
                     "binding_policy": {
-                        "prefer_value_roles": ["detail"],
-                        "prefer_aggregation_stages": ["direct"],
+                        "prefer_value_roles": ["aggregate"],
+                        "prefer_aggregation_stages": ["final"],
                     },
                 }
             },
@@ -155,10 +71,16 @@ class FinancialOntologyManagerTests(unittest.TestCase):
             path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             ontology = FinancialOntologyManager(path)
 
-            spec = ontology.build_operand_spec("demo_metric")[0]
+            spec = ontology.concept_specs("demo alias")[0]
             self.assertEqual(spec["concept"], "demo_concept")
-            self.assertEqual(spec["binding_policy"]["prefer_value_roles"], ["aggregate"])
-            self.assertEqual(spec["binding_policy"]["prefer_aggregation_stages"], ["final"])
+            self.assertEqual(
+                spec["binding_policy"]["prefer_value_roles"],
+                ["aggregate"],
+            )
+            self.assertEqual(
+                spec["binding_policy"]["prefer_aggregation_stages"],
+                ["final"],
+            )
 
     def test_v3_concept_only_ontology_matches_general_concepts(self) -> None:
         specs = self.ontology_v3.concept_specs(

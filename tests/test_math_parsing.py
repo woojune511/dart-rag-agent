@@ -9,7 +9,6 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_operation_policies import should_coerce_percent_point_unit
 from src.agent.financial_runtime_normalization import _extract_composite_krw, _normalise_operand_value
 from src.ops.evaluator import (
     EvalExample,
@@ -225,25 +224,6 @@ class CompositeKrwParsingTests(unittest.TestCase):
         self.assertIsNone(result["numeric_grounding"])
         self.assertTrue(result["numeric_debug"]["grounding"]["llm_skipped"])
 
-    def test_percent_point_query_coerces_result_unit(self) -> None:
-        operands = [
-            {"operand_id": "op_001", "normalized_unit": "PERCENT"},
-            {"operand_id": "op_002", "normalized_unit": "PERCENT"},
-        ]
-        plan = {
-            "mode": "single_value",
-            "operation": "subtract",
-            "ordered_operand_ids": ["op_001", "op_002"],
-            "formula": "A - B",
-            "result_unit": "%",
-        }
-        self.assertTrue(
-            should_coerce_percent_point_unit(
-                "2024년과 2023년의 연구개발비 / 매출액 비중 차이는 몇 %p인가요?",
-                operands,
-                plan,
-            )
-        )
 
     def test_operand_grounding_score_passes_for_grounded_comparison_operands(self) -> None:
         runtime_evidence = [

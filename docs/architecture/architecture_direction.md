@@ -1,5 +1,11 @@
 # Architecture Direction
 
+> **Status: experimental and superseded as a product roadmap.** This document
+> records the earlier MAS exploration. The current product authority is the
+> single-agent `FinancialAgent`; use
+> [agent_runtime_contract.md](agent_runtime_contract.md) and
+> [runtime_flow_roles.md](../overview/runtime_flow_roles.md) for active design.
+
 이 문서는 `dart-rag-agent`를 **DART 도메인 위의 multi-agent financial analysis lab**으로 재구성하기 위한 방향성을 정리한다.
 
 핵심 메시지는 단순하다.

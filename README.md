@@ -58,7 +58,8 @@ a sparse vector and not a chat-model hidden state.
 
 `FinancialAgent.run()` is the public runtime entry point. The graph plans the
 question, retrieves evidence, resolves required operands, executes a formula,
-and validates the result. Numeric output is carried through three canonical
+and validates the result. It returns a versioned `FinancialRunResultV1` with
+`agent_answer` and optional review/debug bundles. Numeric output is carried through three canonical
 surfaces:
 
 - `answer_slots`: display-preserving values and operand roles
@@ -157,6 +158,11 @@ uv run --with-requirements requirements.txt python -m unittest discover -s tests
 
 Swagger UI is available at `http://localhost:8000/docs`.
 
+The API requires an exact `StoreManifestV1` match before serving queries.
+Missing or mismatched stores return 503 and are never adopted automatically;
+use the separate manifest-adoption CLI in dry-run mode before requesting any
+write approval.
+
 ## Scope boundary
 
 | Surface | Role | Portfolio treatment |
@@ -164,10 +170,12 @@ Swagger UI is available at `http://localhost:8000/docs`.
 | Core runtime | parser, retrieval, evidence binding, calculation, answer projection | Main product story |
 | Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |
 | Experimental | MAS facade, graph-expansion variants, cache/reflection promotion paths | Optional appendix; disabled or isolated by default |
-| Legacy compatibility | flat mirrors, old import paths, callerless wrappers | Remove after caller and contract checks |
+| Legacy compatibility | historical artifacts and superseded docs | Kept outside the runtime result and linked through history |
 
-The active cleanup sequence and deletion criteria are documented in
-[core_runtime_surface_refactoring_plan.md](docs/architecture/core_runtime_surface_refactoring_plan.md).
+Current runtime ownership and deletion boundaries are documented in the
+[runtime contract](docs/architecture/agent_runtime_contract.md) and
+[codebase map](docs/overview/codebase_map.md). The earlier phased cleanup plan is
+retained as historical rationale, not as the current work queue.
 
 ## Repository map
 
@@ -176,6 +184,7 @@ main.py                    FastAPI entry point
 src/api/                   HTTP boundary
 src/agent/                 FinancialAgent graph and core runtime contracts
 src/processing/            DART parsing and chunk preparation
+src/ingestion/             fetch and ingest service ownership
 src/storage/               embeddings, Chroma, BM25, and structure storage
 src/config/                ontology, retrieval policy, and runtime config
 src/experimental/mas/      optional multi-agent experiment

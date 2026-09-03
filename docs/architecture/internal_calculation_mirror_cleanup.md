@@ -1,5 +1,9 @@
 # Internal Calculation Mirror Cleanup
 
+> **Status: completed predecessor.** The active graph uses phase-owned
+> `FinancialAgentStateV2`, and the public result has no flat compatibility
+> projection. See [agent_runtime_contract.md](agent_runtime_contract.md).
+
 This note scopes the remaining cleanup for legacy top-level
 `calculation_operands`, `calculation_plan`, `calculation_result`, and
 `calculation_debug_trace` surfaces.

@@ -5,6 +5,7 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 
@@ -102,6 +103,33 @@ class _BrokenGetVectorStore:
 
 
 class VectorStoreFallbackTests(unittest.TestCase):
+    def test_force_bm25_only_does_not_initialize_dense_embeddings(self) -> None:
+        class _CaptureChroma:
+            def __init__(self, *, embedding_function, **_kwargs):
+                self.embedding_function = embedding_function
+
+        with TemporaryDirectory() as temporary_directory:
+            with (
+                patch(
+                    "src.storage.vector_store.create_embeddings",
+                    side_effect=AssertionError("embedding construction forbidden"),
+                ),
+                patch(
+                    "src.storage.vector_store._chroma_cls",
+                    return_value=_CaptureChroma,
+                ),
+                patch.object(VectorStoreManager, "_init_bm25"),
+            ):
+                manager = VectorStoreManager(
+                    persist_directory=temporary_directory,
+                    embedding_provider="openai",
+                    embedding_model_name="text-embedding-3-large",
+                    force_bm25_only=True,
+                )
+
+        self.assertIsNone(manager.embeddings)
+        self.assertIsNone(manager.vector_store.embedding_function)
+
     def test_graph_persistence_writes_deduplicated_table_payload_sidecar(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             graph_path = Path(tmp_dir) / "document_structure_graph.json"
@@ -291,6 +319,32 @@ class VectorStoreFallbackTests(unittest.TestCase):
         self.assertTrue(manager.in_capacity_cooldown())
         self.assertEqual(len(first_results), 1)
         self.assertEqual(len(second_results), 1)
+
+    def test_search_cache_preserves_bm25_fallback_provenance(self) -> None:
+        manager = self._build_manager(
+            _CapacityErrorVectorStore(),
+            docs=["evidence"],
+            metadatas=[{"chunk_uid": "evidence"}],
+            scores=[1.0],
+        )
+
+        manager.search("same query", k=1)
+        self.assertEqual(
+            manager.last_search_telemetry["retrieval_mode"],
+            "bm25_fallback",
+        )
+
+        manager.search("same query", k=1)
+
+        self.assertEqual(manager.last_search_telemetry["retrieval_mode"], "cache")
+        self.assertEqual(
+            manager.last_search_telemetry["cached_retrieval_mode"],
+            "bm25_fallback",
+        )
+        self.assertEqual(
+            manager.last_search_telemetry["cached_vector_skipped_reason"],
+            "embedding_capacity_error",
+        )
 
     def test_force_bm25_only_skips_vector_search(self) -> None:
         vector_store = _CountVectorStore([])

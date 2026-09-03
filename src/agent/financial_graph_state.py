@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Literal, NotRequired, Optional, TypedDict
 
+from src.agent.financial_runtime_contracts import CompilationEnvelopeV1
+
 
 class RuntimeProjectionMetadata(TypedDict, total=False):
     source: str
@@ -36,6 +38,8 @@ class AgentAnswer(TypedDict, total=False):
     routing_source: str
     routing_confidence: float
     routing_scores: Dict[str, float]
+    routing_degraded_reason: str
+    retrieval_status: Dict[str, Any]
     companies: List[str]
     years: List[int]
     answer: str
@@ -134,6 +138,11 @@ class ReviewTrace(TypedDict, total=False):
     reflection_action: ReflectionAction
     reflection_report: ReflectionReport
     semantic_plan: Dict[str, Any]
+    answer_obligations: List[Dict[str, Any]]
+    semantic_candidate_catalog: List[Dict[str, Any]]
+    semantic_program: Dict[str, Any]
+    semantic_program_validation: Dict[str, Any]
+    semantic_program_retry_count: int
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]
     active_subtask_index: int
@@ -162,6 +171,7 @@ class RoutingState(TypedDict):
     routing_source: str
     routing_confidence: float
     routing_scores: Dict[str, float]
+    routing_degraded_reason: str
     companies: List[str]
     years: List[int]
     topic: str
@@ -200,6 +210,12 @@ class CalculationState(TypedDict):
     debug_traces: NotRequired[DebugTraceBundle]
     planner_debug_trace: Dict[str, Any]
     semantic_plan: Dict[str, Any]
+    answer_obligations: List[Dict[str, Any]]
+    semantic_candidate_catalog: List[Dict[str, Any]]
+    semantic_program: Dict[str, Any]
+    semantic_program_validation: Dict[str, Any]
+    semantic_compilation_envelope: NotRequired[CompilationEnvelopeV1]
+    semantic_program_retry_count: int
     calc_subtasks: List[Dict[str, Any]]
     retrieval_queries: List[str]
     active_subtask_index: int
@@ -227,6 +243,32 @@ class ReflectionState(TypedDict):
 class LedgerState(TypedDict):
     tasks: List[Dict[str, Any]]
     artifacts: List[Dict[str, Any]]
+
+
+class RequestPhase(TypedDict):
+    query: str
+    report_scope: Dict[str, Any]
+
+
+class LedgerSnapshot(TypedDict, total=False):
+    tasks: List[Dict[str, Any]]
+    artifacts: List[Dict[str, Any]]
+    task_artifact_trace: Dict[str, Any]
+
+
+class FinancialAgentStateV2(TypedDict, total=False):
+    """Graph state with one top-level writer for every runtime phase."""
+
+    request: RequestPhase
+    routing: Dict[str, Any]
+    requirements: Dict[str, Any]
+    retrieval: Dict[str, Any]
+    candidates: Dict[str, Any]
+    compilation: Dict[str, Any]
+    numeric_result: Dict[str, Any]
+    narrative_result: Dict[str, Any]
+    ledger: LedgerSnapshot
+    final_result: Dict[str, Any]
 
 
 class FinancialAgentState(

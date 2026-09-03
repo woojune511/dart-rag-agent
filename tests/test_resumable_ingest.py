@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -27,6 +27,7 @@ from src.ops.benchmark_runner import (
 from src.ops.evaluator import EvalExample
 from src.ingestion.dart_fetcher import ReportMetadata
 from src.storage import document_batches
+from src.storage.store_manifest import canonical_store_manifest
 from src.storage.vector_store import VectorStoreManager
 
 
@@ -155,7 +156,19 @@ class ResumableIngestTests(unittest.TestCase):
             [metadata["chunk_uid"] for metadata in manager.vector_store.add_calls[0]["metadatas"]],
             ["r1::chunk:2"],
         )
-        manager._update_structure_graph.assert_called_once()
+        self.assertEqual(
+            manager._update_structure_graph.call_args_list,
+            [
+                call(
+                    ["old"],
+                    [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+                ),
+                call(
+                    ["new"],
+                    [{"chunk_uid": "r1::chunk:2", "rcept_no": "r1"}],
+                ),
+            ],
+        )
         manager._init_bm25.assert_called_once()
 
     def test_add_documents_batches_pending_chunks_and_skips_input_duplicates(self) -> None:
@@ -184,6 +197,40 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual(progress_events, [(0, 3), (2, 3), (3, 3)])
         self.assertEqual(manager._update_structure_graph.call_count, 2)
         manager._init_bm25.assert_called_once()
+
+    def test_sidecar_failure_after_vector_commit_is_resumable(self) -> None:
+        manager = self._make_manager()
+        manager._update_structure_graph.side_effect = RuntimeError(
+            "synthetic sidecar failure"
+        )
+        progress_events = []
+
+        with self.assertRaisesRegex(RuntimeError, "synthetic sidecar failure"):
+            manager.add_documents(
+                ["evidence"],
+                [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+                resume=True,
+                on_progress=lambda current, total: progress_events.append(
+                    (current, total)
+                ),
+            )
+
+        self.assertEqual(len(manager.vector_store.add_calls), 1)
+        self.assertEqual(progress_events, [(0, 1), (1, 1)])
+
+        manager._update_structure_graph = Mock()
+        resumed = manager.add_documents(
+            ["evidence"],
+            [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+            resume=True,
+        )
+
+        self.assertEqual(resumed["added_chunks"], 0)
+        self.assertEqual(resumed["skipped_chunks"], 1)
+        manager._update_structure_graph.assert_called_once_with(
+            ["evidence"],
+            [{"chunk_uid": "r1::chunk:1", "rcept_no": "r1"}],
+        )
 
     def test_add_documents_can_skip_vector_add_for_bm25_only_debug_store(self) -> None:
         manager = self._make_manager()
@@ -265,6 +312,52 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertTrue(_cache_meta_is_completed({"signature": {"x": 1}}))
         self.assertFalse(_cache_meta_is_completed({"status": "in_progress"}))
 
+    def test_matching_in_progress_metadata_authorizes_partial_store_resume(
+        self,
+    ) -> None:
+        from src.ops.benchmark_runner import _cache_meta_allows_partial_resume
+
+        cache_signature = {"cache": "exact"}
+        store_signature = {"store": "exact"}
+        metadata = {
+            "status": "in_progress",
+            "signature": cache_signature,
+            "store_signature": store_signature,
+        }
+
+        self.assertTrue(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature={"cache": "changed"},
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                {**metadata, "status": "completed"},
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=True,
+            )
+        )
+        self.assertFalse(
+            _cache_meta_allows_partial_resume(
+                metadata,
+                cache_signature=cache_signature,
+                store_signature=store_signature,
+                enabled=False,
+            )
+        )
+
     def test_store_signature_tracks_embedding_backend(self) -> None:
         config = {
             "metadata": {"company": "삼성전자", "year": 2024, "report_type": "사업보고서", "rcept_no": "r1"},
@@ -287,6 +380,9 @@ class ResumableIngestTests(unittest.TestCase):
             "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         )
         self.assertEqual(store_signature["embedding"]["dimension"], 384)
+        self.assertEqual(store_signature["schema_version"], "store_manifest_v1")
+        self.assertEqual(store_signature["ingest"]["chunk_size"], 2500)
+        self.assertEqual(store_signature["ingest"]["chunk_overlap"], 320)
         self.assertEqual(cache_signature["store_signature"], store_signature)
 
     def test_cache_signature_tracks_multi_report_inventory(self) -> None:
@@ -438,28 +534,20 @@ class ResumableIngestTests(unittest.TestCase):
         self.assertEqual([example.id for example in selected], ["SAM_T2_078", "SAM_T2_002"])
 
     def test_store_signature_mismatch_detects_embedding_dimension_change(self) -> None:
-        expected = {
-            "store_signature": {
-                "collection_name": "dart_reports_v2_test",
-                "embedding": {
-                    "provider": "huggingface",
-                    "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-                    "dimension": 384,
-                },
-            }
-        }
-        actual = {
-            "store_signature": {
-                "collection_name": "dart_reports_v2_test",
-                "embedding": {
-                    "provider": "google",
-                    "model_name": "models/gemini-embedding-2",
-                    "dimension": 3072,
-                },
-            }
-        }
+        expected = canonical_store_manifest(
+            collection_name="dart_reports_v2_test",
+            embedding_provider="huggingface",
+            embedding_model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+            embedding_dimension=384,
+        ).to_projection()
+        actual = canonical_store_manifest(
+            collection_name="dart_reports_v2_test",
+            embedding_provider="google",
+            embedding_model_name="models/gemini-embedding-2",
+            embedding_dimension=3072,
+        ).to_projection()
 
-        self.assertFalse(_store_signature_matches(actual, expected["store_signature"]))
+        self.assertFalse(_store_signature_matches(actual, expected))
 
     def test_search_raises_when_query_fallback_disabled(self) -> None:
         manager = self._make_manager()

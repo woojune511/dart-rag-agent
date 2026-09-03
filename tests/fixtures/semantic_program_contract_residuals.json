@@ -1,0 +1,688 @@
+{
+  "provenance": "Curated generic provider-free characterization fixture derived from observed contract classes; it contains no company name, benchmark ID, answer key, or provider output.",
+  "contract_state": "mixed_characterization_and_repaired_contract",
+  "repaired_contracts": [
+    "direct_binding.subject_identity",
+    "candidate_admission.required_input_prompt_coverage",
+    "scope_provenance.explicit_query_ownership",
+    "expression_compatibility.declared_cross_period_inputs",
+    "canonical_operand_projection.inline_unit_precedence",
+    "canonical_operand_projection.row_subject",
+    "canonical_operand_projection.current_report_period"
+  ],
+  "remaining_characterizations": [
+    "expression_compatibility",
+    "candidate_admission",
+    "direct_binding.display_unit_conversion"
+  ],
+  "scope_provenance": {
+    "implicit_query": {
+      "query": "Return the target venture ownership share and net result.",
+      "report_scope": {
+        "company": "Sample Company",
+        "year": 2024,
+        "consolidation_scope": "consolidated"
+      },
+      "planner_obligations": [
+        {
+          "obligation_id": "share",
+          "kind": "direct_value",
+          "label": "target venture ownership share",
+          "scope": {
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "target venture"
+          }
+        },
+        {
+          "obligation_id": "result",
+          "kind": "derived_value",
+          "label": "target venture net result",
+          "scope": {
+            "period": "2024",
+            "consolidation_scope": "separate",
+            "segment": "target venture"
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "result-input",
+              "label": "target venture reported result",
+              "scope": {
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "target venture"
+              }
+            }
+          ]
+        }
+      ],
+      "expected_obligation_scopes": ["unknown", "unknown"],
+      "expected_requirement_scope": "unknown",
+      "expected_task_scope": "unknown"
+    },
+    "single_explicit_query": {
+      "query": "연결 기준으로 target venture ownership share를 반환하세요.",
+      "report_scope": {
+        "company": "Sample Company",
+        "year": 2024
+      },
+      "planner_scope": "separate",
+      "expected_scope": "consolidated"
+    },
+    "multiple_explicit_query": {
+      "query": "연결 기준과 별도 기준의 target venture ownership share를 각각 반환하세요.",
+      "planner_scopes": ["consolidated", "separate"],
+      "expected_scopes": ["consolidated", "separate"],
+      "expected_task_scope": "unknown"
+    }
+  },
+  "expression_compatibility": {
+    "cases": [
+      {
+        "case_id": "same_metric_adjacent_report_periods",
+        "query": "Return the change between the current and prior reported quantities.",
+        "obligations": [
+          {
+            "obligation_id": "ob_change",
+            "kind": "derived_value",
+            "label": "reported quantity change",
+            "required": true,
+            "display_unit": "개",
+            "display_format": "",
+            "scope": {
+              "company": "sample",
+              "period": "2024",
+              "consolidation_scope": "consolidated",
+              "segment": "service",
+              "basis": "reported"
+            },
+            "retrieval_hints": [],
+            "concept_hints": [],
+            "evidence_requirements": [
+              {
+                "requirement_id": "ob_change:req_current",
+                "label": "current reported quantity",
+                "required": true,
+                "scope": {
+                  "company": "sample",
+                  "period": "2024",
+                  "consolidation_scope": "consolidated",
+                  "segment": "service",
+                  "basis": "reported"
+                },
+                "retrieval_hints": [],
+                "concept_hints": []
+              },
+              {
+                "requirement_id": "ob_change:req_prior",
+                "label": "prior reported quantity",
+                "required": true,
+                "scope": {
+                  "company": "sample",
+                  "period": "2023",
+                  "consolidation_scope": "consolidated",
+                  "segment": "service",
+                  "basis": "reported"
+                },
+                "retrieval_hints": [],
+                "concept_hints": []
+              }
+            ],
+            "depends_on": [],
+            "coupling_key": ""
+          }
+        ],
+        "candidate_catalog": [
+          {
+            "candidate_id": "cand_current",
+            "kind": "numeric",
+            "source_candidate_id": "source_current",
+            "evidence_id": "evidence_current",
+            "source_anchor": "[sample | 2024 | operating statement]",
+            "source_row_id": "row_current",
+            "table_source_id": "operating statement::table:1",
+            "row_label": "service reported quantity",
+            "statement_type": "operating_statement",
+            "company": "sample",
+            "year": 2024,
+            "consolidation_scope": "consolidated",
+            "segment": "service",
+            "basis": "reported",
+            "context_fingerprint": "report_2024|operating statement::table:1|consolidated|service|reported",
+            "source_text": "service reported quantity 2024 380개",
+            "candidate_kind": "structured_value",
+            "raw_value": "380",
+            "raw_unit": "개",
+            "normalized_value": 380.0,
+            "normalized_unit": "COUNT",
+            "period": "2024",
+            "value_year": 2024,
+            "column_headers": ["2024"],
+            "value_role": "current",
+            "aggregation_stage": "",
+            "aggregate_label": ""
+          },
+          {
+            "candidate_id": "cand_prior",
+            "kind": "numeric",
+            "source_candidate_id": "source_prior",
+            "evidence_id": "evidence_prior",
+            "source_anchor": "[sample | 2023 | operating statement]",
+            "source_row_id": "row_prior",
+            "table_source_id": "operating statement::table:1",
+            "row_label": "service reported quantity",
+            "statement_type": "operating_statement",
+            "company": "sample",
+            "year": 2023,
+            "consolidation_scope": "consolidated",
+            "segment": "service",
+            "basis": "reported",
+            "context_fingerprint": "report_2023|operating statement::table:1|consolidated|service|reported",
+            "source_text": "service reported quantity 2023 343개",
+            "candidate_kind": "structured_value",
+            "raw_value": "343",
+            "raw_unit": "개",
+            "normalized_value": 343.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "value_year": 2023,
+            "column_headers": ["2023"],
+            "value_role": "prior",
+            "aggregation_stage": "",
+            "aggregate_label": ""
+          }
+        ],
+        "program": {
+          "status": "ready",
+          "direct_bindings": [],
+          "expressions": [
+            {
+              "obligation_id": "ob_change",
+              "variable_bindings": [
+                {
+                  "variable": "CURRENT",
+                  "source_id": "cand_current",
+                  "source_requirement_id": "ob_change:req_current"
+                },
+                {
+                  "variable": "PRIOR",
+                  "source_id": "cand_prior",
+                  "source_requirement_id": "ob_change:req_prior"
+                }
+              ],
+              "formula": "CURRENT - PRIOR",
+              "result_unit": "개",
+              "constants": []
+            }
+          ],
+          "narrative_bindings": [],
+          "missing_obligation_ids": [],
+          "ambiguous_obligation_ids": []
+        },
+        "expected_current": {
+          "status": "ready"
+        }
+      },
+      {
+        "case_id": "scope_compatible_statement_note_operands",
+        "query": "Subtract the disclosed adjustment from the reported result.",
+        "obligations": [
+          {
+            "obligation_id": "ob_adjusted",
+            "kind": "derived_value",
+            "label": "adjusted result",
+            "required": true,
+            "display_unit": "백만원",
+            "display_format": "",
+            "scope": {
+              "company": "sample",
+              "period": "2024",
+              "consolidation_scope": "consolidated",
+              "segment": "",
+              "basis": "reported"
+            },
+            "retrieval_hints": [],
+            "concept_hints": [],
+            "evidence_requirements": [
+              {
+                "requirement_id": "ob_adjusted:req_reported",
+                "label": "reported result",
+                "required": true,
+                "scope": {
+                  "company": "sample",
+                  "period": "2024",
+                  "consolidation_scope": "consolidated",
+                  "segment": "",
+                  "basis": "reported"
+                },
+                "retrieval_hints": [],
+                "concept_hints": []
+              },
+              {
+                "requirement_id": "ob_adjusted:req_adjustment",
+                "label": "disclosed adjustment",
+                "required": true,
+                "scope": {
+                  "company": "sample",
+                  "period": "2024",
+                  "consolidation_scope": "consolidated",
+                  "segment": "",
+                  "basis": "reported"
+                },
+                "retrieval_hints": [],
+                "concept_hints": []
+              }
+            ],
+            "depends_on": [],
+            "coupling_key": ""
+          }
+        ],
+        "candidate_catalog": [
+          {
+            "candidate_id": "cand_reported",
+            "kind": "numeric",
+            "source_candidate_id": "source_statement",
+            "evidence_id": "evidence_statement",
+            "source_anchor": "[sample | 2024 | consolidated statement]",
+            "source_row_id": "row_reported",
+            "table_source_id": "consolidated statement::table:2",
+            "row_label": "reported result",
+            "statement_type": "income_statement",
+            "company": "sample",
+            "year": 2024,
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": "reported",
+            "context_fingerprint": "consolidated statement::table:2|consolidated||reported",
+            "source_text": "reported result 2,163,234 백만원",
+            "candidate_kind": "structured_value",
+            "raw_value": "2,163,234",
+            "raw_unit": "백만원",
+            "normalized_value": 2163234000000.0,
+            "normalized_unit": "KRW",
+            "period": "2024",
+            "value_year": 2024,
+            "column_headers": ["2024"],
+            "value_role": "current",
+            "aggregation_stage": "",
+            "aggregate_label": ""
+          },
+          {
+            "candidate_id": "cand_adjustment",
+            "kind": "numeric",
+            "source_candidate_id": "source_note",
+            "evidence_id": "evidence_note",
+            "source_anchor": "[sample | 2024 | connected note]",
+            "source_row_id": "row_adjustment",
+            "table_source_id": "connected note::table:9",
+            "row_label": "disclosed adjustment",
+            "statement_type": "notes",
+            "company": "sample",
+            "year": 2024,
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": "reported",
+            "context_fingerprint": "connected note::table:9|consolidated||reported",
+            "source_text": "the connected note identifies the disclosed adjustment as 676,874 백만원",
+            "candidate_kind": "structured_value",
+            "raw_value": "676,874",
+            "raw_unit": "백만원",
+            "normalized_value": 676874000000.0,
+            "normalized_unit": "KRW",
+            "period": "2024",
+            "value_year": 2024,
+            "column_headers": ["2024"],
+            "value_role": "current",
+            "aggregation_stage": "",
+            "aggregate_label": ""
+          }
+        ],
+        "program": {
+          "status": "ready",
+          "direct_bindings": [],
+          "expressions": [
+            {
+              "obligation_id": "ob_adjusted",
+              "variable_bindings": [
+                {
+                  "variable": "REPORTED",
+                  "source_id": "cand_reported",
+                  "source_requirement_id": "ob_adjusted:req_reported"
+                },
+                {
+                  "variable": "ADJUSTMENT",
+                  "source_id": "cand_adjustment",
+                  "source_requirement_id": "ob_adjusted:req_adjustment"
+                }
+              ],
+              "formula": "REPORTED - ADJUSTMENT",
+              "result_unit": "백만원",
+              "constants": []
+            }
+          ],
+          "narrative_bindings": [],
+          "missing_obligation_ids": [],
+          "ambiguous_obligation_ids": []
+        },
+        "expected_current": {
+          "status": "invalid",
+          "error_code": "expression_context_mismatch",
+          "detail": "context_fingerprint"
+        }
+      }
+    ]
+  },
+  "candidate_admission": {
+    "source_candidates": [
+      {
+        "candidate_id": "source_selected_row",
+        "source_anchor": "[sample | 2024 | detailed table]",
+        "text": "The retained table context contains several requested rows.",
+        "candidate_kind": "structured_row",
+        "metadata": {
+          "company": "sample",
+          "year": 2024,
+          "consolidation_scope": "consolidated",
+          "table_source_id": "detailed table::table:4",
+          "source_row_id": "row_selected",
+          "row_label": "unrelated region",
+          "semantic_label": "unrelated region",
+          "row_text": "unrelated region | 53%",
+          "unit_hint": "%",
+          "structured_cells": [
+            {
+              "column_headers": ["ownership share"],
+              "value_text": "53",
+              "unit_hint": "%"
+            }
+          ],
+          "table_value_labels_text": "target venture share 25.81%\ntarget venture carrying value 1,294,367백만원\ntarget venture net result -803,742백만원\nrequested aggregate 28,352,769백만원\ncurrent sales 870,000 items\nprior sales 781,000 items"
+        }
+      }
+    ],
+    "expected_current": {
+      "present_raw_values": ["53"],
+      "missing_raw_values": ["25.81", "1,294,367", "-803,742", "28,352,769", "870,000", "781,000"]
+    },
+    "required_input_prompt_coverage": {
+      "decimal_pair_context": {
+        "source_id": "paired-decimal-source",
+        "text": "Baseline group increased 12.3% to 1,560.8 items. Target venture series increased 11.5% to 870.0 items.",
+        "required_surface": "Target venture series",
+        "target_value": "870.0",
+        "expected_context": "Target venture series increased 11.5% to 870.0 items."
+      }
+    }
+  },
+  "canonical_operand_projection": {
+    "query": "Return the target venture ownership share and carrying amount.",
+    "source_candidate": {
+      "candidate_id": "source_projection_contract",
+      "source_anchor": "[sample | 2024 | investment note]",
+      "text": "target venture (*) | research | region | 26% | 700,691",
+      "candidate_kind": "structured_value",
+      "metadata": {
+        "company": "sample",
+        "year": 2024,
+        "period_focus": "current",
+        "period_labels": [],
+        "consolidation_scope": "consolidated",
+        "source_row_id": "row_target_venture",
+        "table_source_id": "investment note::table:1",
+        "row_label": "region",
+        "semantic_label": "region",
+        "row_headers": ["target venture (*1,5)", "research", "region"],
+        "unit_hint": "백만원",
+        "structured_cells": [
+          {
+            "column_headers": ["ownership share"],
+            "value_text": "26%",
+            "unit_hint": ""
+          },
+          {
+            "column_headers": ["carrying amount"],
+            "value_text": "700,691",
+            "unit_hint": "백만원"
+          }
+        ]
+      }
+    },
+    "obligations": [
+      {
+        "obligation_id": "ob_share",
+        "kind": "direct_value",
+        "label": "target venture ownership share",
+        "required": true,
+        "display_unit": "%",
+        "display_format": "",
+        "scope": {
+          "company": "sample",
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "target venture",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "evidence_requirements": [],
+        "depends_on": [],
+        "coupling_key": ""
+      },
+      {
+        "obligation_id": "ob_amount",
+        "kind": "direct_value",
+        "label": "target venture carrying amount",
+        "required": true,
+        "display_unit": "백만원",
+        "display_format": "",
+        "scope": {
+          "company": "sample",
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "target venture",
+          "basis": ""
+        },
+        "retrieval_hints": [],
+        "concept_hints": [],
+        "evidence_requirements": [],
+        "depends_on": [],
+        "coupling_key": ""
+      }
+    ],
+    "expected_after_repair": {
+      "share_candidate_id": "cand_49c015d35a0fd8c3baba",
+      "amount_candidate_id": "cand_11745dce7e23ade7d1fb",
+      "subject": "target venture",
+      "period": "2024",
+      "period_source": "report_current",
+      "value_year": 2024,
+      "share_raw_value": "26%",
+      "share_raw_unit": "%",
+      "share_source_unit_hint": "백만원",
+      "share_raw_unit_source": "inline_value",
+      "share_normalized_unit": "PERCENT",
+      "amount_raw_unit": "백만원",
+      "amount_raw_unit_source": "cell_or_table_hint",
+      "amount_normalized_unit": "KRW"
+    }
+  },
+  "direct_binding": {
+    "subject_identity": {
+      "query": "Return the target venture ownership share.",
+      "obligations": [
+        {
+          "obligation_id": "ob_share",
+          "kind": "direct_value",
+          "label": "target venture ownership share",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "",
+          "scope": {
+            "company": "sample",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "target venture",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand_wrong_subject",
+          "kind": "numeric",
+          "source_candidate_id": "source_wrong_subject",
+          "evidence_id": "evidence_wrong_subject",
+          "source_anchor": "[sample | 2024 | detailed table]",
+          "source_row_id": "row_unrelated_region",
+          "table_source_id": "detailed table::table:4",
+          "row_label": "unrelated region",
+          "row_headers": ["unrelated region"],
+          "statement_type": "notes",
+          "company": "sample",
+          "year": 2024,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "detailed table::table:4|consolidated||",
+          "source_text": "unrelated region 53%; target venture 26% appears elsewhere in the same table",
+          "candidate_kind": "structured_row",
+          "raw_value": "53",
+          "raw_unit": "%",
+          "normalized_value": 53.0,
+          "normalized_unit": "PERCENT",
+          "period": "2024",
+          "value_year": 2024,
+          "column_headers": ["ownership share"],
+          "value_role": "current",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {
+            "obligation_id": "ob_share",
+            "candidate_id": "cand_wrong_subject"
+          }
+        ],
+        "expressions": [],
+        "narrative_bindings": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": []
+      },
+      "expected_after_repair": {
+        "status": "invalid",
+        "error_code": "candidate_subject_mismatch",
+        "detail": "segment"
+      },
+      "same_row_source_candidate": {
+        "candidate_id": "source_same_row_subject",
+        "source_anchor": "[sample | 2024 | detailed table]",
+        "text": "ownership share | 26%",
+        "candidate_kind": "structured_value",
+        "metadata": {
+          "company": "sample",
+          "year": 2024,
+          "consolidation_scope": "consolidated",
+          "source_row_id": "row_target_venture",
+          "table_source_id": "detailed table::table:4",
+          "row_label": "ownership share",
+          "semantic_label": "ownership share",
+          "row_headers": ["target venture"],
+          "structured_cells": [
+            {
+              "column_headers": ["2024"],
+              "value_text": "26",
+              "unit_hint": "%"
+            }
+          ]
+        }
+      },
+      "same_row_expected": {
+        "status": "ok",
+        "rendered_value": "26%",
+        "row_headers": ["target venture"]
+      }
+    },
+    "display_unit_conversion": {
+      "query": "Return the reported carrying value in won.",
+      "obligations": [
+        {
+          "obligation_id": "ob_value",
+          "kind": "direct_value",
+          "label": "reported carrying value",
+          "required": true,
+          "display_unit": "원",
+          "display_format": "",
+          "scope": {
+            "company": "sample",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "target venture",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand_scaled_value",
+          "kind": "numeric",
+          "source_candidate_id": "source_scaled_value",
+          "evidence_id": "evidence_scaled_value",
+          "source_anchor": "[sample | 2024 | detailed table]",
+          "source_row_id": "row_target_venture",
+          "table_source_id": "detailed table::table:4",
+          "row_label": "target venture",
+          "statement_type": "notes",
+          "company": "sample",
+          "year": 2024,
+          "consolidation_scope": "consolidated",
+          "segment": "target venture",
+          "basis": "",
+          "context_fingerprint": "detailed table::table:4|consolidated|target venture|",
+          "source_text": "target venture carrying value 700백만원",
+          "candidate_kind": "structured_value",
+          "raw_value": "700",
+          "raw_unit": "백만원",
+          "normalized_value": 700000000.0,
+          "normalized_unit": "KRW",
+          "period": "2024",
+          "value_year": 2024,
+          "column_headers": ["carrying value"],
+          "value_role": "current",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {
+            "obligation_id": "ob_value",
+            "candidate_id": "cand_scaled_value"
+          }
+        ],
+        "expressions": [],
+        "narrative_bindings": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": []
+      },
+      "expected_current": {
+        "status": "ok",
+        "requested_display_unit": "원",
+        "rendered_value": "700백만원"
+      }
+    }
+  }
+}

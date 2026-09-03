@@ -376,6 +376,38 @@ class FinancialParserUtilityTests(unittest.TestCase):
         self.assertEqual(value_records[0]["period_text"], "2023")
         self.assertEqual(value_records[0]["value_text"], "92,228,115")
 
+    def test_table_context_bundle_preserves_billion_krw_unit(self) -> None:
+        parser = FinancialParser(chunk_size=2500, chunk_overlap=320)
+        table_object = {
+            "grid": [
+                ["Category", "2023", "2022"],
+                ["Target metric", "3,146", "1,848"],
+            ],
+            "row_labels": ["Target metric"],
+            "row_count": 2,
+            "column_count": 3,
+            "has_spans": False,
+        }
+
+        bundle = parser._build_table_context_bundle(
+            "Category | 2023 | 2022\nTarget metric | 3,146 | 1,848",
+            "Management discussion",
+            "section::table:billion-unit",
+            table_object=table_object,
+            context_prefix="(단위: 십억원, %, %p)",
+        )
+
+        self.assertEqual(bundle["unit_hint"], "십억원")
+        row_records = json.loads(bundle["table_row_records_json"])
+        self.assertTrue(row_records)
+        self.assertTrue(
+            all(
+                cell["unit_hint"] == "십억원"
+                for row in row_records
+                for cell in row["cells"]
+            )
+        )
+
     def test_table_context_bundle_uses_promoted_statement_hint_for_body_table(self) -> None:
         parser = FinancialParser(chunk_size=8000, chunk_overlap=400)
         body_table_object = {

@@ -33,15 +33,9 @@ def scoped_surface_affinity_priority(
     *,
     query: str,
     topic: str,
-    required_operands: Optional[List[Dict[str, Any]]] = None,
-    require_segment_operand: bool = False,
     direct_weight: float = 0.0,
     adjustment_weight: float = 0.0,
 ) -> float:
-    if require_segment_operand and not any(
-        operand_segment_label(dict(operand or {})) for operand in list(required_operands or [])
-    ):
-        return 0.0
     affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
     metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
     query_surface = _normalise_spaces(f"{query} {topic}")

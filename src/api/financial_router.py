@@ -11,18 +11,13 @@ FastAPI 라우터 — DART 공시 분석 AI Agent REST API.
 from __future__ import annotations
 
 import logging
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.agent.financial_run_result import FinancialRunResultV1
 
 logger = logging.getLogger(__name__)
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_CHROMA_PATH   = str(_PROJECT_ROOT / "data" / "chroma_dart")
-_REPORTS_DIR   = str(_PROJECT_ROOT / "data" / "reports")
-_ENV_LOADED = False
-
-_router: Optional[Any] = None
 _SCHEMA_MODELS: Optional[Dict[str, type]] = None
 _SCHEMA_EXPORTS = {
     "CompaniesResponse",
@@ -32,57 +27,17 @@ _SCHEMA_EXPORTS = {
     "IngestResponse",
     "QueryRequest",
     "QueryResponse",
+    "ReportScope",
 }
 
 
-def _load_env_once() -> None:
-    global _ENV_LOADED
-    if not _ENV_LOADED:
-        from dotenv import load_dotenv
+def _services(request: Any):
+    from fastapi import HTTPException
 
-        load_dotenv()
-        _ENV_LOADED = True
-
-
-def _context_max_workers() -> int:
-    _load_env_once()
-    return int(os.environ.get("CONTEXTUAL_INGEST_MAX_WORKERS", "8"))
-
-
-# --------------------------------------------------------------------------
-# 컴포넌트 싱글턴 (FastAPI 수명 주기에서 초기화)
-# --------------------------------------------------------------------------
-
-_vsm:     Optional[Any] = None
-_agent:   Optional[Any] = None
-_parser:  Optional[Any] = None
-_fetcher: Optional[Any] = None
-
-
-def init_components() -> None:
-    """애플리케이션 시작 시 한 번만 호출. 모든 컴포넌트를 초기화."""
-    global _vsm, _agent, _parser, _fetcher
-
-    _load_env_once()
-
-    from src.agent.financial_graph import FinancialAgent
-    from src.ingestion.dart_fetcher import DARTFetcher
-    from src.processing.financial_parser import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, FinancialParser
-    from src.storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
-
-    _vsm     = VectorStoreManager(persist_directory=_CHROMA_PATH, collection_name=DEFAULT_COLLECTION_NAME)
-    _agent   = FinancialAgent(_vsm, k=8)
-    _parser  = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
-    _fetcher = DARTFetcher(download_dir=_REPORTS_DIR)
-    logger.info("컴포넌트 초기화 완료")
-
-
-def _require(component, name: str):
-    if component is None:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=503, detail=f"{name} not initialized. Call init_components() on startup.")
-    return component
+    services = getattr(request.app.state, "services", None)
+    if services is None:
+        raise HTTPException(status_code=503, detail="application services are not initialized")
+    return services
 
 
 def _schema_models() -> Dict[str, type]:
@@ -107,8 +62,20 @@ def _schema_models() -> Dict[str, type]:
         chunks_added: int
         message: str
 
+    class ReportScope(_DeferredBaseModel):
+        company: Optional[str] = None
+        corp_name: Optional[str] = None
+        year: Optional[int] = None
+        report_type: Optional[str] = None
+        rcept_no: Optional[str] = None
+        consolidation: Optional[str] = None
+        source_companies: List[str] = Field(default_factory=list)
+        source_receipts: List[str] = Field(default_factory=list)
+        source_reports: List[Dict[str, Any]] = Field(default_factory=list)
+
     class QueryRequest(_DeferredBaseModel):
         question: str = Field(..., examples=["삼성전자 2023년 주요 리스크는 무엇인가요?"])
+        report_scope: Optional[ReportScope] = None
         include_review_trace: bool = Field(default=False)
         include_debug_bundle: bool = Field(default=False)
 
@@ -123,6 +90,7 @@ def _schema_models() -> Dict[str, type]:
         resolved_calculation_trace: Dict[str, Any] = Field(default_factory=dict)
         review_trace: Optional[Dict[str, Any]] = None
         debug_bundle: Optional[Dict[str, Any]] = None
+        retrieval_readiness: Optional[Dict[str, Any]] = None
 
     class CompanyInfo(_DeferredBaseModel):
         name: str
@@ -136,6 +104,9 @@ def _schema_models() -> Dict[str, type]:
     class HealthResponse(_DeferredBaseModel):
         status: str
         indexed_docs: int
+        ready: bool = False
+        degraded: bool = False
+        reason: str = ""
 
     _SCHEMA_MODELS = {
         "CompaniesResponse": CompaniesResponse,
@@ -145,23 +116,38 @@ def _schema_models() -> Dict[str, type]:
         "IngestResponse": IngestResponse,
         "QueryRequest": QueryRequest,
         "QueryResponse": QueryResponse,
+        "ReportScope": ReportScope,
     }
     return _SCHEMA_MODELS
 
 
 def _query_response_from_agent_result(
     question: str,
-    result: Dict[str, Any],
+    result: FinancialRunResultV1,
     *,
     include_review_trace: bool = False,
     include_debug_bundle: bool = False,
+    retrieval_readiness: Optional[Dict[str, Any]] = None,
 ) -> QueryResponse:
     QueryResponse = _schema_models()["QueryResponse"]
-    answer_payload = (
-        dict(result.get("agent_answer") or {})
-        if "agent_answer" in result
-        else result
+    answer_payload = dict(result.agent_answer)
+    query_retrieval_status = dict(
+        answer_payload.get("retrieval_status") or {}
     )
+    effective_readiness = dict(retrieval_readiness or {})
+    if bool(query_retrieval_status.get("degraded")):
+        store_status = str(effective_readiness.get("status") or "")
+        if store_status and store_status != "degraded":
+            effective_readiness["store_status"] = store_status
+        effective_readiness.update(
+            {
+                "status": "degraded",
+                "ready": bool(effective_readiness.get("ready", True)),
+                "degraded": True,
+                "reason": "query used BM25 fallback",
+                "query_retrieval": query_retrieval_status,
+            }
+        )
     response = QueryResponse(
         question=question,
         answer=str(answer_payload.get("answer") or ""),
@@ -174,10 +160,12 @@ def _query_response_from_agent_result(
             answer_payload.get("resolved_calculation_trace") or {}
         ),
     )
-    if include_review_trace:
-        response.review_trace = dict(result.get("review_trace") or {})
-    if include_debug_bundle:
-        response.debug_bundle = dict(result.get("debug_bundle") or {})
+    if include_review_trace and result.review_trace is not None:
+        response.review_trace = dict(result.review_trace)
+    if include_debug_bundle and result.debug_bundle is not None:
+        response.debug_bundle = dict(result.debug_bundle)
+    if effective_readiness and bool(effective_readiness.get("degraded")):
+        response.retrieval_readiness = effective_readiness
     return response
 
 
@@ -187,13 +175,16 @@ def _query_response_from_agent_result(
 
 def get_router():
     """Build the FastAPI router only when the API application asks for it."""
-    global _router
-    if _router is not None:
-        return _router
+    from fastapi import APIRouter, HTTPException, Request, Response
+    from starlette.concurrency import run_in_threadpool
 
-    from fastapi import APIRouter, HTTPException
+    # Route annotations are evaluated against this module even though FastAPI is
+    # imported lazily to keep importing the contract module side-effect free.
+    globals()["Request"] = Request
+    globals()["Response"] = Response
 
     schemas = _schema_models()
+    globals().update(schemas)
     CompaniesResponse = schemas["CompaniesResponse"]
     CompanyInfo = schemas["CompanyInfo"]
     HealthResponse = schemas["HealthResponse"]
@@ -204,20 +195,55 @@ def get_router():
 
     router = APIRouter(prefix="/api", tags=["financial"])
 
-    @router.get("/health", response_model=HealthResponse)
-    async def health():
-        """서버 및 벡터 DB 상태 확인."""
-        vsm = _vsm
-        count = len(vsm.bm25_docs) if vsm else 0
-        return HealthResponse(status="ok", indexed_docs=count)
+    @router.get("/health/live", response_model=HealthResponse)
+    async def health_live():
+        return HealthResponse(
+            status="live",
+            indexed_docs=0,
+            ready=False,
+        )
+
+    async def readiness_response(request: Request, response: Response):
+        services = _services(request)
+        readiness = services.readiness
+        count = (
+            len(getattr(services.store, "bm25_docs", []) or [])
+            if services.store is not None
+            else 0
+        )
+        if not readiness.ready:
+            response.status_code = 503
+        return HealthResponse(
+            status=readiness.status,
+            indexed_docs=count,
+            ready=readiness.ready,
+            degraded=readiness.degraded,
+            reason=readiness.reason,
+        )
+
+    router.add_api_route(
+        "/health/ready",
+        readiness_response,
+        methods=["GET"],
+        response_model=HealthResponse,
+    )
+    router.add_api_route(
+        "/health",
+        readiness_response,
+        methods=["GET"],
+        response_model=HealthResponse,
+    )
 
     @router.get("/companies", response_model=CompaniesResponse)
-    async def get_companies():
+    async def get_companies(request: Request):
         """
         현재 벡터 DB에 인덱싱된 기업·연도 목록 반환.
         ChromaDB 메타데이터에서 집계.
         """
-        vsm = _require(_vsm, "VectorStoreManager")
+        services = _services(request)
+        vsm = services.store
+        if vsm is None:
+            raise HTTPException(status_code=503, detail=services.readiness.reason)
 
         try:
             data = vsm.vector_store.get(include=["metadatas"])
@@ -247,7 +273,7 @@ def get_router():
         return CompaniesResponse(companies=companies, total_chunks=len(metadatas))
 
     @router.post("/ingest", response_model=IngestResponse)
-    async def ingest(req: IngestRequest):
+    async def ingest(req: IngestRequest, request: Request):
         """
         기업 공시 문서를 DART에서 수집하고 벡터 DB에 인덱싱.
 
@@ -255,50 +281,34 @@ def get_router():
         - FinancialParser로 파싱 (섹션 분류 + 2-level 청킹)
         - ChromaDB + BM25에 인덱싱
         """
-        fetcher = _require(_fetcher, "DARTFetcher")
-        parser  = _require(_parser,  "FinancialParser")
-        agent   = _require(_agent,   "FinancialAgent")
-
+        services = _services(request)
+        ingest_service = services.ingest_service
+        if ingest_service is None:
+            raise HTTPException(status_code=503, detail=services.readiness.reason)
         try:
-            reports = fetcher.fetch_company_reports(req.company, req.years)
+            async with services.operation_lock:
+                try:
+                    result = await run_in_threadpool(
+                        ingest_service.ingest_company,
+                        req.company,
+                        req.years,
+                        max_workers=services.contextual_ingest_max_workers,
+                    )
+                finally:
+                    services.refresh_readiness()
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"DART 수집 실패: {e}")
+            raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
 
-        if not reports:
+        if not int(result.get("files_fetched") or 0):
             raise HTTPException(
                 status_code=404,
                 detail=f"'{req.company}'의 {req.years} 공시 문서를 찾을 수 없습니다.",
             )
-
-        vsm = _require(_vsm, "VectorStoreManager")
-        total_chunks = 0
-        skipped = 0
-        for report in reports:
-            if not report.file_path or not Path(report.file_path).exists():
-                logger.warning(f"파일 없음 건너뜀: {report}")
-                continue
-
-            if vsm.is_indexed(report.rcept_no):
-                logger.info(f"이미 인덱싱됨 건너뜀: {report.corp_name} {report.year} ({report.rcept_no})")
-                skipped += 1
-                continue
-
-            meta = {
-                "company":     report.corp_name,
-                "stock_code":  report.stock_code or "unknown",
-                "year":        report.year,
-                "report_type": report.report_type,
-                "rcept_no":    report.rcept_no,
-            }
-            chunks = parser.process_document(report.file_path, meta)
-            if chunks:
-                agent.contextual_ingest(chunks, max_workers=_context_max_workers())
-                total_chunks += len(chunks)
-                logger.info(f"인덱싱: {report.corp_name} {report.year} → {len(chunks)}청크")
-
-        if total_chunks == 0 and skipped == 0:
+        total_chunks = int(result.get("chunks_added") or 0)
+        processed = int(result.get("reports_processed") or 0)
+        skipped = int(result.get("reports_skipped") or 0)
+        if total_chunks == 0 and processed == 0 and skipped == 0:
             raise HTTPException(status_code=422, detail="파싱된 청크가 없습니다. 파일 형식을 확인하세요.")
-
         msg = f"'{req.company}' {req.years} 처리 완료"
         if total_chunks:
             msg += f" — {total_chunks}청크 신규 인덱싱"
@@ -308,26 +318,49 @@ def get_router():
         return IngestResponse(
             company=req.company,
             years=req.years,
-            files_fetched=len(reports),
+            files_fetched=int(result.get("files_fetched") or 0),
             chunks_added=total_chunks,
             message=msg,
         )
 
     @router.post("/query", response_model=QueryResponse, response_model_exclude_none=True)
-    async def query(req: QueryRequest):
+    async def query(req: QueryRequest, request: Request):
         """
         자연어 질문을 FinancialAgent로 처리하여 분석 답변 반환.
 
         LangGraph 5-노드 파이프라인:
         classify → extract → retrieve → analyze → cite
         """
-        agent = _require(_agent, "FinancialAgent")
+        services = _services(request)
+        if not services.readiness.ready:
+            raise HTTPException(
+                status_code=503,
+                detail=services.readiness.reason,
+            )
+        agent = services.agent
+        if agent is None:
+            raise HTTPException(status_code=503, detail="FinancialAgent is unavailable")
 
         if not req.question.strip():
             raise HTTPException(status_code=422, detail="질문이 비어있습니다.")
 
         try:
-            result = agent.run(req.question)
+            report_scope = (
+                req.report_scope.model_dump(
+                    exclude_none=True,
+                    exclude_unset=True,
+                )
+                if req.report_scope is not None
+                else None
+            )
+            async with services.operation_lock:
+                result = await run_in_threadpool(
+                    agent.run,
+                    req.question,
+                    report_scope=report_scope,
+                    include_review_trace=req.include_review_trace,
+                    include_debug_bundle=req.include_debug_bundle,
+                )
         except Exception as e:
             logger.error(f"agent.run 실패: {e}")
             raise HTTPException(status_code=500, detail=f"분석 실패: {e}")
@@ -337,9 +370,9 @@ def get_router():
             result,
             include_review_trace=req.include_review_trace,
             include_debug_bundle=req.include_debug_bundle,
+            retrieval_readiness=services.readiness.to_projection(),
         )
 
-    _router = router
     return router
 
 
@@ -359,7 +392,7 @@ __all__ = [
     "IngestResponse",
     "QueryRequest",
     "QueryResponse",
+    "ReportScope",
     "get_router",
-    "init_components",
     "router",
 ]

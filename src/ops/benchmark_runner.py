@@ -25,8 +25,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config.runtime_contract import CANONICAL_INGEST_MODE
+from src.config.runtime_contract import (
+    CANONICAL_CHUNK_OVERLAP,
+    CANONICAL_CHUNK_SIZE,
+    CANONICAL_EMBEDDING_DIMENSION,
+    CANONICAL_EMBEDDING_MODEL,
+    CANONICAL_EMBEDDING_PROVIDER,
+    CANONICAL_INGEST_MODE,
+    CANONICAL_INGEST_PROFILE_ID,
+    CANONICAL_PARSER_SCHEMA_VERSION,
+)
 from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER, get_embedding_runtime_spec
+from src.storage.store_manifest import (
+    StoreManifestV1,
+    canonical_store_manifest,
+    read_store_manifest,
+    store_manifest_path,
+    write_store_manifest,
+)
 from src.utils.gemini_usage_counts import (
     add_gemini_usage_counts,
     estimate_gemini_cost_usd,
@@ -83,6 +99,14 @@ ABSTENTION_MARKERS = (
 )
 RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없", "명시되지")
 BENCHMARK_CACHE_SCHEMA_VERSION = 2
+STORE_ONLY_MANIFEST_SCHEMA_VERSION = 1
+
+
+class _StoreOnlyIngestAgent:
+    """Minimal ingest facade that cannot initialize routing or evaluator services."""
+
+    def __init__(self, vsm: Any) -> None:
+        self.vsm = vsm
 
 
 def _financial_agent_cls():
@@ -676,10 +700,30 @@ def _build_store_signature(config: Dict[str, Any], collection_name: str) -> Dict
         provider=embedding_provider,
         model_name=embedding_model_name,
     )
-    return {
-        "collection_name": collection_name,
-        "embedding": embedding_spec,
-    }
+    ingest_mode = str(config.get("ingest_mode") or CANONICAL_INGEST_MODE)
+    profile_id = str(
+        config.get("ingest_profile_id")
+        or (
+            CANONICAL_INGEST_PROFILE_ID
+            if ingest_mode == CANONICAL_INGEST_MODE
+            else f"benchmark:{ingest_mode}"
+        )
+    )
+    return canonical_store_manifest(
+        collection_name=collection_name,
+        embedding_provider=str(embedding_spec["provider"]),
+        embedding_model_name=str(embedding_spec["model_name"]),
+        embedding_dimension=int(embedding_spec["dimension"]),
+        profile_id=profile_id,
+        parser_schema_version=str(
+            config.get("parser_schema_version")
+            or CANONICAL_PARSER_SCHEMA_VERSION
+        ),
+        chunk_size=int(config.get("chunk_size") or DEFAULT_CHUNK_SIZE),
+        chunk_overlap=int(
+            config.get("chunk_overlap") or DEFAULT_CHUNK_OVERLAP
+        ),
+    ).to_projection()
 
 
 def _build_cache_signature(config: Dict[str, Any], collection_name: str) -> Dict[str, Any]:
@@ -727,7 +771,7 @@ def _cache_meta_path(persist_dir: Path) -> Path:
 
 
 def _store_meta_path(persist_dir: Path) -> Path:
-    return persist_dir / "vector_store_meta.json"
+    return store_manifest_path(persist_dir)
 
 
 def _context_cache_path(output_root: Path, experiment_id: str) -> Path:
@@ -750,18 +794,16 @@ def _write_cache_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
 
 
 def _load_store_meta(persist_dir: Path) -> Dict[str, Any]:
-    path = _store_meta_path(persist_dir)
-    if not path.exists():
-        return {}
     try:
-        return _load_json(path)
+        manifest = read_store_manifest(persist_dir)
+        return manifest.to_projection() if manifest is not None else {}
     except Exception:
-        logger.warning("Failed to load vector store metadata: %s", path)
+        logger.warning("Failed to load store manifest: %s", _store_meta_path(persist_dir))
         return {}
 
 
 def _write_store_meta(persist_dir: Path, payload: Dict[str, Any]) -> None:
-    _write_json(_store_meta_path(persist_dir), payload)
+    write_store_manifest(persist_dir, StoreManifestV1.from_projection(payload))
 
 
 def _load_context_cache(output_root: Path, experiment_id: str) -> Dict[str, Any]:
@@ -784,11 +826,26 @@ def _cache_meta_matches(cache_meta: Dict[str, Any], signature: Dict[str, Any]) -
 
 
 def _store_signature_matches(store_meta: Dict[str, Any], store_signature: Dict[str, Any]) -> bool:
-    return bool(store_meta) and store_meta.get("store_signature") == store_signature
+    return bool(store_meta) and store_meta == store_signature
 
 
 def _cache_meta_is_completed(cache_meta: Dict[str, Any]) -> bool:
     return bool(cache_meta) and str(cache_meta.get("status") or "completed") == "completed"
+
+
+def _cache_meta_allows_partial_resume(
+    cache_meta: Dict[str, Any],
+    *,
+    cache_signature: Dict[str, Any],
+    store_signature: Dict[str, Any],
+    enabled: bool,
+) -> bool:
+    return bool(
+        enabled
+        and str(cache_meta.get("status") or "") == "in_progress"
+        and _cache_meta_matches(cache_meta, cache_signature)
+        and cache_meta.get("store_signature") == store_signature
+    )
 
 
 def _merge_resume_metrics(metrics: Dict[str, Any], add_metrics: Dict[str, Any]) -> Dict[str, Any]:
@@ -1131,6 +1188,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "evidence": result.evidence,
                 "raw_faithfulness": result.raw_faithfulness,
                 "faithfulness": result.faithfulness,
+                "faithfulness_reason": getattr(result, "faithfulness_reason", None),
                 "faithfulness_override_reason": result.faithfulness_override_reason,
                 "answer_relevancy": result.answer_relevancy,
                 "context_recall": result.context_recall,
@@ -1154,6 +1212,15 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "raw_numeric_confidence": getattr(result, "raw_numeric_confidence", None),
                 "numeric_confidence": result.numeric_confidence,
                 "numeric_debug": result.numeric_debug,
+                "accepted_calculation_variant_match": getattr(
+                    result, "accepted_calculation_variant_match", None
+                ),
+                "accepted_calculation_variant_id": getattr(
+                    result, "accepted_calculation_variant_id", ""
+                ),
+                "accepted_calculation_variant_debug": getattr(
+                    result, "accepted_calculation_variant_debug", {}
+                ) or {},
                 "agent_numeric_debug_trace": getattr(result, "agent_numeric_debug_trace", {}) or {},
                 "agent_numeric_debug_trace_history": getattr(result, "agent_numeric_debug_trace_history", []) or [],
                 "absolute_error_rate": result.absolute_error_rate,
@@ -1229,15 +1296,17 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
         answer = ""
         query_type = "unknown"
         try:
-            result = agent.run(query)
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
-            citations = result.get("citations", [])
-            answer = result.get("answer", "") or ""
-            query_type = result.get("query_type")
+            result = agent.run(query, include_review_trace=True)
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = review_trace.get("retrieval_debug_trace", {}) or {}
+            citations = agent_answer.get("citations", [])
+            answer = agent_answer.get("answer", "") or ""
+            query_type = agent_answer.get("query_type")
             runtime_projection = {
-                "resolved_calculation_trace": result.get("resolved_calculation_trace"),
-                "structured_result": result.get("structured_result"),
+                "resolved_calculation_trace": agent_answer.get("resolved_calculation_trace"),
+                "structured_result": agent_answer.get("structured_result"),
             }
             # Smoke summaries are generated from the public run projection and
             # should not re-read legacy top-level calculation mirrors.
@@ -1313,12 +1382,15 @@ def _run_screening_eval(
             result = agent.run(
                 example.question,
                 report_scope=_build_example_report_scope_for_eval(example),
+                include_review_trace=True,
             )
-            answer = result.get("answer", "")
-            query_type = result.get("query_type", "unknown")
-            retrieved_docs = result.get("retrieved_docs", [])
-            retrieval_debug_trace = result.get("retrieval_debug_trace", {}) or {}
-            citations = result.get("citations", [])
+            agent_answer = result.agent_answer
+            review_trace = result.review_trace or {}
+            answer = agent_answer.get("answer", "")
+            query_type = agent_answer.get("query_type", "unknown")
+            retrieved_docs = review_trace.get("retrieved_docs", [])
+            retrieval_debug_trace = review_trace.get("retrieval_debug_trace", {}) or {}
+            citations = agent_answer.get("citations", [])
         except Exception as exc:
             error = str(exc)
             logger.error("[%s] screening run failed: %s", example.id, exc)
@@ -2548,6 +2620,7 @@ def _flatten_review_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     "routing_scores": json.dumps(question_result.get("routing_scores", {}), ensure_ascii=False),
                     "raw_faithfulness": question_result.get("raw_faithfulness"),
                     "faithfulness": question_result.get("faithfulness"),
+                    "faithfulness_reason": question_result.get("faithfulness_reason"),
                     "faithfulness_override_reason": question_result.get("faithfulness_override_reason"),
                     "answer_relevancy": question_result.get("answer_relevancy"),
                     "context_recall": question_result.get("context_recall"),
@@ -2637,6 +2710,7 @@ def _write_review_csv(path: Path, results: List[Dict[str, Any]]) -> None:
         "routing_scores",
         "raw_faithfulness",
         "faithfulness",
+        "faithfulness_reason",
         "faithfulness_override_reason",
         "answer_relevancy",
         "context_recall",
@@ -2725,6 +2799,8 @@ def _render_review_markdown(results: List[Dict[str, Any]]) -> str:
             lines.append(f"- Routing Scores: {row['routing_scores']}")
         if row.get("faithfulness_override_reason"):
             lines.append(f"- Faithfulness Override: {row['faithfulness_override_reason']}")
+        if row.get("faithfulness_reason"):
+            lines.append(f"- Faithfulness Reason: {row['faithfulness_reason']}")
         if row.get("completeness_reason"):
             lines.append(f"- Completeness Reason: {row['completeness_reason']}")
         if row.get("numeric_final_judgement"):
@@ -3100,6 +3176,126 @@ def _filter_experiments_by_candidate_ids(
     if missing:
         raise ValueError(f"Unknown candidate_ids requested: {missing}")
     return filtered
+
+
+def _build_store_only_manifest(
+    *,
+    config_path: Path,
+    output_dir: Path,
+    defaults: Dict[str, Any],
+    shared_experiments: List[Dict[str, Any]],
+    company_runs: List[Dict[str, Any]],
+    requested_company_ids: List[str],
+) -> Dict[str, Any]:
+    requested_ids = list(
+        dict.fromkeys(str(company_id).strip() for company_id in requested_company_ids if str(company_id).strip())
+    )
+    if len(requested_ids) != 1:
+        raise ValueError("--store-only requires exactly one --company-run-id")
+    if not company_runs:
+        raise ValueError("--store-only requires a company_runs benchmark profile")
+
+    company_run = next(
+        (row for row in company_runs if str(row.get("id") or "") == requested_ids[0]),
+        None,
+    )
+    if company_run is None:
+        raise ValueError(f"Unknown company_run id requested for --store-only: {requested_ids[0]}")
+
+    company_defaults = _deep_merge(defaults, company_run.get("defaults", {}))
+    experiments = list(company_run.get("experiments", shared_experiments))
+    candidate_ids = list(company_run.get("candidate_ids") or defaults.get("candidate_ids") or [])
+    experiments = _filter_experiments_by_candidate_ids(experiments, candidate_ids)
+    if len(experiments) != 1:
+        raise ValueError("--store-only requires exactly one resolved experiment")
+
+    merged = _deep_merge(company_defaults, experiments[0])
+    merged["auto_fetch_missing_report"] = False
+    experiment_id = str(merged.get("id") or "").strip()
+    report_path = _normalise_path(str(merged.get("report_path") or ""))
+    if not report_path.is_file():
+        raise FileNotFoundError(f"--store-only requires an existing local report: {report_path}")
+
+    collection_name = str(
+        merged.get("collection_name") or f"{DEFAULT_COLLECTION_NAME}_{_slugify(experiment_id)}"
+    )
+    store_signature = _build_store_signature(merged, collection_name)
+    embedding_spec = dict(store_signature.get("embedding") or {})
+    expected_values = {
+        "experiment_id": (experiment_id, CANONICAL_INGEST_PROFILE_ID),
+        "ingest_mode": (str(merged.get("ingest_mode") or ""), CANONICAL_INGEST_MODE),
+        "chunk_size": (int(merged.get("chunk_size") or 0), CANONICAL_CHUNK_SIZE),
+        "chunk_overlap": (int(merged.get("chunk_overlap") or 0), CANONICAL_CHUNK_OVERLAP),
+        "embedding_provider": (
+            str(embedding_spec.get("provider") or ""),
+            CANONICAL_EMBEDDING_PROVIDER,
+        ),
+        "embedding_model": (
+            str(embedding_spec.get("model_name") or ""),
+            CANONICAL_EMBEDDING_MODEL,
+        ),
+        "embedding_dimension": (
+            int(embedding_spec.get("dimension") or 0),
+            CANONICAL_EMBEDDING_DIMENSION,
+        ),
+    }
+    canonical_errors = [
+        f"{field}: expected {expected!r}, got {actual!r}"
+        for field, (actual, expected) in expected_values.items()
+        if actual != expected
+    ]
+    if canonical_errors:
+        raise ValueError("--store-only canonical contract mismatch: " + "; ".join(canonical_errors))
+
+    metadata = dict(merged.get("metadata") or {})
+    company_output_dir = output_dir / _company_output_subdir(company_run, defaults)
+    persist_dir = company_output_dir / "stores" / _slugify(experiment_id)
+    return {
+        "schema_version": STORE_ONLY_MANIFEST_SCHEMA_VERSION,
+        "execution_mode": "store_only",
+        "config_path": str(config_path),
+        "config_sha256": _hash_file(config_path),
+        "company_run_id": requested_ids[0],
+        "experiment_id": experiment_id,
+        "report_path": str(report_path),
+        "report_sha256": _hash_file(report_path),
+        "metadata": {
+            "company": str(metadata.get("company") or ""),
+            "year": int(metadata.get("year") or 0),
+            "report_type": str(metadata.get("report_type") or ""),
+            "rcept_no": str(metadata.get("rcept_no") or ""),
+        },
+        "ingest": {
+            "mode": CANONICAL_INGEST_MODE,
+            "chunk_size": CANONICAL_CHUNK_SIZE,
+            "chunk_overlap": CANONICAL_CHUNK_OVERLAP,
+            "auto_fetch_missing_report": False,
+            "report_inventory": "primary_report_only",
+        },
+        "embedding": embedding_spec,
+        "output_dir": str(output_dir),
+        "company_output_dir": str(company_output_dir),
+        "persist_dir": str(persist_dir),
+        "allowed_external_operations": ["document_embedding"],
+        "forbidden_operations": [
+            "report_fetch",
+            "smoke_query",
+            "screening_evaluation",
+            "question_execution",
+            "llm_evaluator",
+            "full_evaluation",
+        ],
+    }
+
+
+def _write_store_only_manifest(output_dir: Path, manifest: Dict[str, Any]) -> Path:
+    manifest_path = output_dir / "store_only_manifest.json"
+    if manifest_path.exists():
+        existing = _load_json(manifest_path)
+        if existing != manifest:
+            raise ValueError(f"Existing store-only manifest does not match requested run: {manifest_path}")
+    _write_json(manifest_path, manifest)
+    return manifest_path
 
 
 def _load_completed_company_bundle(
@@ -3605,7 +3801,10 @@ def _write_multi_company_outputs(
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
     company_bundles: List[Dict[str, Any]],
+    execution_mode: str = "benchmark",
 ) -> None:
+    if execution_mode not in {"benchmark", "eval_only", "store_only"}:
+        raise ValueError(f"Unsupported benchmark execution mode: {execution_mode}")
     cross_company_rows = _build_cross_company_rows(company_bundles)
     winner_ranking = _build_winner_ranking(cross_company_rows)
     completed_company_ids = [bundle["company_id"] for bundle in company_bundles]
@@ -3624,6 +3823,7 @@ def _write_multi_company_outputs(
         {
             "config_path": str(config_path),
             "mode": "multi_company",
+            "execution_mode": execution_mode,
             "run_status": run_status,
             "completed_companies": completed_company_ids,
             "pending_companies": pending_company_ids,
@@ -3692,7 +3892,10 @@ def _run_ingest(
             }
         return metrics
     if ingest_mode in {"contextual", "contextual_all"}:
-        metrics = agent.benchmark_contextual_ingest(
+        from src.ingestion.context_generator import ContextGenerator
+
+        context_generator = ContextGenerator(agent.llm, agent.vsm)
+        metrics = context_generator.benchmark_contextual_ingest(
             chunks,
             on_progress=context_progress,
             on_store_progress=store_progress,
@@ -3794,18 +3997,29 @@ def run_screening_experiment(
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
     progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+    *,
+    store_only: bool = False,
 ) -> Dict[str, Any]:
     experiment_id = config["id"]
     report_path = _normalise_path(config["report_path"])
+    progress_prefix = "store_only" if store_only else "screening"
     if progress_reporter:
-        progress_reporter.update("screening:prepare", experiment_id=experiment_id, emit_now=True)
+        progress_reporter.update(f"{progress_prefix}:prepare", experiment_id=experiment_id, emit_now=True)
 
     metadata = dict(config["metadata"])
-    screening_examples = _select_eval_examples(config, metadata)
-    inventory_examples = _inventory_eval_examples(config, metadata, full_eval_config)
+    if store_only:
+        screening_examples: List[EvalExample] = []
+        inventory_examples: List[EvalExample] = []
+    else:
+        screening_examples = _select_eval_examples(config, metadata)
+        inventory_examples = _inventory_eval_examples(config, metadata, full_eval_config)
     report_inventory = _collect_report_inventory(config, metadata, inventory_examples)
     config_with_inventory = dict(config)
     config_with_inventory["report_inventory"] = report_inventory
+    if store_only:
+        # Store-only execution is deliberately local-input-only. It must never
+        # widen an approved document-embedding run into a DART fetch.
+        config_with_inventory["auto_fetch_missing_report"] = False
     persist_dir = output_root / "stores" / _slugify(experiment_id)
     context_cache_path = _context_cache_path(output_root, experiment_id)
     force_reindex = _resolve_boolean_config(config_with_inventory, "force_reindex", False)
@@ -3815,7 +4029,7 @@ def run_screening_experiment(
     allow_retrieval_fallback = _resolve_boolean_config(config_with_inventory, "allow_retrieval_fallback", False)
     if progress_reporter:
         progress_reporter.update(
-            "screening:store_prepare",
+            f"{progress_prefix}:store_prepare",
             experiment_id=experiment_id,
             persist_dir=persist_dir,
             watch_paths=[persist_dir, context_cache_path],
@@ -3835,14 +4049,11 @@ def run_screening_experiment(
     store_matches = _cache_meta_matches(cache_meta, cache_signature)
     context_matches = _cache_meta_matches(context_cache, cache_signature)
     store_signature_matches = _store_signature_matches(store_meta, store_signature)
-
-    preserve_legacy_partial_store = (
-        persist_dir.exists()
-        and reuse_store
-        and resume_partial_store
-        and not force_reindex
-        and not cache_meta
-        and (not store_meta or store_signature_matches)
+    partial_store_resume = _cache_meta_allows_partial_resume(
+        cache_meta,
+        cache_signature=cache_signature,
+        store_signature=store_signature,
+        enabled=reuse_store and resume_partial_store,
     )
 
     if force_reindex:
@@ -3851,13 +4062,24 @@ def run_screening_experiment(
         if context_cache_path.exists():
             context_cache_path.unlink()
     elif persist_dir.exists():
-        if preserve_legacy_partial_store:
-            logger.info("Preserving legacy partial store without cache metadata for resume: %s", persist_dir)
-        elif store_meta and not store_signature_matches:
+        if not store_meta:
+            if partial_store_resume:
+                logger.info(
+                    "Resuming exact in-progress benchmark store: %s",
+                    persist_dir,
+                )
+            else:
+                logger.info(
+                    "Discarding unmanaged benchmark store without a manifest: %s",
+                    persist_dir,
+                )
+                shutil.rmtree(persist_dir)
+                cache_meta = {}
+        elif not store_signature_matches:
             logger.info(
                 "Discarding store due to embedding/store signature mismatch: expected=%s actual=%s",
                 store_signature,
-                store_meta.get("store_signature"),
+                store_meta,
             )
             shutil.rmtree(persist_dir)
             cache_meta = {}
@@ -3880,12 +4102,15 @@ def run_screening_experiment(
         force_bm25_only=False,
         skip_vector_add=False,
     )
-    agent = _financial_agent_cls()(
-        vsm,
-        k=int(config_with_inventory.get("k", 8)),
-        graph_expansion_config=_build_graph_expansion_config(config_with_inventory),
-        routing_config=_build_agent_routing_config(full_eval_config),
-    )
+    if store_only:
+        agent: Any = _StoreOnlyIngestAgent(vsm)
+    else:
+        agent = _financial_agent_cls()(
+            vsm,
+            k=int(config_with_inventory.get("k", 8)),
+            graph_expansion_config=_build_graph_expansion_config(config_with_inventory),
+            routing_config=_build_agent_routing_config(full_eval_config),
+        )
 
     store_cache_hit = (
         reuse_store
@@ -3900,7 +4125,7 @@ def run_screening_experiment(
 
     if store_cache_hit:
         if progress_reporter:
-            progress_reporter.update("screening:store_cache_hit", experiment_id=experiment_id, emit_now=True)
+            progress_reporter.update(f"{progress_prefix}:store_cache_hit", experiment_id=experiment_id, emit_now=True)
         parse_info = cache_meta.get("parse", {})
         parse_elapsed = float(parse_info.get("elapsed_sec", 0.0) or 0.0)
         chunk_count = int(parse_info.get("chunk_count", 0) or 0)
@@ -3908,16 +4133,11 @@ def run_screening_experiment(
         cache_level = "store"
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
     elif reuse_context_cache and not force_reindex and context_matches:
         if progress_reporter:
-            progress_reporter.update("screening:context_cache_restore", experiment_id=experiment_id, emit_now=True)
+            progress_reporter.update(f"{progress_prefix}:context_cache_restore", experiment_id=experiment_id, emit_now=True)
         restore_started = time.perf_counter()
         restore_info = _restore_store_from_context_cache(vsm, context_cache)
         restore_elapsed = time.perf_counter() - restore_started
@@ -3955,16 +4175,11 @@ def run_screening_experiment(
         )
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
     else:
         if progress_reporter:
-            progress_reporter.update("screening:parse", experiment_id=experiment_id, emit_now=True)
+            progress_reporter.update(f"{progress_prefix}:parse", experiment_id=experiment_id, emit_now=True)
         parser = _financial_parser_cls()(
             chunk_size=int(config_with_inventory.get("chunk_size", DEFAULT_CHUNK_SIZE)),
             chunk_overlap=int(config_with_inventory.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
@@ -3984,7 +4199,7 @@ def run_screening_experiment(
         chunk_count = len(chunks)
         if progress_reporter:
             progress_reporter.update(
-                "screening:ingest",
+                f"{progress_prefix}:ingest",
                 0,
                 chunk_count,
                 experiment_id=experiment_id,
@@ -4012,15 +4227,6 @@ def run_screening_experiment(
                     "allow_retrieval_fallback": bool(allow_retrieval_fallback),
                 },
                 "metadata": _sanitize_settings(metadata),
-                "collection_name": collection_name,
-            },
-        )
-        _write_store_meta(
-            persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
                 "collection_name": collection_name,
             },
         )
@@ -4056,12 +4262,7 @@ def run_screening_experiment(
         )
         _write_store_meta(
             persist_dir,
-            {
-                "schema_version": BENCHMARK_CACHE_SCHEMA_VERSION,
-                "store_signature": store_signature,
-                "embedding": embedding_spec,
-                "collection_name": collection_name,
-            },
+            store_signature,
         )
         _write_context_cache(
             output_root,
@@ -4088,12 +4289,23 @@ def run_screening_experiment(
             },
         )
 
-    if progress_reporter:
-        progress_reporter.update("screening:smoke", experiment_id=experiment_id, emit_now=True)
-    smoke = _run_smoke_queries(agent, list(config_with_inventory.get("smoke_queries", [])))
-    if progress_reporter:
-        progress_reporter.update("screening:evaluate", experiment_id=experiment_id, emit_now=True)
-    screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
+    if store_only:
+        smoke: Dict[str, Any] = {}
+        screening_eval: Dict[str, Any] = {}
+        if progress_reporter:
+            progress_reporter.update(
+                "store_only:done",
+                experiment_id=experiment_id,
+                persist_dir=persist_dir,
+                emit_now=True,
+            )
+    else:
+        if progress_reporter:
+            progress_reporter.update("screening:smoke", experiment_id=experiment_id, emit_now=True)
+        smoke = _run_smoke_queries(agent, list(config_with_inventory.get("smoke_queries", [])))
+        if progress_reporter:
+            progress_reporter.update("screening:evaluate", experiment_id=experiment_id, emit_now=True)
+        screening_eval = _run_screening_eval(agent, screening_examples, screening_config) if screening_examples else {}
     estimated_cost = _estimate_cost_usd(ingest_metrics, config_with_inventory.get("pricing"))
     estimated_embedding_cost = _estimate_embedding_cost_usd(
         dict(ingest_metrics.get("embedding_usage") or ingest_metrics),
@@ -4102,6 +4314,7 @@ def run_screening_experiment(
 
     return {
         "id": experiment_id,
+        "execution_mode": "store_only" if store_only else "benchmark",
         "config": {
             "chunk_size": config_with_inventory.get("chunk_size"),
             "chunk_overlap": config_with_inventory.get("chunk_overlap"),
@@ -4151,7 +4364,7 @@ def run_screening_experiment(
         "estimated_ingest_embedding_cost_usd": estimated_embedding_cost,
         "smoke": smoke,
         "screening_eval": screening_eval,
-        "screen_pass": False,
+        "screen_pass": None if store_only else False,
         "screen_failure_reasons": [],
         "full_eval": {},
     }
@@ -4224,6 +4437,8 @@ def _run_screening_experiments(
     screening_config: Dict[str, Any],
     full_eval_config: Dict[str, Any],
     progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+    *,
+    store_only: bool = False,
 ) -> List[Dict[str, Any]]:
     if not merged_experiments:
         return []
@@ -4241,6 +4456,7 @@ def _run_screening_experiments(
                 screening_config,
                 full_eval_config,
                 progress_reporter=progress_reporter,
+                store_only=store_only,
             )
         return [results_by_id[merged["id"]] for merged in merged_experiments]
 
@@ -4257,6 +4473,7 @@ def _run_screening_experiments(
                 screening_config,
                 full_eval_config,
                 progress_reporter,
+                store_only=store_only,
             )
             futures[future] = merged["id"]
 
@@ -4320,6 +4537,7 @@ def _run_full_evaluation(
     )
     examples = _select_eval_examples(full_config, result["metadata"])
     if not examples:
+        _close_vector_store_manager(vsm)
         return {}
     if progress_reporter:
         progress_reporter.update(
@@ -4351,26 +4569,29 @@ def _run_full_evaluation(
             emit_now=True,
         )
 
-    eval_results = evaluator.run(
-        examples=examples,
-        run_name=result["id"],
-        params={
-            "chunk_size": merged_config.get("chunk_size"),
-            "chunk_overlap": merged_config.get("chunk_overlap"),
-            "ingest_mode": merged_config.get("ingest_mode"),
-            "k": merged_config.get("k", 8),
-            "max_workers": merged_config.get("max_workers"),
-            "batch_size": merged_config.get("batch_size"),
-            "eval_max_workers": eval_max_workers,
-            "collection_name": store_info["collection_name"],
-            "stage": "full_evaluation",
-            "numeric_fast_gate": bool(full_eval_config.get("numeric_fast_gate", False)),
-            "skip_llm_judges": bool(full_eval_config.get("skip_llm_judges", False)),
-            "skip_embedding_metrics": bool(full_eval_config.get("skip_embedding_metrics", False)),
-        },
-        max_workers=eval_max_workers,
-        on_progress=on_eval_progress,
-    )
+    try:
+        eval_results = evaluator.run(
+            examples=examples,
+            run_name=result["id"],
+            params={
+                "chunk_size": merged_config.get("chunk_size"),
+                "chunk_overlap": merged_config.get("chunk_overlap"),
+                "ingest_mode": merged_config.get("ingest_mode"),
+                "k": merged_config.get("k", 8),
+                "max_workers": merged_config.get("max_workers"),
+                "batch_size": merged_config.get("batch_size"),
+                "eval_max_workers": eval_max_workers,
+                "collection_name": store_info["collection_name"],
+                "stage": "full_evaluation",
+                "numeric_fast_gate": bool(full_eval_config.get("numeric_fast_gate", False)),
+                "skip_llm_judges": bool(full_eval_config.get("skip_llm_judges", False)),
+                "skip_embedding_metrics": bool(full_eval_config.get("skip_embedding_metrics", False)),
+            },
+            max_workers=eval_max_workers,
+            on_progress=on_eval_progress,
+        )
+    finally:
+        _close_vector_store_manager(vsm)
     if progress_reporter:
         progress_reporter.update(
             "full_eval:done",
@@ -4408,6 +4629,75 @@ def _run_full_evaluation(
     }
 
 
+def _close_vector_store_manager(manager: Any) -> None:
+    """Release a local Chroma client so disposable stores can be removed on Windows."""
+
+    vector_store = getattr(manager, "vector_store", None)
+    client = getattr(vector_store, "_client", None)
+    close = getattr(client, "close", None)
+    if callable(close):
+        close()
+
+
+def _directory_content_fingerprint(directory: Path) -> str:
+    """Hash stable relative paths and file bytes for an immutable store snapshot."""
+
+    root = Path(directory).resolve()
+    if not root.is_dir():
+        raise FileNotFoundError(f"Vector store directory does not exist: {root}")
+    digest = hashlib.sha256()
+    for path in sorted(
+        root.rglob("*"),
+        key=lambda item: item.relative_to(root).as_posix(),
+    ):
+        relative = path.relative_to(root).as_posix().encode("utf-8")
+        kind = b"D" if path.is_dir() else b"F"
+        digest.update(kind)
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        if path.is_dir():
+            continue
+        with path.open("rb") as handle:
+            while chunk := handle.read(1024 * 1024):
+                digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _run_eval_only_full_evaluation(
+    result: Dict[str, Any],
+    merged_config: Dict[str, Any],
+    full_eval_config: Dict[str, Any],
+    progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+) -> Dict[str, Any]:
+    """Evaluate a disposable store copy while keeping the source bundle immutable."""
+
+    source_store = Path(result["store"]["persist_directory"]).resolve()
+    source_fingerprint = _directory_content_fingerprint(source_store)
+    with tempfile.TemporaryDirectory(prefix="dart_eval_store_") as temporary_root:
+        working_store = Path(temporary_root) / "store"
+        shutil.copytree(source_store, working_store)
+        if _directory_content_fingerprint(working_store) != source_fingerprint:
+            raise RuntimeError("Eval-only working store copy does not match its source snapshot")
+        working_result = {
+            **result,
+            "store": {
+                **dict(result.get("store") or {}),
+                "persist_directory": str(working_store),
+            },
+        }
+        try:
+            evaluation = _run_full_evaluation(
+                working_result,
+                merged_config,
+                full_eval_config,
+                progress_reporter=progress_reporter,
+            )
+        finally:
+            if _directory_content_fingerprint(source_store) != source_fingerprint:
+                raise RuntimeError("Eval-only mutated the source vector store snapshot")
+    return evaluation
+
+
 def _run_company_bundle(
     *,
     config_path: Path,
@@ -4418,6 +4708,7 @@ def _run_company_bundle(
     full_eval_config: Dict[str, Any],
     company_run: Dict[str, Any],
     progress_reporter: Optional[_BenchmarkProgressReporter] = None,
+    store_only: bool = False,
 ) -> Dict[str, Any]:
     company_defaults = _deep_merge(global_defaults, company_run.get("defaults", {}))
     experiments = company_run.get("experiments", shared_experiments)
@@ -4447,6 +4738,8 @@ def _run_company_bundle(
         merged = _deep_merge(company_defaults, experiment)
         if "id" not in merged:
             raise ValueError(f"Each experiment must include an id. company_run={company_id}")
+        if store_only:
+            merged["auto_fetch_missing_report"] = False
         merged_experiments.append(merged)
         merged_by_id[merged["id"]] = merged
 
@@ -4456,22 +4749,24 @@ def _run_company_bundle(
         screening_config,
         full_eval_config,
         progress_reporter=progress_reporter,
+        store_only=store_only,
     )
 
-    baseline_id = screening_config.get("baseline_experiment_id")
-    baseline_result = next((result for result in results if result["id"] == baseline_id), None)
-    if baseline_id and baseline_result is None:
-        raise ValueError(f"baseline_experiment_id not found for {company_id}: {baseline_id}")
-    baseline_aggregate = baseline_result.get("screening_eval", {}).get("aggregate", {}) if baseline_result else {}
+    if not store_only:
+        baseline_id = screening_config.get("baseline_experiment_id")
+        baseline_result = next((result for result in results if result["id"] == baseline_id), None)
+        if baseline_id and baseline_result is None:
+            raise ValueError(f"baseline_experiment_id not found for {company_id}: {baseline_id}")
+        baseline_aggregate = baseline_result.get("screening_eval", {}).get("aggregate", {}) if baseline_result else {}
 
-    for result in results:
-        reasons = _screen_failure_reasons(result, baseline_aggregate, screening_config)
-        result["screen_failure_reasons"] = reasons
-        result["screen_pass"] = len(reasons) == 0
-    _attach_baseline_comparison(results, baseline_result)
+        for result in results:
+            reasons = _screen_failure_reasons(result, baseline_aggregate, screening_config)
+            result["screen_failure_reasons"] = reasons
+            result["screen_pass"] = len(reasons) == 0
+        _attach_baseline_comparison(results, baseline_result)
 
     selected_ids: List[str] = []
-    if full_eval_config.get("enabled", True):
+    if not store_only and full_eval_config.get("enabled", True):
         selected_ids = _select_full_eval_candidates(results, screening_config)
         for experiment_id in selected_ids:
             logger.info("Running full evaluation for %s: %s", company_id, experiment_id)
@@ -4485,6 +4780,7 @@ def _run_company_bundle(
 
     recorded_matrix = {
         "mode": "company_run",
+        "execution_mode": "store_only" if store_only else "benchmark",
         "company_run": {
             "id": company_id,
             "label": company_label,
@@ -4567,7 +4863,7 @@ def _rerun_company_full_evaluation_only(
         if result is None:
             raise ValueError(f"Existing results.json has no result for {company_id}: {experiment_id}")
         logger.info("Re-running full evaluation only for %s: %s", company_id, experiment_id)
-        result["full_eval"] = _run_full_evaluation(
+        result["full_eval"] = _run_eval_only_full_evaluation(
             result,
             merged_by_id[experiment_id],
             full_eval_config,
@@ -4588,6 +4884,15 @@ def _rerun_company_full_evaluation_only(
             "screening": _sanitize_settings(screening_config),
             "full_evaluation": _sanitize_settings(full_eval_config),
         }
+    source_execution_mode = recorded_matrix.get("execution_mode")
+    if source_execution_mode:
+        recorded_matrix["source_execution_mode"] = source_execution_mode
+    recorded_matrix["execution_mode"] = "eval_only"
+    effective_full_evaluation = _sanitize_settings(full_eval_config)
+    source_full_evaluation = recorded_matrix.get("full_evaluation")
+    if source_full_evaluation and source_full_evaluation != effective_full_evaluation:
+        recorded_matrix["source_full_evaluation"] = source_full_evaluation
+    recorded_matrix["full_evaluation"] = effective_full_evaluation
 
     _write_benchmark_outputs(
         output_dir=target_company_output_dir,
@@ -4646,7 +4951,7 @@ def _rerun_single_full_evaluation_only(
         result = next((item for item in results if str(item.get("id")) == experiment_id), None)
         if result is None:
             raise ValueError(f"Existing results.json has no result for experiment id: {experiment_id}")
-        result["full_eval"] = _run_full_evaluation(
+        result["full_eval"] = _run_eval_only_full_evaluation(
             result,
             merged_by_id[experiment_id],
             full_eval_config,
@@ -4663,6 +4968,15 @@ def _rerun_single_full_evaluation_only(
             "experiments": [_sanitize_settings(experiment) for experiment in experiments],
         }
     )
+    source_execution_mode = recorded_matrix.get("execution_mode")
+    if source_execution_mode:
+        recorded_matrix["source_execution_mode"] = source_execution_mode
+    recorded_matrix["execution_mode"] = "eval_only"
+    effective_full_evaluation = _sanitize_settings(full_eval_config)
+    source_full_evaluation = recorded_matrix.get("full_evaluation")
+    if source_full_evaluation and source_full_evaluation != effective_full_evaluation:
+        recorded_matrix["source_full_evaluation"] = source_full_evaluation
+    recorded_matrix["full_evaluation"] = effective_full_evaluation
     _write_benchmark_outputs(
         output_dir=target_output_dir,
         config_path=config_path,
@@ -4689,8 +5003,31 @@ def _execute_benchmark_command(
     eval_output_dir: Path,
     progress_reporter: _BenchmarkProgressReporter,
 ) -> None:
+    store_only = bool(getattr(args, "store_only", False))
+    preflight_only = bool(getattr(args, "preflight_only", False))
+    if store_only and args.eval_only:
+        raise ValueError("--store-only cannot be combined with --eval-only")
+    if preflight_only and not store_only:
+        raise ValueError("--preflight-only requires --store-only")
     if str(args.eval_output_dir or "").strip() and not args.eval_only:
         raise ValueError("--eval-output-dir requires --eval-only")
+    if store_only:
+        incompatible_options = {
+            "--question-id": bool(args.question_id),
+            "--numeric-fast-gate": bool(args.numeric_fast_gate),
+            "--skip-llm-judges": bool(args.skip_llm_judges),
+            "--skip-embedding-metrics": bool(args.skip_embedding_metrics),
+            "--retrieval-query-budget": bool(args.retrieval_query_budget),
+            "--focused-retrieval-query-budget": bool(args.focused_retrieval_query_budget),
+            "--retry-retrieval-query-budget": bool(args.retry_retrieval_query_budget),
+            "--report-cache-index-path": bool(str(args.report_cache_index_path or "").strip()),
+            "--llm-route": bool(args.llm_route),
+        }
+        requested_incompatible = [name for name, enabled in incompatible_options.items() if enabled]
+        if requested_incompatible:
+            raise ValueError(
+                "--store-only rejects evaluation/runtime options: " + ", ".join(requested_incompatible)
+            )
 
     matrix = _load_json(config_path)
     defaults = matrix.get("defaults", {})
@@ -4721,6 +5058,21 @@ def _execute_benchmark_command(
     full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
+
+    if store_only:
+        manifest = _build_store_only_manifest(
+            config_path=config_path,
+            output_dir=output_dir,
+            defaults=defaults,
+            shared_experiments=experiments,
+            company_runs=company_runs,
+            requested_company_ids=list(args.company_run_id or []),
+        )
+        manifest_path = _write_store_only_manifest(output_dir, manifest)
+        logger.info("Wrote store-only manifest to %s", manifest_path)
+        if preflight_only:
+            logger.info("Store-only preflight completed without provider dispatch.")
+            return
 
     if company_runs:
         requested_company_ids = set(args.company_run_id or [])
@@ -4758,11 +5110,12 @@ def _execute_benchmark_command(
                     full_eval_config=full_eval_config,
                     company_run=company_run,
                     progress_reporter=progress_reporter,
+                    store_only=store_only,
                 )
 
         completed_bundles: List[Dict[str, Any]] = []
         completed_output_root = eval_output_dir if args.eval_only else output_dir
-        for company_run in company_runs:
+        for company_run in selected_company_runs:
             bundle = _load_completed_company_bundle(
                 output_root=completed_output_root,
                 company_run=company_run,
@@ -4776,10 +5129,17 @@ def _execute_benchmark_command(
             config_path=config_path,
             defaults=defaults,
             experiments=experiments,
-            company_runs=company_runs,
+            company_runs=selected_company_runs,
             screening_config=screening_config,
             full_eval_config=full_eval_config,
             company_bundles=completed_bundles,
+            execution_mode=(
+                "eval_only"
+                if args.eval_only
+                else "store_only"
+                if store_only
+                else "benchmark"
+            ),
         )
         logger.info("Wrote multi-company benchmark outputs to %s", completed_output_root)
         return
@@ -4878,6 +5238,19 @@ def main() -> None:
             "Reuse an existing output-dir results.json and vector store, skip parse/ingest/screening, "
             "and rerun only the configured full evaluation candidates."
         ),
+    )
+    parser.add_argument(
+        "--store-only",
+        action="store_true",
+        help=(
+            "Build one canonical company store from one existing local primary report, "
+            "without report fetch, smoke queries, question execution, screening, or full evaluation."
+        ),
+    )
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="With --store-only, validate and persist the deterministic manifest without provider dispatch.",
     )
     parser.add_argument(
         "--eval-output-dir",
