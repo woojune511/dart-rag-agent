@@ -4,10 +4,12 @@ Last updated: 2026-09-04
 
 ## Canonical source
 
-- `main` contains the runtime and candidate-boundary redesign through merge
-  commit `820cfd7` ([PR #87](https://github.com/woojune511/dart-rag-agent/pull/87)).
-- The reviewed feature head is `555c00b`; the post-merge documentation branch is
-  `codex/post-merge-closeout`.
+- `main` is the canonical source. The runtime redesign and checkout closeout
+  landed through [PR #89](https://github.com/woojune511/dart-rag-agent/pull/89);
+  provider-free candidate ambiguity instrumentation is delivered by
+  [PR #90](https://github.com/woojune511/dart-rag-agent/pull/90).
+- The ambiguity instrumentation does not change candidate IDs, stores, or
+  compiler prompt input.
 - The product path is the single-agent `FinancialAgent`. MAS, Streamlit,
   benchmark, evaluator, replay, and promotion tools remain optional or
   experimental consumers.
@@ -89,10 +91,17 @@ archaeology.
 
 1. Do not rerun the exhausted paid gate, perform fresh ingest, or rewrite saved
    stores, caches, benchmark results, candidate IDs, or historical artifacts.
-2. Keep the broader local semantic reranker and persisted typed fact index
-   deferred. First produce a provider-free ambiguity baseline over existing
-   stored catalogs: complete-option count, top-two margin, unknown-only share,
-   prompt bytes, and failure class by owner/island.
-3. Add a reranker only if that baseline shows material residual ambiguity. A
-   typed fact index remains a separately approved versioned ingest/store
-   migration.
+2. The provider-free audit rebuilt all three saved catalogs from their exact
+   structure-graph source windows and matched every saved source/catalog
+   fingerprint: 4,107 candidates, 16 owner cohorts, and 154,689 compiler-prompt
+   bytes. Eight cohorts have a multi-candidate top factor tier, while 3,301 of
+   3,323 non-conflicting candidate-owner evaluations are `unknown_only`. The
+   one complete-row bundle has two options; the selected row wins by
+   position-sum margin 2 and
+   worst-position margin 1. Five compiler islands recorded no retry or failure.
+3. The next implementation should be a bounded, provider-free tie-breaker only
+   inside those tied top factor tiers. It must preserve hard applicability,
+   owner visibility, and complete-row bundle selection. Do not rerank the whole
+   catalog or introduce benchmark-specific terms.
+4. Keep the persisted typed fact index deferred behind a separately approved,
+   versioned ingest/store migration.

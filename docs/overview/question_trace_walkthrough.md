@@ -99,7 +99,7 @@ Internal callers must use these attributes; flat dict fallback은 없다.
 | wrong scope/search window | `retrieval_debug_trace` |
 | candidate missing or wrong row | `SemanticTargetV1`, factor matches, and cohort diagnostics |
 | hidden/cross-owner ID | `CandidateVisibilityV1` and compile validation |
-| compile retry | `semantic_candidate_stage_diagnostics_v6` island, selected bundle option, and attempts |
+| compile retry | `semantic_candidate_stage_diagnostics_v7` island, factor tiers, selected bundle option, and attempts |
 | execution refusal | `visibility_mismatch`, `validation_drift`, `evidence_bundle_mismatch`, or semantic validation errors |
 | answer/evidence mismatch | `AgentAnswer`, `ReviewTrace.evidence_items`, ledger integrity |
 

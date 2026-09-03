@@ -7,7 +7,7 @@ Last updated: 2026-09-04
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Canonical source | `main` at merge commit `820cfd7`; PR #87 merged with reviewed head `555c00b` |
+| Canonical source | `main`; runtime redesign through PR #89 and provider-free ambiguity audit through PR #90 |
 | Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
@@ -113,6 +113,25 @@ the approved USD `0.40` ceiling. Embedding pricing is unavailable. Both source
 result hashes, SQLite hashes, and complete store fingerprints remain unchanged;
 no disposable store remains.
 
+## Provider-free candidate ambiguity baseline
+
+The audit rebuilds saved source windows from the immutable structure graph and
+table sidecar, without Chroma or providers, and accepts them only when all saved
+source/catalog counts and fingerprints match. All three matched: 413 candidates
+for T2, 3,191 for T3, and 503 for Samsung.
+
+Eight of 16 owner cohorts have a multi-candidate top factor tier (T2 1, T3 4,
+Samsung 3); 3,301 of 3,323 non-conflicting candidate-owner evaluations are
+`unknown_only` (`99.34%`). Five islands used 154,689 prompt bytes with no retry
+or failure. T3's two complete rows were separated by position-sum 2 and
+worst-position 1. Two audit runs were byte-identical, while saved result SHA-256
+`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
+remained unchanged.
+
+This justifies a provider-free tie-breaker inside the strongest tier, not a
+whole-catalog keyword score; existing applicability, visibility, and row-bundle
+contracts remain authoritative.
+
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
@@ -123,11 +142,9 @@ no disposable store remains.
    ignored result files were copied into the primary results tree and verified
    before removal. Do not port the superseded predecessor contracts; restore
    the stash on a separate branch only for explicit archaeology.
-3. Measure residual candidate ambiguity provider-free over existing stored
-   catalogs before implementing a broader local semantic reranker. Keep a
+3. Implement and test the bounded top-tier semantic tie-breaker provider-free.
+   Do not rerank lower tiers or add benchmark-specific vocabulary. Keep the
    persisted typed fact index behind a separate versioned migration contract.
 
-See [runtime_flow_roles.md](runtime_flow_roles.md) for the checked topology,
-[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the
-normative contract, and the history documents for superseded implementation and
-experiment detail.
+See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
+[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.

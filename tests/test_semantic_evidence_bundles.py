@@ -181,6 +181,16 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             [item["physical_table_id"] for item in selection["ranked_options"]],
             ["table-a", "table-b"],
         )
+        self.assertEqual(selection["complete_option_count"], 2)
+        self.assertEqual(selection["selected_physical_table_id"], "table-a")
+        self.assertEqual(selection["selected_physical_row_id"], "row-target")
+        self.assertEqual(
+            [
+                (item["position_sum"], item["worst_position"])
+                for item in selection["ranked_option_diagnostics"]
+            ],
+            [(0, 0), (2, 1)],
+        )
         self.assertEqual(
             cohort_plan["candidate_ids_by_owner"],
             {
@@ -628,6 +638,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                     "cand-summary-loss",
                     "cand-summary-revenue",
                 ],
+                "complete_option_count": 1,
                 "policy_group_names": [],
             },
         )
@@ -833,6 +844,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                     "cand-summary-revenue",
                     "cand-summary-adjustment",
                 ],
+                "complete_option_count": 1,
                 "policy_group_names": ["complete_summary"],
             },
         )
