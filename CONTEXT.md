@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## Canonical source
 
@@ -24,9 +24,10 @@ Last updated: 2026-09-04
   are cell-local, and related outputs select one complete physical row before
   compiler invocation.
 - The current feature branch adds an opt-in local cross-encoder only for atomic
-  numeric ties in the exact strongest factor tier. Pair v4 uses a validated
-  source span or unique value surface for sentence clauses and carries typed
-  target/candidate period plus bounded table context. Narrative synthesis,
+  numeric ties in the exact strongest factor tier. Pair v5 carries an immutable
+  candidate-local fact role. Tables derive roles from parser structure; prose
+  stays unresolved until a semantic role is grounded in that candidate's exact
+  source. Only grounded semantic roles enter model text. Narrative synthesis,
   source-defined groups, and compatibility cohorts stay outside the scorer.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
@@ -47,7 +48,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 823 local unittest cases, the 86-literal runtime
+- The current feature branch passed 829 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -112,18 +113,20 @@ archaeology.
 4. Exporter v2 now yields 3 atomic tied cohorts and 7 pairs, and records 4
    source-defined output/requirement cohorts as non-atomic exclusions (template
    fingerprint `7864f55f...8c24`). The original 8-case packet remains immutable.
-5. Pair v4's three human-reviewed atomic cases keep all model top-1 choices
-   correct, with one confident selection, zero confident errors, and warm CPU
-   p95 about `739 ms`. Promotion remains `needs_review`: the deterministic
-   baseline is already `1.0`, so this set cannot demonstrate the required gain.
-6. Human review of the immutable `fcf3038c...b929` packet produced a versioned
-   4-case / 22-candidate fixture. It excludes this LGE operand-only derived
-   output and one duplicate operand target; baseline top-1 is `3/4`.
-7. The cached sigmoid cross-encoder scored only `1/4` (`-0.50` gain), fixed no
-   AMPC error, abstained on all four at margin `0.05`, and took `2747.644 ms`
-   warm p95 on CPU. Keep it disabled; neither lower the margin nor add keywords.
-8. A blanket derived-output exclusion was rejected because source-stated derived
-   displays such as Hyundai's `11.5%` remain valid. Next separate exact table-row
-   identity from prose value-role interpretation before testing another model.
-9. Keep the persisted typed fact index deferred behind a separately approved,
-   versioned ingest/store migration.
+5. Pair v5's provider-free review packet contains 6 cohorts / 34 candidates;
+   the carried human fixture contains 4 select cases / 22 candidates and keeps
+   baseline top-1 at `3/4`. Its output is byte-stable across two builds.
+6. Structured roles distinguish the reviewed negative income-statement KBF
+   values from signless positive cash-flow adjustments. The LGE AMPC component
+   and reported total remain unresolved because their source is prose.
+7. Supplying raw structural role text to the cached cross-encoder regressed it
+   to `0/4`, so that model input was rejected. Final no-semantic-role v5 input
+   preserves the v4 model scores: `1/4`, `-0.50` gain, all four abstentions, and
+   `2715.932 ms` warm CPU p95. The feature remains disabled.
+8. An exact-surface-first matcher reduced the packet but displaced Samsung's
+   accepted evidence; it was reverted. Do not replace typed factors with another
+   keyword precedence rule.
+9. Next implement a bounded prose semantic-role interpreter as evaluation-only
+   input, then promote it only on reviewed hard negatives without regressions.
+10. Keep the persisted typed fact index deferred behind a separately approved,
+    versioned ingest/store migration.

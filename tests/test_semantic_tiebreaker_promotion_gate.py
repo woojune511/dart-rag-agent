@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import unittest
 
 from src.agent.financial_candidate_tiebreaker import (
@@ -98,6 +99,26 @@ class SemanticTieBreakerPromotionGateTests(unittest.TestCase):
 
         self.assertEqual(len(pairs), 2)
         self.assertEqual(pairs[0].pair_fingerprint, pairs[1].pair_fingerprint)
+
+    def test_fixture_accepts_a_grounded_semantic_role_projection(self) -> None:
+        payload = copy.deepcopy(self.payload)
+        candidate = payload["cases"][0]["candidates"][0]
+        candidate_id = candidate["candidate_id"]
+        raw_value = str(candidate["candidate"]["raw_value"])
+        candidate["semantic_role"] = {
+            "schema": "candidate_semantic_role_v1",
+            "candidate_id": candidate_id,
+            "subject_surfaces": [],
+            "relation_surfaces": [raw_value],
+            "value_role": "reported_share",
+        }
+
+        pair = next(
+            row for row in build_pairs(payload) if row.candidate_id == candidate_id
+        )
+
+        self.assertEqual(pair.fact_role.value_role, "reported_share")
+        self.assertEqual(pair.fact_role.grounding_state, "semantic_grounded")
 
     def test_ready_requires_quality_gain_abstention_and_latency(self) -> None:
         result = evaluate_gate(

@@ -22,7 +22,7 @@ from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
     SemanticCandidateTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV4,
+    SemanticTieBreakPairV5,
     semantic_tie_break_cohort_eligibility,
 )
 from src.agent.financial_calculation_execution import (
@@ -779,7 +779,7 @@ def _semantic_candidate_cohorts(
         if str(item.get("candidate_id") or "")
     }
     preliminary_rankings: List[Dict[str, Any]] = []
-    tie_break_pairs: List[SemanticTieBreakPairV4] = []
+    tie_break_pairs: List[SemanticTieBreakPairV5] = []
     skipped_tie_cohort_ids: List[str] = []
     ineligible_tie_cohort_reasons: Dict[str, str] = {}
     eligible_tie_pair_count = 0
@@ -860,7 +860,7 @@ def _semantic_candidate_cohorts(
             ):
                 continue
             tie_break_pairs.append(
-                SemanticTieBreakPairV4.create(
+                SemanticTieBreakPairV5.create(
                     cohort_id=str(specification["cohort_id"]),
                     owner_id=owner_id,
                     candidate_id=candidate_id,

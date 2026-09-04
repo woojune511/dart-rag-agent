@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
 ## At a glance
 
@@ -28,9 +28,10 @@ Last updated: 2026-09-04
   cell-local structured text and one factor projection; they do not perform a
   second keyword ranking pass.
 - An opt-in local cross-encoder can reorder only atomic numeric ties in the exact
-  strongest tier. Pair v4 carries typed period/table context and isolates
-  sentence values. Narrative/group selection is excluded; low confidence or
-  failure keeps the default order, and the feature remains disabled.
+  strongest tier. Pair v5 carries a candidate-local fact role: tables use parser
+  structure, while prose remains unresolved until an exact-source-grounded
+  semantic role exists. Only grounded semantic roles enter model text. Narrative
+  and group selection remain excluded, and the feature remains disabled.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -65,7 +66,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 823
+  same row. Ranked alternatives are diagnostic-only. The feature branch passes 829
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -124,27 +125,26 @@ found 8 tied cohorts / 31 pairs; applicability, visibility, and row bundles
 remained authoritative.
 
 The reviewed successor preserves parser-owned `당기/current` and `전기/prior`
-labels in candidates and compiler rows without changing candidate IDs or the
-three saved catalog fingerprints. T3's ownership-share tie now resolves by
-period applicability before semantic scoring. Exporter v2 leaves 3 atomic ties
-with 7 pairs and records 4 source-defined output/requirement cohorts as
-non-atomic. On those 3 human-reviewed cases, pair v4 achieved top-1 `1.0`, one
-confident selection, zero confident errors, and warm CPU p95 about `739 ms`.
-This is a provider-free no-regression/context check, not promotion evidence.
+labels without changing candidate IDs or saved catalog fingerprints. Pair v5's
+packet has 6 cohorts / 34 candidates; its carried human fixture has 4 select
+cases / 22 candidates and baseline top-1 `3/4`. Structured fact roles separate
+negative KBF income-statement values from signless positive cash-flow
+adjustments. LGE's component and total remain unresolved because they are prose.
+This is a provider-free contract/review result, not promotion evidence.
 
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Keep benchmark artifacts uncommitted. The predecessor remains recoverable in
-   its named stash; restore it on a separate branch only for explicit
-   archaeology, and do not port its superseded contracts.
-3. Keep the tie-breaker opt-in; the prior reviewed baseline is already `1.0`,
-   and the `0.05` margin must not be lowered based on three cases.
-4. Human review retained 4 select cases / 22 candidates and found one baseline error;
-   signless KBF cash-flow adjustments are not valid income-statement answers.
-5. The cached cross-encoder fell from baseline `3/4` to `1/4`, abstained on all
-   four, and missed the `1 s` latency gate; do not activate it or lower its margin.
-6. Next split exact table-row identity from prose value-role interpretation; keep the typed fact index behind a versioned store migration.
+2. Keep benchmark artifacts uncommitted. Restore the recoverable predecessor
+   stash only on a separate archaeology branch; do not port superseded contracts.
+3. Keep the tie-breaker opt-in. Without semantic roles, pair v5 preserves v4's
+   cached scores: model `1/4` versus baseline `3/4`, all four abstentions, and
+   warm CPU p95 `2715.932 ms`; do not activate it or lower its margin.
+4. Raw structural role text made the model `0/4`, so it remains diagnostic-only.
+   An exact-surface-first matcher also broke accepted Samsung evidence and was
+   reverted. Neither rejected path is a runtime rule.
+5. Next evaluate a bounded prose semantic-role interpreter grounded by candidate
+   ID and exact source spans. Measure top-1 and latency before runtime wiring.
+6. Keep the typed fact index behind a separately approved versioned store migration.
 
-See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
-[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.
+See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract.

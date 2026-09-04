@@ -26,7 +26,7 @@ from src.agent.financial_candidate_matching import (
 )
 from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
-    SemanticTieBreakPairV4,
+    SemanticTieBreakPairV5,
     semantic_tie_break_cohort_eligibility,
 )
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
@@ -64,6 +64,7 @@ _CANDIDATE_FIELDS = (
     "consolidation_scope",
     "segment",
     "basis",
+    "statement_type",
     "table_context",
     "value_role",
     "aggregation_stage",
@@ -266,7 +267,7 @@ def build_labeling_template(
             for candidate in strongest:
                 candidate_id = str(candidate.get("candidate_id") or "")
                 candidate_text = candidate_cell_local_source_text(candidate)
-                pair = SemanticTieBreakPairV4.create(
+                pair = SemanticTieBreakPairV5.create(
                     cohort_id=str(cohort.get("cohort_id") or ""),
                     owner_id=str(cohort.get("owner_id") or ""),
                     candidate_id=candidate_id,
@@ -288,6 +289,8 @@ def build_labeling_template(
                         "deterministic_match": dict(matches.get(candidate_id) or {}),
                         "projected_evidence_text": pair.evidence_text,
                         "candidate_context": pair.candidate_context,
+                        "fact_role": pair.fact_role.to_projection(),
+                        "fact_role_fingerprint": pair.fact_role_fingerprint,
                         "evidence_locator": pair.evidence_locator,
                         "pair_fingerprint": pair.pair_fingerprint,
                     }

@@ -4,10 +4,11 @@ import unittest
 from typing import Sequence
 from unittest.mock import patch
 
+from src.agent.financial_candidate_fact_role import CandidateSemanticRoleV1
 from src.agent.financial_candidate_tiebreaker import (
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV4,
+    SemanticTieBreakPairV5,
     SemanticTieBreakScoreV1,
     semantic_tie_break_cohort_eligibility,
 )
@@ -89,11 +90,11 @@ def _obligation(obligation_id: str, metric: str) -> dict:
 class _ScoreByCandidate:
     def __init__(self, scores: dict[str, float]) -> None:
         self.scores = dict(scores)
-        self.calls: list[tuple[SemanticTieBreakPairV4, ...]] = []
+        self.calls: list[tuple[SemanticTieBreakPairV5, ...]] = []
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV4],
+        pairs: Sequence[SemanticTieBreakPairV5],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         self.calls.append(rows)
@@ -139,7 +140,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
         owner = _obligation("ob_metric", "metric alpha")
         pairs = [
-            SemanticTieBreakPairV4.create(
+            SemanticTieBreakPairV5.create(
                 cohort_id="ob_metric:output",
                 owner_id="ob_metric",
                 candidate_id=candidate_id,
@@ -341,7 +342,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "table_context": "investment note",
         }
 
-        pair = SemanticTieBreakPairV4.create(
+        pair = SemanticTieBreakPairV5.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-a",
@@ -373,6 +374,8 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
                 "Candidate table context: investment note"
             ),
         )
+        self.assertEqual(pair.fact_role.physical_row_id, "row-a")
+        self.assertEqual(pair.fact_role.grounding_state, "structured_grounded")
 
     def test_atomic_eligibility_excludes_group_and_narrative_selection(self) -> None:
         source_group = {
@@ -458,7 +461,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": "metric alpha 100 million | metric alpha 0 million",
         }
 
-        pair = SemanticTieBreakPairV4.create(
+        pair = SemanticTieBreakPairV5.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-zero",
@@ -493,7 +496,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": source_text,
         }
 
-        pair = SemanticTieBreakPairV4.create(
+        pair = SemanticTieBreakPairV5.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-growth",
@@ -525,7 +528,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": source_text,
         }
 
-        pair = SemanticTieBreakPairV4.create(
+        pair = SemanticTieBreakPairV5.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-second",
@@ -544,6 +547,54 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         self.assertEqual(pair.evidence_locator, "source_span")
         self.assertNotIn("First rate", pair.evidence_text)
         self.assertIn("second rate was [SELECTED VALUE 5%]", pair.evidence_text)
+
+    def test_pair_includes_only_grounded_candidate_fact_role(self) -> None:
+        owner = _obligation("ob_metric", "credit benefit")
+        source_text = (
+            "A 676 credit benefit was recognized, raising operating profit "
+            "to 2,163."
+        )
+        candidate = {
+            "candidate_kind": "sentence_value",
+            "raw_value": "676",
+            "normalized_value": 676.0,
+            "source_span": [2, 5],
+            "source_text": source_text,
+        }
+        semantic_role = CandidateSemanticRoleV1.create(
+            candidate_id="candidate-credit",
+            source_text=source_text,
+            subject_surfaces=["credit benefit"],
+            relation_surfaces=["676 credit benefit was recognized"],
+            value_role="adjustment_component",
+        )
+
+        pair = SemanticTieBreakPairV5.create(
+            cohort_id="ob_metric:output",
+            owner_id="ob_metric",
+            candidate_id="candidate-credit",
+            query="Find the credit benefit",
+            owner=owner,
+            parent_owner=None,
+            resolved_target={
+                "local_subjects": ["credit benefit"],
+                "concept_keys": [],
+                "metric_surfaces": ["credit benefit"],
+            },
+            candidate=candidate,
+            candidate_text=source_text,
+            semantic_role=semantic_role,
+        )
+
+        self.assertEqual(pair.fact_role.value_role, "adjustment_component")
+        self.assertIn(
+            "Candidate relations: 676 credit benefit was recognized",
+            pair.evidence_text,
+        )
+        self.assertEqual(
+            pair.fact_role_fingerprint,
+            pair.fact_role.projection_fingerprint,
+        )
 
     def test_complete_row_bundle_aggregates_semantic_owner_order(self) -> None:
         obligations = [

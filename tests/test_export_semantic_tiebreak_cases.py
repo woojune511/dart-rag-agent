@@ -57,6 +57,7 @@ def _candidate(candidate_id: str, *, period: str, value: str) -> dict:
         "consolidation_scope": "unknown",
         "segment": "",
         "basis": "",
+        "statement_type": "operating_statement",
         "source_text": f"target entity | quantity {value} items",
     }
 
@@ -98,7 +99,7 @@ class ExportSemanticTieBreakCasesTests(unittest.TestCase):
         )
 
         self.assertEqual(template["schema"], LABELING_TEMPLATE_SCHEMA)
-        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v4")
+        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v5")
         self.assertEqual(template["summary"]["case_count"], 1)
         self.assertEqual(template["summary"]["candidate_pair_count"], 2)
         case = template["cases"][0]
@@ -118,6 +119,19 @@ class ExportSemanticTieBreakCasesTests(unittest.TestCase):
         self.assertTrue(
             all(
                 candidate["evidence_locator"] == "unique_value_surface"
+                for candidate in case["candidates"]
+            )
+        )
+        self.assertTrue(
+            all(
+                candidate["fact_role"]["schema"] == "candidate_fact_role_v1"
+                for candidate in case["candidates"]
+            )
+        )
+        self.assertTrue(
+            all(
+                candidate["candidate"]["statement_type"]
+                == "operating_statement"
                 for candidate in case["candidates"]
             )
         )

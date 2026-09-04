@@ -18,6 +18,11 @@ from dataclasses import dataclass
 from threading import Lock
 from typing import Any, Callable, Mapping, Protocol, Sequence, Tuple
 
+from src.agent.financial_candidate_fact_role import (
+    CandidateFactRoleV1,
+    CandidateSemanticRoleV1,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -371,6 +376,10 @@ def _target_context(
     )
 
 
+SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v5"
+SUPPORTED_SCORE_TRANSFORMS = frozenset({"raw_logit", "sigmoid"})
+
+
 def _candidate_context(candidate: Mapping[str, Any]) -> str:
     row = dict(candidate or {})
     period_labels = _string_list(row.get("period_label_surfaces"))
@@ -398,12 +407,8 @@ def _candidate_context(candidate: Mapping[str, Any]) -> str:
     )
 
 
-SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v4"
-SUPPORTED_SCORE_TRANSFORMS = frozenset({"raw_logit", "sigmoid"})
-
-
 @dataclass(frozen=True, slots=True)
-class SemanticTieBreakPairV4:
+class SemanticTieBreakPairV5:
     """One owner/candidate pair that is eligible for semantic tie-breaking."""
 
     cohort_id: str
@@ -412,6 +417,8 @@ class SemanticTieBreakPairV4:
     target_text: str
     evidence_text: str
     candidate_context: str
+    fact_role: CandidateFactRoleV1
+    fact_role_fingerprint: str
     evidence_locator: str
     pair_fingerprint: str
 
@@ -428,11 +435,17 @@ class SemanticTieBreakPairV4:
         resolved_target: Mapping[str, Any],
         candidate: Mapping[str, Any],
         candidate_text: str,
+        semantic_role: CandidateSemanticRoleV1 | None = None,
         query_text_limit: int = 260,
         candidate_text_limit: int = 180,
-    ) -> "SemanticTieBreakPairV4":
+    ) -> "SemanticTieBreakPairV5":
         parent = dict(parent_owner or {})
         row = dict(candidate or {})
+        normalized_candidate_id = _normalized_text(candidate_id)
+        row_candidate_id = _normalized_text(row.get("candidate_id"))
+        if row_candidate_id and row_candidate_id != normalized_candidate_id:
+            raise ValueError("semantic tie-break candidate id mismatch")
+        row["candidate_id"] = normalized_candidate_id
         owner_label = _normalized_text(owner.get("label"))
         parent_label = _normalized_text(parent.get("label"))
         if parent_label == owner_label:
@@ -464,7 +477,19 @@ class SemanticTieBreakPairV4:
                 *_string_list(resolved_target.get("concept_keys")),
             ],
         )
-        candidate_context = _candidate_context(row)
+        fact_role = CandidateFactRoleV1.create(
+            row,
+            source_text=candidate_text,
+            semantic_role=semantic_role,
+        )
+        candidate_context = ". ".join(
+            _string_list(
+                [
+                    _candidate_context(row),
+                    fact_role.render_semantic_context(),
+                ]
+            )
+        )
         if candidate_context:
             evidence_text = ". ".join(
                 _string_list([evidence_text, candidate_context])
@@ -474,15 +499,22 @@ class SemanticTieBreakPairV4:
                 "schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
                 "target_text": target_text,
                 "evidence_text": evidence_text,
+                "fact_role": (
+                    fact_role.to_semantic_projection()
+                    if fact_role.grounding_state == "semantic_grounded"
+                    else {}
+                ),
             }
         )
         return cls(
             cohort_id=_normalized_text(cohort_id),
             owner_id=_normalized_text(owner_id),
-            candidate_id=_normalized_text(candidate_id),
+            candidate_id=normalized_candidate_id,
             target_text=target_text,
             evidence_text=evidence_text,
             candidate_context=candidate_context,
+            fact_role=fact_role,
+            fact_role_fingerprint=fact_role.projection_fingerprint,
             evidence_locator=evidence_locator,
             pair_fingerprint=hashlib.sha256(
                 serialized.encode("utf-8")
@@ -538,7 +570,7 @@ class SemanticTieBreakBatchV1:
 class SemanticCandidateTieBreaker(Protocol):
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV4],
+        pairs: Sequence[SemanticTieBreakPairV5],
     ) -> SemanticTieBreakBatchV1: ...
 
 
@@ -713,7 +745,7 @@ class LocalCrossEncoderTieBreaker:
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV4],
+        pairs: Sequence[SemanticTieBreakPairV5],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         if not rows:
@@ -726,7 +758,7 @@ class LocalCrossEncoderTieBreaker:
         with self._lock:
             scores_by_fingerprint: dict[str, float] = {}
             missing_by_fingerprint: OrderedDict[
-                str, SemanticTieBreakPairV4
+                str, SemanticTieBreakPairV5
             ] = OrderedDict()
             cache_hit_count = 0
             for pair in rows:
@@ -820,7 +852,7 @@ __all__ = [
     "SEMANTIC_TIE_BREAK_PAIR_SCHEMA",
     "SemanticCandidateTieBreaker",
     "SemanticTieBreakBatchV1",
-    "SemanticTieBreakPairV4",
+    "SemanticTieBreakPairV5",
     "SemanticTieBreakScoreV1",
     "SUPPORTED_SCORE_TRANSFORMS",
     "semantic_tie_break_cohort_eligibility",

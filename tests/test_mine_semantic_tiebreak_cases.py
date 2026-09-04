@@ -238,7 +238,7 @@ class MineSemanticTieBreakCasesTests(unittest.TestCase):
         )
 
         self.assertEqual(template["schema"], EVIDENCE_MINING_SCHEMA)
-        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v4")
+        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v5")
         self.assertEqual(template["summary"]["case_count"], 1)
         self.assertEqual(template["summary"]["candidate_pair_count"], 2)
         self.assertEqual(

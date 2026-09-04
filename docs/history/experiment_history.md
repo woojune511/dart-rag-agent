@@ -129,6 +129,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)](#atomic-evidence-bundle-selection-three-row-provider-gate-2026-09-03) | compiler 전에 complete physical-row option을 하나 선택하는 exact manifest `06a40243...016`의 승인된 동일 3문항 replay | T3 direct pair가 table 82 row `9:2`를 공유하고 전체 runtime gate 3/3 PASS; `$0.1212257` plus unpriced embeddings, no runner retry |
 | [Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)](#bounded-local-cross-encoder-tie-breaker-characterization-2026-09-04) | strongest exact factor tier의 31개 pair만 local GTE로 점수화 | 모든 동률이 margin gate에서 abstain해 기존 첫 후보와 T3 table 82를 보존; default disabled, provider benchmark 0 |
 | [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | human review 4 select/2 exclude; 1 baseline error, provider 0 |
+| [Candidate Fact-Role Projection V1 (2026-09-05)](#candidate-fact-role-projection-v1-2026-09-05) | 물리 후보별 구조 role과 exact-source-grounded prose role 경계 | v5 packet 6/34; raw role context와 exact-surface rank rule은 회귀로 기각, runtime scorer disabled |
 
 ## 보는 법
 
@@ -7294,3 +7295,31 @@ References:
   and confidence coverage is below policy.
 - This run was provider-free and store-fixed. It did not perform ingest, mutate
   a store, enable the runtime feature, or create a benchmark/release claim.
+
+## Candidate Fact-Role Projection V1 (2026-09-05)
+
+- Added immutable `CandidateFactRoleV1` and `CandidateSemanticRoleV1` contracts.
+  Each projection stays bound to one candidate ID, preserves table/row/cell and
+  verified source-span provenance, and rejects semantic surfaces absent from the
+  exact candidate source.
+- Structured tables project parser-owned subject/relation, statement type,
+  polarity, period, and value role. Prose candidates remain `unresolved` until a
+  separately produced semantic role is source-grounded. Candidate IDs, catalogs,
+  stores, and historical result bundles were not rewritten.
+- Rebuilt the provider-free v5 packet as 6 cohorts / 34 candidates, fingerprint
+  `4a5d2858...cd1`. The transferred human fixture contains 4 select cases / 22
+  candidates and is byte-stable at `f8a38cd5...6efb1` across two builds.
+- The reviewed KBF negative income-statement cells now differ structurally from
+  signless positive cash-flow adjustments. LGE's AMPC component and reported
+  operating-profit total remain unresolved because both originate in prose.
+- Feeding all deterministic structural fields to the cached cross-encoder made
+  quality worse (`0/4`), so only an explicit semantic-grounded role may augment
+  model text. With no such roles, v5 preserves the prior model scores: `1/4`
+  against baseline `3/4`, gain `-0.50`, four abstentions at margin `0.05`, and
+  warm CPU p95 `2715.932 ms`. Runtime activation remains off.
+- An exact-surface-first matching experiment reduced apparent ambiguity but
+  displaced accepted Samsung evidence. It was reverted rather than becoming a
+  keyword precedence rule.
+- No provider, network benchmark, ingest, store mutation, or paid retry ran.
+  The next bounded experiment is an evaluation-only prose semantic-role
+  interpreter; persisted fact indexing remains a separate versioned migration.

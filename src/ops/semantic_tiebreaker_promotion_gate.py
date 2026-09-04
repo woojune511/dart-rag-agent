@@ -15,12 +15,13 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from src.agent.financial_candidate_fact_role import CandidateSemanticRoleV1
 from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
     SUPPORTED_SCORE_TRANSFORMS,
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV4,
+    SemanticTieBreakPairV5,
 )
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 
@@ -110,11 +111,11 @@ def load_fixture(path: str | Path = DEFAULT_FIXTURE_PATH) -> dict[str, Any]:
 
 def build_pairs(
     payload: Mapping[str, Any],
-) -> tuple[SemanticTieBreakPairV4, ...]:
+) -> tuple[SemanticTieBreakPairV5, ...]:
     policy = dict(
         CALCULATION_PROMPT_POLICY.get("semantic_top_tier_tiebreaker") or {}
     )
-    pairs: list[SemanticTieBreakPairV4] = []
+    pairs: list[SemanticTieBreakPairV5] = []
     for raw_case in payload.get("cases") or []:
         case = dict(raw_case)
         owner = dict(case.get("owner") or {})
@@ -123,11 +124,27 @@ def build_pairs(
         for raw_candidate in case.get("candidates") or []:
             candidate_fixture = dict(raw_candidate)
             candidate = dict(candidate_fixture.get("candidate") or {})
+            candidate_id = str(candidate_fixture.get("candidate_id") or "")
+            candidate_text = str(
+                candidate_fixture.get("candidate_text")
+                or candidate.get("source_text")
+                or ""
+            )
+            raw_semantic_role = candidate_fixture.get("semantic_role")
+            semantic_role = (
+                CandidateSemanticRoleV1.from_projection(
+                    raw_semantic_role,
+                    source_text=candidate_text,
+                    expected_candidate_id=candidate_id,
+                )
+                if isinstance(raw_semantic_role, Mapping)
+                else None
+            )
             pairs.append(
-                SemanticTieBreakPairV4.create(
+                SemanticTieBreakPairV5.create(
                     cohort_id=str(case.get("cohort_id") or ""),
                     owner_id=str(case.get("owner_id") or ""),
-                    candidate_id=str(candidate_fixture.get("candidate_id") or ""),
+                    candidate_id=candidate_id,
                     query=str(case.get("query") or ""),
                     owner=owner,
                     parent_owner=(
@@ -137,11 +154,8 @@ def build_pairs(
                     ),
                     resolved_target=resolved_target,
                     candidate=candidate,
-                    candidate_text=str(
-                        candidate_fixture.get("candidate_text")
-                        or candidate.get("source_text")
-                        or ""
-                    ),
+                    candidate_text=candidate_text,
+                    semantic_role=semantic_role,
                     query_text_limit=int(policy.get("query_text_chars") or 260),
                     candidate_text_limit=int(
                         policy.get("candidate_text_chars") or 180
