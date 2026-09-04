@@ -20,7 +20,7 @@ from src.agent.financial_candidate_tiebreaker import (
     SUPPORTED_SCORE_TRANSFORMS,
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV3,
+    SemanticTieBreakPairV4,
 )
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 
@@ -110,11 +110,11 @@ def load_fixture(path: str | Path = DEFAULT_FIXTURE_PATH) -> dict[str, Any]:
 
 def build_pairs(
     payload: Mapping[str, Any],
-) -> tuple[SemanticTieBreakPairV3, ...]:
+) -> tuple[SemanticTieBreakPairV4, ...]:
     policy = dict(
         CALCULATION_PROMPT_POLICY.get("semantic_top_tier_tiebreaker") or {}
     )
-    pairs: list[SemanticTieBreakPairV3] = []
+    pairs: list[SemanticTieBreakPairV4] = []
     for raw_case in payload.get("cases") or []:
         case = dict(raw_case)
         owner = dict(case.get("owner") or {})
@@ -124,7 +124,7 @@ def build_pairs(
             candidate_fixture = dict(raw_candidate)
             candidate = dict(candidate_fixture.get("candidate") or {})
             pairs.append(
-                SemanticTieBreakPairV3.create(
+                SemanticTieBreakPairV4.create(
                     cohort_id=str(case.get("cohort_id") or ""),
                     owner_id=str(case.get("owner_id") or ""),
                     candidate_id=str(candidate_fixture.get("candidate_id") or ""),

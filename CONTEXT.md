@@ -23,10 +23,11 @@ Last updated: 2026-09-04
 - Typed per-owner matching replaces additive keyword scoring. Candidate prompts
   are cell-local, and related outputs select one complete physical row before
   compiler invocation.
-- The current feature branch adds an opt-in local cross-encoder only for exact
-  strongest-factor ties plus a source-controlled promotion gate. Pair v3 uses a
-  validated source span or unique value surface to isolate sentence clauses;
-  the model remains outside applicability, visibility, bundles, and prompts.
+- The current feature branch adds an opt-in local cross-encoder only for atomic
+  numeric ties in the exact strongest factor tier. Pair v4 uses a validated
+  source span or unique value surface for sentence clauses and carries typed
+  target/candidate period plus bounded table context. Narrative synthesis,
+  source-defined groups, and compatibility cohorts stay outside the scorer.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -46,7 +47,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 814 local unittest cases, the 86-literal runtime
+- The current feature branch passed 818 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -103,18 +104,20 @@ archaeology.
    one complete-row bundle has two options; the selected row wins by
    position-sum margin 2 and
    worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. Pair v3's six-case cached-model gate remains `needs_review`: explicit
-   `sigmoid` scoring kept unthresholded top-1 at `0.6` versus baseline `0.2`,
-   confident selection at `0.2`, abstention `1.0`, zero confident errors, and
-   warm CPU p95 about `411 ms`. Explicit `raw_logit` raised coverage to `1.0`
-   only by adding two confident errors. The default remains disabled.
-4. The read-only exporter recovered 8 real tied cohorts and 31 candidate pairs
-   from all three fingerprint-verified catalogs (template fingerprint
-   `a60909c5...8dca`). Pair v3 separated the T2 `11.5%` and `5.6%` clauses; the
-   scored saved replay still abstained everywhere, changed no first candidate,
-   and retained T3 table 82 row `9:2`.
-5. Review and label the exported real ties before another model bakeoff. Prefer
-   numeric-binding hard negatives or smaller/GPU/ONNX inference; do not lower a
-   margin or add keyword weights merely to manufacture coverage.
-6. Keep the persisted typed fact index deferred behind a separately approved,
+3. Parser-owned `period_focus` and `period_labels` now reach candidates and the
+   compiler prompt without changing candidate IDs or saved catalog
+   fingerprints. In the verified T3 replay, table 82 remains `당기/current/2023`
+   and table 83 becomes `전기/prior/2022`; the ownership-share cohort therefore
+   resolves deterministically to `cand_e2f2596cb81e73b80bbc`.
+4. Exporter v2 now yields 3 atomic tied cohorts and 7 pairs, and records 4
+   source-defined output/requirement cohorts as non-atomic exclusions (template
+   fingerprint `7864f55f...8c24`). The original 8-case packet remains immutable.
+5. Pair v4's three human-reviewed atomic cases keep all model top-1 choices
+   correct, with one confident selection, zero confident errors, and warm CPU
+   p95 about `739 ms`. Promotion remains `needs_review`: the deterministic
+   baseline is already `1.0`, so this set cannot demonstrate the required gain.
+6. Collect genuine baseline-error atomic ties before another model bakeoff.
+   Prefer numeric-binding hard negatives or smaller/GPU/ONNX inference; do not
+   lower the margin or add keyword weights merely to manufacture coverage.
+7. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

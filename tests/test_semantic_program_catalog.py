@@ -31,6 +31,48 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         self.assertEqual([item["raw_value"] for item in numeric], ["343", "380"])
         self.assertTrue(all(item["context_fingerprint"].startswith("table-a") for item in numeric))
 
+    def test_table_period_focus_and_labels_reach_candidate_without_entering_identity(self) -> None:
+        source = {
+            "candidate_id": "table-row",
+            "source_anchor": "[sample | 2023 | notes]",
+            "text": "target entity | metric | 25.92%",
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "year": 2023,
+                "period_focus": "prior",
+                "period_labels": ["prior period"],
+                "table_context": "investment note",
+                "row_label": "target entity",
+                "table_source_id": "table-prior",
+                "structured_cells": [
+                    {
+                        "cell_id": "cell-1",
+                        "column_headers": ["metric"],
+                        "value_text": "25.92%",
+                    }
+                ],
+            },
+        }
+
+        candidate = next(
+            item
+            for item in build_semantic_candidate_catalog([source])
+            if item["kind"] == "numeric"
+        )
+        rebuilt = next(
+            item
+            for item in build_semantic_candidate_catalog([source])
+            if item["kind"] == "numeric"
+        )
+
+        self.assertEqual(candidate["candidate_id"], rebuilt["candidate_id"])
+        self.assertEqual(candidate["period"], "2022")
+        self.assertEqual(candidate["value_year"], 2022)
+        self.assertEqual(candidate["period_role"], "prior")
+        self.assertEqual(candidate["period_label_surfaces"], ["prior period"])
+        self.assertEqual(candidate["period_source"], "table_period_focus")
+        self.assertEqual(candidate["table_context"], "investment note")
+
     def test_candidate_stage_diagnostics_distinguish_three_generic_loss_stages(self) -> None:
         state = {
             "retrieved_docs": [
@@ -170,6 +212,14 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         numeric = [item for item in catalog if item["kind"] == "numeric"]
         self.assertEqual([item["period"] for item in numeric], ["2023", "2022", "2021"])
         self.assertEqual([item["value_year"] for item in numeric], [2023, 2022, 2021])
+        self.assertEqual(
+            [item["period_role"] for item in numeric],
+            ["current", "prior", "prior"],
+        )
+        self.assertEqual(
+            [item["period_label_surfaces"] for item in numeric],
+            [["2023"], ["2022"], ["2021"]],
+        )
 
     def test_candidate_catalog_keeps_prose_value_when_paragraph_has_table_metadata(self) -> None:
         catalog = build_semantic_candidate_catalog(

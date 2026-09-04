@@ -27,10 +27,10 @@ Last updated: 2026-09-04
 - The candidate catalog remains complete and stable. Cohort prompts contain
   cell-local structured text and one factor projection; they do not perform a
   second keyword ranking pass.
-- An opt-in, bounded local cross-encoder can reorder only exact strongest-factor
-  ties. Pair v3 isolates sentence-local values through a validated span or one
-  unique value surface; explicit sigmoid scores stay out of compiler prompts.
-  Low confidence or failure keeps the default order. It remains disabled.
+- An opt-in local cross-encoder can reorder only atomic numeric ties in the exact
+  strongest tier. Pair v4 carries typed period/table context and isolates
+  sentence values. Narrative/group selection is excluded; low confidence or
+  failure keeps the default order, and the feature remains disabled.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -65,7 +65,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 814
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 818
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -77,10 +77,8 @@ and all three no-call rehearsals resolve to the same 6,730-byte receipt SHA-256
 `0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
 
 The separately approved process ran once, exited zero after 276.8 seconds, and
-wrote ignored result
-`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`
-(SHA-256
-`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`).
+wrote the ignored atomic-bundle result with SHA-256
+`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`.
 
 | Question | Runtime result | Gate evidence |
 | --- | --- | --- |
@@ -119,32 +117,34 @@ no disposable store remains.
 
 ## Provider-free candidate ambiguity baseline
 
-The read-only audit rebuilt all three immutable source windows with matching
-fingerprints: 413 candidates for T2, 3,191 for T3, and 503 for Samsung. Eight of
-16 cohorts have a multi-candidate top factor tier; 3,301/3,323 non-conflicting
-candidate-owner evaluations are `unknown_only` (`99.34%`). Five islands used
-154,689 prompt bytes with no retry or failure. T3's two complete rows differ by
-position-sum 2 and worst-position 1. Two audits were byte-identical and saved
-result SHA-256 `b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
-was unchanged. These results justify only a strongest-tier tie-breaker;
-applicability, visibility, and row-bundle contracts remain authoritative.
-The labeling exporter recovered 8 tied cohorts and 31 pairs with no skipped catalog; clause-local replay changed no first candidate and retained T3 row `9:2`.
+The read-only audit matched all three immutable source/catalog fingerprints
+(4,107 candidates). Eight of 16 cohorts had a multi-candidate top tier and
+3,301/3,323 non-conflicting matches were `unknown_only`. The original exporter
+found 8 tied cohorts / 31 pairs; applicability, visibility, and row bundles
+remained authoritative.
+
+The reviewed successor preserves parser-owned `당기/current` and `전기/prior`
+labels in candidates and compiler rows without changing candidate IDs or the
+three saved catalog fingerprints. T3's ownership-share tie now resolves by
+period applicability before semantic scoring. Exporter v2 leaves 3 atomic ties
+with 7 pairs and records 4 source-defined output/requirement cohorts as
+non-atomic. On those 3 human-reviewed cases, pair v4 achieved top-1 `1.0`, one
+confident selection, zero confident errors, and warm CPU p95 about `739 ms`.
+This is a provider-free no-regression/context check, not promotion evidence.
 
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Keep benchmark artifacts uncommitted. Checkout cleanup completed on
-   2026-09-04: the primary path now tracks clean `main`, the predecessor's 24
-   visible paths remain recoverable in a named local stash, and both clean,
-   already-merged linked worktrees were removed. The 86 integration-only
-   ignored result files were copied into the primary results tree and verified
-   before removal. Do not port the superseded predecessor contracts; restore
-   the stash on a separate branch only for explicit archaeology.
-3. Keep the tie-breaker opt-in. Pair v3 plus explicit sigmoid kept top-1 at
-   `0.6`, confident selection `0.2`, abstention `1.0`, zero confident errors,
-   and warm CPU p95 about `411 ms`; raw logits caused two confident errors.
-4. Label the exported real ties before numeric-binding or smaller/GPU/ONNX model
-   comparison. Keep the typed fact index behind a versioned store migration.
+2. Keep benchmark artifacts uncommitted. The predecessor remains recoverable in
+   its named stash; restore it on a separate branch only for explicit
+   archaeology, and do not port its superseded contracts.
+3. Keep the tie-breaker opt-in. Pair v4's reviewed atomic set has no top-1
+   regression but cannot show gain because its deterministic baseline is
+   already `1.0`; do not lower the `0.05` margin based on three cases.
+4. Collect and label genuine baseline-error atomic numeric ties before comparing
+   numeric-binding or smaller/GPU/ONNX models. Treat narrative and
+   source-defined evidence as set selection plus synthesis, not top-one labels.
+5. Keep the typed fact index behind a versioned store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.

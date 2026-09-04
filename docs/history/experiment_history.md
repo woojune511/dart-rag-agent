@@ -7216,3 +7216,20 @@ References:
 - This was a source, contract, and dataset-governance follow-up. It did not run
   a provider, ingest documents, mutate a store, or create a new benchmark
   score.
+
+## Semantic Tie-Break Context V4 Review (2026-09-04)
+
+- Original-filing review labeled atomic A/C/E ties and confirmed that the T3
+  ownership-share choice should be resolved by `당기` versus `전기`, not by a
+  semantic model.
+- Candidate reprojection now preserves parser-owned period role, period labels,
+  value year, and bounded table context. Candidate IDs and all three saved
+  catalog fingerprints remain unchanged.
+- Exporter v2 produced 3 atomic cohorts / 7 pairs and excluded 4
+  source-defined output/requirement cohorts from top-one labeling.
+- The cached local sigmoid gate kept top-1 at `1.0`, made 1/3 confident
+  selections, produced zero confident errors, and measured warm CPU p95 about
+  `739 ms`. Status remains `needs_review` because baseline top-1 is also `1.0`
+  and confidence coverage is below policy.
+- This run was provider-free and store-fixed. It did not perform ingest, mutate
+  a store, enable the runtime feature, or create a benchmark/release claim.

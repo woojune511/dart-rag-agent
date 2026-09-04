@@ -98,7 +98,7 @@ class ExportSemanticTieBreakCasesTests(unittest.TestCase):
         )
 
         self.assertEqual(template["schema"], LABELING_TEMPLATE_SCHEMA)
-        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v3")
+        self.assertEqual(template["pair_schema"], "semantic_tie_break_pair_v4")
         self.assertEqual(template["summary"]["case_count"], 1)
         self.assertEqual(template["summary"]["candidate_pair_count"], 2)
         case = template["cases"][0]
@@ -157,6 +157,54 @@ class ExportSemanticTieBreakCasesTests(unittest.TestCase):
         self.assertEqual(
             template["skipped"][0]["reason"],
             "saved_fingerprint_mismatch",
+        )
+
+    def test_excludes_source_defined_group_from_atomic_label_cases(self) -> None:
+        obligation = {
+            **_obligation(),
+            "kind": "narrative",
+            "evidence_mode": "source_defined_group",
+        }
+        cohort = {
+            "cohort_id": "ob_value:output",
+            "owner_id": "ob_value",
+            "parent_obligation_id": "ob_value",
+            "owner_type": "obligation",
+            "candidate_kind": "evidence",
+            "candidate_ids": ["candidate-a", "candidate-b"],
+            "limit": 6,
+        }
+        saved = {
+            "question_id": "question-group",
+            "question": "Summarize the evidence group.",
+            "source_file": "saved/results.json",
+            "store": {"persist_directory": "unused"},
+            "plan": {
+                "answer_obligations": [obligation],
+                "candidate_cohorts": [cohort],
+            },
+        }
+
+        template = build_labeling_template(
+            [saved],
+            catalog_replay=lambda _plan, _store: (
+                [
+                    _candidate("candidate-a", period="2024", value="10"),
+                    _candidate("candidate-b", period="2024", value="20"),
+                ],
+                {"status": "verified", "reason": ""},
+            ),
+        )
+
+        self.assertEqual(template["cases"], [])
+        self.assertEqual(template["summary"]["excluded_cohort_count"], 1)
+        self.assertEqual(
+            template["summary"]["excluded_cohort_reason_counts"],
+            {"source_defined_group": 1},
+        )
+        self.assertEqual(
+            template["excluded_cohorts"][0]["reason"],
+            "source_defined_group",
         )
 
 

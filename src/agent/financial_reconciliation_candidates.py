@@ -534,6 +534,73 @@ def _candidate_period_role_kind(role: str) -> str:
     return ""
 
 
+def _candidate_period_focus(
+    cell: Mapping[str, Any], metadata: Mapping[str, Any]
+) -> str:
+    """Return the parser-projected current/prior role when it is explicit."""
+
+    for raw_value in (
+        cell.get("period_role"),
+        metadata.get("period_role"),
+        cell.get("period_focus"),
+        metadata.get("period_focus"),
+    ):
+        value = _normalise_spaces(str(raw_value or "")).lower()
+        if value in {"current", "prior"}:
+            return value
+    return _candidate_period_role_kind(_candidate_period_role(cell, metadata))
+
+
+def _candidate_period_label_surfaces(
+    cell: Mapping[str, Any], metadata: Mapping[str, Any]
+) -> List[str]:
+    """Preserve parser-owned period labels without making them identity material."""
+
+    def surfaces(*raw_items: Any) -> List[str]:
+        values: List[Any] = []
+        for raw_values in raw_items:
+            if isinstance(raw_values, (str, bytes)):
+                values.append(raw_values)
+            elif isinstance(raw_values, Sequence):
+                values.extend(raw_values)
+        return _normalized_string_list(values)
+
+    source_surface = _candidate_period_surface(cell, metadata)
+    if (
+        _cell_explicit_year(cell, metadata) is not None
+        or _fiscal_ordinal(cell, metadata) is not None
+    ):
+        return _normalized_string_list([source_surface])
+    cell_values = surfaces(cell.get("period_labels"), cell.get("period_text"))
+    if cell_values:
+        return cell_values
+    return surfaces(metadata.get("period_labels"), metadata.get("period_text"))
+
+
+def _candidate_projected_period_role(
+    cell: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+    *,
+    value_year: Optional[int],
+) -> str:
+    for raw_value in (cell.get("period_role"), metadata.get("period_role")):
+        role = _candidate_period_role_kind(
+            _normalise_spaces(str(raw_value or "")).lower()
+        )
+        if role:
+            return role
+    try:
+        report_year = int(metadata.get("year"))
+    except (TypeError, ValueError):
+        report_year = None
+    if value_year is not None and report_year is not None:
+        if value_year == report_year:
+            return "current"
+        if value_year < report_year:
+            return "prior"
+    return _candidate_period_focus(cell, metadata)
+
+
 def _candidate_has_competing_periods(
     cells: Sequence[Mapping[str, Any]], metadata: Mapping[str, Any]
 ) -> bool:
@@ -583,6 +650,13 @@ def _candidate_value_year(
     except (TypeError, ValueError):
         return None
 
+    period_focus = _candidate_period_focus(cell, metadata)
+    if not _candidate_has_competing_periods(cells, metadata):
+        if period_focus == "current":
+            return report_year
+        if period_focus == "prior":
+            return report_year - 1
+
     explicit_role = _candidate_period_role(cell, metadata)
     role_kind = _candidate_period_role_kind(explicit_role)
     if role_kind == "current":
@@ -620,8 +694,15 @@ def _candidate_period_projection(
     if _fiscal_ordinal(cell, metadata) is not None:
         return source_surface, source_surface, "fiscal_period"
     role_kind = _candidate_period_role_kind(_candidate_period_role(cell, metadata))
+    period_focus = _candidate_period_focus(cell, metadata)
     if value_year is not None:
-        period_source = "value_role" if role_kind else "report_current"
+        period_source = (
+            "value_role"
+            if role_kind
+            else "table_period_focus"
+            if period_focus == "prior"
+            else "report_current"
+        )
         return str(value_year), source_surface, period_source
     return source_surface, source_surface, (
         "source_surface_unresolved" if source_surface else "unknown"
@@ -1862,6 +1943,9 @@ def build_semantic_candidate_catalog(
             "basis": _normalise_spaces(
                 str(metadata.get("basis") or metadata.get("accounting_basis") or "")
             ),
+            "table_context": _normalise_spaces(
+                str(metadata.get("table_context") or _table_context_text(metadata, {}))
+            )[:320],
             "context_fingerprint": context_fingerprint,
             "source_text": source_text[:1200],
             "candidate_kind": candidate_kind,
@@ -1982,6 +2066,15 @@ def build_semantic_candidate_catalog(
                     "period": period,
                     "source_period_surface": source_period_surface,
                     "period_source": period_source,
+                    "period_role": _candidate_projected_period_role(
+                        cell,
+                        metadata,
+                        value_year=value_year,
+                    ),
+                    "period_label_surfaces": _candidate_period_label_surfaces(
+                        cell,
+                        metadata,
+                    ),
                     "value_year": value_year,
                     "column_headers": column_headers,
                     "value_role": _candidate_value_role(

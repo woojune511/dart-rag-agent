@@ -49,6 +49,27 @@ def _projection_text(value: Mapping[str, Any]) -> str:
     )
 
 
+def semantic_tie_break_cohort_eligibility(
+    *,
+    candidate_kind: str,
+    owner: Mapping[str, Any],
+    parent_owner: Mapping[str, Any] | None = None,
+) -> tuple[bool, str]:
+    """Limit top-one reranking to owners that select one numeric fact."""
+
+    obligation = dict(parent_owner or owner or {})
+    if str(obligation.get("kind") or "") == "narrative":
+        if (
+            str(obligation.get("evidence_mode") or "declared_inputs")
+            == "source_defined_group"
+        ):
+            return False, "source_defined_group"
+        return False, "narrative_synthesis"
+    if _normalized_text(candidate_kind).casefold() != "numeric":
+        return False, "non_atomic_candidate_kind"
+    return True, "atomic_numeric"
+
+
 def _bounded_focus_excerpt(
     source_text: str,
     focus_texts: Sequence[Any],
@@ -314,12 +335,75 @@ def _candidate_specific_evidence(
     return text, locator
 
 
-SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v3"
+def _target_context(
+    owner: Mapping[str, Any],
+    parent_owner: Mapping[str, Any] | None,
+    resolved_target: Mapping[str, Any],
+) -> str:
+    parent = dict(parent_owner or {})
+    scope = {
+        **dict(parent.get("scope") or {}),
+        **dict(owner.get("scope") or {}),
+    }
+    return ". ".join(
+        _string_list(
+            [
+                f"Target period: {scope.get('period')}"
+                if _normalized_text(scope.get("period"))
+                else "",
+                f"Target segment: {scope.get('segment')}"
+                if _normalized_text(scope.get("segment"))
+                else "",
+                f"Target consolidation scope: {scope.get('consolidation_scope')}"
+                if _normalized_text(scope.get("consolidation_scope"))
+                and _normalized_text(scope.get("consolidation_scope")) != "unknown"
+                else "",
+                f"Target basis: {scope.get('basis')}"
+                if _normalized_text(scope.get("basis"))
+                else "",
+                f"Target unit family: {resolved_target.get('expected_unit_family')}"
+                if _normalized_text(resolved_target.get("expected_unit_family"))
+                and _normalized_text(resolved_target.get("expected_unit_family"))
+                != "UNKNOWN"
+                else "",
+            ]
+        )
+    )
+
+
+def _candidate_context(candidate: Mapping[str, Any]) -> str:
+    row = dict(candidate or {})
+    period_labels = _string_list(row.get("period_label_surfaces"))
+    table_context = _normalized_text(row.get("table_context"))[:160]
+    return ". ".join(
+        _string_list(
+            [
+                f"Candidate period role: {row.get('period_role')}"
+                if _normalized_text(row.get("period_role"))
+                else "",
+                f"Candidate period labels: {' / '.join(period_labels)}"
+                if period_labels
+                else "",
+                f"Candidate period: {row.get('period')}"
+                if _normalized_text(row.get("period"))
+                else "",
+                f"Candidate value year: {row.get('value_year')}"
+                if row.get("value_year") is not None
+                else "",
+                f"Candidate table context: {table_context}"
+                if table_context
+                else "",
+            ]
+        )
+    )
+
+
+SEMANTIC_TIE_BREAK_PAIR_SCHEMA = "semantic_tie_break_pair_v4"
 SUPPORTED_SCORE_TRANSFORMS = frozenset({"raw_logit", "sigmoid"})
 
 
 @dataclass(frozen=True, slots=True)
-class SemanticTieBreakPairV3:
+class SemanticTieBreakPairV4:
     """One owner/candidate pair that is eligible for semantic tie-breaking."""
 
     cohort_id: str
@@ -327,6 +411,7 @@ class SemanticTieBreakPairV3:
     candidate_id: str
     target_text: str
     evidence_text: str
+    candidate_context: str
     evidence_locator: str
     pair_fingerprint: str
 
@@ -345,15 +430,13 @@ class SemanticTieBreakPairV3:
         candidate_text: str,
         query_text_limit: int = 260,
         candidate_text_limit: int = 180,
-    ) -> "SemanticTieBreakPairV3":
+    ) -> "SemanticTieBreakPairV4":
         parent = dict(parent_owner or {})
         row = dict(candidate or {})
         owner_label = _normalized_text(owner.get("label"))
         parent_label = _normalized_text(parent.get("label"))
         if parent_label == owner_label:
             parent_label = ""
-        # Scope, period, unit, and locality already define the deterministic
-        # factor tier.  The reranker sees only the remaining semantic question.
         target_text = ". ".join(
             _string_list(
                 [
@@ -365,6 +448,7 @@ class SemanticTieBreakPairV3:
                     *_string_list(resolved_target.get("local_subjects")),
                     *_string_list(resolved_target.get("metric_surfaces")),
                     *_string_list(resolved_target.get("concept_keys")),
+                    _target_context(owner, parent_owner, resolved_target),
                 ]
             )
         )
@@ -380,6 +464,11 @@ class SemanticTieBreakPairV3:
                 *_string_list(resolved_target.get("concept_keys")),
             ],
         )
+        candidate_context = _candidate_context(row)
+        if candidate_context:
+            evidence_text = ". ".join(
+                _string_list([evidence_text, candidate_context])
+            )
         serialized = _projection_text(
             {
                 "schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
@@ -393,6 +482,7 @@ class SemanticTieBreakPairV3:
             candidate_id=_normalized_text(candidate_id),
             target_text=target_text,
             evidence_text=evidence_text,
+            candidate_context=candidate_context,
             evidence_locator=evidence_locator,
             pair_fingerprint=hashlib.sha256(
                 serialized.encode("utf-8")
@@ -448,7 +538,7 @@ class SemanticTieBreakBatchV1:
 class SemanticCandidateTieBreaker(Protocol):
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV3],
+        pairs: Sequence[SemanticTieBreakPairV4],
     ) -> SemanticTieBreakBatchV1: ...
 
 
@@ -623,7 +713,7 @@ class LocalCrossEncoderTieBreaker:
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV3],
+        pairs: Sequence[SemanticTieBreakPairV4],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         if not rows:
@@ -636,7 +726,7 @@ class LocalCrossEncoderTieBreaker:
         with self._lock:
             scores_by_fingerprint: dict[str, float] = {}
             missing_by_fingerprint: OrderedDict[
-                str, SemanticTieBreakPairV3
+                str, SemanticTieBreakPairV4
             ] = OrderedDict()
             cache_hit_count = 0
             for pair in rows:
@@ -730,7 +820,8 @@ __all__ = [
     "SEMANTIC_TIE_BREAK_PAIR_SCHEMA",
     "SemanticCandidateTieBreaker",
     "SemanticTieBreakBatchV1",
-    "SemanticTieBreakPairV3",
+    "SemanticTieBreakPairV4",
     "SemanticTieBreakScoreV1",
     "SUPPORTED_SCORE_TRANSFORMS",
+    "semantic_tie_break_cohort_eligibility",
 ]

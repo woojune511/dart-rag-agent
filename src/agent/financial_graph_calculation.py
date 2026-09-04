@@ -22,7 +22,8 @@ from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
     SemanticCandidateTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV3,
+    SemanticTieBreakPairV4,
+    semantic_tie_break_cohort_eligibility,
 )
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
@@ -778,8 +779,9 @@ def _semantic_candidate_cohorts(
         if str(item.get("candidate_id") or "")
     }
     preliminary_rankings: List[Dict[str, Any]] = []
-    tie_break_pairs: List[SemanticTieBreakPairV3] = []
+    tie_break_pairs: List[SemanticTieBreakPairV4] = []
     skipped_tie_cohort_ids: List[str] = []
+    ineligible_tie_cohort_reasons: Dict[str, str] = {}
     eligible_tie_pair_count = 0
     for specification in specifications:
         owner_id = str(specification["owner_id"])
@@ -812,6 +814,22 @@ def _semantic_candidate_cohorts(
         top_tier_candidate_count = int(
             ranking_diagnostics.get("top_tier_candidate_count") or 0
         )
+        tie_eligible, tie_eligibility_reason = (
+            semantic_tie_break_cohort_eligibility(
+                candidate_kind=str(specification["candidate_kind"]),
+                owner=specification["owner"],
+                parent_owner=specification.get("parent_owner"),
+            )
+        )
+        preliminary_rankings[-1]["tie_eligible"] = tie_eligible
+        preliminary_rankings[-1]["tie_eligibility_reason"] = (
+            tie_eligibility_reason
+        )
+        if not tie_eligible:
+            ineligible_tie_cohort_reasons[
+                str(specification["cohort_id"])
+            ] = tie_eligibility_reason
+            continue
         eligible_tie_pair_count += top_tier_candidate_count
         if top_tier_candidate_count > max_tie_candidates_per_cohort:
             skipped_tie_cohort_ids.append(str(specification["cohort_id"]))
@@ -842,7 +860,7 @@ def _semantic_candidate_cohorts(
             ):
                 continue
             tie_break_pairs.append(
-                SemanticTieBreakPairV3.create(
+                SemanticTieBreakPairV4.create(
                     cohort_id=str(specification["cohort_id"]),
                     owner_id=owner_id,
                     candidate_id=candidate_id,
@@ -975,11 +993,17 @@ def _semantic_candidate_cohorts(
         top_tier_count = int(
             ranking_diagnostics.get("top_tier_candidate_count") or 0
         )
+        tie_eligible = bool(preliminary.get("tie_eligible", True))
+        tie_eligibility_reason = str(
+            preliminary.get("tie_eligibility_reason") or ""
+        )
         ranking_diagnostics["semantic_tiebreaker"] = {
             "schema": "semantic_top_tier_tiebreak_v1",
             "status": (
                 "applied"
                 if semantic_scores
+                else "not_applicable"
+                if top_tier_count >= 2 and not tie_eligible
                 else "abstained_low_margin"
                 if scored_candidates
                 else "skipped_capacity"
@@ -990,10 +1014,14 @@ def _semantic_candidate_cohorts(
                 else "not_needed"
             ),
             "scorer_id": (
-                tie_break_batch.scorer_id if top_tier_count >= 2 else ""
+                tie_break_batch.scorer_id
+                if top_tier_count >= 2 and tie_eligible
+                else ""
             ),
             "score_transform": (
-                tie_break_batch.score_transform if top_tier_count >= 2 else ""
+                tie_break_batch.score_transform
+                if top_tier_count >= 2 and tie_eligible
+                else ""
             ),
             "candidate_count": len(ordered_scored_ids),
             "ordered_candidate_ids": ordered_scored_ids,
@@ -1003,6 +1031,7 @@ def _semantic_candidate_cohorts(
             },
             "top_score_margin": round(score_margin, 8),
             "min_score_margin": min_semantic_score_margin,
+            "eligibility_reason": tie_eligibility_reason,
         }
         candidate_ids = [
             str(item.get("candidate_id") or "")
@@ -1204,6 +1233,10 @@ def _semantic_candidate_cohorts(
             "max_pairs_per_query": max_tie_pairs_per_query,
             "min_score_margin": min_semantic_score_margin,
             "skipped_cohort_ids": sorted(skipped_tie_cohort_ids),
+            "ineligible_cohort_reasons": {
+                cohort_id: ineligible_tie_cohort_reasons[cohort_id]
+                for cohort_id in sorted(ineligible_tie_cohort_reasons)
+            },
         },
     }
 
@@ -1596,6 +1629,11 @@ class FinancialAgentCalculationMixin:
                 "raw_unit": str(item.get("raw_unit") or ""),
                 "normalized_unit": str(item.get("normalized_unit") or ""),
                 "period": str(item.get("period") or ""),
+                "period_role": str(item.get("period_role") or ""),
+                "period_label_surfaces": list(
+                    item.get("period_label_surfaces") or []
+                ),
+                "period_source": str(item.get("period_source") or ""),
                 "year": item.get("year"),
                 "value_year": item.get("value_year"),
                 "company": str(item.get("company") or ""),
@@ -1608,6 +1646,7 @@ class FinancialAgentCalculationMixin:
                 "basis": str(item.get("basis") or ""),
                 "value_role": str(item.get("value_role") or ""),
                 "statement_type": str(item.get("statement_type") or ""),
+                "table_context": str(item.get("table_context") or "")[:160],
                 "table_source_id": str(item.get("table_source_id") or ""),
                 "physical_table_id": str(item.get("physical_table_id") or ""),
                 "physical_row_id": str(item.get("physical_row_id") or ""),

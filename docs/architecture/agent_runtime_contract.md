@@ -101,16 +101,21 @@ explicit scope, subject, or unit conflict. Within each owner cohort,
 are excluded. Equal factor tiers are deterministic and source-diverse.
 
 An optional local cross-encoder may break a tie only inside the strongest exact
-factor-vector tier. It never admits an explicit conflict, promotes a lower
-tier, changes owner visibility, or selects cells independently of a physical-row
-bundle. Pair schema `semantic_tie_break_pair_v3` presents a natural query plus
-the owner target and marks the candidate's physical value inside bounded
-cell-local evidence. Sentence values are projected from the clause containing
-the value. A saved `source_span` is used only when it matches the exact text
-window; otherwise one unique boundary-valid value surface may locate the clause.
-Missing or ambiguous surfaces keep a bounded unlocalized fallback rather than
-guessing a clause. This keeps two values from the same sentence distinct without
-asking the model to reinterpret deterministic scope metadata.
+factor-vector tier for an atomic numeric owner. Narrative synthesis,
+source-defined groups, and non-numeric compatibility cohorts are not top-one
+selection problems and never enter this scorer. It never admits an explicit
+conflict, promotes a lower tier, changes owner visibility, or selects cells
+independently of a physical-row bundle.
+
+Pair schema `semantic_tie_break_pair_v4` presents a natural query, typed target
+scope, and the candidate's parser-owned period role, original period labels,
+value year, and bounded table context. It marks the candidate's physical value
+inside bounded cell-local evidence. Sentence values are projected from the
+clause containing the value. A saved `source_span` is used only when it matches
+the exact text window; otherwise one unique boundary-valid value surface may
+locate the clause. Missing or ambiguous surfaces keep a bounded unlocalized
+fallback rather than guessing a clause. Candidate IDs and catalog fingerprints
+do not include the added context projection.
 
 The initial query pass scores at most 12 candidates per cohort and 64 pairs in
 one batch. A top-versus-runner margin below `0.05`, capacity overflow, or scorer
@@ -235,7 +240,8 @@ original obligation order. `semantic_candidate_stage_diagnostics_v8` records
 owner factor counts, factor-vector tier separation, unknown-only share inputs,
 the active constraint, complete-row option counts and ranked option selection,
 island composition, call/retry counts, visibility fingerprints, prompt bytes,
-and bounded semantic tie-break status, scorer identity, scores, and margin.
+and bounded semantic tie-break eligibility, exclusion reason, scorer identity,
+scores, and margin.
 Ranking diagnostics are observability-only and are not serialized into the
 compiler prompt.
 

@@ -7,8 +7,9 @@ from unittest.mock import patch
 from src.agent.financial_candidate_tiebreaker import (
     LocalCrossEncoderTieBreaker,
     SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV3,
+    SemanticTieBreakPairV4,
     SemanticTieBreakScoreV1,
+    semantic_tie_break_cohort_eligibility,
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _semantic_candidate_cohorts
@@ -48,6 +49,10 @@ def _candidate(
         "segment": "",
         "basis": "",
         "period": "2024",
+        "period_role": "current",
+        "period_label_surfaces": ["current period"],
+        "period_source": "report_current",
+        "table_context": "sample table context",
         "context_fingerprint": "sample-table",
         "source_text": f"Target Entity | {column} {value} million",
     }
@@ -84,11 +89,11 @@ def _obligation(obligation_id: str, metric: str) -> dict:
 class _ScoreByCandidate:
     def __init__(self, scores: dict[str, float]) -> None:
         self.scores = dict(scores)
-        self.calls: list[tuple[SemanticTieBreakPairV3, ...]] = []
+        self.calls: list[tuple[SemanticTieBreakPairV4, ...]] = []
 
     def score_pairs(
         self,
-        pairs: Sequence[SemanticTieBreakPairV3],
+        pairs: Sequence[SemanticTieBreakPairV4],
     ) -> SemanticTieBreakBatchV1:
         rows = tuple(pairs)
         self.calls.append(rows)
@@ -134,7 +139,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
         owner = _obligation("ob_metric", "metric alpha")
         pairs = [
-            SemanticTieBreakPairV3.create(
+            SemanticTieBreakPairV4.create(
                 cohort_id="ob_metric:output",
                 owner_id="ob_metric",
                 candidate_id=candidate_id,
@@ -277,6 +282,13 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
         self.assertNotIn("ranking_diagnostics", payload["cohorts"][0])
         self.assertNotIn("semantic_tiebreaker", payload)
+        prompt_candidate = payload["candidates_by_id"]["right"]
+        self.assertEqual(prompt_candidate["period_role"], "current")
+        self.assertEqual(
+            prompt_candidate["period_label_surfaces"],
+            ["current period"],
+        )
+        self.assertEqual(prompt_candidate["table_context"], "sample table context")
 
     def test_low_semantic_margin_preserves_deterministic_order(self) -> None:
         owner = _obligation("ob_metric", "metric alpha")
@@ -324,9 +336,12 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "value_year": 2024,
             "source_period_surface": "metric alpha",
             "period_source": "source_surface_unresolved",
+            "period_role": "current",
+            "period_label_surfaces": ["current period"],
+            "table_context": "investment note",
         }
 
-        pair = SemanticTieBreakPairV3.create(
+        pair = SemanticTieBreakPairV4.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-a",
@@ -344,7 +359,91 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
         )
 
         self.assertIn("[SELECTED VALUE 10 million]", pair.evidence_text)
-        self.assertNotIn("period source", pair.evidence_text)
+        self.assertIn("Target period: 2024", pair.target_text)
+        self.assertIn("Candidate period role: current", pair.evidence_text)
+        self.assertIn("Candidate period labels: current period", pair.evidence_text)
+        self.assertIn("Candidate table context: investment note", pair.evidence_text)
+        self.assertEqual(
+            pair.candidate_context,
+            (
+                "Candidate period role: current. "
+                "Candidate period labels: current period. "
+                "Candidate period: metric alpha. "
+                "Candidate value year: 2024. "
+                "Candidate table context: investment note"
+            ),
+        )
+
+    def test_atomic_eligibility_excludes_group_and_narrative_selection(self) -> None:
+        source_group = {
+            "kind": "narrative",
+            "evidence_mode": "source_defined_group",
+        }
+        narrative = {"kind": "narrative", "evidence_mode": "declared_inputs"}
+
+        self.assertEqual(
+            semantic_tie_break_cohort_eligibility(
+                candidate_kind="evidence",
+                owner=source_group,
+            ),
+            (False, "source_defined_group"),
+        )
+        self.assertEqual(
+            semantic_tie_break_cohort_eligibility(
+                candidate_kind="narrative",
+                owner=narrative,
+            ),
+            (False, "narrative_synthesis"),
+        )
+        self.assertEqual(
+            semantic_tie_break_cohort_eligibility(
+                candidate_kind="numeric",
+                owner=_obligation("ob_metric", "metric alpha"),
+            ),
+            (True, "atomic_numeric"),
+        )
+
+    def test_source_defined_group_tie_is_not_sent_to_atomic_scorer(self) -> None:
+        owner = {
+            **_obligation("ob_group", "metric alpha"),
+            "kind": "narrative",
+            "evidence_mode": "source_defined_group",
+        }
+        scorer = _ScoreByCandidate({"left": 0.1, "right": 0.9})
+
+        plan = _semantic_candidate_cohorts(
+            [
+                _candidate(
+                    "left",
+                    row_id="row-left",
+                    column="metric alpha",
+                    value="10",
+                ),
+                _candidate(
+                    "right",
+                    row_id="row-right",
+                    column="metric alpha",
+                    value="20",
+                ),
+            ],
+            [owner],
+            query="Summarize the evidence group",
+            semantic_tiebreaker=scorer,
+        )
+
+        output = next(
+            row
+            for row in plan["cohorts"]
+            if row["cohort_id"] == "ob_group:output"
+        )
+        semantic = output["ranking_diagnostics"]["semantic_tiebreaker"]
+        self.assertEqual(scorer.calls, [])
+        self.assertEqual(semantic["status"], "not_applicable")
+        self.assertEqual(semantic["eligibility_reason"], "source_defined_group")
+        self.assertEqual(
+            plan["semantic_tiebreaker"]["ineligible_cohort_reasons"],
+            {"ob_group:output": "source_defined_group"},
+        )
 
     def test_pair_projection_marks_zero_without_matching_a_larger_number(self) -> None:
         owner = _obligation("ob_metric", "metric alpha")
@@ -359,7 +458,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": "metric alpha 100 million | metric alpha 0 million",
         }
 
-        pair = SemanticTieBreakPairV3.create(
+        pair = SemanticTieBreakPairV4.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-zero",
@@ -394,7 +493,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": source_text,
         }
 
-        pair = SemanticTieBreakPairV3.create(
+        pair = SemanticTieBreakPairV4.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-growth",
@@ -426,7 +525,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             "source_text": source_text,
         }
 
-        pair = SemanticTieBreakPairV3.create(
+        pair = SemanticTieBreakPairV4.create(
             cohort_id="ob_metric:output",
             owner_id="ob_metric",
             candidate_id="candidate-second",

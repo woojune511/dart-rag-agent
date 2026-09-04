@@ -26,7 +26,8 @@ from src.agent.financial_candidate_matching import (
 )
 from src.agent.financial_candidate_tiebreaker import (
     SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
-    SemanticTieBreakPairV3,
+    SemanticTieBreakPairV4,
+    semantic_tie_break_cohort_eligibility,
 )
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 from src.ops.audit_candidate_ambiguity import (
@@ -36,7 +37,7 @@ from src.ops.audit_candidate_ambiguity import (
 )
 
 
-LABELING_TEMPLATE_SCHEMA = "semantic_candidate_tiebreak_labeling_template_v1"
+LABELING_TEMPLATE_SCHEMA = "semantic_candidate_tiebreak_labeling_template_v2"
 _CANDIDATE_FIELDS = (
     "kind",
     "candidate_kind",
@@ -52,6 +53,10 @@ _CANDIDATE_FIELDS = (
     "normalized_value",
     "normalized_unit",
     "period",
+    "period_role",
+    "period_label_surfaces",
+    "period_source",
+    "source_period_surface",
     "year",
     "value_year",
     "company",
@@ -59,6 +64,7 @@ _CANDIDATE_FIELDS = (
     "consolidation_scope",
     "segment",
     "basis",
+    "table_context",
     "value_role",
     "aggregation_stage",
     "aggregate_label",
@@ -184,6 +190,7 @@ def build_labeling_template(
     max_pairs_per_query = int(policy.get("max_pairs_per_query") or 64)
     cases: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
+    excluded_cohorts: list[dict[str, Any]] = []
     pair_count_by_question: dict[str, int] = {}
 
     for saved in sorted(
@@ -232,6 +239,23 @@ def build_labeling_template(
             )
             if len(strongest) < 2:
                 continue
+            tie_eligible, tie_eligibility_reason = (
+                semantic_tie_break_cohort_eligibility(
+                    candidate_kind=str(cohort.get("candidate_kind") or ""),
+                    owner=owner,
+                    parent_owner=parent_owner,
+                )
+            )
+            if not tie_eligible:
+                excluded_cohorts.append(
+                    {
+                        "question_id": question_id,
+                        "cohort_id": str(cohort.get("cohort_id") or ""),
+                        "owner_id": str(cohort.get("owner_id") or ""),
+                        "reason": tie_eligibility_reason,
+                    }
+                )
+                continue
             resolved_target = resolve_owner_target(
                 owner,
                 parent_owner=parent_owner,
@@ -242,7 +266,7 @@ def build_labeling_template(
             for candidate in strongest:
                 candidate_id = str(candidate.get("candidate_id") or "")
                 candidate_text = candidate_cell_local_source_text(candidate)
-                pair = SemanticTieBreakPairV3.create(
+                pair = SemanticTieBreakPairV4.create(
                     cohort_id=str(cohort.get("cohort_id") or ""),
                     owner_id=str(cohort.get("owner_id") or ""),
                     candidate_id=candidate_id,
@@ -263,6 +287,7 @@ def build_labeling_template(
                         "candidate": _candidate_projection(candidate),
                         "deterministic_match": dict(matches.get(candidate_id) or {}),
                         "projected_evidence_text": pair.evidence_text,
+                        "candidate_context": pair.candidate_context,
                         "evidence_locator": pair.evidence_locator,
                         "pair_fingerprint": pair.pair_fingerprint,
                     }
@@ -315,6 +340,7 @@ def build_labeling_template(
         "pair_schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
         "cases": cases,
         "skipped": skipped,
+        "excluded_cohorts": excluded_cohorts,
     }
     fingerprint_material = {
         "schema": LABELING_TEMPLATE_SCHEMA,
@@ -329,6 +355,7 @@ def build_labeling_template(
             }
             for row in skipped
         ],
+        "excluded_cohorts": excluded_cohorts,
     }
     return {
         **material,
@@ -339,6 +366,16 @@ def build_labeling_template(
             ),
             "question_count": len(pair_count_by_question),
             "skipped_plan_count": len(skipped),
+            "excluded_cohort_count": len(excluded_cohorts),
+            "excluded_cohort_reason_counts": {
+                reason: sum(
+                    row.get("reason") == reason for row in excluded_cohorts
+                )
+                for reason in sorted(
+                    {str(row.get("reason") or "") for row in excluded_cohorts}
+                )
+                if reason
+            },
             "over_capacity_question_ids": over_capacity_question_ids,
             "label_status": "unlabeled",
         },
@@ -354,6 +391,7 @@ def render_summary(template: Mapping[str, Any]) -> str:
         f"Candidate pairs: {summary.get('candidate_pair_count', 0)}\n"
         f"Questions: {summary.get('question_count', 0)}\n"
         f"Skipped plans: {summary.get('skipped_plan_count', 0)}\n"
+        f"Excluded non-atomic cohorts: {summary.get('excluded_cohort_count', 0)}\n"
         f"Fingerprint: {template.get('template_fingerprint', '')}\n"
     )
 
