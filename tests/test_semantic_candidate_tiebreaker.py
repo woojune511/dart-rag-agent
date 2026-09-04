@@ -566,7 +566,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             source_text=source_text,
             subject_surfaces=["credit benefit"],
             relation_surfaces=["676 credit benefit was recognized"],
-            value_role="adjustment_component",
+            value_role="component",
         )
 
         pair = SemanticTieBreakPairV5.create(
@@ -586,7 +586,7 @@ class SemanticCandidateTieBreakerTests(unittest.TestCase):
             semantic_role=semantic_role,
         )
 
-        self.assertEqual(pair.fact_role.value_role, "adjustment_component")
+        self.assertEqual(pair.fact_role.value_role, "component")
         self.assertIn(
             "Candidate relations: 676 credit benefit was recognized",
             pair.evidence_text,

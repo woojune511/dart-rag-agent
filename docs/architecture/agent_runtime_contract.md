@@ -108,14 +108,14 @@ conflict, promotes a lower tier, changes owner visibility, or selects cells
 independently of a physical-row bundle.
 
 Pair schema `semantic_tie_break_pair_v5` presents a natural query, typed target,
-and immutable `CandidateFactRoleV1` with period/table/physical provenance inside
-bounded cell-local evidence. Sentence values use an exact saved `source_span` or
-one unique value surface; ambiguity keeps a bounded fallback. Tables project
-parser structure, while runtime prose remains `unresolved`. The evaluation-only
-role interpreter groups all values from one exact source, excludes query and
-answer labels, and accepts only visible IDs plus exact source surfaces whose
-relation contains that value. Only validated `CandidateSemanticRoleV1` enters a
-model fixture; runtime wiring, candidate IDs, and catalog fingerprints stay fixed.
+and immutable `CandidateFactRoleV1` in bounded cell-local evidence. Sentence
+values require an exact saved `source_span` or one unique value surface; tables
+project parser structure and runtime prose remains `unresolved`. The evaluation
+interpreter omits query and answer labels and accepts only visible IDs plus exact
+value-local source relations. `CandidateSemanticRoleV1.value_role` is limited to
+`reported_total`, `component`, `period_value`, `rate`, `derived_display`, or
+`other`; task-relative add/subtract/exclude or ratio use belongs only to validated
+semantic-program AST and binding. Runtime wiring, IDs, and fingerprints stay fixed.
 
 The initial query pass scores at most 12 candidates per cohort and 64 pairs in
 one batch. A top-versus-runner margin below `0.05`, capacity overflow, or scorer

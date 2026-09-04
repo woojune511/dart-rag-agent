@@ -7348,3 +7348,22 @@ References:
 - No provider, ingest, store mutation, benchmark, or runtime activation occurred.
   The next possible action is one separately approved structured-output model
   call on the exact request, followed by the reviewed role gate.
+
+## Source-Local Prose Role Boundary (2026-09-05)
+
+- Admission `729d1f53...4b93` was consumed exactly once on commit `189236a`.
+  Gemini 2.5 Flash made one structured-output call with 389 input and 162 output
+  tokens (551 total). Repository pricing estimated USD `0.0005217`, below the
+  approved USD `0.02` ceiling. There was no provider retry.
+- Both candidates were source-grounded. The operating-profit value matched
+  `reported_total`; the tax-credit value was returned as `component`, while the
+  predecessor oracle expected `adjustment_component`. That original comparison
+  was therefore `1/2`.
+- Review found that `adjustment_component` had encoded how a later question uses
+  the value, information intentionally absent from the model request. The source
+  states a component; exclusion is owned by semantic-program AST and binding.
+  The immutable provider response matches the corrected successor review `2/2`.
+- The source-role vocabulary now rejects task-relative operand use. This result
+  does not enable the tie-breaker, change candidate visibility, mutate a store,
+  or establish held-out model quality. More prose cases must be reviewed
+  provider-free before another model request is proposed.

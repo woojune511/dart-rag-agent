@@ -29,7 +29,9 @@ Last updated: 2026-09-05
   stays unresolved in runtime. An evaluation-only interpreter groups every value
   from one exact source without query or answer labels, and validates candidate
   IDs, fingerprints, exact surfaces, and value-local relations before roles may
-  enter model text. Narrative/group cohorts remain outside the scorer.
+  enter model text. Its role is source-local; add/subtract/exclude use remains in
+  semantic-program AST and binding. Narrative/group cohorts remain outside the
+  scorer.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -49,7 +51,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 835 local unittest cases, the 86-literal runtime
+- The current feature branch passed 837 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -61,6 +63,11 @@ and [experiment_history.md](docs/history/experiment_history.md).
 - Admission `06a40243...016` was consumed exactly once. The run used 17 LLM
   calls, 117,631 LLM tokens, 32 query-embedding calls, zero document-embedding
   calls, and an estimated USD `0.1212257` under the approved USD `0.40` cap.
+- Admission `729d1f53...4b93` was consumed exactly once for the two-value prose
+  role request. It used one LLM call and 551 tokens, with estimated cost USD
+  `0.0005217` under the approved USD `0.02` cap. The provider identified both
+  source-local roles; the predecessor task-relative oracle caused the initial
+  `1/2` comparison, while the corrected source-role successor is `2/2`.
 - The approved `data/chroma_dart` manifest is compatible and its predecessor
   store files remained byte-identical. This is store readiness, not a new
   provider-query result.
@@ -128,12 +135,12 @@ archaeology.
    accepted evidence; it was reverted. Do not replace typed factors with another
    keyword precedence rule.
 9. The evaluation-only prose interpreter builds one answer-label-free request
-   for the two LGE sentence values. The reviewed response identifies the reported
-   total and adjustment component; its oracle self-check is 2/2, not model evidence.
+   for the two LGE sentence values. The source-only contract identifies the
+   reported total and a component; later exclusion belongs to program binding.
 10. Removing heuristic prose subjects leaves exact grounded roles, but the cached
     cross-encoder still selects the reported total: overall `1/4`, all abstain,
     warm CPU p95 `2801.287 ms`. Stop iterating on that scorer.
-11. Next run at most one structured-output interpreter call only after a separate
-    exact-request and cost approval. Its output is compared to reviewed roles and
-    must not receive the query, expected candidate, or runtime authority.
-12. Keep persisted typed fact indexing behind an approved versioned store migration.
+11. Admission `729d1f53...4b93` is exhausted. Do not rerun it. Expand reviewed
+    prose cases provider-free before proposing another provider request.
+12. Do not wire prose roles into runtime from this two-candidate smoke. Keep
+    persisted typed fact indexing behind an approved versioned store migration.

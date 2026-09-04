@@ -11,7 +11,7 @@ Last updated: 2026-09-05
 | Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
 | Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
 | Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Atomic-bundle admission `06a40243...016` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
+| Provider evidence | Atomic-bundle admission `06a40243...016` and prose-role admission `729d1f53...4b93` were each consumed once; neither performed fresh ingest or document embedding |
 | Release status | **PASS, 3/3 runtime-complete** with runtime error 0 and ledger `ok`; qualitative evaluator thresholds remain separate |
 
 ## Current boundaries
@@ -31,7 +31,8 @@ Last updated: 2026-09-05
   strongest tier. Pair v5 carries a candidate-local fact role: tables use parser
   structure, while runtime prose remains unresolved. An evaluation-only role
   interpreter groups same-source values without query or answer labels and
-  validates exact candidate-local grounding. Runtime selection remains disabled.
+  validates exact candidate-local grounding. Source role never encodes later
+  add/subtract/exclude operand use. Runtime selection remains disabled.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -66,7 +67,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-  same row. Ranked alternatives are diagnostic-only. The feature branch passes 835
+  same row. Ranked alternatives are diagnostic-only. The feature branch passes 837
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -118,32 +119,29 @@ no disposable store remains.
 
 ## Provider-free candidate ambiguity baseline
 
-The read-only audit matched all three immutable source/catalog fingerprints
-(4,107 candidates). Eight of 16 cohorts had a multi-candidate top tier and
-3,301/3,323 non-conflicting matches were `unknown_only`. The original exporter
-found 8 tied cohorts / 31 pairs; applicability, visibility, and row bundles
-remained authoritative.
+The audit matched all three immutable source/catalog fingerprints (4,107
+candidates); 8/16 cohorts had tied top tiers and 3,301/3,323 non-conflicting
+matches were `unknown_only`. Pair v5 has 6 cohorts / 34 candidates, while its
+four-case human fixture keeps baseline top-1 `3/4`; runtime prose stays unresolved.
 
-The reviewed successor preserves parser-owned periods, candidate IDs, and saved
-catalog fingerprints. Pair v5 has 6 cohorts / 34 candidates; its human fixture
-has 4 cases / 22 candidates and baseline top-1 `3/4`. Structured roles separate
-negative KBF statement values from signless cash-flow adjustments. Runtime prose
-remains unresolved. The evaluation harness emits one request for the two LGE
-values and projects reviewed total/component roles without answer-label leakage.
-This is provider-free contract evidence, not interpreter-model performance.
+The approved two-value prose request ran once: one LLM call, 551 tokens, estimated
+USD `0.0005217`. Both source-local roles match the corrected successor review
+`2/2`; the old `1/2` oracle had incorrectly encoded later exclusion as a candidate
+role. This smoke is not runtime or held-out quality evidence.
 
 ## Next work
 
-1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
+1. Do not rerun either paid request. Admissions `06a40243...016` and
+   `729d1f53...4b93` are exhausted.
 2. Keep benchmark artifacts uncommitted. Restore the recoverable predecessor
    stash only on a separate archaeology branch; do not port superseded contracts.
 3. Keep the tie-breaker disabled. Even exact reviewed prose roles leave it at
    model `1/4` versus baseline `3/4`; it still chooses the LGE reported total,
    abstains on all four, and has warm CPU p95 `2801.287 ms`.
-4. The answer-label-free request and role-evaluation gate are ready. Their 2/2
-   oracle self-check validates plumbing only, not model quality.
-5. Next make one structured-output interpreter call only after exact-request and
-   cost approval; compare it to reviewed roles before considering more examples.
+4. Treat `component` as source-local. Arithmetic use is owned by the validated
+   semantic-program AST/binding, not by the candidate interpreter.
+5. Expand the reviewed prose set provider-free before considering another model
+   call. Do not tune against the two-candidate smoke.
 6. Do not wire roles into runtime yet. Keep persisted indexing behind a separately
    approved versioned store migration.
 

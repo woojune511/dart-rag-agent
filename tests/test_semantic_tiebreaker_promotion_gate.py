@@ -110,14 +110,14 @@ class SemanticTieBreakerPromotionGateTests(unittest.TestCase):
             "candidate_id": candidate_id,
             "subject_surfaces": [],
             "relation_surfaces": [raw_value],
-            "value_role": "reported_share",
+            "value_role": "rate",
         }
 
         pair = next(
             row for row in build_pairs(payload) if row.candidate_id == candidate_id
         )
 
-        self.assertEqual(pair.fact_role.value_role, "reported_share")
+        self.assertEqual(pair.fact_role.value_role, "rate")
         self.assertEqual(pair.fact_role.grounding_state, "semantic_grounded")
 
     def test_ready_requires_quality_gain_abstention_and_latency(self) -> None:

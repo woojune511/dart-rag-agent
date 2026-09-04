@@ -15,6 +15,17 @@ from typing import Any, Mapping, Sequence, Tuple
 
 CANDIDATE_FACT_ROLE_SCHEMA = "candidate_fact_role_v1"
 CANDIDATE_SEMANTIC_ROLE_SCHEMA = "candidate_semantic_role_v1"
+CANDIDATE_SOURCE_VALUE_ROLES = frozenset(
+    {
+        "unknown",
+        "reported_total",
+        "component",
+        "period_value",
+        "rate",
+        "derived_display",
+        "other",
+    }
+)
 _STRUCTURED_CANDIDATE_KINDS = frozenset(
     {"structured_value", "structured_row", "table_row", "evidence_row"}
 )
@@ -93,7 +104,7 @@ def _fingerprint(value: Mapping[str, Any]) -> str:
 
 @dataclass(frozen=True, slots=True)
 class CandidateSemanticRoleV1:
-    """A source-grounded semantic interpretation supplied by a later model."""
+    """A source-grounded role that never encodes task-relative operand use."""
 
     candidate_id: str
     subject_surfaces: Tuple[str, ...]
@@ -122,11 +133,14 @@ class CandidateSemanticRoleV1:
         ]
         if ungrounded:
             raise ValueError("candidate semantic role contains ungrounded surfaces")
+        normalized_value_role = _normalise(value_role) or "unknown"
+        if normalized_value_role not in CANDIDATE_SOURCE_VALUE_ROLES:
+            raise ValueError("candidate semantic value role must be source-local")
         return cls(
             candidate_id=normalized_candidate_id,
             subject_surfaces=subjects,
             relation_surfaces=relations,
-            value_role=_normalise(value_role) or "unknown",
+            value_role=normalized_value_role,
         )
 
     @classmethod
@@ -367,6 +381,7 @@ class CandidateFactRoleV1:
 __all__ = [
     "CANDIDATE_FACT_ROLE_SCHEMA",
     "CANDIDATE_SEMANTIC_ROLE_SCHEMA",
+    "CANDIDATE_SOURCE_VALUE_ROLES",
     "CandidateFactRoleV1",
     "CandidateSemanticRoleV1",
 ]

@@ -17,7 +17,10 @@ from typing import Any, Literal, Mapping, Protocol, Sequence
 
 from pydantic import BaseModel, Field
 
-from src.agent.financial_candidate_fact_role import CandidateSemanticRoleV1
+from src.agent.financial_candidate_fact_role import (
+    CANDIDATE_SOURCE_VALUE_ROLES,
+    CandidateSemanticRoleV1,
+)
 
 
 REQUEST_BUNDLE_SCHEMA = "candidate_semantic_role_request_bundle_v1"
@@ -30,12 +33,13 @@ DECISION_STATUSES = frozenset({"grounded", "unresolved"})
 VALUE_ROLES = (
     "reported_total",
     "component",
-    "adjustment_component",
     "period_value",
     "rate",
     "derived_display",
     "other",
 )
+if set(VALUE_ROLES) != CANDIDATE_SOURCE_VALUE_ROLES - {"unknown"}:
+    raise RuntimeError("semantic interpreter source-role vocabulary drift")
 
 DEFAULT_SOURCE_CHAR_LIMIT = 1200
 DEFAULT_CANDIDATE_LIMIT = 8
@@ -43,6 +47,8 @@ DEFAULT_REQUEST_LIMIT = 32
 
 _INSTRUCTIONS = (
     "Describe every candidate independently; do not select an answer.",
+    "Classify only what the source states; do not infer how a later question uses the value.",
+    "Use component for a contributing value; adding, subtracting, or excluding it is task-relative.",
     "Use exact contiguous source substrings for subject and relation surfaces.",
     "A grounded relation surface must contain that candidate's visible value.",
     "Return unresolved when the source does not establish a candidate-local role.",
@@ -63,7 +69,6 @@ class _SemanticRoleDecisionOutput(BaseModel):
     value_role: Literal[
         "reported_total",
         "component",
-        "adjustment_component",
         "period_value",
         "rate",
         "derived_display",

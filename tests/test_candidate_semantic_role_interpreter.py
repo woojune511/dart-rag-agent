@@ -47,7 +47,7 @@ def _fixture() -> dict:
                 "case_id": "case-1",
                 "cohort_id": "cohort-1",
                 "owner_id": "owner-1",
-                "query": "Which value is the credit adjustment?",
+                "query": "What is total profit excluding the credit adjustment?",
                 "expected_action": "select",
                 "acceptable_top_candidate_ids": ["candidate-component"],
                 "baseline_candidate_ids": [
@@ -81,7 +81,7 @@ def _decisions(request: dict) -> list[dict]:
             "status": "grounded",
             "subject_surfaces": ["credit adjustment"],
             "relation_surfaces": ["20 credit adjustment"],
-            "value_role": "adjustment_component",
+            "value_role": "component",
         },
         {
             "candidate_id": "candidate-total",
@@ -148,6 +148,8 @@ class CandidateSemanticRoleInterpreterTests(unittest.TestCase):
         prompt = render_request_prompt(request)
         self.assertIn(SOURCE_TEXT, prompt)
         self.assertIn("do not select an answer", prompt)
+        self.assertIn("excluding it is task-relative", prompt)
+        self.assertNotIn(fixture["cases"][0]["query"], prompt)
 
     def test_interpreter_roles_are_projected_and_rebuilt_per_candidate(self) -> None:
         fixture = _fixture()
@@ -171,7 +173,7 @@ class CandidateSemanticRoleInterpreterTests(unittest.TestCase):
         pairs = {pair.candidate_id: pair for pair in build_pairs(projected)}
         self.assertEqual(
             pairs["candidate-component"].fact_role.value_role,
-            "adjustment_component",
+            "component",
         )
         self.assertEqual(
             pairs["candidate-total"].fact_role.value_role,
@@ -195,8 +197,23 @@ class CandidateSemanticRoleInterpreterTests(unittest.TestCase):
         self.assertIsNotNone(llm.schema)
         self.assertEqual(len(llm.prompts), 1)
         self.assertIn(SOURCE_TEXT, llm.prompts[0])
-        self.assertNotIn("Which value is", llm.prompts[0])
+        self.assertNotIn("What is total profit", llm.prompts[0])
         self.assertEqual(len(response_bundle["responses"]), 1)
+
+    def test_task_relative_adjustment_role_is_rejected(self) -> None:
+        fixture = _fixture()
+        request_bundle = build_request_bundle(fixture)
+        response_bundle = collect_interpreter_responses(
+            request_bundle,
+            _Interpreter(),
+        )
+        response_bundle["responses"][0]["decisions"][0][
+            "value_role"
+        ] = "adjustment_component"
+        _refresh_response_fingerprint(response_bundle)
+
+        with self.assertRaisesRegex(ValueError, "unsupported.*value role"):
+            project_response_bundle(fixture, request_bundle, response_bundle)
 
     def test_relation_for_another_value_is_rejected(self) -> None:
         fixture = _fixture()

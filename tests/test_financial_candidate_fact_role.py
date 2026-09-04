@@ -83,7 +83,7 @@ class CandidateFactRoleTests(unittest.TestCase):
             source_text=source_text,
             subject_surfaces=["credit benefit"],
             relation_surfaces=["676 credit benefit was recognized"],
-            value_role="adjustment_component",
+            value_role="component",
         )
         total_role = CandidateSemanticRoleV1.create(
             candidate_id="operating-profit",
@@ -106,7 +106,7 @@ class CandidateFactRoleTests(unittest.TestCase):
 
         self.assertEqual(
             component_projection.value_role,
-            "adjustment_component",
+            "component",
         )
         self.assertEqual(total_projection.value_role, "reported_total")
         self.assertEqual(
@@ -133,6 +133,16 @@ class CandidateFactRoleTests(unittest.TestCase):
                 candidate_id="candidate-a",
                 source_text="The reported total was 100.",
                 relation_surfaces=["unreported adjustment"],
+                value_role="component",
+            )
+
+    def test_semantic_role_rejects_task_relative_operand_use(self) -> None:
+        with self.assertRaisesRegex(ValueError, "must be source-local"):
+            CandidateSemanticRoleV1.create(
+                candidate_id="candidate-a",
+                source_text="A 20 credit raised total profit to 100.",
+                subject_surfaces=["credit"],
+                relation_surfaces=["20 credit"],
                 value_role="adjustment_component",
             )
 
