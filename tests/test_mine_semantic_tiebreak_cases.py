@@ -9,6 +9,7 @@ from src.ops.mine_semantic_tiebreak_cases import (
     EVIDENCE_MINING_SCHEMA,
     build_evidence_mining_template,
     load_saved_question_contexts,
+    match_candidate_source_ids,
     match_evidence_source_ids,
     render_review_packet,
     render_summary,
@@ -175,6 +176,33 @@ class MineSemanticTieBreakCasesTests(unittest.TestCase):
         self.assertEqual(matched[0]["source_ids"], ["source-a"])
         self.assertEqual(unmatched[0]["quote_index"], 1)
 
+    def test_matches_candidate_to_direct_or_table_source_node(self) -> None:
+        source_nodes = [
+            {
+                "source_id": "source-node",
+                "table_source_id": "sample-table",
+            },
+            {
+                "source_id": "prose-node",
+                "table_source_id": "",
+            },
+        ]
+
+        self.assertEqual(
+            match_candidate_source_ids(_candidate("candidate-a", "10"), source_nodes),
+            ["source-node"],
+        )
+        self.assertEqual(
+            match_candidate_source_ids(
+                {
+                    "evidence_id": "prose-node",
+                    "source_candidate_id": "prose-node",
+                },
+                source_nodes,
+            ),
+            ["prose-node"],
+        )
+
     def test_builds_unlabeled_current_id_case_with_source_review(self) -> None:
         catalog = [
             _candidate("candidate-b", "20"),
@@ -195,6 +223,15 @@ class MineSemanticTieBreakCasesTests(unittest.TestCase):
                         {"quote_index": 0, "source_ids": ["source-node"]}
                     ],
                     "unmatched_evidence": [],
+                    "source_nodes": [
+                        {
+                            "source_id": "source-node",
+                            "table_source_id": "sample-table",
+                            "section_path": "section",
+                            "text": "Exact original source node text.",
+                            "text_sha256": "source-text-fingerprint",
+                        }
+                    ],
                     "scope_fingerprint": "scope-fingerprint",
                 },
             ),
@@ -220,11 +257,22 @@ class MineSemanticTieBreakCasesTests(unittest.TestCase):
         }
         self.assertEqual(quote_hits["candidate-b"], [0])
         self.assertEqual(quote_hits["candidate-a"], [])
+        for candidate in case["candidates"]:
+            self.assertEqual(candidate["referenced_source_ids"], ["source-node"])
+            self.assertEqual(candidate["source_reference_status"], "resolved")
+        case["source_review"]["source_nodes"][0]["rcept_no"] = "receipt-123"
+        case["source_review"]["local_report_paths"] = [
+            str((Path.cwd() / "filing_receipt-123.html").resolve())
+        ]
         self.assertIn("Cases: 1", render_summary(template))
         rendered = render_review_packet(template)
         self.assertIn("candidate-a", rendered)
         self.assertIn("candidate-b", rendered)
         self.assertIn("Human label", rendered)
+        self.assertIn("Exact original source node text.", rendered)
+        self.assertIn("Source 1", rendered)
+        self.assertIn("Original filing:", rendered)
+        self.assertIn("filing_receipt-123.html", rendered)
 
     def test_skips_unverified_dataset_rows(self) -> None:
         dataset_row = {**_dataset_row(), "verification_status": "draft"}

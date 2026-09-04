@@ -36,8 +36,8 @@ from src.storage.metadata_payloads import (
 )
 
 
-EVIDENCE_MINING_SCHEMA = "semantic_candidate_tiebreak_evidence_mining_v1"
-EVIDENCE_SCOPE_SCHEMA = "verified_dataset_evidence_exact_quote_v1"
+EVIDENCE_MINING_SCHEMA = "semantic_candidate_tiebreak_evidence_mining_v2"
+EVIDENCE_SCOPE_SCHEMA = "verified_dataset_evidence_exact_quote_v2"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -225,6 +225,66 @@ def match_evidence_source_ids(
     return list(dict.fromkeys(source_ids)), matched_rows, unmatched_rows
 
 
+def _source_node_projection(
+    source_id: str,
+    node: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    text = str(node.get("text") or "")
+    return {
+        "source_id": source_id,
+        "source_anchor": _source_anchor(metadata),
+        "text": text,
+        "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "company": str(metadata.get("company") or ""),
+        "year": metadata.get("year"),
+        "rcept_no": str(metadata.get("rcept_no") or ""),
+        "section_path": str(
+            metadata.get("section_path") or metadata.get("section") or ""
+        ),
+        "local_heading": str(metadata.get("local_heading") or ""),
+        "block_type": str(metadata.get("block_type") or ""),
+        "is_table": bool(metadata.get("is_table")),
+        "table_source_id": str(metadata.get("table_source_id") or ""),
+        "table_view": str(metadata.get("table_view") or ""),
+    }
+
+
+def match_candidate_source_ids(
+    candidate: Mapping[str, Any],
+    source_nodes: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    """Resolve a candidate to exact graph nodes through stored provenance."""
+
+    direct_locators = {
+        str(candidate.get(field) or "").strip()
+        for field in ("source_candidate_id", "evidence_id", "source_row_id")
+        if str(candidate.get(field) or "").strip()
+    }
+    table_locators = {
+        str(candidate.get(field) or "").strip()
+        for field in ("table_source_id", "physical_table_id", "evidence_id")
+        if str(candidate.get(field) or "").strip()
+    }
+    matches: list[str] = []
+    for raw_source in source_nodes:
+        source = dict(raw_source or {})
+        source_id = str(source.get("source_id") or "").strip()
+        if not source_id:
+            continue
+        direct_match = any(
+            locator == source_id or locator.startswith(f"{source_id}::")
+            for locator in direct_locators
+        )
+        source_table_id = str(source.get("table_source_id") or "").strip()
+        table_match = bool(
+            source_table_id and source_table_id in table_locators
+        )
+        if direct_match or table_match:
+            matches.append(source_id)
+    return list(dict.fromkeys(matches))
+
+
 class EvidenceCatalogLoader:
     """Read structure artifacts once per store and build quote-local catalogs."""
 
@@ -283,11 +343,15 @@ class EvidenceCatalogLoader:
                 "unmatched_evidence": unmatched,
             }
         documents: list[tuple[_StoredDocument, float]] = []
+        source_nodes: list[dict[str, Any]] = []
         for source_id in source_ids:
             node = dict(nodes.get(source_id) or {})
             metadata = metadata_with_table_payload(
                 dict(node.get("metadata") or {}),
                 table_payloads,
+            )
+            source_nodes.append(
+                _source_node_projection(source_id, node, metadata)
             )
             documents.append(
                 (
@@ -314,6 +378,13 @@ class EvidenceCatalogLoader:
                 context.get("obligation_fingerprint") or ""
             ),
             "source_ids": source_ids,
+            "source_node_fingerprints": [
+                {
+                    "source_id": source.get("source_id"),
+                    "text_sha256": source.get("text_sha256"),
+                }
+                for source in source_nodes
+            ],
             "evidence_quotes": [row.get("quote") for row in evidence],
             "catalog_fingerprint": semantic_candidate_catalog_fingerprint(catalog),
         }
@@ -323,6 +394,7 @@ class EvidenceCatalogLoader:
             "schema": EVIDENCE_SCOPE_SCHEMA,
             "store_path": str(store_path),
             "source_ids": source_ids,
+            "source_nodes": source_nodes,
             "source_node_count": len(source_ids),
             "source_candidate_count": len(source_candidates),
             "catalog_candidate_count": len(catalog),
@@ -468,12 +540,25 @@ def build_evidence_mining_template(
             if semantic_fingerprint in seen_case_fingerprints:
                 continue
             seen_case_fingerprints.add(semantic_fingerprint)
+            source_nodes = [
+                dict(item)
+                for item in (scope.get("source_nodes") or [])
+                if isinstance(item, Mapping)
+            ]
             candidate_rows = []
             for raw_candidate in case.get("candidates") or []:
                 candidate = dict(raw_candidate)
                 candidate["reference_quote_indexes"] = _candidate_quote_indexes(
                     candidate,
                     evidence,
+                )
+                referenced_source_ids = match_candidate_source_ids(
+                    dict(candidate.get("candidate") or {}),
+                    source_nodes,
+                )
+                candidate["referenced_source_ids"] = referenced_source_ids
+                candidate["source_reference_status"] = (
+                    "resolved" if referenced_source_ids else "unresolved"
                 )
                 candidate_rows.append(candidate)
             case["candidates"] = candidate_rows
@@ -492,6 +577,7 @@ def build_evidence_mining_template(
                 "matched_evidence": list(scope.get("matched_evidence") or []),
                 "unmatched_evidence": list(scope.get("unmatched_evidence") or []),
                 "source_ids": list(scope.get("source_ids") or []),
+                "source_nodes": source_nodes,
                 "scope_fingerprint": str(scope.get("scope_fingerprint") or ""),
                 "local_report_paths": _local_report_paths(dataset_row),
             }
@@ -587,6 +673,11 @@ def _html_value(value: Any) -> str:
     return str(value or "")
 
 
+def _source_dom_id(case_id: str, source_id: str) -> str:
+    digest = hashlib.sha256(f"{case_id}\0{source_id}".encode("utf-8")).hexdigest()
+    return f"source-{digest[:16]}"
+
+
 def render_review_packet(template: Mapping[str, Any]) -> str:
     """Render a static, local-first review packet for human labeling."""
 
@@ -594,6 +685,18 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
     for index, raw_case in enumerate(template.get("cases") or [], start=1):
         case = dict(raw_case)
         review = dict(case.get("source_review") or {})
+        case_id = str(case.get("case_id") or index)
+        source_nodes = [
+            dict(item)
+            for item in (review.get("source_nodes") or [])
+            if isinstance(item, Mapping)
+        ]
+        source_number_by_id = {
+            str(source.get("source_id") or ""): source_index
+            for source_index, source in enumerate(source_nodes, start=1)
+            if str(source.get("source_id") or "")
+        }
+        referenced_by: dict[str, list[str]] = {}
         evidence_rows = []
         for quote_index, raw_evidence in enumerate(review.get("evidence") or []):
             evidence = dict(raw_evidence or {})
@@ -604,15 +707,20 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
                 f"<p>{html.escape(str(evidence.get('quote') or ''))}</p>"
                 "</blockquote>"
             )
-        report_links = " ".join(
-            f'<a href="{Path(path).as_uri()}">{html.escape(Path(path).name)}</a>'
+        report_paths = [
+            Path(path)
             for path in review.get("local_report_paths") or []
             if Path(path).is_absolute()
+        ]
+        report_links = " ".join(
+            f'<a href="{path.as_uri()}">{html.escape(path.name)}</a>'
+            for path in report_paths
         )
         candidate_rows = []
         for rank, raw_candidate in enumerate(case.get("candidates") or [], start=1):
             candidate_row = dict(raw_candidate)
             candidate = dict(candidate_row.get("candidate") or {})
+            candidate_id = str(candidate_row.get("candidate_id") or "")
             baseline = "<strong>baseline first</strong>" if rank == 1 else ""
             quote_hits = ", ".join(
                 str(item)
@@ -623,17 +731,65 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
                 or candidate_row.get("projected_evidence_text")
                 or ""
             )
+            source_links: list[str] = []
+            for source_id in candidate_row.get("referenced_source_ids") or []:
+                source_id = str(source_id)
+                referenced_by.setdefault(source_id, []).append(candidate_id)
+                source_number = source_number_by_id.get(source_id)
+                if source_number is None:
+                    source_links.append(html.escape(source_id))
+                    continue
+                source_links.append(
+                    f'<a href="#{_source_dom_id(case_id, source_id)}">'
+                    f"Source {source_number}</a>"
+                )
+            source_references = " ".join(source_links) or (
+                '<strong class="unresolved">unresolved</strong>'
+            )
             candidate_rows.append(
                 "<tr>"
                 f"<td>{rank}<br>{baseline}</td>"
-                f"<td><code>{html.escape(str(candidate_row.get('candidate_id') or ''))}</code></td>"
+                f"<td><code>{html.escape(candidate_id)}</code></td>"
                 f"<td>{html.escape(_html_value(candidate.get('raw_value')))} "
                 f"{html.escape(_html_value(candidate.get('raw_unit')))}</td>"
                 f"<td>{html.escape(_html_value(candidate.get('row_headers') or candidate.get('row_label')))}</td>"
                 f"<td>{html.escape(_html_value(candidate.get('period_label_surfaces') or candidate.get('period')))}</td>"
                 f"<td>{html.escape(quote_hits or '-')}</td>"
+                f"<td>{source_references}</td>"
                 f"<td>{html.escape(context[:1200])}</td>"
                 "</tr>"
+            )
+        source_details = []
+        for source_index, source in enumerate(source_nodes, start=1):
+            source_id = str(source.get("source_id") or "")
+            candidate_ids = list(dict.fromkeys(referenced_by.get(source_id) or []))
+            if not candidate_ids:
+                continue
+            locator = str(source.get("table_source_id") or source_id)
+            section_path = str(source.get("section_path") or "")
+            receipt = str(source.get("rcept_no") or "")
+            source_report_paths = [
+                path for path in report_paths if receipt and receipt in path.name
+            ]
+            source_report_links = " ".join(
+                f'<a href="{path.as_uri()}">{html.escape(path.name)}</a>'
+                for path in source_report_paths
+            )
+            source_details.append(
+                f'<details class="source-node" id="{_source_dom_id(case_id, source_id)}">'
+                f"<summary><strong>Source {source_index}</strong> · "
+                f"{html.escape(section_path)} · {html.escape(locator)}</summary>"
+                '<div class="source-meta">'
+                f"<strong>Referenced by:</strong> "
+                f"{html.escape(', '.join(candidate_ids))}<br>"
+                f"<strong>source_id:</strong> <code>{html.escape(source_id)}</code><br>"
+                f"<strong>Original filing:</strong> "
+                f"{source_report_links or 'not resolved'}<br>"
+                f"<strong>source text SHA-256:</strong> "
+                f"<code>{html.escape(str(source.get('text_sha256') or ''))}</code>"
+                "</div>"
+                f"<pre>{html.escape(str(source.get('text') or ''))}</pre>"
+                "</details>"
             )
         owner = dict(case.get("owner") or {})
         sections.append(
@@ -648,10 +804,15 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
             + "</p></details>"
             + '<div class="table-wrap"><table><thead><tr>'
             + "<th>Rank</th><th>Candidate</th><th>Value</th><th>Row</th>"
-            + "<th>Period</th><th>Quote hits</th><th>Candidate context</th>"
+            + "<th>Period</th><th>Quote hits</th><th>Source</th>"
+            + "<th>Candidate context</th>"
             + "</tr></thead><tbody>"
             + "".join(candidate_rows)
             + "</tbody></table></div>"
+            + "<h3>Candidate-referenced source nodes</h3>"
+            + '<p class="source-note">Exact structure-store text seen by candidate generation. '
+            + "Use the report link above to inspect the original filing HTML.</p>"
+            + ("".join(source_details) or '<p class="unresolved">No source node resolved.</p>')
             + '<div class="decision"><strong>Human label</strong><br>'
             + "☐ select candidate ID(s): ____________________________<br>"
             + "☐ abstain<br>Notes: _______________________________________</div>"
@@ -668,6 +829,9 @@ main{{max-width:1280px;margin:auto;padding:32px 22px 80px}}h1{{margin-bottom:6px
 .table-wrap{{overflow:auto;background:white;border:1px solid #d8dee8;border-radius:10px}}table{{border-collapse:collapse;width:max-content;min-width:100%}}
 th,td{{border:1px solid #d8dee8;padding:7px 9px;vertical-align:top;max-width:460px}}th{{background:#edf2f8}}code{{overflow-wrap:anywhere}}
 .decision{{margin:14px 0;background:#fffdf5;border-color:#dbc36c}}blockquote span{{color:#5f6b7a}}details{{margin:12px 0}}
+.source-node{{background:white;border:1px solid #d8dee8;border-radius:10px;padding:10px 14px;scroll-margin-top:18px}}.source-node summary{{cursor:pointer}}
+.source-meta,.source-note{{color:#4b5565}}pre{{white-space:pre-wrap;overflow:auto;max-height:720px;background:#f7f9fc;border:1px solid #d8dee8;border-radius:8px;padding:12px}}
+.unresolved{{color:#b42318}}
 </style></head><body><main>
 <h1>Evidence-Scoped Semantic Tie Review</h1>
 <p>Cases: {summary.get('case_count', 0)} · Candidate pairs: {summary.get('candidate_pair_count', 0)} · Fingerprint: <code>{html.escape(str(template.get('template_fingerprint') or ''))}</code></p>
@@ -733,6 +897,7 @@ __all__ = [
     "build_evidence_mining_template",
     "load_dataset_rows",
     "load_saved_question_contexts",
+    "match_candidate_source_ids",
     "match_evidence_source_ids",
     "render_review_packet",
     "render_summary",

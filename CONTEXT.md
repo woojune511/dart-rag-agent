@@ -47,7 +47,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 822 local unittest cases, the 86-literal runtime
+- The current feature branch passed 823 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -118,9 +118,10 @@ archaeology.
    baseline is already `1.0`, so this set cannot demonstrate the required gain.
 6. The provider-free evidence miner inspected four additional verified questions
    from exact dataset-quote nodes. KBF T2 and LGE yielded 6 atomic cases / 34
-   pairs; KBF T1 and NAVER had no atomic tie. Template fingerprint is
-   `2862d693...1376`.
-7. Human-label that ignored source packet before another model bakeoff. The LGE
+   pairs; KBF T1 and NAVER had no atomic tie. Its v2 packet resolves all 34
+   candidate rows to the exact source node and original filing link; template
+   fingerprint is `fcf3038c...b929`.
+7. Human-label that ignored source-linked packet before another model bakeoff. The LGE
    AMPC requirement is the first clear baseline-error candidate; do not lower
    the margin or add keyword weights to manufacture coverage.
 8. Keep the persisted typed fact index deferred behind a separately approved,

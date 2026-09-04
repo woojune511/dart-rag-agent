@@ -65,7 +65,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 822
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 823
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -140,9 +140,9 @@ This is a provider-free no-regression/context check, not promotion evidence.
    archaeology, and do not port its superseded contracts.
 3. Keep the tie-breaker opt-in; the prior reviewed baseline is already `1.0`,
    and the `0.05` margin must not be lowered based on three cases.
-4. Evidence-scoped current-ID mining inspected four verified questions and found
-   6 atomic cases / 34 pairs in KBF T2 and LGE; KBF T1/NAVER had no tie.
-5. Human-label the ignored source packet before another model comparison; the
+4. Evidence-scoped current-ID mining found 6 cases / 34 pairs in KBF T2 and LGE;
+   all resolve to an exact source node and filing link. KBF T1/NAVER had no tie.
+5. Human-label the ignored source-linked packet before another model comparison; the
    LGE AMPC requirement is the first clear baseline-error candidate. Narrative/group evidence remains set selection plus synthesis.
 6. Keep the typed fact index behind a versioned store migration.
 
