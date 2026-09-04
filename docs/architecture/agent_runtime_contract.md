@@ -107,15 +107,15 @@ selection problems and never enter this scorer. It never admits an explicit
 conflict, promotes a lower tier, changes owner visibility, or selects cells
 independently of a physical-row bundle.
 
-Pair schema `semantic_tie_break_pair_v5` presents a natural query, typed target
-scope, and an immutable `CandidateFactRoleV1` with parser-owned period/table
-context and physical provenance. It marks the candidate's physical value inside
-bounded cell-local evidence. Sentence values use an exact saved `source_span`
-or one unique boundary-valid value surface; ambiguity keeps a bounded fallback.
-Tables project deterministic structural roles. Prose remains `unresolved` until
-a `CandidateSemanticRoleV1` is grounded in the exact source and candidate ID.
-Only that grounded role enters model text; structural roles remain review data.
-Candidate IDs and catalog fingerprints do not include the role projection.
+Pair schema `semantic_tie_break_pair_v5` presents a natural query, typed target,
+and immutable `CandidateFactRoleV1` with period/table/physical provenance inside
+bounded cell-local evidence. Sentence values use an exact saved `source_span` or
+one unique value surface; ambiguity keeps a bounded fallback. Tables project
+parser structure, while runtime prose remains `unresolved`. The evaluation-only
+role interpreter groups all values from one exact source, excludes query and
+answer labels, and accepts only visible IDs plus exact source surfaces whose
+relation contains that value. Only validated `CandidateSemanticRoleV1` enters a
+model fixture; runtime wiring, candidate IDs, and catalog fingerprints stay fixed.
 
 The initial query pass scores at most 12 candidates per cohort and 64 pairs in
 one batch. A top-versus-runner margin below `0.05`, capacity overflow, or scorer

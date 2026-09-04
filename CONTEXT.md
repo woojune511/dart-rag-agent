@@ -26,9 +26,10 @@ Last updated: 2026-09-05
 - The current feature branch adds an opt-in local cross-encoder only for atomic
   numeric ties in the exact strongest factor tier. Pair v5 carries an immutable
   candidate-local fact role. Tables derive roles from parser structure; prose
-  stays unresolved until a semantic role is grounded in that candidate's exact
-  source. Only grounded semantic roles enter model text. Narrative synthesis,
-  source-defined groups, and compatibility cohorts stay outside the scorer.
+  stays unresolved in runtime. An evaluation-only interpreter groups every value
+  from one exact source without query or answer labels, and validates candidate
+  IDs, fingerprints, exact surfaces, and value-local relations before roles may
+  enter model text. Narrative/group cohorts remain outside the scorer.
 - Declared dependencies, non-empty coupling keys, and inferred complete-row
   bundles define bounded compilation islands. Candidate failure promotes the
   next complete row; format-only retry keeps the selected row.
@@ -48,7 +49,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 829 local unittest cases, the 86-literal runtime
+- The current feature branch passed 835 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -126,7 +127,13 @@ archaeology.
 8. An exact-surface-first matcher reduced the packet but displaced Samsung's
    accepted evidence; it was reverted. Do not replace typed factors with another
    keyword precedence rule.
-9. Next implement a bounded prose semantic-role interpreter as evaluation-only
-   input, then promote it only on reviewed hard negatives without regressions.
-10. Keep the persisted typed fact index deferred behind a separately approved,
-    versioned ingest/store migration.
+9. The evaluation-only prose interpreter builds one answer-label-free request
+   for the two LGE sentence values. The reviewed response identifies the reported
+   total and adjustment component; its oracle self-check is 2/2, not model evidence.
+10. Removing heuristic prose subjects leaves exact grounded roles, but the cached
+    cross-encoder still selects the reported total: overall `1/4`, all abstain,
+    warm CPU p95 `2801.287 ms`. Stop iterating on that scorer.
+11. Next run at most one structured-output interpreter call only after a separate
+    exact-request and cost approval. Its output is compared to reviewed roles and
+    must not receive the query, expected candidate, or runtime authority.
+12. Keep persisted typed fact indexing behind an approved versioned store migration.

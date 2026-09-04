@@ -130,6 +130,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)](#bounded-local-cross-encoder-tie-breaker-characterization-2026-09-04) | strongest exact factor tier의 31개 pair만 local GTE로 점수화 | 모든 동률이 margin gate에서 abstain해 기존 첫 후보와 T3 table 82를 보존; default disabled, provider benchmark 0 |
 | [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | human review 4 select/2 exclude; 1 baseline error, provider 0 |
 | [Candidate Fact-Role Projection V1 (2026-09-05)](#candidate-fact-role-projection-v1-2026-09-05) | 물리 후보별 구조 role과 exact-source-grounded prose role 경계 | v5 packet 6/34; raw role context와 exact-surface rank rule은 회귀로 기각, runtime scorer disabled |
+| [Bounded Prose Semantic-Role Interpreter Harness (2026-09-05)](#bounded-prose-semantic-role-interpreter-harness-2026-09-05) | query/answer-label-free same-source role extraction contract | one request/two values; reviewed role plumbing 2/2, cross-encoder stays 1/4, provider 0 |
 
 ## 보는 법
 
@@ -7323,3 +7324,27 @@ References:
 - No provider, network benchmark, ingest, store mutation, or paid retry ran.
   The next bounded experiment is an evaluation-only prose semantic-role
   interpreter; persisted fact indexing remains a separate versioned migration.
+
+## Bounded Prose Semantic-Role Interpreter Harness (2026-09-05)
+
+- Added an evaluation-only request/response contract and provider-neutral
+  structured-output adapter. It groups all unresolved numeric candidates from
+  one exact source, omits the user query and acceptable IDs, and caps source,
+  candidate, and request counts.
+- Response projection requires the exact request/source fingerprints, every
+  visible candidate ID, source-grounded subject/relation surfaces, and a relation
+  containing the candidate's own displayed value. Invalid or non-unique value
+  localization does not gain a role or runtime authority.
+- The current reviewed fixture yields one request with two LGE sentence values.
+  The human response labels the operating-profit figure as `reported_total` and
+  the tax-credit figure as `adjustment_component`. Its 2/2 gate is an oracle
+  plumbing self-check, not a model-accuracy result.
+- Grounded prose roles now replace noisy heuristic prose subjects rather than
+  merging with them. Focused contracts passed before rescoring.
+- The cached local cross-encoder still preferred the reported total after this
+  cleanup. Overall top-1 stayed `1/4` against baseline `3/4`, all four cases
+  abstained at margin `0.05`, and warm CPU p95 was `2801.287 ms`. Further tuning
+  of that scorer stopped.
+- No provider, ingest, store mutation, benchmark, or runtime activation occurred.
+  The next possible action is one separately approved structured-output model
+  call on the exact request, followed by the reviewed role gate.

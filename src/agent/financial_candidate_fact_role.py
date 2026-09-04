@@ -231,6 +231,16 @@ class CandidateFactRoleV1:
         )
         semantic_subjects = semantic_role.subject_surfaces if semantic_role else ()
         semantic_relations = semantic_role.relation_surfaces if semantic_role else ()
+        projected_subjects = (
+            semantic_subjects
+            if semantic_role is not None and not structured
+            else _surfaces([*semantic_subjects, *structural_subjects])
+        )
+        projected_relations = (
+            semantic_relations
+            if semantic_role is not None and not structured
+            else _surfaces([*semantic_relations, *structural_relations])
+        )
         value_role = (
             semantic_role.value_role
             if semantic_role and semantic_role.value_role != "unknown"
@@ -244,10 +254,8 @@ class CandidateFactRoleV1:
         return cls(
             candidate_id=candidate_id,
             source_kind=source_kind,
-            subject_surfaces=_surfaces([*semantic_subjects, *structural_subjects]),
-            relation_surfaces=_surfaces(
-                [*semantic_relations, *structural_relations]
-            ),
+            subject_surfaces=projected_subjects,
+            relation_surfaces=projected_relations,
             value_role=value_role,
             statement_type=_normalise(row.get("statement_type")),
             polarity=_candidate_polarity(row),

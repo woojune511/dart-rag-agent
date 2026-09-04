@@ -51,6 +51,7 @@
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/semantic_tiebreaker_promotion_gate.py` | local labeled quality and warm-latency gate for the optional reranker |
 | `src/ops/mine_semantic_tiebreak_cases.py` | provider-free evidence-scoped hard-negative mining with candidate-to-source review links |
+| `src/ops/candidate_semantic_role_interpreter.py` | bounded answer-label-free prose-role requests, validation, and evaluation projection |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.

@@ -29,9 +29,9 @@ Last updated: 2026-09-05
   second keyword ranking pass.
 - An opt-in local cross-encoder can reorder only atomic numeric ties in the exact
   strongest tier. Pair v5 carries a candidate-local fact role: tables use parser
-  structure, while prose remains unresolved until an exact-source-grounded
-  semantic role exists. Only grounded semantic roles enter model text. Narrative
-  and group selection remain excluded, and the feature remains disabled.
+  structure, while runtime prose remains unresolved. An evaluation-only role
+  interpreter groups same-source values without query or answer labels and
+  validates exact candidate-local grounding. Runtime selection remains disabled.
 - Numeric compilation is isolated by declared dependency, non-empty coupling
   key, and inferred complete-row evidence bundles. A bundle adds an island edge
   even when planner coupling is empty. Code ranks complete rows from existing
@@ -66,7 +66,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-  same row. Ranked alternatives are diagnostic-only. The feature branch passes 829
+  same row. Ranked alternatives are diagnostic-only. The feature branch passes 835
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -124,27 +124,27 @@ The read-only audit matched all three immutable source/catalog fingerprints
 found 8 tied cohorts / 31 pairs; applicability, visibility, and row bundles
 remained authoritative.
 
-The reviewed successor preserves parser-owned `당기/current` and `전기/prior`
-labels without changing candidate IDs or saved catalog fingerprints. Pair v5's
-packet has 6 cohorts / 34 candidates; its carried human fixture has 4 select
-cases / 22 candidates and baseline top-1 `3/4`. Structured fact roles separate
-negative KBF income-statement values from signless positive cash-flow
-adjustments. LGE's component and total remain unresolved because they are prose.
-This is a provider-free contract/review result, not promotion evidence.
+The reviewed successor preserves parser-owned periods, candidate IDs, and saved
+catalog fingerprints. Pair v5 has 6 cohorts / 34 candidates; its human fixture
+has 4 cases / 22 candidates and baseline top-1 `3/4`. Structured roles separate
+negative KBF statement values from signless cash-flow adjustments. Runtime prose
+remains unresolved. The evaluation harness emits one request for the two LGE
+values and projects reviewed total/component roles without answer-label leakage.
+This is provider-free contract evidence, not interpreter-model performance.
 
 ## Next work
 
 1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
 2. Keep benchmark artifacts uncommitted. Restore the recoverable predecessor
    stash only on a separate archaeology branch; do not port superseded contracts.
-3. Keep the tie-breaker opt-in. Without semantic roles, pair v5 preserves v4's
-   cached scores: model `1/4` versus baseline `3/4`, all four abstentions, and
-   warm CPU p95 `2715.932 ms`; do not activate it or lower its margin.
-4. Raw structural role text made the model `0/4`, so it remains diagnostic-only.
-   An exact-surface-first matcher also broke accepted Samsung evidence and was
-   reverted. Neither rejected path is a runtime rule.
-5. Next evaluate a bounded prose semantic-role interpreter grounded by candidate
-   ID and exact source spans. Measure top-1 and latency before runtime wiring.
-6. Keep the typed fact index behind a separately approved versioned store migration.
+3. Keep the tie-breaker disabled. Even exact reviewed prose roles leave it at
+   model `1/4` versus baseline `3/4`; it still chooses the LGE reported total,
+   abstains on all four, and has warm CPU p95 `2801.287 ms`.
+4. The answer-label-free request and role-evaluation gate are ready. Their 2/2
+   oracle self-check validates plumbing only, not model quality.
+5. Next make one structured-output interpreter call only after exact-request and
+   cost approval; compare it to reviewed roles before considering more examples.
+6. Do not wire roles into runtime yet. Keep persisted indexing behind a separately
+   approved versioned store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract.

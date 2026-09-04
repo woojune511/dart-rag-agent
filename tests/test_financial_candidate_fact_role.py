@@ -68,6 +68,7 @@ class CandidateFactRoleTests(unittest.TestCase):
             "raw_value": "676",
             "normalized_value": 676.0,
             "source_span": [2, 5],
+            "local_entity_surfaces": ["raising operating profit"],
         }
         total_start = source_text.index("2,163")
         total = {
@@ -113,6 +114,10 @@ class CandidateFactRoleTests(unittest.TestCase):
             "semantic_grounded",
         )
         self.assertEqual(component_projection.source_span, (2, 5))
+        self.assertEqual(
+            component_projection.subject_surfaces,
+            ("credit benefit",),
+        )
         self.assertNotEqual(
             component_projection.semantic_fingerprint,
             total_projection.semantic_fingerprint,
