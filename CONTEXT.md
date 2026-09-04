@@ -2,145 +2,81 @@
 
 Last updated: 2026-09-05
 
-## Canonical source
+## Working source
 
-- `main` is the canonical source. The runtime redesign and checkout closeout
-  landed through [PR #89](https://github.com/woojune511/dart-rag-agent/pull/89);
-  provider-free candidate ambiguity instrumentation is delivered by
-  [PR #90](https://github.com/woojune511/dart-rag-agent/pull/90).
-- The ambiguity instrumentation does not change candidate IDs, stores, or
-  compiler prompt input.
-- The product path is the single-agent `FinancialAgent`. MAS, Streamlit,
-  benchmark, evaluator, replay, and promotion tools remain optional or
-  experimental consumers.
-
-## Current runtime
-
-- `FinancialAgentStateV2` is phase-owned and the final assembler is the only
-  task-ledger and answer writer.
-- Compiler, validator, and executor share one immutable candidate-visibility
-  envelope. Catalog, cohort, or validation drift fails before execution.
-- Typed per-owner matching replaces additive keyword scoring. Candidate prompts
-  are cell-local, and related outputs select one complete physical row before
-  compiler invocation.
-- The current feature branch adds an opt-in local cross-encoder only for atomic
-  numeric ties in the exact strongest factor tier. Pair v5 carries an immutable
-  candidate-local fact role. Tables derive roles from parser structure; prose
-  stays unresolved in runtime. An evaluation-only interpreter groups every value
-  from one exact source without query or answer labels, and validates candidate
-  IDs, fingerprints, exact surfaces, and value-local relations before roles may
-  enter model text. Its role is source-local; add/subtract/exclude use remains in
-  semantic-program AST and binding. Narrative/group cohorts remain outside the
-  scorer.
-- Declared dependencies, non-empty coupling keys, and inferred complete-row
-  bundles define bounded compilation islands. Candidate failure promotes the
-  next complete row; format-only retry keeps the selected row.
-- Retrieval, ingest, store readiness, API services, and the typed
-  `FinancialRunResultV1` have explicit ownership boundaries. Store compatibility
-  is exact, unknown occupancy fails closed, and degraded BM25 use is visible.
-- FastAPI serializes shared query and ingest work before threadpool dispatch.
-  Cached Streamlit services separately serialize store inspection, query,
-  ingest, readiness refresh, and evaluation across sessions.
+- Branch: `codex/bounded-semantic-tiebreaker`
+- Base: `8d1b97d`
+- First source-bundle contract commit: `d4aaf37`
+- Compiler integration and legacy-path removal commit: `30607cd`
+- Product path: single-agent `FinancialAgent`
+- Historical benchmark results, stores, datasets, caches, and review packets are
+  immutable and remain uncommitted.
 
 Stable rules are in
 [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), the
-checked topology is in
-[runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and historical
-detail remains in [implementation_history.md](docs/history/implementation_history.md)
-and [experiment_history.md](docs/history/experiment_history.md).
+minimal code map is in [codebase_map.md](docs/overview/codebase_map.md), and
+chronology remains in
+[implementation_history.md](docs/history/implementation_history.md) and
+[experiment_history.md](docs/history/experiment_history.md).
+
+## Current change
+
+The prose seven-role classifier and disabled local cross-encoder path have been
+replaced by source-bundle compilation:
+
+- `SourceBundleV1` groups exact prose sentence/windows or one physical table row.
+- Numeric owner admission is bundle-first: at most two bundles, compatible
+  before unknown-only, with every non-conflicting member kept together.
+- Compiler payload v5 stores source text once per bundle; candidates retain IDs,
+  metadata, physical provenance, and bundle-local value spans.
+- The existing compiler decides which facts and formulas satisfy an obligation.
+  No total/component/rate enum controls runtime selection.
+- Selected prose numeric bindings require an exact `source_assertion`. Validator
+  checks bundle membership, visibility, exact substring bytes, and value-span
+  coverage before execution.
+- Candidate failure advances to the next bundle; assertion/schema/AST/binding
+  failure keeps the cohort for the single targeted retry.
+- Unaffected islands and assertions remain byte-identical. Diagnostics use
+  `semantic_candidate_stage_diagnostics_v9`.
+- The old fact-role, cross-encoder, interpreter, promotion-gate, export/mining,
+  policy, fixture, and dedicated test surfaces are removed.
+
+Unchanged boundaries:
+
+- Candidate IDs and catalog fingerprint inputs
+- Physical table/row/cell parser contracts
+- Source store and ingest format
+- HTTP response shape and `FinancialRunResultV1`
+- Retrieval, API, ledger, MAS, Streamlit, evaluator, and dataset governance
 
 ## Verification
 
-- The current feature branch passed 837 local unittest cases, the 86-literal runtime
-  domain audit, import/topology checks, pycompile, and `git diff --check`.
-- The predecessor main build's Python 3.13 reviewer-contract and full-unittest
-  jobs passed. This local feature branch has not been pushed or remotely
-  reviewed.
-- The approved store-fixed three-question gate remains **3/3 runtime-complete**
-  with runtime error 0 and ledger `ok`: T2 retains `87.0만 대` and `78.1만 대`;
-  T3 selects one table-82 row for `26%` and `700,691백만원`; Samsung retains its
-  accepted numeric and Harman evidence.
-- Admission `06a40243...016` was consumed exactly once. The run used 17 LLM
-  calls, 117,631 LLM tokens, 32 query-embedding calls, zero document-embedding
-  calls, and an estimated USD `0.1212257` under the approved USD `0.40` cap.
-- Admission `729d1f53...4b93` was consumed exactly once for the two-value prose
-  role request. It used one LLM call and 551 tokens, with estimated cost USD
-  `0.0005217` under the approved USD `0.02` cap. The provider identified both
-  source-local roles; the predecessor task-relative oracle caused the initial
-  `1/2` comparison, while the corrected source-role successor is `2/2`.
-- The approved `data/chroma_dart` manifest is compatible and its predecessor
-  store files remained byte-identical. This is store readiness, not a new
-  provider-query result.
+- Source-bundle/catalog/matching focused tests pass `28 / 28`.
+- Cohort/compiler/validator/evidence-bundle/island tests pass `90 / 90`.
+- Runtime domain-term audit passes with `86` reviewed literals; import/topology
+  tests pass `21 / 21`; portfolio review gates report
+  `review_surface_ready`.
+- `compileall`, `git diff --check`, and full unittest discovery pass. Full
+  discovery is `805 / 805` in `19.636s`.
+- Provider-free replay of the immutable three-question predecessor verifies all
+  three catalogs. T2 keeps `87.0`, `78.1`, and `11.5` in the applicable owner
+  visibility; T3 exposes Motional `26%` while excluding BHAF `53%`; all four
+  previously selected Samsung candidates remain visible.
+- No provider call, fresh ingest, document embedding, store mutation, benchmark
+  retry, or paid manifest execution has occurred for this change.
 
-## Predecessor cleanup
+Provider-free fixtures cover exact current/prior context and parentheses,
+physical row grouping, source-text deduplication, owner/bundle visibility,
+byte-exact assertion grounding, unchanged-cohort assertion retry, next-bundle
+promotion after candidate rejection, and pre-call capacity failure.
 
-On 2026-09-04 the original checkout
-`C:\Users\geonj\Desktop\dart-rag-agent` was converted into the primary clean
-`main` checkout at `9006ae7`. Its 24 visible dirty paths were preserved in the
-local recoverable stash named
-`pre-main-cleanup semantic-candidate-boundary predecessor 2026-09-04`; the
-`codex/semantic-candidate-boundary-repair` branch pointer remains at `a278c1a`.
+## Hard boundaries and next step
 
-A read-only blob comparison against merged `main` found:
-
-- 12 paths are already byte-identical to `main`.
-- The other 12 contain no change that should be ported. They are superseded
-  module-global API wiring, flat-result consumers, permissive partial-store
-  reuse, pre-rationale evaluator code, the mixed-basis T3 key, stale authority
-  prose, and tests for those predecessor contracts.
-- The divergent paths are `AGENTS.md`, the full curated dataset, numeric
-  evaluation and T3 review docs, `financial_router.py`, `benchmark_runner.py`,
-  `evaluator.py`, four associated test modules, and the standalone legacy HTTP
-  contract test.
-
-The clean, already-merged `runtime-integration` and `runtime-redesign` linked
-worktrees were removed. Before removal, 86 ignored result files found only in
-the integration worktree were copied into the primary `benchmarks/results`
-tree and verified by SHA-256; `.env`, reports, stores, and all benchmark
-artifacts remain uncommitted. Do not merge or rebase the predecessor branch
-into `main`; restore its stash on a separate branch only for explicit
-archaeology.
-
-## Hard boundaries and next work
-
-1. Do not rerun the exhausted paid gate, perform fresh ingest, or rewrite saved
-   stores, caches, benchmark results, candidate IDs, or historical artifacts.
-2. The provider-free audit rebuilt all three saved catalogs from their exact
-   structure-graph source windows and matched every saved source/catalog
-   fingerprint: 4,107 candidates, 16 owner cohorts, and 154,689 compiler-prompt
-   bytes. Eight cohorts have a multi-candidate top factor tier, while 3,301 of
-   3,323 non-conflicting candidate-owner evaluations are `unknown_only`. The
-   one complete-row bundle has two options; the selected row wins by
-   position-sum margin 2 and
-   worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. Parser-owned `period_focus` and `period_labels` now reach candidates and the
-   compiler prompt without changing candidate IDs or saved catalog
-   fingerprints. In the verified T3 replay, table 82 remains `당기/current/2023`
-   and table 83 becomes `전기/prior/2022`; the ownership-share cohort therefore
-   resolves deterministically to `cand_e2f2596cb81e73b80bbc`.
-4. Exporter v2 now yields 3 atomic tied cohorts and 7 pairs, and records 4
-   source-defined output/requirement cohorts as non-atomic exclusions (template
-   fingerprint `7864f55f...8c24`). The original 8-case packet remains immutable.
-5. Pair v5's provider-free review packet contains 6 cohorts / 34 candidates;
-   the carried human fixture contains 4 select cases / 22 candidates and keeps
-   baseline top-1 at `3/4`. Its output is byte-stable across two builds.
-6. Structured roles distinguish the reviewed negative income-statement KBF
-   values from signless positive cash-flow adjustments. The LGE AMPC component
-   and reported total remain unresolved because their source is prose.
-7. Supplying raw structural role text to the cached cross-encoder regressed it
-   to `0/4`, so that model input was rejected. Final no-semantic-role v5 input
-   preserves the v4 model scores: `1/4`, `-0.50` gain, all four abstentions, and
-   `2715.932 ms` warm CPU p95. The feature remains disabled.
-8. An exact-surface-first matcher reduced the packet but displaced Samsung's
-   accepted evidence; it was reverted. Do not replace typed factors with another
-   keyword precedence rule.
-9. The evaluation-only prose interpreter builds one answer-label-free request
-   for the two LGE sentence values. The source-only contract identifies the
-   reported total and a component; later exclusion belongs to program binding.
-10. Removing heuristic prose subjects leaves exact grounded roles, but the cached
-    cross-encoder still selects the reported total: overall `1/4`, all abstain,
-    warm CPU p95 `2801.287 ms`. Stop iterating on that scorer.
-11. Admission `729d1f53...4b93` is exhausted. Do not rerun it. Expand reviewed
-    prose cases provider-free before proposing another provider request.
-12. Do not wire prose roles into runtime from this two-candidate smoke. Keep
-    persisted typed fact indexing behind an approved versioned store migration.
+1. Do not reuse exhausted admissions `06a40243...016` or
+   `729d1f53...4b93`.
+2. Do not change dataset answers, evaluator tolerances, historical artifacts,
+   candidate IDs, store bytes, or parser table identity to make a gate pass.
+3. Commit the verified current-state documentation only.
+4. Then create a new store-fixed eval-only manifest and byte-stable no-call
+   rehearsal. Report its hash and cost ceiling for separate approval before any
+   provider run. Automatic retry and fresh ingest remain forbidden.

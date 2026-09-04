@@ -12600,3 +12600,28 @@ are complete. It remains only as an audit record, not an active priority.
 - Focused semantic, bundle, import, and documentation contracts passed 89/89;
   the runtime-domain audit retained 86 reviewed literals and full unittest
   discovery passed 809/809.
+
+## Source-bundle compiler transition (2026-09-05)
+
+- Commit `d4aaf37` introduced the provider-free `SourceBundleV1` contract.
+  Commit `30607cd` then moved numeric admission to at most two source bundles
+  per owner and exposed every non-conflicting member of each admitted bundle.
+- Compiler payload v5 stores exact source text once per bundle and candidate
+  rows carry bundle-local value spans. Selected prose numeric operands require
+  byte-exact source assertions before execution; table cells continue to use
+  physical row/cell provenance.
+- Candidate failures promote the next whole bundle, while assertion or format
+  failures reuse the same cohort for the existing single targeted island retry.
+  Other island programs and assertions remain byte-identical.
+- The seven-role prose classifier, fact-role tie projection, disabled local
+  cross-encoder, promotion harness, and dedicated export/mining surfaces were
+  removed. Candidate IDs, catalog fingerprint inputs, parser structure, store,
+  and HTTP output remained unchanged.
+- Focused contract suites passed `28 / 28` and `90 / 90`; the runtime-language
+  audit passed with `86` reviewed literals, import/topology passed `21 / 21`,
+  `compileall` and diff checks passed, and full unittest discovery passed
+  `805 / 805` in `19.636s`.
+- A provider-free replay of the immutable three-question predecessor retained
+  T2 period/growth values, isolated T3 Motional `26%` from BHAF `53%`, and
+  preserved all four previously selected Samsung candidates. No provider,
+  ingest, document embedding, or store mutation was performed.

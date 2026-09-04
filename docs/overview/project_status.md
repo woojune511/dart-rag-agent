@@ -7,142 +7,100 @@ Last updated: 2026-09-05
 | Question | Current answer |
 | --- | --- |
 | Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Canonical source | `main`; runtime redesign through PR #89 and provider-free ambiguity audit through PR #90 |
-| Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
-| Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
-| Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Atomic-bundle admission `06a40243...016` and prose-role admission `729d1f53...4b93` were each consumed once; neither performed fresh ingest or document embedding |
-| Release status | **PASS, 3/3 runtime-complete** with runtime error 0 and ledger `ok`; qualitative evaluator thresholds remain separate |
+| Working source | `codex/bounded-semantic-tiebreaker`; bundle contract `d4aaf37`, compiler transition `30607cd` |
+| Candidate path | Typed applicability followed by bundle-first source admission; no candidate-role classifier or local cross-encoder |
+| Compiler path | `semantic_program_candidate_payload_v5` plus exact prose `source_assertions` |
+| Public result | `FinancialRunResultV1`; HTTP answer/citation/structured-result shape is unchanged |
+| Store | Existing manifest, source store, candidate IDs, and catalog fingerprints are unchanged |
+| Provider status | No provider call, fresh ingest, embedding, or store mutation belongs to this source-bundle change |
 
-## Current boundaries
+## Current runtime boundary
 
-- `FinancialAgentStateV2` has one top-level writer for each phase. Intermediate
-  nodes do not mutate the task/artifact ledger or final answer.
-- Compiler, validator, and executor share one immutable visibility envelope.
-  Catalog or validation drift fails before execution.
-- Each obligation or evidence requirement may carry a typed semantic target.
-  Candidate admission compares scope, local subject, owner kind, unit, metric,
-  and physical locality as separate factors; explicit conflicts are excluded
-  and compatible candidates precede unknown-only candidates.
-- The candidate catalog remains complete and stable. Cohort prompts contain
-  cell-local structured text and one factor projection; they do not perform a
-  second keyword ranking pass.
-- An opt-in local cross-encoder can reorder only atomic numeric ties in the exact
-  strongest tier. Pair v5 carries a candidate-local fact role: tables use parser
-  structure, while runtime prose remains unresolved. An evaluation-only role
-  interpreter groups same-source values without query or answer labels and
-  validates exact candidate-local grounding. Source role never encodes later
-  add/subtract/exclude operand use. Runtime selection remains disabled.
-- Numeric compilation is isolated by declared dependency, non-empty coupling
-  key, and inferred complete-row evidence bundles. A bundle adds an island edge
-  even when planner coupling is empty. Code ranks complete rows from existing
-  owner cohorts, selects one before compiler invocation, and removes alternative
-  row IDs from output and requirement visibility. Numeric compatibility
-  narratives remain available. Unknown dependency, self-dependency, cycle,
-  island overflow, or candidate reservation overflow fails before compiler calls.
-- Retrieval is internally split into plan, search, selection, and trace stages.
-- `IngestService` owns fetch through manifest recording. `FinancialAgent` no
-  longer exposes ingest methods.
-- FastAPI dependencies live in lifespan-owned `AppServices`; sync query and ingest
-  execute in a threadpool. Liveness and readiness are separate endpoints.
-- Cached Streamlit services serialize store inspection, query, ingest plus
-  readiness refresh, and evaluation across sessions.
-- Evaluator-only accepted calculation/answer variants require one complete,
-  source-qualified atomic match. They do not alter runtime selection or promote
-  qualitative scores.
-- A `source_defined_group` with a selected structured row exposes every
-  policy-defined cell from that physical row as required. Candidate failure
-  rejects that row as a unit, and capacity overflow fails before compilation.
-- Derived values render their source-visible inputs. Faithfulness judge output
-  records a short rationale without changing score thresholds or overrides.
-- Benchmark `store-only` excludes question/evaluator work, while `eval-only`
-  evaluates from a disposable store copy and preserves its source bytes.
-- MAS and Streamlit remain experimental consumers, not the product authority.
+- `FinancialAgentStateV2` keeps one writer per phase. The final assembler alone
+  writes the ledger-backed answer.
+- Compiler, validator, and executor share one immutable candidate-visibility
+  envelope. Catalog, visibility, program, or validation drift fails before
+  execution.
+- Applicability separates scope, local subject, owner kind, document subject,
+  unit, metric, and physical locality. `explicit_conflict` is excluded;
+  `compatible` precedes `unknown_only`.
+- A numeric owner admits at most two `SourceBundleV1` bundles. A prose bundle is
+  one exact sentence/window; a table bundle is one physical table row. Every
+  non-conflicting numeric member of an admitted bundle remains visible so
+  period pairs, signs, and neighboring operands stay together.
+- Source text is serialized once in `source_bundles_by_id`. Candidate rows refer
+  to the bundle and a local value span. They retain the existing candidate IDs,
+  catalog fingerprint inputs, row headers, and physical provenance.
+- The existing compiler performs semantic selection. Code validates IDs,
+  applicability, formula/binding structure, provenance, and exact source
+  grounding; it does not classify values as total/component/rate.
+- A selected prose numeric operand or source display requires a
+  `source_assertion` whose evidence is a byte-exact contiguous bundle substring
+  covering all referenced value spans. Table cells and multi-evidence narrative
+  bindings do not require this assertion.
+- Candidate validation failure promotes the next source bundle. Assertion or
+  format failure retries the same cohort once. Other accepted islands and their
+  assertion JSON remain byte-identical.
+- Unique prompt visibility is capped at 96 numeric and 32 narrative candidates.
+  Bundle expansion is atomic; overflow skips every compiler call.
+- Dependencies, non-empty coupling keys, and inferred complete physical rows
+  define compilation islands. Unknown/self/cyclic dependencies and more than
+  eight islands fail before provider dispatch.
+- Retrieval, ingest, exact store readiness, API services, and
+  `FinancialRunResultV1` retain their existing ownership contracts. MAS and
+  Streamlit remain experimental consumers.
 
-## Evidence and remaining gate
+## Local acceptance state
 
-The merged provider-free source combines typed target matching, cell-local
-prompts, complete-row bundle inference, and fail-closed validation. Complete
-options use the existing per-owner ranks: lowest summed position, then lowest
-worst position, then physical IDs. Only the selected row enters the compiler's
-candidate dictionary and active constraint. Candidate rejection rebuilds the
-cohorts so the next complete row can be promoted; format-only retry keeps the
-  same row. Ranked alternatives are diagnostic-only. The feature branch passes 837
-local unittest cases, the 86-literal domain audit, import/topology checks,
-pycompile, and `git diff --check`. The predecessor main build passed both Python
-3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
+The source-bundle implementation has passed its complete local gate:
 
-The exact atomic-bundle admission preserved the order `HYU_T2_010`,
-`HYU_T3_072`, `SAM_T2_078`. Manifest
-`06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`
-and all three no-call rehearsals resolve to the same 6,730-byte receipt SHA-256
-`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
+- source-bundle/catalog/matching: `28 / 28`;
+- cohort/compiler/validator/evidence-bundle/island: `90 / 90`;
+- runtime domain-term audit: pass, `86` reviewed literals;
+- import/topology: `21 / 21`;
+- portfolio review gates: `review_surface_ready`;
+- `compileall` and `git diff --check`: pass;
+- full unittest discovery: `805 / 805` in `19.636s`.
 
-The separately approved process ran once, exited zero after 276.8 seconds, and
-wrote the ignored atomic-bundle result with SHA-256
-`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`.
+The provider-free fixtures preserve the reviewed behavior:
 
-| Question | Runtime result | Gate evidence |
-| --- | --- | --- |
-| `HYU_T2_010` | `ok`, 2/2 obligations | Same four predecessor evidence IDs; `87.0만 대` and `78.1만 대` produce `11.4%`, with source display `11.5%`; error 0, ledger `ok` |
-| `HYU_T3_072` | `ok`, 3/3 obligations | One compiler call, no retry; ownership `26%` and carrying amount `700,691백만원` both come from table 82 row `9:2`; no table 83 numeric ID; error 0, ledger `ok` |
-| `SAM_T2_078` | `ok`, 2/2 obligations | All three predecessor evidence IDs retained plus one compatible Harman overview source; `28,352,769백만원` and Harman narrative remain; error 0, ledger `ok` |
+- same-source current/prior values and parenthesized negatives remain in exact
+  source context;
+- table cells retain physical row/cell identity and stable candidate IDs;
+- source text appears once per bundle rather than once per candidate;
+- hidden, cross-bundle, altered-text, and uncovered-span assertions fail;
+- LGE-style reported and adjustment values remain separate formula operands;
+- narrative answers may synthesize multiple evidence bindings rather than being
+  forced into a top-one candidate.
 
-T3's option ranker considered both complete direct-output rows, selected table
-82 before compiler invocation, and projected the direct owner spaces through
-that choice. Its Motional summary is still grounded in the distinct summary
-tables appropriate to those measures. Across all questions the compiler made
-five island calls and no internal retry.
+The immutable three-question predecessor was also reprojected without a
+provider call. All three catalogs replayed as verified. T2 keeps `87.0`, `78.1`,
+and `11.5` within applicable owner visibility. T3 keeps Motional `26%` visible
+and excludes BHAF `53%`. Samsung retains all four previously selected candidate
+IDs. This proves the new visibility boundary, not compiler semantic quality.
 
-The bounded provider runtime gate is **3/3 PASS**. It does not change the HYU T3
-historical provider output or relax evaluator criteria. The raw evaluator still
-reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness `0.7`, and two
-company-level full-eval failures; those are not promoted into runtime acceptance.
+## Immutable predecessor evidence
 
-After that paid gate, the source review decision corrected the canonical HYU T3
-key from a mixed separate/consolidated basis to the complete consolidated tuple.
-Provider-free replay of the saved source window now keeps table 90 row `21:4`
-as four required cells: `1,775`, `(803,742)`, `12,115`, and `(791,627)`
-백만원. Re-rendering the saved T2 execution trace includes the source inputs
-`2023 87.0만 대` and `2022 78.1만 대` without exposing an internal obligation
-ID. These are local successor checks, not a new benchmark result.
+The earlier approved three-question store-fixed run remains historical evidence:
+`HYU_T2_010`, `HYU_T3_072`, and `SAM_T2_078` were runtime-complete with zero
+runtime errors and ledger `ok`. Admission `06a40243...016` and the prose-role
+admission `729d1f53...4b93` were each consumed once and must not be reused. This
+change does not reinterpret those artifacts as validation of the new compiler
+payload.
 
-The historical Samsung faithfulness judge returned `0.7` without a persisted
-rationale, so its exact concern cannot be reconstructed. New evaluator outputs
-retain the judge reason; no score, tolerance, or acceptance rule was relaxed.
+Benchmark results, source stores, datasets, caches, and prior review HTML remain
+uncommitted and immutable. Historical chronology stays in
+[implementation_history.md](../history/implementation_history.md) and
+[experiment_history.md](../history/experiment_history.md).
 
-The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
-zero document-embedding calls, and estimated runtime cost USD `0.1212257`, below
-the approved USD `0.40` ceiling. Embedding pricing is unavailable. Both source
-result hashes, SQLite hashes, and complete store fingerprints remain unchanged;
-no disposable store remains.
+## Next gate
 
-## Provider-free candidate ambiguity baseline
+1. Record the verified current-state docs.
+2. Build a new store-fixed eval-only manifest and no-call rehearsal without
+   mutating the store.
+3. Report its SHA-256 and cost ceiling. Run it once only after separate approval;
+   do not auto-retry or perform fresh ingest.
 
-The audit matched all three immutable source/catalog fingerprints (4,107
-candidates); 8/16 cohorts had tied top tiers and 3,301/3,323 non-conflicting
-matches were `unknown_only`. Pair v5 has 6 cohorts / 34 candidates, while its
-four-case human fixture keeps baseline top-1 `3/4`; runtime prose stays unresolved.
-
-The approved two-value prose request ran once: one LLM call, 551 tokens, estimated
-USD `0.0005217`. Both source-local roles match the corrected successor review
-`2/2`; the old `1/2` oracle had incorrectly encoded later exclusion as a candidate
-role. This smoke is not runtime or held-out quality evidence.
-
-## Next work
-
-1. Do not rerun either paid request. Admissions `06a40243...016` and
-   `729d1f53...4b93` are exhausted.
-2. Keep benchmark artifacts uncommitted. Restore the recoverable predecessor
-   stash only on a separate archaeology branch; do not port superseded contracts.
-3. Keep the tie-breaker disabled. Even exact reviewed prose roles leave it at
-   model `1/4` versus baseline `3/4`; it still chooses the LGE reported total,
-   abstains on all four, and has warm CPU p95 `2801.287 ms`.
-4. Treat `component` as source-local. Arithmetic use is owned by the validated
-   semantic-program AST/binding, not by the candidate interpreter.
-5. Expand the reviewed prose set provider-free before considering another model
-   call. Do not tune against the two-candidate smoke.
-6. Do not wire roles into runtime yet. Keep persisted indexing behind a separately
-   approved versioned store migration.
-
-See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract.
+See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
+[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the
+normative contract.

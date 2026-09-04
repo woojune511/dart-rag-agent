@@ -24,10 +24,10 @@
 | `src/agent/financial_graph_planning.py` | routing and requirement planning |
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
 | `src/agent/financial_reconciliation_candidates.py` | source candidate and catalog construction |
-| `src/agent/financial_candidate_fact_role.py` | candidate-local fact role and source-grounded semantic role contracts |
-| `src/agent/financial_candidate_tiebreaker.py` | optional lazy local cross-encoder for strongest-tier ties only |
-| `src/agent/financial_graph_calculation.py` | cohorts, compilation islands, targeted retry |
-| `src/agent/financial_calculation_execution.py` | applicability, validation, deterministic execution |
+| `src/agent/financial_source_bundles.py` | deterministic prose-sentence and physical-row source bundles |
+| `src/agent/financial_candidate_matching.py` | typed owner applicability and deterministic bundle rank inputs |
+| `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compiler payload, islands, targeted retry |
+| `src/agent/financial_calculation_execution.py` | applicability, exact source-assertion validation, deterministic execution |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
 
@@ -49,9 +49,6 @@
 | `src/ops/evaluator.py` | evaluator-only numeric and source-qualified variant contracts |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
-| `src/ops/semantic_tiebreaker_promotion_gate.py` | local labeled quality and warm-latency gate for the optional reranker |
-| `src/ops/mine_semantic_tiebreak_cases.py` | provider-free evidence-scoped hard-negative mining with candidate-to-source review links |
-| `src/ops/candidate_semantic_role_interpreter.py` | bounded answer-label-free prose-role requests, validation, and evaluation projection |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.

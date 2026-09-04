@@ -100,57 +100,45 @@ explicit scope, subject, or unit conflict. Within each owner cohort,
 `compatible` candidates always rank before `unknown_only`; explicit conflicts
 are excluded. Equal factor tiers are deterministic and source-diverse.
 
-An optional local cross-encoder may break a tie only inside the strongest exact
-factor-vector tier for an atomic numeric owner. Narrative synthesis,
-source-defined groups, and non-numeric compatibility cohorts are not top-one
-selection problems and never enter this scorer. It never admits an explicit
-conflict, promotes a lower tier, changes owner visibility, or selects cells
-independently of a physical-row bundle.
+`SourceBundleV1` is the compiler's source-reading unit. It has a deterministic
+bundle ID, source kind, source anchor, context fingerprint, exact contiguous
+source text, member candidate IDs, and bundle-local value spans. Prose values
+from the same source sentence share a bundle. A sentence longer than the prompt
+window is split deterministically around value spans without normalizing its
+bytes. Table values share a bundle only through the same physical table and row;
+row headers and cell provenance remain on their candidates.
 
-Pair schema `semantic_tie_break_pair_v5` presents a natural query, typed target,
-and immutable `CandidateFactRoleV1` in bounded cell-local evidence. Sentence
-values require an exact saved `source_span` or one unique value surface; tables
-project parser structure and runtime prose remains `unresolved`. The evaluation
-interpreter omits query and answer labels and accepts only visible IDs plus exact
-value-local source relations. `CandidateSemanticRoleV1.value_role` is limited to
-`reported_total`, `component`, `period_value`, `rate`, `derived_display`, or
-`other`; task-relative add/subtract/exclude or ratio use belongs only to validated
-semantic-program AST and binding. Runtime wiring, IDs, and fingerprints stay fixed.
+Numeric selection is bundle-first. Code excludes `explicit_conflict`, gives
+`compatible` bundles precedence over `unknown_only`, and ranks a bundle by its
+best member's existing factor vector. Each numeric owner receives at most two
+bundles. Every non-conflicting numeric member of a selected bundle is visible to
+that owner so period pairs, signs, and neighboring operands are not separated by
+an arbitrary top-one cutoff. Selecting the same bundle for more than one owner
+does not duplicate its source text in one compiler payload.
 
-The initial query pass scores at most 12 candidates per cohort and 64 pairs in
-one batch. A top-versus-runner margin below `0.05`, capacity overflow, or scorer
-unavailability preserves the deterministic order. The score transform is an
-explicit part of scorer identity; the pinned runtime policy uses `sigmoid`,
-while `raw_logit` is available only as an explicitly selected calibration
-variant. Model loading is lazy, pair scores are process-local and bounded. The
-feature remains disabled by default
-until `src.ops.semantic_tiebreaker_promotion_gate` shows a labeled top-1 gain,
-no confident error, correct ambiguity abstention, and warm p95 within one
-second. Its margin calibration is diagnostic and never rewrites runtime policy.
-`src.ops.export_semantic_tiebreak_cases` reads fingerprint-verified catalogs;
-`src.ops.mine_semantic_tiebreak_cases` binds exact verified dataset-quote hard negatives to graph source ID or physical table source and exports exact node text/hash plus a filing link; review may exclude operand-only derived cases without blocking valid source-stated derived displays.
-This remains evidence-scoped, not runtime-frequency or promotion evidence. The gate uses cached model files unless download is explicitly enabled.
+`semantic_program_candidate_payload_v5` stores source text once in
+`source_bundles_by_id`. Candidate rows retain their existing IDs and metadata,
+refer to `source_bundle_id`, and carry a bundle-local value span instead of a
+repeated source excerpt. The prompt receives the factor projection but does not
+perform a second ranking pass. Validation recomputes applicability for declared
+semantic targets and rejects a visible but conflicting ID as
+`candidate_semantic_target_mismatch`.
 
-Activation is explicit through routing config
-`enable_semantic_candidate_tiebreaker` or
-`DART_SEMANTIC_TIEBREAKER_ENABLED=1`. The policy-pinned model and code revisions
-are the default; overriding the model does not inherit remote-code trust unless
-`DART_SEMANTIC_TIEBREAKER_TRUST_REMOTE_CODE` is also explicitly enabled. The
-promotion gate may compare another transform with `--score-transform`, but the
-runtime transform changes only through reviewed policy together with its margin.
+When the compiler selects a prose `sentence_value` as a direct binding,
+expression source, or source display, `source_assertions` must identify the
+bundle and selected candidate IDs and copy an exact contiguous source substring
+covering every referenced value span. Code verifies bundle membership, owner
+visibility, exact bytes, and span coverage before execution and fingerprints the
+validated assertion. Table cells use physical row/cell provenance instead;
+narrative obligations keep their existing multi-evidence bindings. Meaning such
+as total, component, rate, or derived display is represented by obligation
+bindings and formula AST, not a candidate role enum or a separate reranker.
 
-Structured prompt rows contain only the physical cell value and its row/column
-axes, not the parent chunk's flattened table body. The prompt receives the
-factor projection but does not rerank it. Validation recomputes the same matcher
-for explicitly declared semantic targets and rejects a visible but conflicting
-ID as `candidate_semantic_target_mismatch`. During the schema transition, a
-target-less legacy owner may derive a local subject only from catalog identity
-surfaces that also occur in the owner text.
-
-Numeric owners have capacity four, narrative requirements six, and numeric
-compatibility narrative capacity two. Query-wide reservation remains bounded by
-96 numeric and 32 narrative candidates. Overflow fails before compiler calls;
-owners may not be silently dropped.
+Numeric owners have capacity two source bundles, narrative requirements six
+candidates, and numeric compatibility narrative capacity two. Query-wide
+visibility remains bounded by 96 unique numeric and 32 narrative candidates.
+Bundle expansion is atomic: overflow fails before compiler calls, and a bundle
+is never partially trimmed to meet capacity.
 
 Coupling applies only when two or more distinct obligations share the same
 non-empty `coupling_key`. Multiple period operands of one derived obligation do
@@ -225,9 +213,9 @@ reservations are preflighted before any compiler call.
 Islands are ordered by original obligation order and compiled sequentially. Each
 island has one internal retry at most:
 
-- candidate validation failure excludes the rejected ID and promotes the next
-  ranked candidate;
-- AST, schema, or binding format failure retains the same cohort.
+- candidate validation failure excludes the rejected candidate's source bundle
+  for that owner and promotes the next ranked bundle;
+- assertion, AST, schema, or binding format failure retains the same cohort.
 
 If any member of an evidence bundle needs retry, every obligation in that bundle
 is retried together. Candidate rejection rebuilds the bounded cohorts and bundle
@@ -236,12 +224,10 @@ selected; AST, schema, and binding-format retries retain the active option.
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v8` records
-owner factor counts, factor-vector tier separation, unknown-only share inputs,
-the active constraint, complete-row option counts and ranked option selection,
-island composition, call/retry counts, visibility fingerprints, prompt bytes,
-and bounded semantic tie-break eligibility, exclusion reason, scorer identity,
-scores, and margin.
+original obligation order. `semantic_candidate_stage_diagnostics_v9` records
+owner factor counts, selected bundle IDs, bundle/member counts and fingerprint,
+the active physical-row constraint, island composition, call/retry counts,
+attempt-visible IDs, prompt bytes, and assertion coverage/errors.
 Ranking diagnostics are observability-only and are not serialized into the
 compiler prompt.
 

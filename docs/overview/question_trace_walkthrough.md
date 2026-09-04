@@ -39,7 +39,12 @@ seed window는 `retrieval` envelope에 기록된다. Degraded BM25-only 실행�
 ## 4. Numeric branch
 
 Numeric 또는 mixed requirement이면 `build_candidates`가 물리 provenance를 가진
-catalog를 만든다. `compile_program`은 obligation dependency와 non-empty coupling
+catalog와 exact `SourceBundleV1` projection을 만든다. 숫자 owner는
+`explicit_conflict`를 제외한 source bundle을 최대 두 개 받고, 선택된 bundle의
+값을 함께 본다. Compiler payload는 source text를 bundle당 한 번만 싣고 각
+candidate는 bundle ID와 local value span을 참조한다.
+
+`compile_program`은 obligation dependency와 non-empty coupling
 key뿐 아니라 같은 local subject의 완전한 physical-row evidence bundle을 기준으로
 island를 만들고, island별 candidate visibility 안에서만 program을
 compile/validate한다. Runtime은 완전한 row option을 owner cohort 순위로 정렬하고
@@ -47,11 +52,11 @@ compile/validate한다. Runtime은 완전한 row option을 owner cohort 순위�
 그 행으로 projection되며, 다른 행의 candidate는 prompt에 들어가지 않는다.
 Numeric compatibility narrative는 scope 보조 근거로 계속 노출된다.
 
-설정으로 활성화된 local cross-encoder는 hard applicability를 통과한 최상위
-factor 동률 안에서만 한 번에 점수를 계산한다. 점수 차가 작거나 입력 상한을
-넘거나 모델을 사용할 수 없으면 deterministic 순서를 유지한다. 이 점수는
-compiler prompt에 들어가지 않으며, row-bundle 선택은 재정렬된 owner 순위를
-사용하되 여전히 하나의 완전한 물리 행만 노출한다.
+Compiler가 prose 숫자를 선택하면 `source_assertions`에 exact contiguous source
+substring을 돌려준다. Validator는 이 구간이 같은 visible bundle에 속하고 모든
+참조 value span을 덮는지 확인한다. 표는 physical row/cell provenance를 사용하고,
+narrative는 기존 multi-evidence binding을 사용한다. 별도 candidate role 분류나
+cross-encoder 재정렬은 없다.
 
 ```text
 retrieve_evidence
@@ -65,9 +70,10 @@ visibility, validation fingerprint가 달라지거나 owner 밖 ID가 선택되�
 실행하지 않는다. 서로 다른 bundle option의 행을 섞으면
 `evidence_bundle_mismatch`로 거절한다. 정상 compiler 경로에서는 한 option만
 보이므로 이 검사는 defense-in-depth다. Bundle 구성원 하나의 candidate가
-거절되면 그 bundle의 cohort를 다시 만들고, 선택 행이 불완전해졌을 때만 다음
-완전한 행으로 승격한다. 성공한 다른 island는 retry prompt에 다시 넣지 않으며
-merge 후 JSON bytes를 유지한다.
+거절되면 해당 source bundle을 owner 재시도에서 제외하고 다음 bundle을
+승격한다. Assertion·schema·AST·binding 오류는 같은 cohort를 유지한다. 성공한
+다른 island는 retry prompt에 다시 넣지 않으며 merge 후 program과 assertion
+JSON bytes를 유지한다.
 
 ## 5. Narrative branch
 
@@ -105,7 +111,7 @@ Internal callers must use these attributes; flat dict fallback은 없다.
 | wrong scope/search window | `retrieval_debug_trace` |
 | candidate missing or wrong row | `SemanticTargetV1`, factor matches, and cohort diagnostics |
 | hidden/cross-owner ID | `CandidateVisibilityV1` and compile validation |
-| compile retry | `semantic_candidate_stage_diagnostics_v8` island, factor tiers, semantic tie status, selected bundle option, and attempts |
+| compile retry | `semantic_candidate_stage_diagnostics_v9` bundle/member fingerprint, assertion coverage/error, island, selected row option, and attempts |
 | execution refusal | `visibility_mismatch`, `validation_drift`, `evidence_bundle_mismatch`, or semantic validation errors |
 | answer/evidence mismatch | `AgentAnswer`, `ReviewTrace.evidence_items`, ledger integrity |
 
