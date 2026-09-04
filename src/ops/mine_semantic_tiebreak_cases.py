@@ -685,6 +685,30 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
     for index, raw_case in enumerate(template.get("cases") or [], start=1):
         case = dict(raw_case)
         review = dict(case.get("source_review") or {})
+        owner = dict(case.get("owner") or {})
+        parent_owner = dict(case.get("parent_owner") or {})
+        owner_scope = {
+            **dict(parent_owner.get("scope") or {}),
+            **dict(owner.get("scope") or {}),
+        }
+        scope_text = ", ".join(
+            f"{field}={owner_scope.get(field)}"
+            for field in (
+                "company",
+                "period",
+                "consolidation_scope",
+                "segment",
+                "basis",
+            )
+            if str(owner_scope.get(field) or "").strip()
+        )
+        if parent_owner:
+            owner_role = (
+                "required input for "
+                + str(parent_owner.get("label") or "derived calculation")
+            )
+        else:
+            owner_role = str(owner.get("kind") or "output")
         case_id = str(case.get("case_id") or index)
         source_nodes = [
             dict(item)
@@ -791,12 +815,13 @@ def render_review_packet(template: Mapping[str, Any]) -> str:
                 f"<pre>{html.escape(str(source.get('text') or ''))}</pre>"
                 "</details>"
             )
-        owner = dict(case.get("owner") or {})
         sections.append(
             f"<section><h2>{index}. {html.escape(str(case.get('question_id') or ''))}</h2>"
             f"<p><strong>Question:</strong> {html.escape(str(case.get('query') or ''))}</p>"
             f"<p><strong>Cohort:</strong> <code>{html.escape(str(case.get('cohort_id') or ''))}</code><br>"
             f"<strong>Target:</strong> {html.escape(str(owner.get('label') or ''))}<br>"
+            f"<strong>Role:</strong> {html.escape(owner_role)}<br>"
+            f"<strong>Scope:</strong> {html.escape(scope_text or 'not declared')}<br>"
             f"<strong>Reports:</strong> {report_links or 'not resolved'}</p>"
             + "".join(evidence_rows)
             + "<details><summary>Dataset reference answer (evaluation-only)</summary><p>"

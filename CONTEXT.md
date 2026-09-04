@@ -116,13 +116,14 @@ archaeology.
    correct, with one confident selection, zero confident errors, and warm CPU
    p95 about `739 ms`. Promotion remains `needs_review`: the deterministic
    baseline is already `1.0`, so this set cannot demonstrate the required gain.
-6. The provider-free evidence miner inspected four additional verified questions
-   from exact dataset-quote nodes. KBF T2 and LGE yielded 6 atomic cases / 34
-   pairs; KBF T1 and NAVER had no atomic tie. Its v2 packet resolves all 34
-   candidate rows to the exact source node and original filing link; template
-   fingerprint is `fcf3038c...b929`.
-7. Human-label that ignored source-linked packet before another model bakeoff. The LGE
-   AMPC requirement is the first clear baseline-error candidate; do not lower
-   the margin or add keyword weights to manufacture coverage.
-8. Keep the persisted typed fact index deferred behind a separately approved,
+6. Human review of the immutable `fcf3038c...b929` packet produced a versioned
+   4-case / 22-candidate fixture. It excludes this LGE operand-only derived
+   output and one duplicate operand target; baseline top-1 is `3/4`.
+7. The cached sigmoid cross-encoder scored only `1/4` (`-0.50` gain), fixed no
+   AMPC error, abstained on all four at margin `0.05`, and took `2747.644 ms`
+   warm p95 on CPU. Keep it disabled; neither lower the margin nor add keywords.
+8. A blanket derived-output exclusion was rejected because source-stated derived
+   displays such as Hyundai's `11.5%` remain valid. Next separate exact table-row
+   identity from prose value-role interpretation before testing another model.
+9. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

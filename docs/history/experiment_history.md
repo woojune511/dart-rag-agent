@@ -128,7 +128,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)](#evidence-bundle-fail-closed-three-row-provider-gate-2026-09-03) | physical-row bundle 계약과 exact manifest `b068ac4b...5501`의 승인된 동일 3문항 store-fixed replay | T3 mixed-row proposal을 validator가 거절해 잘못된 출력을 막았지만 0/3 incomplete; 전체 runtime completeness 2/3 HOLD, `$0.1645241` plus unpriced embeddings, no runner retry |
 | [Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)](#atomic-evidence-bundle-selection-three-row-provider-gate-2026-09-03) | compiler 전에 complete physical-row option을 하나 선택하는 exact manifest `06a40243...016`의 승인된 동일 3문항 replay | T3 direct pair가 table 82 row `9:2`를 공유하고 전체 runtime gate 3/3 PASS; `$0.1212257` plus unpriced embeddings, no runner retry |
 | [Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)](#bounded-local-cross-encoder-tie-breaker-characterization-2026-09-04) | strongest exact factor tier의 31개 pair만 local GTE로 점수화 | 모든 동률이 margin gate에서 abstain해 기존 첫 후보와 T3 table 82를 보존; default disabled, provider benchmark 0 |
-| [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | 6 cases/34 pairs와 candidate-source 34/34 연결; LGE AMPC requirement가 첫 baseline-error review candidate, provider 0 |
+| [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | human review 4 select/2 exclude; 1 baseline error, provider 0 |
 
 ## 보는 법
 
@@ -161,17 +161,43 @@ affect the numeric cohorts.
 Four questions were inspected. KBF T1 and NAVER had no atomic tie in their
 evidence nodes. KBF T2 contributed two requirement cases, while LGE contributed
 four output/requirement cases: 6 cases and 34 candidate pairs total. The LGE
-AMPC requirement places `2조 1,632억원` first and `6,769억원` second, making it the
-first clear baseline-error candidate for human review. All 34 candidate rows
-resolve to exactly one source node. Template fingerprint is
+AMPC requirement places `2조 1,632억원` first and `6,769억원` second. All 34
+candidate rows resolve to exactly one source node. Template fingerprint is
 `fcf3038ce5c2776e37f4f2faefa418585e3519252c6551a5bbf6e9df6037b929`.
+
+Human review on 2026-09-05 retained four selection cases / 22 candidates. The
+KBF 2023 and 2022 expense targets each accept the three parenthesized
+income-statement candidates; the same-magnitude positive candidates are
+cash-flow adjustments, not formatting variants. Four source-consistent LGE
+operating-income candidates are acceptable, and the AMPC input accepts only
+`cand_d0c87437a16bace393ec`, so the reviewed baseline is 3/4 and has one real
+error. The derived-output cohort is non-atomic and the repeated operating-income
+input is excluded from independent evaluation as a planner dependency issue.
+
+A blanket derived-output exclusion was tested and rejected: it would also remove
+valid source-stated derived displays such as Hyundai's `11.5%` growth rate. The
+runtime eligibility contract therefore stays unchanged; only this LGE
+operand-only case is excluded by its review disposition. The immutable reviewed
+packet was not rewritten. A 2026-09-05 successor keeps the same 6 cases / 34
+pairs and fingerprint while displaying owner role and full scope in the HTML.
+
+The pinned human review generated a 4-case / 22-candidate atomic fixture
+(`6b51a0b6...bbd4`). The existing cached sigmoid cross-encoder reached only
+`1/4` top-1 versus the deterministic baseline's `3/4`, a `-0.50` gain. It ranked
+adjacent but different KBF rows above both expense rows and still preferred the
+whole operating-profit value over the AMPC value; only the LGE operating-income
+case stayed correct. All four decisions abstained at margin `0.05`, and warm CPU
+p95 was `2747.644 ms`, above the `1000 ms` gate. Result
+`970880d2...a024` is therefore `needs_review`; runtime remains disabled and no
+margin or keyword policy changed. The next model experiment must first separate
+deterministic table-row identity from prose-specific value-role interpretation.
 
 This is a provider-free hard-negative discovery artifact, not runtime-frequency
 or model-promotion evidence. No LLM/embedding provider, benchmark runner, fresh
 ingest, store mutation, dataset rewrite, or paid retry ran.
 
-Focused source-mapping tests passed 5/5, documentation/import/topology checks
-passed 23/23, full unittest discovery passed 823/823, and the 86-literal domain
+Focused semantic/export/mining tests passed 22/22, documentation/import/topology
+checks passed 23/23, full unittest discovery passed 823/823, and the 86-literal domain
 audit, pycompile, and `git diff --check` passed.
 
 ## Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)

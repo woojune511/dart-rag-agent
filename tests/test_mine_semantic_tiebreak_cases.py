@@ -273,6 +273,8 @@ class MineSemanticTieBreakCasesTests(unittest.TestCase):
         self.assertIn("Source 1", rendered)
         self.assertIn("Original filing:", rendered)
         self.assertIn("filing_receipt-123.html", rendered)
+        self.assertIn("Role:</strong> direct_value", rendered)
+        self.assertIn("company=sample company", rendered)
 
     def test_skips_unverified_dataset_rows(self) -> None:
         dataset_row = {**_dataset_row(), "verification_status": "draft"}

@@ -140,11 +140,11 @@ This is a provider-free no-regression/context check, not promotion evidence.
    archaeology, and do not port its superseded contracts.
 3. Keep the tie-breaker opt-in; the prior reviewed baseline is already `1.0`,
    and the `0.05` margin must not be lowered based on three cases.
-4. Evidence-scoped current-ID mining found 6 cases / 34 pairs in KBF T2 and LGE;
-   all resolve to an exact source node and filing link. KBF T1/NAVER had no tie.
-5. Human-label the ignored source-linked packet before another model comparison; the
-   LGE AMPC requirement is the first clear baseline-error candidate. Narrative/group evidence remains set selection plus synthesis.
-6. Keep the typed fact index behind a versioned store migration.
+4. Human review retained 4 select cases / 22 candidates and found one baseline error;
+   signless KBF cash-flow adjustments are not valid income-statement answers.
+5. The cached cross-encoder fell from baseline `3/4` to `1/4`, abstained on all
+   four, and missed the `1 s` latency gate; do not activate it or lower its margin.
+6. Next split exact table-row identity from prose value-role interpretation; keep the typed fact index behind a versioned store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.
