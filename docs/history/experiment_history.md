@@ -128,6 +128,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Evidence-Bundle Fail-Closed Three-Row Provider Gate (2026-09-03)](#evidence-bundle-fail-closed-three-row-provider-gate-2026-09-03) | physical-row bundle 계약과 exact manifest `b068ac4b...5501`의 승인된 동일 3문항 store-fixed replay | T3 mixed-row proposal을 validator가 거절해 잘못된 출력을 막았지만 0/3 incomplete; 전체 runtime completeness 2/3 HOLD, `$0.1645241` plus unpriced embeddings, no runner retry |
 | [Atomic Evidence-Bundle Selection Three-Row Provider Gate (2026-09-03)](#atomic-evidence-bundle-selection-three-row-provider-gate-2026-09-03) | compiler 전에 complete physical-row option을 하나 선택하는 exact manifest `06a40243...016`의 승인된 동일 3문항 replay | T3 direct pair가 table 82 row `9:2`를 공유하고 전체 runtime gate 3/3 PASS; `$0.1212257` plus unpriced embeddings, no runner retry |
 | [Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)](#bounded-local-cross-encoder-tie-breaker-characterization-2026-09-04) | strongest exact factor tier의 31개 pair만 local GTE로 점수화 | 모든 동률이 margin gate에서 abstain해 기존 첫 후보와 T3 table 82를 보존; default disabled, provider benchmark 0 |
+| [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | 4문항 중 KBF T2/LGE에서 6 cases/34 pairs; LGE AMPC requirement가 첫 baseline-error review candidate, provider 0 |
 
 ## 보는 법
 
@@ -138,6 +139,36 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Evidence-Scoped Atomic Tie Mining (2026-09-04)
+
+The existing fingerprint-verified exporter can replay only the three current
+Hyundai/Samsung plans. Extending it across diagnostics v1-v6 produced historical
+snapshots of the same three questions, not independent examples. Rebuilding an
+entire older store also mixed retrieval misses into semantic ranking, so that
+population was rejected for labeling.
+
+The evaluation-only `src.ops.mine_semantic_tiebreak_cases` instead combines
+saved obligations with exact matches to `verification_status=verified` dataset
+evidence quotes. It rebuilds current candidate IDs only from matched structure
+nodes and emits an unlabeled JSON plus static HTML source-review packet. Nine of
+ten numeric/narrative evidence quotes matched exactly; the unmatched KBF
+narrative quote does not affect the numeric cohorts.
+
+Four questions were inspected. KBF T1 and NAVER had no atomic tie in their
+evidence nodes. KBF T2 contributed two requirement cases, while LGE contributed
+four output/requirement cases: 6 cases and 34 candidate pairs total. The LGE
+AMPC requirement places `2조 1,632억원` first and `6,769억원` second, making it the
+first clear baseline-error candidate for human review. Template fingerprint is
+`2862d693bee2ecc30e0e8bb6712177fd677ddd3bbdd12eda827a0ced35881376`.
+
+This is a provider-free hard-negative discovery artifact, not runtime-frequency
+or model-promotion evidence. No LLM/embedding provider, benchmark runner, fresh
+ingest, store mutation, dataset rewrite, or paid retry ran.
+
+Focused mining/export/scorer/documentation tests passed 32/32, import/topology
+checks passed 27/27, full unittest discovery passed 822/822, and the 86-literal
+domain audit, pycompile, and `git diff --check` passed.
 
 ## Bounded Local Cross-Encoder Tie-Breaker Characterization (2026-09-04)
 

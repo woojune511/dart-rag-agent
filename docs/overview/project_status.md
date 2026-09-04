@@ -65,7 +65,7 @@ options use the existing per-owner ranks: lowest summed position, then lowest
 worst position, then physical IDs. Only the selected row enters the compiler's
 candidate dictionary and active constraint. Candidate rejection rebuilds the
 cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The feature branch passes 818
+same row. Ranked alternatives are diagnostic-only. The feature branch passes 822
 local unittest cases, the 86-literal domain audit, import/topology checks,
 pycompile, and `git diff --check`. The predecessor main build passed both Python
 3.13 CI jobs; this feature branch has not been pushed or remotely reviewed.
@@ -138,13 +138,13 @@ This is a provider-free no-regression/context check, not promotion evidence.
 2. Keep benchmark artifacts uncommitted. The predecessor remains recoverable in
    its named stash; restore it on a separate branch only for explicit
    archaeology, and do not port its superseded contracts.
-3. Keep the tie-breaker opt-in. Pair v4's reviewed atomic set has no top-1
-   regression but cannot show gain because its deterministic baseline is
-   already `1.0`; do not lower the `0.05` margin based on three cases.
-4. Collect and label genuine baseline-error atomic numeric ties before comparing
-   numeric-binding or smaller/GPU/ONNX models. Treat narrative and
-   source-defined evidence as set selection plus synthesis, not top-one labels.
-5. Keep the typed fact index behind a versioned store migration.
+3. Keep the tie-breaker opt-in; the prior reviewed baseline is already `1.0`,
+   and the `0.05` margin must not be lowered based on three cases.
+4. Evidence-scoped current-ID mining inspected four verified questions and found
+   6 atomic cases / 34 pairs in KBF T2 and LGE; KBF T1/NAVER had no tie.
+5. Human-label the ignored source packet before another model comparison; the
+   LGE AMPC requirement is the first clear baseline-error candidate. Narrative/group evidence remains set selection plus synthesis.
+6. Keep the typed fact index behind a versioned store migration.
 
 See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
 [agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.

@@ -47,7 +47,7 @@ and [experiment_history.md](docs/history/experiment_history.md).
 
 ## Verification
 
-- The current feature branch passed 818 local unittest cases, the 86-literal runtime
+- The current feature branch passed 822 local unittest cases, the 86-literal runtime
   domain audit, import/topology checks, pycompile, and `git diff --check`.
 - The predecessor main build's Python 3.13 reviewer-contract and full-unittest
   jobs passed. This local feature branch has not been pushed or remotely
@@ -116,8 +116,12 @@ archaeology.
    correct, with one confident selection, zero confident errors, and warm CPU
    p95 about `739 ms`. Promotion remains `needs_review`: the deterministic
    baseline is already `1.0`, so this set cannot demonstrate the required gain.
-6. Collect genuine baseline-error atomic ties before another model bakeoff.
-   Prefer numeric-binding hard negatives or smaller/GPU/ONNX inference; do not
-   lower the margin or add keyword weights merely to manufacture coverage.
-7. Keep the persisted typed fact index deferred behind a separately approved,
+6. The provider-free evidence miner inspected four additional verified questions
+   from exact dataset-quote nodes. KBF T2 and LGE yielded 6 atomic cases / 34
+   pairs; KBF T1 and NAVER had no atomic tie. Template fingerprint is
+   `2862d693...1376`.
+7. Human-label that ignored source packet before another model bakeoff. The LGE
+   AMPC requirement is the first clear baseline-error candidate; do not lower
+   the margin or add keyword weights to manufacture coverage.
+8. Keep the persisted typed fact index deferred behind a separately approved,
    versioned ingest/store migration.

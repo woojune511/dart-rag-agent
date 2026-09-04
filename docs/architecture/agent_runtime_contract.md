@@ -127,9 +127,9 @@ feature remains disabled by default
 until `src.ops.semantic_tiebreaker_promotion_gate` shows a labeled top-1 gain,
 no confident error, correct ambiguity abstention, and warm p95 within one
 second. Its margin calibration is diagnostic and never rewrites runtime policy.
-`src.ops.export_semantic_tiebreak_cases` creates an unlabeled template only from
-fingerprint-verified saved catalogs. The gate uses cached model files unless
-download is explicitly enabled.
+`src.ops.export_semantic_tiebreak_cases` reads fingerprint-verified catalogs;
+`src.ops.mine_semantic_tiebreak_cases` pairs saved obligations with exact verified dataset-quote nodes for unlabeled current-ID hard negatives.
+The latter is evidence-scoped, not runtime-frequency or promotion evidence. The gate uses cached model files unless download is explicitly enabled.
 
 Activation is explicit through routing config
 `enable_semantic_candidate_tiebreaker` or
