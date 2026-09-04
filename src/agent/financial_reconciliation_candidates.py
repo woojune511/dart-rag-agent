@@ -835,6 +835,10 @@ def _semantic_source_candidate(
         "candidate_id": str(candidate_id or "").strip(),
         "source_anchor": _normalise_spaces(source_anchor),
         "text": _normalise_spaces(text),
+        # Candidate identity continues to use the canonical, whitespace-normalized
+        # text above. Keep the exact input separately so prompt projections can
+        # preserve source punctuation and spacing without changing candidate IDs.
+        "source_text_exact": str(text or ""),
         "metadata": dict(metadata or {}),
         "candidate_kind": str(candidate_kind or "chunk"),
     }
@@ -1143,12 +1147,88 @@ def _numeric_context_excerpt(
     return _normalise_spaces(excerpt[window_start : window_start + bounded])
 
 
+def _canonical_span_in_exact_text(
+    canonical_text: str,
+    exact_text: str,
+    span: Sequence[int],
+) -> tuple[int, int] | None:
+    """Map one canonical whitespace-normalized span back to exact source text."""
+
+    canonical = str(canonical_text or "")
+    exact = str(exact_text or "")
+    if not canonical or _normalise_spaces(exact) != canonical:
+        return None
+    try:
+        start, end = int(span[0]), int(span[1])
+    except (IndexError, TypeError, ValueError):
+        return None
+    if not 0 <= start < end <= len(canonical):
+        return None
+
+    offsets: List[int] = []
+    tokens = list(re.finditer(r"\S+", exact))
+    for token_index, token in enumerate(tokens):
+        if token_index:
+            offsets.append(tokens[token_index - 1].end())
+        offsets.extend(range(token.start(), token.end()))
+    if len(offsets) != len(canonical):
+        return None
+    return offsets[start], offsets[end - 1] + 1
+
+
+def _numeric_source_bundle_projection(
+    canonical_text: str,
+    exact_text: str,
+    span: Sequence[int],
+    *,
+    max_chars: int = 700,
+) -> Dict[str, Any]:
+    """Return an exact contiguous source window plus its value-local span."""
+
+    mapped = _canonical_span_in_exact_text(canonical_text, exact_text, span)
+    if mapped is None:
+        return {}
+    value_start, value_end = mapped
+    text = str(exact_text or "")
+    boundary_positions = [
+        match.start()
+        for match in re.finditer(r"\n|[!?。]|(?<!\d)\.|\.(?!\d)", text)
+    ]
+    sentence_start = max(
+        (position for position in boundary_positions if position < value_start),
+        default=-1,
+    ) + 1
+    next_boundary = min(
+        (position for position in boundary_positions if position >= value_end),
+        default=-1,
+    )
+    sentence_end = next_boundary + 1 if next_boundary >= 0 else len(text)
+
+    bounded = max(1, int(max_chars))
+    if sentence_end - sentence_start <= bounded:
+        window_start, window_end = sentence_start, sentence_end
+    else:
+        window_start = max(sentence_start, value_start - bounded // 3)
+        window_start = min(window_start, sentence_end - bounded)
+        window_end = min(sentence_end, window_start + bounded)
+
+    return {
+        "source_bundle_text": text[window_start:window_end],
+        "source_bundle_context_span": [window_start, window_end],
+        "source_bundle_value_span": [
+            value_start - window_start,
+            value_end - window_start,
+        ],
+    }
+
+
 def _narrative_numeric_rows(
     *,
     source_candidate_id: str,
     evidence_id: str,
     base_record: Mapping[str, Any],
     source_text: str,
+    exact_source_text: str = "",
     require_explicit_unit: bool = False,
     represented_numeric_rows: Sequence[Mapping[str, Any]] = (),
 ) -> List[Dict[str, Any]]:
@@ -1212,6 +1292,11 @@ def _narrative_numeric_rows(
             continue
         span = list(surface.get("span") or [])
         context = _numeric_context_excerpt(source_text, span)
+        source_bundle_projection = _numeric_source_bundle_projection(
+            source_text,
+            exact_source_text or source_text,
+            span,
+        )
         local_entity_surfaces = _local_entity_surfaces(
             source_text,
             span=span,
@@ -1256,6 +1341,7 @@ def _narrative_numeric_rows(
                 "aggregation_stage": "",
                 "aggregate_label": "",
                 "source_span": span,
+                **source_bundle_projection,
                 "local_entity_surfaces": local_entity_surfaces,
             }
         )
@@ -1908,6 +1994,9 @@ def build_semantic_candidate_catalog(
                 or ""
             )
         )
+        source_bundle_text = str(
+            current.get("source_text_exact") or current.get("text") or source_text
+        )[:1200]
         base_record: Dict[str, Any] = {
             "source_candidate_id": source_candidate_id,
             "evidence_id": evidence_id,
@@ -1948,6 +2037,8 @@ def build_semantic_candidate_catalog(
             )[:320],
             "context_fingerprint": context_fingerprint,
             "source_text": source_text[:1200],
+            "source_bundle_text": source_bundle_text,
+            "source_bundle_context_span": [0, len(source_bundle_text)],
             "candidate_kind": candidate_kind,
         }
 
@@ -2102,12 +2193,19 @@ def build_semantic_candidate_catalog(
             narrative_numeric_source = _normalise_spaces(
                 str(current.get("text") or evidence_item.get("quote_span") or "")
             )
+            exact_narrative_numeric_source = str(
+                current.get("source_text_exact")
+                or current.get("text")
+                or evidence_item.get("quote_span")
+                or ""
+            )
             numeric_rows.extend(
                 _narrative_numeric_rows(
                     source_candidate_id=source_candidate_id,
                     evidence_id=evidence_id,
                     base_record=base_record,
                     source_text=narrative_numeric_source,
+                    exact_source_text=exact_narrative_numeric_source,
                     require_explicit_unit=(
                         has_structured_material and not is_explicit_non_table_source
                     ),
