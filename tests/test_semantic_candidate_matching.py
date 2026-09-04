@@ -257,17 +257,19 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
             match["target_concept_keys"], ["investment_carrying_amount"]
         )
 
-    def test_structured_prompt_uses_cell_local_text(self) -> None:
+    def test_structured_prompt_references_one_physical_row_bundle(self) -> None:
         plan = _semantic_candidate_cohorts([self.target_amount], [_obligation()])
         payload = FinancialAgent._semantic_program_prompt_payload(
             [self.target_amount], plan
         )
         row = payload["candidates_by_id"]["amount-target"]
-        self.assertIn("700691", row["source_text"])
-        self.assertIn("investment carrying amount", row["source_text"])
+        self.assertNotIn("source_text", row)
+        bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
+        self.assertIn("700,691", bundle["source_text"])
+        self.assertIn("investment carrying amount", bundle["source_text"])
         self.assertNotIn("ranking_diagnostics", payload["cohorts"][0])
-        self.assertNotIn("26%", row["source_text"])
-        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v4")
+        self.assertIn("26%", bundle["source_text"])
+        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v5")
 
     def test_validator_rejects_visible_but_conflicting_row(self) -> None:
         obligation = _obligation()

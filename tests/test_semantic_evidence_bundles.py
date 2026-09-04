@@ -189,7 +189,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 (item["position_sum"], item["worst_position"])
                 for item in selection["ranked_option_diagnostics"]
             ],
-            [(0, 0), (2, 1)],
+            [(0, 0), (4, 2)],
         )
         self.assertEqual(
             cohort_plan["candidate_ids_by_owner"],

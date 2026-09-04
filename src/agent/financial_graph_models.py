@@ -294,6 +294,16 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
     text: str
 
 
+class SemanticProgramSourceAssertion(_DeferredBaseModel):
+    """Exact source excerpt grounding one or more selected prose values."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    source_bundle_id: str
+    candidate_ids: List[str] = Field(default_factory=list)
+    evidence_text: str
+
+
 class SemanticCalculationProgram(_DeferredBaseModel):
     """Post-evidence semantic selection plus restricted deterministic expressions."""
 
@@ -303,6 +313,9 @@ class SemanticCalculationProgram(_DeferredBaseModel):
     direct_bindings: List[SemanticProgramDirectBinding] = Field(default_factory=list)
     expressions: List[SemanticProgramExpression] = Field(default_factory=list)
     narrative_bindings: List[SemanticProgramNarrativeBinding] = Field(default_factory=list)
+    source_assertions: List[SemanticProgramSourceAssertion] = Field(
+        default_factory=list
+    )
     missing_obligation_ids: List[str] = Field(default_factory=list)
     ambiguous_obligation_ids: List[str] = Field(default_factory=list)
     rationale: str = ""

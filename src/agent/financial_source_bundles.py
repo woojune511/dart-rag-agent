@@ -68,9 +68,16 @@ def _candidate_value_span(candidate: Mapping[str, Any], text: str) -> tuple[int,
 
 
 def _is_structured(candidate: Mapping[str, Any]) -> bool:
-    return bool(candidate.get("physical_table_id") or candidate.get("table_source_id")) or str(
-        candidate.get("candidate_kind") or ""
-    ) in _STRUCTURED_CANDIDATE_KINDS
+    candidate_kind = str(candidate.get("candidate_kind") or "")
+    has_physical_cell_or_row = bool(
+        candidate.get("physical_table_id")
+        and (
+            candidate.get("physical_row_id")
+            or candidate.get("physical_cell_id")
+            or candidate.get("physical_value_id")
+        )
+    )
+    return candidate_kind in _STRUCTURED_CANDIDATE_KINDS or has_physical_cell_or_row
 
 
 def _source_material(candidate: Mapping[str, Any]) -> Dict[str, Any]:
@@ -110,6 +117,21 @@ def _source_material(candidate: Mapping[str, Any]) -> Dict[str, Any]:
         "source_context_span": list(context_span) if context_span else [],
         "source_text": text,
     }
+
+
+def _source_identity(material: Mapping[str, Any]) -> Dict[str, Any]:
+    if str(material.get("source_kind") or "") == "table_row":
+        return {
+            key: material.get(key)
+            for key in (
+                "source_kind",
+                "source_anchor",
+                "context_fingerprint",
+                "physical_table_id",
+                "physical_row_id",
+            )
+        }
+    return dict(material)
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,20 +189,33 @@ def build_semantic_source_bundles(
         if not candidate_id or (requested_ids and candidate_id not in requested_ids):
             continue
         material = _source_material(candidate)
-        source_bundle_id = f"srcb_{_fingerprint(material)[:20]}"
+        source_bundle_id = f"srcb_{_fingerprint(_source_identity(material))[:20]}"
         group = grouped.setdefault(
             source_bundle_id,
             {"material": material, "members": {}},
         )
-        if group["material"] != material:
+        if _source_identity(group["material"]) != _source_identity(material):
             raise ValueError(f"source bundle hash collision: {source_bundle_id}")
-        text = str(material["source_text"])
-        group["members"][candidate_id] = _candidate_value_span(candidate, text)
+        if str(material["source_kind"]) == "table_row":
+            current_text = str(group["material"].get("source_text") or "")
+            proposed_text = str(material.get("source_text") or "")
+            group["material"]["source_text"] = min(
+                (current_text, proposed_text),
+                key=lambda value: (-len(value), value),
+            )
+        existing = group["members"].get(candidate_id)
+        if existing is None or _canonical_json(candidate) < _canonical_json(existing):
+            group["members"][candidate_id] = candidate
 
     bundles = []
     for source_bundle_id, group in grouped.items():
         material = dict(group["material"])
-        members = dict(group["members"])
+        member_candidates = dict(group["members"])
+        text = str(material["source_text"])
+        members = {
+            candidate_id: _candidate_value_span(candidate, text)
+            for candidate_id, candidate in member_candidates.items()
+        }
         ordered_members = sorted(
             members,
             key=lambda candidate_id: (

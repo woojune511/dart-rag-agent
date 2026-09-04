@@ -29,6 +29,7 @@ from src.agent.financial_graph_calculation import (
     _merge_targeted_program_retry,
     _retry_candidate_exclusions,
     _semantic_candidate_cohorts,
+    _semantic_candidate_visibility,
     build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
@@ -38,6 +39,10 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_id_fingerprint,
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
+)
+from src.agent.financial_source_bundles import (
+    build_semantic_source_bundles,
+    source_bundle_id_by_candidate_id,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
@@ -131,6 +136,27 @@ def _candidate(
         "aggregation_stage": "",
         "aggregate_label": "",
     }
+
+
+def _source_assertions(catalog, *candidate_ids):
+    requested = {str(item) for item in candidate_ids if str(item)}
+    assertions = []
+    for bundle in build_semantic_source_bundles(catalog):
+        selected = [
+            candidate_id
+            for candidate_id in bundle.candidate_ids
+            if candidate_id in requested
+        ]
+        if not selected:
+            continue
+        assertions.append(
+            {
+                "source_bundle_id": bundle.source_bundle_id,
+                "candidate_ids": selected,
+                "evidence_text": bundle.source_text,
+            }
+        )
+    return assertions
 
 
 def _contract_residual_fixture():

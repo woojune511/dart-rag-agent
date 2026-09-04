@@ -337,12 +337,6 @@ class ImportSideEffectTests(unittest.TestCase):
                 "torch",
                 "transformers",
             },
-            "src.agent.financial_candidate_tiebreaker": {
-                "numpy",
-                "sentence_transformers",
-                "torch",
-                "transformers",
-            },
             "src.agent.financial_answer_slots": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_calculation": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_evidence": {"pydantic", "langchain_core"},

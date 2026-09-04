@@ -17,9 +17,6 @@ from src.agent.financial_agent_run_projection import (
     project_review_trace,
     structured_result_answer_for_missing_public_answer,
 )
-from src.agent.financial_candidate_tiebreaker import (
-    LocalCrossEncoderTieBreaker,
-)
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
@@ -38,10 +35,7 @@ from src.agent.financial_task_artifacts import (
     project_task_artifact_trace,
     semantic_plan_artifact_update,
 )
-from src.config.retrieval_policy import (
-    CALCULATION_PROMPT_POLICY,
-    SECTION_BIAS_BY_QUERY_TYPE,
-)
+from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 
 
 logger = logging.getLogger(__name__)
@@ -67,14 +61,6 @@ def _load_env_once() -> None:
     if not _ENV_LOADED:
         load_dotenv()
         _ENV_LOADED = True
-
-
-def _boolean_setting(value: Any, *, default: bool = False) -> bool:
-    if value is None or str(value).strip() == "":
-        return default
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().casefold() in {"1", "true", "yes", "on"}
 
 
 def _financial_agent_state_model() -> Any:
@@ -173,85 +159,11 @@ class FinancialAgent(
         k: int = 8,
         graph_expansion_config: Optional[Dict[str, Any]] = None,
         routing_config: Optional[Dict[str, Any]] = None,
-        semantic_candidate_tiebreaker: Any = None,
     ):
         _load_env_once()
         self.vsm = vector_store_manager
         self.k = k
         self.routing_config = dict(routing_config or {})
-        tie_break_policy = dict(
-            CALCULATION_PROMPT_POLICY.get(
-                "semantic_top_tier_tiebreaker"
-            )
-            or {}
-        )
-        configured_enabled = self.routing_config.get(
-            "enable_semantic_candidate_tiebreaker"
-        )
-        enabled = _boolean_setting(
-            configured_enabled
-            if configured_enabled is not None
-            else os.environ.get("DART_SEMANTIC_TIEBREAKER_ENABLED"),
-            default=bool(tie_break_policy.get("enabled_by_default", False)),
-        )
-        self.semantic_candidate_tiebreaker = semantic_candidate_tiebreaker
-        if self.semantic_candidate_tiebreaker is None and enabled:
-            policy_model_name = str(
-                tie_break_policy.get("model_name") or ""
-            )
-            model_name = str(
-                os.environ.get("DART_SEMANTIC_TIEBREAKER_MODEL")
-                or policy_model_name
-            )
-            revision = str(
-                os.environ.get("DART_SEMANTIC_TIEBREAKER_REVISION")
-                or (
-                    tie_break_policy.get("revision")
-                    if model_name == policy_model_name
-                    else ""
-                )
-                or ""
-            )
-            code_revision = str(
-                os.environ.get("DART_SEMANTIC_TIEBREAKER_CODE_REVISION")
-                or (
-                    tie_break_policy.get("code_revision")
-                    if model_name == policy_model_name
-                    else ""
-                )
-                or ""
-            )
-            trust_remote_code_setting = os.environ.get(
-                "DART_SEMANTIC_TIEBREAKER_TRUST_REMOTE_CODE"
-            )
-            trust_remote_code = _boolean_setting(
-                trust_remote_code_setting,
-                default=(
-                    bool(tie_break_policy.get("trust_remote_code", False))
-                    if model_name == policy_model_name
-                    else False
-                ),
-            )
-            self.semantic_candidate_tiebreaker = LocalCrossEncoderTieBreaker(
-                model_name=model_name,
-                revision=revision,
-                code_revision=code_revision,
-                score_transform=str(
-                    tie_break_policy.get("score_transform") or "sigmoid"
-                ),
-                max_length=int(tie_break_policy.get("max_length") or 256),
-                batch_size=int(tie_break_policy.get("batch_size") or 32),
-                cache_size=int(tie_break_policy.get("cache_size") or 2048),
-                device=str(
-                    os.environ.get("DART_SEMANTIC_TIEBREAKER_DEVICE") or ""
-                ),
-                local_files_only=_boolean_setting(
-                    os.environ.get(
-                        "DART_SEMANTIC_TIEBREAKER_LOCAL_FILES_ONLY"
-                    )
-                ),
-                trust_remote_code=trust_remote_code,
-            )
         self.report_cache_index_path = str(
             self.routing_config.get("report_cache_index_path") or ""
         ).strip()

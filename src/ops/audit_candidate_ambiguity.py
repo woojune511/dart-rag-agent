@@ -44,6 +44,7 @@ SUPPORTED_DIAGNOSTIC_SCHEMAS = frozenset(
         "semantic_candidate_stage_diagnostics_v6",
         "semantic_candidate_stage_diagnostics_v7",
         "semantic_candidate_stage_diagnostics_v8",
+        "semantic_candidate_stage_diagnostics_v9",
     }
 )
 

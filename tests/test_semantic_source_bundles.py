@@ -134,6 +134,31 @@ class SemanticSourceBundleTests(unittest.TestCase):
             {"cand-2023", "cand-2022"},
         )
 
+    def test_table_link_alone_does_not_turn_a_sentence_value_into_a_table_row(self) -> None:
+        bundles = build_semantic_source_bundles(
+            [
+                {
+                    "candidate_id": "cand-prose-near-table",
+                    "kind": "numeric",
+                    "candidate_kind": "sentence_value",
+                    "source_candidate_id": "source-near-table",
+                    "source_anchor": "[sample note]",
+                    "context_fingerprint": "table-a|unknown||",
+                    "table_source_id": "table-a",
+                    "source_bundle_text": "The note reports a growth rate of 11.5%.",
+                    "source_bundle_context_span": [0, 39],
+                    "source_bundle_value_span": [34, 39],
+                    "raw_value": "11.5",
+                    "raw_unit": "%",
+                }
+            ]
+        )
+
+        self.assertEqual(len(bundles), 1)
+        self.assertEqual(bundles[0].source_kind, "prose_sentence")
+        self.assertEqual(bundles[0].physical_table_id, "")
+        self.assertEqual(bundles[0].physical_row_id, "")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -99,7 +99,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         )
         self.assertEqual(program.expressions[0].formula, "((CURR - PREV) / PREV) * 100")
 
-    def test_program_prompt_excludes_parent_row_context_for_structured_cell(self) -> None:
+    def test_program_prompt_uses_bundle_local_text_instead_of_parent_context(self) -> None:
         candidate = {
             **_candidate("late-context", 10),
             "source_text": (
@@ -107,12 +107,22 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                 + "requested semantic context appears beside the source value "
                 + "unrelated suffix " * 40
             ),
+            "source_bundle_text": "quantity 10 items",
         }
-        row = FinancialAgent._semantic_program_prompt_rows([candidate])[0]
-        self.assertNotIn("requested semantic context", row["source_text"])
-        self.assertIn("quantity", row["source_text"])
-        self.assertIn("10", row["source_text"])
-        self.assertLessEqual(len(row["source_text"]), 420)
+        payload = FinancialAgent._semantic_program_prompt_payload(
+            [candidate],
+            {
+                "visible_candidate_ids": ["late-context"],
+                "candidate_match_by_id": {},
+                "cohorts": [],
+                "reservation": {},
+            },
+        )
+        row = payload["candidates_by_id"]["late-context"]
+        bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
+        self.assertNotIn("source_text", row)
+        self.assertNotIn("requested semantic context", bundle["source_text"])
+        self.assertEqual(bundle["source_text"], "quantity 10 items")
 
     def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:
         preserved = {
@@ -129,11 +139,28 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
+        preserved_assertion = {
+            "source_bundle_id": "srcb-valid",
+            "candidate_ids": ["cand-valid"],
+            "evidence_text": "reported value 10",
+        }
+        assertion_before = json.dumps(
+            preserved_assertion,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
         merged = _merge_targeted_program_retry(
             previous_validation={
                 "valid_direct_bindings": [preserved],
                 "valid_expressions": [],
                 "valid_narrative_bindings": [],
+                "valid_source_assertions": [
+                    {
+                        **preserved_assertion,
+                        "assertion_fingerprint": "validation-only",
+                        "covered_obligation_ids": ["ob_valid"],
+                    }
+                ],
             },
             retry_program={
                 "status": "ready",
@@ -153,6 +180,12 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             separators=(",", ":"),
         ).encode("utf-8")
         self.assertEqual(after, before)
+        assertion_after = json.dumps(
+            merged["source_assertions"][0],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(assertion_after, assertion_before)
 
     def test_source_defined_mode_is_explicit_in_schema_and_prompts(self) -> None:
         mode = AnswerObligation.model_json_schema()["properties"]["evidence_mode"]

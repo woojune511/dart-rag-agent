@@ -523,11 +523,12 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "질문을 lookup, ratio, growth_rate 같은 고정 타입으로 먼저 분류하지 마세요.\n"
             "각 answer obligation을 충족할 실제 candidate를 고르고, 파생값만 제한 수식으로 표현하세요.\n\n"
             "필수 규칙:\n"
-            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
+            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id나 source_bundles_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
             "- 같은 candidate가 보여도 다른 owner cohort의 ID를 가져다 쓰지 마세요. row_headers, local_entity_surfaces, physical provenance, match_by_owner의 subject·metric·unit factor를 함께 확인하세요.\n"
             "- evidence_bundle_constraints가 있으면 runtime이 owner별 cohort 순위로 미리 고른 단 하나의 물리적 행 option만 payload에 노출합니다. 각 constraint의 모든 owner는 그 option 안의 candidate_id만 사용하고, 숨겨진 다른 행이나 option을 만들거나 선택하지 마세요.\n"
             "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
-            "- candidate_kind가 sentence_value이면 source_text 문장에 그 숫자가 직접 기재된 후보입니다. 질문의 의미를 문장이 직접 설명하면 인접한 회계 행을 대용하지 말고 이 후보를 우선 검토하세요.\n"
+            "- 각 candidate는 source_bundle_id로 원문 묶음을 참조합니다. 같은 묶음의 값은 서로 경쟁하는 top-1 label이 아니라 함께 읽어야 하는 원문 사실들입니다. source_value_span과 source bundle의 당기·전기·부호·괄호 문맥을 함께 확인하세요.\n"
+            "- candidate_kind가 sentence_value인 숫자를 direct binding, expression input, source display로 선택하면 source_assertions에 source_bundle_id, 함께 읽은 candidate_ids, byte-exact 연속 evidence_text를 반드시 반환하세요. evidence_text는 해당 bundle 원문에서 그대로 복사하고 참조한 모든 값 span을 포함해야 합니다. 표 셀과 narrative evidence에는 source assertion을 만들지 마세요.\n"
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
             "- direct candidate의 범위 metadata가 unknown이지만 같은 원문·표의 narrative candidate가 그 범위를 명시하면 direct binding의 compatibility_candidate_ids에 넣으세요. 명시적으로 반대인 범위는 이렇게 덮어쓸 수 없습니다.\n"
             "- 계산에 필요한 원시 입력은 derived_value obligation의 evidence_requirements에 미리 선언되어 있어야 합니다. candidate_id 변수에는 그 입력의 source_requirement_id도 함께 바인딩하고, 앞서 생성된 obligation_id를 참조할 때는 비워 두세요.\n"
@@ -548,7 +549,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
             "원본 질문:\n{query}\n\n"
             "Answer obligations:\n{obligations}\n\n"
-            "Candidate cohorts and candidates_by_id:\n{candidate_catalog}\n\n"
+            "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
             "재시도 피드백(없으면 -):\n{retry_feedback}\n"
 ,
     'semantic_program_render_templates': {
@@ -572,28 +573,11 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "numeric_candidates": 96,
             "narrative_candidates": 32,
             "required_input_candidates_per_group": 4,
-            "numeric_candidates_per_owner": 4,
+            "numeric_source_bundles_per_owner": 2,
             "narrative_candidates_per_owner": 6,
             "compatibility_narrative_candidates_per_numeric_obligation": 2,
             "numeric_source_chars": 420,
             "narrative_source_chars": 600,
-        }
-,
-    'semantic_top_tier_tiebreaker': {
-            "enabled_by_default": False,
-            "model_name": "Alibaba-NLP/gte-multilingual-reranker-base",
-            "revision": "8215cf04918ba6f7b6a62bb44238ce2953d8831c",
-            "code_revision": "40ced75c3017eb27626c9d4ea981bde21a2662f4",
-            "score_transform": "sigmoid",
-            "max_length": 256,
-            "query_text_chars": 260,
-            "candidate_text_chars": 180,
-            "batch_size": 32,
-            "cache_size": 2048,
-            "max_candidates_per_cohort": 12,
-            "max_pairs_per_query": 64,
-            "min_score_margin": 0.05,
-            "trust_remote_code": True,
         }
 ,
 }

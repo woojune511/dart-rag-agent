@@ -8,22 +8,13 @@ import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_candidate_matching import (
-    CANDIDATE_MATCH_RANK_FACTORS,
     build_physical_evidence_bundle_constraints,
     build_candidate_matches,
-    candidate_cell_local_source_text,
     project_candidate_match,
+    project_candidate_fact,
     rank_candidate_matches,
-    resolve_owner_target,
     select_source_defined_physical_row_group,
     summarize_candidate_match_ranking,
-)
-from src.agent.financial_candidate_tiebreaker import (
-    SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
-    SemanticCandidateTieBreaker,
-    SemanticTieBreakBatchV1,
-    SemanticTieBreakPairV5,
-    semantic_tie_break_cohort_eligibility,
 )
 from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
@@ -47,6 +38,11 @@ from src.agent.financial_runtime_contracts import (
     CompilationEnvelopeV1,
     EvidenceBundleConstraintV1,
 )
+from src.agent.financial_source_bundles import (
+    build_semantic_source_bundles,
+    semantic_source_bundle_fingerprint,
+    source_bundle_id_by_candidate_id,
+)
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
 from src.agent.financial_task_artifacts import (
     calculation_plan_artifact_update,
@@ -59,9 +55,6 @@ from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 logger = logging.getLogger(__name__)
 
 MAX_SEMANTIC_COMPILATION_ISLANDS = 8
-_USE_AGENT_SEMANTIC_TIEBREAKER = object()
-
-
 def build_semantic_compilation_islands(
     obligations: Sequence[Mapping[str, Any]],
     *,
@@ -518,7 +511,6 @@ def _rank_applicable_owner_candidates(
     limit: int,
     parent_owner: Optional[Mapping[str, Any]] = None,
     excluded_candidate_ids: Sequence[str] = (),
-    top_tier_semantic_scores: Optional[Mapping[str, float]] = None,
 ) -> tuple[
     List[Dict[str, Any]],
     Dict[str, int],
@@ -546,14 +538,6 @@ def _rank_applicable_owner_candidates(
         parent_owner=parent_owner,
         base_applicability_by_id=base_applicability_by_id,
     )
-    selected = rank_candidate_matches(
-        catalog,
-        matches_by_id,
-        allowed_kinds=tuple(sorted(allowed_kinds)),
-        limit=limit,
-        excluded_candidate_ids=excluded_candidate_ids,
-        top_tier_semantic_scores=top_tier_semantic_scores,
-    )
     excluded = {
         str(candidate_id).strip()
         for candidate_id in excluded_candidate_ids
@@ -564,6 +548,89 @@ def _rank_applicable_owner_candidates(
         for item in catalog
         if str(item.get("candidate_id") or "")
     }
+    selected_bundle_ids: List[str] = []
+    if candidate_kind == "numeric":
+        bundles = build_semantic_source_bundles(catalog)
+        bundle_id_by_candidate = source_bundle_id_by_candidate_id(bundles)
+        order_by_bundle = {
+            bundle.source_bundle_id: {
+                candidate_id: index
+                for index, candidate_id in enumerate(bundle.candidate_ids)
+            }
+            for bundle in bundles
+        }
+        excluded_bundle_ids = {
+            bundle_id_by_candidate[candidate_id]
+            for candidate_id in excluded
+            if candidate_id in bundle_id_by_candidate
+        }
+        members_by_bundle: Dict[str, List[str]] = {}
+        for candidate_id, match in matches_by_id.items():
+            candidate = candidate_by_id.get(candidate_id, {})
+            if (
+                candidate_id in excluded
+                or match.state == "explicit_conflict"
+                or str(candidate.get("kind") or "") not in allowed_kinds
+                or candidate_id not in bundle_id_by_candidate
+                or bundle_id_by_candidate[candidate_id] in excluded_bundle_ids
+            ):
+                continue
+            members_by_bundle.setdefault(
+                bundle_id_by_candidate[candidate_id], []
+            ).append(candidate_id)
+        bundle_rank = {
+            bundle_id: max(
+                matches_by_id[candidate_id].rank_vector
+                for candidate_id in candidate_ids
+            )
+            for bundle_id, candidate_ids in members_by_bundle.items()
+        }
+        bundle_source_key = {
+            bundle_id: min(
+                (
+                    project_candidate_fact(candidate_by_id[candidate_id]).source_key,
+                    candidate_id,
+                )
+                for candidate_id in candidate_ids
+            )
+            for bundle_id, candidate_ids in members_by_bundle.items()
+        }
+        ranked_bundle_ids = sorted(
+            members_by_bundle,
+            key=lambda bundle_id: (
+                bundle_source_key[bundle_id],
+                bundle_id,
+            ),
+        )
+        ranked_bundle_ids.sort(
+            key=lambda bundle_id: bundle_rank[bundle_id],
+            reverse=True,
+        )
+        selected_bundle_ids = ranked_bundle_ids[: max(0, int(limit))]
+        selected_ids: List[str] = []
+        for bundle_id in selected_bundle_ids:
+            member_ids = list(members_by_bundle[bundle_id])
+            member_ids.sort(
+                key=lambda candidate_id: order_by_bundle.get(
+                    bundle_id, {}
+                ).get(candidate_id, 10**9)
+            )
+            member_ids.sort(
+                key=lambda candidate_id: matches_by_id[
+                    candidate_id
+                ].rank_vector,
+                reverse=True,
+            )
+            selected_ids.extend(member_ids)
+        selected = [candidate_by_id[candidate_id] for candidate_id in selected_ids]
+    else:
+        selected = rank_candidate_matches(
+            catalog,
+            matches_by_id,
+            allowed_kinds=tuple(sorted(allowed_kinds)),
+            limit=limit,
+            excluded_candidate_ids=excluded_candidate_ids,
+        )
     rows_by_state: Dict[str, List[str]] = {
         "compatible": [],
         "unknown_only": [],
@@ -591,6 +658,10 @@ def _rank_applicable_owner_candidates(
         {
             "population": "eligible_catalog",
             "source": "runtime_candidate_matching",
+            "selection_unit": (
+                "source_bundle" if candidate_kind == "numeric" else "candidate"
+            ),
+            "selected_source_bundle_ids": selected_bundle_ids,
         }
     )
     return (
@@ -610,8 +681,6 @@ def _semantic_candidate_cohorts(
     catalog: Sequence[Mapping[str, Any]],
     obligations: Sequence[Mapping[str, Any]],
     *,
-    query: str = "",
-    semantic_tiebreaker: Optional[SemanticCandidateTieBreaker] = None,
     target_obligation_ids: Sequence[str] = (),
     excluded_candidate_ids_by_owner: Optional[Mapping[str, Sequence[str]]] = None,
 ) -> Dict[str, Any]:
@@ -622,7 +691,7 @@ def _semantic_candidate_cohorts(
     global_narrative_limit = max(0, int(limits.get("narrative_candidates") or 32))
     numeric_owner_limit = max(
         0,
-        int(limits.get("numeric_candidates_per_owner") or 4),
+        int(limits.get("numeric_source_bundles_per_owner") or 2),
     )
     narrative_owner_limit = max(
         0,
@@ -634,21 +703,6 @@ def _semantic_candidate_cohorts(
             limits.get("compatibility_narrative_candidates_per_numeric_obligation")
             or 2
         ),
-    )
-    tie_break_policy = dict(
-        CALCULATION_PROMPT_POLICY.get("semantic_top_tier_tiebreaker") or {}
-    )
-    max_tie_candidates_per_cohort = max(
-        2,
-        int(tie_break_policy.get("max_candidates_per_cohort") or 12),
-    )
-    max_tie_pairs_per_query = max(
-        max_tie_candidates_per_cohort,
-        int(tie_break_policy.get("max_pairs_per_query") or 64),
-    )
-    min_semantic_score_margin = max(
-        0.0,
-        float(tie_break_policy.get("min_score_margin") or 0.0),
     )
     targets = {
         str(item).strip()
@@ -741,10 +795,10 @@ def _semantic_candidate_cohorts(
                 }
             )
 
-    numeric_reservation = sum(
+    numeric_bundle_reservation = sum(
         int(item["limit"])
         for item in specifications
-        if item["candidate_kind"] in {"numeric", "evidence"}
+        if item["candidate_kind"] == "numeric"
     )
     narrative_reservation = sum(
         int(item["limit"])
@@ -752,15 +806,13 @@ def _semantic_candidate_cohorts(
         if item["candidate_kind"] in {"narrative", "evidence"}
     )
     reservation = {
-        "numeric": numeric_reservation,
-        "narrative": narrative_reservation,
+        "numeric": 0,
+        "narrative": 0,
+        "numeric_source_bundles": numeric_bundle_reservation,
         "numeric_limit": global_numeric_limit,
         "narrative_limit": global_narrative_limit,
     }
-    if (
-        numeric_reservation > global_numeric_limit
-        or narrative_reservation > global_narrative_limit
-    ):
+    if narrative_reservation > global_narrative_limit:
         return {
             "schema": "semantic_candidate_cohorts_v2",
             "status": "capacity_exceeded",
@@ -778,11 +830,9 @@ def _semantic_candidate_cohorts(
         for item in catalog
         if str(item.get("candidate_id") or "")
     }
-    preliminary_rankings: List[Dict[str, Any]] = []
-    tie_break_pairs: List[SemanticTieBreakPairV5] = []
-    skipped_tie_cohort_ids: List[str] = []
-    ineligible_tie_cohort_reasons: Dict[str, str] = {}
-    eligible_tie_pair_count = 0
+    cohorts: List[Dict[str, Any]] = []
+    match_by_id: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    visible_ids: List[str] = []
     for specification in specifications:
         owner_id = str(specification["owner_id"])
         selected, counts, owner_matches, ranking_diagnostics = (
@@ -795,244 +845,6 @@ def _semantic_candidate_cohorts(
                 excluded_candidate_ids=excluded_by_owner.get(owner_id, []),
             )
         )
-        preliminary_rankings.append(
-            {
-                "specification": specification,
-                "selected": selected,
-                "counts": counts,
-                "owner_matches": owner_matches,
-                "ranking_diagnostics": ranking_diagnostics,
-            }
-        )
-        top_vector = tuple(ranking_diagnostics.get("top_rank_vector") or [])
-        if (
-            len(top_vector) != len(CANDIDATE_MATCH_RANK_FACTORS)
-            or int(ranking_diagnostics.get("top_tier_candidate_count") or 0)
-            < 2
-        ):
-            continue
-        top_tier_candidate_count = int(
-            ranking_diagnostics.get("top_tier_candidate_count") or 0
-        )
-        tie_eligible, tie_eligibility_reason = (
-            semantic_tie_break_cohort_eligibility(
-                candidate_kind=str(specification["candidate_kind"]),
-                owner=specification["owner"],
-                parent_owner=specification.get("parent_owner"),
-            )
-        )
-        preliminary_rankings[-1]["tie_eligible"] = tie_eligible
-        preliminary_rankings[-1]["tie_eligibility_reason"] = (
-            tie_eligibility_reason
-        )
-        if not tie_eligible:
-            ineligible_tie_cohort_reasons[
-                str(specification["cohort_id"])
-            ] = tie_eligibility_reason
-            continue
-        eligible_tie_pair_count += top_tier_candidate_count
-        if top_tier_candidate_count > max_tie_candidates_per_cohort:
-            skipped_tie_cohort_ids.append(str(specification["cohort_id"]))
-            continue
-        excluded = {
-            str(candidate_id)
-            for candidate_id in excluded_by_owner.get(owner_id, [])
-            if str(candidate_id)
-        }
-        resolved_target = resolve_owner_target(
-            specification["owner"],
-            parent_owner=specification.get("parent_owner"),
-        )
-        target_projection = {
-            "local_subjects": list(resolved_target.local_subjects),
-            "concept_keys": list(resolved_target.concept_keys),
-            "metric_surfaces": list(resolved_target.metric_surfaces),
-            "expected_unit_family": resolved_target.expected_unit_family,
-        }
-        for candidate_id in sorted(owner_matches):
-            match = dict(owner_matches.get(candidate_id) or {})
-            candidate = candidate_by_id.get(candidate_id)
-            if (
-                not candidate
-                or candidate_id in excluded
-                or str(match.get("state") or "") == "explicit_conflict"
-                or tuple(match.get("rank_vector") or []) != top_vector
-            ):
-                continue
-            tie_break_pairs.append(
-                SemanticTieBreakPairV5.create(
-                    cohort_id=str(specification["cohort_id"]),
-                    owner_id=owner_id,
-                    candidate_id=candidate_id,
-                    query=query,
-                    owner=specification["owner"],
-                    parent_owner=specification.get("parent_owner"),
-                    resolved_target=target_projection,
-                    candidate=candidate,
-                    candidate_text=candidate_cell_local_source_text(candidate),
-                    query_text_limit=int(
-                        tie_break_policy.get("query_text_chars") or 320
-                    ),
-                    candidate_text_limit=int(
-                        tie_break_policy.get("candidate_text_chars") or 240
-                    ),
-                )
-            )
-
-    query_pair_capacity_exceeded = (
-        len(tie_break_pairs) > max_tie_pairs_per_query
-    )
-    if query_pair_capacity_exceeded:
-        tie_break_batch = SemanticTieBreakBatchV1(
-            status="skipped_capacity",
-            scorer_id="",
-            requested_pair_count=len(tie_break_pairs),
-        )
-    elif not tie_break_pairs:
-        tie_break_batch = SemanticTieBreakBatchV1(
-            status=(
-                "skipped_capacity"
-                if skipped_tie_cohort_ids
-                else "not_needed"
-            ),
-            scorer_id="",
-        )
-    elif semantic_tiebreaker is None:
-        tie_break_batch = SemanticTieBreakBatchV1(
-            status="disabled",
-            scorer_id="",
-            requested_pair_count=len(tie_break_pairs),
-        )
-    else:
-        try:
-            tie_break_batch = semantic_tiebreaker.score_pairs(tie_break_pairs)
-        except Exception as exc:
-            tie_break_batch = SemanticTieBreakBatchV1(
-                status="unavailable",
-                scorer_id=type(semantic_tiebreaker).__name__,
-                requested_pair_count=len(tie_break_pairs),
-                unique_inference_pair_count=len(
-                    {pair.pair_fingerprint for pair in tie_break_pairs}
-                ),
-                error_code=type(exc).__name__,
-            )
-        expected_score_keys = {
-            (pair.cohort_id, pair.candidate_id) for pair in tie_break_pairs
-        }
-        observed_score_keys = {
-            (score.cohort_id, score.candidate_id)
-            for score in tie_break_batch.scores
-        }
-        if (
-            tie_break_batch.status == "applied"
-            and observed_score_keys != expected_score_keys
-        ):
-            tie_break_batch = SemanticTieBreakBatchV1(
-                status="unavailable",
-                scorer_id=tie_break_batch.scorer_id,
-                requested_pair_count=len(tie_break_pairs),
-                unique_inference_pair_count=(
-                    tie_break_batch.unique_inference_pair_count
-                ),
-                cache_hit_count=tie_break_batch.cache_hit_count,
-                error_code="incomplete_score_batch",
-                score_transform=tie_break_batch.score_transform,
-            )
-    scored_by_cohort = (
-        tie_break_batch.scores_by_cohort()
-        if tie_break_batch.status == "applied"
-        else {}
-    )
-
-    cohorts: List[Dict[str, Any]] = []
-    match_by_id: Dict[str, Dict[str, Dict[str, Any]]] = {}
-    visible_ids: List[str] = []
-    for preliminary in preliminary_rankings:
-        specification = dict(preliminary["specification"])
-        cohort_id = str(specification["cohort_id"])
-        owner_id = str(specification["owner_id"])
-        scored_candidates = scored_by_cohort.get(cohort_id, {})
-        ordered_scored_ids = sorted(
-            scored_candidates,
-            key=lambda candidate_id: (
-                -scored_candidates[candidate_id],
-                candidate_id,
-            ),
-        )
-        score_margin = (
-            scored_candidates[ordered_scored_ids[0]]
-            - scored_candidates[ordered_scored_ids[1]]
-            if len(ordered_scored_ids) >= 2
-            else 0.0
-        )
-        semantic_scores = (
-            scored_candidates
-            if len(ordered_scored_ids) >= 2
-            and score_margin >= min_semantic_score_margin
-            else {}
-        )
-        if semantic_scores:
-            selected, counts, owner_matches, ranking_diagnostics = (
-                _rank_applicable_owner_candidates(
-                    catalog,
-                    owner=specification["owner"],
-                    parent_owner=specification.get("parent_owner"),
-                    candidate_kind=str(specification["candidate_kind"]),
-                    limit=int(specification["limit"]),
-                    excluded_candidate_ids=excluded_by_owner.get(owner_id, []),
-                    top_tier_semantic_scores=semantic_scores,
-                )
-            )
-        else:
-            selected = list(preliminary["selected"])
-            counts = dict(preliminary["counts"])
-            owner_matches = dict(preliminary["owner_matches"])
-            ranking_diagnostics = dict(
-                preliminary["ranking_diagnostics"]
-            )
-        top_tier_count = int(
-            ranking_diagnostics.get("top_tier_candidate_count") or 0
-        )
-        tie_eligible = bool(preliminary.get("tie_eligible", True))
-        tie_eligibility_reason = str(
-            preliminary.get("tie_eligibility_reason") or ""
-        )
-        ranking_diagnostics["semantic_tiebreaker"] = {
-            "schema": "semantic_top_tier_tiebreak_v1",
-            "status": (
-                "applied"
-                if semantic_scores
-                else "not_applicable"
-                if top_tier_count >= 2 and not tie_eligible
-                else "abstained_low_margin"
-                if scored_candidates
-                else "skipped_capacity"
-                if cohort_id in skipped_tie_cohort_ids
-                or query_pair_capacity_exceeded
-                else tie_break_batch.status
-                if top_tier_count >= 2
-                else "not_needed"
-            ),
-            "scorer_id": (
-                tie_break_batch.scorer_id
-                if top_tier_count >= 2 and tie_eligible
-                else ""
-            ),
-            "score_transform": (
-                tie_break_batch.score_transform
-                if top_tier_count >= 2 and tie_eligible
-                else ""
-            ),
-            "candidate_count": len(ordered_scored_ids),
-            "ordered_candidate_ids": ordered_scored_ids,
-            "scores": {
-                candidate_id: scored_candidates[candidate_id]
-                for candidate_id in ordered_scored_ids
-            },
-            "top_score_margin": round(score_margin, 8),
-            "min_score_margin": min_semantic_score_margin,
-            "eligibility_reason": tie_eligibility_reason,
-        }
         candidate_ids = [
             str(item.get("candidate_id") or "")
             for item in selected
@@ -1200,6 +1012,35 @@ def _semantic_candidate_cohorts(
         constraints=evidence_bundle_constraints,
     )
 
+    projected_visible_ids = list(atomic_projection["visible_candidate_ids"])
+    numeric_count = sum(
+        str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
+        == "numeric"
+        for candidate_id in projected_visible_ids
+    )
+    narrative_count = sum(
+        str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
+        == "narrative"
+        for candidate_id in projected_visible_ids
+    )
+    reservation = {
+        **reservation,
+        "numeric": numeric_count,
+        "narrative": narrative_count,
+    }
+    if numeric_count > global_numeric_limit or narrative_count > global_narrative_limit:
+        return {
+            "schema": "semantic_candidate_cohorts_v2",
+            "status": "capacity_exceeded",
+            "reservation": reservation,
+            "cohorts": [],
+            "candidate_ids_by_owner": {},
+            "visible_candidate_ids": [],
+            "candidate_match_by_id": match_by_id,
+            "evidence_bundle_constraints": [],
+            "evidence_bundle_option_selections": [],
+        }
+
     return {
         "schema": "semantic_candidate_cohorts_v2",
         "status": "ok",
@@ -1208,7 +1049,7 @@ def _semantic_candidate_cohorts(
         "candidate_ids_by_owner": atomic_projection[
             "candidate_ids_by_owner"
         ],
-        "visible_candidate_ids": atomic_projection["visible_candidate_ids"],
+        "visible_candidate_ids": projected_visible_ids,
         "candidate_match_by_id": match_by_id,
         "evidence_bundle_constraints": atomic_projection[
             "evidence_bundle_constraints"
@@ -1216,28 +1057,6 @@ def _semantic_candidate_cohorts(
         "evidence_bundle_option_selections": atomic_projection[
             "evidence_bundle_option_selections"
         ],
-        "semantic_tiebreaker": {
-            **tie_break_batch.to_projection(),
-            "pair_schema": SEMANTIC_TIE_BREAK_PAIR_SCHEMA,
-            "evidence_locator_counts": {
-                locator: sum(
-                    pair.evidence_locator == locator
-                    for pair in tie_break_pairs
-                )
-                for locator in sorted(
-                    {pair.evidence_locator for pair in tie_break_pairs}
-                )
-            },
-            "eligible_pair_count": eligible_tie_pair_count,
-            "max_candidates_per_cohort": max_tie_candidates_per_cohort,
-            "max_pairs_per_query": max_tie_pairs_per_query,
-            "min_score_margin": min_semantic_score_margin,
-            "skipped_cohort_ids": sorted(skipped_tie_cohort_ids),
-            "ineligible_cohort_reasons": {
-                cohort_id: ineligible_tie_cohort_reasons[cohort_id]
-                for cohort_id in sorted(ineligible_tie_cohort_reasons)
-            },
-        },
     }
 
 
@@ -1312,6 +1131,37 @@ def _merge_targeted_program_retry(
         ]
         return [*preserved, *replacements]
 
+    source_assertions: List[Dict[str, Any]] = []
+    for raw_assertion in previous_validation.get("valid_source_assertions") or []:
+        assertion = dict(raw_assertion or {})
+        covered_ids = {
+            str(item)
+            for item in (assertion.pop("covered_obligation_ids", []) or [])
+            if str(item)
+        }
+        assertion.pop("assertion_fingerprint", None)
+        if covered_ids and covered_ids.issubset(targets):
+            continue
+        source_assertions.append(assertion)
+    source_assertions.extend(
+        dict(item)
+        for item in retry_program.get("source_assertions") or []
+        if isinstance(item, Mapping)
+    )
+    deduplicated_assertions: List[Dict[str, Any]] = []
+    seen_assertions: set[str] = set()
+    for assertion in source_assertions:
+        serialized = json.dumps(
+            assertion,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        if serialized in seen_assertions:
+            continue
+        seen_assertions.add(serialized)
+        deduplicated_assertions.append(assertion)
+
     return {
         "status": str(retry_program.get("status") or "incomplete"),
         "direct_bindings": merged_rows(
@@ -1321,6 +1171,7 @@ def _merge_targeted_program_retry(
         "narrative_bindings": merged_rows(
             "valid_narrative_bindings", "narrative_bindings"
         ),
+        "source_assertions": deduplicated_assertions,
         "missing_obligation_ids": [
             str(item)
             for item in retry_program.get("missing_obligation_ids") or []
@@ -1613,8 +1464,11 @@ class FinancialAgentCalculationMixin:
         candidate_match_by_id: Optional[
             Mapping[str, Mapping[str, Mapping[str, Any]]]
         ] = None,
+        source_bundle_id_by_candidate: Optional[Mapping[str, str]] = None,
+        source_value_span_by_candidate: Optional[
+            Mapping[str, Sequence[int]]
+        ] = None,
     ) -> List[Dict[str, Any]]:
-        limits = dict(CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_limits") or {})
         prompt_rows = [
             {
                 "candidate_id": str(item.get("candidate_id") or ""),
@@ -1656,6 +1510,18 @@ class FinancialAgentCalculationMixin:
                 "context_fingerprint": str(item.get("context_fingerprint") or ""),
                 "source_anchor": str(item.get("source_anchor") or ""),
                 "candidate_kind": str(item.get("candidate_kind") or ""),
+                "source_bundle_id": str(
+                    (source_bundle_id_by_candidate or {}).get(
+                        str(item.get("candidate_id") or ""),
+                        "",
+                    )
+                ),
+                "source_value_span": list(
+                    (source_value_span_by_candidate or {}).get(
+                        str(item.get("candidate_id") or ""),
+                        [],
+                    )
+                ),
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
                 "match_by_owner": {
@@ -1667,32 +1533,6 @@ class FinancialAgentCalculationMixin:
                         )
                     ).items()
                 },
-                "source_text": _bounded_relevance_excerpt(
-                    candidate_cell_local_source_text(item),
-                    [
-                        str(item.get("row_label") or ""),
-                        str(item.get("raw_value") or ""),
-                        *[
-                            str(value)
-                            for value in (item.get("local_entity_surfaces") or [])
-                        ],
-                    ],
-                    limit=max(
-                        0,
-                        int(
-                            limits.get(
-                                "numeric_source_chars"
-                                if str(item.get("kind") or "") == "numeric"
-                                else "narrative_source_chars"
-                            )
-                            or (
-                                280
-                                if str(item.get("kind") or "") == "numeric"
-                                else 600
-                            )
-                        ),
-                    ),
-                ),
             }
             for item in catalog
         ]
@@ -1722,11 +1562,23 @@ class FinancialAgentCalculationMixin:
             for item in catalog
             if str(item.get("candidate_id") or "") in visible_set
         ]
+        source_bundles = build_semantic_source_bundles(
+            visible_catalog,
+            candidate_ids=visible_ids,
+        )
+        bundle_id_by_candidate = source_bundle_id_by_candidate_id(source_bundles)
+        value_span_by_candidate = {
+            candidate_id: span
+            for bundle in source_bundles
+            for candidate_id, span in bundle.value_span_by_candidate_id().items()
+        }
         prompt_rows = FinancialAgentCalculationMixin._semantic_program_prompt_rows(
             visible_catalog,
             candidate_match_by_id=dict(
                 cohort_plan.get("candidate_match_by_id") or {}
             ),
+            source_bundle_id_by_candidate=bundle_id_by_candidate,
+            source_value_span_by_candidate=value_span_by_candidate,
         )
         row_by_id = {
             str(item.get("candidate_id") or ""): item
@@ -1734,8 +1586,15 @@ class FinancialAgentCalculationMixin:
             if str(item.get("candidate_id") or "")
         }
         return {
-            "schema": "semantic_program_candidate_payload_v4",
+            "schema": "semantic_program_candidate_payload_v5",
             "reservation": dict(cohort_plan.get("reservation") or {}),
+            "source_bundle_fingerprint": semantic_source_bundle_fingerprint(
+                source_bundles
+            ),
+            "source_bundles_by_id": {
+                bundle.source_bundle_id: bundle.to_projection()
+                for bundle in source_bundles
+            },
             "cohorts": [
                 _semantic_program_prompt_cohort(item)
                 for item in (cohort_plan.get("cohorts") or [])
@@ -1826,8 +1685,6 @@ class FinancialAgentCalculationMixin:
     def _compile_semantic_calculation_island(
         self,
         state: FinancialAgentState,
-        *,
-        semantic_tiebreaker: Any = _USE_AGENT_SEMANTIC_TIEBREAKER,
     ) -> Dict[str, Any]:
         """Compile one preflighted dependency/coupling island."""
 
@@ -1841,12 +1698,6 @@ class FinancialAgentCalculationMixin:
             if isinstance(item, dict)
         ]
         query = str(state.get("query") or "")
-        if semantic_tiebreaker is _USE_AGENT_SEMANTIC_TIEBREAKER:
-            semantic_tiebreaker = getattr(
-                self,
-                "semantic_candidate_tiebreaker",
-                None,
-            )
         catalog_prebuilt = bool(
             state.get("semantic_candidate_catalog_prebuilt")
         )
@@ -1874,8 +1725,6 @@ class FinancialAgentCalculationMixin:
         cohort_plan = _semantic_candidate_cohorts(
             catalog,
             obligations,
-            query=query,
-            semantic_tiebreaker=semantic_tiebreaker,
         )
         prompt_payload = self._semantic_program_prompt_payload(catalog, cohort_plan)
         prompt_catalog_json = json.dumps(
@@ -1928,6 +1777,7 @@ class FinancialAgentCalculationMixin:
             "direct_bindings": [],
             "expressions": [],
             "narrative_bindings": [],
+            "source_assertions": [],
             "missing_obligation_ids": required_ids,
             "ambiguous_obligation_ids": [],
             "rationale": (
@@ -1935,6 +1785,8 @@ class FinancialAgentCalculationMixin:
                 if not obligations
                 else "candidate cohort capacity exceeded"
                 if cohort_plan.get("status") == "capacity_exceeded"
+                else "no visible candidates"
+                if obligations and not prompt_candidate_ids
                 else ""
             ),
         }
@@ -1952,7 +1804,11 @@ class FinancialAgentCalculationMixin:
         catalog_candidate_ids = set(candidate_by_id)
         if cohort_plan.get("status") == "capacity_exceeded":
             invocation_errors.append("semantic candidate cohort capacity exceeded")
-        if obligations and cohort_plan.get("status") == "ok":
+        if (
+            obligations
+            and cohort_plan.get("status") == "ok"
+            and prompt_candidate_ids
+        ):
             structured_llm = self._llm_for_phase("program_compilation").with_structured_output(
                 semantic_calculation_program_model()
             )
@@ -2021,6 +1877,7 @@ class FinancialAgentCalculationMixin:
                         "direct_bindings": [],
                         "expressions": [],
                         "narrative_bindings": [],
+                        "source_assertions": [],
                         "missing_obligation_ids": (
                             retry_target_ids if attempt else required_ids
                         ),
@@ -2107,9 +1964,12 @@ class FinancialAgentCalculationMixin:
                             )
                             or []
                         ),
-                        "semantic_tiebreaker": dict(
-                            active_cohort_plan.get("semantic_tiebreaker")
-                            or {}
+                        "source_bundle_ids": list(
+                            dict(active_prompt_payload.get("source_bundles_by_id") or {})
+                        ),
+                        "source_bundle_fingerprint": str(
+                            active_prompt_payload.get("source_bundle_fingerprint")
+                            or ""
                         ),
                     }
                 )
@@ -2148,8 +2008,6 @@ class FinancialAgentCalculationMixin:
                 active_cohort_plan = _semantic_candidate_cohorts(
                     catalog,
                     obligations,
-                    query=query,
-                    semantic_tiebreaker=semantic_tiebreaker,
                     target_obligation_ids=retry_target_ids,
                     excluded_candidate_ids_by_owner=retry_exclusions,
                 )
@@ -2262,6 +2120,12 @@ class FinancialAgentCalculationMixin:
                                 "Bind every required evidence requirement exactly once; "
                                 "do not invent candidate, obligation, or requirement IDs."
                             ),
+                            "source_assertion_invariant": (
+                                "For every selected prose numeric source, bind the visible "
+                                "candidate ID to its source bundle and copy one byte-exact "
+                                "continuous evidence substring covering every referenced "
+                                "value span."
+                            ),
                         },
                         "instruction": "Only emit repairs for the listed obligations.",
                     },
@@ -2296,11 +2160,30 @@ class FinancialAgentCalculationMixin:
                 cohorts=list(cohort_plan.get("cohorts") or []),
                 attempts=attempt_candidate_diagnostics,
             ),
-            "schema": "semantic_candidate_stage_diagnostics_v8",
+            "schema": "semantic_candidate_stage_diagnostics_v9",
             "evidence_bundle_constraints": active_bundle_constraints,
             "evidence_bundle_option_selections": active_bundle_selections,
-            "semantic_tiebreaker": dict(
-                cohort_plan.get("semantic_tiebreaker") or {}
+            "source_bundle_count": len(
+                dict(prompt_payload.get("source_bundles_by_id") or {})
+            ),
+            "source_bundle_member_count": sum(
+                len(dict(bundle).get("candidate_ids") or [])
+                for bundle in dict(
+                    prompt_payload.get("source_bundles_by_id") or {}
+                ).values()
+                if isinstance(bundle, Mapping)
+            ),
+            "source_bundle_fingerprint": str(
+                prompt_payload.get("source_bundle_fingerprint") or ""
+            ),
+            "source_assertion_coverage_count": len(
+                validation.get("valid_source_assertions") or []
+            ),
+            "source_assertion_error_count": sum(
+                "source_assertion" in str(error.get("code") or "")
+                or str(error.get("code") or "") == "unknown_source_bundle"
+                for error in (validation.get("errors") or [])
+                if isinstance(error, Mapping)
             ),
         }
 
@@ -2360,7 +2243,7 @@ class FinancialAgentCalculationMixin:
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_catalog_rows),
             "prompt_candidate_ids": prompt_candidate_ids,
-            "prompt_candidate_strategy": "atomic_evidence_bundle_option_v1",
+            "prompt_candidate_strategy": "source_bundle_compilation_v1",
             "prompt_candidate_payload_bytes": len(
                 prompt_catalog_json.encode("utf-8")
             ),
@@ -2371,7 +2254,7 @@ class FinancialAgentCalculationMixin:
             "candidate_cohorts": list(cohort_plan.get("cohorts") or []),
             "evidence_bundle_constraints": active_bundle_constraints,
             "evidence_bundle_option_selections": active_bundle_selections,
-            "prompt_excerpt_strategy": "cell_local_fact_projection_v1",
+            "prompt_excerpt_strategy": "source_bundle_exact_span_v1",
             "candidate_stage_diagnostics": candidate_stage_diagnostics,
             "proposed_candidates": proposed_candidates,
             "selected_candidates": selected_candidates,
@@ -2390,12 +2273,12 @@ class FinancialAgentCalculationMixin:
                 "candidate_catalog_fingerprint": calculation_plan["candidate_catalog_fingerprint"],
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_catalog_rows),
-                "prompt_candidate_strategy": "atomic_evidence_bundle_option_v1",
+                "prompt_candidate_strategy": "source_bundle_compilation_v1",
                 "prompt_candidate_payload_bytes": len(
                     prompt_catalog_json.encode("utf-8")
                 ),
                 "candidate_cohort_status": str(cohort_plan.get("status") or ""),
-                "prompt_excerpt_strategy": "cell_local_fact_projection_v1",
+                "prompt_excerpt_strategy": "source_bundle_exact_span_v1",
                 "candidate_stage_diagnostics": candidate_stage_diagnostics,
                 "selected_candidate_ids": selected_candidate_ids,
                 "semantic_status": str(validation.get("status") or ""),
@@ -2431,7 +2314,8 @@ class FinancialAgentCalculationMixin:
             "missing_info": list(validation.get("missing_obligation_ids") or []),
             "planner_debug_trace": {
                 **dict(state.get("planner_debug_trace") or {}),
-                "program_compiler_invoked": bool(obligations),
+                "program_compiler_invoked": bool(validation_history),
+                "program_compiler_call_count": len(validation_history),
                 "program_compiler_retry_count": retry_count,
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_catalog_rows),
@@ -2503,12 +2387,6 @@ class FinancialAgentCalculationMixin:
         global_cohort_plan = _semantic_candidate_cohorts(
             catalog,
             obligations,
-            query=query,
-            semantic_tiebreaker=getattr(
-                self,
-                "semantic_candidate_tiebreaker",
-                None,
-            ),
         )
         island_plan = build_semantic_compilation_islands(
             obligations,
@@ -2522,18 +2400,6 @@ class FinancialAgentCalculationMixin:
             global_block_reason = "semantic compilation island limit exceeded"
         elif global_cohort_plan.get("status") == "capacity_exceeded":
             global_block_reason = "semantic candidate cohort capacity exceeded"
-        global_tie_break_status = str(
-            dict(global_cohort_plan.get("semantic_tiebreaker") or {}).get(
-                "status"
-            )
-            or ""
-        )
-        island_semantic_tiebreaker = (
-            getattr(self, "semantic_candidate_tiebreaker", None)
-            if not global_block_reason and global_tie_break_status == "applied"
-            else None
-        )
-
         obligation_by_id = {
             str(item.get("obligation_id") or ""): item
             for item in obligations
@@ -2560,8 +2426,6 @@ class FinancialAgentCalculationMixin:
                 island_cohorts = _semantic_candidate_cohorts(
                     catalog,
                     island_obligations,
-                    query=query,
-                    semantic_tiebreaker=island_semantic_tiebreaker,
                 )
                 visibility = _semantic_candidate_visibility(
                     catalog,
@@ -2580,6 +2444,7 @@ class FinancialAgentCalculationMixin:
                     "direct_bindings": [],
                     "expressions": [],
                     "narrative_bindings": [],
+                    "source_assertions": [],
                     "missing_obligation_ids": island_ids,
                     "ambiguous_obligation_ids": [],
                     "rationale": blocked_reason,
@@ -2622,7 +2487,6 @@ class FinancialAgentCalculationMixin:
                     "tasks": [],
                     "artifacts": [],
                 },
-                semantic_tiebreaker=island_semantic_tiebreaker,
             )
             runtime_trace = resolve_runtime_calculation_trace(
                 compiled,
@@ -2673,6 +2537,21 @@ class FinancialAgentCalculationMixin:
                         valid_ids_by_program_key.items()
                     )
                 },
+                "source_assertions": [
+                    {
+                        key: value
+                        for key, value in dict(assertion).items()
+                        if key
+                        not in {
+                            "assertion_fingerprint",
+                            "covered_obligation_ids",
+                        }
+                    }
+                    for assertion in (
+                        island_validation.get("valid_source_assertions") or []
+                    )
+                    if isinstance(assertion, Mapping)
+                ],
                 "missing_obligation_ids": list(
                     island_validation.get("missing_obligation_ids") or []
                 ),
@@ -2680,7 +2559,12 @@ class FinancialAgentCalculationMixin:
                     island_validation.get("ambiguous_obligation_ids") or []
                 ),
             }
-            call_count = 1 + retry_count if island_obligations else 0
+            call_count = int(
+                dict(compiled.get("planner_debug_trace") or {}).get(
+                    "program_compiler_call_count"
+                )
+                or 0
+            )
             total_retry_count += retry_count
             total_call_count += call_count
             island_invocation_errors = list(
@@ -2773,6 +2657,25 @@ class FinancialAgentCalculationMixin:
         )
         missing_ids.sort(key=lambda item: order.get(item, len(order)))
         ambiguous_ids.sort(key=lambda item: order.get(item, len(order)))
+        merged_source_assertions: List[Dict[str, Any]] = []
+        seen_source_assertions: set[str] = set()
+        for result in island_results:
+            for raw_assertion in (
+                dict(result.get("program") or {}).get("source_assertions") or []
+            ):
+                if not isinstance(raw_assertion, Mapping):
+                    continue
+                assertion = dict(raw_assertion)
+                serialized = json.dumps(
+                    assertion,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                if serialized in seen_source_assertions:
+                    continue
+                seen_source_assertions.add(serialized)
+                merged_source_assertions.append(assertion)
         merged_program: Dict[str, Any] = {
             "status": (
                 "ready"
@@ -2784,6 +2687,7 @@ class FinancialAgentCalculationMixin:
             "narrative_bindings": merged_program_rows(
                 "narrative_bindings"
             ),
+            "source_assertions": merged_source_assertions,
             "missing_obligation_ids": missing_ids,
             "ambiguous_obligation_ids": ambiguous_ids,
             "rationale": " | ".join(
@@ -2904,6 +2808,10 @@ class FinancialAgentCalculationMixin:
             cohorts=list(global_cohort_plan.get("cohorts") or []),
             attempts=[],
         )
+        prompt_source_bundles = build_semantic_source_bundles(
+            prompt_catalog_rows,
+            candidate_ids=prompt_visible_ids,
+        )
         island_diagnostics = []
         for result in island_results:
             island = dict(result.get("island") or {})
@@ -2950,12 +2858,25 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v8",
+            "schema": "semantic_candidate_stage_diagnostics_v9",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
-            "semantic_tiebreaker": dict(
-                global_cohort_plan.get("semantic_tiebreaker") or {}
+            "source_bundle_count": len(prompt_source_bundles),
+            "source_bundle_member_count": sum(
+                len(bundle.candidate_ids) for bundle in prompt_source_bundles
+            ),
+            "source_bundle_fingerprint": semantic_source_bundle_fingerprint(
+                prompt_source_bundles
+            ),
+            "source_assertion_coverage_count": len(
+                validation.get("valid_source_assertions") or []
+            ),
+            "source_assertion_error_count": sum(
+                "source_assertion" in str(error.get("code") or "")
+                or str(error.get("code") or "") == "unknown_source_bundle"
+                for error in (validation.get("errors") or [])
+                if isinstance(error, Mapping)
             ),
             "evidence_bundle_constraints": merged_bundle_constraints,
             "evidence_bundle_option_selections": final_bundle_selections,
@@ -3010,7 +2931,7 @@ class FinancialAgentCalculationMixin:
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_visible_ids),
             "prompt_candidate_ids": prompt_visible_ids,
-            "prompt_candidate_strategy": "compilation_islands_v2",
+            "prompt_candidate_strategy": "source_bundle_compilation_islands_v1",
             "prompt_candidate_payload_bytes": sum(
                 int(result.get("prompt_bytes") or 0)
                 for result in island_results
@@ -3099,7 +3020,7 @@ class FinancialAgentCalculationMixin:
                     "prompt_candidate_payload_bytes"
                 ],
                 "candidate_stage_diagnostics_schema": (
-                    "semantic_candidate_stage_diagnostics_v8"
+                    "semantic_candidate_stage_diagnostics_v9"
                 ),
                 "selected_candidate_count": len(selected_candidate_ids),
                 "program_validation_status": str(

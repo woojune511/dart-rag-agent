@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import math
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -32,6 +34,10 @@ from src.agent.financial_runtime_contracts import (
 )
 from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
+)
+from src.agent.financial_source_bundles import (
+    build_semantic_source_bundles,
+    source_bundle_id_by_candidate_id,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
@@ -2241,6 +2247,187 @@ def validate_semantic_calculation_program(
         ]
         produced.difference_update(invalid_coupled)
 
+    source_bundles = build_semantic_source_bundles(candidate_rows)
+    source_bundle_by_id = {
+        bundle.source_bundle_id: bundle for bundle in source_bundles
+    }
+    source_bundle_id_by_candidate = source_bundle_id_by_candidate_id(
+        source_bundles
+    )
+    selected_obligations_by_candidate: Dict[str, List[str]] = {}
+    required_assertion_ids_by_obligation: Dict[str, List[str]] = {}
+    for obligation_id in produced:
+        for candidate_id in sources_by_output.get(obligation_id, []):
+            candidate = candidate_by_id.get(candidate_id)
+            if not candidate or str(candidate.get("kind") or "") != "numeric":
+                continue
+            selected_obligations_by_candidate.setdefault(candidate_id, [])
+            if obligation_id not in selected_obligations_by_candidate[candidate_id]:
+                selected_obligations_by_candidate[candidate_id].append(obligation_id)
+            source_bundle = source_bundle_by_id.get(
+                source_bundle_id_by_candidate.get(candidate_id, "")
+            )
+            if (
+                str(candidate.get("candidate_kind") or "") == "sentence_value"
+                and source_bundle is not None
+                and source_bundle.source_kind == "prose_sentence"
+            ):
+                required_assertion_ids_by_obligation.setdefault(
+                    obligation_id, []
+                )
+                if candidate_id not in required_assertion_ids_by_obligation[
+                    obligation_id
+                ]:
+                    required_assertion_ids_by_obligation[obligation_id].append(
+                        candidate_id
+                    )
+
+    valid_source_assertions: List[Dict[str, Any]] = []
+    asserted_candidate_ids: set[str] = set()
+    invalid_assertion_obligation_ids: set[str] = set()
+    for raw_assertion in program.get("source_assertions") or []:
+        assertion = dict(raw_assertion or {})
+        source_bundle_id = str(
+            assertion.get("source_bundle_id") or ""
+        ).strip()
+        candidate_ids = list(
+            dict.fromkeys(
+                str(candidate_id).strip()
+                for candidate_id in (assertion.get("candidate_ids") or [])
+                if str(candidate_id).strip()
+            )
+        )
+        evidence_text = str(assertion.get("evidence_text") or "")
+        related_obligation_ids = list(
+            dict.fromkeys(
+                obligation_id
+                for candidate_id in candidate_ids
+                for obligation_id in selected_obligations_by_candidate.get(
+                    candidate_id, []
+                )
+            )
+        )
+
+        assertion_error = ""
+        detail = source_bundle_id
+        bundle = source_bundle_by_id.get(source_bundle_id)
+        if not source_bundle_id or bundle is None:
+            assertion_error = "unknown_source_bundle"
+        elif not candidate_ids:
+            assertion_error = "empty_source_assertion_candidates"
+        elif any(candidate_id not in candidate_by_id for candidate_id in candidate_ids):
+            assertion_error = "unknown_source_assertion_candidate"
+        elif any(
+            candidate_id not in selected_obligations_by_candidate
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_candidate_not_selected"
+        elif any(
+            str(candidate_by_id[candidate_id].get("candidate_kind") or "")
+            != "sentence_value"
+            or source_bundle_by_id[
+                source_bundle_id_by_candidate.get(candidate_id, "")
+            ].source_kind
+            != "prose_sentence"
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_nonprose_candidate"
+        elif any(
+            source_bundle_id_by_candidate.get(candidate_id) != source_bundle_id
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_bundle_mismatch"
+        elif not evidence_text:
+            assertion_error = "empty_source_assertion_text"
+        else:
+            value_spans = bundle.value_span_by_candidate_id()
+            if any(candidate_id not in value_spans for candidate_id in candidate_ids):
+                assertion_error = "source_assertion_value_span_missing"
+            else:
+                occurrence_starts: List[int] = []
+                search_start = 0
+                while True:
+                    occurrence_start = bundle.source_text.find(
+                        evidence_text, search_start
+                    )
+                    if occurrence_start < 0:
+                        break
+                    occurrence_starts.append(occurrence_start)
+                    search_start = occurrence_start + 1
+                grounded_start = next(
+                    (
+                        occurrence_start
+                        for occurrence_start in occurrence_starts
+                        if all(
+                            occurrence_start <= value_spans[candidate_id][0]
+                            and value_spans[candidate_id][1]
+                            <= occurrence_start + len(evidence_text)
+                            for candidate_id in candidate_ids
+                        )
+                    ),
+                    None,
+                )
+                if grounded_start is None:
+                    assertion_error = "source_assertion_text_mismatch"
+
+        if assertion_error:
+            target_ids = related_obligation_ids or sorted(produced) or [""]
+            for obligation_id in target_ids:
+                error(assertion_error, obligation_id, detail)
+                if obligation_id:
+                    invalid_assertion_obligation_ids.add(obligation_id)
+            continue
+
+        assertion_projection = {
+            "source_bundle_id": source_bundle_id,
+            "candidate_ids": candidate_ids,
+            "evidence_text": evidence_text,
+        }
+        assertion_fingerprint = hashlib.sha256(
+            json.dumps(
+                assertion_projection,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        valid_source_assertions.append(
+            {
+                **assertion_projection,
+                "assertion_fingerprint": assertion_fingerprint,
+                "covered_obligation_ids": related_obligation_ids,
+            }
+        )
+        asserted_candidate_ids.update(candidate_ids)
+
+    for obligation_id, candidate_ids in required_assertion_ids_by_obligation.items():
+        for candidate_id in candidate_ids:
+            if candidate_id in asserted_candidate_ids:
+                continue
+            error("missing_source_assertion", obligation_id, candidate_id)
+            invalid_assertion_obligation_ids.add(obligation_id)
+
+    if invalid_assertion_obligation_ids:
+        valid_direct = [
+            item
+            for item in valid_direct
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        valid_expressions = [
+            item
+            for item in valid_expressions
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        valid_narrative = [
+            item
+            for item in valid_narrative
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        produced.difference_update(invalid_assertion_obligation_ids)
+
     required = {
         obligation_id
         for obligation_id, obligation in obligation_by_id.items()
@@ -2272,6 +2459,7 @@ def validate_semantic_calculation_program(
         "valid_direct_bindings": valid_direct,
         "valid_expressions": valid_expressions,
         "valid_narrative_bindings": valid_narrative,
+        "valid_source_assertions": valid_source_assertions,
         "missing_obligation_ids": missing,
         "ambiguous_obligation_ids": ambiguous,
         "selected_candidate_ids": selected_candidate_ids,
@@ -2717,6 +2905,7 @@ def _fail_closed_semantic_validation(
     failed["valid_direct_bindings"] = []
     failed["valid_expressions"] = []
     failed["valid_narrative_bindings"] = []
+    failed["valid_source_assertions"] = []
     failed["selected_candidate_ids"] = []
     failed["source_candidate_ids_by_obligation"] = {}
     failed["inferred_units"] = {}

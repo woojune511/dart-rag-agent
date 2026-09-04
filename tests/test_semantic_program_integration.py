@@ -569,31 +569,44 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             multiple["expected_task_scope"],
         )
 
-    def test_program_prompt_projection_does_not_apply_a_second_candidate_rank(self) -> None:
+    def test_program_prompt_serializes_shared_source_text_once_per_bundle(self) -> None:
         agent = self._agent(_StructuredQueueLLM())
-        numeric = [
-            {**_candidate(f"numeric-{index}", index + 1), "source_text": "n" * 1000}
-            for index in range(110)
-        ]
-        narrative = [
+        source_text = "opening 343 items and closing 380 items"
+        catalog = [
             {
-                **_candidate(f"narrative-{index}", 0),
-                "kind": "narrative",
-                "normalized_value": None,
-                "source_text": "x" * 1000,
-            }
-            for index in range(40)
+                **_candidate("opening", 343, period="opening"),
+                "physical_table_id": "physical-table",
+                "physical_row_id": "physical-row",
+                "source_text": source_text,
+                "source_bundle_text": source_text,
+            },
+            {
+                **_candidate("closing", 380, period="closing"),
+                "physical_table_id": "physical-table",
+                "physical_row_id": "physical-row",
+                "source_text": source_text,
+                "source_bundle_text": source_text,
+            },
         ]
-        rows = agent._semantic_program_prompt_rows([*numeric, *narrative])
-        self.assertEqual(
-            [sum(item["kind"] == kind for item in rows) for kind in ("numeric", "narrative")],
-            [110, 40],
+        payload = agent._semantic_program_prompt_payload(
+            catalog,
+            {
+                "visible_candidate_ids": ["opening", "closing"],
+                "candidate_match_by_id": {},
+                "cohorts": [],
+                "reservation": {},
+            },
         )
+        self.assertEqual(len(payload["source_bundles_by_id"]), 1)
         self.assertTrue(
             all(
-                len(item["source_text"]) <= (420 if item["kind"] == "numeric" else 600)
-                for item in rows
+                "source_text" not in candidate
+                for candidate in payload["candidates_by_id"].values()
             )
+        )
+        self.assertEqual(
+            json.dumps(payload, ensure_ascii=False).count(source_text),
+            1,
         )
 
     def test_compiler_and_executor_use_candidate_ids_and_project_canonical_trace(self) -> None:
@@ -714,12 +727,12 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(trace["calculation_plan"]["program_mode"], "semantic_program")
         self.assertEqual(
             trace["calculation_plan"]["prompt_candidate_strategy"],
-            "compilation_islands_v2",
+            "source_bundle_compilation_islands_v1",
         )
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v8",
+            "semantic_candidate_stage_diagnostics_v9",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)
@@ -818,11 +831,25 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 scope=_scope(segment="target entity"),
             ),
         ]
+        initial_cohorts = _semantic_candidate_cohorts(catalog, obligations)
+        retry_output_cohort = next(
+            cohort
+            for cohort in initial_cohorts["cohorts"]
+            if cohort["cohort_id"] == "ob_retry:output"
+        )
+        initially_visible_bad_id = next(
+            candidate_id
+            for candidate_id in retry_output_cohort["candidate_ids"]
+            if candidate_id.startswith("cand-bad-")
+        )
         first_program = {
             "status": "ready",
             "direct_bindings": [
                 {"obligation_id": "ob_valid", "candidate_id": "cand-valid"},
-                {"obligation_id": "ob_retry", "candidate_id": "cand-bad-1"},
+                {
+                    "obligation_id": "ob_retry",
+                    "candidate_id": initially_visible_bad_id,
+                },
             ],
         }
         retry_program = {
@@ -854,7 +881,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     "direct_bindings": [
                         {
                             "obligation_id": "ob_retry",
-                            "candidate_id": "cand-bad-1",
+                            "candidate_id": initially_visible_bad_id,
                         }
                     ],
                 }
@@ -887,7 +914,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             "planner_debug_trace": {},
             "resolved_calculation_trace": {},
         }
-        initial_cohorts = _semantic_candidate_cohorts(catalog, obligations)
         first_validation = validate_semantic_calculation_program(
             program=first_model.model_dump(),
             obligations=obligations,
@@ -913,11 +939,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
 
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(len(llm.prompts), 3)
-        first_prompt = str(llm.prompts[1])
         retry_prompt = str(llm.prompts[2])
-        self.assertNotIn("cand-bad-4", first_prompt)
-        self.assertIn("cand-bad-4", retry_prompt)
-        self.assertNotIn("cand-bad-1", retry_prompt)
+        self.assertIn("cand-promoted", retry_prompt)
         self.assertNotIn('"obligation_id": "ob_valid"', retry_prompt)
         final_valid = next(
             item
@@ -938,9 +961,134 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             item for item in attempts if item["island_id"] == "island_002"
         ]
         self.assertEqual(len(attempts), 2)
+        self.assertIn(
+            initially_visible_bad_id,
+            attempts[0]["visible_candidate_ids"],
+        )
+        self.assertNotIn(
+            initially_visible_bad_id,
+            attempts[1]["visible_candidate_ids"],
+        )
         self.assertNotEqual(
             attempts[1]["visible_candidate_id_fingerprint"],
             attempts[0]["visible_candidate_id_fingerprint"],
+        )
+
+    def test_assertion_retry_keeps_cohort_and_preserves_other_island_bytes(self) -> None:
+        first = {
+            **_candidate("cand-first-prose", 10, row_label="first value"),
+            "candidate_kind": "sentence_value",
+            "table_source_id": "",
+            "source_candidate_id": "source-first-prose",
+            "source_text": "The first value is 10 items.",
+            "source_bundle_text": "The first value is 10 items.",
+        }
+        second = {
+            **_candidate("cand-second-prose", 20, row_label="second value"),
+            "candidate_kind": "sentence_value",
+            "table_source_id": "",
+            "source_candidate_id": "source-second-prose",
+            "source_text": "The second value is 20 items.",
+            "source_bundle_text": "The second value is 20 items.",
+        }
+        catalog = [first, second]
+        obligations = [
+            _obligation("ob_first", "direct_value", "first value"),
+            _obligation("ob_second", "direct_value", "second value"),
+        ]
+        first_assertion = _source_assertions(catalog, "cand-first-prose")[0]
+        second_assertion = _source_assertions(catalog, "cand-second-prose")[0]
+        llm = _StructuredQueueLLM(
+            SemanticCalculationProgram.model_validate(
+                {
+                    "status": "ready",
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_first",
+                            "candidate_id": "cand-first-prose",
+                        }
+                    ],
+                    "source_assertions": [first_assertion],
+                }
+            ),
+            SemanticCalculationProgram.model_validate(
+                {
+                    "status": "ready",
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_second",
+                            "candidate_id": "cand-second-prose",
+                        }
+                    ],
+                }
+            ),
+            SemanticCalculationProgram.model_validate(
+                {
+                    "status": "ready",
+                    "direct_bindings": [
+                        {
+                            "obligation_id": "ob_second",
+                            "candidate_id": "cand-second-prose",
+                        }
+                    ],
+                    "source_assertions": [second_assertion],
+                }
+            ),
+        )
+        agent = self._agent(llm)
+        state = {
+            "query": "Return the first and second values.",
+            "answer_obligations": obligations,
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": obligations,
+            },
+            "active_subtask": {"task_id": "task_1"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+        }
+        before = json.dumps(
+            first_assertion,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=catalog,
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        self.assertEqual(compiled["semantic_program_retry_count"], 1)
+        self.assertEqual(len(llm.prompts), 3)
+        final_first_assertion = next(
+            assertion
+            for assertion in compiled["semantic_program"]["source_assertions"]
+            if assertion["candidate_ids"] == ["cand-first-prose"]
+        )
+        after = json.dumps(
+            final_first_assertion,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(after, before)
+        self.assertNotIn('"obligation_id": "ob_first"', str(llm.prompts[2]))
+        attempts = [
+            item
+            for item in compiled["resolved_calculation_trace"][
+                "calculation_plan"
+            ]["candidate_stage_diagnostics"]["attempts"]
+            if item["island_id"] == "island_002"
+        ]
+        self.assertEqual(len(attempts), 2)
+        self.assertEqual(
+            attempts[0]["visible_candidate_id_fingerprint"],
+            attempts[1]["visible_candidate_id_fingerprint"],
+        )
+        self.assertEqual(
+            attempts[0]["source_bundle_fingerprint"],
+            attempts[1]["source_bundle_fingerprint"],
         )
 
     def test_retry_excludes_only_the_candidate_role_that_failed(self) -> None:
@@ -1334,9 +1482,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
 
     def test_independent_island_cannot_rebind_an_accepted_obligation(self) -> None:
         catalog = [
-            _candidate("cand-first", 10),
-            _candidate("cand-missing", 20),
-            _candidate("cand-replacement", 999),
+            _candidate("cand-first", 10, row_label="first"),
+            _candidate("cand-missing", 20, row_label="second"),
+            _candidate("cand-replacement", 999, row_label="unrelated"),
         ]
         first = SemanticCalculationProgram.model_validate(
             {
@@ -1566,6 +1714,57 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     compiled["semantic_program_validation"]["status"],
                     "invalid",
                 )
+
+    def test_bundle_expansion_over_global_candidate_limit_skips_compiler(self) -> None:
+        obligation = _obligation(
+            "ob_total", "direct_value", "reported total"
+        )
+        shared_text = " | ".join(str(index) for index in range(97))
+        catalog = [
+            {
+                **_candidate(
+                    f"cand-{index}",
+                    index + 1,
+                    row_label="reported total",
+                ),
+                "physical_table_id": "table-overflow",
+                "physical_row_id": "row-overflow",
+                "physical_cell_id": f"cell-{index}",
+                "source_bundle_text": shared_text,
+            }
+            for index in range(97)
+        ]
+        agent = self._agent(_StructuredQueueLLM())
+        state = {
+            "query": "Return the reported total.",
+            "answer_obligations": [obligation],
+            "semantic_plan": {
+                "program_required": True,
+                "answer_obligations": [obligation],
+            },
+            "active_subtask": {"task_id": "task_1"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+        }
+        with patch.object(
+            agent,
+            "_semantic_candidate_catalog_for_state",
+            return_value=catalog,
+        ):
+            compiled = agent._compile_semantic_calculation_program(state)
+
+        self.assertEqual(agent.llm.prompts, [])
+        self.assertEqual(
+            compiled["resolved_calculation_trace"]["calculation_plan"][
+                "candidate_cohort_status"
+            ],
+            "capacity_exceeded",
+        )
+        self.assertEqual(
+            compiled["semantic_program_validation"]["status"],
+            "invalid",
+        )
 
     def test_independent_island_prompts_have_separate_candidate_authority(self) -> None:
         obligations = [

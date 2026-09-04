@@ -15,6 +15,7 @@ from src.agent.financial_runtime_normalization import (
     resolve_source_numeric_unit,
 )
 from src.config.retrieval_policy import (
+    CALCULATION_PROMPT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     SEMANTIC_CANDIDATE_POLICY,
@@ -1296,6 +1297,15 @@ def _narrative_numeric_rows(
             source_text,
             exact_source_text or source_text,
             span,
+            max_chars=int(
+                dict(
+                    CALCULATION_PROMPT_POLICY.get(
+                        "semantic_program_prompt_limits"
+                    )
+                    or {}
+                ).get("numeric_source_chars")
+                or 420
+            ),
         )
         local_entity_surfaces = _local_entity_surfaces(
             source_text,
