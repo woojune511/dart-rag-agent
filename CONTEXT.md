@@ -36,6 +36,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 - Source writes publish payload union then graph atomically and memory last.
   Incomplete stores block queries but allow recovery ingest. Missing sidecars
   reuse stored text/parser metadata without context generation or embedding.
+- Graph-source vector rebuilds now take one `StoreManifestV1` authority and
+  publish it only after index health succeeds. A failed side-by-side build stays
+  manifest-less and can be resumed without making the partial store query-ready.
 - Query readiness, execution, and snapshot share one operation lock; DB work,
   ingest, and post-ingest readiness refresh run in workers.
 - Explicit phase TypedDicts replace the full-state merge. Numeric execution and
@@ -74,9 +77,17 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
    combined runtime gate `2 / 3`; release remains `HOLD`. Both admissions are
    exhausted. Do not repeat either run. The remaining blocker is provider
    capacity at the Google query-embedding boundary, not another semantic patch.
-4. Formula-wide rounding-error propagation is deferred. Source precision
+4. The selected unblock is a Hyundai-only, side-by-side rebuild with canonical
+   OpenAI `text-embedding-3-large`; the Google source store remains immutable.
+   Commit `133fff3` added post-health manifest publication and passed 59 Python
+   3.13 adjacent tests plus audit/pycompile/diff gates. Local model tokenization
+   counts `1,928,114` document tokens; estimated rebuild-through-health cost is
+   USD `0.25071982`, with a proposed one-process ceiling of USD `0.30`.
+   No provider call or target-store write has occurred; both require the new
+   exact admission's separate approval.
+5. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
-5. T3 answer-key/evaluator governance is separate; do not change tolerance,
+6. T3 answer-key/evaluator governance is separate; do not change tolerance,
    faithfulness policy, dataset answers, or source evidence to improve a score.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md),

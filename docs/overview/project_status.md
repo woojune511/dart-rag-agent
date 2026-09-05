@@ -24,6 +24,9 @@ The implemented boundaries are:
   Dependencies use calculated values; primary answer slots use display values.
 - Atomic payload-superset/graph-last persistence, failure propagation, strict
   source coverage, and provider-free sidecar recovery replace partial publication.
+- Graph-source vector rebuilds use one expected store manifest for collection,
+  embedding, and ingest identity. The manifest is published only after health;
+  an interrupted side-by-side target stays unready and resumable.
 - API query/readiness snapshots share a lock. DB/ingest/readiness refresh work is
   off the event loop. Health reads cached readiness only.
 - Concrete phase inputs/outputs replace the production full-state merge.
@@ -47,6 +50,8 @@ Python 3.13 is the verification interpreter.
   restart recovery, and prove no context/embedding calls during sidecar repair.
 - Actual graph-node tests check declared phase keys, unchanged inputs, and exact
   public answer/structured-result/trace agreement with the final ledger artifact.
+- The graph-rebuild manifest seam passes 59/59 Python 3.13 adjacent tests,
+  runtime domain audit, pycompile, topology/import coverage, and diff checks.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -99,9 +104,14 @@ Its root result SHA-256 is `d30a321c...422fd`; ignored run receipt SHA-256 is
 
 The combined same-runtime gate is `2 / 3`, with T3 carried forward by exact
 artifact hashes. Both admissions are consumed and no further retry is
-authorized. Diagnose or change the Google query-embedding capacity boundary
-before proposing any new manifest; repeating the unchanged paid run is not the
-next development step.
+authorized. The next bounded path is a side-by-side rebuild of only the Hyundai
+store with canonical OpenAI `text-embedding-3-large`; the Google source remains
+immutable. Commit `133fff3` supplies the strict rebuild-manifest boundary.
+Local OpenAI tokenization of all 1,764 stored chunks is `1,928,114` tokens,
+giving a document-plus-bounded-health estimate of USD `0.25071982` and a
+proposed one-process authorization ceiling of USD `0.30`. No provider call or
+target-store mutation has run; an exact admission and separate approval are
+required before dispatch. The subsequent T2 eval-only run is a separate gate.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy
