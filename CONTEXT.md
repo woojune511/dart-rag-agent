@@ -4,96 +4,72 @@ Last updated: 2026-09-05
 
 ## Working source
 
-- Branch: `codex/bounded-semantic-tiebreaker`
-- Base: `8d1b97d`
-- First source-bundle contract commit: `d4aaf37`
-- Compiler integration and legacy-path removal commit: `30607cd`
-- Product path: single-agent `FinancialAgent`
-- Historical benchmark results, stores, datasets, caches, and review packets are
-  immutable and remain uncommitted.
+- Product: single-agent `FinancialAgent`.
+- Branch: `codex/bounded-semantic-tiebreaker`; repair baseline: `5e13bc6`.
+- Unit/retry, compiler, persistence/API, and final-state ownership repairs are
+  implemented as separate changes. Git is the commit chronology.
+- HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
+  inputs, parser table identity, and storage formats remain unchanged.
+- Historical results, datasets, stores, caches, and review packets are immutable.
+  New local replay/gate outputs remain ignored and uncommitted.
 
-Stable rules are in
-[agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), the
-minimal code map is in [codebase_map.md](docs/overview/codebase_map.md), and
-chronology remains in
-[implementation_history.md](docs/history/implementation_history.md) and
-[experiment_history.md](docs/history/experiment_history.md).
+Authority: [runtime contract](docs/architecture/agent_runtime_contract.md),
+[code map](docs/overview/codebase_map.md), and
+[project status](docs/overview/project_status.md).
+The fast development loop is in [AGENTS.md](AGENTS.md).
 
-## Current change
+## Current runtime
 
-The prose seven-role classifier and disabled local cross-encoder path have been
-replaced by source-bundle compilation:
+- One unit specification controls normalization, applicability, validation, and
+  rendering. Currency/count scales, composite signs, canonical units, USD direct
+  values, and non-finite results are covered by real-normalizer tests.
+- Unsupported planner units retain their obligations and block affected islands.
+  Compiler-format errors retry the same cohort; candidate replacement uses
+  explicit typed ownership, never IDs inferred from diagnostic prose.
+- `CompilationEnvelopeV2` binds complete catalog content, ordered obligations,
+  and query before executor revalidation. Production has no V1 fallback.
+- Source bundles preserve neighboring values in shared bounded windows. Actual
+  unique selectable IDs enforce numeric 96/narrative 32, including every retry.
+- Expressions explicitly select or decline a source display and give a reason.
+  Source values are primary; differing calculated values are also shown.
+  Downstream formulas use calculated values, with separate display provenance.
+- Source writes publish payload union then graph atomically and memory last.
+  Incomplete stores block queries but allow recovery ingest. Missing sidecars
+  reuse stored text/parser metadata without context generation or embedding.
+- Query readiness, execution, and snapshot share one operation lock; DB work,
+  ingest, and post-ingest readiness refresh run in workers.
+- Explicit phase TypedDicts replace the full-state merge. Numeric execution and
+  narrative validation return facts, not final answers. The graph finishes
+  `assemble_final → assemble_ledger → END`; `run()` only packages the result.
+  TypedDicts describe static shape, not runtime immutability.
 
-- `SourceBundleV1` groups exact prose sentence/windows or one physical table row.
-- Numeric owner admission is bundle-first: at most two bundles, compatible
-  before unknown-only, with every non-conflicting member kept together.
-- Compiler payload v5 stores source text once per bundle; candidates retain IDs,
-  metadata, physical provenance, and bundle-local value spans.
-- The existing compiler decides which facts and formulas satisfy an obligation.
-  No total/component/rate enum controls runtime selection.
-- Selected prose numeric bindings require an exact `source_assertion`. Validator
-  checks bundle membership, visibility, exact substring bytes, and value-span
-  coverage before execution.
-- Candidate failure advances to the next bundle; assertion/schema/AST/binding
-  failure keeps the cohort for the single targeted retry.
-- Unaffected islands and assertions remain byte-identical. Diagnostics use
-  `semantic_candidate_stage_diagnostics_v9`.
-- The old fact-role, cross-encoder, interpreter, promotion-gate, export/mining,
-  policy, fixture, and dedicated test surfaces are removed.
+## Verification and claim boundary
 
-Unchanged boundaries:
+Python 3.13 local tests, domain audit (84 reviewed literals), import/topology,
+pycompile, and diff checks pass; detailed counts are in project status.
+Provider-free replay verifies all three saved catalog identities and unchanged
+input-file hashes:
 
-- Candidate IDs and catalog fingerprint inputs
-- Physical table/row/cell parser contracts
-- Source store and ingest format
-- HTTP response shape and `FinancialRunResultV1`
-- Retrieval, API, ledger, MAS, Streamlit, evaluator, and dataset governance
+- T2: explicit source-display copy renders `11.5% (재계산값 11.4%)`.
+- T3: original program bytes and physical row/evidence remain unchanged.
+- Samsung: restoring its recorded first binding accepts `28,352,769백만원`
+  and preserves the existing narrative evidence.
 
-## Verification
+T2 and Samsung are explicitly counterfactual runtime-contract tests. No new
+compiler/provider/evaluator run occurred, and these are not a release claim.
+Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
 
-- Source-bundle/catalog/matching focused tests pass `28 / 28`.
-- Cohort/compiler/validator/evidence-bundle/island tests pass `90 / 90`.
-- Runtime domain-term audit passes with `86` reviewed literals; import/topology
-  tests pass `21 / 21`; portfolio review gates report
-  `review_surface_ready`.
-- `compileall`, `git diff --check`, and full unittest discovery pass. Full
-  discovery is `805 / 805` in `19.636s`.
-- Provider-free replay of the immutable three-question predecessor verifies all
-  three catalogs. T2 keeps `87.0`, `78.1`, and `11.5` in the applicable owner
-  visibility; T3 exposes Motional `26%` while excluding BHAF `53%`; all four
-  previously selected Samsung candidates remain visible.
-- Admission `24322d93...9aaf` was consumed exactly once on commit `5c4c796`.
-  The store-fixed eval-only runner completed in `339.1s` without runner retry,
-  fresh ingest, document embedding, or source-store mutation. Estimated
-  non-embedding cost was USD `0.1187678` under the USD `0.40` ceiling.
-- Release is `HOLD`. Mechanical runtime completeness is `2 / 3`; the reviewed
-  source-consistent gate is `1 / 3`.
-- T2 kept `87.0`, `78.1`, and visible `11.5%`, but the compiler omitted the
-  source-display binding and rendered the recomputed `11.4%`.
-- T3 passed: table 82 row `9:2` supplied `26%` and `700,691백만원`, table 90
-  row `21:4` supplied the complete four-value summary, and BHAF `53%` was not
-  selected.
-- Samsung first selected accepted candidate `cand_27da082cf5bcd0cb9f27`, then
-  rejected planner `display_unit=KRW` as a display surface. The retry wrongly
-  promoted another bundle, leaving numeric obligation `ob_001` missing.
+## Remaining work and hard stops
 
-Provider-free fixtures cover exact current/prior context and parentheses,
-physical row grouping, source-text deduplication, owner/bundle visibility,
-byte-exact assertion grounding, unchanged-cohort assertion retry, next-bundle
-promotion after candidate rejection, and pre-call capacity failure.
+1. Prepare a new store-fixed eval-only manifest and cost estimate before asking
+   for separate provider approval. Never reuse consumed admissions, including
+   `24322d93...9aaf`; no automatic benchmark retry or fresh ingest.
+2. Provider semantic selection remains unverified on the repaired build.
+   The last paid run remains historical HOLD, not superseded by local replay.
+3. Formula-wide rounding-error propagation is deferred. Source precision
+   comparison currently scales only the selected source's rounding interval.
+4. T3 answer-key/evaluator governance is separate; do not change tolerance,
+   faithfulness policy, dataset answers, or source evidence to improve a score.
 
-## Hard boundaries and next step
-
-1. Do not reuse exhausted admissions `06a40243...016`, `729d1f53...4b93`, or
-   `24322d93...9aaf`.
-2. Do not change dataset answers, evaluator tolerances, historical artifacts,
-   candidate IDs, store bytes, or parser table identity to make a gate pass.
-3. Fix the unit boundary provider-free: canonical dimension symbols such as
-   `KRW` must be accepted or projected before display-unit validation, and that
-   error must not reject a correct candidate bundle.
-4. Tighten the compiler contract so a source-stated derived display visible in
-   the selected bundle is considered explicitly and preserved when it matches
-   the obligation. Do not add a keyword rule or deterministic semantic guess.
-5. Re-run focused local fixtures and the saved artifact projection. A new paid
-   run requires a new manifest and separate approval; automatic retry and fresh
-   ingest remain forbidden.
+Historical evidence stays in [implementation history](docs/history/implementation_history.md),
+[experiment history](docs/history/experiment_history.md), and Git.

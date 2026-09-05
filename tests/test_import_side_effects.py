@@ -448,8 +448,10 @@ class ImportSideEffectTests(unittest.TestCase):
                         },
                         "ledger": {"tasks": [], "artifacts": []},
                         "final_result": {
-                            "answer": "insufficient evidence",
-                            "citations": [],
+                            "agent_answer": {
+                                "answer": "insufficient evidence",
+                                "citations": [],
+                            },
                         },
                     }
 

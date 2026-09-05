@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
     derive_operation_family_from_formula,
-    execute_semantic_calculation_program,
+    execute_semantic_calculation_program as execute_numeric_program,
+    assemble_semantic_execution_result,
     semantic_candidate_applicability,
     validate_semantic_calculation_program,
 )
@@ -49,6 +50,36 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     PLANNING_POLICY,
 )
+
+
+def execute_semantic_calculation_program(**inputs):
+    """Test harness for the explicit numeric-execution -> final-assembly seam."""
+    execution = execute_numeric_program(**inputs)
+    assembled = assemble_semantic_execution_result(
+        execution=execution, obligations=inputs["obligations"],
+        calculation_plan={}, query=inputs["query"],
+    )
+    return {**execution, **assembled,
+        "calculation_result": assembled["resolved_calculation_trace"]["calculation_result"]}
+
+
+def execute_compiled_fixture(agent, state, catalog):
+    """Migrate historical test inputs through the actual phase-owned graph nodes."""
+    from src.agent.financial_graph_state import RoutingPhase, RequirementsPhase, RetrievalPhase, CompilationPhase
+
+    phases = {
+        "request": {"query": state["query"], "report_scope": dict(state.get("report_scope") or {})},
+        "routing": {key: state[key] for key in RoutingPhase.__annotations__ if key in state},
+        "requirements": {key: state[key] for key in RequirementsPhase.__annotations__ if key in state},
+        "retrieval": {key: state[key] for key in RetrievalPhase.__annotations__ if key in state},
+        "candidates": {"semantic_candidate_catalog": catalog, "semantic_source_candidates": []},
+        "compilation": {key: state[key] for key in CompilationPhase.__annotations__ if key in state},
+    }
+    phases.update(agent._execute_numeric_phase(phases))
+    phases.update(agent._assemble_final_phase(phases))
+    phases.update(agent._assemble_ledger_phase(phases))
+    final = phases["final_result"]
+    return {**final["agent_answer"], **final["review_trace"], **phases["ledger"]}
 
 
 def _scope(**overrides):

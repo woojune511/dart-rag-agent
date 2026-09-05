@@ -23,7 +23,10 @@ from src.agent.financial_calculation_execution import (
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
-from src.agent.financial_graph_state import FinancialAgentState
+from src.agent.financial_graph_state import (
+    FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase,
+    NumericExecutionInput, NumericResultPhase,
+)
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
@@ -44,11 +47,6 @@ from src.agent.financial_source_bundles import (
     source_bundle_id_by_candidate_id,
 )
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
-from src.agent.financial_task_artifacts import (
-    calculation_plan_artifact_update,
-    calculation_result_artifact_update,
-    operand_set_artifact_update,
-)
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 
 
@@ -1343,52 +1341,10 @@ def _retry_candidate_exclusions(
 class FinancialAgentCalculationMixin:
     """Compile and execute one grounded program for all answer obligations."""
 
-    def _operand_set_artifact_update(
-        self,
-        state: FinancialAgentState,
-        active_subtask: Dict[str, Any],
-        operand_rows: List[Dict[str, Any]],
-        *,
-        status: str,
-        summary: str,
-        payload: Dict[str, Any],
-        evidence_refs: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
-        task_id = str(active_subtask.get("task_id") or "task_1")
-        return operand_set_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            task_id=task_id,
-            task_label=str(active_subtask.get("metric_label") or task_id),
-            query=self._calc_query(state),
-            metric_family="semantic_program",
-            operand_rows=operand_rows,
-            status=status,
-            summary=summary,
-            payload=payload,
-            evidence_refs=evidence_refs,
-        )
-
-    def _calculation_plan_artifact_update(
-        self,
-        state: FinancialAgentState,
-        calculation_plan: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        active_subtask = dict(state.get("active_subtask") or {})
-        task_id = str(active_subtask.get("task_id") or "task_1")
-        return calculation_plan_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            task_id=task_id,
-            task_label=str(active_subtask.get("metric_label") or task_id),
-            query=self._calc_query(state),
-            metric_family="semantic_program",
-            calculation_plan=calculation_plan,
-        )
 
     def _semantic_source_candidates_for_state(
         self,
-        state: FinancialAgentState,
+        state: CandidateInput,
     ) -> List[Dict[str, Any]]:
         return build_semantic_source_candidates(
             state,
@@ -1634,7 +1590,7 @@ class FinancialAgentCalculationMixin:
 
     def _compile_semantic_calculation_island(
         self,
-        state: FinancialAgentState,
+        state: CompilationInput,
         *,
         other_selectable_ids: Sequence[str] = (),
     ) -> Dict[str, Any]:
@@ -2233,37 +2189,6 @@ class FinancialAgentCalculationMixin:
             "explanation": str(program_data.get("rationale") or ""),
             "missing_info": list(validation.get("missing_obligation_ids") or []),
         }
-        active_subtask = dict(state.get("active_subtask") or {})
-        operand_update = self._operand_set_artifact_update(
-            state,
-            active_subtask,
-            operand_rows,
-            status="sufficient" if validation.get("status") == "ready" else "partial",
-            summary=f"{len(operand_rows)} grounded semantic-program operand(s)",
-            payload={
-                "calculation_operands": operand_rows,
-                "candidate_catalog_fingerprint": calculation_plan["candidate_catalog_fingerprint"],
-                "candidate_count": len(catalog),
-                "prompt_candidate_count": len(prompt_catalog_rows),
-                "prompt_candidate_strategy": "source_bundle_compilation_v1",
-                "prompt_candidate_payload_bytes": len(
-                    prompt_catalog_json.encode("utf-8")
-                ),
-                "candidate_cohort_status": str(cohort_plan.get("status") or ""),
-                "prompt_excerpt_strategy": "source_bundle_exact_span_v1",
-                "candidate_stage_diagnostics": candidate_stage_diagnostics,
-                "selected_candidate_ids": selected_candidate_ids,
-                "semantic_status": str(validation.get("status") or ""),
-                "missing_obligation_ids": list(
-                    validation.get("missing_obligation_ids") or []
-                ),
-            },
-            evidence_refs=selected_candidate_ids,
-        )
-        plan_update = self._calculation_plan_artifact_update(
-            {**dict(state), **operand_update},
-            calculation_plan,
-        )
         trace_update = runtime_trace_state_update(
             state,
             calculation_operands=operand_rows,
@@ -2276,9 +2201,7 @@ class FinancialAgentCalculationMixin:
             len(validation.get("errors") or []),
         )
         return {
-            **trace_update,
-            "answer_obligations": obligations,
-            "semantic_candidate_catalog": catalog,
+            "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": program_data,
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
@@ -2304,14 +2227,12 @@ class FinancialAgentCalculationMixin:
                 "program_validation_history": validation_history,
                 "program_invocation_errors": invocation_errors,
             },
-            "tasks": list(plan_update["tasks"]),
-            "artifacts": list(plan_update["artifacts"]),
         }
 
     def _compile_semantic_calculation_program(
         self,
-        state: FinancialAgentState,
-    ) -> Dict[str, Any]:
+        state: CompilationInput,
+    ) -> CompilationPhase:
         """Preflight and compile deterministic obligation islands in order."""
 
         obligations = [
@@ -2467,8 +2388,6 @@ class FinancialAgentCalculationMixin:
                     "semantic_candidate_catalog": catalog,
                     "semantic_source_candidates": source_candidates,
                     "semantic_candidate_catalog_prebuilt": True,
-                    "tasks": [],
-                    "artifacts": [],
                 },
                 other_selectable_ids=[
                     candidate_id for owner_id, ids in query_selectable_by_owner.items()
@@ -2948,32 +2867,6 @@ class FinancialAgentCalculationMixin:
                 validation.get("missing_obligation_ids") or []
             ),
         }
-        active_subtask = dict(state.get("active_subtask") or {})
-        operand_update = self._operand_set_artifact_update(
-            state,
-            active_subtask,
-            operand_rows,
-            status=(
-                "sufficient"
-                if validation.get("status") == "ready"
-                else "partial"
-            ),
-            summary=f"{len(operand_rows)} grounded semantic-program operand(s)",
-            payload={
-                "calculation_operands": operand_rows,
-                "candidate_catalog_fingerprint": calculation_plan[
-                    "candidate_catalog_fingerprint"
-                ],
-                "candidate_stage_diagnostics": candidate_stage_diagnostics,
-                "selected_candidate_ids": selected_candidate_ids,
-                "semantic_status": str(validation.get("status") or ""),
-            },
-            evidence_refs=selected_candidate_ids,
-        )
-        plan_update = self._calculation_plan_artifact_update(
-            {**dict(state), **operand_update},
-            calculation_plan,
-        )
         trace_update = runtime_trace_state_update(
             state,
             calculation_operands=operand_rows,
@@ -2988,9 +2881,7 @@ class FinancialAgentCalculationMixin:
             validation.get("status"),
         )
         return {
-            **trace_update,
-            "answer_obligations": obligations,
-            "semantic_candidate_catalog": catalog,
+            "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": merged_program,
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
@@ -3024,162 +2915,33 @@ class FinancialAgentCalculationMixin:
                 "program_invocation_errors": invocation_errors,
                 "compilation_islands": island_diagnostics,
             },
-            "tasks": list(plan_update["tasks"]),
-            "artifacts": list(plan_update["artifacts"]),
         }
 
     def _execute_semantic_calculation_program(
         self,
-        state: FinancialAgentState,
-    ) -> Dict[str, Any]:
-        obligations = [dict(item) for item in (state.get("answer_obligations") or [])]
-        catalog = [dict(item) for item in (state.get("semantic_candidate_catalog") or [])]
-        current_trace = resolve_runtime_calculation_trace(
-            dict(state),
-            allow_legacy_top_level=False,
-        )
-        calculation_plan = dict(current_trace.get("calculation_plan") or {})
-        compilation_envelope = state.get("semantic_compilation_envelope")
+        state: NumericExecutionInput,
+    ) -> NumericResultPhase:
+        obligations = list(state.get("answer_obligations") or [])
+        catalog = list(state.get("semantic_candidate_catalog") or [])
+        current_trace = resolve_runtime_calculation_trace(state, allow_legacy_top_level=False)
+        envelope = state.get("semantic_compilation_envelope")
         execution = execute_semantic_calculation_program(
             program=dict(state.get("semantic_program") or {}),
-            obligations=obligations,
-            candidate_catalog=catalog,
+            obligations=obligations, candidate_catalog=catalog,
             query=str(state.get("query") or ""),
-            compilation_envelope=(
-                compilation_envelope
-                if isinstance(compilation_envelope, CompilationEnvelopeV2)
-                else None
-            ),
+            compilation_envelope=envelope if isinstance(envelope, CompilationEnvelopeV2) else None,
             require_compilation_envelope=True,
         )
-        calculation_operands = list(execution.get("calculation_operands") or [])
-        calculation_result = dict(execution.get("calculation_result") or {})
-        derived_operation_family = str(
-            dict(calculation_result.get("derived_metrics") or {}).get(
-                "operation_family"
-            )
-            or "formula"
-        )
-        calculation_plan = {
-            **calculation_plan,
-            "operation_family": derived_operation_family,
-        }
-        calculation_result = {
-            **calculation_result,
-            "operation_family": derived_operation_family,
-        }
-        selected_candidate_ids = list(execution.get("selected_candidate_ids") or [])
-        evidence_items = self._semantic_program_evidence_items(catalog, selected_candidate_ids)
-
-        output_rows: List[Dict[str, Any]] = []
-        for output in execution.get("outputs") or []:
-            obligation_id = str(output.get("obligation_id") or "")
-            answer_text = (
-                str(output.get("text") or "")
-                if str(output.get("kind") or "") == "narrative"
-                else f"{str(output.get('label') or obligation_id)}: {str(output.get('rendered_value') or '')}"
-            )
-            output_rows.append(
-                {
-                    "task_id": f"task_1:{obligation_id}",
-                    "metric_family": "semantic_program",
-                    "metric_label": str(output.get("label") or obligation_id),
-                    "operation_family": str(output.get("operation_family") or "formula"),
-                    "status": str(output.get("status") or "ok"),
-                    "answer": _normalise_spaces(answer_text),
-                    "calculation_result": {
-                        "status": str(output.get("status") or "ok"),
-                        "operation_family": str(
-                            output.get("operation_family") or "formula"
-                        ),
-                        "result_value": output.get("normalized_value"),
-                        "result_unit": str(output.get("result_unit") or ""),
-                        "rendered_value": str(output.get("rendered_value") or ""),
-                        "answer_slots": (
-                            {
-                                "operation_family": (
-                                    "lookup"
-                                    if str(output.get("operation_family") or "")
-                                    == "lookup"
-                                    else "single_value"
-                                ),
-                                "metric_label": str(output.get("label") or obligation_id),
-                                "primary_value": dict(output.get("answer_slot") or {}),
-                            }
-                            if output.get("answer_slot")
-                            else {}
-                        ),
-                        "derived_metrics": {
-                            "operation_family": str(
-                                output.get("operation_family") or "formula"
-                            )
-                        },
-                        "source_row_ids": list(output.get("source_row_ids") or []),
-                    },
-                    "source_row_ids": list(output.get("source_row_ids") or []),
-                    "source_evidence_ids": list(output.get("candidate_ids") or []),
-                }
-            )
-
-        answer = _normalise_spaces(str(execution.get("answer") or ""))
-        structured_result = {
-            "status": str(execution.get("status") or "incomplete"),
-            "answer": answer,
-            "final_answer": answer,
-            "subtask_results": output_rows,
-            "answer_obligations": obligations,
-            "missing_obligation_ids": list(execution.get("missing_obligation_ids") or []),
-            "resolved_calculation_trace": {
-                "calculation_operands": calculation_operands,
-                "calculation_plan": calculation_plan,
-                "calculation_result": calculation_result,
-            },
-        }
-        active_subtask = dict(state.get("active_subtask") or {})
-        task_id = str(active_subtask.get("task_id") or "task_1")
-        result_update = calculation_result_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            task_id=task_id,
-            task_label=str(active_subtask.get("metric_label") or task_id),
-            query=self._calc_query(state),
-            metric_family="semantic_program",
-            calculation_result=calculation_result,
-            evidence_refs=selected_candidate_ids,
-        )
-        trace_update = runtime_trace_state_update(
-            state,
-            calculation_operands=calculation_operands,
-            calculation_plan=calculation_plan,
-            calculation_result=calculation_result,
-        )
+        selected_ids = list(execution.get("selected_candidate_ids") or [])
         logger.info(
             "[semantic_program] execute status=%s outputs=%s missing=%s",
-            execution.get("status"), len(output_rows), len(execution.get("missing_obligation_ids") or []),
+            execution.get("status"), len(execution.get("outputs") or []),
+            len(execution.get("missing_obligation_ids") or []),
         )
         return {
-            **trace_update,
-            "answer": answer,
-            "compressed_answer": answer,
-            "draft_points": [answer] if answer else [],
-            "structured_result": structured_result,
-            "subtask_results": output_rows,
-            "subtask_loop_complete": True,
-            "missing_info": list(execution.get("missing_obligation_ids") or []),
-            "evidence_items": evidence_items,
-            "runtime_evidence": evidence_items,
-            "selected_claim_ids": selected_candidate_ids,
-            "kept_claim_ids": selected_candidate_ids,
-            "dropped_claim_ids": [],
-            "unsupported_sentences": [],
-            "sentence_checks": [],
-            "evidence_bullets": [
-                f"- {item.get('source_anchor', '?')} {item.get('claim', '')} (direct)"
-                for item in evidence_items
-            ],
-            "evidence_status": "sufficient" if execution.get("status") == "ok" else "sparse",
-            "tasks": list(result_update.get("tasks") or []),
-            "artifacts": list(result_update.get("artifacts") or []),
+            "execution": execution,
+            "calculation_plan": dict(current_trace.get("calculation_plan") or {}),
+            "evidence_items": self._semantic_program_evidence_items(catalog, selected_ids),
         }
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:

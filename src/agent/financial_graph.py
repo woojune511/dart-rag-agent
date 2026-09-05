@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, cast
 
 from dotenv import load_dotenv
 
@@ -20,7 +20,14 @@ from src.agent.financial_agent_run_projection import (
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
-from src.agent.financial_graph_state import FinancialAgentState, FinancialAgentStateV2
+from src.agent.financial_graph_state import (
+    CandidateInput, CandidatesUpdate, CompilationInput, CompilationPhase,
+    CompilationUpdate, FinancialAgentState, FinancialAgentStateV2,
+    FinalResultUpdate, LedgerUpdate, NarrativeInput, NarrativeResultUpdate,
+    NumericExecutionInput, NumericResultPhase, NumericResultUpdate,
+    PlanningInput, RequirementsPhase, RequirementsUpdate, RetrievalInput,
+    RetrievalUpdate, RoutingInput, RoutingUpdate,
+)
 from src.agent.financial_run_result import (
     FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
     FinancialRunResultV1,
@@ -35,7 +42,7 @@ from src.agent.financial_task_artifacts import (
     project_task_artifact_trace,
     semantic_plan_artifact_update,
 )
-from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
+from src.config.retrieval_policy import EVIDENCE_RUNTIME_POLICY, SECTION_BIAS_BY_QUERY_TYPE
 
 
 logger = logging.getLogger(__name__)
@@ -50,10 +57,9 @@ FINANCIAL_GRAPH_PHASE_WRITERS = {
     "compilation": "compile_program",
     "numeric_result": "execute_numeric",
     "narrative_result": "build_narrative",
-    "ledger": "assemble_ledger",
     "final_result": "assemble_final",
+    "ledger": "assemble_ledger",
 }
-_FINANCIAL_PHASE_ORDER = tuple(FINANCIAL_GRAPH_PHASE_WRITERS)
 
 
 def _load_env_once() -> None:
@@ -69,46 +75,104 @@ def _financial_agent_state_model() -> Any:
     return FinancialAgentStateV2
 
 
-def project_financial_phase_state(
-    state: Mapping[str, Any],
-) -> Dict[str, Any]:
-    """Project phase envelopes into a private legacy method input view."""
-
-    if "request" not in state:
-        return dict(state)
-    projected: Dict[str, Any] = {}
-    for phase in _FINANCIAL_PHASE_ORDER:
-        payload = state.get(phase)
-        if isinstance(payload, Mapping):
-            projected.update(dict(payload))
-    ledger = state.get("ledger")
-    if isinstance(ledger, Mapping):
-        projected["tasks"] = [
-            dict(item)
-            for item in (ledger.get("tasks") or [])
-            if isinstance(item, Mapping)
-        ]
-        projected["artifacts"] = [
-            dict(item)
-            for item in (ledger.get("artifacts") or [])
-            if isinstance(item, Mapping)
-        ]
-    else:
-        projected.setdefault("tasks", [])
-        projected.setdefault("artifacts", [])
-    projected.setdefault("query_type", "qa")
-    projected.setdefault("intent", projected["query_type"])
-    projected.setdefault("companies", [])
-    projected.setdefault("years", [])
-    projected.setdefault("retrieved_docs", [])
-    return projected
+def routing_phase_input(state: FinancialAgentStateV2) -> RoutingInput:
+    request = state["request"]
+    return {"query": request["query"], "report_scope": dict(request["report_scope"])}
 
 
-def _without_ledger_records(update: Mapping[str, Any]) -> Dict[str, Any]:
+def planning_phase_input(state: FinancialAgentStateV2) -> PlanningInput:
+    request, routing = state["request"], state.get("routing", {})
     return {
-        key: value
-        for key, value in update.items()
-        if key not in {"tasks", "artifacts"}
+        "query": request["query"],
+        "report_scope": dict(request["report_scope"]),
+        "query_type": routing.get("query_type", "qa"),
+        "intent": routing.get("intent", routing.get("query_type", "qa")),
+        "format_preference": routing.get("format_preference", ""),
+        "companies": list(routing.get("companies", [])),
+        "years": list(routing.get("years", [])),
+        "topic": routing.get("topic", request["query"]),
+        "section_filter": routing.get("section_filter"),
+        "plan_loop_count": 0,
+    }
+
+
+def retrieval_phase_input(state: FinancialAgentStateV2) -> RetrievalInput:
+    request = state["request"]
+    routing, requirements = state.get("routing", {}), state.get("requirements", {})
+    return {
+        "query": request["query"],
+        "report_scope": dict(request["report_scope"]),
+        "query_type": routing.get("query_type", "qa"),
+        "intent": routing.get("intent", routing.get("query_type", "qa")),
+        "format_preference": routing.get("format_preference", ""),
+        "companies": list(requirements.get("companies", routing.get("companies", []))),
+        "years": list(requirements.get("years", routing.get("years", []))),
+        "topic": requirements.get("topic", routing.get("topic", request["query"])),
+        "section_filter": requirements.get("section_filter", routing.get("section_filter")),
+        "semantic_plan": dict(requirements.get("semantic_plan", {})),
+        "answer_obligations": list(requirements.get("answer_obligations", [])),
+        "active_subtask": dict(requirements.get("active_subtask", {})),
+        "retrieval_queries": list(requirements.get("retrieval_queries", [request["query"]])),
+    }
+
+
+def candidate_phase_input(state: FinancialAgentStateV2) -> CandidateInput:
+    retrieval = state.get("retrieval", {})
+    return {
+        "retrieved_docs": list(retrieval.get("retrieved_docs", [])),
+        "seed_retrieved_docs": list(retrieval.get("seed_retrieved_docs", [])),
+        "evidence_items": [],
+    }
+
+
+def compilation_phase_input(state: FinancialAgentStateV2) -> CompilationInput:
+    request = state["request"]
+    requirements, candidates = state.get("requirements", {}), state["candidates"]
+    retrieval = state.get("retrieval", {})
+    return {
+        "query": request["query"],
+        "report_scope": dict(request["report_scope"]),
+        "answer_obligations": list(requirements.get("answer_obligations", [])),
+        "semantic_plan": dict(requirements.get("semantic_plan", {})),
+        "active_subtask": dict(requirements.get("active_subtask", {})),
+        "semantic_source_candidates": list(candidates["semantic_source_candidates"]),
+        "semantic_candidate_catalog": list(candidates["semantic_candidate_catalog"]),
+        "semantic_candidate_catalog_prebuilt": True,
+        "retrieved_docs": list(retrieval.get("retrieved_docs", [])),
+        "seed_retrieved_docs": list(retrieval.get("seed_retrieved_docs", [])),
+        "retrieval_debug_trace": dict(retrieval.get("retrieval_debug_trace", {})),
+    }
+
+
+def numeric_phase_input(state: FinancialAgentStateV2) -> NumericExecutionInput:
+    request = state["request"]
+    requirements, compilation = state.get("requirements", {}), state.get("compilation", {})
+    result: NumericExecutionInput = {
+        "query": request["query"],
+        "report_scope": dict(request["report_scope"]),
+        "answer_obligations": list(requirements.get("answer_obligations", [])),
+        "active_subtask": dict(requirements.get("active_subtask", {})),
+        "semantic_candidate_catalog": list(state["candidates"]["semantic_candidate_catalog"]),
+        "semantic_program": dict(compilation.get("semantic_program", {})),
+        "resolved_calculation_trace": dict(compilation.get("resolved_calculation_trace", {})),
+    }
+    if "semantic_compilation_envelope" in compilation:
+        result["semantic_compilation_envelope"] = compilation["semantic_compilation_envelope"]
+    return result
+
+
+def narrative_phase_input(state: FinancialAgentStateV2) -> NarrativeInput:
+    request = state["request"]
+    routing, requirements = state.get("routing", {}), state.get("requirements", {})
+    return {
+        "query": request["query"],
+        "query_type": routing.get("query_type", "qa"),
+        "intent": routing.get("intent", routing.get("query_type", "qa")),
+        "format_preference": routing.get("format_preference", ""),
+        "topic": requirements.get("topic", routing.get("topic", request["query"])),
+        "semantic_plan": dict(requirements.get("semantic_plan", {})),
+        "active_subtask": dict(requirements.get("active_subtask", {})),
+        "retrieved_docs": list(state.get("retrieval", {}).get("retrieved_docs", [])),
     }
 
 
@@ -296,40 +360,41 @@ class FinancialAgent(
     def _route_request_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
-        classified = self._classify_query(flat)
-        extracted = self._extract_entities({**flat, **classified})
+    ) -> RoutingUpdate:
+        phase_input = routing_phase_input(state)
+        classified = self._classify_query(phase_input)
+        extracted = self._extract_entities(phase_input)
         return {"routing": {**classified, **extracted}}
 
     def _plan_requirements_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
+    ) -> RequirementsUpdate:
         planned = self._plan_answer_obligation_program(
-            project_financial_phase_state(state)
+            planning_phase_input(state)
         )
-        return {"requirements": _without_ledger_records(planned)}
+        return {"requirements": cast(RequirementsPhase, planned)}
 
     def _retrieve_evidence_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
-        retrieved = self._retrieve(flat)
-        expanded = self._expand_via_structure_graph({**flat, **retrieved})
+    ) -> RetrievalUpdate:
+        retrieved = self._retrieve(retrieval_phase_input(state))
+        expanded = self._expand_via_structure_graph(
+            {"retrieved_docs": list(retrieved.get("retrieved_docs") or [])}
+        )
         return {
-            "retrieval": _without_ledger_records({**retrieved, **expanded})
+            "retrieval": {**retrieved, **expanded}
         }
 
     def _build_candidates_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
-        source_candidates = self._semantic_source_candidates_for_state(flat)
+    ) -> CandidatesUpdate:
+        phase_input = candidate_phase_input(state)
+        source_candidates = self._semantic_source_candidates_for_state(phase_input)
         catalog = self._semantic_candidate_catalog_for_state(
-            flat,
+            phase_input,
             source_candidates=source_candidates,
         )
         return {
@@ -343,50 +408,72 @@ class FinancialAgent(
     def _compile_program_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
+    ) -> CompilationUpdate:
         compiled = self._compile_semantic_calculation_program(
-            project_financial_phase_state(state)
+            compilation_phase_input(state)
         )
-        return {"compilation": _without_ledger_records(compiled)}
+        return {"compilation": cast(CompilationPhase, compiled)}
 
     def _execute_numeric_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
+    ) -> NumericResultUpdate:
         executed = self._execute_semantic_calculation_program(
-            project_financial_phase_state(state)
+            numeric_phase_input(state)
         )
-        return {"numeric_result": _without_ledger_records(executed)}
+        return {"numeric_result": cast(NumericResultPhase, executed)}
 
     def _build_narrative_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
-        evidence = self._extract_evidence(flat)
-        compressed = self._compress_answer({**flat, **evidence})
-        validated = self._validate_answer(
-            {**flat, **evidence, **compressed}
-        )
+    ) -> NarrativeResultUpdate:
+        phase_input = narrative_phase_input(state)
+        evidence = self._extract_evidence(phase_input)
+        draft_input: NarrativeInput = {
+            **phase_input,
+            "evidence_items": list(evidence.get("evidence_items") or []),
+            "evidence_bullets": list(evidence.get("evidence_bullets") or []),
+            "evidence_status": str(evidence.get("evidence_status") or "missing"),
+        }
+        compressed = self._compress_answer(draft_input)
+        validation_input: NarrativeInput = {
+            **draft_input,
+            "evidence_items": list(compressed.get("evidence_items", draft_input["evidence_items"]) or []),
+            "selected_claim_ids": list(compressed.get("selected_claim_ids") or []),
+            "draft_points": list(compressed.get("draft_points") or []),
+            "compressed_answer": str(compressed.get("compressed_answer") or ""),
+        }
+        validated = self._validate_answer(validation_input)
         return {
-            "narrative_result": _without_ledger_records(
-                {**evidence, **compressed, **validated}
-            )
+            "narrative_result": {
+                "evidence_items": validation_input["evidence_items"],
+                "evidence_status": draft_input["evidence_status"],
+                "selected_claim_ids": validation_input["selected_claim_ids"],
+                "draft_points": validation_input["draft_points"],
+                "validated_sentences": list(validated.get("validated_sentences") or []),
+                "sentence_checks": list(validated.get("sentence_checks") or []),
+                "kept_claim_ids": list(validated.get("kept_claim_ids") or []),
+                "dropped_claim_ids": list(validated.get("dropped_claim_ids") or []),
+                "unsupported_sentences": list(validated.get("unsupported_sentences") or []),
+                "calculation_projection": dict(compressed.get("calculation_projection") or {}),
+            }
         }
 
     def _assemble_ledger_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
+    ) -> LedgerUpdate:
+        requirements = state.get("requirements", {})
+        final_result = state["final_result"]
+        agent_answer = final_result["agent_answer"]
         tasks: list[Dict[str, Any]] = []
         artifacts: list[Dict[str, Any]] = []
-        semantic_plan = dict(flat.get("semantic_plan") or {})
+        semantic_plan = dict(requirements.get("semantic_plan") or {})
         planned_tasks = [
             dict(item)
             for item in (
                 semantic_plan.get("tasks")
-                or flat.get("calc_subtasks")
+                or requirements.get("calc_subtasks")
                 or []
             )
             if isinstance(item, Mapping)
@@ -399,7 +486,7 @@ class FinancialAgent(
                     planned_tasks[0].get("task_id") or "task_1"
                 ),
                 semantic_plan=semantic_plan,
-                retrieval_queries=list(flat.get("retrieval_queries") or []),
+                retrieval_queries=list(requirements.get("retrieval_queries") or []),
                 summary="planned runtime answer obligations",
                 calculation_tasks=planned_tasks,
             )
@@ -408,7 +495,7 @@ class FinancialAgent(
 
         numeric_result = dict(state.get("numeric_result") or {})
         if numeric_result:
-            runtime_trace = dict(flat.get("resolved_calculation_trace") or {})
+            runtime_trace = dict(agent_answer.get("resolved_calculation_trace") or {})
             operands = [
                 dict(item)
                 for item in (runtime_trace.get("calculation_operands") or [])
@@ -420,18 +507,18 @@ class FinancialAgent(
             calculation_result = dict(
                 runtime_trace.get("calculation_result") or {}
             )
-            active_task = dict(flat.get("active_subtask") or {})
+            active_task = dict(requirements.get("active_subtask") or {})
             task_id = str(active_task.get("task_id") or "task_1")
             task_label = str(
                 active_task.get("metric_label")
                 or active_task.get("metric_family")
                 or task_id
             )
-            query = str(flat.get("query") or "")
+            query = state["request"]["query"]
             metric_family = str(
                 active_task.get("metric_family") or "semantic_program"
             )
-            selected_ids = list(flat.get("selected_claim_ids") or [])
+            selected_ids = list(final_result.get("selected_claim_ids") or [])
             operand_ledger = operand_set_artifact_update(
                 tasks=tasks,
                 artifacts=artifacts,
@@ -476,10 +563,10 @@ class FinancialAgent(
             tasks = list(result_ledger["tasks"])
             artifacts = list(result_ledger["artifacts"])
 
-        final_answer = _normalise_spaces(str(flat.get("answer") or ""))
+        final_answer = str(agent_answer.get("answer") or "")
         selected_ids = list(
-            flat.get("kept_claim_ids")
-            or flat.get("selected_claim_ids")
+            final_result.get("kept_claim_ids")
+            or final_result.get("selected_claim_ids")
             or []
         )
         aggregate_ledger = aggregate_answer_artifact_update(
@@ -488,14 +575,15 @@ class FinancialAgent(
             final_answer=final_answer,
             payload={
                 "final_answer": final_answer,
-                "structured_result": dict(flat.get("structured_result") or {}),
+                "evidence_items": list(final_result["review_trace"].get("evidence_items") or []),
+                "structured_result": dict(agent_answer.get("structured_result") or {}),
                 "resolved_calculation_trace": dict(
-                    flat.get("resolved_calculation_trace") or {}
+                    agent_answer.get("resolved_calculation_trace") or {}
                 ),
             },
             evidence_refs=selected_ids,
-            planner_feedback=str(flat.get("planner_feedback") or ""),
-            query=str(flat.get("query") or ""),
+            planner_feedback=str(requirements.get("planner_feedback") or ""),
+            query=state["request"]["query"],
         )
         tasks = list(aggregate_ledger["tasks"])
         artifacts = list(aggregate_ledger["artifacts"])
@@ -513,33 +601,118 @@ class FinancialAgent(
     def _assemble_final_phase(
         self,
         state: FinancialAgentStateV2,
-    ) -> Dict[str, Any]:
-        flat = project_financial_phase_state(state)
-        citation_update = self._format_citations(flat)
+    ) -> FinalResultUpdate:
+        request = state["request"]
+        routing, requirements = state.get("routing", {}), state.get("requirements", {})
+        retrieval, compilation = state.get("retrieval", {}), state.get("compilation", {})
+        narrative = state.get("narrative_result", {})
+        numeric = state.get("numeric_result")
+        obligations = list(requirements.get("answer_obligations") or [])
+        if numeric is not None:
+            from src.agent.financial_calculation_execution import assemble_semantic_execution_result
+
+            execution = numeric["execution"]
+            assembled = assemble_semantic_execution_result(
+                execution=execution,
+                obligations=obligations,
+                calculation_plan=numeric["calculation_plan"],
+                query=request["query"],
+            )
+            evidence_items = list(numeric["evidence_items"])
+            selected_ids = list(execution.get("selected_candidate_ids") or [])
+            kept_ids = list(selected_ids)
+            missing_info = list(execution.get("missing_obligation_ids") or [])
+        else:
+            answer = _normalise_spaces(" ".join(narrative.get("validated_sentences") or []))
+            if not answer:
+                answer = str(EVIDENCE_RUNTIME_POLICY.get("no_direct_evidence_answer") or "")
+            assembled = {
+                "answer": answer,
+                "structured_result": {},
+                "resolved_calculation_trace": dict(narrative.get("calculation_projection") or {}),
+                "subtask_results": [],
+            }
+            evidence_items = list(narrative.get("evidence_items") or [])
+            selected_ids = list(narrative.get("selected_claim_ids") or [])
+            kept_ids = list(narrative.get("kept_claim_ids") or [])
+            missing_info = []
+
+        # Explicit caller projection: no phase dictionary can overwrite another.
+        context = {
+            "query": request["query"],
+            "report_scope": dict(request["report_scope"]),
+            "query_type": routing.get("query_type", "qa"),
+            "intent": routing.get("intent", routing.get("query_type", "qa")),
+            "format_preference": routing.get("format_preference", ""),
+            "routing_source": routing.get("routing_source", ""),
+            "routing_confidence": routing.get("routing_confidence", 0.0),
+            "routing_scores": dict(routing.get("routing_scores", {})),
+            "routing_degraded_reason": routing.get("routing_degraded_reason", ""),
+            "companies": list(requirements.get("companies", routing.get("companies", []))),
+            "years": list(requirements.get("years", routing.get("years", []))),
+            "topic": requirements.get("topic", routing.get("topic", request["query"])),
+            "planner_mode": requirements.get("planner_mode", "initial"),
+            "planner_feedback": requirements.get("planner_feedback", ""),
+            "plan_loop_count": requirements.get("plan_loop_count", 0),
+            "target_metric_family": routing.get("target_metric_family", ""),
+            "target_metric_family_hint": routing.get("target_metric_family_hint", ""),
+            "planned_metric_families": list(requirements.get("planned_metric_families", [])),
+            "semantic_plan": dict(requirements.get("semantic_plan", {})),
+            "answer_obligations": obligations,
+            "calc_subtasks": list(requirements.get("calc_subtasks", [])),
+            "retrieval_queries": list(requirements.get("retrieval_queries", [])),
+            "active_subtask": dict(requirements.get("active_subtask", {})),
+            "active_subtask_index": requirements.get("active_subtask_index", 0),
+            "subtask_debug_trace": dict(requirements.get("subtask_debug_trace", {})),
+            "subtask_loop_complete": True,
+            "seed_retrieved_docs": list(retrieval.get("seed_retrieved_docs", [])),
+            "retrieved_docs": list(retrieval.get("retrieved_docs", [])),
+            "retrieval_debug_trace": dict(retrieval.get("retrieval_debug_trace", {})),
+            "retrieval_debug_trace_history": list(retrieval.get("retrieval_debug_trace_history", [])),
+            "semantic_candidate_catalog": list(state.get("candidates", {}).get("semantic_candidate_catalog", [])),
+            "semantic_program": dict(compilation.get("semantic_program", {})),
+            "semantic_program_validation": dict(compilation.get("semantic_program_validation", {})),
+            "semantic_program_retry_count": compilation.get("semantic_program_retry_count", 0),
+            "planner_debug_trace": dict(compilation.get("planner_debug_trace", {})),
+            "calculation_debug_trace": dict(compilation.get("calculation_debug_trace", {})),
+            "answer": str(assembled.get("answer") or ""),
+            "structured_result": dict(assembled.get("structured_result") or {}),
+            "resolved_calculation_trace": dict(assembled.get("resolved_calculation_trace") or {}),
+            "subtask_results": list(assembled.get("subtask_results") or []),
+            "evidence_items": evidence_items,
+            "runtime_evidence": evidence_items,
+            "selected_claim_ids": selected_ids,
+            "kept_claim_ids": kept_ids,
+            "draft_points": list(narrative.get("draft_points") or []),
+            "dropped_claim_ids": list(narrative.get("dropped_claim_ids") or []),
+            "unsupported_sentences": list(narrative.get("unsupported_sentences") or []),
+            "sentence_checks": list(narrative.get("sentence_checks") or []),
+            "missing_info": missing_info,
+        }
+        runtime_trace = self._project_runtime_calculation_trace(context)
+        structured_result = dict(context["structured_result"] or runtime_trace.get("calculation_result") or {})
+        public_answer = _normalise_spaces(context["answer"])
+        structured_answer = structured_result_answer_for_missing_public_answer(public_answer, structured_result)
+        if structured_answer:
+            public_answer = structured_answer
+        runtime_evidence = self._runtime_evidence_from_retrieved_docs(context)
+        citation_update = self._format_citations(context)
+        citations = augment_citations_from_runtime_evidence(
+            list(citation_update.get("citations") or []), runtime_evidence
+        )
+        agent_answer = project_agent_answer(
+            context, public_answer=public_answer, citations=citations,
+            structured_result=structured_result, runtime_calculation_trace=runtime_trace,
+        )
         return {
             "final_result": {
-                "answer": _normalise_spaces(str(flat.get("answer") or "")),
-                "compressed_answer": _normalise_spaces(
-                    str(flat.get("compressed_answer") or "")
+                "agent_answer": agent_answer,
+                "review_trace": project_review_trace(
+                    context, runtime_evidence=runtime_evidence, task_artifact_trace={}
                 ),
-                "citations": list(citation_update.get("citations") or []),
-                "structured_result": dict(flat.get("structured_result") or {}),
-                "resolved_calculation_trace": dict(
-                    flat.get("resolved_calculation_trace") or {}
-                ),
-                "runtime_evidence": [
-                    dict(item)
-                    for item in (
-                        flat.get("runtime_evidence")
-                        or flat.get("evidence_items")
-                        or []
-                    )
-                    if isinstance(item, Mapping)
-                ],
-                "selected_claim_ids": list(
-                    flat.get("selected_claim_ids") or []
-                ),
-                "kept_claim_ids": list(flat.get("kept_claim_ids") or []),
+                "debug_traces": project_debug_traces(context),
+                "selected_claim_ids": selected_ids,
+                "kept_claim_ids": kept_ids,
             }
         }
 
@@ -572,10 +745,10 @@ class FinancialAgent(
         )
         graph.add_edge("build_candidates", "compile_program")
         graph.add_edge("compile_program", "execute_numeric")
-        graph.add_edge("execute_numeric", "assemble_ledger")
-        graph.add_edge("build_narrative", "assemble_ledger")
-        graph.add_edge("assemble_ledger", "assemble_final")
-        graph.add_edge("assemble_final", END)
+        graph.add_edge("execute_numeric", "assemble_final")
+        graph.add_edge("build_narrative", "assemble_final")
+        graph.add_edge("assemble_final", "assemble_ledger")
+        graph.add_edge("assemble_ledger", END)
         return graph.compile()
 
     @staticmethod
@@ -609,7 +782,7 @@ class FinancialAgent(
             reset_embedding_usage()
 
         graph_final = self.graph.invoke(self._initial_state(query, report_scope))
-        final = project_financial_phase_state(graph_final)
+        final = graph_final["final_result"]
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         llm_usage_by_phase = (
             usage_callback.snapshot_current_thread_by_phase() if usage_callback is not None else {}
@@ -617,47 +790,18 @@ class FinancialAgent(
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
 
-        runtime_calculation_trace = self._project_runtime_calculation_trace(final)
-        public_answer = _normalise_spaces(str(final.get("answer") or ""))
-        structured_result = dict(
-            final.get("structured_result")
-            or runtime_calculation_trace.get("calculation_result")
-            or {}
-        )
-        structured_answer = structured_result_answer_for_missing_public_answer(
-            public_answer,
-            structured_result,
-        )
-        if structured_answer:
-            public_answer = structured_answer
-        runtime_evidence = self._runtime_evidence_from_retrieved_docs(final)
-        citations = augment_citations_from_runtime_evidence(
-            list(final.get("citations") or []),
-            runtime_evidence,
-        )
-        task_artifact_trace = project_task_artifact_trace(
-            list(final.get("tasks") or []),
-            list(final.get("artifacts") or []),
-        )
-        agent_answer = project_agent_answer(
-            final,
-            public_answer=public_answer,
-            citations=citations,
-            structured_result=structured_result,
-            runtime_calculation_trace=runtime_calculation_trace,
-        )
-        review_trace = (
-            project_review_trace(
-                final,
-                runtime_evidence=runtime_evidence,
-                task_artifact_trace=task_artifact_trace,
-            )
-            if include_review_trace
-            else None
-        )
+        review_trace = None
+        if include_review_trace:
+            ledger = graph_final["ledger"]
+            review_trace = {
+                **final["review_trace"],
+                "tasks": list(ledger["tasks"]),
+                "artifacts": list(ledger["artifacts"]),
+                "task_artifact_trace": dict(ledger["task_artifact_trace"]),
+            }
         debug_bundle = (
             project_debug_bundle(
-                debug_traces=project_debug_traces(final),
+                debug_traces=final["debug_traces"],
                 llm_usage=llm_usage,
                 llm_usage_by_phase=llm_usage_by_phase,
                 embedding_usage=embedding_usage,
@@ -667,7 +811,7 @@ class FinancialAgent(
         )
         return FinancialRunResultV1(
             schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
-            agent_answer=agent_answer,
+            agent_answer=final["agent_answer"],
             review_trace=review_trace,
             debug_bundle=debug_bundle,
         )

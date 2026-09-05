@@ -143,8 +143,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
-        executed = agent._execute_semantic_calculation_program({**state, **compiled})
-        self.assertNotIn("semantic_program_validation", executed)
+        executed = execute_compiled_fixture(agent, {**state, **compiled}, catalog)
         self.assertEqual(
             json.dumps(
                 compiled["semantic_program_validation"],
@@ -749,7 +748,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(len(trace["calculation_operands"]), 2)
         merged = {**state, **compiled}
-        executed = agent._execute_semantic_calculation_program(merged)
+        executed = execute_compiled_fixture(agent, merged, catalog)
         executed_trace = executed["resolved_calculation_trace"]
         self.assertEqual(executed_trace["calculation_result"]["semantic_status"], "ok")
         self.assertAlmostEqual(executed_trace["calculation_result"]["result_value"], (380 - 343) / 343 * 100)
@@ -1377,7 +1376,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
         self.assertEqual(llm.models, ["SemanticCalculationProgram"])
         self.assertEqual(len(llm.prompts), 1)
-        executed = agent._execute_semantic_calculation_program({**state, **compiled})
+        executed = execute_compiled_fixture(agent, {**state, **compiled}, fixture["candidate_catalog"])
         self.assertEqual(executed["structured_result"]["status"], "ok")
         self.assertIn("10.2% (recalculated 10%)", executed["answer"])
         trace = executed["resolved_calculation_trace"]

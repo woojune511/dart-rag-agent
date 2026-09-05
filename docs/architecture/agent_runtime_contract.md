@@ -203,17 +203,24 @@ otherwise independent outputs together.
 
 `FinancialAgentStateV2` phases are `request`, `routing`, `requirements`,
 `retrieval`, `candidates`, `compilation`, `numeric_result | narrative_result`,
-`ledger`, and `final_result`.
+`final_result`, and `ledger`.
 
-Every graph node writes exactly one top-level phase key. Diagnostics stay inside
+Concrete phase input/output TypedDicts define static shapes, not runtime
+immutability. Owners receive explicitly projected fields, never a full-phase
+dictionary merge. Every graph node writes exactly one top-level phase key. Diagnostics stay inside
 the phase that produced them. A phase transition moves its downstream readers in
 the same change; long-lived dual-write is forbidden.
 
 Intermediate nodes do not write `tasks`, `artifacts`, or the final answer.
-`assemble_ledger` creates one `LedgerSnapshot` from phase results.
+Numeric execution returns calculation rows, display slots, and evidence;
+narrative validation returns supported sentences and evidence.
+`assemble_ledger` records the already completed public answer, structured result,
+trace, and narrative source material as one `LedgerSnapshot`.
 `assemble_final` is the only graph node that assembles answer, citations, and
 structured result. The checked node/edge list is generated in
 [runtime_flow_roles.md](../overview/runtime_flow_roles.md).
+The final edges are `assemble_final → assemble_ledger → END`; `run()` packages
+typed results and telemetry without modifying answers, citations, or evidence.
 
 ## 6. Compilation islands
 

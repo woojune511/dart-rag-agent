@@ -62,7 +62,7 @@ from src.routing import default_format_preference
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
-    from src.agent.financial_graph_state import FinancialAgentState
+    from src.agent.financial_graph_state import FinancialAgentState, RetrievalInput, RetrievalPhase
 
 
 logger = logging.getLogger(__name__)
@@ -2432,7 +2432,7 @@ class FinancialRetrievalPipelineMixin:
             "retrieval_query_result_cache": retrieval_query_result_cache,
         }
 
-    def _retrieve(self, state: FinancialAgentState) -> Dict[str, Any]:
+    def _retrieve(self, state: RetrievalInput) -> RetrievalPhase:
         """Run the four retrieval boundary stages in a stable order."""
         plan = self._build_plan(state)
         searches = self._execute_searches(state, plan)

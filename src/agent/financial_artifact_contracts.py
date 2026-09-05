@@ -167,6 +167,7 @@ def _missing_aggregated_answer_payload_contract(payload: Mapping[str, Any]) -> s
         payload.get("subtask_results"),
         payload.get("source_artifact_ids"),
         payload.get("source_task_ids"),
+        payload.get("evidence_items"),
     ]
     source_maps = [
         payload.get("resolved_calculation_trace"),

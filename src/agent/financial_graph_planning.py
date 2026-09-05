@@ -16,9 +16,6 @@ from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
     resolve_runtime_calculation_trace,
 )
-from src.agent.financial_task_artifacts import (
-    semantic_plan_artifact_update as _semantic_plan_artifact_update,
-)
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     PLANNING_POLICY,
@@ -28,7 +25,7 @@ from src.config.retrieval_policy import (
 )
 
 if TYPE_CHECKING:
-    from src.agent.financial_graph_state import FinancialAgentState
+    from src.agent.financial_graph_state import FinancialAgentState, PlanningInput, RequirementsPhase, RoutingInput, RoutingPhase
 
 
 logger = logging.getLogger(__name__)
@@ -109,7 +106,7 @@ def align_scope_hints(
 class FinancialAgentPlanningMixin:
     """Own the pre-retrieval semantic contract, without operation classification."""
 
-    def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
+    def _classify_query(self, state: RoutingInput) -> RoutingPhase:
         result = self.query_router.route(state["query"])
         return {
             "query_type": result.intent,
@@ -568,15 +565,6 @@ class FinancialAgentPlanningMixin:
             "tasks": [narrative_task],
             "planner_notes": ["exclusive_narrative_task_policy"],
         }
-        ledger_update = _semantic_plan_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            artifact_task_id="task_1",
-            semantic_plan=semantic_plan,
-            retrieval_queries=retrieval_queries,
-            summary="planned exclusive narrative retrieval",
-            calculation_tasks=[narrative_task],
-        )
         companies, years = align_scope_hints(
             companies=list(state.get("companies") or []),
             years=list(state.get("years") or []),
@@ -603,13 +591,11 @@ class FinancialAgentPlanningMixin:
                 "task_count": 0,
             },
             "subtask_loop_complete": True,
-            "tasks": list(ledger_update["tasks"]),
-            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _plan_answer_obligation_program(
-        self, state: FinancialAgentState
-    ) -> Dict[str, Any]:
+        self, state: PlanningInput
+    ) -> RequirementsPhase:
         intent = state.get("intent") or state.get("query_type", "qa")
         query = str(state.get("query") or "")
         topic = str(state.get("topic") or query)
@@ -655,8 +641,6 @@ class FinancialAgentPlanningMixin:
                 "subtask_results": [],
                 "subtask_debug_trace": {"reason": "non_numeric_intent"},
                 "subtask_loop_complete": True,
-                "tasks": list(state.get("tasks") or []),
-                "artifacts": list(state.get("artifacts") or []),
             }
 
         plan = self._build_llm_requirement_plan(
@@ -689,19 +673,6 @@ class FinancialAgentPlanningMixin:
             "planner_notes": list(plan.get("planner_notes") or []),
             "requirement_errors": list(plan.get("requirement_errors") or []),
         }
-        ledger_update = _semantic_plan_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            artifact_task_id=str(active_subtask.get("task_id") or "task_1"),
-            semantic_plan=semantic_plan,
-            retrieval_queries=retrieval_queries,
-            summary=f"planned {len(obligations)} answer obligation(s)",
-            calculation_tasks=tasks,
-            payload_extra={
-                "answer_obligations": obligations,
-                "program_required": True,
-            },
-        )
         companies, years = align_scope_hints(
             companies=list(plan.get("companies") or state.get("companies") or []),
             years=list(plan.get("years") or state.get("years") or []),
@@ -736,8 +707,6 @@ class FinancialAgentPlanningMixin:
                 "planner_notes": list(semantic_plan.get("planner_notes") or []),
             },
             "subtask_loop_complete": False,
-            "tasks": list(ledger_update["tasks"]),
-            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _calc_query(self, state: FinancialAgentState) -> str:

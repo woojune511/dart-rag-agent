@@ -14,7 +14,6 @@ from src.agent.financial_reconciliation_candidates import (
 from src.agent.financial_graph import (
     FINANCIAL_GRAPH_PHASE_WRITERS,
     FinancialAgent,
-    project_financial_phase_state,
 )
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
@@ -255,7 +254,7 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             {"ob_value": ["cand-visible"]},
         )
 
-    def test_phase_projection_and_single_writer_ledger_are_deterministic(self) -> None:
+    def test_final_answer_single_writer_ledger_is_deterministic(self) -> None:
         state = {
             "request": {"query": "return value", "report_scope": {}},
             "requirements": {
@@ -311,6 +310,21 @@ class FinancialRuntimeContractTests(unittest.TestCase):
                 },
             },
         }
+        numeric = state["numeric_result"]
+        state["final_result"] = {
+            "agent_answer": {
+                "answer": numeric["answer"],
+                "structured_result": numeric["structured_result"],
+                "resolved_calculation_trace": numeric["resolved_calculation_trace"],
+            },
+            "selected_claim_ids": numeric["selected_claim_ids"],
+            "kept_claim_ids": numeric["kept_claim_ids"],
+            "review_trace": {}, "debug_traces": {},
+        }
+        state["numeric_result"] = {
+            "execution": {"status": "ok"},
+            "calculation_plan": {}, "evidence_items": [],
+        }
         agent = object.__new__(FinancialAgent)
 
         first = agent._assemble_ledger_phase(state)
@@ -323,7 +337,7 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             "ok",
         )
         self.assertNotIn("tasks", state)
-        self.assertEqual(project_financial_phase_state(state)["tasks"], [])
+        self.assertNotIn("ledger", state)
         self.assertEqual(len(set(FINANCIAL_GRAPH_PHASE_WRITERS.values())), 10)
 
 

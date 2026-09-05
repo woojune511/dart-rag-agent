@@ -2433,7 +2433,11 @@ def validate_semantic_calculation_program(
         if assertion_error:
             target_ids = related_obligation_ids or sorted(produced) or [""]
             for obligation_id in target_ids:
-                error(assertion_error, obligation_id, detail)
+                error(
+                    assertion_error, obligation_id, detail,
+                    candidate_id=candidate_ids[0] if len(candidate_ids) == 1 else "",
+                    location="source_assertion",
+                )
                 if obligation_id:
                     invalid_assertion_obligation_ids.add(obligation_id)
             continue
@@ -2464,7 +2468,10 @@ def validate_semantic_calculation_program(
         for candidate_id in candidate_ids:
             if candidate_id in asserted_candidate_ids:
                 continue
-            error("missing_source_assertion", obligation_id, candidate_id)
+            error(
+                "missing_source_assertion", obligation_id, candidate_id,
+                candidate_id=candidate_id, location="source_assertion",
+            )
             invalid_assertion_obligation_ids.add(obligation_id)
 
     if invalid_assertion_obligation_ids:
@@ -2964,7 +2971,11 @@ def _fail_closed_semantic_validation(
             for item in (validation.get("errors") or [])
             if isinstance(item, Mapping)
         ],
-        {"code": code, "obligation_id": "", "detail": detail},
+        {
+            "code": code, "obligation_id": "", "detail": detail,
+            "owner_id": "", "candidate_id": "",
+            "location": "compilation_envelope", "repair_action": "repair_program",
+        },
     ]
     failed["valid_direct_bindings"] = []
     failed["valid_expressions"] = []
@@ -3354,13 +3365,6 @@ def execute_semantic_calculation_program(
     else:
         status = "incomplete"
 
-    answer = _render_semantic_program_answer(
-        query=query,
-        obligations=obligation_rows,
-        outputs=outputs,
-        missing_ids=missing_ids,
-    )
-
     numeric_outputs = [
         outputs[str(obligation.get("obligation_id") or "")]
         for obligation in obligation_rows
@@ -3406,7 +3410,6 @@ def execute_semantic_calculation_program(
         "calculated_result_value": primary.get("normalized_value"),
         "result_unit": str(primary.get("result_unit") or ""),
         "rendered_value": str(primary.get("rendered_value") or ""),
-        "formatted_result": answer,
         "series": [],
         "answer_slots": (
             {
@@ -3441,7 +3444,6 @@ def execute_semantic_calculation_program(
     }
     return {
         "status": status,
-        "answer": answer,
         "outputs": list(outputs.values()),
         "outputs_by_obligation": outputs,
         "missing_obligation_ids": missing_ids,
@@ -3451,3 +3453,61 @@ def execute_semantic_calculation_program(
         "validation": validation,
         "execution_errors": execution_errors,
     }
+
+
+def assemble_semantic_execution_result(
+    *, execution: Mapping[str, Any], obligations: Sequence[Mapping[str, Any]],
+    calculation_plan: Mapping[str, Any], query: str,
+) -> Dict[str, Any]:
+    """Pure final-assembly projection; numeric execution never writes an answer."""
+    from copy import deepcopy
+
+    outputs = deepcopy(dict(execution.get("outputs_by_obligation") or {}))
+    answer = _render_semantic_program_answer(
+        query=query, obligations=obligations, outputs=outputs,
+        missing_ids=list(execution.get("missing_obligation_ids") or []),
+    )
+    result = deepcopy(dict(execution.get("calculation_result") or {}))
+    operation = str(dict(result.get("derived_metrics") or {}).get("operation_family") or "formula")
+    result.update(formatted_result=answer, operation_family=operation)
+    plan = deepcopy(dict(calculation_plan))
+    plan["operation_family"] = operation
+    trace = {
+        "calculation_operands": deepcopy(list(execution.get("calculation_operands") or [])),
+        "calculation_plan": plan,
+        "calculation_result": result,
+    }
+    rows = []
+    for output in outputs.values():
+        obligation_id = str(output.get("obligation_id") or "")
+        family = str(output.get("operation_family") or "formula")
+        slot = dict(output.get("answer_slot") or {})
+        rows.append({
+            "task_id": f"task_1:{obligation_id}", "metric_family": "semantic_program",
+            "metric_label": str(output.get("label") or obligation_id),
+            "operation_family": family, "status": str(output.get("status") or "ok"),
+            "answer": _normalise_spaces(str(output.get("text") or "") if output.get("kind") == "narrative"
+                else f"{output.get('label') or obligation_id}: {output.get('rendered_value') or ''}"),
+            "calculation_result": {
+                "status": str(output.get("status") or "ok"), "operation_family": family,
+                "result_value": slot.get("normalized_value", output.get("normalized_value")),
+                "calculated_result_value": output.get("normalized_value"),
+                "result_unit": str(output.get("result_unit") or ""),
+                "rendered_value": str(output.get("rendered_value") or ""),
+                "answer_slots": {"operation_family": "lookup" if family == "lookup" else "single_value",
+                    "metric_label": str(output.get("label") or obligation_id), "primary_value": slot} if slot else {},
+                "derived_metrics": {"operation_family": family},
+                "source_row_ids": list(output.get("source_row_ids") or []),
+            },
+            "source_row_ids": list(output.get("source_row_ids") or []),
+            "source_evidence_ids": list(output.get("candidate_ids") or []),
+        })
+    structured_result = {
+        "status": str(execution.get("status") or "incomplete"),
+        "answer": answer, "final_answer": answer, "subtask_results": rows,
+        "answer_obligations": deepcopy(list(obligations)),
+        "missing_obligation_ids": list(execution.get("missing_obligation_ids") or []),
+        "resolved_calculation_trace": trace,
+    }
+    return {"answer": answer, "structured_result": structured_result,
+        "resolved_calculation_trace": trace, "subtask_results": rows}

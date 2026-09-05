@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from collections.abc import Mapping
+from unittest.mock import Mock
 
 from src.agent.financial_agent_run_projection import (
     project_query_retrieval_status,
@@ -136,14 +137,33 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "artifacts": [],
         }
         agent = object.__new__(FinancialAgent)
-        agent.graph = _Graph(final)
+        agent.graph = _Graph({
+            "final_result": {
+                "agent_answer": {
+                    key: final[key]
+                    for key in (
+                        "query", "report_scope", "query_type", "intent", "companies",
+                        "years", "answer", "citations", "resolved_calculation_trace",
+                        "structured_result",
+                    )
+                },
+                "review_trace": {"evidence_items": final["runtime_evidence"]},
+                "debug_traces": {},
+                "selected_claim_ids": ["cand_a"],
+                "kept_claim_ids": ["cand_a"],
+            },
+            "ledger": {"tasks": [], "artifacts": [], "task_artifact_trace": {"integrity_status": "ok"}},
+        })
         agent.vsm = _VectorStore()
         agent.llm_usage_callback = None
-        agent._project_runtime_calculation_trace = lambda _state: trace
+        agent._project_runtime_calculation_trace = Mock(side_effect=AssertionError("run must only package graph results"))
+        agent._runtime_evidence_from_retrieved_docs = Mock(side_effect=AssertionError("run must not reconstruct evidence"))
         result = agent.run("return the value", include_review_trace=True)
         self.assertEqual(result.schema_version, FINANCIAL_RUN_RESULT_SCHEMA_VERSION)
         self.assertEqual(result.agent_answer["answer"], "canonical answer: 10")
         self.assertEqual(result.agent_answer["resolved_calculation_trace"], trace)
+        self.assertEqual(result.agent_answer["citations"], [])
+        self.assertEqual(result.review_trace["task_artifact_trace"]["integrity_status"], "ok")
         self.assertEqual(
             [item["evidence_id"] for item in result.review_trace["evidence_items"]],
             ["cand_a"],
@@ -168,7 +188,17 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "artifacts": [],
         }
         agent = object.__new__(FinancialAgent)
-        agent.graph = _Graph(final)
+        agent.graph = _Graph({
+            "final_result": {
+                "agent_answer": {
+                    key: final[key]
+                    for key in ("query", "report_scope", "query_type", "companies", "years", "answer", "citations")
+                },
+                "review_trace": {}, "debug_traces": {},
+                "selected_claim_ids": [], "kept_claim_ids": [],
+            },
+            "ledger": {"tasks": [], "artifacts": [], "task_artifact_trace": {}},
+        })
         agent.vsm = _VectorStore()
         agent.llm_usage_callback = None
         agent._project_runtime_calculation_trace = lambda _state: {}

@@ -39,7 +39,7 @@ from src.agent.financial_surface_contracts import (
 )
 if TYPE_CHECKING:
     from src.agent.financial_graph_models import EvidenceItem
-    from src.agent.financial_graph_state import FinancialAgentState
+    from src.agent.financial_graph_state import FinancialAgentState, NarrativeInput, NarrativeResultPhase
 from src.agent.financial_operation_policies import (
     query_requests_narrative_context,
 )
@@ -2372,7 +2372,7 @@ class FinancialAgentEvidenceMixin:
             }
 
 
-    def _validate_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
+    def _validate_answer(self, state: NarrativeInput) -> NarrativeResultPhase:
         """Check whether the drafted narrative answer is supported by evidence."""
         compressed_answer = state.get("compressed_answer", "")
         if not compressed_answer:
@@ -2381,7 +2381,7 @@ class FinancialAgentEvidenceMixin:
                 "dropped_claim_ids": [],
                 "unsupported_sentences": [],
                 "sentence_checks": [],
-                "answer": compressed_answer,
+                "validated_sentences": [],
             }
 
         query_type = state.get("query_type", "qa")
@@ -2458,7 +2458,7 @@ class FinancialAgentEvidenceMixin:
                             "supporting_claim_ids": supporting_claim_ids,
                         }
                     ],
-                    "answer": str(deterministic_dividend_answer.get("answer") or ""),
+                    "validated_sentences": [str(deterministic_dividend_answer.get("answer") or "")],
                 }
             augmented_answer = self._augment_narrative_answer_with_supported_drivers(
                 str(normalized_result.get("answer") or ""),
@@ -2467,6 +2467,8 @@ class FinancialAgentEvidenceMixin:
             )
             if augmented_answer:
                 normalized_result["answer"] = augmented_answer
+            validated_text = str(normalized_result.pop("answer", "") or "")
+            normalized_result["validated_sentences"] = [validated_text] if validated_text else []
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
@@ -2517,7 +2519,7 @@ class FinancialAgentEvidenceMixin:
                             "supporting_claim_ids": supporting_claim_ids,
                         }
                     ],
-                    "answer": str(deterministic_dividend_answer.get("answer") or ""),
+                    "validated_sentences": [str(deterministic_dividend_answer.get("answer") or "")],
                 }
             augmented_answer = self._augment_narrative_answer_with_supported_drivers(
                 str(normalized_result.get("answer") or ""),
@@ -2526,4 +2528,6 @@ class FinancialAgentEvidenceMixin:
             )
             if augmented_answer:
                 normalized_result["answer"] = augmented_answer
+            validated_text = str(normalized_result.pop("answer", "") or "")
+            normalized_result["validated_sentences"] = [validated_text] if validated_text else []
             return normalized_result

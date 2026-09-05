@@ -49,24 +49,27 @@ edges:
   retrieve_evidence -- build_narrative --> build_narrative
   build_candidates -> compile_program
   compile_program -> execute_numeric
-  execute_numeric -> assemble_ledger
-  build_narrative -> assemble_ledger
-  assemble_ledger -> assemble_final
-  assemble_final -> END
+  execute_numeric -> assemble_final
+  build_narrative -> assemble_final
+  assemble_final -> assemble_ledger
+  assemble_ledger -> END
 ```
 <!-- END GENERATED FINANCIAL GRAPH TOPOLOGY -->
 
-각 node는 `FinancialAgentStateV2`의 자기 phase key 하나만 쓴다. `ledger`는
-`assemble_ledger`가 한 번 만들고, `answer`, citation, structured result의 공통
-조립은 `assemble_final` 이후 public projection에서만 수행한다.
+각 node는 명시적인 typed input projection을 읽고 `FinancialAgentStateV2`의 자기
+phase key 하나만 쓴다. Numeric/narrative node는 계산 결과와 검증된 근거만
+반환한다. `assemble_final`만 answer, citation, structured result를 조립하고,
+`assemble_ledger`는 이 확정된 결과로 ledger를 한 번 만든다. `run()`은 완성된
+결과와 opt-in review/debug를 포장할 뿐 답변이나 근거를 다시 계산하지 않는다.
 
 ## Numeric compilation boundary
 
 Numeric 또는 mixed request는 requirement의 dependency와 non-empty
 `coupling_key`만으로 compilation island를 만든다. 각 island는 독립 candidate
 visibility와 prompt를 가지며 순차 compile된다. Compiler가 만든 immutable
-`CompilationEnvelopeV1`을 validator와 executor가 공유한다. executor는 catalog,
-visibility, validation fingerprint가 달라지면 실행 전에 fail-closed한다.
+`CompilationEnvelopeV2`를 validator와 executor가 공유한다. executor는 catalog,
+obligation, source bundle, visibility, validation fingerprint가 달라지면 실행 전에
+fail-closed한다.
 
 Candidate 생성과 물리 provenance는
 [financial_reconciliation_candidates.py](../../src/agent/financial_reconciliation_candidates.py),
