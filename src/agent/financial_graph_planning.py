@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_model_loaders import requirement_planner_output_model
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
 from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
@@ -218,6 +218,7 @@ class FinancialAgentPlanningMixin:
         query_consolidation_scopes = explicit_query_consolidation_scopes(query)
         allowed_query_consolidation_scopes = set(query_consolidation_scopes)
         target_notes: List[str] = []
+        requirement_errors: List[Dict[str, str]] = []
 
         def normalize_semantic_target(
             raw_target: Any,
@@ -301,6 +302,14 @@ class FinancialAgentPlanningMixin:
         obligations: List[Dict[str, Any]] = []
         for index, obligation in enumerate(raw_obligations, start=1):
             stable_id = f"ob_{index:03d}"
+            declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
+            if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
+                requirement_errors.append({
+                    "code": "invalid_obligation_unit", "obligation_id": stable_id,
+                    "owner_id": stable_id, "candidate_id": "",
+                    "location": "obligation.display_unit", "repair_action": "repair_requirements",
+                    "detail": declared_unit,
+                })
             scope = normalize_scope(obligation.get("scope"))
             obligation_concept_hints = list(obligation.get("concept_hints") or [])
             obligation_target = normalize_semantic_target(
@@ -349,12 +358,12 @@ class FinancialAgentPlanningMixin:
                     }
                 )
             dependencies = [
-                raw_id_to_stable[item]
+                raw_id_to_stable.get(item, item)
                 for item in (
                     _normalise_spaces(str(value))
                     for value in (obligation.get("depends_on") or [])
                 )
-                if item in raw_id_to_stable and raw_id_to_stable[item] != stable_id
+                if item
             ]
             obligations.append(
                 {
@@ -507,6 +516,7 @@ class FinancialAgentPlanningMixin:
             "section_filter": _normalise_spaces(str(planned.section_filter or "")) or None,
             "answer_obligations": obligations,
             "retrieval_queries": retrieval_queries,
+            "requirement_errors": requirement_errors,
             "tasks": [task],
             "planner_notes": [
                 item
@@ -677,6 +687,7 @@ class FinancialAgentPlanningMixin:
             "answer_obligations": obligations,
             "tasks": tasks,
             "planner_notes": list(plan.get("planner_notes") or []),
+            "requirement_errors": list(plan.get("requirement_errors") or []),
         }
         ledger_update = _semantic_plan_artifact_update(
             tasks=list(state.get("tasks") or []),

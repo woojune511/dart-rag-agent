@@ -668,12 +668,11 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         stated = _candidate(
             "cand-stated",
-            10.8,
+            "10.8%",
             raw_unit="억원",
             normalized_unit="PERCENT",
             row_label="change rate",
         )
-        stated["raw_value"] = "10.8%"
         execution = execute_semantic_calculation_program(
             program={
                 "status": "ready",
@@ -849,6 +848,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 "code": "candidate_not_exposed_to_compiler",
                 "obligation_id": "ob_target",
                 "detail": "other-visible",
+                "owner_id": "ob_target", "candidate_id": "other-visible",
+                "location": "direct_binding", "repair_action": "repair_program",
             },
             validation["errors"],
         )

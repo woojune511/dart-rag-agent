@@ -24,6 +24,19 @@ answer only through a registered candidate and validated program binding. Source
 display and deterministic calculated display may coexist, but their provenance
 must remain distinct.
 
+Numeric normalization and rendering share `UnitSpecV1`: source numbers multiply
+by its scale; calculated displays divide by the same scale. Canonical currency,
+percentage, and count dimensions are valid unit declarations. Direct values keep
+the source unit, parentheses, and precision. Non-finite normalized or calculated
+values cannot produce answer slots; source precision comparisons use base units.
+
+Unsupported planner units remain recorded on their obligations and block the
+affected compilation island. Validation errors identify the owner, candidate,
+location, and repair action explicitly. Compiler format errors retry the same
+cohort; only an explicit candidate dimension, scope, or subject conflict permits
+candidate replacement. Unknown applicability is not a replacement instruction,
+and retry selection must never infer candidate IDs from diagnostic prose.
+
 ## 2. Public result v1
 
 `FinancialAgent.run()` returns `FinancialRunResultV1`:

@@ -27,6 +27,8 @@ from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
     _normalise_spaces,
+    resolve_unit_spec,
+    source_display_precision,
 )
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
@@ -312,8 +314,10 @@ def _result_unit_valid(result_unit: str, dimension: str) -> bool:
     cleaned = _normalise_spaces(str(result_unit or ""))
     if not cleaned:
         return dimension in {"SCALAR", "RATIO", "UNKNOWN"}
-    _value, normalized = _normalise_operand_value("1", cleaned)
-    normalized = str(normalized or "UNKNOWN").upper()
+    spec = resolve_unit_spec(cleaned)
+    normalized = spec.normalized_dimension if spec is not None else "UNKNOWN"
+    if spec is None and cleaned.upper() != "UNKNOWN":
+        return False
     percent_display_units = {
         str(item)
         for item in (CALCULATION_RENDER_POLICY.get("percent_display_units") or ())
@@ -327,7 +331,7 @@ def _result_unit_valid(result_unit: str, dimension: str) -> bool:
         return normalized in {"COUNT", "UNKNOWN"}
     if dimension == "UNKNOWN":
         return normalized == "UNKNOWN"
-    return normalized == dimension
+    return spec is not None and normalized == dimension
 
 
 def _scope_surface_matches(expected: str, actual: str) -> bool:
@@ -513,6 +517,7 @@ def _scope_errors(
     *,
     include_basis: bool = True,
     applicable_unknown_fields: Sequence[str] = (),
+    conflicts_only: bool = False,
 ) -> List[str]:
     scope = dict(obligation.get("scope") or {})
     applicable = {
@@ -526,11 +531,13 @@ def _scope_errors(
     errors: List[str] = []
     for field in checks:
         state = _scope_match_state(field, scope.get(field), candidate)
+        if conflicts_only and state != "conflict":
+            continue
         if state == "match" or (state == "unknown" and field in applicable):
             continue
         errors.append(f"scope mismatch: {field}")
     period_state = _scope_match_state("period", scope.get("period"), candidate)
-    if period_state != "match":
+    if period_state != "match" and (not conflicts_only or period_state == "conflict"):
         errors.append("scope mismatch: period")
     return errors
 
@@ -1033,9 +1040,17 @@ def validate_semantic_calculation_program(
     )
     errors: List[Dict[str, str]] = []
 
-    def error(code: str, obligation_id: str = "", detail: str = "") -> None:
+    def error(
+        code: str, obligation_id: str = "", detail: str = "", *,
+        owner_id: str = "", candidate_id: str = "", location: str = "program",
+        repair_action: str = "repair_program",
+    ) -> None:
         errors.append(
-            {"code": code, "obligation_id": obligation_id, "detail": str(detail or "")}
+            {
+                "code": code, "obligation_id": obligation_id, "detail": str(detail or ""),
+                "owner_id": owner_id or obligation_id, "candidate_id": candidate_id,
+                "location": location, "repair_action": repair_action,
+            }
         )
 
     def candidate_is_exposed(candidate_id: str, owner_id: str) -> bool:
@@ -1206,13 +1221,16 @@ def validate_semantic_calculation_program(
             error("unknown_or_nonnumeric_candidate", obligation_id, candidate_id)
             invalid = True
         if not candidate_is_exposed(candidate_id, obligation_id):
-            error("candidate_not_exposed_to_compiler", obligation_id, candidate_id)
+            error("candidate_not_exposed_to_compiler", obligation_id, candidate_id,
+                  candidate_id=candidate_id, location="direct_binding")
             invalid = True
         if candidate and obligation and candidate_has_semantic_conflict(
             candidate_id,
             obligation_id,
         ):
-            error("candidate_semantic_target_mismatch", obligation_id, candidate_id)
+            error("candidate_semantic_target_mismatch", obligation_id, candidate_id,
+                  candidate_id=candidate_id, location="direct_binding",
+                  repair_action="replace_candidate")
             invalid = True
         if obligation and str(obligation.get("kind") or "") != "direct_value":
             error("non_direct_obligation_has_direct_binding", obligation_id)
@@ -1279,7 +1297,10 @@ def validate_semantic_calculation_program(
                 ]
                 if hard_errors:
                     for detail in hard_errors:
-                        error("compatibility_scope_mismatch", obligation_id, detail)
+                        error("compatibility_scope_mismatch", obligation_id, detail,
+                              candidate_id=str(witness.get("candidate_id") or ""),
+                              location="compatibility_binding",
+                              repair_action="replace_candidate" if detail in _scope_errors(witness, obligation, include_basis=False, conflicts_only=True) else "repair_program")
                     invalid = True
                     compatibility_ready = False
                     break
@@ -1326,7 +1347,9 @@ def validate_semantic_calculation_program(
                     ),
                 }
             if subject_checked and subject_state != "match" and not subject_bridge_ready:
-                error("candidate_subject_mismatch", obligation_id, "segment")
+                error("candidate_subject_mismatch", obligation_id, "segment",
+                      candidate_id=candidate_id, location="direct_binding",
+                      repair_action="replace_candidate" if subject_state == "conflict" else "repair_program")
                 invalid = True
             scope_details = _scope_errors(candidate, obligation)
             if subject_checked and subject_state == "match":
@@ -1342,7 +1365,9 @@ def validate_semantic_calculation_program(
                     if not _direct_scope_gap_is_bridgeable(candidate, detail)
                 ]
             for detail in scope_details:
-                error("candidate_scope_mismatch", obligation_id, detail)
+                error("candidate_scope_mismatch", obligation_id, detail,
+                      candidate_id=candidate_id, location="direct_binding",
+                      repair_action="replace_candidate" if detail in _scope_errors(candidate, obligation, conflicts_only=True) else "repair_program")
                 invalid = True
         if (
             obligation
@@ -1359,9 +1384,12 @@ def validate_semantic_calculation_program(
                 _candidate_dimension(candidate),
             ):
                 error(
-                    "direct_result_unit_mismatch",
+                    "direct_result_unit_mismatch" if resolve_unit_spec(display_unit) else "invalid_obligation_unit",
                     obligation_id,
                     display_unit,
+                    candidate_id=candidate_id,
+                    location="direct_binding" if resolve_unit_spec(display_unit) else "obligation.display_unit",
+                    repair_action="replace_candidate" if resolve_unit_spec(display_unit) else "repair_requirements",
                 )
                 invalid = True
             preview_operand = project_semantic_program_operand(
@@ -1579,6 +1607,8 @@ def validate_semantic_calculation_program(
                                     "candidate_semantic_target_mismatch",
                                     obligation_id,
                                     f"{source_requirement_id}: {source_id}",
+                                    owner_id=source_requirement_id, candidate_id=source_id,
+                                    location="expression_input", repair_action="replace_candidate",
                                 )
                                 invalid = True
                             bound_requirement_ids.add(source_requirement_id)
@@ -1594,6 +1624,9 @@ def validate_semantic_calculation_program(
                                     "candidate_requirement_scope_mismatch",
                                     obligation_id,
                                     f"{source_requirement_id}: {detail}",
+                                    owner_id=source_requirement_id, candidate_id=source_id,
+                                    location="expression_input",
+                                    repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
                                 )
                                 invalid = True
                         variable_units[variable] = _candidate_dimension(candidate)
@@ -1637,6 +1670,11 @@ def validate_semantic_calculation_program(
                 or (obligation or {}).get("display_unit")
                 or ""
             )
+            declared_result_unit = str(expression.get("result_unit") or "")
+            if declared_result_unit and not _result_unit_valid(declared_result_unit, dimension):
+                error("result_unit_mismatch", obligation_id, f"{dimension} -> {declared_result_unit}",
+                      location="expression.result_unit")
+                continue
             if not _result_unit_valid(result_unit, dimension):
                 error("result_unit_mismatch", obligation_id, f"{dimension} -> {result_unit}")
                 continue
@@ -1665,7 +1703,9 @@ def validate_semantic_calculation_program(
                 )
                 if display_scope_errors:
                     for detail in display_scope_errors:
-                        error("source_display_scope_mismatch", obligation_id, detail)
+                        error("source_display_scope_mismatch", obligation_id, detail,
+                              candidate_id=display_id, location="source_display",
+                              repair_action="replace_candidate" if detail in _scope_errors(display_candidate, obligation or {}, include_basis=False, conflicts_only=True) else "repair_program")
                     continue
                 display_dimension = _candidate_dimension(display_candidate)
                 compatible_display_dimensions = (
@@ -1678,6 +1718,8 @@ def validate_semantic_calculation_program(
                         "source_display_unit_mismatch",
                         obligation_id,
                         f"{display_dimension} cannot display {dimension}",
+                        candidate_id=display_id, location="source_display",
+                        repair_action="replace_candidate",
                     )
                     continue
                 if not render_grounded_operand_display(
@@ -1935,6 +1977,8 @@ def validate_semantic_calculation_program(
                         "candidate_semantic_target_mismatch",
                         obligation_id,
                         f"{requirement_id}: {candidate_id}",
+                        owner_id=requirement_id, candidate_id=candidate_id,
+                        location="narrative_input", repair_action="replace_candidate",
                     )
                     invalid = True
                     continue
@@ -1951,6 +1995,9 @@ def validate_semantic_calculation_program(
                         "candidate_requirement_scope_mismatch",
                         obligation_id,
                         f"{requirement_id}: {detail}",
+                        owner_id=requirement_id, candidate_id=candidate_id,
+                        location="narrative_input",
+                        repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
                     )
                     invalid = True
             for missing_requirement_id in sorted(
@@ -2134,7 +2181,9 @@ def validate_semantic_calculation_program(
                 if candidate_id not in allowed
             ]
             for candidate_id in rejected_ids or selected_by_owner[owner_id]:
-                error("evidence_bundle_mismatch", owner_id, candidate_id)
+                error("evidence_bundle_mismatch", owner_id, candidate_id,
+                      owner_id=owner_id, candidate_id=candidate_id,
+                      location="evidence_bundle", repair_action="replace_candidate")
         invalid_bundled.update(owner_ids)
         evidence_bundle_validation.append(
             {
@@ -2547,9 +2596,13 @@ def _source_display_matches(candidate: Mapping[str, Any], formula_value: float) 
         source_value = float(candidate.get("normalized_value"))
     except (TypeError, ValueError):
         return False
-    raw_value = str(candidate.get("raw_value") or "")
-    decimals = re.search(r"\.([0-9]+)", raw_value.replace(",", ""))
-    display_tolerance = 0.5 * (10 ** -len(decimals.group(1))) if decimals else 0.5
+    if not math.isfinite(source_value) or not math.isfinite(formula_value):
+        return False
+    display_tolerance = source_display_precision(
+        str(candidate.get("raw_value") or ""), str(candidate.get("raw_unit") or "")
+    )
+    if display_tolerance is None:
+        return False
     tolerance = max(1e-9, abs(float(formula_value)) * 1e-9, display_tolerance)
     return abs(source_value - float(formula_value)) <= tolerance
 
@@ -3133,6 +3186,13 @@ def execute_semantic_calculation_program(
                     "detail": str(exc),
                 }
             )
+            continue
+
+        if not math.isfinite(value):
+            execution_errors.append({
+                "code": "non_finite_formula_result", "obligation_id": obligation_id,
+                "detail": "formula result must be finite",
+            })
             continue
 
         dimension = str(validation.get("inferred_units", {}).get(obligation_id) or "UNKNOWN")

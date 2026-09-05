@@ -33,6 +33,7 @@ from src.agent.financial_graph_calculation import (
     build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
+from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
@@ -103,11 +104,13 @@ def _candidate(
     value,
     *,
     raw_unit="items",
-    normalized_unit="COUNT",
+    normalized_unit=None,
+    normalized_value_override=None,
     period="",
     context="table-a",
     row_label="quantity",
 ):
+    normalized_value, parsed_unit = _normalise_operand_value(str(value), raw_unit)
     return {
         "candidate_id": candidate_id,
         "kind": "numeric",
@@ -128,8 +131,8 @@ def _candidate(
         "candidate_kind": "structured_value",
         "raw_value": str(value),
         "raw_unit": raw_unit,
-        "normalized_value": float(value),
-        "normalized_unit": normalized_unit,
+        "normalized_value": normalized_value if normalized_value_override is None else normalized_value_override,
+        "normalized_unit": parsed_unit if normalized_unit is None else normalized_unit,
         "period": period,
         "column_headers": [period] if period else [],
         "value_role": "",

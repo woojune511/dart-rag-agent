@@ -776,7 +776,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertIn("calculation_plan", artifact_kinds)
         self.assertIn("calculation_result", artifact_kinds)
 
-    def test_retry_replaces_rejected_candidate_and_omits_valid_output(self) -> None:
+    def test_unknown_subject_retry_keeps_cohort_and_omits_valid_output(self) -> None:
         valid = {
             **_candidate(
                 "cand-valid",
@@ -965,11 +965,11 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             initially_visible_bad_id,
             attempts[0]["visible_candidate_ids"],
         )
-        self.assertNotIn(
+        self.assertIn(
             initially_visible_bad_id,
             attempts[1]["visible_candidate_ids"],
         )
-        self.assertNotEqual(
+        self.assertEqual(
             attempts[1]["visible_candidate_id_fingerprint"],
             attempts[0]["visible_candidate_id_fingerprint"],
         )
@@ -1109,6 +1109,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     "code": "candidate_scope_mismatch",
                     "obligation_id": "ob_direct",
                     "detail": "period",
+                    "owner_id": "ob_direct", "candidate_id": "cand-primary",
+                    "location": "direct_binding", "repair_action": "replace_candidate",
                 }
             ],
             target_obligation_ids=["ob_direct"],
@@ -1120,6 +1122,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     "code": "compatibility_scope_mismatch",
                     "obligation_id": "ob_direct",
                     "detail": "consolidation_scope",
+                    "owner_id": "ob_direct", "candidate_id": "cand-witness",
+                    "location": "compatibility_binding", "repair_action": "replace_candidate",
                 }
             ],
             target_obligation_ids=["ob_direct"],
@@ -1148,6 +1152,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     "code": "candidate_requirement_scope_mismatch",
                     "obligation_id": "ob_mix",
                     "detail": "ob_mix:req_rejected: scope mismatch: period",
+                    "owner_id": "ob_mix:req_rejected", "candidate_id": "cand-rejected",
+                    "location": "expression_input", "repair_action": "replace_candidate",
                 }
             ],
             target_obligation_ids=["ob_mix"],
@@ -1200,7 +1206,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(generic_exclusions, {})
         self.assertEqual(
             exact_exclusions,
-            {"ob_summary": ["cand-unregistered"]},
+            {},
         )
 
     def test_retry_keeps_same_cohort_for_context_field_mismatch(self) -> None:

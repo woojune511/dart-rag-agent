@@ -32,7 +32,7 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
 )
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
     CompilationEnvelopeV1,
@@ -82,6 +82,14 @@ def build_semantic_compilation_islands(
     }
     dependency_edges: List[tuple[str, str]] = []
     for obligation_id, obligation in obligation_by_id.items():
+        declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
+        if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
+            errors_by_id[obligation_id].append({
+                "code": "invalid_obligation_unit", "obligation_id": obligation_id,
+                "owner_id": obligation_id, "candidate_id": "",
+                "location": "obligation.display_unit", "repair_action": "repair_requirements",
+                "detail": declared_unit,
+            })
         for raw_dependency in obligation.get("depends_on") or []:
             dependency_id = str(raw_dependency or "").strip()
             if not dependency_id:
@@ -1215,26 +1223,6 @@ def _semantic_program_candidate_ids(program: Dict[str, Any]) -> List[str]:
     return list(dict.fromkeys(item for item in values if item))
 
 
-_CANDIDATE_REJECTION_ERROR_CODES = {
-    "candidate_subject_mismatch",
-    "candidate_scope_mismatch",
-    "candidate_requirement_scope_mismatch",
-    "direct_result_unit_mismatch",
-    "empty_direct_rendering",
-    "unknown_or_nonnumeric_candidate",
-    "source_display_scope_mismatch",
-    "source_display_unit_mismatch",
-    "empty_source_display_rendering",
-    "invalid_source_display_candidate",
-    "nonnumeric_expression_source",
-    "invalid_compatibility_candidate",
-    "compatibility_scope_mismatch",
-    "direct_compatibility_context_mismatch",
-    "unknown_narrative_candidate",
-    "evidence_bundle_mismatch",
-}
-
-
 def _semantic_program_candidate_roles(
     program: Mapping[str, Any],
 ) -> Dict[str, Dict[str, List[tuple[str, str]]]]:
@@ -1332,61 +1320,23 @@ def _retry_candidate_exclusions(
         if str(item or "").strip()
     }
     candidate_roles = _semantic_program_candidate_roles(program)
-    roles_by_code = {
-        "candidate_subject_mismatch": ("direct_primary",),
-        "candidate_scope_mismatch": ("direct_primary", "narrative"),
-        "direct_result_unit_mismatch": ("direct_primary",),
-        "empty_direct_rendering": ("direct_primary",),
-        "unknown_or_nonnumeric_candidate": ("direct_primary",),
-        "candidate_requirement_scope_mismatch": (
-            "expression_input",
-            "narrative",
-        ),
-        "nonnumeric_expression_source": ("expression_input",),
-        "source_display_scope_mismatch": ("source_display",),
-        "source_display_unit_mismatch": ("source_display",),
-        "empty_source_display_rendering": ("source_display",),
-        "invalid_source_display_candidate": ("source_display",),
-        "invalid_compatibility_candidate": ("compatibility",),
-        "compatibility_scope_mismatch": ("compatibility",),
-        "direct_compatibility_context_mismatch": ("compatibility",),
-        "unknown_narrative_candidate": ("narrative",),
-        "evidence_bundle_mismatch": (
-            "direct_primary",
-            "narrative",
-        ),
-    }
     exclusions: Dict[str, List[str]] = {}
     for error in validation_errors:
-        code = str(error.get("code") or "")
         obligation_id = str(error.get("obligation_id") or "").strip()
-        if code not in _CANDIDATE_REJECTION_ERROR_CODES:
+        if error.get("repair_action") != "replace_candidate" or obligation_id not in target_set:
             continue
-        if not obligation_id or obligation_id not in target_set:
-            continue
-        obligation_roles = candidate_roles.get(obligation_id, {})
-        candidate_rows = [
+        owner_id = str(error.get("owner_id") or "")
+        candidate_id = str(error.get("candidate_id") or "")
+        selected_pairs = {
             row
-            for role in roles_by_code.get(code, ())
-            for row in obligation_roles.get(role, [])
-        ]
-        detail = str(error.get("detail") or "").strip()
-        exact_rows = [row for row in candidate_rows if row[1] == detail]
-        if exact_rows:
-            candidate_rows = exact_rows
-        elif code == "unknown_narrative_candidate":
-            candidate_rows = []
-        elif code == "candidate_requirement_scope_mismatch":
-            requirement_id = detail.partition(": scope mismatch:")[0].strip()
-            requirement_rows = [
-                row for row in candidate_rows if row[0] == requirement_id
-            ]
-            if requirement_rows:
-                candidate_rows = requirement_rows
-        for owner_id, candidate_id in candidate_rows:
-            exclusions.setdefault(owner_id, [])
-            if candidate_id not in exclusions[owner_id]:
-                exclusions[owner_id].append(candidate_id)
+            for rows in candidate_roles.get(obligation_id, {}).values()
+            for row in rows
+        }
+        if not owner_id or not candidate_id or (owner_id, candidate_id) not in selected_pairs:
+            continue
+        exclusions.setdefault(owner_id, [])
+        if candidate_id not in exclusions[owner_id]:
+            exclusions[owner_id].append(candidate_id)
     return exclusions
 
 

@@ -479,26 +479,6 @@
     },
     {
       "path": "src/agent/financial_runtime_normalization.py",
-      "text": "(?P<jo>[\\d,]+(?:\\.\\d+)?)\\s*조\\s*(?P<eok>[\\d,]+(?:\\.\\d+)?)\\s*억",
-      "category": "regex_or_pattern",
-      "fingerprint": "45c6bc684192cb3a",
-      "count": 1,
-      "first_lines": [
-        62
-      ]
-    },
-    {
-      "path": "src/agent/financial_runtime_normalization.py",
-      "text": "(?P<jo>[\\d,]+(?:\\.\\d+)?)\\s*조\\s*원?",
-      "category": "regex_or_pattern",
-      "fingerprint": "338c2286acccd0e6",
-      "count": 1,
-      "first_lines": [
-        69
-      ]
-    },
-    {
-      "path": "src/agent/financial_runtime_normalization.py",
       "text": "^\\d{4}년\\s*",
       "category": "regex_or_pattern",
       "fingerprint": "88ba4e660638e5d2",

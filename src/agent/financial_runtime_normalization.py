@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 import re
+from dataclasses import dataclass
 from typing import Any, List, Optional, Sequence
 
 from src.config.retrieval_policy import (
@@ -15,6 +17,43 @@ from src.config.retrieval_policy import (
 
 def _normalise_spaces(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip()
+
+
+@dataclass(frozen=True, slots=True)
+class UnitSpecV1:
+    """One source/display unit measured in the runtime's normalized units."""
+
+    normalized_dimension: str
+    scale: float
+    display_unit: str
+
+
+def resolve_unit_spec(unit: str) -> Optional[UnitSpecV1]:
+    surface = _normalise_spaces(str(unit or ""))
+    key = re.sub(r"\s+", "", surface).casefold()
+    if not key:
+        return None
+    policy = NUMERIC_UNIT_NORMALIZATION_POLICY
+    canonical = dict(policy.get("canonical_units") or {}).get(key.upper())
+    if canonical:
+        return UnitSpecV1(
+            str(canonical["dimension"]), 1.0, str(canonical["display_unit"])
+        )
+    for dimension, policy_key in (
+        ("KRW", "krw_scales"), ("USD", "usd_scales"), ("COUNT", "count_scales")
+    ):
+        for alias, scale in dict(policy.get(policy_key) or {}).items():
+            if key == re.sub(r"\s+", "", str(alias)).casefold():
+                return UnitSpecV1(dimension, float(scale), surface)
+    if key in {str(item).casefold() for item in policy.get("percent_units", ())}:
+        return UnitSpecV1("PERCENT", 1.0, surface)
+    for base_unit in KOREAN_COUNT_UNITS:
+        if key == base_unit:
+            return UnitSpecV1("COUNT", 1.0, surface)
+        for prefix, scale in KOREAN_COUNT_SCALE_PREFIXES:
+            if key == f"{prefix}{base_unit}":
+                return UnitSpecV1("COUNT", float(scale), surface)
+    return None
 
 
 def _clean_source_row_ids(values: Sequence[Any]) -> List[str]:
@@ -36,42 +75,74 @@ def _clean_source_row_ids(values: Sequence[Any]) -> List[str]:
     return list(dict.fromkeys(cleaned))
 
 
-def _parse_number_text(text: str) -> Optional[float]:
-    cleaned = _normalise_spaces(str(text or "")).replace(",", "").strip()
-    if not cleaned:
-        return None
+def _split_numeric_sign(text: str) -> tuple[str, bool]:
+    cleaned = _normalise_spaces(str(text or ""))
     negative = False
     if cleaned.startswith("(") and cleaned.endswith(")"):
         negative = True
         cleaned = cleaned[1:-1].strip()
-    if cleaned.startswith("△"):
+    if cleaned.startswith(("-", "△", "▲")):
         negative = True
         cleaned = cleaned[1:].strip()
-    if cleaned.startswith("▲"):
-        negative = True
+    elif cleaned.startswith("+"):
         cleaned = cleaned[1:].strip()
+    return cleaned, negative
+
+
+def _parse_number_text(text: str) -> Optional[float]:
+    cleaned, negative = _split_numeric_sign(text)
     try:
-        value = float(cleaned)
-        return -value if negative else value
+        value = float(cleaned.replace(",", ""))
+        if not math.isfinite(value):
+            return None
+        return -abs(value) if negative else value
     except ValueError:
         return None
 
 
+def _number_precision(text: str) -> Optional[float]:
+    cleaned, _negative = _split_numeric_sign(text)
+    match = re.fullmatch(r"[\d,]+(?:\.([0-9]+))?", cleaned)
+    if not match:
+        return None
+    return 0.5 * 10 ** -len(match.group(1) or "")
+
+
+def _composite_numeric_parts(
+    raw_value: str, raw_unit: str
+) -> Optional[tuple[float, str, float]]:
+    cleaned, negative = _split_numeric_sign(raw_value)
+    policy = NUMERIC_UNIT_NORMALIZATION_POLICY
+    match = re.fullmatch(str(policy.get("composite_value_pattern") or r"$^"), cleaned, re.IGNORECASE)
+    if not match:
+        return None
+    currency = match.group("currency") or raw_unit or str(policy.get("composite_default_currency") or "")
+    spec = resolve_unit_spec(currency)
+    if spec is None or spec.normalized_dimension not in {"KRW", "USD"}:
+        return None
+    major = _parse_number_text(match.group("major"))
+    minor_text = match.group("minor")
+    minor = _parse_number_text(minor_text) if minor_text else 0.0
+    if major is None or minor is None:
+        return None
+    major_scale = float(policy["composite_major_scale"])
+    minor_scale = float(policy["composite_minor_scale"])
+    value = major * major_scale + minor * minor_scale
+    if not math.isfinite(value):
+        return None
+    precision = _number_precision(minor_text or match.group("major"))
+    if precision is None:
+        return None
+    return (
+        -value if negative else value,
+        spec.normalized_dimension,
+        precision * (minor_scale if minor_text else major_scale),
+    )
+
+
 def _extract_composite_krw(text: str) -> Optional[float]:
-    cleaned = _normalise_spaces(text)
-    composite = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*(?P<eok>[\d,]+(?:\.\d+)?)\s*억", cleaned)
-    if composite:
-        jo = _parse_number_text(composite.group("jo"))
-        eok = _parse_number_text(composite.group("eok"))
-        if jo is None or eok is None:
-            return None
-        return jo * 1_0000_0000_0000 + eok * 100_000_000
-    only_jo = re.search(r"(?P<jo>[\d,]+(?:\.\d+)?)\s*조\s*원?", cleaned)
-    if only_jo:
-        jo = _parse_number_text(only_jo.group("jo"))
-        if jo is not None:
-            return jo * 1_0000_0000_0000
-    return None
+    parts = _composite_numeric_parts(text, "")
+    return parts[0] if parts is not None and parts[1] == "KRW" else None
 
 
 def _inline_numeric_unit_match(raw_value: str) -> Optional[re.Match[str]]:
@@ -79,7 +150,8 @@ def _inline_numeric_unit_match(raw_value: str) -> Optional[re.Match[str]]:
     pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
     if not pattern:
         return None
-    return re.fullmatch(pattern, _normalise_spaces(raw_value))
+    cleaned, _negative = _split_numeric_sign(raw_value)
+    return re.fullmatch(pattern, cleaned, re.IGNORECASE)
 
 
 def resolve_source_numeric_unit(raw_value: str, source_unit_hint: str) -> tuple[str, str]:
@@ -105,43 +177,39 @@ def resolve_source_numeric_unit(raw_value: str, source_unit_hint: str) -> tuple[
 def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[float], str]:
     """Normalize display-level values into comparison-friendly numeric units."""
     resolved_unit, _unit_source = resolve_source_numeric_unit(raw_value, raw_unit)
-    unit = resolved_unit.lower()
-    composite_krw = _extract_composite_krw(raw_value)
-    if composite_krw is not None:
-        return composite_krw, "KRW"
+    composite = _composite_numeric_parts(raw_value, resolved_unit)
+    if composite is not None:
+        return composite[0], composite[1]
 
-    unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+    _cleaned, negative = _split_numeric_sign(raw_value)
     inline_unit_match = _inline_numeric_unit_match(raw_value)
     if inline_unit_match:
         raw_value = inline_unit_match.group("value")
 
     value = _parse_number_text(raw_value)
-    percent_units = tuple(str(item) for item in (unit_policy.get("percent_units") or ()) if str(item))
-    if value is None and unit in percent_units:
-        stripped_value = str(raw_value or "")
-        for percent_unit in percent_units:
-            stripped_value = stripped_value.replace(percent_unit, "")
-        value = _parse_number_text(stripped_value)
     if value is None:
         return None, "UNKNOWN"
+    if negative:
+        value = -abs(value)
+    spec = resolve_unit_spec(resolved_unit)
+    normalized_value = value * spec.scale if spec else value
+    if not math.isfinite(normalized_value):
+        return None, "UNKNOWN"
+    return normalized_value, spec.normalized_dimension if spec else "UNKNOWN"
 
-    krw_scale = dict(unit_policy.get("krw_scales") or {})
-    usd_scale = dict(unit_policy.get("usd_scales") or {})
-    compact_unit = re.sub(r"\s+", "", unit)
-    count_scale = {base_unit: 1.0 for base_unit in KOREAN_COUNT_UNITS}
-    for prefix, scale in KOREAN_COUNT_SCALE_PREFIXES:
-        for base_unit in KOREAN_COUNT_UNITS:
-            count_scale[f"{prefix}{base_unit}"] = scale
 
-    if unit in krw_scale:
-        return value * krw_scale[unit], "KRW"
-    if unit in usd_scale:
-        return value * usd_scale[unit], "USD"
-    if compact_unit in count_scale:
-        return value * count_scale[compact_unit], "COUNT"
-    if unit in percent_units:
-        return value, "PERCENT"
-    return value, "UNKNOWN"
+def source_display_precision(raw_value: str, raw_unit: str) -> Optional[float]:
+    """Return the source's rounding half-width in normalized base units."""
+    resolved_unit, _source = resolve_source_numeric_unit(raw_value, raw_unit)
+    composite = _composite_numeric_parts(raw_value, resolved_unit)
+    if composite is not None:
+        return composite[2]
+    match = _inline_numeric_unit_match(raw_value)
+    precision = _number_precision(match.group("value") if match else raw_value)
+    if precision is None:
+        return None
+    spec = resolve_unit_spec(resolved_unit)
+    return precision * (spec.scale if spec else 1.0)
 
 
 def format_korean_won_compact(value: float) -> str:

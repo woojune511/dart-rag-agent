@@ -144,9 +144,23 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
 NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "inline_value_unit_pattern": (
         r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
-        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|%|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|백만\s*달러|달러|USD|\$|%p|%|퍼센트|items?|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
     ),
     "inline_unit_aliases": {"억": "억원", "조": "조원", "십억": "십억원"},
+    "canonical_units": {
+        "KRW": {"dimension": "KRW", "display_unit": "원"},
+        "USD": {"dimension": "USD", "display_unit": "USD"},
+        "COUNT": {"dimension": "COUNT", "display_unit": ""},
+        "PERCENT": {"dimension": "PERCENT", "display_unit": "%"},
+    },
+    "composite_value_pattern": (
+        r"(?P<major>[\d,]+(?:\.\d+)?)\s*조"
+        r"(?:\s*(?P<minor>[\d,]+(?:\.\d+)?)\s*억)?"
+        r"\s*(?P<currency>원|달러|USD|\$)?"
+    ),
+    "composite_major_scale": 1_000_000_000_000.0,
+    "composite_minor_scale": 100_000_000.0,
+    "composite_default_currency": "KRW",
     "krw_scales": {
         "원": 1.0,
         "천원": 1_000.0,
@@ -156,7 +170,8 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
         "조원": 1_0000_0000_0000.0,
     },
     "usd_scales": {"usd": 1.0, "$": 1.0, "달러": 1.0, "백만달러": 1_000_000.0},
-    "percent_units": ("%", "퍼센트"),
+    "count_scales": {"item": 1.0, "items": 1.0},
+    "percent_units": ("%", "%p", "퍼센트"),
 }
 
 
@@ -421,14 +436,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "percent_display_units": ("%", "%p"),
     "krw_normalized_unit": "KRW",
     "krw_display_units": ("원", "천원", "백만원", "억원", "십억원", "조원"),
-    "krw_display_unit_scales": {
-        "원": 1.0,
-        "천원": 1_000.0,
-        "백만원": 1_000_000.0,
-        "억원": 100_000_000.0,
-        "십억원": 1_000_000_000.0,
-        "조원": 1_000_000_000_000.0,
-    },
+    "krw_display_unit_scales": dict(NUMERIC_UNIT_NORMALIZATION_POLICY["krw_scales"]),
     "count_display_units": ("개", "명"),
     "inline_unit_right_boundary_block_pattern": r"[0-9A-Za-z가-힣]",
     "inline_unit_right_boundary_allowed_prefixes": (
