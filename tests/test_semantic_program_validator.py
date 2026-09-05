@@ -224,6 +224,40 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         self.assertEqual(narrative_validation["status"], "ready")
 
+    def test_selected_candidate_ids_follow_declared_obligation_order(self) -> None:
+        obligations = [
+            _obligation("ob_first", "direct_value", "first value"),
+            _obligation("ob_second", "direct_value", "second value"),
+        ]
+        catalog = [
+            _candidate("cand-first", 10),
+            _candidate("cand-second", 20),
+        ]
+        validation = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_second",
+                        "candidate_id": "cand-second",
+                    },
+                    {
+                        "obligation_id": "ob_first",
+                        "candidate_id": "cand-first",
+                    },
+                ],
+            },
+            obligations=obligations,
+            candidate_catalog=catalog,
+            query="Return both values.",
+        )
+
+        self.assertEqual(validation["status"], "ready")
+        self.assertEqual(
+            validation["selected_candidate_ids"],
+            ["cand-first", "cand-second"],
+        )
+
     def test_empty_obligation_program_fails_closed(self) -> None:
         execution = execute_semantic_calculation_program(
             program={"status": "incomplete"},
