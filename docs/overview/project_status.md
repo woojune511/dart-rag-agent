@@ -138,8 +138,8 @@ unavailable. Source-store fingerprint remained
 SHA-256 is `86d21248...ead74`.
 
 Commit `bacb9c2` fixes that seam while preserving unsupported-unit failure. Local
-gates pass. No-call admission `6659d803...27ed5` produced two identical
-`9cd6616e...8fa3` receipts; completeness stays `2 / 3` pending explicit approval.
+gates pass, but it is not provider-replayed. The prior admission is exhausted;
+completeness stays `2 / 3` pending a fresh exact manifest and explicit approval.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy

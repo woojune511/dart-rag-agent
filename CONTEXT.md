@@ -109,10 +109,9 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
 6. Generic successor `bacb9c2` normalizes serialized null sentinels only at the
    optional planner-field boundary. Focused planner `4 / 4`, compiler/validator/
    executor integration `101 / 101`, import/topology `28 / 28`, full unittest
-   `877 / 877`, audit, and pycompile pass. Provider-free successor admission
-   `6659d803...27ed5` produced two byte-identical receipts
-   `9cd6616e...8fa3`; target output stayed absent. It has not received a provider
-   replay, and the consumed `9bdd8db4...30fe3` admission must not be reused.
+   `877 / 877`, audit, and pycompile pass. It has not received a provider replay;
+   the consumed `9bdd8db4...30fe3` admission must not be reused, and any successor
+   requires a fresh exact manifest and approval.
 7. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
 8. T3 answer-key/evaluator governance is separate; do not change tolerance,
