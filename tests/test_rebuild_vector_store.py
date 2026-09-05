@@ -6,10 +6,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from src.ops.rebuild_vector_store import load_structure_graph_documents, rebuild_vector_store, validate_vector_store_external
+from src.storage.store_manifest import canonical_store_manifest, read_store_manifest, write_store_manifest
 
 
 class _FakeVectorStoreManager:
     instances = []
+    health = {"ok": True, "result_count": 1}
 
     def __init__(self, **kwargs):
         self.kwargs = dict(kwargs)
@@ -39,7 +41,20 @@ class _FakeVectorStoreManager:
         self.persisted = True
 
     def validate_vector_index(self):
-        return {"ok": True, "result_count": 1}
+        return dict(type(self).health)
+
+
+def _test_manifest(*, collection_name: str = "test_collection"):
+    return canonical_store_manifest(
+        collection_name=collection_name,
+        embedding_provider="huggingface",
+        embedding_model_name="test-model",
+        embedding_dimension=384,
+        profile_id="test-profile",
+        parser_schema_version="test-parser-v1",
+        chunk_size=2500,
+        chunk_overlap=320,
+    )
 
 
 def _write_source_store(root: Path) -> Path:
@@ -78,6 +93,7 @@ def _write_source_store(root: Path) -> Path:
 class RebuildVectorStoreTests(unittest.TestCase):
     def setUp(self) -> None:
         _FakeVectorStoreManager.instances = []
+        _FakeVectorStoreManager.health = {"ok": True, "result_count": 1}
 
     def test_load_structure_graph_documents_orders_nodes_and_parents(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -144,9 +160,7 @@ class RebuildVectorStoreTests(unittest.TestCase):
                 summary = rebuild_vector_store(
                     source_store=source,
                     output_store=output,
-                    collection_name="test_collection",
-                    embedding_provider="huggingface",
-                    embedding_model_name="test-model",
+                    manifest=_test_manifest(),
                     batch_size=16,
                     force=False,
                     resume=False,
@@ -155,6 +169,7 @@ class RebuildVectorStoreTests(unittest.TestCase):
 
             manager = _FakeVectorStoreManager.instances[0]
             reopened = _FakeVectorStoreManager.instances[1]
+            written_manifest = read_store_manifest(output)
 
         self.assertEqual(summary["documents"], 2)
         self.assertEqual(summary["parents"], 1)
@@ -170,6 +185,8 @@ class RebuildVectorStoreTests(unittest.TestCase):
         self.assertEqual(manager.parents, {"p1": "parent text"})
         self.assertTrue(manager.persisted)
         self.assertEqual(reopened.kwargs["persist_directory"], manager.kwargs["persist_directory"])
+        self.assertEqual(written_manifest, _test_manifest())
+        self.assertEqual(summary["manifest"], _test_manifest().to_projection())
 
     def test_rebuild_vector_store_requires_force_for_existing_output(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -182,9 +199,7 @@ class RebuildVectorStoreTests(unittest.TestCase):
                 rebuild_vector_store(
                     source_store=source,
                     output_store=output,
-                    collection_name="test_collection",
-                    embedding_provider="huggingface",
-                    embedding_model_name="test-model",
+                    manifest=_test_manifest(),
                     batch_size=16,
                     force=False,
                     resume=False,
@@ -202,9 +217,7 @@ class RebuildVectorStoreTests(unittest.TestCase):
                 summary = rebuild_vector_store(
                     source_store=source,
                     output_store=output,
-                    collection_name="test_collection",
-                    embedding_provider="huggingface",
-                    embedding_model_name="test-model",
+                    manifest=_test_manifest(),
                     batch_size=16,
                     force=False,
                     resume=True,
@@ -216,6 +229,48 @@ class RebuildVectorStoreTests(unittest.TestCase):
         self.assertTrue(summary["resume"])
         self.assertTrue(manager.added["resume"])
 
+    def test_resume_rejects_mismatched_manifest_before_provider_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = _write_source_store(root)
+            output = root / "existing_store"
+            output.mkdir()
+            write_store_manifest(output, _test_manifest(collection_name="other"))
+
+            with patch("src.ops.rebuild_vector_store.VectorStoreManager", _FakeVectorStoreManager):
+                with self.assertRaisesRegex(ValueError, "different store manifest"):
+                    rebuild_vector_store(
+                        source_store=source,
+                        output_store=output,
+                        manifest=_test_manifest(),
+                        batch_size=16,
+                        force=False,
+                        resume=True,
+                        external_health_check=False,
+                    )
+
+        self.assertEqual(_FakeVectorStoreManager.instances, [])
+
+    def test_failed_health_check_does_not_publish_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = _write_source_store(root)
+            output = root / "rebuilt_store"
+            _FakeVectorStoreManager.health = {"ok": False, "error": "broken index"}
+
+            with patch("src.ops.rebuild_vector_store.VectorStoreManager", _FakeVectorStoreManager):
+                with self.assertRaisesRegex(RuntimeError, "broken index"):
+                    rebuild_vector_store(
+                        source_store=source,
+                        output_store=output,
+                        manifest=_test_manifest(),
+                        batch_size=16,
+                        force=False,
+                        external_health_check=False,
+                    )
+
+            self.assertIsNone(read_store_manifest(output))
+
     def test_in_place_rebuild_uses_final_store_path_and_removes_successful_backup(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -225,9 +280,7 @@ class RebuildVectorStoreTests(unittest.TestCase):
                 summary = rebuild_vector_store(
                     source_store=source,
                     output_store=source,
-                    collection_name="test_collection",
-                    embedding_provider="huggingface",
-                    embedding_model_name="test-model",
+                    manifest=_test_manifest(),
                     batch_size=16,
                     force=True,
                     in_place=True,

@@ -309,6 +309,11 @@ Benchmark-only in-progress cache metadata preserves a manifest-less partial
 store only with exact cache/store signatures and explicit partial-resume policy;
 it never grants query readiness.
 
+Graph-based vector-store rebuilds use one expected `StoreManifestV1` as the
+provider, model, dimension, collection, and ingest identity. A side-by-side
+partial rebuild remains manifest-less and resumable; the rebuild publishes the
+manifest only after the completed index passes its external health check.
+
 ## 9. API and optional surfaces
 
 FastAPI creates `AppServices` in lifespan on `app.state`. Query, ingest, and
