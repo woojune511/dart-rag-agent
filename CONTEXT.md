@@ -77,14 +77,17 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
    combined runtime gate `2 / 3`; release remains `HOLD`. Both admissions are
    exhausted. Do not repeat either run. The remaining blocker is provider
    capacity at the Google query-embedding boundary, not another semantic patch.
-4. The selected unblock is a Hyundai-only, side-by-side rebuild with canonical
-   OpenAI `text-embedding-3-large`; the Google source store remains immutable.
-   Commit `133fff3` added post-health manifest publication and passed 59 Python
-   3.13 adjacent tests plus audit/pycompile/diff gates. Local model tokenization
-   counts `1,928,114` document tokens; estimated rebuild-through-health cost is
-   USD `0.25071982`, with a proposed one-process ceiling of USD `0.30`.
-   No provider call or target-store write has occurred; both require the new
-   exact admission's separate approval.
+4. Admission `10c8ca9c...2786` was consumed once on `36fcf62` to rebuild only
+   the Hyundai store side-by-side with canonical OpenAI
+   `text-embedding-3-large`. All 28 document batches returned HTTP 200; the
+   separate-process search health passed before manifest publication. The new
+   store has 1,764 vectors and strict readiness `compatible`. Reconstructed
+   chunks, metadata, and parents match the Google source projection exactly,
+   and source fingerprint `5cdc0e8f...0ff6` is unchanged. Actual provider
+   billing is unavailable; the local-tokenizer estimate through health remains
+   USD `0.25071982` under the approved USD `0.30` ceiling. Run receipt SHA-256:
+   `6fa0c805...d4719`. The approval is exhausted; T2 eval-only needs a new exact
+   admission and is not authorized by this rebuild.
 5. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
 6. T3 answer-key/evaluator governance is separate; do not change tolerance,

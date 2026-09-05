@@ -102,16 +102,19 @@ complete store fingerprints are unchanged, and no disposable store remains.
 Its root result SHA-256 is `d30a321c...422fd`; ignored run receipt SHA-256 is
 `0fefdb88...9ac27`.
 
-The combined same-runtime gate is `2 / 3`, with T3 carried forward by exact
-artifact hashes. Both admissions are consumed and no further retry is
-authorized. The next bounded path is a side-by-side rebuild of only the Hyundai
-store with canonical OpenAI `text-embedding-3-large`; the Google source remains
-immutable. Commit `133fff3` supplies the strict rebuild-manifest boundary.
-Local OpenAI tokenization of all 1,764 stored chunks is `1,928,114` tokens,
-giving a document-plus-bounded-health estimate of USD `0.25071982` and a
-proposed one-process authorization ceiling of USD `0.30`. No provider call or
-target-store mutation has run; an exact admission and separate approval are
-required before dispatch. The subsequent T2 eval-only run is a separate gate.
+The combined same-runtime question gate remains `2 / 3`, with T3 carried
+forward by exact artifact hashes. The two Google eval admissions are consumed.
+Admission `10c8ca9c...2786` was then consumed once on `36fcf62` for only the
+side-by-side Hyundai OpenAI `text-embedding-3-large` store rebuild. All 28
+document batches completed with HTTP 200, external search health passed, and
+the post-health manifest makes the 1,764-vector store strictly `compatible`.
+The rebuilt source projection (chunks, metadata, parents) has exact SHA-256
+`e3cb6060...ad7f` on both stores; the immutable Google source fingerprint stays
+`5cdc0e8f...0ff6`. The USD `0.25071982` local-tokenizer estimate is below the
+approved USD `0.30` ceiling, while actual provider billing remains unavailable.
+Run receipt SHA-256 is `6fa0c805...d4719`; no automatic retry occurred. This
+approval is exhausted. A new exact admission is required for a Hyundai T2-only
+store-fixed eval against the OpenAI store.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy
