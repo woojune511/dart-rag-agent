@@ -7531,3 +7531,20 @@ References:
   runtime error zero, and ledger `ok`. Dataset/evaluator governance for T3 and
   formula-wide rounding propagation remain separate. The approval is exhausted;
   no further provider retry is authorized or required for this gate.
+
+## Exact Saved Runtime Trace Replay (2026-09-06)
+
+- A generic provider-free audit scanned the saved v6-v9 semantic diagnostics and
+  found 11 distinct plans across 3 unique questions. Nine programs conform to
+  the current structured-output schema; all replay through exact catalog,
+  visibility, validation, V2 envelope, and execution contracts.
+- Outcomes are 6 `ready → ok` and 3 `partial → partial`, with no authority or
+  execution errors. Two historical programs lack current required expression
+  fields and are reported as skipped rather than silently migrated.
+- The audit exposed non-deterministic validation ID ordering from set iteration.
+  Selection now follows declared obligation order while preserving the same ID
+  set and runtime outputs.
+- Forward and reverse input order produced byte-identical receipts with SHA-256
+  `9901c8fc...e9180`. No provider/compiler call or store write occurred. This is
+  runtime trace-variant coverage only, not new retrieval, compiler-selection,
+  evaluator, held-out-question, or release evidence.

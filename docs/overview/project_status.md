@@ -74,6 +74,8 @@ Python 3.13 is the verification interpreter.
   2023/2022 requirement context, moving deterministic operand selection from
   `0.0` to `1.0` without changing candidates, formula, answer, or evaluator;
   the integrated Python 3.13 suite passes `880 / 880`.
+- The exact-trace seam passes semantic `106 / 106`, structural `24 / 24`, and
+  integrated Python 3.13 unittest `887 / 887`.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -96,11 +98,13 @@ program. Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026
 Synthetic actual-node tests separately verify ledger integrity; the replay is
 not an evaluator or release run.
 
-The 2026-09-06 successor replay additionally verifies formula-input trace
-metadata at
-`benchmarks/results/semantic_operand_trace_metadata_2026-09-06/runtime_contract_replay.json`.
-It made no provider/compiler call or source-store write; a separate local
-deterministic evaluator projection reports operand selection `1.0` for T2.
+The 2026-09-06 successor also verifies formula-input trace metadata and reports
+T2 operand selection `1.0`. A generic exact-trace audit then loaded 11 distinct
+saved plans: all 9 current-schema variants replayed (`6 ready/ok`,
+`3 partial/partial`), while 2 old structured outputs were explicitly skipped.
+These are only 3 unique questions. Reversed input order produced byte-identical
+receipts (`9901c8fc...e9180`) without provider/compiler calls or store writes;
+this expands runtime trace coverage, not compiler or question coverage.
 
 ## Provider status and next gate
 
@@ -133,9 +137,9 @@ runtime failure because numeric execution, faithfulness, completeness, retrieval
 error rate, and ledger are healthy. The admission is exhausted; no further
 provider retry is authorized or needed for this release gate.
 
-Deferred: formula-wide rounding-error propagation and separate T3 dataset/
-evaluator governance. Existing answer keys, tolerances, and faithfulness policy
-are unchanged.
+Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
+governance completed on 2026-09-03; runtime and dataset ownership remain
+separate, and tolerances and faithfulness policy are unchanged.
 
 See [runtime contract](../architecture/agent_runtime_contract.md),
 [checked topology](runtime_flow_roles.md), and

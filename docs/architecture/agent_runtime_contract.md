@@ -92,11 +92,11 @@ V2 additionally binds the complete catalog contents (sorted by candidate ID),
 ordered obligations, and query with `execution_content_fingerprint`. Changed
 normalized numbers, dimensions, scope, source bytes, spans, or physical
 provenance fail before revalidation or arithmetic as `execution_content_mismatch`.
-Production accepts no V1 envelope fallback. Existing candidate IDs and catalog
-identity fingerprints are unchanged.
+Production has no V1 fallback; existing candidate IDs and catalog fingerprints are unchanged.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
-Execution must not overwrite immutable compile validation.
+Execution must not overwrite immutable compile validation; validator-selected
+IDs follow declared obligation order with first-occurrence dedupe.
 
 ## 4. Candidate applicability and coupling
 

@@ -52,6 +52,7 @@
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
+| `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.

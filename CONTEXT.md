@@ -66,7 +66,7 @@ also passed `878 / 878` on Python 3.14.5; the environment emitted existing
 LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
 are in project status.
 The local environment is aligned to Python 3.13.13. The current full discovery,
-including the formula-input projection regression, passes `880 / 880`.
+including exact-trace and validator-order regressions, passes `887 / 887`.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 
@@ -84,6 +84,14 @@ restores T2's 2023/2022 formula-input metadata. Its deterministic evaluator
 projection changes operand selection from `0.0` to `1.0` without changing the
 selected IDs, formula, answer, dataset, or evaluator. The ignored receipt is
 `benchmarks/results/semantic_operand_trace_metadata_2026-09-06/runtime_contract_replay.json`.
+
+The generic exact saved-trace audit now replays every current-schema semantic
+program found in the v6-v9 result inventory through the current catalog,
+visibility, validator, envelope, and executor contracts. It passes 9/9 variants
+(`6 ready/ok`, `3 partial/partial`), skips 2 schema-old programs without
+migration, and covers 3 unique questions. Reverse-order receipts are
+byte-identical at `9901c8fc...e9180`; this is not new compiler/provider evidence.
+Ignored receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06/replay_final.json`.
 
 ## Provider result, remaining work, and hard stops
 

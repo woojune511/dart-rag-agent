@@ -2505,7 +2505,8 @@ def validate_semantic_calculation_program(
     selected_candidate_ids = list(
         dict.fromkeys(
             candidate_id
-            for obligation_id in produced
+            for obligation_id in obligation_by_id
+            if obligation_id in produced
             for candidate_id in sources_by_output.get(obligation_id, [])
         )
     )
