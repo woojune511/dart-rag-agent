@@ -71,14 +71,26 @@ not an evaluator or release run.
 
 ## Provider status and next gate
 
-Release remains HOLD until a separately approved provider validation. The last
-paid source-bundle admission `24322d93...9aaf` was consumed once; its immutable
-run had mechanical completeness `2 / 3` and reviewed source consistency `1 / 3`.
-It is predecessor evidence, not a result of this repaired build.
+Release remains `HOLD`. Admission `45ef0f6e...4f03` ran exactly once on commit
+`8410691`; no automatic retry, fresh ingest, document embedding, or source
+mutation occurred. Runtime completeness was `1 / 3`:
 
-Next: prepare a new manifest and cost estimate for one store-fixed eval-only run.
-Approval must name that new manifest. Automatic benchmark retry, fresh ingest,
-source mutation, and reuse of exhausted admissions are forbidden.
+- `HYU_T3_072` passed with `26%` and `700,691백만원` from table 82 row `9:2`,
+  the four Motional values from table 90 row `21:4`, no BHAF `53%`, runtime
+  error `0`, and ledger `ok`.
+- `HYU_T2_010` and `SAM_T2_078` each stopped on Google query-embedding
+  `429 RESOURCE_EXHAUSTED` before compiler output, so the repaired source-
+  display and Samsung selection contracts were not provider-tested.
+
+The successful T3 trace reports USD `0.0472849`; failed-question calls and
+embedding pricing are absent, so exact total cost is unavailable. The immutable
+source hashes and complete store fingerprints are unchanged, and no disposable
+store remains. The consumed artifact is
+`benchmarks/results/runtime_contract_repair_focused_successor_envbound_2026-09-05`.
+
+No retry is authorized. Diagnose the Google query-embedding capacity boundary
+before proposing a new exact manifest and cost approval. Reuse of either
+consumed admission is forbidden.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy

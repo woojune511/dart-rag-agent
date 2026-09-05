@@ -55,17 +55,20 @@ input-file hashes:
 - Samsung: restoring its recorded first binding accepts `28,352,769백만원`
   and preserves the existing narrative evidence.
 
-T2 and Samsung are explicitly counterfactual runtime-contract tests. No new
-compiler/provider/evaluator run occurred, and these are not a release claim.
+T2 and Samsung are explicitly counterfactual runtime-contract tests. That replay
+itself made no compiler/provider/evaluator call and is not a release claim.
 Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
 
-## Remaining work and hard stops
+## Provider result, remaining work, and hard stops
 
-1. Prepare a new store-fixed eval-only manifest and cost estimate before asking
-   for separate provider approval. Never reuse consumed admissions, including
-   `24322d93...9aaf`; no automatic benchmark retry or fresh ingest.
-2. Provider semantic selection remains unverified on the repaired build.
-   The last paid run remains historical HOLD, not superseded by local replay.
+1. Admission `45ef0f6e...4f03` was consumed once on this build. T3 passed all
+   runtime/evidence/ledger gates; T2 and Samsung stopped on Google query-
+   embedding `429 RESOURCE_EXHAUSTED` before compiler output. Runtime gate:
+   `1 / 3`; release remains `HOLD`.
+2. Do not retry under this admission. T2 source-display selection and Samsung
+   numeric selection therefore remain provider-unverified on the repaired
+   build. Preserve the failed artifact and diagnose provider capacity before
+   proposing any new exact manifest.
 3. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
 4. T3 answer-key/evaluator governance is separate; do not change tolerance,
