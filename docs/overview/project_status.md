@@ -137,9 +137,9 @@ runtime failure because numeric execution, faithfulness, completeness, retrieval
 error rate, and ledger are healthy. The admission is exhausted; no further
 provider retry is authorized or needed for this release gate.
 
-Deferred: formula-wide rounding-error propagation and separate T3 dataset/
-evaluator governance. Existing answer keys, tolerances, and faithfulness policy
-are unchanged.
+Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
+governance completed on 2026-09-03; runtime and dataset ownership remain
+separate, and tolerances and faithfulness policy are unchanged.
 
 See [runtime contract](../architecture/agent_runtime_contract.md),
 [checked topology](runtime_flow_roles.md), and
