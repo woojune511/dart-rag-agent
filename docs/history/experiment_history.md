@@ -7462,3 +7462,6 @@ References:
   28/28, runtime audit 84, pycompile, diff check, and full unittest 877/877 pass.
   No provider call followed the fix. The admission is exhausted and release
   remains `HOLD` at combined same-runtime completeness `2 / 3`.
+- Provider-free successor admission `6659d803...27ed5` binds the fixed HEAD and
+  same immutable OpenAI store. Two production-order rehearsals produced identical
+  7,632-byte receipts at `9cd6616e...8fa3`; no target or provider call was made.
