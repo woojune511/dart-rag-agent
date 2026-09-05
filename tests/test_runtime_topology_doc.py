@@ -13,13 +13,20 @@ class RuntimeTopologyDocumentTests(unittest.TestCase):
         document = TOPOLOGY_DOCUMENT.read_text(encoding="utf-8")
         self.assertEqual(replace_checked_block(document, render_topology()), document)
 
-    def test_actual_graph_is_acyclic_and_final_result_precedes_ledger(self) -> None:
-        from src.agent.financial_graph import FinancialAgent
-
-        graph = object.__new__(FinancialAgent)._build_graph().get_graph()
-        predecessors = {node: set() for node in graph.nodes}
-        for edge in graph.edges:
-            predecessors[edge.target].add(edge.source)
+    def test_source_graph_is_acyclic_and_final_result_precedes_ledger(self) -> None:
+        edge_block = render_topology().split("edges:\n", 1)[1].split("\n```", 1)[0]
+        predecessors: dict[str, set[str]] = {}
+        for raw_edge in edge_block.splitlines():
+            edge = raw_edge.strip()
+            if " --> " in edge:
+                source = edge.split(" -- ", 1)[0]
+                target = edge.rsplit(" --> ", 1)[1]
+            else:
+                source, target = edge.split(" -> ", 1)
+            if target == "END":
+                target = "__end__"
+            predecessors.setdefault(source, set())
+            predecessors.setdefault(target, set()).add(source)
         ordered = list(TopologicalSorter(predecessors).static_order())
         self.assertEqual(predecessors["assemble_ledger"], {"assemble_final"})
         self.assertEqual(predecessors["__end__"], {"assemble_ledger"})
