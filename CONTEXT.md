@@ -66,7 +66,8 @@ also passed `878 / 878` on Python 3.14.5; the environment emitted existing
 LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
 are in project status.
 The local environment is aligned to Python 3.13.13. The current full discovery,
-including exact-trace and validator-order regressions, passes `887 / 887`.
+including exact-trace, reviewed-corpus, and validator-order regressions, passes
+`890 / 890`.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 
@@ -92,6 +93,19 @@ visibility, validator, envelope, and executor contracts. It passes 9/9 variants
 migration, and covers 3 unique questions. Reverse-order receipts are
 byte-identical at `9901c8fc...e9180`; this is not new compiler/provider evidence.
 Ignored receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06/replay_final.json`.
+
+A separate reviewed-fixture corpus adds five distinct real questions outside
+that three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
+`NAV_T2_006`, and `CEL_T1_013`. All 5/5 pass current raw-value normalization,
+owner visibility, structured-program validation, `CompilationEnvelopeV2`, and
+deterministic execution. The cases cover same-row period comparison,
+parenthesized negative values, component subtraction, source-first rounded
+display plus multi-evidence narrative, and a thousand-won ratio. Two local
+receipts are byte-identical at `fc530335...304f`; provider/compiler/retrieval
+and store writes are all zero. These are source-derived reviewed projections,
+not exact current candidate IDs or proof that a new compiler will choose them.
+Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receipt:
+`benchmarks/results/reviewed_runtime_replay_corpus_2026-09-06/replay_a.json`.
 
 ## Provider result, remaining work, and hard stops
 
@@ -125,6 +139,9 @@ Ignored receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
+9. The next semantic-quality gate is compiler selection over the reviewed
+   corpus. It requires a new bounded provider manifest and separate approval;
+   the provider-free corpus itself does not authorize or justify that call.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md),
 [experiment history](docs/history/experiment_history.md), and Git.

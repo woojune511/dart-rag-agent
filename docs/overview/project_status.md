@@ -49,42 +49,27 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13 is the verification interpreter.
+Python 3.13.13 is the verification interpreter. Current focused gates pass:
+semantic `166 / 166`, replay `9 / 9`, and import/topology `22 / 22`.
+Runtime domain audit passes with `84` reviewed literals; pycompile and
+`git diff --check` also pass. Full unittest discovery passes `890 / 890`.
 
-- Numeric/compiler independent snapshot: full unittest `837 / 837`.
-- Persistence/API independent snapshot: focused + import/topology/docs `79 / 79`.
-- Final integrated source before provider replay: full unittest `874 / 874`.
-- Planner dependency successor: planner `5 / 5`, semantic contracts `164 / 164`,
-  import/topology `28 / 28`, full unittest `878 / 878`.
-- Post-fast-forward integration recheck: Python 3.14.5 full unittest
-  `878 / 878`; existing LangChain/Pydantic compatibility warnings only.
-- Python warning cleanup: the local environment now uses Python 3.13.13, API
-  first-body validation emits no Pydantic field-alias warning, and full unittest
-  discovery passes `879 / 879`.
-- Runtime domain audit: pass, `84` reviewed literals.
-- Import/topology, pycompile, and `git diff --check`: pass.
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
 - Actual graph-node tests check declared phase keys, unchanged inputs, and exact
   public answer/structured-result/trace agreement with the final ledger artifact.
-- The graph-rebuild manifest seam passes 59/59 Python 3.13 adjacent tests,
-  runtime domain audit, pycompile, topology/import coverage, and diff checks.
-- The operand-projection seam passes 135/135 semantic focused tests and the
-  three-case provider-free replay. The reviewed T2 operands now retain their
-  2023/2022 requirement context, moving deterministic operand selection from
-  `0.0` to `1.0` without changing candidates, formula, answer, or evaluator;
-  the integrated Python 3.13 suite passes `880 / 880`.
-- The exact-trace seam passes semantic `106 / 106`, structural `24 / 24`, and
-  integrated Python 3.13 unittest `887 / 887`.
+- The reviewed real-question corpus passes `5 / 5` cases twice with
+  byte-identical receipts. Its three contract tests prove deterministic replay,
+  fail-closed requirement visibility, and raw-value normalization rather than
+  trusting copied normalized fields.
 
 New local outputs under `benchmarks/results/` are not committed.
 
 ## Read-only saved-case replay
 
-`src.ops.replay_runtime_contract_cases` reads immutable result and source JSON
-without constructing a provider, vector store, agent, or benchmark runner.
-All three complete catalog IDs/fingerprints verify; original input SHA-256 values
-are unchanged after replay.
+`src.ops.replay_runtime_contract_cases` reads immutable results without creating
+a provider, vector store, agent, or benchmark runner. All three catalog
+identities verify and input SHA-256 values remain unchanged.
 
 | Case | Provider-free result | Claim limit |
 | --- | --- | --- |
@@ -92,50 +77,47 @@ are unchanged after replay.
 | T3 | `26%`, `700,691백만원`, and the existing four-value narrative | Saved program bytes, physical rows, and evidence remain unchanged |
 | Samsung | `28,352,769백만원` plus the existing narrative | A copy restores the recorded first binding and first-attempt authority |
 
-Both modified programs are labelled counterfactual. These checks prove
-validator/executor/display behavior, not that a new LLM will select the same
-program. Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
-Synthetic actual-node tests separately verify ledger integrity; the replay is
-not an evaluator or release run.
+The modified programs are counterfactual validator/executor/display tests, not
+new LLM or release evidence. The successor also verifies T2 operand metadata.
+The generic exact-trace audit passes all 9 current-schema variants, skips 2 old
+schemas, and covers only 3 questions; reversed inputs produce byte-identical
+receipts (`9901c8fc...e9180`) with no provider/compiler/store activity.
 
-The 2026-09-06 successor also verifies formula-input trace metadata and reports
-T2 operand selection `1.0`. A generic exact-trace audit then loaded 11 distinct
-saved plans: all 9 current-schema variants replayed (`6 ready/ok`,
-`3 partial/partial`), while 2 old structured outputs were explicitly skipped.
-These are only 3 unique questions. Reversed input order produced byte-identical
-receipts (`9901c8fc...e9180`) without provider/compiler calls or store writes;
-this expands runtime trace coverage, not compiler or question coverage.
+## Reviewed provider-free corpus
+
+`tests/fixtures/reviewed_runtime_replay_corpus_v1.json` adds five distinct real
+questions not present in the exact current-schema trace inventory:
+`KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`, `NAV_T2_006`, and `CEL_T1_013`.
+The fixture preserves reviewed raw values, source excerpts, receipt/row/table
+provenance, owner visibility, and current structured programs. The replay uses
+the real unit normalizer and then the current validator,
+`CompilationEnvelopeV2`, and executor.
+
+All 5/5 cases pass. Two independently written receipts have the same SHA-256,
+`fc5303358b0236675f2a3aca1444b010e18e97444968160127d652900a47304f`.
+There are zero provider, compiler, retrieval, or store-write calls. Four cases
+project historical filing-linked runtime selections into compact reviewed
+fixtures; the Celltrion case uses the manually verified curated-dataset filing
+evidence. Therefore this is downstream contract and numeric generalization
+evidence, not exact candidate-catalog replay and not evidence that a fresh
+compiler will select the same sources.
 
 ## Provider status and next gate
 
-The defined source-consistent runtime release gate is `3 / 3 PASS`. Immutable
-`HYU_T3_072` and `SAM_T2_078` successes are carried by exact artifact hashes;
-the final row was confirmed by admission `0f0c0d52...0445`, consumed once on
-clean commit `58551c7`.
+The source-consistent release gate remains `3 / 3 PASS`; immutable T3/Samsung
+artifacts and the one approved `HYU_T2_010` run provide its evidence. T2 selected
+`87.0만 대`, `78.1만 대`, and source display `11.5%`, retaining `11.4%` as the
+labelled recalculation. Both obligations completed with runtime error `0`, ledger
+`ok`, and faithfulness/completeness `1.0 / 1.0`.
 
-OpenAI-store-fixed `HYU_T2_010` completed both obligations with runtime error `0`
-and ledger `ok`. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source
-display `11.5%`; it retained deterministic value `11.395646606914212` as the
-labelled recalculation `11.4%`. Narrative `ob_002` selected
-`cand_bbd863eb396fa724d814`. The final answer has faithfulness/completeness
-`1.0 / 1.0`, four selected candidates, two outputs, and no missing obligation.
+That run made no fetch, ingest, document embedding, store mutation, or runner
+retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
+result hashes remain in experiment history rather than this current snapshot.
 
-Both island preflights had zero errors, confirming `af9a07e`. The numeric island
-used the permitted one internal retry to correct source-assertion structure while
-keeping the same cohort; the narrative island and runner process were not
-retried. There was no fresh fetch, parse, ingest, document embedding, or source
-mutation.
-
-The process exited zero in `118.936s`, with 7 total LLM calls / 71,359 tokens and
-11 query / 0 document embedding calls. Recorded non-embedding cost is USD
-`0.0664263`; actual billing and embedding cost are unavailable. Source store is
-unchanged at `6231cd8e...24e9`, no disposable store remains, root result SHA-256
-is `a765a132...0ad9`, and ignored receipt SHA-256 is `4dd004f2...a3b4`.
-
-`numeric_final_judgement=null` is N/A for this mixed question and is not a
-runtime failure because numeric execution, faithfulness, completeness, retrieval,
-error rate, and ledger are healthy. The admission is exhausted; no further
-provider retry is authorized or needed for this release gate.
+The next optional gate is one bounded compiler-selection evaluation over the
+reviewed corpus. It remains separately approved provider work; it should not be
+run until its immutable manifest, transmitted source scope, and cost cap are
+presented.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

@@ -1,0 +1,1284 @@
+{
+  "schema_version": "reviewed_runtime_replay_corpus_v1",
+  "claim_boundary": "These source-derived, human-reviewed fixtures begin after retrieval and compilation. They test raw-value normalization, owner visibility, current structured-program validation, immutable execution authority, and deterministic execution. They do not test retrieval recall, candidate ranking, new compiler choices, provider behavior, evaluator acceptance, or release readiness.",
+  "cases": [
+    {
+      "case_id": "kbf_nim_year_over_year",
+      "question_id": "KBF_T1_017",
+      "question": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+      "review": {
+        "status": "reviewed",
+        "basis": "historical runtime selection with filing-linked table provenance",
+        "source_references": [
+          "benchmarks/results/kbf_t1_017_semantic_program_corrected_focused_2026-08-27/results.json",
+          "DART receipt 20240326000894"
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "nim_2023",
+          "kind": "direct_value",
+          "label": "2023년 KB금융 순이자마진(NIM)",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "",
+          "scope": {
+            "company": "KB금융",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "nim_comparison"
+        },
+        {
+          "obligation_id": "nim_2022",
+          "kind": "direct_value",
+          "label": "2022년 KB금융 순이자마진(NIM)",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "",
+          "scope": {
+            "company": "KB금융",
+            "period": "2022",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "nim_comparison"
+        },
+        {
+          "obligation_id": "nim_change",
+          "kind": "derived_value",
+          "label": "순이자마진 전년 대비 증감폭",
+          "required": true,
+          "display_unit": "%p",
+          "display_format": "0.00",
+          "scope": {
+            "company": "KB금융",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [
+            "nim_2023",
+            "nim_2022"
+          ],
+          "coupling_key": "nim_comparison"
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "reviewed_kbf_nim_2023",
+          "historical_candidate_id": "cand_fa953151cf02e5921f0b",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240326000894:78:27::rowrec:5",
+          "evidence_id": "20240326000894:78:27",
+          "source_anchor": "[KB금융 | 2023 | II. 사업의 내용 > 2. 영업의 현황]",
+          "source_row_id": "20240326000894:78:27",
+          "table_source_id": "II. 사업의 내용 > 2. 영업의 현황::table:21",
+          "physical_table_id": "II. 사업의 내용 > 2. 영업의 현황::table:21",
+          "physical_row_id": "20240326000894:78:27::rowrec:5",
+          "physical_cell_id": "20240326000894:78:27::rowrec:5::2023",
+          "row_label": "명목순이자마진(NIM)",
+          "row_headers": [
+            "명목순이자마진(NIM)"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "KB금융",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "II. 사업의 내용 > 2. 영업의 현황::table:21|consolidated||",
+          "source_text": "명목순이자마진(NIM) | 2023년 / 1.83 / % | 2022년 / 1.73 / % | 2021년 / 1.58 / %",
+          "raw_value": "1.83",
+          "raw_unit": "%",
+          "expected_normalized_value": 1.83,
+          "expected_normalized_unit": "PERCENT",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_kbf_nim_2022",
+          "historical_candidate_id": "cand_4de1f1e0c09dfb8d30d1",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240326000894:78:27::rowrec:5",
+          "evidence_id": "20240326000894:78:27",
+          "source_anchor": "[KB금융 | 2023 | II. 사업의 내용 > 2. 영업의 현황]",
+          "source_row_id": "20240326000894:78:27",
+          "table_source_id": "II. 사업의 내용 > 2. 영업의 현황::table:21",
+          "physical_table_id": "II. 사업의 내용 > 2. 영업의 현황::table:21",
+          "physical_row_id": "20240326000894:78:27::rowrec:5",
+          "physical_cell_id": "20240326000894:78:27::rowrec:5::2022",
+          "row_label": "명목순이자마진(NIM)",
+          "row_headers": [
+            "명목순이자마진(NIM)"
+          ],
+          "column_headers": [
+            "2022년"
+          ],
+          "statement_type": "unknown",
+          "company": "KB금융",
+          "year": 2022,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "II. 사업의 내용 > 2. 영업의 현황::table:21|consolidated||",
+          "source_text": "명목순이자마진(NIM) | 2023년 / 1.83 / % | 2022년 / 1.73 / % | 2021년 / 1.58 / %",
+          "raw_value": "1.73",
+          "raw_unit": "%",
+          "expected_normalized_value": 1.73,
+          "expected_normalized_unit": "PERCENT",
+          "period": "2022",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        }
+      ],
+      "visibility": {
+        "candidate_ids_by_owner": {
+          "nim_2023": [
+            "reviewed_kbf_nim_2023"
+          ],
+          "nim_2022": [
+            "reviewed_kbf_nim_2022"
+          ],
+          "nim_change": []
+        }
+      },
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {
+            "obligation_id": "nim_2023",
+            "candidate_id": "reviewed_kbf_nim_2023"
+          },
+          {
+            "obligation_id": "nim_2022",
+            "candidate_id": "reviewed_kbf_nim_2022"
+          }
+        ],
+        "expressions": [
+          {
+            "obligation_id": "nim_change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "nim_2023"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "nim_2022"
+              }
+            ],
+            "formula": "CURRENT - PRIOR",
+            "result_unit": "%p",
+            "display_unit": "%p",
+            "display_format": "0.00",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The filing reports both period values but not a separate change display."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "Use the two reviewed cells from one physical NIM row and subtract the prior-period percentage from the current-period percentage."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "selected_candidate_ids": [
+          "reviewed_kbf_nim_2023",
+          "reviewed_kbf_nim_2022"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "nim_change",
+            "normalized_value": 0.1,
+            "normalized_unit": "PERCENT",
+            "calculated_value": 0.1
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "kbf_credit_loss_growth",
+      "question_id": "KBF_T2_018",
+      "question": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+      "review": {
+        "status": "reviewed",
+        "basis": "user-reviewed parenthesized values plus historical narrative selection",
+        "source_references": [
+          "benchmarks/results/kbf_t2_018_corrected_evaluator_acceptance_2026-08-29/results.json",
+          "DART receipt 20240326000894"
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "credit_loss_growth",
+          "kind": "derived_value",
+          "label": "신용손실충당금전입액 전년 대비 증가율",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "percentage",
+          "scope": {
+            "company": "KB금융",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [
+            {
+              "requirement_id": "credit_loss_growth:current",
+              "label": "2023년 신용손실충당금전입액",
+              "required": true,
+              "scope": {
+                "company": "KB금융",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              },
+              "retrieval_hints": [],
+              "concept_hints": []
+            },
+            {
+              "requirement_id": "credit_loss_growth:prior",
+              "label": "2022년 신용손실충당금전입액",
+              "required": true,
+              "scope": {
+                "company": "KB금융",
+                "period": "2022",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              },
+              "retrieval_hints": [],
+              "concept_hints": []
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": "credit_loss_trend"
+        },
+        {
+          "obligation_id": "credit_loss_reason",
+          "kind": "narrative",
+          "label": "신용손실충당금전입액 변동 원인",
+          "required": true,
+          "display_unit": "",
+          "display_format": "",
+          "scope": {
+            "company": "KB금융",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [
+            {
+              "requirement_id": "credit_loss_reason:evidence",
+              "label": "리스크 관리 측면의 변동 원인",
+              "required": true,
+              "scope": {
+                "company": "KB금융",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              },
+              "retrieval_hints": [],
+              "concept_hints": []
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": "credit_loss_trend"
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "reviewed_kbf_credit_loss_2023",
+          "historical_candidate_id": "cand_e1d8aa527b06dfafde43",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240326000894:470:1::rowrec:23",
+          "evidence_id": "20240326000894:470:1",
+          "source_anchor": "[KB금융 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+          "source_row_id": "20240326000894:470:1",
+          "table_source_id": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2",
+          "physical_table_id": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2",
+          "physical_row_id": "20240326000894:470:1::rowrec:23",
+          "physical_cell_id": "20240326000894:470:1::rowrec:23::current",
+          "row_label": "신용손실충당금 전입액",
+          "row_headers": [
+            "신용손실충당금 전입액"
+          ],
+          "column_headers": [
+            "제 16 기"
+          ],
+          "statement_type": "income_statement",
+          "company": "KB금융",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2|consolidated||",
+          "source_text": "신용손실충당금 전입액 | 제 16 기 / (3,146,409) / 백만원 | 제 15 기 / (1,847,775) / 백만원 | 제 14 기 / (1,185,133) / 백만원",
+          "raw_value": "(3,146,409)",
+          "raw_unit": "백만원",
+          "expected_normalized_value": -3146409000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_kbf_credit_loss_2022",
+          "historical_candidate_id": "cand_ac08297806e6475c8ecd",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240326000894:470:1::rowrec:23",
+          "evidence_id": "20240326000894:470:1",
+          "source_anchor": "[KB금융 | 2023 | III. 재무에 관한 사항 > 2. 연결재무제표]",
+          "source_row_id": "20240326000894:470:1",
+          "table_source_id": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2",
+          "physical_table_id": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2",
+          "physical_row_id": "20240326000894:470:1::rowrec:23",
+          "physical_cell_id": "20240326000894:470:1::rowrec:23::prior",
+          "row_label": "신용손실충당금 전입액",
+          "row_headers": [
+            "신용손실충당금 전입액"
+          ],
+          "column_headers": [
+            "제 15 기"
+          ],
+          "statement_type": "income_statement",
+          "company": "KB금융",
+          "year": 2022,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "III. 재무에 관한 사항 > 2. 연결재무제표::table:2|consolidated||",
+          "source_text": "신용손실충당금 전입액 | 제 16 기 / (3,146,409) / 백만원 | 제 15 기 / (1,847,775) / 백만원 | 제 14 기 / (1,185,133) / 백만원",
+          "raw_value": "(1,847,775)",
+          "raw_unit": "백만원",
+          "expected_normalized_value": -1847775000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2022",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_kbf_credit_loss_reason",
+          "historical_candidate_id": "cand_eca9ff59eee4097a3e74",
+          "kind": "narrative",
+          "candidate_kind": "chunk",
+          "source_candidate_id": "20240326000894:493:16",
+          "evidence_id": "20240326000894:493:16",
+          "source_anchor": "[KB금융 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+          "source_row_id": "20240326000894:493:16",
+          "table_source_id": "III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:9",
+          "row_label": "",
+          "row_headers": [],
+          "column_headers": [],
+          "statement_type": "notes",
+          "company": "KB금융",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:9|consolidated||",
+          "source_text": "연결실체는 대내외의 불확실한 금융환경과 급격한 경기침체에 따른 잠재적인 신용위험을 고려한 경기악화 시나리오와 위기상황 시나리오 등을 반영하여 금융자산에 대한 기대신용손실을 측정하였습니다.",
+          "raw_value": "",
+          "raw_unit": "",
+          "expected_normalized_unit": "UNKNOWN",
+          "period": "2023"
+        }
+      ],
+      "visibility": {
+        "candidate_ids_by_owner": {
+          "credit_loss_growth": [
+            "reviewed_kbf_credit_loss_2023",
+            "reviewed_kbf_credit_loss_2022"
+          ],
+          "credit_loss_growth:current": [
+            "reviewed_kbf_credit_loss_2023"
+          ],
+          "credit_loss_growth:prior": [
+            "reviewed_kbf_credit_loss_2022"
+          ],
+          "credit_loss_reason": [
+            "reviewed_kbf_credit_loss_reason"
+          ],
+          "credit_loss_reason:evidence": [
+            "reviewed_kbf_credit_loss_reason"
+          ]
+        }
+      },
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "credit_loss_growth",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "reviewed_kbf_credit_loss_2023",
+                "source_requirement_id": "credit_loss_growth:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "reviewed_kbf_credit_loss_2022",
+                "source_requirement_id": "credit_loss_growth:prior"
+              }
+            ],
+            "formula": "((abs(CURRENT) - abs(PRIOR)) / abs(PRIOR)) * 100",
+            "result_unit": "%",
+            "display_unit": "%",
+            "display_format": "percentage",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The source reports the two signed operands but no separate growth-rate display."
+          }
+        ],
+        "narrative_bindings": [
+          {
+            "obligation_id": "credit_loss_reason",
+            "candidate_ids": [
+              "reviewed_kbf_credit_loss_reason"
+            ],
+            "evidence_bindings": [
+              {
+                "candidate_id": "reviewed_kbf_credit_loss_reason",
+                "source_requirement_id": "credit_loss_reason:evidence"
+              }
+            ],
+            "text": "불확실한 금융환경과 경기침체에 따른 잠재 신용위험을 반영한 복수의 시나리오로 기대신용손실을 측정했습니다."
+          }
+        ],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "Preserve the parenthesized signs, compare absolute expense magnitudes, and keep the risk explanation grounded in the reviewed note."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "selected_candidate_ids": [
+          "reviewed_kbf_credit_loss_2023",
+          "reviewed_kbf_credit_loss_2022",
+          "reviewed_kbf_credit_loss_reason"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "credit_loss_growth",
+            "normalized_value": 70.2809595324106,
+            "normalized_unit": "PERCENT",
+            "calculated_value": 70.2809595324106
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "lge_operating_income_less_ampc",
+      "question_id": "LGE_T1_051",
+      "question": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+      "review": {
+        "status": "reviewed",
+        "basis": "user-reviewed operating-income and AMPC component sources",
+        "source_references": [
+          "benchmarks/results/semantic_program_lge_mixed_chunk_successor_2026-08-27/results.json",
+          "DART receipt 20240314001110"
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "operating_income",
+          "kind": "direct_value",
+          "label": "2023년 연결 영업이익",
+          "required": true,
+          "display_unit": "백만원",
+          "display_format": "0,0",
+          "scope": {
+            "company": "LG에너지솔루션",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "operating_income_ampc"
+        },
+        {
+          "obligation_id": "ampc_amount",
+          "kind": "direct_value",
+          "label": "2023년 AMPC 금액",
+          "required": true,
+          "display_unit": "백만원",
+          "display_format": "0,0",
+          "scope": {
+            "company": "LG에너지솔루션",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "operating_income_ampc"
+        },
+        {
+          "obligation_id": "adjusted_operating_income",
+          "kind": "derived_value",
+          "label": "AMPC 제외 실질 영업이익",
+          "required": true,
+          "display_unit": "백만원",
+          "display_format": "0,0",
+          "scope": {
+            "company": "LG에너지솔루션",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [
+            "operating_income",
+            "ampc_amount"
+          ],
+          "coupling_key": "operating_income_ampc"
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "reviewed_lge_operating_income",
+          "historical_candidate_id": "cand_6434f10c4bdef3501a6f",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240314001110:285:206::rowrec:21",
+          "evidence_id": "20240314001110:285:206",
+          "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석]",
+          "source_row_id": "20240314001110:285:206",
+          "table_source_id": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200",
+          "physical_table_id": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200",
+          "physical_row_id": "20240314001110:285:206::rowrec:21",
+          "physical_cell_id": "20240314001110:285:206::rowrec:21::2023",
+          "row_label": "영업이익(손실)",
+          "row_headers": [
+            "영업이익(손실)"
+          ],
+          "column_headers": [
+            "2023"
+          ],
+          "statement_type": "notes",
+          "company": "LG에너지솔루션",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200|consolidated||",
+          "source_text": "영업이익(손실) | 2,163,234 | 백만원 ; 기타영업손익 | 676,874 | 백만원",
+          "raw_value": "2,163,234",
+          "raw_unit": "백만원",
+          "expected_normalized_value": 2163234000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_lge_ampc_amount",
+          "historical_candidate_id": "cand_53eed93ed23c561cad39",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240314001110:285:206::rowrec:3",
+          "evidence_id": "20240314001110:285:206",
+          "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 연결재무제표 주석]",
+          "source_row_id": "20240314001110:285:206",
+          "table_source_id": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200",
+          "physical_table_id": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200",
+          "physical_row_id": "20240314001110:285:206::rowrec:3",
+          "physical_cell_id": "20240314001110:285:206::rowrec:3::2023",
+          "row_label": "기타영업손익",
+          "row_headers": [
+            "기타영업손익",
+            "첨단제조 생산세액공제"
+          ],
+          "column_headers": [
+            "2023"
+          ],
+          "statement_type": "notes",
+          "company": "LG에너지솔루션",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "III. 재무에 관한 사항 > 연결재무제표 주석::table:200|consolidated||",
+          "source_text": "영업이익(손실) | 2,163,234 | 백만원 ; 기타영업손익 | 676,874 | 백만원",
+          "raw_value": "676,874",
+          "raw_unit": "백만원",
+          "expected_normalized_value": 676874000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        }
+      ],
+      "visibility": {
+        "candidate_ids_by_owner": {
+          "operating_income": [
+            "reviewed_lge_operating_income"
+          ],
+          "ampc_amount": [
+            "reviewed_lge_ampc_amount"
+          ],
+          "adjusted_operating_income": []
+        }
+      },
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {
+            "obligation_id": "operating_income",
+            "candidate_id": "reviewed_lge_operating_income"
+          },
+          {
+            "obligation_id": "ampc_amount",
+            "candidate_id": "reviewed_lge_ampc_amount"
+          }
+        ],
+        "expressions": [
+          {
+            "obligation_id": "adjusted_operating_income",
+            "variable_bindings": [
+              {
+                "variable": "OPERATING_INCOME",
+                "source_id": "operating_income"
+              },
+              {
+                "variable": "AMPC",
+                "source_id": "ampc_amount"
+              }
+            ],
+            "formula": "OPERATING_INCOME - AMPC",
+            "result_unit": "KRW",
+            "display_unit": "백만원",
+            "display_format": "0,0",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The adjusted amount is not reported directly and must be calculated from the two reviewed values."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "Subtract the reviewed AMPC component from the reviewed consolidated operating income."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "selected_candidate_ids": [
+          "reviewed_lge_operating_income",
+          "reviewed_lge_ampc_amount"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "adjusted_operating_income",
+            "normalized_value": 1486360000000,
+            "normalized_unit": "KRW",
+            "calculated_value": 1486360000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "naver_commerce_growth_and_poshmark",
+      "question_id": "NAV_T2_006",
+      "question": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+      "review": {
+        "status": "reviewed",
+        "basis": "historical runtime selection with verified filing-linked values",
+        "source_references": [
+          "benchmarks/results/semantic_program_focused_core_full_catalog_2026-08-27/results.json",
+          "DART receipt 20240318000844"
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "commerce_2023",
+          "kind": "direct_value",
+          "label": "2023년 커머스 매출액",
+          "required": true,
+          "display_unit": "억원",
+          "display_format": "0.0",
+          "scope": {
+            "company": "NAVER",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "커머스",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "commerce_growth"
+        },
+        {
+          "obligation_id": "commerce_2022",
+          "kind": "direct_value",
+          "label": "2022년 커머스 매출액",
+          "required": true,
+          "display_unit": "억원",
+          "display_format": "0.0",
+          "scope": {
+            "company": "NAVER",
+            "period": "2022",
+            "consolidation_scope": "consolidated",
+            "segment": "커머스",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": "commerce_growth"
+        },
+        {
+          "obligation_id": "commerce_growth",
+          "kind": "derived_value",
+          "label": "커머스 부문 2023년 매출 성장률",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "percentage",
+          "scope": {
+            "company": "NAVER",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "커머스",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [
+            "commerce_2023",
+            "commerce_2022"
+          ],
+          "coupling_key": "commerce_growth"
+        },
+        {
+          "obligation_id": "poshmark_effect",
+          "kind": "narrative",
+          "label": "포시마크 인수의 커머스 실적 영향",
+          "required": true,
+          "display_unit": "",
+          "display_format": "",
+          "scope": {
+            "company": "NAVER",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "커머스",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "reviewed_naver_commerce_2023",
+          "historical_candidate_id": "cand_eadd73116b6a240ac840",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240318000844:888:5::rowrec:2",
+          "evidence_id": "20240318000844:888:5",
+          "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+          "source_row_id": "20240318000844:888:5",
+          "table_source_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_table_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_row_id": "20240318000844:888:5::rowrec:2",
+          "physical_cell_id": "20240318000844:888:5::rowrec:2::current",
+          "row_label": "커머스",
+          "row_headers": [
+            "커머스"
+          ],
+          "column_headers": [
+            "연결",
+            "제25기"
+          ],
+          "statement_type": "mda",
+          "company": "NAVER",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "커머스",
+          "basis": "",
+          "context_fingerprint": "IV. 이사의 경영진단 및 분석의견::table:4|consolidated|커머스|",
+          "source_text": "커머스 | 연결 / 제25기 / 2,546.6 / 억원 | 연결 / 제24기 / 1,801.1 / 억원 | 연결 / 증(감)률 / 41.4%",
+          "raw_value": "2,546.6",
+          "raw_unit": "억원",
+          "expected_normalized_value": 254660000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_naver_commerce_2022",
+          "historical_candidate_id": "cand_aa8def9cd7e52c462a1d",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240318000844:888:5::rowrec:2",
+          "evidence_id": "20240318000844:888:5",
+          "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+          "source_row_id": "20240318000844:888:5",
+          "table_source_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_table_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_row_id": "20240318000844:888:5::rowrec:2",
+          "physical_cell_id": "20240318000844:888:5::rowrec:2::prior",
+          "row_label": "커머스",
+          "row_headers": [
+            "커머스"
+          ],
+          "column_headers": [
+            "연결",
+            "제24기"
+          ],
+          "statement_type": "mda",
+          "company": "NAVER",
+          "year": 2022,
+          "consolidation_scope": "consolidated",
+          "segment": "커머스",
+          "basis": "",
+          "context_fingerprint": "IV. 이사의 경영진단 및 분석의견::table:4|consolidated|커머스|",
+          "source_text": "커머스 | 연결 / 제25기 / 2,546.6 / 억원 | 연결 / 제24기 / 1,801.1 / 억원 | 연결 / 증(감)률 / 41.4%",
+          "raw_value": "1,801.1",
+          "raw_unit": "억원",
+          "expected_normalized_value": 180110000000,
+          "expected_normalized_unit": "KRW",
+          "period": "2022",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_naver_commerce_growth",
+          "historical_candidate_id": "cand_5f6b987e5be86f80bcb3",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240318000844:888:5::rowrec:2",
+          "evidence_id": "20240318000844:888:5",
+          "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+          "source_row_id": "20240318000844:888:5",
+          "table_source_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_table_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "physical_row_id": "20240318000844:888:5::rowrec:2",
+          "physical_cell_id": "20240318000844:888:5::rowrec:2::growth",
+          "row_label": "커머스",
+          "row_headers": [
+            "커머스"
+          ],
+          "column_headers": [
+            "연결",
+            "증(감)률"
+          ],
+          "statement_type": "mda",
+          "company": "NAVER",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "커머스",
+          "basis": "",
+          "context_fingerprint": "IV. 이사의 경영진단 및 분석의견::table:4|consolidated|커머스|",
+          "source_text": "커머스 | 연결 / 제25기 / 2,546.6 / 억원 | 연결 / 제24기 / 1,801.1 / 억원 | 연결 / 증(감)률 / 41.4%",
+          "raw_value": "41.4%",
+          "raw_unit": "%",
+          "expected_normalized_value": 41.4,
+          "expected_normalized_unit": "PERCENT",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_naver_poshmark_integration",
+          "historical_candidate_id": "cand_976ae0030c2d22a27755",
+          "kind": "narrative",
+          "candidate_kind": "chunk",
+          "source_candidate_id": "20240318000844:887:4",
+          "evidence_id": "20240318000844:887:4",
+          "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+          "source_row_id": "20240318000844:887:4",
+          "table_source_id": "IV. 이사의 경영진단 및 분석의견::table:3",
+          "row_label": "",
+          "row_headers": [],
+          "column_headers": [],
+          "statement_type": "mda",
+          "company": "NAVER",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "커머스",
+          "basis": "",
+          "context_fingerprint": "IV. 이사의 경영진단 및 분석의견::table:3|consolidated|커머스|",
+          "source_text": "Poshmark 연결 편입효과에 따른 영업수익 증가가 주요 사업부문의 성장에 기여했습니다.",
+          "raw_value": "",
+          "raw_unit": "",
+          "expected_normalized_unit": "UNKNOWN",
+          "period": "2023"
+        },
+        {
+          "candidate_id": "reviewed_naver_poshmark_improvement",
+          "kind": "narrative",
+          "candidate_kind": "chunk",
+          "source_candidate_id": "20240318000844:888:5",
+          "evidence_id": "20240318000844:888:5",
+          "source_anchor": "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
+          "source_row_id": "20240318000844:888:5",
+          "table_source_id": "IV. 이사의 경영진단 및 분석의견::table:4",
+          "row_label": "",
+          "row_headers": [],
+          "column_headers": [],
+          "statement_type": "mda",
+          "company": "NAVER",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "커머스",
+          "basis": "",
+          "context_fingerprint": "IV. 이사의 경영진단 및 분석의견::table:4|consolidated|커머스|",
+          "source_text": "2023년 초 글로벌 C2C 경쟁력 강화를 위해 인수한 Poshmark의 성공적인 체질 개선 등이 커머스 성장의 주요 요인으로 작용했습니다.",
+          "raw_value": "",
+          "raw_unit": "",
+          "expected_normalized_unit": "UNKNOWN",
+          "period": "2023"
+        }
+      ],
+      "visibility": {
+        "candidate_ids_by_owner": {
+          "commerce_2023": [
+            "reviewed_naver_commerce_2023"
+          ],
+          "commerce_2022": [
+            "reviewed_naver_commerce_2022"
+          ],
+          "commerce_growth": [
+            "reviewed_naver_commerce_growth"
+          ],
+          "poshmark_effect": [
+            "reviewed_naver_poshmark_integration",
+            "reviewed_naver_poshmark_improvement"
+          ]
+        }
+      },
+      "program": {
+        "status": "ready",
+        "direct_bindings": [
+          {
+            "obligation_id": "commerce_2023",
+            "candidate_id": "reviewed_naver_commerce_2023"
+          },
+          {
+            "obligation_id": "commerce_2022",
+            "candidate_id": "reviewed_naver_commerce_2022"
+          }
+        ],
+        "expressions": [
+          {
+            "obligation_id": "commerce_growth",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "commerce_2023"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "commerce_2022"
+              }
+            ],
+            "formula": "(CURRENT / PRIOR - 1) * 100",
+            "result_unit": "%",
+            "display_unit": "%",
+            "display_format": "percentage",
+            "source_display_candidate_id": "reviewed_naver_commerce_growth",
+            "source_display_reason": "The same physical commerce row explicitly reports the year-over-year growth rate."
+          }
+        ],
+        "narrative_bindings": [
+          {
+            "obligation_id": "poshmark_effect",
+            "candidate_ids": [
+              "reviewed_naver_poshmark_integration",
+              "reviewed_naver_poshmark_improvement"
+            ],
+            "evidence_bindings": [],
+            "text": "포시마크 연결 편입 효과와 인수 후 체질 개선이 커머스 매출 성장에 기여했습니다."
+          }
+        ],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "Calculate from the two period cells, preserve the source-stated growth display, and synthesize the two reviewed Poshmark excerpts."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "selected_candidate_ids": [
+          "reviewed_naver_commerce_2023",
+          "reviewed_naver_commerce_2022",
+          "reviewed_naver_commerce_growth",
+          "reviewed_naver_poshmark_integration",
+          "reviewed_naver_poshmark_improvement"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "commerce_growth",
+            "normalized_value": 41.3913719393704,
+            "normalized_unit": "PERCENT",
+            "calculated_value": 41.3913719393704,
+            "display_value": 41.4,
+            "source_display_candidate_id": "reviewed_naver_commerce_growth",
+            "rendered_value": "41.4%"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "celltrion_capitalized_development_ratio",
+      "question_id": "CEL_T1_013",
+      "question": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+      "review": {
+        "status": "reviewed",
+        "basis": "manually verified curated-dataset evidence from the filing",
+        "source_references": [
+          "benchmarks/datasets/single_doc_eval_full.curated.json#CEL_T1_013",
+          "DART receipt 20240318000913"
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "capitalized_development_ratio",
+          "kind": "derived_value",
+          "label": "연구개발비용 중 자본화된 개발비 비율",
+          "required": true,
+          "display_unit": "%",
+          "display_format": "percentage",
+          "scope": {
+            "company": "셀트리온",
+            "period": "2023",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "retrieval_hints": [],
+          "concept_hints": [],
+          "evidence_requirements": [
+            {
+              "requirement_id": "capitalized_development_ratio:total",
+              "label": "2023년 연구개발비용 총계",
+              "required": true,
+              "scope": {
+                "company": "셀트리온",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              },
+              "retrieval_hints": [],
+              "concept_hints": []
+            },
+            {
+              "requirement_id": "capitalized_development_ratio:capitalized",
+              "label": "2023년 무형자산 처리 개발비",
+              "required": true,
+              "scope": {
+                "company": "셀트리온",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              },
+              "retrieval_hints": [],
+              "concept_hints": []
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "reviewed_celltrion_rd_total",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240318000913:rd-table::row:total",
+          "evidence_id": "20240318000913:rd-table",
+          "source_anchor": "[셀트리온 | 2023 | II. 사업의 내용 > 연구개발활동]",
+          "source_row_id": "20240318000913:rd-table::row:total",
+          "table_source_id": "II. 사업의 내용 > 연구개발활동::table:reviewed",
+          "physical_table_id": "II. 사업의 내용 > 연구개발활동::table:reviewed",
+          "physical_row_id": "20240318000913:rd-table::row:total",
+          "physical_cell_id": "20240318000913:rd-table::row:total::2023",
+          "row_label": "연구개발비용 계",
+          "row_headers": [
+            "연구개발비용 계"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "other",
+          "company": "셀트리온",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "II. 사업의 내용 > 연구개발활동::table:reviewed|consolidated||",
+          "source_text": "연구개발비용 계 342,736,271천원 ; 개발비(무형자산) 181,624,107천원",
+          "raw_value": "342,736,271",
+          "raw_unit": "천원",
+          "expected_normalized_value": 342736271000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        },
+        {
+          "candidate_id": "reviewed_celltrion_capitalized_development",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "20240318000913:rd-table::row:capitalized",
+          "evidence_id": "20240318000913:rd-table",
+          "source_anchor": "[셀트리온 | 2023 | II. 사업의 내용 > 연구개발활동]",
+          "source_row_id": "20240318000913:rd-table::row:capitalized",
+          "table_source_id": "II. 사업의 내용 > 연구개발활동::table:reviewed",
+          "physical_table_id": "II. 사업의 내용 > 연구개발활동::table:reviewed",
+          "physical_row_id": "20240318000913:rd-table::row:capitalized",
+          "physical_cell_id": "20240318000913:rd-table::row:capitalized::2023",
+          "row_label": "개발비(무형자산)",
+          "row_headers": [
+            "개발비(무형자산)"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "other",
+          "company": "셀트리온",
+          "year": 2023,
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "II. 사업의 내용 > 연구개발활동::table:reviewed|consolidated||",
+          "source_text": "연구개발비용 계 342,736,271천원 ; 개발비(무형자산) 181,624,107천원",
+          "raw_value": "181,624,107",
+          "raw_unit": "천원",
+          "expected_normalized_value": 181624107000,
+          "expected_normalized_unit": "KRW",
+          "period": "2023",
+          "value_role": "",
+          "aggregation_stage": "",
+          "aggregate_label": ""
+        }
+      ],
+      "visibility": {
+        "candidate_ids_by_owner": {
+          "capitalized_development_ratio": [
+            "reviewed_celltrion_rd_total",
+            "reviewed_celltrion_capitalized_development"
+          ],
+          "capitalized_development_ratio:total": [
+            "reviewed_celltrion_rd_total"
+          ],
+          "capitalized_development_ratio:capitalized": [
+            "reviewed_celltrion_capitalized_development"
+          ]
+        }
+      },
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "capitalized_development_ratio",
+            "variable_bindings": [
+              {
+                "variable": "TOTAL",
+                "source_id": "reviewed_celltrion_rd_total",
+                "source_requirement_id": "capitalized_development_ratio:total"
+              },
+              {
+                "variable": "CAPITALIZED",
+                "source_id": "reviewed_celltrion_capitalized_development",
+                "source_requirement_id": "capitalized_development_ratio:capitalized"
+              }
+            ],
+            "formula": "CAPITALIZED / TOTAL * 100",
+            "result_unit": "%",
+            "display_unit": "%",
+            "display_format": "percentage",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The filing reports the two amounts but not the resulting capitalization ratio."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "Divide the reviewed capitalized development cost by the reviewed total research and development cost."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "selected_candidate_ids": [
+          "reviewed_celltrion_rd_total",
+          "reviewed_celltrion_capitalized_development"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "capitalized_development_ratio",
+            "normalized_value": 52.992379963193336,
+            "normalized_unit": "PERCENT",
+            "calculated_value": 52.992379963193336
+          }
+        ]
+      }
+    }
+  ]
+}
