@@ -195,6 +195,66 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_003"])
         self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
 
+    def test_planner_drops_own_evidence_requirements_from_obligation_dependencies(self):
+        planner = RequirementPlannerOutput.model_validate({
+            "topic": "requested outputs",
+            "obligations": [
+                {
+                    "obligation_id": "reported_output",
+                    "kind": "direct_value",
+                    "label": "reported output",
+                },
+                {
+                    "obligation_id": "derived_output",
+                    "kind": "derived_value",
+                    "label": "derived output",
+                    "evidence_requirements": [
+                        {"requirement_id": "current_input", "label": "current input"},
+                        {"requirement_id": "prior_input", "label": "prior input"},
+                    ],
+                    "depends_on": [
+                        "reported_output",
+                        "current_input",
+                        "prior_input",
+                    ],
+                },
+            ],
+        })
+        llm = _StructuredQueueLLM(planner)
+        agent = object.__new__(FinancialAgent)
+        agent.llm = llm
+        agent.llm_routes = {}
+        agent.llm_usage_callback = None
+        planned = agent._plan_answer_obligation_program({
+            "query": "Return the requested outputs.",
+            "report_scope": {}, "query_type": "numeric_fact",
+            "intent": "numeric_fact", "topic": "requested outputs",
+            "companies": [], "years": [],
+        })
+
+        obligations = planned["answer_obligations"]
+        self.assertEqual(obligations[0]["depends_on"], [])
+        self.assertEqual(obligations[1]["depends_on"], ["ob_001"])
+        self.assertEqual(
+            [row["requirement_id"] for row in obligations[1]["evidence_requirements"]],
+            ["ob_002:req_001", "ob_002:req_002"],
+        )
+        self.assertIn(
+            "redundant_evidence_dependency_removed:ob_002:current_input",
+            planned["semantic_plan"]["planner_notes"],
+        )
+        self.assertIn(
+            "redundant_evidence_dependency_removed:ob_002:prior_input",
+            planned["semantic_plan"]["planner_notes"],
+        )
+        islands = build_semantic_compilation_islands(obligations)
+        self.assertEqual(
+            [item["obligation_ids"] for item in islands["islands"]],
+            [["ob_001", "ob_002"]],
+        )
+        self.assertEqual(islands["islands"][0]["errors"], [])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput"])
+
 
 if __name__ == "__main__":
     unittest.main()

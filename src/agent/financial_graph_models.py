@@ -152,7 +152,14 @@ class AnswerObligation(_DeferredBaseModel):
         ),
     )
     evidence_requirements: List[EvidenceRequirement] = Field(default_factory=list)
-    depends_on: List[str] = Field(default_factory=list)
+    depends_on: List[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs of other user-visible answer obligations whose calculated outputs "
+            "feed this obligation. Do not include this obligation or any of its "
+            "evidence requirement IDs; raw inputs belong in evidence_requirements."
+        ),
+    )
     coupling_key: str = Field(
         default="",
         max_length=_SEMANTIC_COUPLING_KEY_MAX_CHARS,

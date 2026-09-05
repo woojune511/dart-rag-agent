@@ -215,6 +215,7 @@ class FinancialAgentPlanningMixin:
         query_consolidation_scopes = explicit_query_consolidation_scopes(query)
         allowed_query_consolidation_scopes = set(query_consolidation_scopes)
         target_notes: List[str] = []
+        dependency_notes: List[str] = []
         requirement_errors: List[Dict[str, str]] = []
 
         def normalize_semantic_target(
@@ -313,6 +314,14 @@ class FinancialAgentPlanningMixin:
                 obligation.get("semantic_target"),
                 concept_hints=obligation_concept_hints,
             )
+            raw_evidence_requirement_ids = {
+                requirement_id
+                for requirement in (obligation.get("evidence_requirements") or [])
+                for requirement_id in [
+                    _normalise_spaces(str(dict(requirement or {}).get("requirement_id") or ""))
+                ]
+                if requirement_id
+            }
             evidence_requirements = []
             for requirement_index, requirement in enumerate(
                 obligation.get("evidence_requirements") or [],
@@ -354,14 +363,29 @@ class FinancialAgentPlanningMixin:
                         ),
                     }
                 )
-            dependencies = [
-                raw_id_to_stable.get(item, item)
-                for item in (
-                    _normalise_spaces(str(value))
-                    for value in (obligation.get("depends_on") or [])
-                )
-                if item
-            ]
+            own_evidence_dependency_ids = raw_evidence_requirement_ids | {
+                str(requirement.get("requirement_id") or "")
+                for requirement in evidence_requirements
+            }
+            dependencies = []
+            for item in (
+                _normalise_spaces(str(value))
+                for value in (obligation.get("depends_on") or [])
+            ):
+                if not item:
+                    continue
+                if item in raw_id_to_stable:
+                    dependencies.append(raw_id_to_stable[item])
+                    continue
+                if item in raw_id_to_stable.values():
+                    dependencies.append(item)
+                    continue
+                if item in own_evidence_dependency_ids:
+                    dependency_notes.append(
+                        f"redundant_evidence_dependency_removed:{stable_id}:{item}"
+                    )
+                    continue
+                dependencies.append(item)
             obligations.append(
                 {
                     **obligation,
@@ -521,6 +545,7 @@ class FinancialAgentPlanningMixin:
                     "requirement_planner",
                     _normalise_spaces(str(planned.rationale or "")),
                     *list(dict.fromkeys(target_notes)),
+                    *list(dict.fromkeys(dependency_notes)),
                 )
                 if item
             ],

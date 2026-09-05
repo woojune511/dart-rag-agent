@@ -645,6 +645,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- scope.company는 공시 문서의 회사 범위입니다. 표 행이나 문장 안에서 실제 값의 주체가 되는 회사·사업·대상은 semantic_target.local_subjects에 적고 scope.company로 대체하지 마세요.\n"
             "- 각 obligation과 evidence requirement의 semantic_target을 작성하세요. local_subjects에는 질문이 직접 지목한 local entity만, concept_keys에는 아래 목록에 실제로 있는 ontology concept key만, metric_surfaces에는 질문에 보이는 지표 표현을 보존하세요. 정확한 concept가 없으면 concept_keys를 비운 채 metric_surfaces를 사용하세요.\n"
             "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
+            "- depends_on에는 이 obligation의 계산에 앞서 결과가 필요한 다른 answer obligation의 obligation_id만 적으세요. 같은 obligation의 원시 입력이나 evidence requirement ID는 적지 않습니다. 원시 입력 관계는 evidence_requirements만으로 선언합니다.\n"
             "- evidence_mode의 기본값은 declared_inputs입니다. 원시 계산 입력과 질문에 명시된 사실·관계에는 이 모드를 유지하세요. 이 모드의 narrative obligation은 답변에 필요한 각 사실과 관계, 특히 인과 설명을 evidence_requirements에 선언합니다. 대상 변화와 설명 요인을 함께 식별할 수 있는 label과 retrieval_hints를 사용하고, 다른 지표의 변화나 일반적 배경을 대상 변화의 직접 원인 근거로 대용하지 마세요.\n"
             "- 총액과 구성비처럼 공통 기준으로 결합되어야 하는 출력만 같은 coupling_key를 사용합니다. 같은 질문·회사·보고서에 속한다는 이유만으로 묶지 마세요. 독립적으로 요청된 출력은 coupling_key를 비워 두며 서로 다른 표를 근거로 사용할 수 있습니다. coupling_key는 반복 없는 64자 이하의 짧고 안정적인 식별자로 작성하세요.\n"
             "- ontology hints는 검색과 후보 의미 결합에 쓰는 제한된 vocabulary입니다. 질문에 맞는 정확한 concept가 없다고 비슷한 key를 만들거나 obligation을 삭제하지 마세요.\n"
